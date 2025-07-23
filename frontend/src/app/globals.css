@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom CSS variables for our color scheme */
+:root {
+  --primary: #0F172A;
+  --accent: #3B82F6;
+}
+
+/* Ensure body has proper base styles */
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  margin: 0;
+  padding: 0;
+}
