@@ -1,5 +1,7 @@
 # DeedPro - Enterprise Real Estate Document Platform
 
+<!-- Deployment test - Updated 2025 -->
+
 A comprehensive full-stack platform for creating, managing, and recording real estate transfer documents with enterprise-grade external integrations, AI-powered assistance, and professional admin dashboard with comprehensive monitoring and management capabilities.
 
 ## 🏗️ Architecture
