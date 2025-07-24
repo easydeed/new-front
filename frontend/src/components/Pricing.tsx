@@ -1,5 +1,7 @@
 'use client';
 
+import { CurrencyDollarIcon, CheckIcon } from '@heroicons/react/24/outline';
+
 export default function Pricing() {
   const plans = [
     {
@@ -92,16 +94,17 @@ export default function Pricing() {
   ];
 
   return (
-    <section className="py-20 px-6 bg-gradient-to-br from-gray-50 to-white">
+    <section className="py-20 px-6 bg-background">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <div className="inline-block bg-gradient-to-r from-green-500 to-blue-500 text-white px-4 py-2 rounded-full text-sm font-semibold mb-4">
-            💎 Flexible Pricing
+          <div className="inline-block bg-accent text-white px-4 py-2 rounded-full text-sm font-semibold mb-4 flex items-center gap-2 w-fit mx-auto">
+            <CurrencyDollarIcon className="h-4 w-4" />
+            Flexible Pricing
           </div>
-          <h2 className="text-4xl lg:text-5xl font-bold text-gray-800 mb-6">
+          <h2 className="text-4xl lg:text-5xl font-bold text-text-primary mb-6">
             Choose Your DeedPro Plan
           </h2>
-          <p className="text-gray-600 max-w-3xl mx-auto text-lg">
+          <p className="text-text-secondary max-w-3xl mx-auto text-lg">
             From individual professionals to enterprise integrations, we have a plan that scales with your business. 
             All plans include our AI-enhanced wizard and professional support.
           </p>
@@ -111,45 +114,45 @@ export default function Pricing() {
           {plans.map((plan, index) => (
             <div key={index} className={`relative p-8 rounded-3xl border-2 ${
               plan.popular 
-                ? 'border-blue-500 shadow-2xl scale-105 bg-gradient-to-br from-blue-50 to-purple-50' 
-                : 'border-gray-200 bg-white hover:shadow-xl'
+                ? 'border-accent shadow-2xl scale-105 bg-surface' 
+                : 'border-silver bg-surface hover:shadow-xl hover:border-accent'
             } transition-all duration-300`}>
               
               <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                 <span className={`px-6 py-2 rounded-full text-sm font-bold ${
                   plan.popular 
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white' 
-                    : 'bg-gray-200 text-gray-700'
+                    ? 'bg-accent text-white' 
+                    : 'bg-background text-text-secondary border border-silver'
                 }`}>
                   {plan.badge}
                 </span>
               </div>
               
               <div className="text-center mb-8 pt-4">
-                <h3 className="text-2xl font-bold text-gray-800 mb-2">{plan.name}</h3>
-                <p className="text-gray-600 mb-6">{plan.description}</p>
+                <h3 className="text-2xl font-bold text-text-primary mb-2">{plan.name}</h3>
+                <p className="text-text-secondary mb-6">{plan.description}</p>
                 <div className="flex items-baseline justify-center mb-2">
-                  <span className="text-5xl font-bold text-gray-800">{plan.price}</span>
-                  <span className="text-gray-500 ml-2 text-lg">{plan.period}</span>
+                  <span className="text-5xl font-bold text-text-primary">{plan.price}</span>
+                  <span className="text-text-secondary ml-2 text-lg">{plan.period}</span>
                 </div>
                 {plan.name === "Starter" && (
-                  <div className="text-sm text-green-600 font-semibold">14-day free trial</div>
+                  <div className="text-sm text-accent font-semibold">14-day free trial</div>
                 )}
               </div>
               
               <ul className="space-y-4 mb-8">
                 {plan.features.map((feature, idx) => (
                   <li key={idx} className="flex items-start">
-                    <span className="text-green-500 mr-3 mt-1 text-lg">✓</span>
-                    <span className="text-gray-700 leading-relaxed">{feature}</span>
+                    <CheckIcon className="h-5 w-5 text-accent mr-3 mt-1 flex-shrink-0" />
+                    <span className="text-text-secondary leading-relaxed">{feature}</span>
                   </li>
                 ))}
               </ul>
               
               <button className={`w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all ${
                 plan.popular 
-                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg transform hover:scale-105' 
-                  : 'bg-gray-800 text-white hover:bg-gray-700'
+                  ? 'bg-accent text-white hover:shadow-lg transform hover:scale-105' 
+                  : 'bg-primary text-white hover:bg-secondary'
               }`}>
                 {plan.cta}
               </button>
@@ -158,29 +161,29 @@ export default function Pricing() {
         </div>
 
         {/* API Comparison Table */}
-        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border">
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-8 text-center">
+        <div className="bg-surface rounded-3xl shadow-xl overflow-hidden border border-silver">
+          <div className="bg-primary text-white p-8 text-center">
             <h3 className="text-2xl font-bold mb-2">API Features Comparison</h3>
-            <p className="text-blue-100">Detailed breakdown of API capabilities across plans</p>
+            <p className="text-silver">Detailed breakdown of API capabilities across plans</p>
           </div>
           
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-background">
                 <tr>
-                  <th className="px-6 py-4 text-left font-semibold text-gray-800">Feature</th>
-                  <th className="px-6 py-4 text-center font-semibold text-gray-800">Starter</th>
-                  <th className="px-6 py-4 text-center font-semibold text-gray-800">Professional</th>
-                  <th className="px-6 py-4 text-center font-semibold text-gray-800">Enterprise API</th>
+                  <th className="px-6 py-4 text-left font-semibold text-text-primary">Feature</th>
+                  <th className="px-6 py-4 text-center font-semibold text-text-primary">Starter</th>
+                  <th className="px-6 py-4 text-center font-semibold text-text-primary">Professional</th>
+                  <th className="px-6 py-4 text-center font-semibold text-text-primary">Enterprise API</th>
                 </tr>
               </thead>
               <tbody>
                 {apiFeatures.map((row, index) => (
-                  <tr key={index} className="border-t border-gray-100 hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium text-gray-800">{row.feature}</td>
-                    <td className="px-6 py-4 text-center text-gray-600">{row.starter}</td>
-                    <td className="px-6 py-4 text-center text-gray-600">{row.professional}</td>
-                    <td className="px-6 py-4 text-center text-gray-600">{row.enterprise}</td>
+                  <tr key={index} className="border-t border-silver hover:bg-background">
+                    <td className="px-6 py-4 font-medium text-text-primary">{row.feature}</td>
+                    <td className="px-6 py-4 text-center text-text-secondary">{row.starter}</td>
+                    <td className="px-6 py-4 text-center text-text-secondary">{row.professional}</td>
+                    <td className="px-6 py-4 text-center text-text-secondary">{row.enterprise}</td>
                   </tr>
                 ))}
               </tbody>
@@ -190,16 +193,16 @@ export default function Pricing() {
 
         {/* CTA Section */}
         <div className="mt-16 text-center">
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl p-8 text-white">
+          <div className="bg-primary rounded-3xl p-8 text-white">
             <h3 className="text-2xl font-bold mb-4">Ready to Transform Your Workflow?</h3>
-            <p className="text-blue-100 mb-6 max-w-2xl mx-auto">
-                             Join over 1,200 escrow officers who have streamlined their deed creation process with DeedPro&apos;s AI-enhanced platform.
+            <p className="text-silver mb-6 max-w-2xl mx-auto">
+              Join over 1,200 escrow officers who have streamlined their deed creation process with DeedPro&apos;s AI-enhanced platform.
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
-              <a href="/create-deed" className="bg-white text-blue-600 px-8 py-3 rounded-xl font-bold hover:shadow-lg transition-all">
+              <a href="/create-deed" className="bg-accent text-white px-8 py-3 rounded-xl font-bold hover:shadow-lg transition-all">
                 Try AI Wizard Free
               </a>
-              <a href="#api" className="border-2 border-white text-white px-8 py-3 rounded-xl font-bold hover:bg-white hover:text-blue-600 transition-all">
+              <a href="#api" className="border-2 border-silver text-silver px-8 py-3 rounded-xl font-bold hover:bg-surface hover:text-primary transition-all">
                 Explore API
               </a>
             </div>

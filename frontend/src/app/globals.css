@@ -2,15 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom CSS variables for our color scheme */
+/* Mercedes F1-Inspired Flat Tech Color Scheme */
 :root {
-  --primary: #0F172A;
-  --accent: #3B82F6;
+  --primary: #111827;          /* Charcoal (Mercedes black livery) */
+  --accent: #00A19B;           /* Petronas teal (F1 accent) */
+  --secondary: #565F64;        /* Dark gray (Mercedes details) */
+  --background: #F3F4F6;       /* Light gray (neutral) */
+  --surface: #FFFFFF;          /* Pure white (cards) */
+  --silver: #C8CCCE;           /* Silver highlights (Silver Arrows) */
+  --text-primary: #111827;     /* Charcoal */
+  --text-secondary: #565F64;   /* Dark gray */
 }
 
-/* Ensure body has proper base styles */
+/* Ensure body has proper base styles with flat design */
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   margin: 0;
   padding: 0;
+  background-color: var(--background);
+}
+
+/* Icon styling for monochrome line icons */
+.icon {
+  color: var(--secondary);
+  transition: color 0.3s ease;
+}
+
+.icon:hover {
+  color: var(--accent);
 }

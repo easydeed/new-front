@@ -1,23 +1,36 @@
 'use client';
 
+import { 
+  CpuChipIcon, 
+  SparklesIcon, 
+  DevicePhoneMobileIcon,
+  LinkIcon,
+  CogIcon,
+  ArrowPathIcon,
+  ChartBarIcon,
+  LockClosedIcon,
+  BoltIcon,
+  BuildingOfficeIcon
+} from '@heroicons/react/24/outline';
+
 export default function Features() {
   const aiFeatures = [
     {
       title: "AI-Enhanced Deed Wizard",
       description: "Interactive card selection with smart tooltips and real-time AI assistance for perfect document formatting.",
-      icon: "🤖",
+      icon: CpuChipIcon,
       badge: "AI Powered"
     },
     {
       title: "Smart Field Assistance",
       description: "Context-aware AI suggestions for property addresses, legal descriptions, and complex legal formatting.",
-      icon: "✨",
+      icon: SparklesIcon,
       badge: "New"
     },
     {
       title: "iPhone-Style Interface",
       description: "Large, bubbly, touch-friendly design that makes complex legal processes feel effortless.",
-      icon: "📱",
+      icon: DevicePhoneMobileIcon,
       badge: "UX"
     }
   ];
@@ -26,19 +39,19 @@ export default function Features() {
     {
       title: "Enterprise REST API",
       description: "Complete RESTful API with 50+ endpoints for seamless integration into your existing workflow.",
-      icon: "🔗",
+      icon: LinkIcon,
       badge: "API"
     },
     {
       title: "SoftPro 360 Integration",
       description: "Direct webhook integration with SoftPro Process Automation for automatic deed generation.",
-      icon: "⚙️",
+      icon: CogIcon,
       badge: "Integration"
     },
     {
       title: "Qualia GraphQL Sync",
       description: "Bidirectional order import/export with Qualia's GraphQL API for complete workflow automation.",
-      icon: "🔄",
+      icon: ArrowPathIcon,
       badge: "GraphQL"
     }
   ];
@@ -47,52 +60,54 @@ export default function Features() {
     {
       title: "Admin Dashboard",
       description: "Comprehensive analytics, user management, revenue tracking, and system health monitoring.",
-      icon: "📊",
+      icon: ChartBarIcon,
       badge: "Admin"
     },
     {
       title: "Client-Level Security",
       description: "API key authentication with scope-based permissions and comprehensive audit logging.",
-      icon: "🔒",
+      icon: LockClosedIcon,
       badge: "Security"
     },
     {
       title: "99.9% Uptime SLA",
       description: "Enterprise-grade reliability with dual API architecture and background processing.",
-      icon: "⚡",
+      icon: BoltIcon,
       badge: "Enterprise"
     }
   ];
 
-  const FeatureCard = ({ feature, gradient }: { 
-    feature: { title: string; description: string; icon: string; badge: string }, 
-    gradient: string 
+  const FeatureCard = ({ feature, borderColor }: { 
+    feature: { title: string; description: string; icon: any; badge: string }, 
+    borderColor: string,
+    key?: number
   }) => (
-    <div className={`relative p-6 rounded-2xl border hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 bg-gradient-to-br ${gradient}`}>
+    <div className={`relative p-6 rounded-2xl border-2 ${borderColor} hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 bg-surface`}>
       <div className="absolute top-4 right-4">
-        <span className="bg-white/90 text-gray-700 px-2 py-1 rounded-full text-xs font-semibold">
+        <span className="bg-background text-text-secondary px-2 py-1 rounded-full text-xs font-semibold border border-silver">
           {feature.badge}
         </span>
       </div>
-      <div className="text-4xl mb-4">{feature.icon}</div>
-      <h3 className="text-xl font-bold text-gray-800 mb-3">{feature.title}</h3>
-      <p className="text-gray-600 leading-relaxed">{feature.description}</p>
+      <feature.icon className="h-12 w-12 text-text-secondary mb-4 icon" />
+      <h3 className="text-xl font-bold text-text-primary mb-3">{feature.title}</h3>
+      <p className="text-text-secondary leading-relaxed">{feature.description}</p>
     </div>
   );
 
   return (
-    <div className="bg-gray-50">
+    <div className="bg-background">
       {/* AI Features Section */}
       <section id="features" className="py-20 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <div className="inline-block bg-gradient-to-r from-green-500 to-blue-500 text-white px-4 py-2 rounded-full text-sm font-semibold mb-4">
-              🤖 AI-Powered Innovation
+            <div className="inline-block bg-accent text-white px-4 py-2 rounded-full text-sm font-semibold mb-4 flex items-center gap-2 w-fit mx-auto">
+              <CpuChipIcon className="h-4 w-4" />
+              AI-Powered Innovation
             </div>
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-800 mb-6">
+            <h2 className="text-4xl lg:text-5xl font-bold text-text-primary mb-6">
               Intelligent Deed Creation
             </h2>
-            <p className="text-gray-600 max-w-3xl mx-auto text-lg">
+            <p className="text-text-secondary max-w-3xl mx-auto text-lg">
               Experience the future of legal document creation with our AI-enhanced wizard that guides, 
               suggests, and perfects your deeds in real-time.
             </p>
@@ -103,7 +118,7 @@ export default function Features() {
               <FeatureCard 
                 key={index} 
                 feature={feature} 
-                gradient="from-green-50 to-blue-50 border-green-200"
+                borderColor="border-accent/20 hover:border-accent"
               />
             ))}
           </div>
@@ -111,16 +126,17 @@ export default function Features() {
       </section>
 
       {/* API Features Section */}
-      <section id="api" className="py-20 px-6 bg-white">
+      <section id="api" className="py-20 px-6 bg-surface">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <div className="inline-block bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-full text-sm font-semibold mb-4">
-              🔗 Enterprise API Platform
+            <div className="inline-block bg-primary text-white px-4 py-2 rounded-full text-sm font-semibold mb-4 flex items-center gap-2 w-fit mx-auto">
+              <LinkIcon className="h-4 w-4" />
+              Enterprise API Platform
             </div>
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-800 mb-6">
+            <h2 className="text-4xl lg:text-5xl font-bold text-text-primary mb-6">
               Seamless Integrations
             </h2>
-            <p className="text-gray-600 max-w-3xl mx-auto text-lg">
+            <p className="text-text-secondary max-w-3xl mx-auto text-lg">
               Connect DeedPro to your existing workflow with our comprehensive API. 
               Built for SoftPro, Qualia, and custom enterprise integrations.
             </p>
@@ -131,16 +147,16 @@ export default function Features() {
               <FeatureCard 
                 key={index} 
                 feature={feature} 
-                gradient="from-blue-50 to-purple-50 border-blue-200"
+                borderColor="border-primary/20 hover:border-primary"
               />
             ))}
           </div>
 
           {/* API Code Example */}
-          <div className="bg-gray-900 rounded-2xl p-8 text-white shadow-2xl">
+          <div className="bg-primary rounded-2xl p-8 text-white shadow-2xl">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold">API Example: Generate Deed</h3>
-              <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm">Live API</span>
+              <span className="bg-accent text-white px-3 py-1 rounded-full text-sm">Live API</span>
             </div>
             <pre className="text-green-400 text-sm overflow-x-auto">
 {`POST /api/v1/softpro/webhook
@@ -165,10 +181,10 @@ Response: {
 }`}
             </pre>
             <div className="mt-6 flex gap-4">
-              <a href="/docs" className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-semibold transition-colors">
+              <a href="/docs" className="bg-accent hover:bg-accent/90 px-4 py-2 rounded-lg font-semibold transition-colors">
                 View API Docs
               </a>
-              <a href="#" className="border border-gray-600 hover:border-gray-400 px-4 py-2 rounded-lg font-semibold transition-colors">
+              <a href="#" className="border border-silver hover:border-white px-4 py-2 rounded-lg font-semibold transition-colors">
                 Get API Key
               </a>
             </div>
@@ -177,16 +193,17 @@ Response: {
       </section>
 
       {/* Enterprise Features */}
-      <section className="py-20 px-6 bg-gray-50">
+      <section className="py-20 px-6 bg-background">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <div className="inline-block bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-full text-sm font-semibold mb-4">
-              🏢 Enterprise Ready
+            <div className="inline-block bg-secondary text-white px-4 py-2 rounded-full text-sm font-semibold mb-4 flex items-center gap-2 w-fit mx-auto">
+              <BuildingOfficeIcon className="h-4 w-4" />
+              Enterprise Ready
             </div>
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-800 mb-6">
+            <h2 className="text-4xl lg:text-5xl font-bold text-text-primary mb-6">
               Built for Scale
             </h2>
-            <p className="text-gray-600 max-w-3xl mx-auto text-lg">
+            <p className="text-text-secondary max-w-3xl mx-auto text-lg">
               From individual escrow officers to enterprise title companies, 
               DeedPro scales with your business needs and security requirements.
             </p>
@@ -197,7 +214,7 @@ Response: {
               <FeatureCard 
                 key={index} 
                 feature={feature} 
-                gradient="from-purple-50 to-pink-50 border-purple-200"
+                borderColor="border-secondary/20 hover:border-secondary"
               />
             ))}
           </div>
@@ -205,20 +222,20 @@ Response: {
           {/* Stats Row */}
           <div className="mt-16 grid grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="text-center">
-              <div className="text-3xl lg:text-4xl font-bold text-blue-600 mb-2">50+</div>
-              <div className="text-gray-600">API Endpoints</div>
+              <div className="text-3xl lg:text-4xl font-bold text-primary mb-2">50+</div>
+              <div className="text-text-secondary">API Endpoints</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl lg:text-4xl font-bold text-green-600 mb-2">99.9%</div>
-              <div className="text-gray-600">Uptime SLA</div>
+              <div className="text-3xl lg:text-4xl font-bold text-accent mb-2">99.9%</div>
+              <div className="text-text-secondary">Uptime SLA</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl lg:text-4xl font-bold text-purple-600 mb-2">1,200+</div>
-              <div className="text-gray-600">Active Users</div>
+              <div className="text-3xl lg:text-4xl font-bold text-secondary mb-2">1,200+</div>
+              <div className="text-text-secondary">Active Users</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl lg:text-4xl font-bold text-orange-600 mb-2">24/7</div>
-              <div className="text-gray-600">API Support</div>
+              <div className="text-3xl lg:text-4xl font-bold text-accent mb-2">24/7</div>
+              <div className="text-text-secondary">API Support</div>
             </div>
           </div>
         </div>
