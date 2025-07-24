@@ -97,7 +97,7 @@ export default function Pricing() {
     <section className="py-20 px-6 bg-background">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <div className="inline-block bg-accent text-white px-4 py-2 rounded-full text-sm font-semibold mb-4 flex items-center gap-2 w-fit mx-auto">
+          <div className="inline-block bg-tertiary text-primary px-4 py-2 rounded-full text-sm font-semibold mb-4 flex items-center gap-2 w-fit mx-auto">
             <CurrencyDollarIcon className="h-4 w-4" />
             Flexible Pricing
           </div>
@@ -114,14 +114,14 @@ export default function Pricing() {
           {plans.map((plan, index) => (
             <div key={index} className={`relative p-8 rounded-3xl border-2 ${
               plan.popular 
-                ? 'border-accent shadow-2xl scale-105 bg-surface' 
-                : 'border-silver bg-surface hover:shadow-xl hover:border-accent'
+                ? 'border-tertiary shadow-2xl scale-105 bg-surface ring-4 ring-tertiary/20' 
+                : 'border-silver bg-surface hover:shadow-xl hover:border-secondary'
             } transition-all duration-300`}>
               
               <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                 <span className={`px-6 py-2 rounded-full text-sm font-bold ${
                   plan.popular 
-                    ? 'bg-accent text-white' 
+                    ? 'bg-tertiary text-primary shadow-lg' 
                     : 'bg-background text-text-secondary border border-silver'
                 }`}>
                   {plan.badge}
@@ -136,14 +136,16 @@ export default function Pricing() {
                   <span className="text-text-secondary ml-2 text-lg">{plan.period}</span>
                 </div>
                 {plan.name === "Starter" && (
-                  <div className="text-sm text-accent font-semibold">14-day free trial</div>
+                  <div className="text-sm text-tertiary font-semibold">14-day free trial</div>
                 )}
               </div>
               
               <ul className="space-y-4 mb-8">
                 {plan.features.map((feature, idx) => (
                   <li key={idx} className="flex items-start">
-                    <CheckIcon className="h-5 w-5 text-accent mr-3 mt-1 flex-shrink-0" />
+                    <CheckIcon className={`h-5 w-5 mr-3 mt-1 flex-shrink-0 ${
+                      plan.popular ? 'text-tertiary' : 'text-secondary'
+                    }`} />
                     <span className="text-text-secondary leading-relaxed">{feature}</span>
                   </li>
                 ))}
@@ -151,8 +153,8 @@ export default function Pricing() {
               
               <button className={`w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all ${
                 plan.popular 
-                  ? 'bg-accent text-white hover:shadow-lg transform hover:scale-105' 
-                  : 'bg-primary text-white hover:bg-secondary'
+                  ? 'bg-tertiary text-primary hover:shadow-lg transform hover:scale-105 hover:bg-secondary' 
+                  : 'bg-primary text-white hover:bg-secondary hover:text-primary'
               }`}>
                 {plan.cta}
               </button>
@@ -173,16 +175,16 @@ export default function Pricing() {
                 <tr>
                   <th className="px-6 py-4 text-left font-semibold text-text-primary">Feature</th>
                   <th className="px-6 py-4 text-center font-semibold text-text-primary">Starter</th>
-                  <th className="px-6 py-4 text-center font-semibold text-text-primary">Professional</th>
+                  <th className="px-6 py-4 text-center font-semibold text-primary bg-tertiary/10">Professional</th>
                   <th className="px-6 py-4 text-center font-semibold text-text-primary">Enterprise API</th>
                 </tr>
               </thead>
               <tbody>
                 {apiFeatures.map((row, index) => (
-                  <tr key={index} className="border-t border-silver hover:bg-background">
+                  <tr key={index} className="border-t border-silver hover:bg-background transition-colors">
                     <td className="px-6 py-4 font-medium text-text-primary">{row.feature}</td>
                     <td className="px-6 py-4 text-center text-text-secondary">{row.starter}</td>
-                    <td className="px-6 py-4 text-center text-text-secondary">{row.professional}</td>
+                    <td className="px-6 py-4 text-center text-text-secondary bg-tertiary/5 font-semibold">{row.professional}</td>
                     <td className="px-6 py-4 text-center text-text-secondary">{row.enterprise}</td>
                   </tr>
                 ))}
@@ -199,10 +201,10 @@ export default function Pricing() {
               Join over 1,200 escrow officers who have streamlined their deed creation process with DeedPro&apos;s AI-enhanced platform.
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
-              <a href="/create-deed" className="bg-accent text-white px-8 py-3 rounded-xl font-bold hover:shadow-lg transition-all">
+              <a href="/create-deed" className="bg-tertiary text-primary px-8 py-3 rounded-xl font-bold hover:shadow-lg hover:bg-secondary transition-all">
                 Try AI Wizard Free
               </a>
-              <a href="#api" className="border-2 border-silver text-silver px-8 py-3 rounded-xl font-bold hover:bg-surface hover:text-primary transition-all">
+              <a href="#api" className="border-2 border-silver text-silver px-8 py-3 rounded-xl font-bold hover:bg-surface hover:text-primary hover:border-tertiary transition-all">
                 Explore API
               </a>
             </div>

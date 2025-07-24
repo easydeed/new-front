@@ -1,5 +1,13 @@
 {
+  "name": "deedpro-project",
+  "version": "1.0.0", 
+  "description": "AI-Enhanced Real Estate Document Platform",
+  "scripts": {
+    "build": "cd frontend && npm install && npm run build",
+    "start": "cd frontend && npm start",
+    "dev": "cd frontend && npm run dev"
+  },
   "dependencies": {
-    "@heroicons/react": "^2.2.0"
+    "@heroicons/react": "^2.1.6"
   }
 }

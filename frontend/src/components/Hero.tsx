@@ -28,29 +28,29 @@ export default function Hero() {
         
         <div className="flex flex-wrap gap-3 mb-8 justify-center lg:justify-start">
           <span className="bg-surface text-text-secondary px-3 py-1 rounded-full text-sm font-medium border border-silver flex items-center gap-1">
-            <SparklesIcon className="h-4 w-4" /> AI Wizard
+            <SparklesIcon className="h-4 w-4 icon" /> AI Wizard
           </span>
           <span className="bg-surface text-text-secondary px-3 py-1 rounded-full text-sm font-medium border border-silver flex items-center gap-1">
-            <BuildingOfficeIcon className="h-4 w-4" /> API Integrations
+            <BuildingOfficeIcon className="h-4 w-4 icon" /> API Integrations
           </span>
-          <span className="bg-surface text-text-secondary px-3 py-1 rounded-full text-sm font-medium border border-silver flex items-center gap-1">
+          <span className="bg-tertiary text-primary px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1 shadow-lg">
             <BuildingOfficeIcon className="h-4 w-4" /> Enterprise Ready
           </span>
           <span className="bg-surface text-text-secondary px-3 py-1 rounded-full text-sm font-medium border border-silver flex items-center gap-1">
-            <DevicePhoneMobileIcon className="h-4 w-4" /> iPhone-Style UX
+            <DevicePhoneMobileIcon className="h-4 w-4 icon" /> iPhone-Style UX
           </span>
         </div>
         
         <div className="flex gap-4 flex-wrap justify-center lg:justify-start mb-8">
           <a 
             href="/create-deed" 
-            className="bg-accent text-white px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-105 font-semibold text-lg"
+            className="bg-tertiary text-primary px-8 py-4 rounded-xl shadow-lg hover:shadow-xl hover:bg-secondary transition-all transform hover:scale-105 font-semibold text-lg"
           >
             Try AI Wizard →
           </a>
           <a 
             href="#api" 
-            className="bg-surface text-text-primary px-8 py-4 rounded-xl hover:bg-silver transition-all font-semibold text-lg border border-silver"
+            className="bg-surface text-text-primary px-8 py-4 rounded-xl hover:bg-silver hover:text-tertiary transition-all font-semibold text-lg border border-silver"
           >
             Explore API
           </a>
@@ -58,7 +58,7 @@ export default function Hero() {
         
         <div className="flex flex-col sm:flex-row gap-6 items-center justify-center lg:justify-start text-sm text-text-secondary">
           <div className="flex items-center gap-2">
-            <span className="text-accent">✅</span>
+            <span className="text-tertiary">✅</span>
             <span>Trusted by 1,200+ escrow officers</span>
           </div>
           <div className="flex items-center gap-2">
@@ -66,7 +66,7 @@ export default function Hero() {
             <span>Integrates with SoftPro & Qualia</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-accent">⚡</span>
+            <span className="text-tertiary">⚡</span>
             <span>99.9% API uptime</span>
           </div>
         </div>
@@ -80,7 +80,7 @@ export default function Hero() {
               <div className="flex gap-2">
                 <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                 <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <div className="w-3 h-3 bg-tertiary rounded-full"></div>
               </div>
               <div className="flex-1 text-center text-silver text-xs">DeedPro AI Wizard</div>
             </div>
@@ -93,13 +93,13 @@ export default function Hero() {
               <div className="mt-6 flex gap-2">
                 <div className="w-3 h-3 bg-primary rounded-full animate-pulse"></div>
                 <div className="w-3 h-3 bg-secondary rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
-                <div className="w-3 h-3 bg-accent rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
+                <div className="w-3 h-3 bg-tertiary rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
               </div>
             </div>
           </div>
           
           {/* Floating API badge */}
-          <div className="absolute -top-4 -right-4 bg-accent text-white px-4 py-2 rounded-lg shadow-lg transform rotate-12 hover:rotate-0 transition-transform">
+          <div className="absolute -top-4 -right-4 bg-tertiary text-primary px-4 py-2 rounded-lg shadow-lg transform rotate-12 hover:rotate-0 transition-transform">
             <div className="text-xs font-bold">API READY</div>
             <div className="text-xs">RESTful + GraphQL</div>
           </div>
@@ -109,7 +109,7 @@ export default function Hero() {
             <div className="text-xs text-text-secondary mb-1">Integrates with:</div>
             <div className="flex gap-2">
               <span className="bg-background text-primary px-2 py-1 rounded text-xs font-medium">SoftPro 360</span>
-              <span className="bg-background text-accent px-2 py-1 rounded text-xs font-medium">Qualia</span>
+              <span className="bg-background text-secondary px-2 py-1 rounded text-xs font-medium">Qualia</span>
             </div>
           </div>
         </div>

@@ -19,19 +19,22 @@ export default function Features() {
       title: "AI-Enhanced Deed Wizard",
       description: "Interactive card selection with smart tooltips and real-time AI assistance for perfect document formatting.",
       icon: CpuChipIcon,
-      badge: "AI Powered"
+      badge: "AI Powered",
+      highlight: true
     },
     {
       title: "Smart Field Assistance",
       description: "Context-aware AI suggestions for property addresses, legal descriptions, and complex legal formatting.",
       icon: SparklesIcon,
-      badge: "New"
+      badge: "New",
+      highlight: true
     },
     {
       title: "iPhone-Style Interface",
       description: "Large, bubbly, touch-friendly design that makes complex legal processes feel effortless.",
       icon: DevicePhoneMobileIcon,
-      badge: "UX"
+      badge: "UX",
+      highlight: false
     }
   ];
 
@@ -40,19 +43,22 @@ export default function Features() {
       title: "Enterprise REST API",
       description: "Complete RESTful API with 50+ endpoints for seamless integration into your existing workflow.",
       icon: LinkIcon,
-      badge: "API"
+      badge: "API",
+      highlight: false
     },
     {
       title: "SoftPro 360 Integration",
       description: "Direct webhook integration with SoftPro Process Automation for automatic deed generation.",
       icon: CogIcon,
-      badge: "Integration"
+      badge: "Integration",
+      highlight: false
     },
     {
       title: "Qualia GraphQL Sync",
       description: "Bidirectional order import/export with Qualia's GraphQL API for complete workflow automation.",
       icon: ArrowPathIcon,
-      badge: "GraphQL"
+      badge: "GraphQL",
+      highlight: true
     }
   ];
 
@@ -61,30 +67,37 @@ export default function Features() {
       title: "Admin Dashboard",
       description: "Comprehensive analytics, user management, revenue tracking, and system health monitoring.",
       icon: ChartBarIcon,
-      badge: "Admin"
+      badge: "Admin",
+      highlight: false
     },
     {
       title: "Client-Level Security",
       description: "API key authentication with scope-based permissions and comprehensive audit logging.",
       icon: LockClosedIcon,
-      badge: "Security"
+      badge: "Security",
+      highlight: false
     },
     {
       title: "99.9% Uptime SLA",
       description: "Enterprise-grade reliability with dual API architecture and background processing.",
       icon: BoltIcon,
-      badge: "Enterprise"
+      badge: "Enterprise",
+      highlight: true
     }
   ];
 
   const FeatureCard = ({ feature, borderColor }: { 
-    feature: { title: string; description: string; icon: any; badge: string }, 
+    feature: { title: string; description: string; icon: any; badge: string; highlight: boolean }, 
     borderColor: string,
     key?: number
   }) => (
     <div className={`relative p-6 rounded-2xl border-2 ${borderColor} hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 bg-surface`}>
       <div className="absolute top-4 right-4">
-        <span className="bg-background text-text-secondary px-2 py-1 rounded-full text-xs font-semibold border border-silver">
+        <span className={`px-2 py-1 rounded-full text-xs font-semibold border ${
+          feature.highlight 
+            ? 'bg-tertiary text-primary border-tertiary' 
+            : 'bg-background text-text-secondary border-silver'
+        }`}>
           {feature.badge}
         </span>
       </div>
@@ -100,7 +113,7 @@ export default function Features() {
       <section id="features" className="py-20 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <div className="inline-block bg-accent text-white px-4 py-2 rounded-full text-sm font-semibold mb-4 flex items-center gap-2 w-fit mx-auto">
+            <div className="inline-block bg-tertiary text-primary px-4 py-2 rounded-full text-sm font-semibold mb-4 flex items-center gap-2 w-fit mx-auto">
               <CpuChipIcon className="h-4 w-4" />
               AI-Powered Innovation
             </div>
@@ -118,7 +131,7 @@ export default function Features() {
               <FeatureCard 
                 key={index} 
                 feature={feature} 
-                borderColor="border-accent/20 hover:border-accent"
+                borderColor="border-secondary/20 hover:border-tertiary"
               />
             ))}
           </div>
@@ -147,7 +160,7 @@ export default function Features() {
               <FeatureCard 
                 key={index} 
                 feature={feature} 
-                borderColor="border-primary/20 hover:border-primary"
+                borderColor="border-primary/20 hover:border-secondary"
               />
             ))}
           </div>
@@ -156,7 +169,7 @@ export default function Features() {
           <div className="bg-primary rounded-2xl p-8 text-white shadow-2xl">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold">API Example: Generate Deed</h3>
-              <span className="bg-accent text-white px-3 py-1 rounded-full text-sm">Live API</span>
+              <span className="bg-tertiary text-primary px-3 py-1 rounded-full text-sm font-bold">Live API</span>
             </div>
             <pre className="text-green-400 text-sm overflow-x-auto">
 {`POST /api/v1/softpro/webhook
@@ -181,10 +194,10 @@ Response: {
 }`}
             </pre>
             <div className="mt-6 flex gap-4">
-              <a href="/docs" className="bg-accent hover:bg-accent/90 px-4 py-2 rounded-lg font-semibold transition-colors">
+              <a href="/docs" className="bg-tertiary hover:bg-secondary text-primary px-4 py-2 rounded-lg font-semibold transition-colors">
                 View API Docs
               </a>
-              <a href="#" className="border border-silver hover:border-white px-4 py-2 rounded-lg font-semibold transition-colors">
+              <a href="#" className="border border-silver hover:border-tertiary hover:text-tertiary px-4 py-2 rounded-lg font-semibold transition-colors">
                 Get API Key
               </a>
             </div>
@@ -214,7 +227,7 @@ Response: {
               <FeatureCard 
                 key={index} 
                 feature={feature} 
-                borderColor="border-secondary/20 hover:border-secondary"
+                borderColor="border-secondary/20 hover:border-tertiary"
               />
             ))}
           </div>
@@ -226,7 +239,7 @@ Response: {
               <div className="text-text-secondary">API Endpoints</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl lg:text-4xl font-bold text-accent mb-2">99.9%</div>
+              <div className="text-3xl lg:text-4xl font-bold text-tertiary mb-2">99.9%</div>
               <div className="text-text-secondary">Uptime SLA</div>
             </div>
             <div className="text-center">
@@ -234,7 +247,7 @@ Response: {
               <div className="text-text-secondary">Active Users</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl lg:text-4xl font-bold text-accent mb-2">24/7</div>
+              <div className="text-3xl lg:text-4xl font-bold text-tertiary mb-2">24/7</div>
               <div className="text-text-secondary">API Support</div>
             </div>
           </div>

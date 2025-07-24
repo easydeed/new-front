@@ -2,13 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Mercedes F1-Inspired Flat Tech Color Scheme */
+/* Mercedes F1-Inspired Flat Tech Color Scheme + Neon Green Accent */
 :root {
   --primary: #111827;          /* Charcoal (Mercedes black livery) */
-  --accent: #00A19B;           /* Petronas teal (F1 accent) */
-  --secondary: #565F64;        /* Dark gray (Mercedes details) */
+  --secondary: #2DD4BF;        /* Teal (tech-forward accent) */
+  --tertiary: #76FF03;         /* Neon Green (Matrix/GitHub inspired) */
   --background: #F3F4F6;       /* Light gray (neutral) */
-  --surface: #FFFFFF;          /* Pure white (cards) */
+  --surface: #FFFFFF;          /* Pure white (cards, contact-wrapper) */
   --silver: #C8CCCE;           /* Silver highlights (Silver Arrows) */
   --text-primary: #111827;     /* Charcoal */
   --text-secondary: #565F64;   /* Dark gray */
@@ -22,12 +22,17 @@ body {
   background-color: var(--background);
 }
 
-/* Icon styling for monochrome line icons */
+/* Icon styling for monochrome line icons with neon green accent */
 .icon {
-  color: var(--secondary);
+  color: var(--text-secondary);
   transition: color 0.3s ease;
 }
 
 .icon:hover {
-  color: var(--accent);
+  color: var(--tertiary);
+}
+
+/* Contact wrapper always white for crispness */
+.contact-wrapper {
+  background-color: var(--surface) !important;
 }
