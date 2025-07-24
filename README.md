@@ -531,6 +531,7 @@ curl -X POST "http://localhost:8000/api/ai/assist" \
 - **API Documentation**: http://localhost:8000/docs (Main API)
 - **External API Docs**: http://localhost:8001/docs (External Integrations)
 - **External API Guide**: `backend/EXTERNAL_API_README.md`
+- **Templates System Guide**: `TEMPLATES_GUIDE.md` - Complete deed template development guide for developers and AI agents
 - **Registration & Stripe Setup**: `SETUP_GUIDE.md` - Complete implementation guide
 - **Development Navigation**: `DEVELOPMENT_GUIDE.md` - Developer workflow guide
 
