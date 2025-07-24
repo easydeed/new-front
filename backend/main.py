@@ -1363,6 +1363,27 @@ async def generate_deed(deed: DeedData):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Deed generation failed: {str(e)}")
 
+# Deed preview endpoint (HTML-only, no PDF, no plan limit count)
+@app.post("/generate-deed-preview")
+async def generate_deed_preview(deed: DeedData):
+    """Generate HTML preview of deed without PDF generation or plan limit usage"""
+    try:
+        # Get the template for the specified deed type
+        template = env.get_template(f"{deed.deed_type}.html")
+        
+        # Render HTML with data injection
+        html_content = template.render(deed.data)
+        
+        # Return only HTML for preview (no PDF generation, no plan usage)
+        return {
+            "html": html_content,
+            "deed_type": deed.deed_type,
+            "status": "preview_ready"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Deed preview failed: {str(e)}")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000) 

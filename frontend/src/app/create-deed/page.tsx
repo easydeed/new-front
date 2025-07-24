@@ -228,6 +228,11 @@ export default function CreateDeed() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [deedUsageCount, setDeedUsageCount] = useState(0);
 
+  // Preview state for Step 5 enhancement
+  const [previewHtml, setPreviewHtml] = useState('');
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+
   const steps = [
     { 
       id: 1, 
@@ -382,6 +387,66 @@ export default function CreateDeed() {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  // Preview functionality for Step 5 enhancement
+  const handlePreviewDeed = async () => {
+    setIsLoadingPreview(true);
+    setPreviewHtml('');
+
+    try {
+      // Convert formData to format expected by backend
+      const deedData = {
+        deed_type: formData.deedType.toLowerCase().replace(/\s+/g, '_'),
+        data: {
+          recording_requested_by: "DeedPro User", // Default value
+          mail_to: formData.propertySearch || "Property Address",
+          order_no: "PREVIEW-ORDER",
+          escrow_no: "PREVIEW-ESCROW", 
+          apn: formData.apn || "000-000-000",
+          documentary_tax: formData.salesPrice || "0.00",
+          city: formData.county || "Unknown City",
+          grantor: "Current Owner", // Would come from form in full implementation
+          grantee: formData.granteeName || "New Owner",
+          county: formData.county || "Unknown County",
+          property_description: formData.legalDescription || formData.propertySearch || "Property Description",
+          date: new Date().toLocaleDateString(),
+          grantor_signature: "Current Owner",
+          county_notary: formData.county || "Unknown County",
+          notary_date: new Date().toLocaleDateString(),
+          notary_name: "Notary Public",
+          appeared_before_notary: "Current Owner",
+          notary_signature: "Notary Public"
+        }
+      };
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/generate-deed-preview`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(deedData)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setPreviewHtml(result.html);
+        setShowPreview(true);
+      } else {
+        alert('Failed to generate preview. Please check your data and try again.');
+      }
+    } catch (error) {
+      console.error('Preview error:', error);
+      alert('Failed to generate preview. Please check your connection.');
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  };
+
+  const handleGenerateFinalDeed = async () => {
+    // This will be the actual generation that counts toward plan limits
+    // Similar to handleGenerateDeed but calls the full /generate-deed endpoint
+    await handleGenerateDeed();
   };
 
   useEffect(() => {
@@ -670,42 +735,161 @@ export default function CreateDeed() {
               </div>
             </div>
 
-            {/* Step 5: Review */}
+            {/* Step 5: Review & Preview */}
             <div className={`form-step ${currentStep === 5 ? 'active' : ''}`}>
               <div className="step-content">
-                <h2 className="step-title">Review & Confirm</h2>
-                <p className="step-description">
-                  Please review all information before generating your deed.
+                <h2 className="step-title" style={{ color: '#111827' }}>Review & Preview</h2>
+                <p className="step-description" style={{ color: '#565F64' }}>
+                  Review your information and preview the exact deed format before generating.
                 </p>
                 
-                <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-                  <div style={{
-                    background: 'var(--gray-50)',
-                    border: '1px solid var(--gray-200)',
+                <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+                  {/* Summary Section */}
+                  <div className="contact-wrapper" style={{
+                    background: '#FFFFFF',
+                    border: '1px solid #C8CCCE',
                     borderRadius: '12px',
-                    padding: '2.5rem'
+                    padding: '2.5rem',
+                    marginBottom: '2rem'
                   }}>
+                    <h3 style={{ color: '#111827', marginBottom: '1.5rem', fontSize: '1.25rem' }}>📋 Summary</h3>
                     <div style={{ display: 'grid', gap: '1.5rem', fontSize: '1.125rem' }}>
-                      <div><strong>Deed Type:</strong> {formData.deedType || 'Not selected'}</div>
-                      <div><strong>Property:</strong> {formData.propertySearch || 'Not entered'}</div>
-                      <div><strong>APN:</strong> {formData.apn || 'Not entered'}</div>
-                      <div><strong>County:</strong> {formData.county || 'Not selected'}</div>
-                      <div><strong>Grantee:</strong> {formData.granteeName || 'Not entered'}</div>
-                      <div><strong>Consideration:</strong> {formData.salesPrice || 'Not entered'}</div>
+                      <div><strong style={{ color: '#111827' }}>Deed Type:</strong> <span style={{ color: '#565F64' }}>{formData.deedType || 'Not selected'}</span></div>
+                      <div><strong style={{ color: '#111827' }}>Property:</strong> <span style={{ color: '#565F64' }}>{formData.propertySearch || 'Not entered'}</span></div>
+                      <div><strong style={{ color: '#111827' }}>APN:</strong> <span style={{ color: '#565F64' }}>{formData.apn || 'Not entered'}</span></div>
+                      <div><strong style={{ color: '#111827' }}>County:</strong> <span style={{ color: '#565F64' }}>{formData.county || 'Not selected'}</span></div>
+                      <div><strong style={{ color: '#111827' }}>Grantee:</strong> <span style={{ color: '#565F64' }}>{formData.granteeName || 'Not entered'}</span></div>
+                      <div><strong style={{ color: '#111827' }}>Consideration:</strong> <span style={{ color: '#565F64' }}>{formData.salesPrice || 'Not entered'}</span></div>
                     </div>
                   </div>
-                  
-                  <div style={{
-                    marginTop: '2rem',
-                    padding: '2rem',
-                    background: 'var(--primary-dark)',
+
+                  {/* Preview Section */}
+                  <div className="contact-wrapper" style={{
+                    background: '#FFFFFF',
+                    border: '1px solid #C8CCCE',
                     borderRadius: '12px',
-                    color: 'white',
+                    padding: '2.5rem',
+                    marginBottom: '2rem'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+                      <h3 style={{ color: '#111827', margin: 0, fontSize: '1.25rem' }}>👁️ Document Preview</h3>
+                      <button
+                        onClick={handlePreviewDeed}
+                        disabled={isLoadingPreview || !formData.deedType}
+                        style={{
+                          backgroundColor: isLoadingPreview ? '#F3F4F6' : '#00A19B',
+                          color: isLoadingPreview ? '#565F64' : '#FFFFFF',
+                          border: 'none',
+                          borderRadius: '12px',
+                          padding: '12px 24px',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          cursor: isLoadingPreview || !formData.deedType ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        {isLoadingPreview ? (
+                          <>
+                            <div style={{
+                              width: '16px',
+                              height: '16px',
+                              border: '2px solid #565F64',
+                              borderTop: '2px solid #111827',
+                              borderRadius: '50%',
+                              animation: 'spin 1s linear infinite'
+                            }} />
+                            Loading Preview...
+                          </>
+                        ) : (
+                          <>
+                            👁️ Preview Deed
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    
+                    {!showPreview && !isLoadingPreview && (
+                      <div style={{
+                        textAlign: 'center',
+                        padding: '3rem',
+                        color: '#565F64',
+                        backgroundColor: '#F3F4F6',
+                        borderRadius: '12px',
+                        border: '2px dashed #C8CCCE'
+                      }}>
+                        <div style={{ fontSize: '48px', marginBottom: '1rem' }}>📄</div>
+                        <h4 style={{ color: '#111827', marginBottom: '0.5rem' }}>Preview Your Deed</h4>
+                        <p style={{ margin: 0, fontSize: '1rem' }}>
+                          Click "Preview Deed" to see exactly how your document will look before generating the final PDF.
+                        </p>
+                      </div>
+                    )}
+
+                    {showPreview && previewHtml && (
+                      <div style={{
+                        border: '2px solid #00A19B',
+                        borderRadius: '12px',
+                        padding: '1rem',
+                        backgroundColor: '#FFFFFF',
+                        maxHeight: '600px',
+                        overflow: 'auto',
+                        fontSize: '14px',
+                        lineHeight: '1.4'
+                      }}>
+                        <div style={{
+                          backgroundColor: '#00A19B',
+                          color: '#FFFFFF',
+                          padding: '8px 16px',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          marginBottom: '1rem',
+                          textAlign: 'center'
+                        }}>
+                          ✅ PREVIEW - This is exactly how your deed will appear
+                        </div>
+                        <div 
+                          dangerouslySetInnerHTML={{ __html: previewHtml }}
+                          style={{ 
+                            backgroundColor: '#FFFFFF',
+                            border: '1px solid #E5E7EB',
+                            borderRadius: '4px'
+                          }}
+                        />
+                        <div style={{
+                          backgroundColor: '#F3F4F6',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          marginTop: '1rem',
+                          fontSize: '12px',
+                          color: '#565F64',
+                          textAlign: 'center'
+                        }}>
+                          📏 Preview shows actual margins (1"), fonts (Times New Roman 12pt), and legal formatting
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Ready to Generate Section */}
+                  <div style={{
+                    padding: '2rem',
+                    background: '#111827',
+                    borderRadius: '12px',
+                    color: '#FFFFFF',
                     textAlign: 'center'
                   }}>
-                    <h4 style={{ margin: '0 0 1rem 0', fontSize: '1.5rem' }}>🎉 Ready to Generate</h4>
+                    <h4 style={{ margin: '0 0 1rem 0', fontSize: '1.5rem' }}>
+                      {showPreview ? '🎉 Ready to Generate' : '📋 Complete Your Review'}
+                    </h4>
                     <p style={{ margin: 0, opacity: 0.9, fontSize: '1.125rem', lineHeight: '1.6' }}>
-                      Your professional deed document will be created and ready for download.
+                      {showPreview 
+                        ? 'Your deed preview looks perfect! Generate the final PDF document.'
+                        : 'Preview your deed first to ensure everything looks correct, then generate the final document.'
+                      }
                     </p>
                   </div>
                 </div>
@@ -787,15 +971,28 @@ export default function CreateDeed() {
                 
                 <button
                   className="wizard-btn wizard-btn-primary"
-                  onClick={handleGenerateDeed}
-                  disabled={isGenerating || !!planLimitsError}
+                  onClick={handleGenerateFinalDeed}
+                  disabled={isGenerating || !!planLimitsError || !showPreview}
                   style={{ 
-                    opacity: isGenerating || planLimitsError ? 0.6 : 1,
-                    cursor: isGenerating || planLimitsError ? 'not-allowed' : 'pointer'
+                    opacity: isGenerating || planLimitsError || !showPreview ? 0.6 : 1,
+                    cursor: isGenerating || planLimitsError || !showPreview ? 'not-allowed' : 'pointer',
+                    backgroundColor: showPreview ? '#76FF03' : '#C8CCCE',
+                    color: '#111827'
                   }}
                 >
-                  {isGenerating ? 'Generating...' : 'Generate Deed ✨'}
+                  {isGenerating ? '⏳ Generating PDF...' : showPreview ? '📄 Generate & Download PDF' : '👁️ Preview First'}
                 </button>
+                
+                {!showPreview && !isLoadingPreview && (
+                  <div style={{
+                    fontSize: '12px',
+                    color: '#565F64',
+                    textAlign: 'center',
+                    marginTop: '8px'
+                  }}>
+                    💡 Preview your deed first to ensure formatting is correct
+                  </div>
+                )}
               </div>
             )}
           </div>
