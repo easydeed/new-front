@@ -8,7 +8,4 @@ passlib[bcrypt]
 python-jose[cryptography]
 python-multipart
 openai
-requests
-jinja2
-weasyprint
-pytest 
+requests 

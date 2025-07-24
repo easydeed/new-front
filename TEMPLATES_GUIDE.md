@@ -295,6 +295,83 @@ PDF layout doesn't match requirements
 
 ---
 
+## 🚨 **CRITICAL: Repository Separation & Deployment**
+
+### **⚠️ Repository Structure (MUST FOLLOW)**
+
+**DeedPro uses separate repositories for frontend and backend:**
+
+```
+Frontend Repository: easydeed/new-front
+├── frontend/src/app/create-deed/page.tsx    ← Deed wizard UI
+├── frontend/src/components/                 ← React components  
+├── TEMPLATES_GUIDE.md                       ← This documentation
+└── Other frontend files...
+
+Backend Repository: easydeed/deedpro-backend-2024  
+├── main.py                                  ← FastAPI app with endpoints
+├── templates/                               ← Jinja2 deed templates
+├── tests/                                   ← pytest test suite
+├── requirements.txt                         ← Backend dependencies
+└── Other backend files...
+```
+
+### **🎯 Deployment Mapping**
+- **Frontend (`new-front`)** → **Vercel** (auto-deploys)
+- **Backend (`deedpro-backend-2024`)** → **Render** (manual deploy)
+
+### **❌ CRITICAL ERROR DOCUMENTATION**
+
+**Date: 2025-01-24**  
+**Issue**: Backend deed generation code was incorrectly added to `new-front` repository instead of `deedpro-backend-2024`.
+
+**What Went Wrong:**
+1. ❌ Added `/generate-deed-preview` endpoint to `new-front/backend/main.py`
+2. ❌ Added `templates/` directory to `new-front/backend/`
+3. ❌ Added `tests/` directory to `new-front/backend/`
+4. ❌ Added Jinja2/WeasyPrint dependencies to `new-front/backend/requirements.txt`
+5. ❌ Render continued deploying from `deedpro-backend-2024` (old code)
+6. ❌ Frontend calls failed with 404 because endpoint wasn't in deployed backend
+
+**Resolution:**
+1. ✅ Removed incorrect backend files from `new-front`
+2. ✅ Cleaned up frontend repository to contain only frontend code
+3. 📋 **TODO**: Add preview endpoint to correct `deedpro-backend-2024` repository
+
+### **🛡️ Prevention Rules**
+
+**For AI Agents & Developers:**
+
+1. **Frontend Changes** → **ONLY** modify `new-front` repository
+   - ✅ React components, pages, styles
+   - ✅ Frontend wizard UI
+   - ✅ User interface logic
+
+2. **Backend Changes** → **ONLY** modify `deedpro-backend-2024` repository  
+   - ✅ FastAPI endpoints
+   - ✅ Database models
+   - ✅ Template files
+   - ✅ API business logic
+
+3. **Deployment Verification**
+   - ✅ Check Render logs show correct repository
+   - ✅ Verify endpoint exists at https://deedpro-main-api.onrender.com/docs
+   - ✅ Test frontend calls before declaring success
+
+### **📋 Correct Implementation Checklist**
+
+**For `/generate-deed-preview` endpoint:**
+
+- [ ] **Add to `deedpro-backend-2024/main.py`** (NOT `new-front`)
+- [ ] **Add templates to `deedpro-backend-2024/templates/`** 
+- [ ] **Add tests to `deedpro-backend-2024/tests/`**
+- [ ] **Update `deedpro-backend-2024/requirements.txt`**
+- [ ] **Deploy to Render from correct repository**
+- [ ] **Verify endpoint in API docs**
+- [ ] **Test frontend integration**
+
+---
+
 ## 💡 **Best Practices**
 
 ### **Template Development**
