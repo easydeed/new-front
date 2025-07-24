@@ -1366,7 +1366,7 @@ async def generate_deed(deed: DeedData):
 # Deed preview endpoint (HTML-only, no PDF, no plan limit count)
 @app.post("/generate-deed-preview")
 async def generate_deed_preview(deed: DeedData):
-    """Generate HTML preview of deed without PDF generation or plan limit usage"""
+    """Generate HTML preview of deed without PDF generation or plan limit usage - UPDATED"""
     try:
         # Get the template for the specified deed type
         template = env.get_template(f"{deed.deed_type}.html")
