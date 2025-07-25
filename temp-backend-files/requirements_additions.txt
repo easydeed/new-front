@@ -1,0 +1,5 @@
+# ADD THESE LINES TO deedpro-backend-2024/requirements.txt:
+
+jinja2
+weasyprint
+pytest 
