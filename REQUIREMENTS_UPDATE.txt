@@ -1,0 +1,5 @@
+# ADD THESE LINES TO requirements.txt:
+
+jinja2
+weasyprint
+pytest 
