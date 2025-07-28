@@ -1,6 +1,17 @@
-# DeedPro Registration & Stripe Integration Setup Guide
+# ⚠️ MOVED: DeedPro Setup Guide
 
-This guide walks you through setting up the complete registration, free trial, and Stripe payment system for DeedPro.
+**IMPORTANT**: Backend setup has been moved to the backend repository.
+
+## 🔄 **Repository Separation**
+
+**Frontend Setup**: See `DEVELOPMENT_GUIDE.md` in this repository  
+**Backend Setup**: See setup documentation in `deedpro-backend-2024` repository  
+
+---
+
+# DeedPro Setup Guide (ARCHIVED - Backend Portions)
+
+**Note**: This guide contained backend setup instructions that have been moved to the `deedpro-backend-2024` repository.
 
 ## 🚀 Quick Start
 

@@ -1,6 +1,19 @@
-# DeedPro Deployment Guide
+# ⚠️ MOVED: DeedPro Deployment Guide
 
-Complete guide for deploying DeedPro to production with Vercel (Frontend) and Render (Backend APIs).
+**IMPORTANT**: This deployment guide has been moved to reflect the new repository structure.
+
+## 🔄 **New Repository Structure**
+
+**Frontend Deployment**: This repository → Vercel (covered in VERCEL_FRONTEND_DEPLOYMENT_GUIDE.md)  
+**Backend Deployment**: `deedpro-backend-2024` repository → Render  
+
+---
+
+# DeedPro Deployment Guide (ARCHIVED)
+
+**Note**: This documentation is archived. For current deployment instructions, see:
+- **Frontend**: `VERCEL_FRONTEND_DEPLOYMENT_GUIDE.md` (in this repository)
+- **Backend**: Documentation in `deedpro-backend-2024` repository
 
 ## 🚀 Quick Deployment Checklist
 

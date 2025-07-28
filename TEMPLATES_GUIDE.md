@@ -1,6 +1,24 @@
-# DeedPro Templates Component Guide
+# ⚠️ MOVED: DeedPro Templates Guide
 
-This guide provides comprehensive documentation for developers and AI agents working with the DeedPro templates system for deed generation.
+**IMPORTANT**: This templates functionality has been moved to the backend repository.
+
+## 🔄 **New Location**
+
+**Templates are now in**: `easydeed/deedpro-backend-2024` repository  
+**This guide moved to**: Backend repository documentation  
+**Frontend repository**: Contains UI code only  
+
+## 📋 **Quick Reference**
+
+**For template development**: Work in `deedpro-backend-2024/templates/`  
+**For deed generation API**: Work in `deedpro-backend-2024/backend/main.py`  
+**For frontend UI**: Work in `new-front/frontend/src/app/create-deed/`  
+
+---
+
+# DeedPro Templates Component Guide (ARCHIVED)
+
+**Note**: This documentation remains for reference but templates functionality has been moved to the backend repository.
 
 ## 🏗️ **Architecture Overview**
 
