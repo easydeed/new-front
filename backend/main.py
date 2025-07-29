@@ -24,6 +24,7 @@ from auth import (
 load_dotenv()
 
 app = FastAPI(title="DeedPro API", version="1.0.0")
+# Updated for new-front monorepo with pricing management
 
 # Include AI assistance router
 app.include_router(ai_router)
