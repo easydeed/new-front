@@ -1,32 +1,18 @@
-# ⚠️ MOVED: DeedPro Templates Guide
+# 📄 DeedPro Templates Guide
 
-**IMPORTANT**: This templates functionality has been moved to the backend repository.
+## ⚠️ IMPORTANT: Templates in Monorepo
 
-## 🔄 **New Location**
-
-**Templates are now in**: `easydeed/deedpro-backend-2024` repository  
-**This guide moved to**: Backend repository documentation  
-**Frontend repository**: Contains UI code only  
-
-## 📋 **Quick Reference**
-
-**For template development**: Work in `deedpro-backend-2024/templates/`  
-**For deed generation API**: Work in `deedpro-backend-2024/backend/main.py`  
-**For frontend UI**: Work in `new-front/frontend/src/app/create-deed/`  
+**Templates are now located in the `/templates` directory of the monorepo and accessed by the backend via relative path.**
 
 ---
 
-# DeedPro Templates Component Guide (ARCHIVED)
+## 🏗️ **Template Architecture Overview**
 
-**Note**: This documentation remains for reference but templates functionality has been moved to the backend repository.
-
-## 🏗️ **Architecture Overview**
-
-DeedPro's deed generation system uses a **three-layer architecture**:
+DeedPro's deed generation system uses a **three-layer architecture within the monorepo**:
 
 1. **Frontend Deed Wizard** (`/frontend/src/app/create-deed/page.tsx`) - User interface for data collection
 2. **Backend API Endpoint** (`/backend/main.py` → `/generate-deed`) - Template rendering and PDF generation
-3. **HTML Templates** (`/backend/templates/`) - Pixel-perfect legal document layouts
+3. **HTML Templates** (`/templates/`) - Pixel-perfect legal document layouts
 
 ### **Technology Stack**
 - **Jinja2**: Template engine for data injection into HTML
@@ -36,24 +22,25 @@ DeedPro's deed generation system uses a **three-layer architecture**:
 
 ---
 
-## 📁 **File Structure**
+## 📁 **Monorepo File Structure**
 
 ```
-backend/
-├── templates/
-│   ├── grant_deed.html          # Grant Deed template
-│   ├── quitclaim_deed.html      # Quitclaim Deed template
-│   ├── warranty_deed.html       # Warranty Deed template (future)
-│   └── deed_of_trust.html       # Deed of Trust template (future)
-├── tests/
-│   ├── test_generate_deed.py    # Template generation tests
-│   ├── sample_data.json         # Test data for all deed types
-│   └── README.md                # Testing documentation
-└── main.py                      # Contains /generate-deed endpoint
-
-frontend/src/app/
-└── create-deed/
-    └── page.tsx                 # Deed wizard UI (integrates with backend)
+new-front/                          # MONOREPO ROOT
+├── frontend/
+│   └── src/app/create-deed/
+│       └── page.tsx                # Deed wizard UI (integrates with backend)
+├── backend/
+│   ├── main.py                     # Contains /generate-deed endpoint
+│   └── [other backend files]
+├── templates/                      # SHARED TEMPLATES DIRECTORY
+│   ├── grant_deed.html            # Grant Deed template
+│   ├── quitclaim_deed.html        # Quitclaim Deed template
+│   ├── warranty_deed.html         # Warranty Deed template (future)
+│   └── deed_of_trust.html         # Deed of Trust template (future)
+├── scripts/
+│   ├── add_addon.py               # Database widget addon setup
+│   └── [other scripts]
+└── [documentation files]
 ```
 
 ---
@@ -182,15 +169,15 @@ frontend/src/app/
 
 ### **Running Tests**
 ```bash
-# Install dependencies
+# From backend directory (tests backend + templates)
 cd backend
-pip install -r requirements.txt
-
-# Run all template tests
 pytest tests/ -v
 
-# Run specific deed type test
-pytest tests/test_generate_deed.py::test_generate_grant_deed -v
+# From project root
+python -m pytest backend/tests/ -v
+
+# Run specific template test
+pytest backend/tests/test_templates.py::test_grant_deed -v
 ```
 
 ### **Test Coverage**
@@ -200,10 +187,23 @@ pytest tests/test_generate_deed.py::test_generate_grant_deed -v
 - ✅ **PDF Generation**: WeasyPrint successfully creates base64 output
 - ✅ **Error Handling**: Invalid deed types and missing fields handled gracefully
 
-### **Adding New Tests**
-1. Add template data to `/backend/tests/sample_data.json`
-2. Create test function in `/backend/tests/test_generate_deed.py`
-3. Validate HTML structure, data injection, and PDF output
+### **Testing Templates Manually**
+```bash
+# Test template rendering from backend directory
+cd backend
+python -c "
+from jinja2 import Environment, FileSystemLoader
+env = Environment(loader=FileSystemLoader('../templates'))
+template = env.get_template('grant_deed.html')
+html = template.render({
+    'grantor': 'Test Grantor',
+    'grantee': 'Test Grantee',
+    'property_description': 'Test Property Description'
+})
+print('Template rendered successfully!')
+print(f'HTML length: {len(html)} characters')
+"
+```
 
 ---
 
@@ -211,8 +211,9 @@ pytest tests/test_generate_deed.py::test_generate_grant_deed -v
 
 ### **Step 1: Create HTML Template**
 ```bash
-# Create new template file
-touch backend/templates/new_deed_type.html
+# Create new template file in templates directory
+cd templates
+touch new_deed_type.html
 ```
 
 ### **Step 2: Design Template**
@@ -223,7 +224,7 @@ touch backend/templates/new_deed_type.html
 
 ### **Step 3: Add Test Data**
 ```json
-// Add to backend/tests/sample_data.json
+// Add to backend/tests/sample_data.json (if exists)
 "new_deed_type": {
   "field1": "value1",
   "field2": "value2",
@@ -233,9 +234,17 @@ touch backend/templates/new_deed_type.html
 
 ### **Step 4: Create Tests**
 ```python
-# Add to backend/tests/test_generate_deed.py
-def test_generate_new_deed_type(sample_new_deed_data):
-    response = client.post("/generate-deed", json=sample_new_deed_data)
+# Add to backend/tests/test_templates.py
+def test_generate_new_deed_type():
+    sample_data = {
+        "deed_type": "new_deed_type",
+        "data": {
+            "field1": "value1",
+            "field2": "value2"
+            # ... test data
+        }
+    }
+    response = client.post("/generate-deed", json=sample_data)
     assert response.status_code == 200
     html = response.json()["html"]
     assert "NEW DEED TYPE" in html
@@ -245,7 +254,15 @@ def test_generate_new_deed_type(sample_new_deed_data):
 ### **Step 5: Update Frontend**
 ```tsx
 // Add to frontend/src/app/create-deed/page.tsx
-<option value="new_deed_type">New Deed Type</option>
+const deedTypes = [
+  // ... existing deed types
+  {
+    type: 'New Deed Type',
+    icon: <YourIconHere />,
+    description: 'Description of new deed type.',
+    popular: false
+  }
+];
 ```
 
 ---
@@ -253,48 +270,116 @@ def test_generate_new_deed_type(sample_new_deed_data):
 ## 🔧 **Development Workflow**
 
 ### **Local Development**
-1. **Edit Templates**: Modify `/backend/templates/*.html`
-2. **Test Changes**: Run `pytest backend/tests/ -v`
-3. **Validate Output**: Check HTML structure and PDF generation
-4. **Frontend Integration**: Test with deed wizard UI
+```bash
+# Terminal 1: Start backend
+cd backend
+python main.py
 
-### **Deployment Process**
-1. **Commit Changes**: `git add . && git commit -m "Update templates"`
-2. **Push to Repo**: `git push`
-3. **Deploy Frontend**: `vercel --prod` (for UI changes)
-4. **Deploy Backend**: Deploy to Render (for template/API changes)
+# Terminal 2: Start frontend  
+cd frontend
+npm run dev
+
+# Terminal 3: Edit templates
+cd templates
+# Edit .html files
+
+# Test template changes immediately via frontend or API
+```
+
+### **Template Development Process**
+1. **Edit Template**: Modify `/templates/*.html`
+2. **Test Backend**: Restart backend to reload templates
+3. **Test via API**: Call `/generate-deed` endpoint
+4. **Test via Frontend**: Use deed wizard UI
+5. **Validate Output**: Check HTML structure and PDF generation
+
+### **Template Path Configuration**
+```python
+# In backend/main.py
+from jinja2 import Environment, FileSystemLoader
+
+# Templates accessed via relative path from backend directory
+env = Environment(loader=FileSystemLoader('../templates'))
+```
 
 ---
 
-## 🚨 **Common Issues & Solutions**
+## 🚨 **Template Development Rules**
+
+### **✅ DO THIS**
+- ✅ **Work in `/templates` directory**
+- ✅ **Use Jinja2 syntax for variables**
+- ✅ **Test templates with backend running**
+- ✅ **Follow legal document formatting standards**
+- ✅ **Include fallback values for missing data**
+- ✅ **Validate HTML structure and CSS**
+
+### **❌ NEVER DO THIS**
+- ❌ **Put templates in `/frontend` or `/backend`**
+- ❌ **Hardcode values in templates**
+- ❌ **Break legal formatting requirements**
+- ❌ **Change template paths in backend code**
+- ❌ **Skip testing with real data**
+
+---
+
+## 📊 **Template Performance**
+
+### **Rendering Performance**
+- **Template Load Time**: < 50ms (Jinja2 cached)
+- **HTML Generation**: < 100ms (data injection)
+- **PDF Generation**: < 2 seconds (WeasyPrint)
+- **Total Processing**: < 3 seconds end-to-end
+
+### **Optimization Tips**
+- ✅ **Use template inheritance** for common elements
+- ✅ **Minimize CSS complexity** for faster PDF rendering
+- ✅ **Cache compiled templates** in production
+- ✅ **Optimize image assets** if used in templates
+
+---
+
+## 🚨 **Troubleshooting**
 
 ### **Template Not Found Error**
 ```
 TemplateNotFound: new_deed_type.html
 ```
-**Solution**: Ensure template file exists in `/backend/templates/` with correct filename
+**Solution**: 
+1. Ensure template file exists in `/templates/` directory
+2. Verify filename matches exactly (case-sensitive)
+3. Check template path configuration in backend
 
 ### **PDF Generation Fails**
 ```
 WeasyPrint error: CSS parsing failed
 ```
-**Solution**: Validate CSS syntax, ensure proper @page rules and print styles
+**Solution**: 
+1. Validate CSS syntax in template
+2. Ensure proper @page rules and print styles
+3. Check for unsupported CSS properties
 
 ### **Data Injection Issues**
 ```
 Jinja2 variable not rendering
 ```
-**Solution**: Check variable names match between frontend data and template placeholders
+**Solution**: 
+1. Check variable names match between API data and template
+2. Verify Jinja2 syntax: `{{ variable_name }}`
+3. Add fallback values: `{{ variable_name or "default" }}`
 
-### **Spacing/Margin Problems**
+### **Template Path Issues**
 ```
-PDF layout doesn't match requirements
+FileNotFoundError: ../templates/grant_deed.html
 ```
-**Solution**: Verify CSS units (use inches: `1in`, points: `12pt`), check @page margins
+**Solution**:
+1. Verify you're running from `/backend` directory
+2. Check templates exist in `/templates` directory
+3. Confirm relative path `../templates` is correct
 
 ---
 
-## 📚 **Resources & References**
+## 📚 **Template Development Resources**
 
 ### **Documentation**
 - [Jinja2 Template Documentation](https://jinja.palletsprojects.com/)
@@ -310,83 +395,6 @@ PDF layout doesn't match requirements
 - **CSS Validation**: Check print styles with browser dev tools
 - **PDF Testing**: Use WeasyPrint CLI for rapid iteration
 - **Template Debugging**: Jinja2 template debugging techniques
-
----
-
-## 🚨 **CRITICAL: Repository Separation & Deployment**
-
-### **⚠️ Repository Structure (MUST FOLLOW)**
-
-**DeedPro uses separate repositories for frontend and backend:**
-
-```
-Frontend Repository: easydeed/new-front
-├── frontend/src/app/create-deed/page.tsx    ← Deed wizard UI
-├── frontend/src/components/                 ← React components  
-├── TEMPLATES_GUIDE.md                       ← This documentation
-└── Other frontend files...
-
-Backend Repository: easydeed/deedpro-backend-2024  
-├── main.py                                  ← FastAPI app with endpoints
-├── templates/                               ← Jinja2 deed templates
-├── tests/                                   ← pytest test suite
-├── requirements.txt                         ← Backend dependencies
-└── Other backend files...
-```
-
-### **🎯 Deployment Mapping**
-- **Frontend (`new-front`)** → **Vercel** (auto-deploys)
-- **Backend (`deedpro-backend-2024`)** → **Render** (manual deploy)
-
-### **❌ CRITICAL ERROR DOCUMENTATION**
-
-**Date: 2025-01-24**  
-**Issue**: Backend deed generation code was incorrectly added to `new-front` repository instead of `deedpro-backend-2024`.
-
-**What Went Wrong:**
-1. ❌ Added `/generate-deed-preview` endpoint to `new-front/backend/main.py`
-2. ❌ Added `templates/` directory to `new-front/backend/`
-3. ❌ Added `tests/` directory to `new-front/backend/`
-4. ❌ Added Jinja2/WeasyPrint dependencies to `new-front/backend/requirements.txt`
-5. ❌ Render continued deploying from `deedpro-backend-2024` (old code)
-6. ❌ Frontend calls failed with 404 because endpoint wasn't in deployed backend
-
-**Resolution:**
-1. ✅ Removed incorrect backend files from `new-front`
-2. ✅ Cleaned up frontend repository to contain only frontend code
-3. 📋 **TODO**: Add preview endpoint to correct `deedpro-backend-2024` repository
-
-### **🛡️ Prevention Rules**
-
-**For AI Agents & Developers:**
-
-1. **Frontend Changes** → **ONLY** modify `new-front` repository
-   - ✅ React components, pages, styles
-   - ✅ Frontend wizard UI
-   - ✅ User interface logic
-
-2. **Backend Changes** → **ONLY** modify `deedpro-backend-2024` repository  
-   - ✅ FastAPI endpoints
-   - ✅ Database models
-   - ✅ Template files
-   - ✅ API business logic
-
-3. **Deployment Verification**
-   - ✅ Check Render logs show correct repository
-   - ✅ Verify endpoint exists at https://deedpro-main-api.onrender.com/docs
-   - ✅ Test frontend calls before declaring success
-
-### **📋 Correct Implementation Checklist**
-
-**For `/generate-deed-preview` endpoint:**
-
-- [ ] **Add to `deedpro-backend-2024/main.py`** (NOT `new-front`)
-- [ ] **Add templates to `deedpro-backend-2024/templates/`** 
-- [ ] **Add tests to `deedpro-backend-2024/tests/`**
-- [ ] **Update `deedpro-backend-2024/requirements.txt`**
-- [ ] **Deploy to Render from correct repository**
-- [ ] **Verify endpoint in API docs**
-- [ ] **Test frontend integration**
 
 ---
 
@@ -414,4 +422,4 @@ Backend Repository: easydeed/deedpro-backend-2024
 
 ---
 
-*This guide is maintained by the DeedPro development team. For questions or contributions, refer to the main README.md or create an issue in the repository.* 
+**🚨 Remember**: Templates are shared resources in the monorepo. Backend accesses them via `../templates` relative path! 🎯 

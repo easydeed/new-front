@@ -1,327 +1,488 @@
-# ⚠️ MOVED: DeedPro Deployment Guide
+# 🚀 DeedPro Complete Deployment Guide
 
-**IMPORTANT**: This deployment guide has been moved to reflect the new repository structure.
+## ⚠️ CRITICAL: Monorepo Dual Deployment
 
-## 🔄 **New Repository Structure**
+**This guide covers deploying both frontend and backend from a SINGLE monorepo.**
 
-**Frontend Deployment**: This repository → Vercel (covered in VERCEL_FRONTEND_DEPLOYMENT_GUIDE.md)  
-**Backend Deployment**: `deedpro-backend-2024` repository → Render  
+- **Frontend** (`/frontend`) → **Vercel**  
+- **Backend** (`/backend`) → **Render**  
+- **Templates & Scripts** → Shared in monorepo
 
 ---
 
-# DeedPro Deployment Guide (ARCHIVED)
+## 📋 **Pre-Deployment Checklist**
 
-**Note**: This documentation is archived. For current deployment instructions, see:
-- **Frontend**: `VERCEL_FRONTEND_DEPLOYMENT_GUIDE.md` (in this repository)
-- **Backend**: Documentation in `deedpro-backend-2024` repository
-
-## 🚀 Quick Deployment Checklist
-
-- [ ] Frontend deployed to Vercel
-- [ ] Main API deployed to Render  
-- [ ] External API deployed to Render
-- [ ] Environment variables configured
-- [ ] Domain names updated
-- [ ] SSL certificates active
-- [ ] Health checks passing
-
-## 📋 Pre-Deployment Requirements
-
-### Repository Setup
-- All code committed and pushed to main branch
-- Environment variables documented
-- Dependencies updated and tested locally
-
-### Service Accounts Needed
-- **Vercel Account**: For frontend hosting
-- **Render Account**: For backend API hosting
-- **Domain**: Optional custom domain
-- **Stripe Account**: For payment processing
-- **OpenAI Account**: Optional for AI features
-
-## 🌐 Frontend Deployment (Vercel)
-
-### 1. Connect Repository to Vercel
-
-1. **Visit [Vercel Dashboard](https://vercel.com/dashboard)**
-2. **Click "New Project"**
-3. **Import from GitHub**: Select `easydeed/deeds` repository
-4. **Configure Project**:
-   - **Framework Preset**: Next.js
-   - **Root Directory**: `frontend`
-   - **Build Command**: `npm run build`
-   - **Output Directory**: `.next`
-   - **Install Command**: `npm install`
-
-### 2. Environment Variables
-
-Add these variables in Vercel Dashboard → Settings → Environment Variables:
-
-```env
-# Production API URLs (update after backend deployment)
-NEXT_PUBLIC_API_URL=https://deedpro-main-api.onrender.com
-NEXT_PUBLIC_EXTERNAL_API_URL=https://deedpro-external-api.onrender.com
-
-# Stripe Public Key
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_your_live_stripe_key
-
-# Optional: Analytics
-NEXT_PUBLIC_ANALYTICS_ID=your_analytics_id
+### **Repository Structure Verification**
+```
+new-front/                          # SINGLE MONOREPO
+├── frontend/                       # Next.js → Vercel
+├── backend/                        # FastAPI → Render  
+├── templates/                      # Shared deed templates
+├── scripts/                        # Database scripts
+├── .vercelignore                  # Vercel configuration
+├── render.yaml                    # Render configuration
+└── Documentation files
 ```
 
-### 3. Deploy and Verify
+### **Required Accounts & Services**
+- ✅ **Vercel Account**: For frontend hosting
+- ✅ **Render Account**: For backend API hosting  
+- ✅ **PostgreSQL Database**: Database hosting
+- ✅ **Stripe Account**: For payment processing
+- ✅ **GitHub Repository**: Source code hosting
 
-1. **Click "Deploy"**
-2. **Wait for build completion** (typically 2-3 minutes)
-3. **Test deployment**: Visit your Vercel URL
-4. **Check console**: Ensure no API connection errors
+---
 
-### 4. Custom Domain (Optional)
+## 🌐 **Frontend Deployment (Vercel)**
 
-1. **Vercel Dashboard** → Your Project → Settings → Domains
-2. **Add Domain**: Enter your custom domain
-3. **Configure DNS**: Update DNS records as instructed
-4. **Verify SSL**: Ensure HTTPS certificate is active
+### **Step 1: Vercel Configuration**
 
-## 🔧 Backend Deployment (Render)
+1. **Connect Repository to Vercel**:
+   - Visit [Vercel Dashboard](https://vercel.com/dashboard)
+   - Click "New Project"
+   - Import `easydeed/new-front` repository
 
-### 1. Main API Service
+2. **Configure Project Settings**:
+   - **Framework Preset**: Next.js (auto-detected)
+   - **Root Directory**: `frontend` ⚠️ **CRITICAL**
+   - **Build Command**: `npm run build` (default)
+   - **Output Directory**: `.next` (default)
+   - **Install Command**: `npm install` (default)
 
-#### Create Web Service
+### **Step 2: Environment Variables**
+
+Add in Vercel Dashboard → Settings → Environment Variables:
+
+```env
+# Production API URL (points to Render backend)
+NEXT_PUBLIC_API_URL=https://deedpro-main-api.onrender.com
+
+# Stripe Integration
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_your_live_stripe_key
+
+# Optional Features  
+NEXT_PUBLIC_ANALYTICS_ID=your_analytics_id
+NEXT_PUBLIC_WIDGET_ADDON_ENABLED=true
+```
+
+### **Step 3: Deploy Frontend**
+
+```bash
+# Method 1: Vercel CLI
+cd new-front
+vercel --prod
+
+# Method 2: Git Push (auto-deploy)
+git add frontend/
+git commit -m "Update frontend"
+git push origin main
+```
+
+### **Step 4: Verify Frontend**
+
+- **URL**: https://deedpro-frontend-new.vercel.app
+- **Health Check**: Homepage loads without errors
+- **API Connectivity**: Check browser console for backend calls
+
+---
+
+## ⚙️ **Backend Deployment (Render)**
+
+### **Step 1: Create Render Web Service**
+
 1. **Visit [Render Dashboard](https://render.com/)**
 2. **Click "New +" → "Web Service"**
-3. **Connect Repository**: Select `easydeed/deeds`
+3. **Connect Repository**: `easydeed/new-front`
 4. **Configure Service**:
    - **Name**: `deedpro-main-api`
-   - **Root Directory**: `backend`
-   - **Runtime**: Python 3
-   - **Build Command**: `pip install -r requirements_full.txt`
+   - **Environment**: Python 3
+   - **Root Directory**: `backend` ⚠️ **CRITICAL**
+   - **Build Command**: `pip install -r requirements.txt`
    - **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
-   - **Plan**: Choose appropriate plan based on usage
+   - **Plan**: Choose appropriate plan
 
-#### Environment Variables
+### **Step 2: Environment Variables**
+
+Add in Render Service → Environment:
+
 ```env
-# Database
+# Database Connection
 DATABASE_URL=postgresql://username:password@host:port/database
 
-# Stripe
+# Stripe Integration
 STRIPE_SECRET_KEY=sk_live_your_live_stripe_secret_key
 STRIPE_PUBLISHABLE_KEY=pk_live_your_live_stripe_publishable_key
 
-# AI (Optional)
-OPENAI_API_KEY=sk-your_openai_api_key
+# CORS Configuration
+ALLOWED_ORIGINS=https://deedpro-frontend-new.vercel.app
 
-# Security
-ALLOWED_ORIGINS=https://your-frontend-domain.vercel.app,https://your-custom-domain.com
+# Authentication
+JWT_SECRET_KEY=your_jwt_secret_key
+
+# Application Settings
 API_RATE_LIMIT=100
 LOG_LEVEL=INFO
 ```
 
-### 2. External Integrations API Service
+### **Step 3: Database Setup**
 
-#### Create Second Web Service  
-1. **New Web Service** in Render
-2. **Same Repository**: `easydeed/deeds`
-3. **Configure Service**:
-   - **Name**: `deedpro-external-api`
-   - **Root Directory**: `backend`
-   - **Runtime**: Python 3
-   - **Build Command**: `pip install -r external_requirements.txt`
-   - **Start Command**: `python start_external_api.py`
-   - **Environment Variable**: `EXTERNAL_API_PORT=$PORT`
-
-#### Environment Variables
-```env
-# All same variables as Main API, plus:
-
-# External API Specific
-EXTERNAL_API_SECRET_KEY=your_external_api_secret_key
-EXTERNAL_API_HOST=0.0.0.0
-EXTERNAL_API_PORT=$PORT
-
-# Qualia Integration (Optional)
-QUALIA_USERNAME=your_qualia_username
-QUALIA_PASSWORD=your_qualia_password
-QUALIA_API_URL=https://api.qualia.com/graphql
-
-# SoftPro Integration
-SOFTPRO_WEBHOOK_SECRET=your_softpro_webhook_secret
-```
-
-### 3. Deploy and Verify
-
-1. **Deploy both services**
-2. **Wait for builds** (typically 3-5 minutes each)
-3. **Test health endpoints**:
-   - Main API: `https://deedpro-main-api.onrender.com/health`
-   - External API: `https://deedpro-external-api.onrender.com/health`
-4. **Check logs** for any startup errors
-
-## 🔄 Post-Deployment Configuration
-
-### 1. Update Frontend URLs
-
-Update Vercel environment variables with actual Render URLs:
-
-```env
-NEXT_PUBLIC_API_URL=https://deedpro-main-api.onrender.com
-NEXT_PUBLIC_EXTERNAL_API_URL=https://deedpro-external-api.onrender.com
-```
-
-### 2. Update vercel.json Routes
-
-Ensure `vercel.json` routes point to correct Render services:
-
-```json
-{
-  "routes": [
-    {
-      "src": "/api/external/(.*)",
-      "dest": "https://deedpro-external-api.onrender.com/$1"
-    },
-    {
-      "src": "/api/(.*)", 
-      "dest": "https://deedpro-main-api.onrender.com/$1"
-    }
-  ]
-}
-```
-
-### 3. Configure External Integrations
-
-#### SoftPro 360 Setup
-1. **Login to SoftPro 360**
-2. **Navigate to Process Automation**
-3. **Create webhook**:
-   - URL: `https://deedpro-external-api.onrender.com/api/v1/softpro/webhook`
-   - Method: POST
-   - Headers: `X-API-Key: softpro_api_key_123`
-4. **Test integration** with sample order
-
-#### Qualia Setup
-1. **Contact Qualia API support**
-2. **Provide webhook URLs**:
-   - Import: `https://deedpro-external-api.onrender.com/api/v1/qualia/import-order`
-   - Export: `https://deedpro-external-api.onrender.com/api/v1/qualia/export-deed`
-3. **Configure API credentials** in environment variables
-
-## ✅ Verification Tests
-
-### Frontend Tests
 ```bash
-# Test frontend loads
-curl -I https://your-app.vercel.app
-
-# Test API connectivity (check browser console)
-# Should see successful API calls to Render services
+# Run database initialization scripts
+cd scripts/
+python add_addon.py        # Widget licensing column
+python setup_database.py   # Initial database setup
 ```
 
-### Backend API Tests
+### **Step 4: Deploy Backend**
+
 ```bash
-# Test Main API
-curl https://deedpro-main-api.onrender.com/health
+# Auto-deploy via git push
+git add backend/ templates/ scripts/
+git commit -m "Update backend"
+git push origin main
 
-# Test External API  
-curl https://deedpro-external-api.onrender.com/health
-
-# Test API docs
-# Visit: https://deedpro-main-api.onrender.com/docs
-# Visit: https://deedpro-external-api.onrender.com/docs
+# Render automatically deploys from /backend subdirectory
 ```
 
-### Integration Tests
-```bash
-# Test SoftPro webhook
-curl -X POST "https://deedpro-external-api.onrender.com/api/v1/softpro/webhook" \
-  -H "X-API-Key: softpro_api_key_123" \
-  -H "Content-Type: application/json" \
-  -d '{"order_id": "TEST123", "property_address": "123 Test St", "buyer_name": "Test Buyer", "seller_name": "Test Seller"}'
+### **Step 5: Verify Backend**
 
-# Test AI assistance
-curl -X POST "https://deedpro-main-api.onrender.com/api/ai/assist" \
-  -H "Content-Type: application/json" \
-  -d '{"deed_type": "Grant Deed", "field": "property_address", "input": "123 test street"}'
-```
-
-## 🚨 Troubleshooting
-
-### Common Issues
-
-#### Frontend Build Fails
-- **Check Node.js version**: Ensure compatible version (18+)
-- **Verify dependencies**: Check `package.json` and `package-lock.json`
-- **Environment variables**: Ensure all required variables are set
-
-#### Backend Deployment Fails
-- **Python version**: Ensure Python 3.8+ is specified
-- **Dependencies**: Check `requirements_full.txt` for all packages
-- **Port binding**: Ensure app binds to `$PORT` environment variable
-
-#### API Connection Issues
-- **CORS errors**: Verify `ALLOWED_ORIGINS` includes frontend domain
-- **SSL certificates**: Ensure all services use HTTPS
-- **Network timeouts**: Check service health and response times
-
-#### Integration Problems
-- **API key errors**: Verify correct API keys in environment variables
-- **Webhook failures**: Check endpoint URLs and authentication headers
-- **Data format issues**: Verify payload formats match API specifications
-
-### Performance Optimization
-
-#### Frontend
-- **Enable caching**: Configure appropriate cache headers
-- **Optimize images**: Use Next.js Image optimization
-- **Code splitting**: Ensure proper dynamic imports
-
-#### Backend
-- **Database connections**: Configure connection pooling
-- **Response caching**: Implement caching for frequently accessed data
-- **Rate limiting**: Configure appropriate limits for production
-
-## 📊 Monitoring & Maintenance
-
-### Health Monitoring
-- Set up Render health checks
-- Monitor Vercel analytics
-- Configure error tracking (Sentry, etc.)
-
-### Regular Maintenance
-- **Security updates**: Keep dependencies updated
-- **Performance monitoring**: Track API response times
-- **Log analysis**: Review error logs regularly
-- **Backup verification**: Ensure database backups are working
-
-### Scaling Considerations
-- **Traffic analysis**: Monitor usage patterns
-- **Resource scaling**: Upgrade Render plans as needed
-- **CDN setup**: Consider CDN for static assets
-- **Database optimization**: Optimize queries and indexes
-
-## 🔒 Security Checklist
-
-- [ ] All environment variables use production values
-- [ ] HTTPS enabled on all services
-- [ ] API keys rotated and secured
-- [ ] CORS configured for production domains only
-- [ ] Rate limiting enabled
-- [ ] Error messages sanitized (no sensitive data exposure)
-- [ ] Database connections secured
-- [ ] Webhook signatures verified
-- [ ] Audit logging enabled
-
-## 📞 Support
-
-### Deployment Issues
-- **Vercel Support**: Check Vercel documentation and community
-- **Render Support**: Render support team for backend issues
-- **Repository Issues**: Create GitHub issues for code-related problems
-
-### Integration Support
-- **SoftPro**: Contact SoftPro developer support
-- **Qualia**: Reach out to Qualia API team
-- **OpenAI**: Check OpenAI API status and documentation
+- **URL**: https://deedpro-main-api.onrender.com
+- **Health Check**: https://deedpro-main-api.onrender.com/health
+- **API Docs**: https://deedpro-main-api.onrender.com/docs
 
 ---
 
-**Deployment Status**: Ready for production deployment with dual API architecture and enterprise integrations. 
+## 🔗 **Post-Deployment Configuration**
+
+### **Step 1: Update Frontend Environment**
+
+Ensure Vercel environment variables point to deployed backend:
+
+```env
+NEXT_PUBLIC_API_URL=https://deedpro-main-api.onrender.com
+```
+
+### **Step 2: Update Backend CORS**
+
+Ensure Render environment variables allow frontend domain:
+
+```env
+ALLOWED_ORIGINS=https://deedpro-frontend-new.vercel.app
+```
+
+### **Step 3: Test Integration**
+
+```bash
+# Test frontend → backend connectivity
+curl -X GET "https://deedpro-frontend-new.vercel.app"
+# Should load homepage successfully
+
+# Test backend API
+curl -X GET "https://deedpro-main-api.onrender.com/health"
+# Should return: {"status": "healthy"}
+
+# Test API documentation
+# Visit: https://deedpro-main-api.onrender.com/docs
+```
+
+---
+
+## ✅ **Verification Tests**
+
+### **Frontend Tests**
+```bash
+# Homepage loads
+curl -I https://deedpro-frontend-new.vercel.app
+# Expected: HTTP/2 200
+
+# Static assets load
+curl -I https://deedpro-frontend-new.vercel.app/_next/static/
+# Expected: HTTP/2 200
+```
+
+### **Backend API Tests**
+```bash
+# Health endpoint
+curl https://deedpro-main-api.onrender.com/health
+# Expected: {"status": "healthy"}
+
+# API documentation
+curl https://deedpro-main-api.onrender.com/docs
+# Expected: HTML page with API docs
+
+# Widget access endpoint
+curl -X GET "https://deedpro-main-api.onrender.com/check-widget-access" \
+  -H "Authorization: Bearer test_token"
+# Expected: 403 (without valid token) or 200 (with valid token)
+```
+
+### **Integration Tests**
+```bash
+# Frontend calls backend API
+# Open browser → https://deedpro-frontend-new.vercel.app
+# Open Developer Console → Network Tab
+# Look for API calls to deedpro-main-api.onrender.com
+
+# Test deed generation flow
+# Navigate to /create-deed
+# Verify widget access check calls backend
+# Test deed preview functionality
+```
+
+---
+
+## 🔧 **Configuration Files Deep Dive**
+
+### **.vercelignore (Critical for Frontend)**
+```gitignore
+# Exclude backend from Vercel deployment
+backend/
+templates/
+scripts/
+*.pyc
+__pycache__/
+.env
+*.log
+venv/
+```
+
+### **render.yaml (Backend Deployment Config)**
+```yaml
+services:
+- type: web
+  name: deedpro-main-api
+  env: python
+  plan: free
+  repo: https://github.com/easydeed/new-front
+  branch: main
+  rootDir: backend
+  buildCommand: pip install -r requirements.txt
+  startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+  envVars:
+  - key: DATABASE_URL
+    fromDatabase:
+      name: deedpro-db
+  - key: ALLOWED_ORIGINS
+    value: https://deedpro-frontend-new.vercel.app
+```
+
+### **Environment Variables Summary**
+
+| Service | Variable | Value | Purpose |
+|---------|----------|-------|---------|
+| Vercel | `NEXT_PUBLIC_API_URL` | `https://deedpro-main-api.onrender.com` | Frontend → Backend API |
+| Render | `ALLOWED_ORIGINS` | `https://deedpro-frontend-new.vercel.app` | CORS configuration |
+| Render | `DATABASE_URL` | `postgresql://...` | Database connection |
+| Render | `STRIPE_SECRET_KEY` | `sk_live_...` | Payment processing |
+
+---
+
+## 🚨 **Troubleshooting**
+
+### **Frontend Issues**
+
+**Build Failures**:
+```bash
+# Check .vercelignore excludes backend
+cat .vercelignore | grep backend
+
+# Verify frontend dependencies
+cd frontend && npm install
+
+# Test local build
+cd frontend && npm run build
+```
+
+**API Connection Issues**:
+```bash
+# Check environment variables
+# Vercel Dashboard → Settings → Environment Variables
+# Ensure NEXT_PUBLIC_API_URL is set correctly
+
+# Test backend connectivity
+curl https://deedpro-main-api.onrender.com/health
+```
+
+### **Backend Issues**
+
+**Deployment Failures**:
+```bash
+# Check Render build logs
+# Render Dashboard → Service → Logs
+
+# Verify root directory setting
+# Should be: backend
+
+# Check requirements.txt
+cd backend && pip install -r requirements.txt
+```
+
+**Database Connection Issues**:
+```bash
+# Verify DATABASE_URL format
+# postgresql://username:password@host:port/database
+
+# Test database connection
+python -c "import psycopg2; print('DB connection OK')"
+```
+
+### **CORS Errors**
+
+**Symptoms**: Frontend API calls fail with CORS errors
+
+**Solution**:
+```bash
+# Update Render environment variables
+ALLOWED_ORIGINS=https://deedpro-frontend-new.vercel.app
+
+# Restart Render service
+# Render Dashboard → Service → Manual Deploy
+```
+
+### **Template/Path Issues**
+
+**Symptoms**: "Template not found" errors
+
+**Solution**:
+```bash
+# Verify templates directory exists
+ls templates/
+
+# Check backend template path
+cd backend
+python -c "import os; print(os.path.exists('../templates/grant_deed.html'))"
+```
+
+---
+
+## 🔄 **Maintenance & Updates**
+
+### **Frontend Updates**
+```bash
+# Update frontend code
+cd frontend/src/app/
+# Make changes...
+
+# Test locally
+cd .. && npm run dev
+
+# Deploy
+cd .. && vercel --prod
+```
+
+### **Backend Updates**
+```bash
+# Update backend code
+cd backend/
+# Make changes to main.py, etc.
+
+# Test locally
+python main.py
+
+# Deploy (auto via git push)
+cd .. && git add backend/ && git commit -m "Update backend" && git push
+```
+
+### **Database Migrations**
+```bash
+# Create new migration script
+cd scripts/
+# Create new .py file
+
+# Run migration
+python new_migration.py
+
+# Update database schema as needed
+```
+
+### **Template Updates**
+```bash
+# Update deed templates
+cd templates/
+# Edit .html files
+
+# Test with backend
+cd ../backend
+python -c "from jinja2 import Environment, FileSystemLoader; env = Environment(loader=FileSystemLoader('../templates')); print('Templates OK')"
+
+# Deploy (templates auto-deploy with backend)
+git add templates/ && git commit -m "Update templates" && git push
+```
+
+---
+
+## 📊 **Performance Optimization**
+
+### **Frontend Performance**
+- ✅ Vercel's global CDN (automatic)
+- ✅ Next.js automatic image optimization
+- ✅ Static generation for landing pages
+- ✅ Code splitting for dynamic routes
+
+### **Backend Performance**
+- ✅ FastAPI's automatic documentation
+- ✅ Async/await for database operations
+- ✅ Connection pooling for PostgreSQL
+- ✅ Response caching for templates
+
+### **Database Performance**
+- ✅ Proper indexing on user queries
+- ✅ Connection pooling
+- ✅ Query optimization
+- ✅ Regular maintenance scripts
+
+---
+
+## 🔒 **Security Checklist**
+
+### **Production Security**
+- [ ] All environment variables use production values
+- [ ] HTTPS enabled on both services (automatic)
+- [ ] API keys rotated and secured
+- [ ] CORS configured for production domains only
+- [ ] Rate limiting enabled on backend
+- [ ] Error messages sanitized
+- [ ] Database connections secured
+- [ ] JWT tokens properly configured
+- [ ] Input validation on all endpoints
+
+### **Monitoring Setup**
+- [ ] Vercel analytics enabled
+- [ ] Render health checks configured
+- [ ] Error tracking (logs)
+- [ ] Performance monitoring
+- [ ] Database backup verification
+
+---
+
+## 🎯 **Success Criteria**
+
+### **Deployment Complete When:**
+- ✅ Frontend loads at https://deedpro-frontend-new.vercel.app
+- ✅ Backend responds at https://deedpro-main-api.onrender.com
+- ✅ API documentation accessible at /docs
+- ✅ Database connection working
+- ✅ Frontend can call backend APIs
+- ✅ Authentication flow working
+- ✅ Deed generation working
+- ✅ Widget licensing functional
+- ✅ Payment processing operational
+
+---
+
+## 📞 **Support Resources**
+
+### **Deployment Logs**
+- **Vercel**: Dashboard → Project → Functions
+- **Render**: Dashboard → Service → Logs  
+- **Database**: Check connection logs
+
+### **Documentation References**
+- **Next.js**: https://nextjs.org/docs
+- **FastAPI**: https://fastapi.tiangolo.com/
+- **Vercel**: https://vercel.com/docs
+- **Render**: https://render.com/docs
+
+---
+
+**🚨 Remember**: This is a MONOREPO with DUAL DEPLOYMENTS. Frontend and backend deploy from the same repository to different services! 🎯 
