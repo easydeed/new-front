@@ -152,6 +152,7 @@ JWT_SECRET_KEY=your_jwt_secret_key_here
 # Stripe Configuration
 STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
 STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
+STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 
 # Application Settings
 ALLOWED_ORIGINS=http://localhost:3000
@@ -353,10 +354,18 @@ NEXT_PUBLIC_ANALYTICS_ID=your_analytics_id
 ```env
 DATABASE_URL=postgresql://prod_user:prod_pass@prod_host:5432/prod_db
 STRIPE_SECRET_KEY=sk_live_your_live_secret_key
+STRIPE_WEBHOOK_SECRET=whsec_your_production_webhook_secret
 JWT_SECRET_KEY=super_secure_production_key
 ALLOWED_ORIGINS=https://deedpro-frontend-new.vercel.app
 LOG_LEVEL=INFO
 ```
+
+### **Stripe Webhook Configuration**
+
+**5. Configure Stripe Webhook in Render**
+- In Render Dashboard > deedpro-main-api > Environment: Add `STRIPE_WEBHOOK_SECRET=whsec_your_secret`
+- In Stripe Dashboard > Webhooks > Add Endpoint: URL = `https://deedpro-main-api.onrender.com/payments/webhook`, Events: `checkout.session.completed`, `invoice.paid`, `customer.subscription.deleted`
+- Test: `stripe trigger checkout.session.completed`
 
 ### **Configuration Files**
 

@@ -421,6 +421,27 @@ curl -X POST http://localhost:3000/api/test
 # Should proxy to backend or make direct API calls
 ```
 
+### **CI/CD for Tests**
+
+Add `.github/workflows/test.yml`:
+```yaml
+name: Run Tests
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with: 
+        python-version: '3.8'
+    - run: pip install -r backend/requirements.txt
+    - run: pytest backend/tests/
+```
+
+Run on push to catch issues early.
+
 ---
 
 ## 🚀 **Deployment Workflow**

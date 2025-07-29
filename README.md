@@ -139,6 +139,11 @@ DeedPro is a comprehensive legal document platform for creating, managing, and s
 - **Document Sharing**: Secure deed sharing and approval workflows
 - **Widget Add-On**: Embeddable deed creation for client websites ($49/mo)
 
+### 🔑 **Licensing & Add-Ons**
+- **Widget Add-On ($49/mo)**: Embed wizard via API/key.
+- **Managed in /admin**: Toggle widget_addon, generate embed_key.
+- **See INTEGRATION_GUIDE.md** for client setup.
+
 ### 🏢 **Business Model**
 - **Free Plan**: 5 deeds/month, basic features
 - **Professional Plan**: $29/month, unlimited deeds, SoftPro integration  

@@ -377,6 +377,12 @@ FileNotFoundError: ../templates/grant_deed.html
 2. Check templates exist in `/templates` directory
 3. Confirm relative path `../templates` is correct
 
+### **Render Path Issues**
+If "Template not found" on Render:
+- Check `render.yaml` rootDir: `backend`
+- Verify templates/ deploys (`git add templates/`)
+- Test: Render Shell > `ls /opt/render/project/src/templates`
+
 ---
 
 ## 📚 **Template Development Resources**

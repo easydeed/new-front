@@ -31,6 +31,11 @@ Paste this:
 <iframe id="widget-iframe" style="width: 100%; height: 600px; border: none;"></iframe>
 ```
 
+## Usage Examples
+
+- **Data for Grant Deed**: `{ "deed_type": "grant_deed", "data": { "grantor": "John Doe", "grantee": "Jane Smith" } }`
+- **Billing**: $49/mo base + $0.50 per deed (tracked in embed_usage).
+
 ## Security & Usage
 
 - Usage tracked in admin.
