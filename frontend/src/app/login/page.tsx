@@ -70,18 +70,48 @@ function LoginContent() {
       if (response.ok) {
         const data = await response.json();
         
-        // Store the JWT token
-        localStorage.setItem('access_token', data.access_token);
-        localStorage.setItem('user_data', JSON.stringify(data.user));
+        // Store the JWT token (try different possible field names)
+        const token = data.access_token || data.token || data.jwt;
+        if (token) {
+          localStorage.setItem('access_token', token);
+        }
         
-        // Redirect to dashboard
-        router.push('/dashboard');
+        // Store user data if available
+        if (data.user) {
+          localStorage.setItem('user_data', JSON.stringify(data.user));
+        }
+        
+        // Show success message briefly before redirect
+        setSuccessMessage("Login successful! Redirecting...");
+        
+        // Small delay to show success message
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 1000);
+      } else if (response.status === 401) {
+        // Handle 401 Unauthorized specifically
+        try {
+          const errorData = await response.json();
+          setError(errorData.detail || "Invalid email or password. Please check your credentials and try again.");
+        } catch {
+          setError("Invalid email or password. Please check your credentials and try again.");
+        }
+      } else if (response.status === 429) {
+        setError("Too many login attempts. Please wait a moment and try again.");
+      } else if (response.status === 500) {
+        setError("Server error. Please try again later or contact support.");
       } else {
-        const errorData = await response.json();
-        setError(errorData.detail || "Login failed. Please check your credentials.");
+        // Handle other error status codes
+        try {
+          const errorData = await response.json();
+          setError(errorData.detail || `Login failed (${response.status}). Please try again.`);
+        } catch {
+          setError(`Login failed (${response.status}). Please try again.`);
+        }
       }
     } catch (err) {
-      setError("Login failed. Please check your connection and try again.");
+      console.error('Login error:', err);
+      setError("Network error. Please check your internet connection and try again.");
     } finally {
       setLoading(false);
     }
