@@ -102,6 +102,19 @@ interface SystemMetric {
   active_users: number;
 }
 
+interface PricingPlan {
+  name: string;
+  price: number;
+  features: string[];
+  popular?: boolean;
+}
+
+interface NewPlanForm {
+  plan_name: string;
+  price: number;
+  features: string;
+}
+
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState<AdminStats>({
@@ -124,6 +137,10 @@ export default function AdminDashboard() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [systemMetrics, setSystemMetrics] = useState<SystemMetric[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pricing, setPricing] = useState<PricingPlan[]>([]);
+  const [newPlan, setNewPlan] = useState<NewPlanForm>({ plan_name: "", price: 0, features: "" });
+  const [pricingLoading, setPricingLoading] = useState(false);
+  const [pricingMessage, setPricingMessage] = useState("");
 
   useEffect(() => {
     // Simulate API calls to admin endpoints
@@ -356,6 +373,123 @@ export default function AdminDashboard() {
     }, 1000);
   }, []);
 
+  // Pricing API Functions
+  const fetchPricing = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pricing`);
+      const data = await response.json();
+      setPricing(data);
+    } catch (error) {
+      console.error('Error fetching pricing:', error);
+      setPricingMessage('Failed to fetch pricing plans');
+    }
+  };
+
+  const handleCreatePlan = async () => {
+    if (!newPlan.plan_name || !newPlan.price || !newPlan.features) {
+      setPricingMessage('Please fill in all fields');
+      return;
+    }
+
+    setPricingLoading(true);
+    setPricingMessage('');
+    
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/create-plan`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ...newPlan,
+          features: newPlan.features.split(',').map(f => f.trim())
+        })
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        setPricingMessage(`✅ Plan "${newPlan.plan_name}" created successfully!`);
+        setNewPlan({ plan_name: "", price: 0, features: "" });
+        fetchPricing(); // Refresh pricing list
+      } else {
+        setPricingMessage(`❌ Error: ${result.detail || 'Failed to create plan'}`);
+      }
+    } catch (error) {
+      setPricingMessage('❌ Network error creating plan');
+    } finally {
+      setPricingLoading(false);
+    }
+  };
+
+  const handleSyncPricing = async () => {
+    setPricingLoading(true);
+    setPricingMessage('');
+    
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/sync-pricing`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        setPricingMessage(`✅ ${result.message || 'Pricing synced successfully!'}`);
+        fetchPricing(); // Refresh pricing list
+      } else {
+        setPricingMessage(`❌ Error: ${result.detail || 'Failed to sync pricing'}`);
+      }
+    } catch (error) {
+      setPricingMessage('❌ Network error syncing pricing');
+    } finally {
+      setPricingLoading(false);
+    }
+  };
+
+  const handleUpdatePrice = async (plan: PricingPlan) => {
+    setPricingLoading(true);
+    setPricingMessage('');
+    
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/update-price`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          plan_name: plan.name,
+          price: plan.price,
+          features: plan.features
+        })
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        setPricingMessage(`✅ Plan "${plan.name}" updated successfully!`);
+        fetchPricing(); // Refresh pricing list
+      } else {
+        setPricingMessage(`❌ Error: ${result.detail || 'Failed to update plan'}`);
+      }
+    } catch (error) {
+      setPricingMessage('❌ Network error updating plan');
+    } finally {
+      setPricingLoading(false);
+    }
+  };
+
+  // Load pricing when pricing tab is active
+  React.useEffect(() => {
+    if (activeTab === 'pricing') {
+      fetchPricing();
+    }
+  }, [activeTab]);
+
   const tabStyle = (isActive: boolean) => ({
     padding: '1rem 2rem',
     fontSize: '1.1rem',
@@ -452,6 +586,7 @@ export default function AdminDashboard() {
               {activeTab === 'audit' && '📋 Audit Logs'}
               {activeTab === 'revenue' && '💰 Revenue Analytics'}
               {activeTab === 'system' && '⚙️ System Health'}
+              {activeTab === 'pricing' && '💰 Pricing Management'}
             </h1>
             <p className="text-gray-600">
               {activeTab === 'overview' && 'Comprehensive platform metrics and quick actions'}
@@ -461,6 +596,7 @@ export default function AdminDashboard() {
               {activeTab === 'audit' && 'Track all admin actions and system events'}
               {activeTab === 'revenue' && 'Financial reports and subscription analytics'}
               {activeTab === 'system' && 'Monitor system performance and maintenance'}
+              {activeTab === 'pricing' && 'Create and manage pricing plans with Stripe integration'}
             </p>
           </div>
 
@@ -1283,6 +1419,214 @@ export default function AdminDashboard() {
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pricing Management Tab */}
+      {activeTab === 'pricing' && (
+        <div>
+          {/* Status Message */}
+          {pricingMessage && (
+            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 mb-6">
+              <div className={`text-sm font-medium ${pricingMessage.includes('✅') ? 'text-green-700' : 'text-red-700'}`}>
+                {pricingMessage}
+              </div>
+            </div>
+          )}
+
+          {/* Create New Plan */}
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-6">
+            <h3 className="text-blue-800 font-semibold mb-4 text-lg">✨ Create New Pricing Plan</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <input
+                type="text"
+                placeholder="Plan Name (e.g., professional)"
+                value={newPlan.plan_name}
+                onChange={(e) => setNewPlan({ ...newPlan, plan_name: e.target.value.toLowerCase() })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={pricingLoading}
+              />
+              <input
+                type="number"
+                placeholder="Price (USD per month)"
+                value={newPlan.price || ''}
+                onChange={(e) => setNewPlan({ ...newPlan, price: parseFloat(e.target.value) || 0 })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={pricingLoading}
+              />
+              <button 
+                onClick={handleCreatePlan}
+                disabled={pricingLoading}
+                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg transition-colors font-medium"
+              >
+                {pricingLoading ? '⏳ Creating...' : '✨ Create Plan'}
+              </button>
+            </div>
+            <textarea
+              placeholder="Features (comma-separated, e.g., Unlimited deeds, Priority support, API access)"
+              value={newPlan.features}
+              onChange={(e) => setNewPlan({ ...newPlan, features: e.target.value })}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              rows={3}
+              disabled={pricingLoading}
+            />
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+              <div className="text-sm text-blue-800 font-medium">💡 How it works:</div>
+              <div className="text-sm text-blue-600">
+                1. Creates product in Stripe with the plan name<br/>
+                2. Creates monthly recurring price in Stripe<br/>
+                3. Saves plan details to database for frontend display
+              </div>
+            </div>
+          </div>
+
+          {/* Sync & Actions */}
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-6">
+            <h3 className="text-blue-800 font-semibold mb-4 text-lg">🔄 Pricing Actions</h3>
+            <div className="flex gap-4">
+              <button 
+                onClick={handleSyncPricing}
+                disabled={pricingLoading}
+                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg transition-colors font-medium"
+              >
+                {pricingLoading ? '⏳ Syncing...' : '🔄 Sync from Stripe'}
+              </button>
+              <button 
+                onClick={fetchPricing}
+                disabled={pricingLoading}
+                className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg transition-colors font-medium"
+              >
+                🔃 Refresh Plans
+              </button>
+              <button 
+                onClick={() => window.open('https://dashboard.stripe.com/products', '_blank')}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg transition-colors font-medium"
+              >
+                🔗 Open Stripe Dashboard
+              </button>
+            </div>
+            <div className="mt-4 p-3 bg-green-50 rounded-lg">
+              <div className="text-sm text-green-800 font-medium">🔄 Sync from Stripe:</div>
+              <div className="text-sm text-green-600">
+                Pulls active prices from your Stripe account and updates the database
+              </div>
+            </div>
+          </div>
+
+          {/* Current Pricing Plans */}
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+            <h3 className="text-blue-800 font-semibold mb-4 text-lg">📋 Current Pricing Plans ({pricing.length})</h3>
+            
+            {pricing.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-gray-500 text-lg mb-2">No pricing plans found</div>
+                <div className="text-gray-400 text-sm">Create your first plan above or sync from Stripe</div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {pricing.map((plan, index) => (
+                  <div key={index} className="border border-gray-200 rounded-xl p-6 relative">
+                    {plan.popular && (
+                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                        <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-medium">
+                          ⭐ Popular
+                        </span>
+                      </div>
+                    )}
+                    
+                    <div className="text-center mb-4">
+                      <h4 className="text-xl font-bold text-gray-800 capitalize mb-2">{plan.name}</h4>
+                      <div className="text-3xl font-bold text-blue-600 mb-1">
+                        ${plan.price}
+                        <span className="text-sm text-gray-500 font-normal">/month</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 mb-6">
+                      {plan.features && plan.features.length > 0 ? (
+                        plan.features.map((feature, idx) => (
+                          <div key={idx} className="flex items-center text-sm text-gray-600">
+                            <span className="text-green-500 mr-2">✓</span>
+                            {feature}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-gray-400 text-sm">No features listed</div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <input
+                        type="number"
+                        value={plan.price}
+                        onChange={(e) => {
+                          const updatedPricing = [...pricing];
+                          updatedPricing[index].price = parseFloat(e.target.value) || 0;
+                          setPricing(updatedPricing);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        disabled={pricingLoading}
+                      />
+                      <textarea
+                        value={plan.features ? plan.features.join(', ') : ''}
+                        onChange={(e) => {
+                          const updatedPricing = [...pricing];
+                          updatedPricing[index].features = e.target.value.split(',').map(f => f.trim());
+                          setPricing(updatedPricing);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        rows={3}
+                        placeholder="Features (comma-separated)"
+                        disabled={pricingLoading}
+                      />
+                      <button
+                        onClick={() => handleUpdatePrice(plan)}
+                        disabled={pricingLoading}
+                        className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white py-2 px-4 rounded-lg transition-colors font-medium text-sm"
+                      >
+                        {pricingLoading ? '⏳ Updating...' : '💾 Update Plan'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Pricing Preview */}
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 mt-6">
+            <h3 className="text-blue-800 font-semibold mb-4 text-lg">👀 Landing Page Preview</h3>
+            <div className="text-sm text-gray-600 mb-4">
+              This is how your pricing will appear on the landing page (automatically updated from database):
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 bg-gray-50 rounded-lg">
+              {pricing.map((plan, index) => (
+                <div key={index} className={`bg-white rounded-xl p-6 border-2 ${plan.popular ? 'border-blue-500' : 'border-gray-200'} relative`}>
+                  {plan.popular && (
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                      <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-medium">
+                        Most Popular
+                      </span>
+                    </div>
+                  )}
+                  <div className="text-center">
+                    <h3 className="text-lg font-bold text-gray-800 capitalize mb-2">{plan.name}</h3>
+                    <div className="text-2xl font-bold text-blue-600 mb-4">
+                      ${plan.price}<span className="text-sm text-gray-500 font-normal">/mo</span>
+                    </div>
+                    <div className="space-y-2 text-sm text-gray-600">
+                      {plan.features && plan.features.map((feature, idx) => (
+                        <div key={idx} className="flex items-center">
+                          <span className="text-green-500 mr-2">✓</span>
+                          {feature}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

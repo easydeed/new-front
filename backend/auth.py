@@ -102,4 +102,24 @@ class AuthUtils:
             'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 
             'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
         }
-        return state.upper() in valid_states 
+        return state.upper() in valid_states
+
+async def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
+    """Verify admin access from JWT token"""
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        user_email: str = payload.get("email")
+        user_role: str = payload.get("role")
+        
+        if user_email is None or user_role != "admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Admin access required"
+            )
+        return user_email
+        
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials"
+        ) 

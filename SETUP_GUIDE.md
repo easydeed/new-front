@@ -236,6 +236,56 @@ conn.close()
 "
 ```
 
+### **Step 4: Setup Pricing Table**
+```bash
+# Navigate to scripts directory
+cd ../scripts
+
+# Create pricing table with default plans
+python add_pricing.py
+
+# Expected output:
+# ✅ Connected to database successfully
+# 📋 Creating pricing table...
+# 💰 Adding default pricing plans...
+# ✅ Pricing table created successfully
+# 
+# 📊 Current pricing plans:
+#   - Starter: $0.0/month
+#     • 5 deeds/month
+#     • Basic deed wizard
+#     • Standard templates
+#   
+#   - Professional: $29.0/month
+#     • Unlimited deeds
+#     • Advanced templates
+#     • SoftPro integration
+#     • Priority support
+#   
+#   - Enterprise: $99.0/month
+#     • All features
+#     • API access
+#     • Custom templates
+#     • Team management
+#     • White-label option
+```
+
+### **Step 5: Create Stripe Products/Prices via Admin Panel**
+**Important**: Pricing plans start without Stripe IDs. Use the admin panel to create Stripe products:
+
+1. **Start the application** (backend + frontend)
+2. **Login as admin** (ensure your user has role='admin' in database)
+3. **Navigate to Admin → Pricing Management**
+4. **Create plans** using the "Create New Pricing Plan" form:
+   - Plan Name: `professional`
+   - Price: `29.00`
+   - Features: `Unlimited deeds, Advanced templates, SoftPro integration, Priority support`
+   - Click "✨ Create Plan"
+5. **Verify in Stripe Dashboard** → Products that the plan was created
+6. **Repeat for other plans** as needed
+
+**No manual Stripe Dashboard setup needed** - the `/admin/create-plan` endpoint creates products/prices automatically.
+
 ---
 
 ## 🔗 **Integration Testing**

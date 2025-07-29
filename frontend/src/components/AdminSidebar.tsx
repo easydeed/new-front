@@ -70,6 +70,12 @@ export default function AdminSidebar({ activeTab, setActiveTab, stats, notificat
       description: 'Financial reports and subscription analytics'
     },
     {
+      id: 'pricing',
+      label: 'Pricing Management',
+      icon: '💲',
+      description: 'Create and manage pricing plans with Stripe integration'
+    },
+    {
       id: 'system',
       label: 'System Health',
       icon: '⚙️',

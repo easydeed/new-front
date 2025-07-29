@@ -287,6 +287,120 @@ python new_migration.py       # Custom migrations
 
 ---
 
+## 💰 **Pricing Management Development**
+
+### **Pricing System Architecture**
+```
+Frontend Admin UI (/admin/page.tsx)
+        ↓ API calls
+Backend Endpoints (/backend/main.py)
+        ↓ Database + Stripe API
+PostgreSQL (pricing table) + Stripe (products/prices)
+```
+
+### **Key Components**
+- **Frontend UI**: `/frontend/src/app/admin/page.tsx` (pricing tab)
+- **Backend API**: `/backend/main.py` (pricing endpoints)
+- **Database Table**: `pricing` (plan data and Stripe IDs)
+- **Database Script**: `/scripts/add_pricing.py` (table creation)
+
+### **Development Workflow**
+
+**1. Create New Plan:**
+```bash
+# In admin UI: /admin → Pricing Management
+# Fill form: plan_name="test", price=19.99, features="Feature 1, Feature 2"
+# Click "Create Plan"
+# Result: Creates Stripe product + price, saves to database
+```
+
+**2. Sync from Stripe:**
+```bash
+# In admin UI: Click "Sync from Stripe"
+# Result: Pulls all active Stripe prices, updates database
+```
+
+**3. Update Plan:**
+```bash
+# In admin UI: Edit price/features in plan card, click "Update Plan"
+# Result: Creates new Stripe price (old one deactivated), updates database
+```
+
+### **Testing Pricing System**
+
+**Local Testing:**
+```bash
+# 1. Start backend
+cd backend && python main.py
+
+# 2. Create test plan via API
+curl -X POST http://localhost:8000/admin/create-plan \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -d '{
+    "plan_name": "test_plan",
+    "price": 10.00,
+    "features": ["Test feature 1", "Test feature 2"]
+  }'
+
+# 3. Verify in database
+psql $DATABASE_URL -c "SELECT * FROM pricing WHERE plan_name='test_plan';"
+
+# 4. Check landing page
+curl http://localhost:3000/api/pricing
+```
+
+**Production Testing:**
+```bash
+# 1. Test create plan in admin UI
+# 2. Verify in Stripe Dashboard → Products
+# 3. Check landing page reflects changes
+# 4. Test sync functionality
+```
+
+### **Pricing API Endpoints**
+
+| Endpoint | Method | Purpose | Auth Required |
+|----------|--------|---------|---------------|
+| `/pricing` | GET | Get all active plans for landing page | No |
+| `/admin/create-plan` | POST | Create new Stripe product/price | Admin |
+| `/admin/sync-pricing` | POST | Sync prices from Stripe to database | Admin |
+| `/admin/update-price` | POST | Update existing plan price/features | Admin |
+
+### **Pricing Development Rules**
+- ✅ **Test plan creation in both local and Stripe test mode**
+- ✅ **Verify database updates after Stripe operations**
+- ✅ **Check landing page displays updated pricing**
+- ✅ **Use admin authentication for pricing endpoints**
+- ✅ **Handle Stripe API errors gracefully**
+- ❌ **Never create plans without proper admin authentication**
+- ❌ **Never use Stripe live keys in development**
+- ❌ **Never hard-code pricing in frontend (always fetch from API)**
+
+### **Common Pricing Issues & Solutions**
+
+**Issue**: Template not found for pricing creation
+```bash
+# Solution: Ensure admin user has role='admin' in database
+UPDATE users SET role='admin' WHERE email='your_admin@example.com';
+```
+
+**Issue**: Stripe API errors in development
+```bash
+# Solution: Check environment variables
+echo $STRIPE_SECRET_KEY  # Should start with sk_test_
+echo $STRIPE_PUBLISHABLE_KEY  # Should start with pk_test_
+```
+
+**Issue**: Landing page not showing new pricing
+```bash
+# Solution: Check API response
+curl http://localhost:3000/api/pricing
+# Should return array of plans with updated data
+```
+
+---
+
 ## 🔧 **Development Tools & Workflow**
 
 ### **Recommended Development Setup**

@@ -11,13 +11,14 @@ from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
 import base64
 import tempfile
+import json
 from database import (
     create_user, get_user_by_email, create_deed, get_user_deeds
 )
 from ai_assist import ai_router
 from auth import (
     get_password_hash, verify_password, create_access_token, 
-    get_current_user_id, get_current_user_email, AuthUtils
+    get_current_user_id, get_current_user_email, AuthUtils, get_current_admin
 )
 
 load_dotenv()
@@ -1383,6 +1384,182 @@ async def generate_deed(deed: DeedData):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Deed generation failed: {str(e)}")
+
+# Pricing Management Models
+class PriceUpdate(BaseModel):
+    plan_name: str
+    price: float
+    features: List[str]
+
+class NewPlan(BaseModel):
+    plan_name: str
+    price: float
+    features: List[str]
+
+# Pricing Endpoints
+@app.get("/pricing")
+async def get_pricing():
+    """Get all pricing plans for the landing page"""
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT plan_name, price, features, is_active 
+                FROM pricing 
+                WHERE is_active = TRUE 
+                ORDER BY price ASC
+            """)
+            rows = cur.fetchall()
+            return [
+                {
+                    "name": row[0],
+                    "price": float(row[1]),
+                    "features": row[2] if row[2] else [],
+                    "popular": row[0] == "professional"  # Mark professional as popular
+                }
+                for row in rows
+            ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch pricing: {str(e)}")
+
+@app.post("/admin/create-plan")
+async def create_plan(plan: NewPlan, admin: str = Depends(get_current_admin)):
+    """Create new Stripe product/price and save to database"""
+    try:
+        # Create Stripe product
+        product = stripe.Product.create(
+            name=plan.plan_name.capitalize(),
+            type="service",
+            description=f"{plan.plan_name.capitalize()} plan with {len(plan.features)} features"
+        )
+        
+        # Create Stripe price
+        price = stripe.Price.create(
+            product=product.id,
+            unit_amount=int(plan.price * 100),  # Convert to cents
+            currency="usd",
+            recurring={"interval": "month"},
+            nickname=plan.plan_name
+        )
+        
+        # Save to database
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO pricing (plan_name, price, stripe_product_id, stripe_price_id, features, last_synced) 
+                VALUES (%s, %s, %s, %s, %s::jsonb, CURRENT_TIMESTAMP)
+                ON CONFLICT (plan_name) DO UPDATE SET 
+                    price = EXCLUDED.price,
+                    stripe_price_id = EXCLUDED.stripe_price_id,
+                    stripe_product_id = EXCLUDED.stripe_product_id,
+                    features = EXCLUDED.features,
+                    last_synced = CURRENT_TIMESTAMP
+            """, (plan.plan_name, plan.price, product.id, price.id, plan.features))
+            conn.commit()
+            
+        return {
+            "status": "created",
+            "plan_name": plan.plan_name,
+            "stripe_price_id": price.id,
+            "stripe_product_id": product.id
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create plan: {str(e)}")
+
+@app.post("/admin/sync-pricing")
+async def sync_pricing(admin: str = Depends(get_current_admin)):
+    """Sync pricing from Stripe to database"""
+    try:
+        # Get all active prices from Stripe
+        prices = stripe.Price.list(active=True, limit=100).data
+        
+        synced_count = 0
+        with conn.cursor() as cur:
+            for price in prices:
+                if price.nickname:  # Only sync prices with nicknames (our plans)
+                    # Get product details
+                    product = stripe.Product.retrieve(price.product)
+                    
+                    # Update database
+                    cur.execute("""
+                        UPDATE pricing 
+                        SET price = %s, 
+                            stripe_price_id = %s,
+                            stripe_product_id = %s,
+                            last_synced = CURRENT_TIMESTAMP
+                        WHERE plan_name = %s
+                    """, (
+                        price.unit_amount / 100,  # Convert from cents
+                        price.id,
+                        product.id,
+                        price.nickname.lower()
+                    ))
+                    
+                    if cur.rowcount > 0:
+                        synced_count += 1
+                        
+            conn.commit()
+            
+        return {
+            "status": "synced", 
+            "synced_count": synced_count,
+            "message": f"Successfully synced {synced_count} plans from Stripe"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to sync pricing: {str(e)}")
+
+@app.post("/admin/update-price")
+async def update_price(update: PriceUpdate, admin: str = Depends(get_current_admin)):
+    """Update price in both Stripe and database"""
+    try:
+        # Get current Stripe price ID from database
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT stripe_price_id, stripe_product_id 
+                FROM pricing 
+                WHERE plan_name = %s
+            """, (update.plan_name,))
+            
+            result = cur.fetchone()
+            if not result:
+                raise HTTPException(status_code=404, detail="Plan not found")
+                
+            old_price_id, product_id = result
+        
+        # Create new price in Stripe (prices are immutable)
+        new_price = stripe.Price.create(
+            product=product_id,
+            unit_amount=int(update.price * 100),  # Convert to cents
+            currency="usd",
+            recurring={"interval": "month"},
+            nickname=update.plan_name
+        )
+        
+        # Deactivate old price
+        if old_price_id:
+            stripe.Price.modify(old_price_id, active=False)
+        
+        # Update database
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE pricing 
+                SET price = %s, 
+                    features = %s::jsonb,
+                    stripe_price_id = %s,
+                    last_synced = CURRENT_TIMESTAMP
+                WHERE plan_name = %s
+            """, (update.price, update.features, new_price.id, update.plan_name))
+            conn.commit()
+            
+        return {
+            "status": "updated",
+            "plan_name": update.plan_name,
+            "new_price": update.price,
+            "new_stripe_price_id": new_price.id
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update price: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
