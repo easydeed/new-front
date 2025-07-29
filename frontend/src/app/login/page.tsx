@@ -19,13 +19,13 @@ function LoginContent() {
     if (searchParams.get('registered') === 'true') {
       const email = searchParams.get('email');
              setSuccessMessage(
-         email 
-           ? `Account created successfully! Please log in with ${email}`
-           : "Account created successfully! Please log in with your credentials"
-       );
-       if (email) {
-         setFormData((prev: any) => ({ ...prev, email: decodeURIComponent(email) }));
-       }
+        email 
+          ? `Account created successfully! Please log in with ${email}`
+          : "Account created successfully! Please log in with your credentials"
+      );
+      if (email) {
+        setFormData((prev: any) => ({ ...prev, email: decodeURIComponent(email) }));
+      }
     }
   }, [searchParams]);
 
@@ -82,22 +82,22 @@ function LoginContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 flex items-center justify-center py-12 px-4">
+    <div className="min-h-screen bg-charcoal-blue flex items-center justify-center py-12 px-4">
       <div className="max-w-md w-full">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent mb-4">
+          <h1 className="text-4xl font-bold text-white mb-4">
             Welcome Back
           </h1>
-          <p className="text-lg text-gray-600">
+          <p className="text-lg text-aqua-mint">
             Sign in to your DeedPro account
           </p>
         </div>
 
         {/* Login Form */}
-        <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
+        <div className="bg-slate-navy rounded-3xl shadow-xl p-8 border border-tropical-teal">
           {successMessage && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-2xl">
+            <div className="mb-6 p-4 bg-tropical-teal/10 border border-tropical-teal text-aqua-mint rounded-2xl">
               <div className="flex items-center">
                 <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -108,7 +108,7 @@ function LoginContent() {
           )}
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl">
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-400 text-red-400 rounded-2xl">
               <div className="flex items-center">
                 <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
@@ -121,7 +121,7 @@ function LoginContent() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
+              <label htmlFor="email" className="block text-sm font-semibold text-white mb-2">
                 Email Address
               </label>
               <input
@@ -130,7 +130,7 @@ function LoginContent() {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full p-4 border-2 border-gray-300 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-full p-4 border-2 border-aqua-mint/30 rounded-2xl focus:ring-2 focus:ring-tropical-teal focus:border-tropical-teal transition-colors bg-charcoal-blue text-white placeholder-aqua-mint/70"
                 placeholder="your.email@company.com"
                 autoComplete="email"
               />
@@ -138,7 +138,7 @@ function LoginContent() {
 
             {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
+              <label htmlFor="password" className="block text-sm font-semibold text-white mb-2">
                 Password
               </label>
               <input
@@ -147,7 +147,7 @@ function LoginContent() {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full p-4 border-2 border-gray-300 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-full p-4 border-2 border-aqua-mint/30 rounded-2xl focus:ring-2 focus:ring-tropical-teal focus:border-tropical-teal transition-colors bg-charcoal-blue text-white placeholder-aqua-mint/70"
                 placeholder="Enter your password"
                 autoComplete="current-password"
               />
@@ -160,7 +160,7 @@ function LoginContent() {
               className={`w-full py-4 px-6 rounded-2xl font-semibold text-white transition-all duration-200 ${
                 loading
                   ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
+                  : "bg-tropical-teal hover:bg-aqua-mint transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
               }`}
             >
               {loading ? (
@@ -182,18 +182,18 @@ function LoginContent() {
             <div className="text-center">
               <Link 
                 href="/forgot-password" 
-                className="text-blue-600 hover:text-blue-800 text-sm underline"
+                className="text-electric-indigo hover:text-aqua-mint text-sm underline"
               >
                 Forgot your password?
               </Link>
             </div>
             
             <div className="text-center">
-              <p className="text-gray-600">
+              <p className="text-aqua-mint">
                 Don't have an account?{" "}
                 <Link 
                   href="/register" 
-                  className="text-blue-600 hover:text-blue-800 font-semibold underline"
+                  className="text-electric-indigo hover:text-aqua-mint font-semibold underline"
                 >
                   Sign up here
                 </Link>
@@ -203,26 +203,26 @@ function LoginContent() {
         </div>
 
         {/* Test Credentials Helper */}
-        <div className="mt-8 bg-blue-50 rounded-2xl p-6 border border-blue-200">
-          <h3 className="font-semibold text-blue-800 mb-3">Test Accounts Available</h3>
+        <div className="mt-8 bg-slate-navy rounded-2xl p-6 border border-tropical-teal">
+          <h3 className="font-semibold text-tropical-teal mb-3">Test Accounts Available</h3>
           <div className="space-y-2 text-sm">
-            <div className="bg-white rounded-lg p-3">
-              <div className="font-medium text-blue-700">Free Plan User</div>
-              <div className="text-gray-600">
+            <div className="bg-charcoal-blue rounded-lg p-3 border border-aqua-mint/20">
+              <div className="font-medium text-electric-indigo">Free Plan User</div>
+              <div className="text-aqua-mint">
                 Email: test@escrow.com<br />
                 Password: testpass123
               </div>
             </div>
-            <div className="bg-white rounded-lg p-3">
-              <div className="font-medium text-blue-700">Professional Plan User</div>
-              <div className="text-gray-600">
+            <div className="bg-charcoal-blue rounded-lg p-3 border border-aqua-mint/20">
+              <div className="font-medium text-electric-indigo">Professional Plan User</div>
+              <div className="text-aqua-mint">
                 Email: pro@title.com<br />
                 Password: propass123
               </div>
             </div>
-            <div className="bg-white rounded-lg p-3">
-              <div className="font-medium text-blue-700">Enterprise Admin User</div>
-              <div className="text-gray-600">
+            <div className="bg-charcoal-blue rounded-lg p-3 border border-aqua-mint/20">
+              <div className="font-medium text-electric-indigo">Enterprise Admin User</div>
+              <div className="text-aqua-mint">
                 Email: admin@deedpro.com<br />
                 Password: adminpass123
               </div>
@@ -232,22 +232,22 @@ function LoginContent() {
 
         {/* Quick Features */}
         <div className="mt-8 text-center">
-          <p className="text-gray-500 text-sm mb-4">What you'll get access to:</p>
-          <div className="flex justify-center space-x-6 text-sm text-gray-600">
+          <p className="text-aqua-mint/70 text-sm mb-4">What you'll get access to:</p>
+          <div className="flex justify-center space-x-6 text-sm text-aqua-mint">
             <div className="flex items-center">
-              <svg className="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-4 h-4 text-tropical-teal mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
               AI-Enhanced Deed Wizard
             </div>
             <div className="flex items-center">
-              <svg className="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-4 h-4 text-tropical-teal mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
               Professional Templates
             </div>
             <div className="flex items-center">
-              <svg className="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-4 h-4 text-tropical-teal mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
               Secure Document Storage
@@ -261,7 +261,7 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-charcoal-blue flex items-center justify-center"><div className="text-aqua-mint">Loading...</div></div>}>
       <LoginContent />
     </Suspense>
   );
