@@ -2,6 +2,8 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { ArrowRight, LoadingSpinner, Eye } from "../../components/Icons";
+import { ParticlesMinimal } from "../../components/Particles";
 
 function LoginContent() {
   const [formData, setFormData] = useState({
@@ -11,14 +13,18 @@ function LoginContent() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
+    setIsVisible(true);
+    
     // Check for registration success
     if (searchParams.get('registered') === 'true') {
       const email = searchParams.get('email');
-             setSuccessMessage(
+      setSuccessMessage(
         email 
           ? `Account created successfully! Please log in with ${email}`
           : "Account created successfully! Please log in with your credentials"
@@ -82,118 +88,145 @@ function LoginContent() {
   };
 
   return (
-    <div className="min-h-screen bg-charcoal-blue flex items-center justify-center py-12 px-4">
-      <div className="max-w-md w-full">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-4">
+    <div className="min-h-screen bg-gradient-to-br from-charcoal-blue via-soft-charcoal to-slate-navy flex items-center justify-center py-12 px-4 relative overflow-hidden font-inter">
+      
+      {/* Minimal particles for performance */}
+      <ParticlesMinimal />
+      
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-tropical-teal/3 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-electric-indigo/3 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+      </div>
+
+      <div className={`max-w-md w-full relative z-10 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+        
+        {/* Enhanced Header */}
+        <div className="text-center mb-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+          <h1 className="text-4xl lg:text-5xl font-bold text-white mb-4 relative">
             Welcome Back
+            <div className="absolute -top-1 -right-8 w-3 h-3 bg-tropical-teal rounded-full animate-pulse"></div>
           </h1>
-          <p className="text-lg text-aqua-mint">
-            Sign in to your DeedPro account
+          <p className="text-lg text-aqua-mint/80">
+            Sign in to your <span className="bg-gradient-teal bg-clip-text text-transparent font-semibold">DeedPro</span> account
           </p>
         </div>
 
-        {/* Login Form */}
-        <div className="bg-slate-navy rounded-3xl shadow-xl p-8 border border-tropical-teal">
-          {successMessage && (
-            <div className="mb-6 p-4 bg-tropical-teal/10 border border-tropical-teal text-aqua-mint rounded-2xl">
-              <div className="flex items-center">
-                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                {successMessage}
-              </div>
-            </div>
-          )}
-
-          {error && (
-            <div className="mb-6 p-4 bg-red-500/10 border border-red-400 text-red-400 rounded-2xl">
-              <div className="flex items-center">
-                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-                {error}
-              </div>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Email */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-semibold text-white mb-2">
-                Email Address
-              </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="w-full p-4 border-2 border-aqua-mint/30 rounded-2xl focus:ring-2 focus:ring-tropical-teal focus:border-tropical-teal transition-colors bg-charcoal-blue text-white placeholder-aqua-mint/70"
-                placeholder="your.email@company.com"
-                autoComplete="email"
-              />
-            </div>
-
-            {/* Password */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-semibold text-white mb-2">
-                Password
-              </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className="w-full p-4 border-2 border-aqua-mint/30 rounded-2xl focus:ring-2 focus:ring-tropical-teal focus:border-tropical-teal transition-colors bg-charcoal-blue text-white placeholder-aqua-mint/70"
-                placeholder="Enter your password"
-                autoComplete="current-password"
-              />
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full py-4 px-6 rounded-2xl font-semibold text-white transition-all duration-200 ${
-                loading
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-tropical-teal hover:bg-aqua-mint transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
-              }`}
-            >
-              {loading ? (
-                <div className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Signing in...
+        {/* Enhanced Login Form */}
+        <div className="bg-gradient-dark rounded-3xl shadow-elevated p-8 border border-tropical-teal/20 relative group hover:shadow-glow-teal transition-all duration-500 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+          
+          {/* Glow effect */}
+          <div className="absolute -inset-0.5 bg-gradient-teal rounded-3xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+          
+          <div className="relative">
+            {successMessage && (
+              <div className="mb-6 p-4 bg-tropical-teal/10 border border-tropical-teal/30 text-aqua-mint rounded-2xl animate-fade-in-up backdrop-blur-sm">
+                <div className="flex items-center">
+                  <div className="w-2 h-2 bg-tropical-teal rounded-full mr-3 animate-pulse"></div>
+                  {successMessage}
                 </div>
-              ) : (
-                "Sign In"
-              )}
-            </button>
-          </form>
+              </div>
+            )}
 
-          {/* Additional Links */}
-          <div className="mt-6 space-y-4">
-            <div className="text-center">
+            {error && (
+              <div className="mb-6 p-4 bg-red-500/10 border border-red-400/30 text-red-400 rounded-2xl animate-fade-in-up backdrop-blur-sm">
+                <div className="flex items-center">
+                  <div className="w-2 h-2 bg-red-400 rounded-full mr-3 animate-pulse"></div>
+                  {error}
+                </div>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              
+              {/* Enhanced Email Input */}
+              <div className="group">
+                <label htmlFor="email" className="block text-sm font-semibold text-white mb-2 transition-colors group-focus-within:text-tropical-teal">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className="w-full p-4 bg-charcoal-blue/50 text-white border-2 border-aqua-mint/20 rounded-2xl focus:ring-2 focus:ring-tropical-teal focus:border-tropical-teal transition-all duration-300 placeholder-aqua-mint/50 backdrop-blur-sm hover:border-tropical-teal/40 group-hover:scale-[1.02]"
+                    placeholder="your.email@company.com"
+                    autoComplete="email"
+                  />
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-teal opacity-0 group-focus-within:opacity-5 transition-opacity duration-300 pointer-events-none"></div>
+                </div>
+              </div>
+
+              {/* Enhanced Password Input */}
+              <div className="group">
+                <label htmlFor="password" className="block text-sm font-semibold text-white mb-2 transition-colors group-focus-within:text-tropical-teal">
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    id="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="w-full p-4 pr-12 bg-charcoal-blue/50 text-white border-2 border-aqua-mint/20 rounded-2xl focus:ring-2 focus:ring-tropical-teal focus:border-tropical-teal transition-all duration-300 placeholder-aqua-mint/50 backdrop-blur-sm hover:border-tropical-teal/40 group-hover:scale-[1.02]"
+                    placeholder="Enter your password"
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-aqua-mint/70 hover:text-tropical-teal transition-colors duration-200"
+                  >
+                    <Eye className="h-5 w-5" />
+                  </button>
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-teal opacity-0 group-focus-within:opacity-5 transition-opacity duration-300 pointer-events-none"></div>
+                </div>
+              </div>
+
+              {/* Enhanced Submit Button */}
+              <button
+                type="submit"
+                disabled={loading}
+                className={`group relative w-full py-4 px-6 rounded-2xl font-semibold text-white transition-all duration-300 ${
+                  loading
+                    ? "bg-gray-600 cursor-not-allowed"
+                    : "bg-gradient-teal hover:shadow-glow-teal transform hover:scale-105 hover:-translate-y-0.5 active:scale-95"
+                }`}
+              >
+                <div className="absolute -inset-0.5 bg-gradient-teal rounded-2xl blur opacity-0 group-hover:opacity-30 transition duration-300"></div>
+                <div className="relative flex items-center justify-center gap-2">
+                  {loading ? (
+                    <>
+                      <LoadingSpinner className="h-5 w-5" />
+                      Signing in...
+                    </>
+                  ) : (
+                    <>
+                      Sign In
+                      <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                    </>
+                  )}
+                </div>
+              </button>
+            </form>
+
+            {/* Enhanced Additional Links */}
+            <div className="mt-6 space-y-4 text-center">
               <Link 
                 href="/forgot-password" 
-                className="text-electric-indigo hover:text-aqua-mint text-sm underline"
+                className="inline-block text-electric-indigo hover:text-aqua-mint text-sm transition-colors duration-200 hover:scale-105 transform"
               >
                 Forgot your password?
               </Link>
-            </div>
-            
-            <div className="text-center">
-              <p className="text-aqua-mint">
+              
+              <p className="text-aqua-mint/80">
                 Don't have an account?{" "}
                 <Link 
                   href="/register" 
-                  className="text-electric-indigo hover:text-aqua-mint font-semibold underline"
+                  className="text-electric-indigo hover:text-tropical-teal font-semibold transition-all duration-200 hover:scale-105 transform inline-block"
                 >
                   Sign up here
                 </Link>
@@ -202,56 +235,49 @@ function LoginContent() {
           </div>
         </div>
 
-        {/* Test Credentials Helper */}
-        <div className="mt-8 bg-slate-navy rounded-2xl p-6 border border-tropical-teal">
-          <h3 className="font-semibold text-tropical-teal mb-3">Test Accounts Available</h3>
-          <div className="space-y-2 text-sm">
-            <div className="bg-charcoal-blue rounded-lg p-3 border border-aqua-mint/20">
-              <div className="font-medium text-electric-indigo">Free Plan User</div>
-              <div className="text-aqua-mint">
-                Email: test@escrow.com<br />
-                Password: testpass123
+        {/* Enhanced Test Credentials */}
+        <div className="mt-8 bg-gradient-dark rounded-2xl p-6 border border-tropical-teal/20 shadow-elevated animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
+          <h3 className="font-semibold text-tropical-teal mb-4 flex items-center gap-2">
+            <div className="w-2 h-2 bg-tropical-teal rounded-full animate-pulse"></div>
+            Test Accounts Available
+          </h3>
+          <div className="space-y-3 text-sm">
+            {[
+              { title: "Free Plan User", email: "test@escrow.com", password: "testpass123" },
+              { title: "Professional Plan User", email: "pro@title.com", password: "propass123" },
+              { title: "Enterprise Admin User", email: "admin@deedpro.com", password: "adminpass123" }
+            ].map((account, index) => (
+              <div 
+                key={index}
+                className="bg-charcoal-blue/50 rounded-xl p-4 border border-aqua-mint/10 hover:border-tropical-teal/30 transition-all duration-300 hover:scale-[1.02] group cursor-pointer backdrop-blur-sm"
+                onClick={() => setFormData({ email: account.email, password: account.password })}
+              >
+                <div className="font-medium text-electric-indigo group-hover:text-tropical-teal transition-colors">{account.title}</div>
+                <div className="text-aqua-mint/80 text-xs mt-1">
+                  {account.email} • {account.password}
+                </div>
               </div>
-            </div>
-            <div className="bg-charcoal-blue rounded-lg p-3 border border-aqua-mint/20">
-              <div className="font-medium text-electric-indigo">Professional Plan User</div>
-              <div className="text-aqua-mint">
-                Email: pro@title.com<br />
-                Password: propass123
-              </div>
-            </div>
-            <div className="bg-charcoal-blue rounded-lg p-3 border border-aqua-mint/20">
-              <div className="font-medium text-electric-indigo">Enterprise Admin User</div>
-              <div className="text-aqua-mint">
-                Email: admin@deedpro.com<br />
-                Password: adminpass123
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
-        {/* Quick Features */}
-        <div className="mt-8 text-center">
-          <p className="text-aqua-mint/70 text-sm mb-4">What you'll get access to:</p>
-          <div className="flex justify-center space-x-6 text-sm text-aqua-mint">
-            <div className="flex items-center">
-              <svg className="w-4 h-4 text-tropical-teal mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              AI-Enhanced Deed Wizard
-            </div>
-            <div className="flex items-center">
-              <svg className="w-4 h-4 text-tropical-teal mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              Professional Templates
-            </div>
-            <div className="flex items-center">
-              <svg className="w-4 h-4 text-tropical-teal mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              Secure Document Storage
-            </div>
+        {/* Enhanced Features Preview */}
+        <div className="mt-8 text-center animate-fade-in-up" style={{ animationDelay: '0.8s' }}>
+          <p className="text-aqua-mint/60 text-sm mb-4">What you'll get access to:</p>
+          <div className="flex justify-center space-x-6 text-sm text-aqua-mint/80">
+            {[
+              { icon: "✨", text: "AI-Enhanced Deed Wizard" },
+              { icon: "📋", text: "Professional Templates" },
+              { icon: "🔒", text: "Secure Document Storage" }
+            ].map((feature, index) => (
+              <div 
+                key={index}
+                className="flex items-center gap-2 hover:scale-105 transition-transform duration-200 group"
+              >
+                <span className="text-tropical-teal group-hover:animate-bounce-subtle">{feature.icon}</span>
+                <span className="group-hover:text-white transition-colors">{feature.text}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -261,7 +287,14 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-charcoal-blue flex items-center justify-center"><div className="text-aqua-mint">Loading...</div></div>}>
+    <Suspense fallback={
+      <div className="min-h-screen bg-charcoal-blue flex items-center justify-center">
+        <div className="text-aqua-mint flex items-center gap-3">
+          <LoadingSpinner className="h-6 w-6" />
+          Loading...
+        </div>
+      </div>
+    }>
       <LoginContent />
     </Suspense>
   );
