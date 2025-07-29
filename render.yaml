@@ -1,3 +1,4 @@
+# Fixed monorepo deployment configuration
 services:
 - type: web
   name: deedpro-main-api
