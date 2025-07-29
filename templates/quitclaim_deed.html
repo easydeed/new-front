@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Quitclaim Deed</title>
+  <style>
+    @page { 
+      size: 8.5in 11in; 
+      margin: 1in; 
+    }
+    body { 
+      font-family: 'Times New Roman', serif; 
+      font-size: 12pt; 
+      line-height: 1.5; 
+      color: #000; 
+      background: #fff; 
+      margin: 0; 
+      padding: 0; 
+    }
+    .header { 
+      text-align: center; 
+      font-weight: bold; 
+      font-size: 14pt; 
+      margin-bottom: 0.5in; 
+      text-transform: uppercase;
+    }
+    .section { 
+      margin-bottom: 0.25in; 
+    }
+    .bold { 
+      font-weight: bold; 
+    }
+    .signature { 
+      margin-top: 1in; 
+      border-top: 1px solid #000; 
+      padding-top: 0.25in; 
+    }
+    .notary-section {
+      margin-top: 0.75in;
+      border: 2px solid #000;
+      padding: 0.5in;
+    }
+    p { 
+      margin: 0.1in 0; 
+      padding: 0; 
+    }
+    .checkbox {
+      display: inline-block;
+      width: 12pt;
+      height: 12pt;
+      border: 1pt solid #000;
+      margin-right: 0.1in;
+      vertical-align: baseline;
+    }
+  </style>
+</head>
+<body>
+  <div class="section">
+    <p class="bold">RECORDING REQUESTED BY:</p>
+    <p>{{ recording_requested_by or "_____________________" }}</p>
+  </div>
+  
+  <div class="section">
+    <p class="bold">MAIL TAX STATEMENTS AND WHEN RECORDED MAIL TO:</p>
+    <p>{{ mail_to or "_____________________" }}</p>
+  </div>
+  
+  <div class="section">
+    <p><span class="bold">Order No.:</span> {{ order_no or "_____________________" }}</p>
+    <p><span class="bold">Escrow No.:</span> {{ escrow_no or "_____________________" }}</p>
+    <p><span class="bold">APN:</span> {{ apn or "_____________________" }}</p>
+  </div>
+  
+  <p class="header">Quitclaim Deed</p>
+  
+  <div class="section">
+    <p class="bold">THE UNDERSIGNED GRANTOR(S) DECLARE(S):</p>
+    <p>DOCUMENTARY TRANSFER TAX IS ${{ documentary_tax or "_____" }}</p>
+    <p><span class="checkbox"></span> Computed on full value of property conveyed, or</p>
+    <p><span class="checkbox"></span> Computed on full value less liens and encumbrances remaining at time of sale.</p>
+    <p><span class="checkbox"></span> Unincorporated area <span class="checkbox"></span> City of {{ city or "_____________________" }}</p>
+  </div>
+  
+  <div class="section">
+    <p>For valuable consideration, receipt of which is hereby acknowledged,</p>
+    <p>{{ grantor or "_____________________" }}</p>
+    <p>hereby REMISE, RELEASE and FOREVER QUITCLAIM to</p>
+    <p>{{ grantee or "_____________________" }}</p>
+    <p>all the right, title, interest and claim which the said party of the first part has in and to the real property situated in the County of {{ county or "_____________________" }}, State of California, more particularly described as follows:</p>
+  </div>
+  
+  <div class="section">
+    <p>{{ property_description or "_____________________" }}</p>
+  </div>
+  
+  <div class="section">
+    <p>TO HAVE AND TO HOLD the same, together with all and singular the tenements, hereditaments and appurtenances thereunto belonging or in anywise appertaining, and the reversion and reversions, remainder and remainders, rents, issues and profits thereof; and also all the estate, right, title, interest, claim and demand whatsoever of the said party of the first part, either in law or equity, of, in and to the above bargained premises, with the hereditaments and appurtenances.</p>
+  </div>
+  
+  <div class="section">
+    <p>Dated: {{ date or "_____________________" }}</p>
+  </div>
+  
+  <div class="signature">
+    <p>{{ grantor_signature or "_____________________" }}</p>
+    <p>Signature of Grantor</p>
+  </div>
+  
+  <div class="notary-section">
+    <p class="bold">STATE OF CALIFORNIA )</p>
+    <p class="bold">                     ) SS.</p>
+    <p class="bold">COUNTY OF {{ county_notary or "_____________________" }} )</p>
+    
+    <p>On {{ notary_date or "_____________________" }} before me, {{ notary_name or "_____________________" }}, Notary Public, personally appeared {{ appeared_before_notary or "_____________________" }}, who proved to me on the basis of satisfactory evidence to be the person(s) whose name(s) is/are subscribed to the within instrument and acknowledged to me that he/she/they executed the same in his/her/their authorized capacity, and that by his/her/their signature(s) on the instrument the person(s), or the entity upon behalf of which the person(s) acted, executed the instrument.</p>
+    
+    <p>I certify under PENALTY OF PERJURY under the laws of the State of California that the foregoing paragraph is true and correct.</p>
+    
+    <p>WITNESS my hand and official seal.</p>
+    
+    <div style="margin-top: 0.5in;">
+      <p>Signature: {{ notary_signature or "_____________________" }}</p>
+    </div>
+  </div>
+</body>
+</html> 

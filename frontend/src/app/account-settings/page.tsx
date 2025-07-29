@@ -10,6 +10,8 @@ interface UserProfile {
     max_deeds_per_month: number;
     api_calls_per_month: number;
   };
+  widget_addon?: boolean;
+  embed_key?: string;
 }
 
 export default function AccountSettings() {
@@ -30,6 +32,10 @@ export default function AccountSettings() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
+
+  // Widget add-on state
+  const [widgetAddon, setWidgetAddon] = useState(false);
+  const [embedKey, setEmbedKey] = useState('');
 
   const plans = [
     {
@@ -98,6 +104,8 @@ export default function AccountSettings() {
       if (response.ok) {
         const profile = await response.json();
         setUserProfile(profile);
+        setWidgetAddon(profile.widget_addon || false);
+        setEmbedKey(profile.embed_key || '');
       }
     } catch (error) {
       console.error('Failed to fetch user profile:', error);
@@ -169,6 +177,27 @@ export default function AccountSettings() {
     fetchUserProfile();
   }, []);
 
+  const copySnippet = () => {
+    const snippet = `
+      <script>
+        async function loadDeedWizard() {
+          const data = { deed_type: "grant_deed", data: { grantor: "John Doe" /* Your data */ } };
+          const res = await fetch("https://deedpro-main-api.onrender.com/embed/wizard", {
+            method: "POST",
+            headers: { "X-API-Key": "${embedKey}", "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+          });
+          const result = await res.json();
+          document.getElementById("deed-iframe").contentDocument.body.innerHTML = result.html;
+        }
+        loadDeedWizard();
+      </script>
+      <iframe id="deed-iframe" style="width: 100%; height: 600px; border: none;"></iframe>
+    `;
+    navigator.clipboard.writeText(snippet);
+    alert('Snippet copied!');
+  };
+
   const handleSave = () => {
     alert('Settings saved successfully!');
   };
@@ -212,6 +241,12 @@ export default function AccountSettings() {
               onClick={() => setActiveTab('security')}
             >
               Security
+            </button>
+            <button
+              className={`settings-tab ${activeTab === 'widget' ? 'active' : ''}`}
+              onClick={() => setActiveTab('widget')}
+            >
+              Widget Add-on
             </button>
           </div>
 
@@ -668,6 +703,118 @@ export default function AccountSettings() {
                   Enable 2FA
                 </button>
               </div>
+            </div>
+          </div>
+
+          {/* Widget Add-on Tab */}
+          <div className={`settings-content ${activeTab === 'widget' ? 'active' : ''}`}>
+            <div className="settings-section">
+              <h3>Widget Add-On Status</h3>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                padding: '1.5rem',
+                background: widgetAddon ? 'rgba(34, 197, 94, 0.1)' : 'var(--gray-50)',
+                borderRadius: '12px',
+                border: widgetAddon ? '2px solid #22c55e' : '2px solid var(--secondary-light)',
+                marginBottom: '2rem'
+              }}>
+                <div>
+                  <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)', fontSize: '1.25rem' }}>
+                    Widget Add-On: {widgetAddon ? '✅ Enabled' : '❌ Disabled'}
+                  </h4>
+                  <p style={{ margin: 0, color: 'var(--gray-600)', fontSize: '0.875rem' }}>
+                    {widgetAddon 
+                      ? 'Embed DeedPro widget in your website or application'
+                      : 'Upgrade to enable widget embedding functionality'
+                    }
+                  </p>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '600', color: 'var(--text)' }}>
+                    {widgetAddon ? '$49' : 'N/A'}
+                  </div>
+                  <div style={{ fontSize: '0.875rem', color: 'var(--gray-600)' }}>
+                    {widgetAddon ? 'per month' : ''}
+                  </div>
+                </div>
+              </div>
+
+              {widgetAddon && embedKey && (
+                <div style={{
+                  background: 'white',
+                  border: '2px solid #22c55e',
+                  borderRadius: '12px',
+                  padding: '2rem',
+                  marginBottom: '2rem'
+                }}>
+                  <h3 style={{ color: '#111827', marginBottom: '1rem', fontSize: '1.25rem' }}>
+                    🔑 Your Embed Key
+                  </h3>
+                  <div style={{
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    padding: '1rem',
+                    marginBottom: '1rem',
+                    fontFamily: 'monospace',
+                    fontSize: '14px',
+                    wordBreak: 'break-all',
+                    color: '#1e293b'
+                  }}>
+                    {embedKey}
+                  </div>
+                  <button 
+                    onClick={copySnippet} 
+                    style={{
+                      backgroundColor: '#3b82f6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '12px 24px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#2563eb';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#3b82f6';
+                    }}
+                  >
+                    📋 Copy Embed Snippet
+                  </button>
+                </div>
+              )}
+
+              {!widgetAddon && (
+                <div style={{
+                  background: 'rgba(59, 130, 246, 0.05)',
+                  border: '1px solid rgba(59, 130, 246, 0.1)',
+                  borderRadius: '12px',
+                  padding: '2rem',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '48px', marginBottom: '1rem' }}>🔧</div>
+                  <h4 style={{ color: '#111827', marginBottom: '1rem' }}>Widget Add-On Not Enabled</h4>
+                  <p style={{ color: '#565F64', marginBottom: '1.5rem', lineHeight: '1.6' }}>
+                    Contact your administrator to enable the Widget Add-On feature for your account. 
+                    This allows you to embed DeedPro functionality directly into your website or application.
+                  </p>
+                  <div style={{
+                    background: '#f3f4f6',
+                    borderRadius: '8px',
+                    padding: '1rem',
+                    fontSize: '14px',
+                    color: '#565F64'
+                  }}>
+                    💡 Widget Add-On: $49/month additional charge
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

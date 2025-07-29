@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/Sidebar';
 import '../../styles/dashboard.css';
 
@@ -209,6 +210,9 @@ const AiSuggestion = ({
 };
 
 export default function CreateDeed() {
+  const [hasAccess, setHasAccess] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     deedType: '',
@@ -450,8 +454,36 @@ export default function CreateDeed() {
   };
 
   useEffect(() => {
-    fetchUserProfile();
-  }, []);
+    // Check widget access first
+    const checkAccess = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          router.push('/login');
+          return;
+        }
+
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/check-widget-access`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          setHasAccess(true);
+          fetchUserProfile();
+        } else {
+          router.push('/account-settings?upgrade=widget');
+        }
+      } catch (error) {
+        console.error('Access check failed:', error);
+        alert('Access check failed');
+        router.push('/account-settings?upgrade=widget');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAccess();
+  }, [router]);
 
   const nextStep = () => {
     if (currentStep < 5) setCurrentStep(currentStep + 1);
@@ -464,6 +496,77 @@ export default function CreateDeed() {
   const selectDeedType = (type: string) => {
     setFormData({ ...formData, deedType: type });
   };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex' }}>
+        <Sidebar />
+        <div className="main-content">
+          <div className="wizard-container">
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              height: '400px',
+              flexDirection: 'column',
+              gap: '1rem'
+            }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                border: '4px solid #f3f4f6',
+                borderTop: '4px solid #3b82f6',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }} />
+              <p style={{ color: '#6b7280', fontSize: '1.125rem' }}>Checking access...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasAccess) {
+    return (
+      <div style={{ display: 'flex' }}>
+        <Sidebar />
+        <div className="main-content">
+          <div className="wizard-container">
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              height: '400px',
+              flexDirection: 'column',
+              gap: '1rem'
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '1rem' }}>🔒</div>
+              <h2 style={{ color: '#111827', marginBottom: '1rem' }}>Widget Access Required</h2>
+              <p style={{ color: '#6b7280', textAlign: 'center', marginBottom: '2rem' }}>
+                Upgrade for access to the deed creation widget.
+              </p>
+              <button
+                onClick={() => router.push('/account-settings?upgrade=widget')}
+                style={{
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '12px 24px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Upgrade Account
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex' }}>
