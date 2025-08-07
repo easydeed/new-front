@@ -118,32 +118,23 @@ function LoginContent() {
   };
 
   return (
-    <div className="min-h-screen bg-light-seafoam dark:bg-gradient-to-br dark:from-charcoal-blue dark:via-soft-charcoal dark:to-slate-navy flex items-center justify-center py-12 px-4 relative overflow-hidden font-inter">
+    <div className="min-h-screen bg-light-seafoam flex items-center justify-center py-12 px-4 font-inter">
       
-      {/* Minimal particles for performance */}
-      <ParticlesMinimal />
-      
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-tropical-teal/3 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-electric-indigo/3 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-      </div>
-
-      <div className={`max-w-md w-full relative z-10 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+      <div className={`max-w-md w-full`}>
         
         {/* Enhanced Header */}
-        <div className="text-center mb-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-          <h1 className="text-4xl lg:text-5xl font-bold text-dark-slate dark:text-white mb-4 relative">
+        <div className="text-center mb-6">
+          <h1 className="text-3xl font-bold text-dark-slate mb-2 relative">
             Welcome Back
-            <div className="absolute -top-1 -right-8 w-3 h-3 bg-deep-teal dark:bg-tropical-teal rounded-full animate-pulse"></div>
+            <span className="inline-block w-2 h-2 rounded-full bg-accent ml-2 align-middle" />
           </h1>
-          <p className="text-lg text-dark-slate/80 dark:text-aqua-mint/80">
-            Sign in to your <span className="bg-gradient-teal bg-clip-text text-transparent font-semibold">DeedPro</span> account
+          <p className="text-base text-dark-slate/70">
+            Sign in to your DeedPro account
           </p>
         </div>
 
         {/* Enhanced Login Form */}
-        <div className="bg-pale-slate dark:bg-gradient-dark rounded-3xl shadow-elevated p-8 border border-deep-teal/20 dark:border-tropical-teal/20 relative group hover:shadow-glow-teal transition-all duration-500 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+        <div className="bg-surface rounded-xl shadow-elevated p-6 border border-dark-slate/10">
           
           {/* Glow effect */}
           <div className="absolute -inset-0.5 bg-gradient-teal rounded-3xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
@@ -159,11 +150,8 @@ function LoginContent() {
             )}
 
             {error && (
-              <div className="mb-6 p-4 bg-red-500/10 border border-red-400/30 text-red-400 rounded-2xl animate-fade-in-up backdrop-blur-sm">
-                <div className="flex items-center">
-                  <div className="w-2 h-2 bg-red-400 rounded-full mr-3 animate-pulse"></div>
-                  {error}
-                </div>
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+                {error}
               </div>
             )}
 
@@ -181,7 +169,7 @@ function LoginContent() {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full p-4 bg-light-seafoam dark:bg-charcoal-blue/50 text-dark-slate dark:text-white border-2 border-deep-teal/20 dark:border-aqua-mint/20 rounded-2xl focus:ring-2 focus:ring-deep-teal dark:focus:ring-tropical-teal focus:border-deep-teal dark:focus:border-tropical-teal transition-all duration-300 placeholder-dark-slate/50 dark:placeholder-aqua-mint/50 backdrop-blur-sm hover:border-deep-teal/40 dark:hover:border-tropical-teal/40 group-hover:scale-[1.02]"
+                  className="w-full p-4 bg-surface text-dark-slate border border-dark-slate/20 rounded-lg focus:ring-2 focus:ring-gentle-indigo focus:border-gentle-indigo placeholder-dark-slate/50"
                     placeholder="your.email@company.com"
                     autoComplete="email"
                   />
@@ -201,7 +189,7 @@ function LoginContent() {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    className="w-full p-4 pr-12 bg-light-seafoam dark:bg-charcoal-blue/50 text-dark-slate dark:text-white border-2 border-deep-teal/20 dark:border-aqua-mint/20 rounded-2xl focus:ring-2 focus:ring-deep-teal dark:focus:ring-tropical-teal focus:border-deep-teal dark:focus:border-tropical-teal transition-all duration-300 placeholder-dark-slate/50 dark:placeholder-aqua-mint/50 backdrop-blur-sm hover:border-deep-teal/40 dark:hover:border-tropical-teal/40 group-hover:scale-[1.02]"
+                  className="w-full p-4 pr-12 bg-surface text-dark-slate border border-dark-slate/20 rounded-lg focus:ring-2 focus:ring-gentle-indigo focus:border-gentle-indigo placeholder-dark-slate/50"
                     placeholder="Enter your password"
                     autoComplete="current-password"
                   />
