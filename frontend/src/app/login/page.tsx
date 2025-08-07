@@ -118,7 +118,7 @@ function LoginContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-charcoal-blue via-soft-charcoal to-slate-navy flex items-center justify-center py-12 px-4 relative overflow-hidden font-inter">
+    <div className="min-h-screen bg-light-seafoam dark:bg-gradient-to-br dark:from-charcoal-blue dark:via-soft-charcoal dark:to-slate-navy flex items-center justify-center py-12 px-4 relative overflow-hidden font-inter">
       
       {/* Minimal particles for performance */}
       <ParticlesMinimal />
@@ -133,17 +133,17 @@ function LoginContent() {
         
         {/* Enhanced Header */}
         <div className="text-center mb-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-          <h1 className="text-4xl lg:text-5xl font-bold text-white mb-4 relative">
+          <h1 className="text-4xl lg:text-5xl font-bold text-dark-slate dark:text-white mb-4 relative">
             Welcome Back
-            <div className="absolute -top-1 -right-8 w-3 h-3 bg-tropical-teal rounded-full animate-pulse"></div>
+            <div className="absolute -top-1 -right-8 w-3 h-3 bg-deep-teal dark:bg-tropical-teal rounded-full animate-pulse"></div>
           </h1>
-          <p className="text-lg text-aqua-mint/80">
+          <p className="text-lg text-dark-slate/80 dark:text-aqua-mint/80">
             Sign in to your <span className="bg-gradient-teal bg-clip-text text-transparent font-semibold">DeedPro</span> account
           </p>
         </div>
 
         {/* Enhanced Login Form */}
-        <div className="bg-gradient-dark rounded-3xl shadow-elevated p-8 border border-tropical-teal/20 relative group hover:shadow-glow-teal transition-all duration-500 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+        <div className="bg-pale-slate dark:bg-gradient-dark rounded-3xl shadow-elevated p-8 border border-deep-teal/20 dark:border-tropical-teal/20 relative group hover:shadow-glow-teal transition-all duration-500 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
           
           {/* Glow effect */}
           <div className="absolute -inset-0.5 bg-gradient-teal rounded-3xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
@@ -171,7 +171,7 @@ function LoginContent() {
               
               {/* Enhanced Email Input */}
               <div className="group">
-                <label htmlFor="email" className="block text-sm font-semibold text-white mb-2 transition-colors group-focus-within:text-tropical-teal">
+                <label htmlFor="email" className="block text-sm font-semibold text-dark-slate dark:text-white mb-2 transition-colors group-focus-within:text-deep-teal dark:group-focus-within:text-tropical-teal">
                   Email Address
                 </label>
                 <div className="relative">
@@ -181,7 +181,7 @@ function LoginContent() {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full p-4 bg-charcoal-blue/50 text-white border-2 border-aqua-mint/20 rounded-2xl focus:ring-2 focus:ring-tropical-teal focus:border-tropical-teal transition-all duration-300 placeholder-aqua-mint/50 backdrop-blur-sm hover:border-tropical-teal/40 group-hover:scale-[1.02]"
+                    className="w-full p-4 bg-light-seafoam dark:bg-charcoal-blue/50 text-dark-slate dark:text-white border-2 border-deep-teal/20 dark:border-aqua-mint/20 rounded-2xl focus:ring-2 focus:ring-deep-teal dark:focus:ring-tropical-teal focus:border-deep-teal dark:focus:border-tropical-teal transition-all duration-300 placeholder-dark-slate/50 dark:placeholder-aqua-mint/50 backdrop-blur-sm hover:border-deep-teal/40 dark:hover:border-tropical-teal/40 group-hover:scale-[1.02]"
                     placeholder="your.email@company.com"
                     autoComplete="email"
                   />
@@ -191,7 +191,7 @@ function LoginContent() {
 
               {/* Enhanced Password Input */}
               <div className="group">
-                <label htmlFor="password" className="block text-sm font-semibold text-white mb-2 transition-colors group-focus-within:text-tropical-teal">
+                <label htmlFor="password" className="block text-sm font-semibold text-dark-slate dark:text-white mb-2 transition-colors group-focus-within:text-deep-teal dark:group-focus-within:text-tropical-teal">
                   Password
                 </label>
                 <div className="relative">
@@ -201,14 +201,14 @@ function LoginContent() {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    className="w-full p-4 pr-12 bg-charcoal-blue/50 text-white border-2 border-aqua-mint/20 rounded-2xl focus:ring-2 focus:ring-tropical-teal focus:border-tropical-teal transition-all duration-300 placeholder-aqua-mint/50 backdrop-blur-sm hover:border-tropical-teal/40 group-hover:scale-[1.02]"
+                    className="w-full p-4 pr-12 bg-light-seafoam dark:bg-charcoal-blue/50 text-dark-slate dark:text-white border-2 border-deep-teal/20 dark:border-aqua-mint/20 rounded-2xl focus:ring-2 focus:ring-deep-teal dark:focus:ring-tropical-teal focus:border-deep-teal dark:focus:border-tropical-teal transition-all duration-300 placeholder-dark-slate/50 dark:placeholder-aqua-mint/50 backdrop-blur-sm hover:border-deep-teal/40 dark:hover:border-tropical-teal/40 group-hover:scale-[1.02]"
                     placeholder="Enter your password"
                     autoComplete="current-password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-aqua-mint/70 hover:text-tropical-teal transition-colors duration-200"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-dark-slate/70 dark:text-aqua-mint/70 hover:text-deep-teal dark:hover:text-tropical-teal transition-colors duration-200"
                   >
                     <Eye className="h-5 w-5" />
                   </button>
@@ -223,7 +223,7 @@ function LoginContent() {
                 className={`group relative w-full py-4 px-6 rounded-2xl font-semibold text-white transition-all duration-300 ${
                   loading
                     ? "bg-gray-600 cursor-not-allowed"
-                    : "bg-gradient-teal hover:shadow-glow-teal transform hover:scale-105 hover:-translate-y-0.5 active:scale-95"
+                    : "bg-deep-teal dark:bg-gradient-teal hover:bg-soft-cyan dark:hover:shadow-glow-teal transform hover:scale-105 hover:-translate-y-0.5 active:scale-95"
                 }`}
               >
                 <div className="absolute -inset-0.5 bg-gradient-teal rounded-2xl blur opacity-0 group-hover:opacity-30 transition duration-300"></div>

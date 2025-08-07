@@ -14,24 +14,24 @@ interface PricingProps {
 }
 
 export default function Pricing({ pricing = [] }: PricingProps) {
-  // Fallback plans if API data isn't available
+  // Fallback plans adjusted for dual audiences (independents + enterprises)
   const fallbackPlans = [
     {
-      name: "Starter",
-      price: 29,
-      features: ["AI-Enhanced Deed Wizard", "Up to 50 deeds per month", "Smart tooltips & assistance", "iPhone-style interface", "Email support", "Basic analytics"],
+      name: "Solo",
+      price: 0,
+      features: ["5 deeds per month", "AI-Enhanced Deed Wizard", "Basic templates", "Smart tooltips & assistance", "iPhone-style interface", "Email support", "Perfect for independent escrow officers"],
       popular: false
     },
     {
-      name: "Professional", 
-      price: 89,
-      features: ["Everything in Starter", "Unlimited deeds", "Advanced sharing & collaboration", "Priority AI assistance", "API access (100 calls/day)", "Priority support", "Advanced analytics"],
+      name: "Pro", 
+      price: 29,
+      features: ["Unlimited deeds", "Advanced templates", "AI-powered suggestions", "Document sharing", "Priority support", "Advanced analytics", "SoftPro integration", "Ideal for growing businesses"],
       popular: true
     },
     {
-      name: "Enterprise",
-      price: 299,
-      features: ["Everything in Professional", "Unlimited API calls", "SoftPro 360 integration", "Qualia GraphQL sync", "Admin dashboard", "Custom webhooks", "Dedicated support", "99.9% SLA"],
+      name: "Business",
+      price: 99,
+      features: ["Everything in Pro", "Unlimited API calls", "Team management", "Custom templates", "Qualia GraphQL sync", "Admin dashboard", "Custom webhooks", "99.9% SLA", "White-label option"],
       popular: false
     }
   ];
@@ -72,18 +72,19 @@ export default function Pricing({ pricing = [] }: PricingProps) {
   ];
 
   return (
-    <section className="py-20 px-6 bg-slate-navy">
+    <section className="py-20 px-6 bg-pale-slate dark:bg-slate-navy">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <div className="inline-block bg-electric-indigo text-white px-4 py-2 rounded-full text-sm font-semibold mb-4 flex items-center gap-2 w-fit mx-auto">
+          <div className="inline-block bg-gentle-indigo dark:bg-electric-indigo text-white px-4 py-2 rounded-full text-sm font-semibold mb-4 flex items-center gap-2 w-fit mx-auto">
             <CurrencyDollarIcon className="h-4 w-4" />
             Flexible Pricing
           </div>
-          <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">
+          <h2 className="text-4xl lg:text-5xl font-bold text-dark-slate dark:text-white mb-6">
             Choose Your DeedPro Plan
           </h2>
-          <p className="text-aqua-mint max-w-3xl mx-auto text-lg">
-            From individual professionals to enterprise integrations, we have a plan that scales with your business. 
+          <p className="text-dark-slate/80 dark:text-aqua-mint max-w-3xl mx-auto text-lg">
+            Perfect for <span className="text-deep-teal dark:text-tropical-teal font-semibold">independent escrow officers</span> and 
+            <span className="text-gentle-indigo dark:text-electric-indigo font-semibold"> enterprise teams</span>. 
             All plans include our AI-enhanced wizard and professional support.
           </p>
         </div>
@@ -92,8 +93,8 @@ export default function Pricing({ pricing = [] }: PricingProps) {
           {plans.map((plan, index) => (
             <div key={index} className={`relative p-8 rounded-3xl border-2 ${
               plan.popular 
-                ? 'border-tropical-teal shadow-2xl scale-105 bg-charcoal-blue ring-4 ring-tropical-teal/20' 
-                : 'border-aqua-mint bg-charcoal-blue hover:shadow-xl hover:border-tropical-teal'
+                ? 'border-deep-teal dark:border-tropical-teal shadow-2xl scale-105 bg-light-seafoam dark:bg-charcoal-blue ring-4 ring-deep-teal/20 dark:ring-tropical-teal/20' 
+                : 'border-gentle-indigo/30 dark:border-aqua-mint bg-light-seafoam dark:bg-charcoal-blue hover:shadow-xl hover:border-deep-teal dark:hover:border-tropical-teal'
             } transition-all duration-300`}>
               
               {plan.popular && (
@@ -105,13 +106,16 @@ export default function Pricing({ pricing = [] }: PricingProps) {
               )}
               
               <div className="text-center mb-8 pt-4">
-                <h3 className="text-2xl font-bold text-white mb-2">{plan.name}</h3>
+                <h3 className="text-2xl font-bold text-dark-slate dark:text-white mb-2">{plan.name}</h3>
                 <div className="flex items-baseline justify-center mb-2">
-                  <span className="text-5xl font-bold text-white">${plan.price}</span>
-                  <span className="text-aqua-mint ml-2 text-lg">/month</span>
+                  <span className="text-5xl font-bold text-dark-slate dark:text-white">${plan.price}</span>
+                  <span className="text-dark-slate/70 dark:text-aqua-mint ml-2 text-lg">/month</span>
                 </div>
-                {plan.name.toLowerCase() === "starter" && (
-                  <div className="text-sm text-tropical-teal font-semibold">14-day free trial</div>
+                {plan.name.toLowerCase() === "solo" && (
+                  <div className="text-sm text-deep-teal dark:text-tropical-teal font-semibold">Always free for independents</div>
+                )}
+                {plan.name.toLowerCase() === "pro" && (
+                  <div className="text-sm text-deep-teal dark:text-tropical-teal font-semibold">14-day free trial</div>
                 )}
               </div>
               
@@ -119,19 +123,19 @@ export default function Pricing({ pricing = [] }: PricingProps) {
                 {plan.features.map((feature, idx) => (
                   <li key={idx} className="flex items-start">
                     <CheckIcon className={`h-5 w-5 mr-3 mt-1 flex-shrink-0 ${
-                      plan.popular ? 'text-tropical-teal' : 'text-aqua-mint'
+                      plan.popular ? 'text-deep-teal dark:text-tropical-teal' : 'text-gentle-indigo dark:text-aqua-mint'
                     }`} />
-                    <span className="text-white leading-relaxed">{feature}</span>
+                    <span className="text-dark-slate dark:text-white leading-relaxed">{feature}</span>
                   </li>
                 ))}
               </ul>
               
               <button className={`w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all ${
                 plan.popular 
-                  ? 'bg-tropical-teal text-white hover:shadow-lg transform hover:scale-105 hover:bg-aqua-mint' 
-                  : 'bg-electric-indigo text-white hover:bg-tropical-teal'
+                  ? 'bg-deep-teal dark:bg-tropical-teal text-white hover:shadow-lg transform hover:scale-105 hover:bg-soft-cyan dark:hover:bg-aqua-mint' 
+                  : 'bg-gentle-indigo dark:bg-electric-indigo text-white hover:bg-deep-teal dark:hover:bg-tropical-teal'
               }`}>
-                {plan.name.toLowerCase() === "enterprise" ? "Contact Sales" : "Get Started"}
+                {plan.name.toLowerCase() === "business" ? "Contact Sales" : "Get Started"}
               </button>
             </div>
           ))}

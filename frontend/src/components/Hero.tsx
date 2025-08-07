@@ -12,7 +12,7 @@ export default function Hero() {
   }, []);
 
   return (
-    <section className="min-h-screen flex flex-col lg:flex-row items-center justify-center px-6 bg-gradient-dark relative overflow-hidden">
+    <section className="min-h-screen flex flex-col lg:flex-row items-center justify-center px-6 bg-light-seafoam dark:bg-gradient-dark relative overflow-hidden">
       
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
@@ -34,11 +34,11 @@ export default function Hero() {
         </div>
         
         {/* Enhanced main title */}
-        <h1 className="text-6xl lg:text-8xl font-bold text-white leading-tight mb-6 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+        <h1 className="text-6xl lg:text-8xl font-bold text-dark-slate dark:text-white leading-tight mb-6 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
           <span className="relative">
             Deed
             <div className="absolute -top-2 -right-6">
-              <Star className="h-8 w-8 text-tropical-teal animate-pulse" />
+              <Star className="h-8 w-8 text-deep-teal dark:text-tropical-teal animate-pulse" />
             </div>
           </span>
           <span className="bg-gradient-animated bg-gradient-teal bg-clip-text text-transparent animate-gradient-shift" style={{ backgroundSize: '400% 400%' }}>
@@ -46,18 +46,19 @@ export default function Hero() {
           </span>
         </h1>
         
-        {/* Enhanced subtitle */}
-        <h2 className="text-3xl lg:text-5xl font-bold text-white leading-tight mb-8 animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
-          AI-Enhanced Real Estate Document Platform
+        {/* Enhanced subtitle with dual-audience messaging */}
+        <h2 className="text-3xl lg:text-5xl font-bold text-dark-slate dark:text-white leading-tight mb-8 animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
+          Streamline Deeds for Businesses and Independents
           <br />
-          <span className="text-aqua-mint text-2xl lg:text-3xl">with Enterprise API</span>
+          <span className="text-gentle-indigo dark:text-aqua-mint text-2xl lg:text-3xl">AI-Enhanced • Enterprise Ready</span>
         </h2>
         
-        {/* Enhanced description */}
-        <p className="text-aqua-mint text-xl mb-6 leading-relaxed animate-fade-in-up" style={{ animationDelay: '0.8s' }}>
-          Transform deed creation with <span className="text-tropical-teal font-semibold">AI assistance</span>, 
-          seamless <span className="text-electric-indigo font-semibold">SoftPro & Qualia integrations</span>, 
-          and an <span className="text-white font-semibold">enterprise API</span> that connects your entire workflow.
+        {/* Enhanced description for dual audiences */}
+        <p className="text-dark-slate/80 dark:text-aqua-mint text-xl mb-6 leading-relaxed animate-fade-in-up" style={{ animationDelay: '0.8s' }}>
+          Perfect for <span className="text-deep-teal dark:text-tropical-teal font-semibold">independent escrow officers</span> and 
+          <span className="text-gentle-indigo dark:text-electric-indigo font-semibold"> enterprise teams</span>. 
+          Features <span className="text-dark-slate dark:text-white font-semibold">AI assistance</span>, 
+          seamless integrations, and scalable API access.
         </p>
         
         {/* Enhanced feature badges */}

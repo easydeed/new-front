@@ -8,32 +8,41 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Tech-Forward Startup-Slick Color Palette
-        'slate-navy': '#37465B',      // Base/card backgrounds
-        'charcoal-blue': '#212B38',   // Dark backgrounds
-        'soft-charcoal': '#2B3B4C',   // Softer card backgrounds
-        'tropical-teal': '#08C6AB',   // Primary accent
-        'aqua-mint': '#5AFFE7',       // Highlights/CTA hovers
-        'electric-indigo': '#726EFF', // CTAs/links
+        // New lighter palette for accessibility and dual-audience appeal
+        'light-seafoam': '#E5ECEE',   // Light background for main pages
+        'pale-slate': '#D1DFE2',      // Light card backgrounds
+        'deep-teal': '#1E8A7A',       // Primary buttons (warmer teal)
+        'soft-cyan': '#4ECDC4',       // Hover states and accents
+        'gentle-indigo': '#4A5DBF',   // CTAs and links (softer indigo)
+        'dark-slate': '#1A2A3A',      // Text color on light backgrounds
         
-        // Legacy support and additional colors
-        primary: '#212B38',           // Main background
-        secondary: '#08C6AB',         // Primary buttons
-        tertiary: '#726EFF',          // CTAs/links
-        background: '#212B38',        // Dark background
-        surface: '#37465B',           // Card surfaces
+        // Keep original dark colors for dark mode support
+        'slate-navy': '#37465B',      // Dark mode card backgrounds
+        'charcoal-blue': '#212B38',   // Dark mode main background
+        'soft-charcoal': '#2B3B4C',   // Dark mode softer backgrounds
+        'tropical-teal': '#08C6AB',   // Dark mode primary accent
+        'aqua-mint': '#5AFFE7',       // Dark mode highlights
+        'electric-indigo': '#726EFF', // Dark mode CTAs
+        
+        // Legacy support for existing components
+        primary: '#1E8A7A',           // Updated to deep teal
+        secondary: '#4ECDC4',         // Updated to soft cyan
+        tertiary: '#4A5DBF',          // Updated to gentle indigo
+        background: '#E5ECEE',        // Updated to light seafoam
+        surface: '#D1DFE2',           // Updated to pale slate
         text: {
-          primary: '#FFFFFF',         // White text for dark backgrounds
-          secondary: '#5AFFE7',       // Aqua mint for highlights
-          dark: '#212B38',            // Dark text for light backgrounds
+          primary: '#1A2A3A',         // Dark text for light backgrounds
+          secondary: '#4A5DBF',       // Gentle indigo for highlights
+          dark: '#1A2A3A',            // Dark text
+          light: '#FFFFFF',           // White text for dark mode
         },
-        // New tech palette
+        // Updated tech palette
         tech: {
-          'slate-navy': '#37465B',
-          'charcoal-blue': '#212B38',
-          'tropical-teal': '#08C6AB',
-          'aqua-mint': '#5AFFE7',
-          'electric-indigo': '#726EFF',
+          'light-seafoam': '#E5ECEE',
+          'pale-slate': '#D1DFE2',
+          'deep-teal': '#1E8A7A',
+          'soft-cyan': '#4ECDC4',
+          'gentle-indigo': '#4A5DBF',
         }
       },
       fontFamily: {
