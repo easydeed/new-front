@@ -5,11 +5,13 @@
 /* Modern Minimalistic Dashboard Styles */
 
 :root {
-  --primary-dark: #1E1E2F;
-  --secondary-light: #E5E7EB;
-  --background: #FFFFFF;
-  --text: #111827;
-  --accent: #A3E635;
+  /* Align with new flat/light palette */
+  --primary-dark: #4A5DBF; /* gentle-indigo */
+  --secondary-light: #D1DFE2; /* pale-slate */
+  --background: #E5ECEE; /* light-seafoam */
+  --text: #1A2A3A; /* dark-slate */
+  --accent: #F57C00; /* accent */
+  --accent-soft: #FEEBD7; /* accent soft */
   
   /* Grays for subtle elements */
   --gray-50: #F9FAFB;
@@ -65,9 +67,9 @@ body {
   line-height: 1.7;
 }
 
-/* Collapsible Sidebar Styles */
+/* Collapsible Sidebar Styles - flat, light */
 .sidebar {
-  background: #333333;
+  background: #FFFFFF;
   position: fixed;
   top: 0;
   left: 0;
@@ -75,8 +77,8 @@ body {
   height: 100vh;
   z-index: 999;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border-right: 1px solid #444444;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+  border-right: 1px solid #E5E7EB;
+  box-shadow: none;
 }
 
 .sidebar.collapsed {
@@ -89,7 +91,7 @@ body {
   right: -8px;
   width: 16px;
   height: 24px;
-  background: var(--gray-200);
+  background: #FFFFFF;
   border: 1px solid var(--secondary-light);
   border-radius: 4px;
   color: var(--gray-600);
@@ -100,7 +102,7 @@ body {
   transition: all 0.2s ease;
   z-index: 1000;
   font-size: 10px;
-  opacity: 0.7;
+  opacity: 0.9;
 }
 
 .sidebar-toggle:hover {
@@ -126,7 +128,7 @@ body {
   align-items: center;
   justify-content: flex-start;
   text-decoration: none;
-  color: #cccccc;
+  color: #4B5563; /* gray-600 on white */
   transition: all 0.2s ease;
   border-radius: 8px;
   font-weight: 500;
@@ -147,13 +149,14 @@ body {
 }
 
 .sidebar ul li a:hover {
-  background: #444444;
-  color: #ffffff;
+  background: var(--background);
+  color: var(--text);
 }
 
 .sidebar ul li a.active {
-  background: var(--accent);
-  color: #333333;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--accent-soft);
 }
 
 /* Tooltip styles for collapsed sidebar */
@@ -194,7 +197,7 @@ body {
 .sidebar .logo {
   padding: 2rem 1.5rem;
   text-align: left;
-  border-bottom: 1px solid #444444;
+  border-bottom: 1px solid #E5E7EB;
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -208,7 +211,7 @@ body {
 .sidebar .logo h4 {
   font-size: 1.375rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--text);
   margin: 0;
   letter-spacing: -0.02em;
   white-space: nowrap;
@@ -310,7 +313,7 @@ body {
   background: var(--primary-dark);
   border-color: var(--primary-dark);
   color: white;
-  box-shadow: 0 4px 12px rgba(30, 30, 47, 0.25);
+  box-shadow: none;
 }
 
 .progress-step.completed .progress-step-circle {
@@ -406,8 +409,8 @@ body {
 
 .deed-type-card:hover {
   border-color: var(--gray-400);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
 }
 
 .deed-type-card:hover::before {
@@ -416,8 +419,8 @@ body {
 
 .deed-type-card.selected {
   border-color: var(--primary-dark);
-  background: var(--gray-50);
-  box-shadow: 0 4px 16px rgba(30, 30, 47, 0.15);
+  background: #FFFFFF;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
 
 .deed-type-card.selected::before {
@@ -485,9 +488,9 @@ body {
 }
 
 .wizard-btn-primary:hover {
-  background: #262640;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(30, 30, 47, 0.25);
+  background: #4454b0;
+  transform: none;
+  box-shadow: none;
 }
 
 .wizard-btn-secondary {
@@ -547,10 +550,10 @@ body {
 /* Table Styles */
 .table-responsive {
   overflow-x: auto;
-  background: var(--background);
+  background: #FFFFFF;
   border-radius: 12px;
   border: 1px solid var(--secondary-light);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
 }
 
 .table-striped tbody tr:nth-of-type(odd) {
@@ -587,10 +590,10 @@ table.w-100.table-striped {
 
 /* Cards */
 .card {
-  background: var(--background);
+  background: #FFFFFF;
   border-radius: 12px;
   border: 1px solid var(--secondary-light);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
   margin-bottom: 2rem;
 }
 
@@ -657,11 +660,11 @@ table.w-100.table-striped {
 }
 
 .stat-card {
-  background: var(--background);
+  background: #FFFFFF;
   padding: 2.5rem;
   border-radius: 12px;
   border: 1px solid var(--secondary-light);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
@@ -669,8 +672,8 @@ table.w-100.table-striped {
 }
 
 .stat-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
+  box-shadow: none;
+  transform: none;
 }
 
 .stat-icon {
@@ -687,8 +690,8 @@ table.w-100.table-striped {
 }
 
 .stat-card.progress .stat-icon {
-  background: rgba(255, 165, 0, 0.1);
-  color: #ff9500;
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .stat-card.completed .stat-icon {
@@ -903,9 +906,9 @@ table.w-100.table-striped {
 }
 
 .btn-primary:hover {
-  background: #262640;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(30, 30, 47, 0.25);
+  background: #4454b0;
+  transform: none;
+  box-shadow: none;
 }
 
 .btn-secondary {

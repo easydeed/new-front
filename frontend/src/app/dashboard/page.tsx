@@ -28,14 +28,12 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div style={{ display: 'flex' }}>
+    <div style={{ display: 'flex', background: 'var(--background)', color: 'var(--text)' }}>
       <Sidebar />
       <div className={`main-content ${sidebarCollapsed ? 'expanded' : ''}`}>
         <div className="contact-wrapper">
           <h1 className="contact-title">Welcome to DeedPro</h1>
-          <p className="contact-paragraph">
-            Streamline your property transfer process with our modern deed management platform.
-          </p>
+          <p className="contact-paragraph">Your smooth path to professional deeds — guided, simple, effortless.</p>
 
           {/* Stats Grid */}
           <div className="stats-grid">
@@ -76,8 +74,6 @@ export default function Dashboard() {
               <div className="stat-label">Pending Review</div>
             </div>
           </div>
-
-
 
           {/* Recent Activity */}
           <div className="card">
@@ -130,6 +126,25 @@ export default function Dashboard() {
                 </table>
               </div>
             </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="quick-actions">
+            <a className="action-card" href="/create-deed">
+              <div className="action-icon">✨</div>
+              <div className="action-title">Start AI Wizard</div>
+              <div className="action-description">Answer a few simple questions — we’ll handle the legal formatting.</div>
+            </a>
+            <a className="action-card" href="/past-deeds">
+              <div className="action-icon">📂</div>
+              <div className="action-title">View Past Deeds</div>
+              <div className="action-description">Quickly access and share previously generated documents.</div>
+            </a>
+            <a className="action-card" href="/account-settings">
+              <div className="action-icon">⚙️</div>
+              <div className="action-title">Account & Plan</div>
+              <div className="action-description">Manage plan, billing, and integrations like SoftPro and Qualia.</div>
+            </a>
           </div>
         </div>
       </div>
