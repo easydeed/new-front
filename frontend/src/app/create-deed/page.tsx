@@ -211,6 +211,7 @@ const AiSuggestion = ({
 
 export default function CreateDeed() {
   const [hasAccess, setHasAccess] = useState(false);
+  const [needsWidgetAddon, setNeedsWidgetAddon] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
@@ -450,8 +451,11 @@ export default function CreateDeed() {
   };
 
   const handleGenerateFinalDeed = async () => {
-    // This will be the actual generation that counts toward plan limits
-    // Similar to handleGenerateDeed but calls the full /generate-deed endpoint
+    if (needsWidgetAddon) {
+      alert('Upgrade required: Enable the Widget Add-on in Account Settings to generate the final PDF.');
+      router.push('/account-settings?upgrade=widget');
+      return;
+    }
     await handleGenerateDeed();
   };
 
@@ -471,14 +475,24 @@ export default function CreateDeed() {
         
         if (response.ok) {
           setHasAccess(true);
+          setNeedsWidgetAddon(false);
+          fetchUserProfile();
+        } else if (response.status === 403) {
+          // Allow preview access but indicate upgrade needed for final PDF
+          setHasAccess(true);
+          setNeedsWidgetAddon(true);
           fetchUserProfile();
         } else {
-          router.push('/account-settings?upgrade=widget');
+          // Fail-open to avoid blocking
+          setHasAccess(true);
+          setNeedsWidgetAddon(false);
+          fetchUserProfile();
         }
       } catch (error) {
         console.error('Access check failed:', error);
-        alert('Access check failed');
-        router.push('/account-settings?upgrade=widget');
+        // Fail-open to allow preview
+        setHasAccess(true);
+        setNeedsWidgetAddon(false);
       } finally {
         setLoading(false);
       }
@@ -615,6 +629,19 @@ export default function CreateDeed() {
               {savedAt && (
                 <div style={{ position: 'absolute', right: 0, top: 0, fontSize: '0.9rem', color: 'var(--gray-500)' }}>
                   Saved {savedAt}
+                </div>
+              )}
+              {needsWidgetAddon && (
+                <div style={{
+                  marginTop: '0.75rem',
+                  background: 'var(--accent-soft)',
+                  color: 'var(--accent)',
+                  border: '1px solid var(--accent-soft)',
+                  borderRadius: '10px',
+                  padding: '10px 12px',
+                  fontSize: '0.9rem'
+                }}>
+                  Preview is available on your plan. Upgrade the Widget Add-on to generate the final PDF.
                 </div>
               )}
             </div>
