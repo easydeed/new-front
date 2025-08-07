@@ -33,19 +33,19 @@ export default function Sidebar() {
           <div style={{
             width: '40px',
             height: '40px',
-            background: '#FFFFFF',
-            border: '1px solid var(--secondary-light)',
+            background: 'rgba(255,255,255,0.15)',
+            border: '1px solid rgba(255,255,255,0.25)',
             borderRadius: '10px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: 'var(--primary-dark)',
+            color: '#FFFFFF',
             fontSize: '18px',
             fontWeight: '700',
             flexShrink: 0,
             letterSpacing: '-0.02em'
           }}>DP</div>
-          <h4>DeedPro <span style={{display:'inline-block',width:8,height:8,background:'var(--accent)',borderRadius:999,marginLeft:8,verticalAlign:'middle'}}/></h4>
+          <h4 style={{color:'#FFFFFF'}}>DeedPro <span style={{display:'inline-block',width:8,height:8,background:'var(--accent)',borderRadius:999,marginLeft:8,verticalAlign:'middle'}}/></h4>
         </div>
         
         <ul>

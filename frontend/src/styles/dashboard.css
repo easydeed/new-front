@@ -69,7 +69,7 @@ body {
 
 /* Collapsible Sidebar Styles - flat, light */
 .sidebar {
-  background: #FFFFFF;
+  background: var(--primary-dark);
   position: fixed;
   top: 0;
   left: 0;
@@ -77,7 +77,7 @@ body {
   height: 100vh;
   z-index: 999;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border-right: 1px solid #E5E7EB;
+  border-right: none;
   box-shadow: none;
 }
 
@@ -91,10 +91,10 @@ body {
   right: -8px;
   width: 16px;
   height: 24px;
-  background: #FFFFFF;
-  border: 1px solid var(--secondary-light);
+  background: var(--primary-dark);
+  border: 1px solid rgba(255,255,255,0.25);
   border-radius: 4px;
-  color: var(--gray-600);
+  color: #FFFFFF;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -106,8 +106,8 @@ body {
 }
 
 .sidebar-toggle:hover {
-  background: var(--gray-300);
-  color: var(--text);
+  background: #3f4fae;
+  color: #FFFFFF;
   opacity: 1;
 }
 
@@ -128,7 +128,7 @@ body {
   align-items: center;
   justify-content: flex-start;
   text-decoration: none;
-  color: #4B5563; /* gray-600 on white */
+  color: rgba(255,255,255,0.9);
   transition: all 0.2s ease;
   border-radius: 8px;
   font-weight: 500;
@@ -149,14 +149,14 @@ body {
 }
 
 .sidebar ul li a:hover {
-  background: var(--background);
-  color: var(--text);
+  background: rgba(255,255,255,0.10);
+  color: #FFFFFF;
 }
 
 .sidebar ul li a.active {
-  background: var(--accent-soft);
-  color: var(--accent);
-  border: 1px solid var(--accent-soft);
+  background: rgba(255,255,255,0.18);
+  color: #FFFFFF;
+  border: 1px solid rgba(255,255,255,0.22);
 }
 
 /* Tooltip styles for collapsed sidebar */
@@ -197,7 +197,7 @@ body {
 .sidebar .logo {
   padding: 2rem 1.5rem;
   text-align: left;
-  border-bottom: 1px solid #E5E7EB;
+  border-bottom: 1px solid rgba(255,255,255,0.18);
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -211,7 +211,7 @@ body {
 .sidebar .logo h4 {
   font-size: 1.375rem;
   font-weight: 600;
-  color: var(--text);
+  color: #FFFFFF;
   margin: 0;
   letter-spacing: -0.02em;
   white-space: nowrap;
@@ -223,7 +223,7 @@ body {
   margin-left: var(--sidebar-width);
   padding: 0;
   min-height: 100vh;
-  background: var(--background);
+  background: #FFFFFF;
   transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   width: calc(100% - var(--sidebar-width));
 }
@@ -352,7 +352,7 @@ body {
 }
 
 .step-content {
-  background: var(--background);
+  background: #FFFFFF;
   border-radius: 12px;
   padding: 3rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -532,9 +532,20 @@ body {
   padding: 1.25rem 1.5rem;
   font-size: 1.125rem;
   transition: all 0.3s ease;
-  background: var(--background);
+  background: #FFFFFF;
   color: var(--text);
   font-family: inherit;
+}
+
+/* Responsive two-column form grid for wizard steps */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+.col-span-2 {
+  grid-column: span 2;
 }
 
 .form-control:focus {
@@ -984,6 +995,14 @@ table.w-100.table-striped {
 
   .settings-form-row {
     grid-template-columns: 1fr;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .col-span-2 {
+    grid-column: span 1;
   }
 }
 

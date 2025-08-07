@@ -735,7 +735,7 @@ export default function CreateDeed() {
                   Enter the property details to identify the real estate being transferred.
                 </p>
                 
-                <div style={{ display: 'grid', gap: '2rem', maxWidth: '600px', margin: '0 auto' }}>
+                <div className="form-grid" style={{ maxWidth: '1000px', margin: '0 auto' }}>
                   <div className="form-group">
                     <Tooltip text="Enter the complete street address including city, state, and ZIP code for accurate property identification.">
                       <label className="form-label">Property Address 💡</label>
@@ -788,7 +788,7 @@ export default function CreateDeed() {
                     </select>
                   </div>
                   
-                  <div className="form-group">
+                  <div className="form-group col-span-2">
                     <Tooltip text="Legal description provides precise property boundaries. AI can help format based on your input or APN.">
                       <label className="form-label">Legal Description (Optional) 💡</label>
                     </Tooltip>
@@ -796,7 +796,7 @@ export default function CreateDeed() {
                       <textarea
                         name="legalDescription"
                         className="form-control"
-                        rows={4}
+                        rows={5}
                         placeholder="Enter detailed legal description if available..."
                         value={formData.legalDescription}
                         onChange={handleInputChange}
@@ -822,7 +822,7 @@ export default function CreateDeed() {
                   Specify the grantor (seller) and grantee (buyer) information.
                 </p>
                 
-                <div style={{ display: 'grid', gap: '2rem', maxWidth: '600px', margin: '0 auto' }}>
+                <div className="form-grid" style={{ maxWidth: '1000px', margin: '0 auto' }}>
                   <div className="form-group">
                     <label className="form-label">Ownership Type</label>
                     <select
@@ -876,7 +876,7 @@ export default function CreateDeed() {
                   Additional information required for the deed preparation.
                 </p>
                 
-                <div style={{ display: 'grid', gap: '2rem', maxWidth: '600px', margin: '0 auto' }}>
+                <div className="form-grid" style={{ maxWidth: '1000px', margin: '0 auto' }}>
                   <div className="form-group">
                     <label className="form-label">Sales Price / Consideration</label>
                     <input
@@ -888,14 +888,14 @@ export default function CreateDeed() {
                       onChange={handleInputChange}
                     />
                   </div>
-                  
+                  <div className="form-group"></div>
                   <div style={{
                     background: 'var(--gray-50)',
                     border: '1px solid var(--gray-200)',
                     borderRadius: '12px',
                     padding: '2rem',
                     textAlign: 'center'
-                  }}>
+                  }} className="col-span-2">
                     <h4 style={{ color: 'var(--gray-700)', marginBottom: '1rem', fontSize: '1.25rem' }}>
                       📋 Document Preparation
                     </h4>
