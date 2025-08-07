@@ -123,7 +123,7 @@ vercel --prod
 # Result: Deploys /frontend to https://deedpro-frontend-new.vercel.app
 ```
 
-### **Method 2: Git Integration (Automatic)**
+### **Method 2: Git Integration (Automatic) ✅ CONFIGURED**
 ```bash
 # From monorepo root
 git add frontend/
@@ -132,7 +132,15 @@ git push origin main
 
 # Vercel auto-deploys frontend changes
 # Backend remains unaffected
+# ✅ Auto-deploy enabled: Aug 07, 2025
 ```
+
+**Auto-Deploy Setup:**
+- ✅ Repository: `easydeed/new-front` connected
+- ✅ Root Directory: `frontend` configured
+- ✅ Automatic Deploys: Enabled in Vercel Dashboard
+- ✅ Environment Variables: Configured
+- ✅ Test successful: Verified working
 
 ### **Method 3: Vercel Dashboard**
 1. Go to Vercel Dashboard

@@ -1,6 +1,5 @@
 'use client';
 
-// Test auto-deploy at 08:58 PM UTC, Aug 07, 2025
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
