@@ -1019,7 +1019,7 @@ table.w-100.table-striped {
 }
 
 .tooltip-container:hover .form-label {
-  color: var(--primary);
+  color: var(--primary-dark);
   transition: color 0.2s ease;
 }
 

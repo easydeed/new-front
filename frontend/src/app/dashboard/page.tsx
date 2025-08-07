@@ -34,6 +34,8 @@ export default function Dashboard() {
         <div className="contact-wrapper">
           <h1 className="contact-title">Welcome to DeedPro</h1>
           <p className="contact-paragraph">Your smooth path to professional deeds — guided, simple, effortless.</p>
+          {/* Resume draft if exists */}
+          <ResumeDraftBanner />
 
           {/* Stats Grid */}
           <div className="stats-grid">
@@ -151,3 +153,26 @@ export default function Dashboard() {
     </div>
   );
 } 
+
+function ResumeDraftBanner() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('deedWizardDraft');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.formData) return null;
+  } catch {
+    return null;
+  }
+  return (
+    <div className="card" style={{ borderLeft: '4px solid var(--primary-dark)' }}>
+      <div className="card-body" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <div className="card-title" style={{ marginBottom: 4 }}>Resume AI Wizard</div>
+          <div style={{ color: 'var(--gray-600)' }}>Pick up where you left off. We’ve saved your progress.</div>
+        </div>
+        <a className="btn-primary" href="/create-deed">Continue</a>
+      </div>
+    </div>
+  );
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/Sidebar';
 import '../../styles/dashboard.css';
@@ -236,6 +236,8 @@ export default function CreateDeed() {
   const [previewHtml, setPreviewHtml] = useState('');
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+  const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const steps = [
     { 
@@ -497,6 +499,39 @@ export default function CreateDeed() {
     setFormData({ ...formData, deedType: type });
   };
 
+  // Draft: load on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('deedWizardDraft');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.formData) setFormData((prev) => ({ ...prev, ...parsed.formData }));
+        if (parsed?.currentStep) setCurrentStep(parsed.currentStep);
+        if (parsed?.showPreview) setShowPreview(!!parsed.showPreview);
+      }
+    } catch {}
+  }, []);
+
+  // Draft: debounce save on changes
+  useEffect(() => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(
+          'deedWizardDraft',
+          JSON.stringify({ formData, currentStep, showPreview })
+        );
+        const ts = new Date().toLocaleTimeString();
+        setSavedAt(ts);
+      } catch {}
+    }, 400);
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [formData, currentStep, showPreview]);
+
+  const estimatedMinutesLeft = Math.max(0, 5 - currentStep);
+
   if (loading) {
     return (
       <div style={{ display: 'flex' }}>
@@ -572,16 +607,20 @@ export default function CreateDeed() {
     <div style={{ display: 'flex' }}>
       <Sidebar />
       <div className="main-content">
-        <div className="wizard-container">
-          
-          {/* Header */}
-          <div className="wizard-header">
-            <h1 className="wizard-title">Create Your Deed</h1>
-            <p className="wizard-subtitle">Professional property transfer documents in minutes</p>
-          </div>
+          <div className="wizard-container">
+            {/* Header */}
+            <div className="wizard-header" style={{ position: 'relative' }}>
+              <h1 className="wizard-title">Create Your Deed</h1>
+              <p className="wizard-subtitle">Professional property transfer documents in minutes</p>
+              {savedAt && (
+                <div style={{ position: 'absolute', right: 0, top: 0, fontSize: '0.9rem', color: 'var(--gray-500)' }}>
+                  Saved {savedAt}
+                </div>
+              )}
+            </div>
 
           {/* Progress Bar */}
-          <div className="progress-bar">
+            <div className="progress-bar">
             {steps.map((step) => (
               <div 
                 key={step.id}
@@ -596,6 +635,9 @@ export default function CreateDeed() {
               </div>
             ))}
           </div>
+            <div style={{ textAlign: 'center', marginTop: '-1rem', marginBottom: '2rem', color: 'var(--gray-600)' }}>
+              Step {currentStep} of {steps.length} — ~{estimatedMinutesLeft} min left
+            </div>
 
           {/* Step Content */}
           <div className="form-steps">
@@ -880,8 +922,8 @@ export default function CreateDeed() {
                         onClick={handlePreviewDeed}
                         disabled={isLoadingPreview || !formData.deedType}
                         style={{
-                          backgroundColor: isLoadingPreview ? '#F3F4F6' : '#00A19B',
-                          color: isLoadingPreview ? '#565F64' : '#FFFFFF',
+                          backgroundColor: isLoadingPreview || !formData.deedType ? 'var(--secondary-light)' : 'var(--primary-dark)',
+                          color: isLoadingPreview || !formData.deedType ? 'var(--gray-600)' : '#FFFFFF',
                           border: 'none',
                           borderRadius: '12px',
                           padding: '12px 24px',
@@ -932,8 +974,8 @@ export default function CreateDeed() {
                     )}
 
                     {showPreview && previewHtml && (
-                      <div style={{
-                        border: '2px solid #00A19B',
+                    <div style={{
+                        border: '2px solid var(--primary-dark)',
                         borderRadius: '12px',
                         padding: '1rem',
                         backgroundColor: '#FFFFFF',
@@ -943,7 +985,7 @@ export default function CreateDeed() {
                         lineHeight: '1.4'
                       }}>
                         <div style={{
-                          backgroundColor: '#00A19B',
+                          backgroundColor: 'var(--primary-dark)',
                           color: '#FFFFFF',
                           padding: '8px 16px',
                           borderRadius: '8px',
@@ -980,9 +1022,10 @@ export default function CreateDeed() {
                   {/* Ready to Generate Section */}
                   <div style={{
                     padding: '2rem',
-                    background: '#111827',
+                    background: '#FFFFFF',
+                    border: '1px solid var(--secondary-light)',
                     borderRadius: '12px',
-                    color: '#FFFFFF',
+                    color: 'var(--text)',
                     textAlign: 'center'
                   }}>
                     <h4 style={{ margin: '0 0 1rem 0', fontSize: '1.5rem' }}>
@@ -1045,7 +1088,7 @@ export default function CreateDeed() {
                         <a 
                           href="/account-settings" 
                           style={{ 
-                            color: '#dc2626', 
+                            color: 'var(--primary-dark)', 
                             fontWeight: '600',
                             textDecoration: 'underline'
                           }}
@@ -1059,12 +1102,12 @@ export default function CreateDeed() {
                 
                 {userProfile?.plan === 'free' && (
                   <div style={{
-                    background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
-                    border: '1px solid #60a5fa',
+                    background: 'var(--accent-soft)',
+                    border: '1px solid var(--accent-soft)',
                     borderRadius: '12px',
                     padding: '0.75rem',
                     marginBottom: '1rem',
-                    color: '#1d4ed8',
+                    color: 'var(--accent)',
                     fontSize: '0.85rem',
                     textAlign: 'center'
                   }}>
@@ -1078,9 +1121,7 @@ export default function CreateDeed() {
                   disabled={isGenerating || !!planLimitsError || !showPreview}
                   style={{ 
                     opacity: isGenerating || planLimitsError || !showPreview ? 0.6 : 1,
-                    cursor: isGenerating || planLimitsError || !showPreview ? 'not-allowed' : 'pointer',
-                    backgroundColor: showPreview ? '#76FF03' : '#C8CCCE',
-                    color: '#111827'
+                    cursor: isGenerating || planLimitsError || !showPreview ? 'not-allowed' : 'pointer'
                   }}
                 >
                   {isGenerating ? '⏳ Generating PDF...' : showPreview ? '📄 Generate & Download PDF' : '👁️ Preview First'}
