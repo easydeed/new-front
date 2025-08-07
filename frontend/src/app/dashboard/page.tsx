@@ -130,24 +130,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div className="quick-actions">
-            <a className="action-card" href="/create-deed">
-              <div className="action-icon">✨</div>
-              <div className="action-title">Start AI Wizard</div>
-              <div className="action-description">Answer a few simple questions — we’ll handle the legal formatting.</div>
-            </a>
-            <a className="action-card" href="/past-deeds">
-              <div className="action-icon">📂</div>
-              <div className="action-title">View Past Deeds</div>
-              <div className="action-description">Quickly access and share previously generated documents.</div>
-            </a>
-            <a className="action-card" href="/account-settings">
-              <div className="action-icon">⚙️</div>
-              <div className="action-title">Account & Plan</div>
-              <div className="action-description">Manage plan, billing, and integrations like SoftPro and Qualia.</div>
-            </a>
-          </div>
+          {/* Quick Actions removed per request */}
         </div>
       </div>
     </div>

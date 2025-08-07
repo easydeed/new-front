@@ -276,7 +276,7 @@ body {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   width: 60%;
   height: 1px;
   background: var(--secondary-light);
@@ -289,23 +289,23 @@ body {
   align-items: center;
   position: relative;
   z-index: 2;
-  background: var(--background);
+  background: transparent;
   padding: 0 1rem;
 }
 
 .progress-step-circle {
-  width: 60px;
-  height: 60px;
+  width: 76px;
+  height: 76px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   margin-bottom: 0.75rem;
   transition: all 0.3s ease;
   border: 2px solid var(--secondary-light);
-  background: var(--background);
+  background: #FFFFFF;
   color: var(--gray-500);
 }
 
@@ -1040,6 +1040,12 @@ table.w-100.table-striped {
 .tooltip-container:hover .form-label {
   color: var(--primary-dark);
   transition: color 0.2s ease;
+}
+
+/* Wider, softer tooltip content (used inline in page) */
+.tooltip-bubble {
+  max-width: 420px;
+  background-color: rgba(0, 0, 0, 0.85);
 }
 
 /* Enhanced deed type cards with better hover effects */

@@ -662,8 +662,8 @@ export default function CreateDeed() {
               </div>
             ))}
           </div>
-            <div style={{ textAlign: 'center', marginTop: '-1rem', marginBottom: '2rem', color: 'var(--gray-600)' }}>
-              Step {currentStep} of {steps.length} — ~{estimatedMinutesLeft} min left
+            <div style={{ textAlign: 'center', marginTop: '-1rem', marginBottom: '2rem', color: 'var(--gray-700)', fontSize: '1.25rem', fontWeight: 600 }}>
+              Step {currentStep} of {steps.length}
             </div>
 
           {/* Step Content */}
