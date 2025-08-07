@@ -9,7 +9,10 @@ export default function Hero() {
   return (
     <section className="py-16 bg-light-seafoam">
 
-      <div className={`flex-1 text-center lg:text-left max-w-3xl lg:pr-12`}>  
+      <div className="w-full px-6">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            <div className="text-center lg:text-left">
         
         {/* Enhanced badge */}
         <div className="mb-6">
@@ -98,29 +101,26 @@ export default function Hero() {
           </div>
         </div>
       </div>
-      
-      {/* Right side illustration simplified */}
-      <div className="flex-1 mt-12 lg:mt-0 max-w-2xl">
-        <div className="relative">
-          {/* Card */}
-          <div className="bg-surface rounded-2xl shadow-elevated overflow-hidden border border-dark-slate/10">
-            <div className="bg-surface h-12 flex items-center justify-start px-6 border-b border-dark-slate/10">
-              <div className="flex gap-3">
-                <div className="w-3 h-3 bg-red-400/70 rounded-full"></div>
-                <div className="w-3 h-3 bg-yellow-400/70 rounded-full"></div>
-                <div className="w-3 h-3 bg-gentle-indigo rounded-full"></div>
-              </div>
-              <div className="flex-1 text-center text-dark-slate text-sm font-medium">DeedPro AI Wizard</div>
-            </div>
-            <div className="p-8 h-72 flex flex-col items-center justify-center text-dark-slate">
-              <div className="text-5xl mb-4">🏠</div>
-              <div className="text-center">
-                <div className="text-xl font-semibold mb-2 text-gentle-indigo">AI-Enhanced Deed Wizard</div>
-                <div className="text-dark-slate/70">Interactive cards • Smart tooltips • Real-time assistance</div>
+            <div className="hidden lg:block">
+              <div className="bg-surface rounded-2xl shadow-elevated overflow-hidden border border-dark-slate/10">
+                <div className="bg-surface h-12 flex items-center justify-start px-6 border-b border-dark-slate/10">
+                  <div className="flex gap-3">
+                    <div className="w-3 h-3 bg-accent rounded-full"></div>
+                    <div className="w-3 h-3 bg-accent/70 rounded-full"></div>
+                    <div className="w-3 h-3 bg-gentle-indigo rounded-full"></div>
+                  </div>
+                  <div className="flex-1 text-center text-dark-slate text-sm font-medium">DeedPro AI Wizard</div>
+                </div>
+                <div className="p-8 h-72 flex flex-col items-center justify-center text-dark-slate">
+                  <div className="text-5xl mb-4">🏠</div>
+                  <div className="text-center">
+                    <div className="text-xl font-semibold mb-2 text-gentle-indigo">AI-Enhanced Deed Wizard</div>
+                    <div className="text-dark-slate/70">Interactive cards • Smart tooltips • Real-time assistance</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-          
         </div>
       </div>
     </section>

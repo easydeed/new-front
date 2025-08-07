@@ -40,12 +40,11 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-light-seafoam text-dark-slate font-inter">
       <main className="relative z-10">
-        <div className="max-w-7xl mx-auto px-6">
-          <Navbar />
-          <Hero />
-          <Features />
+        <Navbar />
+        <Hero />
+        <Features />
 
-          <section className="py-16">
+        <section className="py-16 px-6">
             {isLoaded ? (
               <Pricing pricing={pricing} />
             ) : (
@@ -53,10 +52,9 @@ export default function Home() {
                 <div className="h-10 w-10 rounded-full border-2 border-dark-slate/20 border-t-transparent animate-spin" />
               </div>
             )}
-          </section>
+        </section>
 
-          <Footer />
-        </div>
+        <Footer />
       </main>
     </div>
   );

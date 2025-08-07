@@ -75,7 +75,7 @@ export default function Pricing({ pricing = [] }: PricingProps) {
     <section className="py-16 px-6 bg-pale-slate">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 bg-surface text-dark-slate px-3 py-1.5 rounded-full text-xs font-medium border border-dark-slate/10 w-fit mx-auto">
+          <div className="inline-flex items-center gap-2 bg-accent-soft text-dark-slate px-3 py-1.5 rounded-full text-xs font-medium border border-accent/10 w-fit mx-auto">
             <CurrencyDollarIcon className="h-4 w-4" />
             Flexible Pricing
           </div>

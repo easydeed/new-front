@@ -15,6 +15,9 @@ module.exports = {
         'soft-cyan': '#93C5FD',       // Hover/secondary accents (light blue)
         'gentle-indigo': '#3B82F6',   // Links/CTAs
         'dark-slate': '#1F2937',      // Primary text
+        // Accent (subtle, elegant)
+        'accent': '#F57C00',          // Orange accent
+        'accent-soft': '#FFE9D6',     // Very light accent background
         
         // Keep original dark colors for dark mode support
         'slate-navy': '#37465B',      // Dark mode card backgrounds
