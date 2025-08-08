@@ -264,6 +264,15 @@ export default function CreateDeed() {
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const [addressError, setAddressError] = useState('');
 
+  // AI Enhancement State
+  const [aiSuggestions, setAiSuggestions] = useState<any>({});
+  const [aiTips, setAiTips] = useState<string[]>([]);
+  const [validation, setValidation] = useState<any>({});
+  const [enhancedProfile, setEnhancedProfile] = useState<any>(null);
+  const [isLoadingAI, setIsLoadingAI] = useState(false);
+  const [showAITips, setShowAITips] = useState(true);
+  const [propertySuggestions, setPropertySuggestions] = useState<any[]>([]);
+
   const steps = [
     { 
       id: 1, 
@@ -320,10 +329,33 @@ export default function CreateDeed() {
   ];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    
+    // Update form data
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+
+    // Get property suggestions when address changes
+    if (name === 'propertySearch') {
+      getPropertySuggestions(value);
+    }
+
+    // Auto-apply AI suggestions for empty fields
+    if (aiSuggestions[name] && !value.trim()) {
+      setTimeout(() => {
+        setFormData(prev => ({
+          ...prev,
+          [name]: aiSuggestions[name]
+        }));
+      }, 500);
+    }
+
+    // Cache property data when user moves to next step
+    if (name === 'legalDescription' && formData.propertySearch) {
+      cachePropertyData();
+    }
   };
 
   // Plan limits checking
@@ -420,41 +452,51 @@ export default function CreateDeed() {
     }
   };
 
-  // Preview functionality for Step 5 enhancement
+  // AI-Enhanced Preview functionality for Step 5
   const handlePreviewDeed = async () => {
     setIsLoadingPreview(true);
     setPreviewHtml('');
 
     try {
-      // Convert formData to format expected by backend
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        alert('Please log in to generate preview');
+        return;
+      }
+
+      // Convert formData to format expected by AI-enhanced backend
       const deedData = {
         deed_type: formData.deedType.toLowerCase().replace(/\s+/g, '_'),
         data: {
-          recording_requested_by: formData.recordingRequestedBy || "",
-          mail_to: formData.mailTo || formData.fullAddress || formData.propertySearch,
+          // AI suggestions may have populated these fields
+          recording_requested_by: aiSuggestions.recordingRequestedBy || formData.recordingRequestedBy || "",
+          mail_to: aiSuggestions.mailTo || formData.mailTo || formData.fullAddress || formData.propertySearch,
           order_no: formData.orderNo || "",
           escrow_no: formData.escrowNo || "",
-          apn: formData.apn || "",
+          apn: aiSuggestions.apn || formData.apn || "",
           documentary_tax: formData.documentaryTax || formData.salesPrice || "",
-          city: formData.taxCityName || formData.city || "",
+          city: aiSuggestions.city || formData.taxCityName || formData.city || "",
           grantor: formData.grantorName || "",
           grantee: formData.granteeName || "",
-          county: formData.county || "",
-          property_description: formData.legalDescription || formData.fullAddress || formData.propertySearch || "",
+          county: aiSuggestions.county || formData.county || "",
+          property_description: aiSuggestions.legalDescription || formData.legalDescription || formData.fullAddress || formData.propertySearch || "",
           date: formData.deedDate || new Date().toLocaleDateString(),
           grantor_signature: formData.grantorSignature || formData.grantorName || "",
-          county_notary: formData.notaryCounty || formData.county || "",
+          county_notary: aiSuggestions.notaryCounty || formData.notaryCounty || formData.county || "",
           notary_date: formData.notaryDate || "",
           notary_name: formData.notaryName || "",
           appeared_before_notary: formData.appearedBeforeNotary || formData.grantorName || "",
-          notary_signature: formData.notaryName || ""
+          notary_signature: formData.notaryName || "",
+          // Include all current form data for AI processing
+          ...formData
         }
       };
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/generate-deed-preview`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(deedData)
       });
@@ -463,8 +505,27 @@ export default function CreateDeed() {
         const result = await response.json();
         setPreviewHtml(result.html);
         setShowPreview(true);
+        
+        // Update AI suggestions and validation from preview response
+        if (result.ai_suggestions) {
+          setAiSuggestions(prev => ({ ...prev, ...result.ai_suggestions }));
+        }
+        if (result.validation) {
+          setValidation(result.validation);
+        }
+        
+        // Cache the property data for future use
+        if (formData.propertySearch) {
+          cachePropertyData();
+        }
+        
+        // Show success tip
+        if (result.user_profile_applied) {
+          setAiTips(prev => [...prev, "✅ Your profile settings were applied to optimize the deed format!"]);
+        }
       } else {
-        alert('Failed to generate preview. Please check your data and try again.');
+        const errorData = await response.json().catch(() => ({}));
+        alert(`Failed to generate preview: ${errorData.detail || 'Please check your data and try again.'}`);
       }
     } catch (error) {
       console.error('Preview error:', error);
@@ -603,6 +664,127 @@ export default function CreateDeed() {
     };
   }, [formData, currentStep, showPreview]);
 
+  // AI Enhancement: Load user profile and get initial suggestions
+  useEffect(() => {
+    const loadEnhancedProfile = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/users/profile/enhanced`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setEnhancedProfile(data);
+          
+          // If user has profile data, get initial AI suggestions
+          if (data.profile) {
+            await getAISuggestions();
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load enhanced profile:', error);
+      }
+    };
+
+    if (hasAccess) {
+      loadEnhancedProfile();
+    }
+  }, [hasAccess]);
+
+  // AI Enhancement: Get suggestions when form data changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (formData.deedType || formData.propertySearch) {
+        getAISuggestions();
+      }
+    }, 1000); // Debounce AI suggestions
+
+    return () => clearTimeout(timer);
+  }, [formData.deedType, formData.propertySearch, formData.grantorName, formData.granteeName]);
+
+  // AI Suggestions Function
+  const getAISuggestions = async () => {
+    try {
+      setIsLoadingAI(true);
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/ai/deed-suggestions`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setAiSuggestions(data.suggestions || {});
+        setValidation(data.validation || {});
+        setAiTips(data.suggestions?.ai_tips || []);
+      }
+    } catch (error) {
+      console.error('Failed to get AI suggestions:', error);
+    } finally {
+      setIsLoadingAI(false);
+    }
+  };
+
+  // Property Search with AI Enhancement
+  const getPropertySuggestions = async (address: string) => {
+    if (!address || address.length < 3) {
+      setPropertySuggestions([]);
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/property/suggestions?address=${encodeURIComponent(address)}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setPropertySuggestions(data.suggestions || []);
+      }
+    } catch (error) {
+      console.error('Failed to get property suggestions:', error);
+    }
+  };
+
+  // Cache property data when user fills in details
+  const cachePropertyData = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token || !formData.propertySearch) return;
+
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/property/cache`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          property_address: formData.propertySearch,
+          legal_description: formData.legalDescription,
+          apn: formData.apn,
+          county: formData.county,
+          city: formData.city,
+          state: formData.state,
+          zip_code: formData.zip
+        })
+      });
+    } catch (error) {
+      console.error('Failed to cache property data:', error);
+    }
+  };
+
   const estimatedMinutesLeft = Math.max(0, 5 - currentStep);
 
   if (loading) {
@@ -701,6 +883,78 @@ export default function CreateDeed() {
                   fontSize: '0.9rem'
                 }}>
                   Preview is available on your plan. Upgrade the Widget Add-on to generate the final PDF.
+                </div>
+              )}
+              
+              {/* AI Tips Section */}
+              {aiTips.length > 0 && showAITips && (
+                <div style={{
+                  marginTop: '1rem',
+                  padding: '16px',
+                  background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 197, 253, 0.05) 100%)',
+                  border: '1px solid rgba(59, 130, 246, 0.2)',
+                  borderRadius: '16px',
+                  position: 'relative'
+                }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px', 
+                    marginBottom: '8px',
+                    color: 'var(--primary-dark)',
+                    fontWeight: '600',
+                    fontSize: '0.95rem'
+                  }}>
+                    <span>✨</span>
+                    AI Assistant {isLoadingAI && (
+                      <div style={{
+                        width: '12px',
+                        height: '12px',
+                        border: '2px solid var(--primary-dark)',
+                        borderTop: '2px solid transparent',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite',
+                        marginLeft: '4px'
+                      }} />
+                    )}
+                  </div>
+                  {aiTips.map((tip, index) => (
+                    <div key={index} style={{ 
+                      fontSize: '0.9rem', 
+                      color: 'var(--gray-700)', 
+                      marginBottom: index < aiTips.length - 1 ? '6px' : '0'
+                    }}>
+                      {tip}
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => setShowAITips(false)}
+                    style={{
+                      position: 'absolute',
+                      top: '8px',
+                      right: '8px',
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      color: 'var(--gray-500)',
+                      cursor: 'pointer',
+                      fontSize: '18px',
+                      lineHeight: '1'
+                    }}
+                  >
+                    ×
+                  </button>
+                  {enhancedProfile?.profile && (
+                    <div style={{
+                      marginTop: '12px',
+                      padding: '8px 12px',
+                      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                      borderRadius: '8px',
+                      fontSize: '0.85rem',
+                      color: 'var(--primary-dark)'
+                    }}>
+                      💼 Using your profile: {enhancedProfile.profile.company_name || 'Individual'} • {enhancedProfile.profile.role || 'User'}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -840,6 +1094,82 @@ export default function CreateDeed() {
                     {addressError && (
                       <div style={{ marginTop: '8px', color: '#b91c1c', fontSize: '0.95rem' }}>{addressError}</div>
                     )}
+                    
+                    {/* Property Suggestions Dropdown */}
+                    {propertySuggestions.length > 0 && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        backgroundColor: 'white',
+                        border: '1px solid var(--gray-300)',
+                        borderRadius: '12px',
+                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+                        zIndex: 1000,
+                        maxHeight: '200px',
+                        overflowY: 'auto',
+                        marginTop: '4px'
+                      }}>
+                        {propertySuggestions.map((suggestion, index) => (
+                          <div
+                            key={index}
+                            onClick={() => {
+                              const property = suggestion.property;
+                              setFormData(prev => ({
+                                ...prev,
+                                propertySearch: property.property_address,
+                                legalDescription: property.legal_description || prev.legalDescription,
+                                apn: property.apn || prev.apn,
+                                county: property.county || prev.county,
+                                city: property.city || prev.city
+                              }));
+                              setPropertySuggestions([]);
+                            }}
+                            style={{
+                              padding: '12px 16px',
+                              borderBottom: index < propertySuggestions.length - 1 ? '1px solid var(--gray-200)' : 'none',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = 'var(--accent-soft)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                            }}
+                          >
+                            <div style={{ 
+                              fontWeight: '600', 
+                              color: 'var(--gray-900)',
+                              fontSize: '0.9rem',
+                              marginBottom: '4px'
+                            }}>
+                              📋 {suggestion.type === 'cached_exact' ? 'Previously Used' : 'Recent Property'}
+                            </div>
+                            <div style={{ 
+                              color: 'var(--gray-700)',
+                              fontSize: '0.85rem'
+                            }}>
+                              {suggestion.property.property_address}
+                            </div>
+                            {suggestion.property.legal_description && (
+                              <div style={{ 
+                                color: 'var(--gray-500)',
+                                fontSize: '0.8rem',
+                                marginTop: '2px',
+                                maxWidth: '300px',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                {suggestion.property.legal_description}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   
                   <div className="form-group">
@@ -905,13 +1235,57 @@ export default function CreateDeed() {
 
                 <div className="form-grid" style={{ maxWidth: '1000px', margin: '0 auto' }}>
                   <div className="form-group col-span-2">
-                    <label className="form-label">Recording Requested By</label>
-                    <input name="recordingRequestedBy" className="form-control" placeholder="Your company or name" value={formData.recordingRequestedBy} onChange={handleInputChange} />
+                    <label className="form-label">
+                      Recording Requested By 
+                      {aiSuggestions.recordingRequestedBy && (
+                        <span style={{ 
+                          marginLeft: '8px', 
+                          fontSize: '0.8rem', 
+                          color: 'var(--accent)', 
+                          fontWeight: 'normal' 
+                        }}>
+                          ✨ AI suggested
+                        </span>
+                      )}
+                    </label>
+                    <input 
+                      name="recordingRequestedBy" 
+                      className="form-control" 
+                      placeholder={aiSuggestions.recordingRequestedBy || "Your company or name"}
+                      value={formData.recordingRequestedBy} 
+                      onChange={handleInputChange}
+                      style={{
+                        borderColor: aiSuggestions.recordingRequestedBy && !formData.recordingRequestedBy ? 'var(--accent)' : undefined,
+                        backgroundColor: aiSuggestions.recordingRequestedBy && !formData.recordingRequestedBy ? 'var(--accent-soft)' : undefined
+                      }}
+                    />
                   </div>
 
                   <div className="form-group col-span-2">
-                    <label className="form-label">Mail Tax Statements / When Recorded Mail To</label>
-                    <input name="mailTo" className="form-control" placeholder="Recipient full address" value={formData.mailTo} onChange={handleInputChange} />
+                    <label className="form-label">
+                      Mail Tax Statements / When Recorded Mail To
+                      {aiSuggestions.mailTo && (
+                        <span style={{ 
+                          marginLeft: '8px', 
+                          fontSize: '0.8rem', 
+                          color: 'var(--accent)', 
+                          fontWeight: 'normal' 
+                        }}>
+                          ✨ AI suggested
+                        </span>
+                      )}
+                    </label>
+                    <input 
+                      name="mailTo" 
+                      className="form-control" 
+                      placeholder={aiSuggestions.mailTo || "Recipient full address"}
+                      value={formData.mailTo} 
+                      onChange={handleInputChange}
+                      style={{
+                        borderColor: aiSuggestions.mailTo && !formData.mailTo ? 'var(--accent)' : undefined,
+                        backgroundColor: aiSuggestions.mailTo && !formData.mailTo ? 'var(--accent-soft)' : undefined
+                      }}
+                    />
                   </div>
 
                   <div className="form-group">
