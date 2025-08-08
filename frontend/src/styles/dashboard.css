@@ -5,13 +5,13 @@
 /* Modern Minimalistic Dashboard Styles */
 
 :root {
-  /* Align with new flat/light palette */
-  --primary-dark: #4A5DBF; /* gentle-indigo (landing page primary) */
-  --secondary-light: #D1DFE2; /* pale-slate */
-  --background: #E5ECEE; /* light-seafoam */
-  --text: #1A2A3A; /* dark-slate */
+  /* Align with landing palette (tailwind config) */
+  --primary-dark: #2563EB; /* deep-teal brand blue */
+  --secondary-light: #E5E7EB; /* gray-200 */
+  --background: #F7F9FC; /* light-seafoam */
+  --text: #1F2937; /* dark-slate */
   --accent: #F57C00; /* accent */
-  --accent-soft: #FEEBD7; /* accent soft */
+  --accent-soft: #FFE9D6; /* accent soft */
   
   /* Grays for subtle elements */
   --gray-50: #F9FAFB;
@@ -69,7 +69,7 @@ body {
 
 /* Collapsible Sidebar Styles - flat, light */
 .sidebar {
-  background: rgb(37, 99, 235);
+  background: #2563EB; /* deep-teal */
   position: fixed;
   top: 0;
   left: 0;
@@ -419,7 +419,7 @@ body {
 .deed-type-card.selected {
   background: #FFFFFF;
   box-shadow: 0 4px 16px rgba(37, 99, 235, 0.15);
-  border: 2px solid rgb(37, 99, 235);
+  border: 2px solid #2563EB;
 }
 
 .deed-type-card.selected::before {

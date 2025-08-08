@@ -2,16 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Mercedes F1-Inspired Flat Tech Color Scheme + Neon Green Accent */
+/* Unified landing-page color scheme (matches tailwind.config.js) */
 :root {
-  --primary: #111827;          /* Charcoal (Mercedes black livery) */
-  --secondary: #2DD4BF;        /* Teal (tech-forward accent) */
-  --tertiary: #76FF03;         /* Neon Green (Matrix/GitHub inspired) */
-  --background: #F3F4F6;       /* Light gray (neutral) */
-  --surface: #FFFFFF;          /* Pure white (cards, contact-wrapper) */
-  --silver: #C8CCCE;           /* Silver highlights (Silver Arrows) */
-  --text-primary: #111827;     /* Charcoal */
-  --text-secondary: #565F64;   /* Dark gray */
+  /* Core palette */
+  --background: #F7F9FC;       /* light-seafoam */
+  --surface: #FFFFFF;          /* pale-slate/surface */
+  --brand-primary: #3B82F6;    /* gentle-indigo */
+  --brand-primary-dark: #2563EB; /* deep-teal brand blue */
+  --accent: #F57C00;           /* subtle orange accent */
+  --accent-soft: #FFE9D6;      /* very light accent background */
+  --text-primary: #1F2937;     /* dark-slate */
+  --text-secondary: #6B7280;   /* gray-500 */
 }
 
 /* Ensure body has proper base styles with flat design */
@@ -20,6 +21,7 @@ body {
   margin: 0;
   padding: 0;
   background-color: var(--background);
+  color: var(--text-primary);
 }
 
 /* Icon styling for monochrome line icons with neon green accent */
@@ -29,7 +31,7 @@ body {
 }
 
 .icon:hover {
-  color: var(--tertiary);
+  color: var(--brand-primary);
 }
 
 /* Contact wrapper always white for crispness */

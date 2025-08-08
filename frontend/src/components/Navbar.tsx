@@ -9,9 +9,9 @@ export default function Navbar() {
           <div className="text-dark-slate font-semibold text-lg">DeedPro</div>
         </div>
         <ul className="flex space-x-6 text-dark-slate/70">
-          <li><a href="#features" className="hover:text-dark-slate transition-colors">Features</a></li>
-          <li><a href="#pricing" className="hover:text-dark-slate transition-colors">Pricing</a></li>
-          <li><a href="/login" className="hover:text-dark-slate transition-colors">Login</a></li>
+          <li><a href="#features" className="hover:text-gentle-indigo transition-colors">Features</a></li>
+          <li><a href="#pricing" className="hover:text-gentle-indigo transition-colors">Pricing</a></li>
+          <li><a href="/login" className="hover:text-gentle-indigo transition-colors">Login</a></li>
         </ul>
       </div>
     </nav>

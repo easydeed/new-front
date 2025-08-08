@@ -122,7 +122,7 @@ function LoginContent() {
       
       <div className={`max-w-md w-full`}>
         
-        {/* Enhanced Header */}
+        {/* Header aligned to landing palette */}
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold text-dark-slate mb-2 relative">
             Welcome Back
@@ -133,7 +133,7 @@ function LoginContent() {
           </p>
         </div>
 
-        {/* Enhanced Login Form */}
+        {/* Login Form */}
         <div className="bg-surface rounded-xl shadow-elevated p-6 border border-dark-slate/10">
           
           {/* Glow effect */}
@@ -141,11 +141,8 @@ function LoginContent() {
           
           <div className="relative">
             {successMessage && (
-              <div className="mb-6 p-4 bg-tropical-teal/10 border border-tropical-teal/30 text-aqua-mint rounded-2xl animate-fade-in-up backdrop-blur-sm">
-                <div className="flex items-center">
-                  <div className="w-2 h-2 bg-tropical-teal rounded-full mr-3 animate-pulse"></div>
-                  {successMessage}
-                </div>
+              <div className="mb-6 p-4 bg-accent-soft border border-accent/30 text-dark-slate rounded-2xl animate-fade-in">
+                {successMessage}
               </div>
             )}
 
@@ -159,7 +156,7 @@ function LoginContent() {
               
               {/* Enhanced Email Input */}
               <div className="group">
-                <label htmlFor="email" className="block text-sm font-semibold text-dark-slate dark:text-white mb-2 transition-colors group-focus-within:text-deep-teal dark:group-focus-within:text-tropical-teal">
+                <label htmlFor="email" className="block text-sm font-semibold text-dark-slate mb-2 transition-colors group-focus-within:text-gentle-indigo">
                   Email Address
                 </label>
                 <div className="relative">
@@ -173,13 +170,12 @@ function LoginContent() {
                     placeholder="your.email@company.com"
                     autoComplete="email"
                   />
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-teal opacity-0 group-focus-within:opacity-5 transition-opacity duration-300 pointer-events-none"></div>
                 </div>
               </div>
 
               {/* Enhanced Password Input */}
               <div className="group">
-                <label htmlFor="password" className="block text-sm font-semibold text-dark-slate dark:text-white mb-2 transition-colors group-focus-within:text-deep-teal dark:group-focus-within:text-tropical-teal">
+                <label htmlFor="password" className="block text-sm font-semibold text-dark-slate mb-2 transition-colors group-focus-within:text-gentle-indigo">
                   Password
                 </label>
                 <div className="relative">
@@ -196,11 +192,10 @@ function LoginContent() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-dark-slate/70 dark:text-aqua-mint/70 hover:text-deep-teal dark:hover:text-tropical-teal transition-colors duration-200"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-dark-slate/70 hover:text-gentle-indigo transition-colors duration-200"
                   >
                     <Eye className="h-5 w-5" />
                   </button>
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-teal opacity-0 group-focus-within:opacity-5 transition-opacity duration-300 pointer-events-none"></div>
                 </div>
               </div>
 
@@ -211,10 +206,10 @@ function LoginContent() {
                 className={`group relative w-full py-4 px-6 rounded-2xl font-semibold text-white transition-all duration-300 ${
                   loading
                     ? "bg-gray-600 cursor-not-allowed"
-                    : "bg-deep-teal dark:bg-gradient-teal hover:bg-soft-cyan dark:hover:shadow-glow-teal transform hover:scale-105 hover:-translate-y-0.5 active:scale-95"
+                    : "bg-gentle-indigo hover:bg-soft-cyan transform hover:scale-105 hover:-translate-y-0.5 active:scale-95"
                 }`}
               >
-                <div className="absolute -inset-0.5 bg-gradient-teal rounded-2xl blur opacity-0 group-hover:opacity-30 transition duration-300"></div>
+                <div className="absolute -inset-0.5 rounded-2xl blur opacity-0 group-hover:opacity-30 transition duration-300"></div>
                 <div className="relative flex items-center justify-center gap-2">
                   {loading ? (
                     <>
@@ -235,16 +230,16 @@ function LoginContent() {
             <div className="mt-6 space-y-4 text-center">
               <Link 
                 href="/forgot-password" 
-                className="inline-block text-electric-indigo hover:text-aqua-mint text-sm transition-colors duration-200 hover:scale-105 transform"
+                className="inline-block text-gentle-indigo hover:text-dark-slate text-sm transition-colors duration-200 hover:scale-105 transform"
               >
                 Forgot your password?
               </Link>
               
-              <p className="text-aqua-mint/80">
+              <p className="text-dark-slate/70">
                 Don't have an account?{" "}
                 <Link 
                   href="/register" 
-                  className="text-electric-indigo hover:text-tropical-teal font-semibold transition-all duration-200 hover:scale-105 transform inline-block"
+                  className="text-gentle-indigo hover:text-deep-teal font-semibold transition-all duration-200 hover:scale-105 transform inline-block"
                 >
                   Sign up here
                 </Link>
@@ -252,13 +247,9 @@ function LoginContent() {
             </div>
           </div>
         </div>
-
-        {/* Enhanced Test Credentials */}
-        <div className="mt-8 bg-gradient-dark rounded-2xl p-6 border border-tropical-teal/20 shadow-elevated animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
-          <h3 className="font-semibold text-tropical-teal mb-4 flex items-center gap-2">
-            <div className="w-2 h-2 bg-tropical-teal rounded-full animate-pulse"></div>
-            Test Accounts Available
-          </h3>
+        {/* Optional test accounts (styled to match palette) */}
+        <div className="mt-8 rounded-2xl p-6 border border-dark-slate/10 shadow-elevated bg-surface">
+          <h3 className="font-semibold text-dark-slate mb-4">Test Accounts Available</h3>
           <div className="space-y-3 text-sm">
             {[
               { title: "Free Plan User", email: "test@escrow.com", password: "testpass123" },
@@ -267,11 +258,11 @@ function LoginContent() {
             ].map((account, index) => (
               <div 
                 key={index}
-                className="bg-charcoal-blue/50 rounded-xl p-4 border border-aqua-mint/10 hover:border-tropical-teal/30 transition-all duration-300 hover:scale-[1.02] group cursor-pointer backdrop-blur-sm"
+                className="rounded-xl p-4 border border-dark-slate/10 hover:border-gentle-indigo/40 transition-all duration-300 hover:scale-[1.02] group cursor-pointer"
                 onClick={() => setFormData({ email: account.email, password: account.password })}
               >
-                <div className="font-medium text-electric-indigo group-hover:text-tropical-teal transition-colors">{account.title}</div>
-                <div className="text-aqua-mint/80 text-xs mt-1">
+                <div className="font-medium text-gentle-indigo group-hover:text-deep-teal transition-colors">{account.title}</div>
+                <div className="text-dark-slate/70 text-xs mt-1">
                   {account.email} • {account.password}
                 </div>
               </div>
@@ -306,8 +297,8 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-charcoal-blue flex items-center justify-center">
-        <div className="text-aqua-mint flex items-center gap-3">
+      <div className="min-h-screen bg-light-seafoam flex items-center justify-center">
+        <div className="text-dark-slate flex items-center gap-3">
           <LoadingSpinner className="h-6 w-6" />
           Loading...
         </div>
