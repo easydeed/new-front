@@ -169,38 +169,61 @@ Authorization: Bearer <token>
 
 ## 🏗️ Deed Generation
 
-### Generate Deed Preview
+### Generate Deed Preview (AI-Enhanced) ✨
 ```http
 POST /generate-deed-preview
 Content-Type: application/json
 
 {
-  "deed_type": "Grant Deed",
+  "deed_type": "grant_deed",
   "data": {
+    // Core fields with AI enhancement
     "recording_requested_by": "John Doe",
-    "mail_to": "Jane Smith",
+    "mail_to": "123 Main St, Los Angeles, CA 90001",
     "order_no": "ORD-123",
-    "escrow_no": "ESC-456",
+    "escrow_no": "ESC-456", 
     "apn": "123-456-789",
-    "documentary_tax": "100.00",
+    "documentary_tax": "55.00",  // Auto-calculated from sales_price
     "city": "Los Angeles",
     "grantor": "John Doe",
     "grantee": "Jane Smith",
     "county": "Los Angeles",
-    "property_description": "Lot 1, Block 2, Tract 12345",
-    "date": "2024-07-01"
+    "property_description": "Lot 1, Block 2, Tract 12345\n\nVesting: Joint Tenancy",
+    "date": "08/07/2025",  // Auto-formatted MM/DD/YYYY
+    
+    // Enhanced dynamic features
+    "tax_computed_full_value": true,   // ✓ Dynamic checkbox
+    "tax_computed_less_liens": false,  // Dynamic checkbox
+    "is_unincorporated": false,        // ✓ Dynamic checkbox
+    "vesting_description": "Joint Tenancy",
+    "calculated_documentary_tax": "55.00",
+    "formatted_date": "08/07/2025",
+    
+    // Notary section
+    "county_notary": "Los Angeles",
+    "notary_date": "08/07/2025",
+    "notary_name": "Alex Notary",
+    "appeared_before_notary": "John Doe",
+    "notary_signature": "Alex Notary"
   }
 }
 ```
 
-**Response:**
+**Enhanced Response:**
 ```json
 {
-  "html": "<html>...</html>",
-  "deed_type": "Grant Deed",
+  "html": "<html>...with dynamic ✓ checkboxes...</html>",
+  "deed_type": "grant_deed",
   "status": "success"
 }
 ```
+
+**Key Features:**
+- 🎯 **Smart Data Mapping**: Uses `deedDataMapper.ts` for comprehensive field validation
+- ✅ **Dynamic Checkboxes**: Templates show ✓ marks based on user selections
+- 🧮 **Auto-Calculations**: Documentary tax computed automatically ($0.55 per $500 CA)
+- 📅 **Date Formatting**: Legal date format (MM/DD/YYYY) applied
+- 🔍 **Real-Time Validation**: Pre-submission validation prevents errors
 
 ---
 

@@ -6,13 +6,15 @@
 
 ---
 
-## 🏗️ **Template Architecture Overview**
+## 🏗️ **Enhanced Template Architecture Overview**
 
-DeedPro's deed generation system uses a **three-layer architecture within the monorepo**:
+DeedPro's **AI-enhanced deed generation system** uses a **five-layer intelligent architecture**:
 
-1. **Frontend Deed Wizard** (`/frontend/src/app/create-deed/page.tsx`) - User interface for data collection
-2. **Backend API Endpoint** (`/backend/main.py` → `/generate-deed`) - Template rendering and PDF generation
-3. **HTML Templates** (`/templates/`) - Pixel-perfect legal document layouts
+1. **AI-Enhanced Wizard** (`/frontend/src/app/create-deed/page.tsx`) - Intelligent data collection with real-time validation
+2. **Smart Data Mapper** (`/frontend/src/utils/deedDataMapper.ts`) - Comprehensive field mapping and validation
+3. **Enhanced Components** (`/frontend/src/components/`) - Professional preview and wizard flow management
+4. **Backend API Endpoint** (`/backend/main.py` → `/generate-deed-preview`) - Template rendering with AI integration
+5. **Dynamic Templates** (`/templates/`) - Intelligent templates with dynamic features and calculations
 
 ### **Technology Stack**
 - **Jinja2**: Template engine for data injection into HTML
@@ -304,7 +306,50 @@ env = Environment(loader=FileSystemLoader('../templates'))
 
 ---
 
-## 🚨 **Template Development Rules**
+## ✨ **Enhanced Template Features (NEW)**
+
+### **Dynamic Checkbox Logic**
+Templates now include **intelligent checkbox rendering** that responds to user selections:
+
+```html
+<!-- Dynamic checkboxes that show ✓ marks based on user data -->
+<p><span class="checkbox">{{ "✓" if tax_computed_full_value else "" }}</span> Computed on full value of property conveyed, or</p>
+<p><span class="checkbox">{{ "✓" if tax_computed_less_liens else "" }}</span> Computed on full value less liens and encumbrances remaining at time of sale.</p>
+<p><span class="checkbox">{{ "✓" if is_unincorporated else "" }}</span> Unincorporated area <span class="checkbox">{{ "✓" if not is_unincorporated else "" }}</span> City of {{ city }}</p>
+```
+
+### **Smart Data Integration**
+- **AI Suggestions**: Templates receive enhanced data with AI-powered field suggestions
+- **Auto-Calculations**: Documentary tax automatically computed ($0.55 per $500 CA standard)
+- **Date Formatting**: Legal date formatting (MM/DD/YYYY) applied automatically
+- **Vesting Integration**: Property descriptions include vesting information when provided
+
+### **Enhanced Field Mapping**
+Templates use the **smart data mapper** (`deedDataMapper.ts`) for:
+- **Comprehensive validation** before rendering
+- **Fallback values** for missing data
+- **AI suggestion integration** 
+- **Automatic field calculations**
+
+### **Template Variables (Enhanced)**
+```jinja2
+<!-- Core variables with AI enhancement -->
+{{ recording_requested_by }}     <!-- AI + user input -->
+{{ mail_to }}                    <!-- Smart fallback: AI + mailTo || address || search -->
+{{ documentary_tax }}            <!-- Auto-calculated from sales price -->
+{{ property_description }}       <!-- Enhanced with vesting details -->
+
+<!-- NEW: Dynamic features -->
+{{ tax_computed_full_value }}    <!-- Boolean for checkbox logic -->
+{{ tax_computed_less_liens }}    <!-- Boolean for checkbox logic -->
+{{ is_unincorporated }}         <!-- Boolean for checkbox logic -->
+{{ formatted_date }}            <!-- Auto-formatted legal date -->
+{{ vesting_description }}       <!-- Separate vesting field -->
+```
+
+---
+
+## 🚨 **Enhanced Template Development Rules**
 
 ### **✅ DO THIS**
 - ✅ **Work in `/templates` directory**

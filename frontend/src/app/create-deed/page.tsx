@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/Sidebar';
 import PreviewDataDebugger from '../../components/PreviewDataDebugger';
+import DeedPreviewPanel from '../../components/DeedPreviewPanel';
+import WizardFlowManager from '../../components/WizardFlowManager';
 import '../../styles/dashboard.css';
 
 // Tooltip Component for iPhone-like help text
@@ -276,6 +278,16 @@ export default function CreateDeed() {
     templateData: any;
     validation: any;
   } | null>(null);
+  
+  // Wizard flow state
+  const [wizardValidation, setWizardValidation] = useState<{
+    isValid: boolean;
+    missingFields: string[];
+    warnings: string[];
+  }>({ isValid: false, missingFields: [], warnings: [] });
+  
+  const [previewMode, setPreviewMode] = useState(false);
+  const [autoPreviewEnabled, setAutoPreviewEnabled] = useState(true);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [showAITips, setShowAITips] = useState(true);
   const [propertySuggestions, setPropertySuggestions] = useState<any[]>([]);
@@ -583,6 +595,26 @@ export default function CreateDeed() {
     }
   };
 
+  // Enhanced preview mode functions for seamless editing
+  const handleEnterPreviewMode = async () => {
+    if (wizardValidation.isValid) {
+      setPreviewMode(true);
+      await handlePreviewDeed();
+    } else {
+      alert(`Please complete the following required fields:\n${wizardValidation.missingFields.join('\n')}`);
+    }
+  };
+
+  const handleExitPreviewMode = () => {
+    setPreviewMode(false);
+    setShowPreview(false);
+  };
+
+  const handleAutoSave = () => {
+    // Auto-save is handled by the existing useEffect
+    setSavedAt(new Date().toLocaleTimeString());
+  };
+
   useEffect(() => {
     // Check widget access first
     const checkAccess = async () => {
@@ -650,6 +682,21 @@ export default function CreateDeed() {
     } catch {}
   }, []);
 
+  // Real-time validation for wizard efficiency
+  useEffect(() => {
+    const validateData = async () => {
+      try {
+        const { validatePreviewData } = await import('../../utils/deedDataMapper');
+        const validation = validatePreviewData(formData);
+        setWizardValidation(validation);
+      } catch (error) {
+        console.error('Validation error:', error);
+      }
+    };
+
+    validateData();
+  }, [formData]);
+
   // Draft: debounce save on changes
   useEffect(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -657,7 +704,7 @@ export default function CreateDeed() {
       try {
         localStorage.setItem(
           'deedWizardDraft',
-          JSON.stringify({ formData, currentStep, showPreview })
+          JSON.stringify({ formData, currentStep, showPreview, previewMode })
         );
         const ts = new Date().toLocaleTimeString();
         setSavedAt(ts);
@@ -666,7 +713,7 @@ export default function CreateDeed() {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [formData, currentStep, showPreview]);
+  }, [formData, currentStep, showPreview, previewMode]);
 
   // AI Enhancement: Load user profile and get initial suggestions
   useEffect(() => {
@@ -888,6 +935,19 @@ export default function CreateDeed() {
                 }}>
                   Preview is available on your plan. Upgrade the Widget Add-on to generate the final PDF.
                 </div>
+              )}
+
+              {/* Enhanced Wizard Flow Manager */}
+              {!previewMode && (
+                <WizardFlowManager
+                  currentStep={currentStep}
+                  totalSteps={steps.length}
+                  onStepChange={setCurrentStep}
+                  formData={formData}
+                  validation={wizardValidation}
+                  onAutoSave={handleAutoSave}
+                  lastSaved={savedAt}
+                />
               )}
               
               {/* AI Tips Section */}
@@ -1452,116 +1512,17 @@ export default function CreateDeed() {
                     </div>
                   </div>
 
-                  {/* Preview Section */}
-                  <div className="contact-wrapper" style={{
-                    background: '#FFFFFF',
-                    border: '1px solid #C8CCCE',
-                    borderRadius: '12px',
-                    padding: '2.5rem',
-                    marginBottom: '2rem'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-                      <h3 style={{ color: '#111827', margin: 0, fontSize: '1.25rem' }}>👁️ Document Preview</h3>
-                      <button
-                        onClick={handlePreviewDeed}
-                        disabled={isLoadingPreview || !formData.deedType}
-                        style={{
-                          backgroundColor: isLoadingPreview || !formData.deedType ? 'var(--secondary-light)' : 'var(--primary-dark)',
-                          color: isLoadingPreview || !formData.deedType ? 'var(--gray-600)' : '#FFFFFF',
-                          border: 'none',
-                          borderRadius: '12px',
-                          padding: '12px 24px',
-                          fontSize: '14px',
-                          fontWeight: '600',
-                          cursor: isLoadingPreview || !formData.deedType ? 'not-allowed' : 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        {isLoadingPreview ? (
-                          <>
-                            <div style={{
-                              width: '16px',
-                              height: '16px',
-                              border: '2px solid #565F64',
-                              borderTop: '2px solid #111827',
-                              borderRadius: '50%',
-                              animation: 'spin 1s linear infinite'
-                            }} />
-                            Loading Preview...
-                          </>
-                        ) : (
-                          <>
-                            👁️ Preview Deed
-                          </>
-                        )}
-                      </button>
-                    </div>
-                    
-                    {!showPreview && !isLoadingPreview && (
-                      <div style={{
-                        textAlign: 'center',
-                        padding: '3rem',
-                        color: '#565F64',
-                        backgroundColor: '#F3F4F6',
-                        borderRadius: '12px',
-                        border: '2px dashed #C8CCCE'
-                      }}>
-                        <div style={{ fontSize: '48px', marginBottom: '1rem' }}>📄</div>
-                        <h4 style={{ color: '#111827', marginBottom: '0.5rem' }}>Preview Your Deed</h4>
-                        <p style={{ margin: 0, fontSize: '1rem' }}>
-                          Click "Preview Deed" to see exactly how your document will look before generating the final PDF.
-                        </p>
-                      </div>
-                    )}
-
-                    {showPreview && previewHtml && (
-                    <div style={{
-                        border: '2px solid var(--primary-dark)',
-                        borderRadius: '12px',
-                        padding: '1rem',
-                        backgroundColor: '#FFFFFF',
-                        maxHeight: '600px',
-                        overflow: 'auto',
-                        fontSize: '14px',
-                        lineHeight: '1.4'
-                      }}>
-                        <div style={{
-                          backgroundColor: 'var(--primary-dark)',
-                          color: '#FFFFFF',
-                          padding: '8px 16px',
-                          borderRadius: '8px',
-                          fontSize: '12px',
-                          fontWeight: '600',
-                          marginBottom: '1rem',
-                          textAlign: 'center'
-                        }}>
-                          ✅ PREVIEW - This is exactly how your deed will appear
-                        </div>
-                        <div 
-                          dangerouslySetInnerHTML={{ __html: previewHtml }}
-                          style={{ 
-                            backgroundColor: '#FFFFFF',
-                            border: '1px solid #E5E7EB',
-                            borderRadius: '4px'
-                          }}
-                        />
-                        <div style={{
-                          backgroundColor: '#F3F4F6',
-                          padding: '12px',
-                          borderRadius: '8px',
-                          marginTop: '1rem',
-                          fontSize: '12px',
-                          color: '#565F64',
-                          textAlign: 'center'
-                        }}>
-                          📏 Preview shows actual margins (1"), fonts (Times New Roman 12pt), and legal formatting
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  {/* Enhanced Preview Panel */}
+                  <DeedPreviewPanel
+                    previewHtml={previewHtml}
+                    isLoading={isLoadingPreview}
+                    onRegeneratePreview={handlePreviewDeed}
+                    onEditMode={handleExitPreviewMode}
+                    onGenerateFinalDeed={handleGenerateDeed}
+                    isGenerating={isGenerating}
+                    deedType={formData.deedType || 'Deed'}
+                    validation={wizardValidation}
+                  />
                   
                   {/* Ready to Generate Section */}
                   <div style={{
@@ -1686,6 +1647,20 @@ export default function CreateDeed() {
           </div>
         </div>
       </div>
+
+      {/* Quick Preview Action - Floating when ready */}
+      {!previewMode && currentStep === 5 && wizardValidation.isValid && !showPreview && (
+        <button
+          onClick={handleEnterPreviewMode}
+          className="fixed bottom-6 right-6 bg-green-600 text-white px-6 py-4 rounded-full shadow-2xl font-semibold text-lg hover:bg-green-700 transition-all duration-300 hover:scale-110 z-50"
+          style={{
+            background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+            boxShadow: '0 10px 25px rgba(16, 185, 129, 0.4)'
+          }}
+        >
+          ✨ Preview Your Deed
+        </button>
+      )}
       
       {/* Debug component for development */}
       {debugData && (

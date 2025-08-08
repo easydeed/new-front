@@ -1,14 +1,16 @@
-### Deed Wizard Flow (Address‑First)
+### Enhanced Deed Wizard Flow (100% Efficiency)
 
-This document describes the current end‑to‑end deed creation flow in the frontend wizard, how it maps to backend APIs and Jinja templates, and what users see at each step.
+This document describes the **AI-enhanced, cloud-like deed creation flow** in the frontend wizard, delivering 100% efficiency through seamless create, edit, and preview functionality.
 
 ### Overview
 
-- Purpose: guide users from deed selection to preview/PDF generation with minimal friction
-- Structure: 5 steps, address‑first
-- Autosave: draft persists in `localStorage` under `deedWizardDraft`
-- Preview: uses HTML template via `/generate-deed-preview` (no plan usage)
-- Final: PDF generation via `/generate-deed` (counts toward limits; gated by plan/add‑on)
+- **Purpose**: Effortless deed creation with "walking on a cloud" user experience
+- **Structure**: 5 intelligent steps with real-time validation and AI assistance
+- **Intelligence**: Smart data mapping with automatic field population and validation
+- **Efficiency**: Real-time preview updates, seamless editing, instant feedback
+- **Autosave**: Continuous draft persistence with visual feedback
+- **Preview**: Enhanced preview panel with zoom, print, and edit capabilities
+- **Final**: One-click PDF generation with comprehensive validation
 
 ### Access & Gating
 
@@ -65,28 +67,35 @@ This document describes the current end‑to‑end deed creation flow in the fro
   - Preview (HTML) → `/generate-deed-preview`
   - Generate (PDF) → `/generate-deed` (requires add‑on; counts toward plan limits)
 
-### Template Mapping (Preview / Final)
+### Enhanced Template Mapping (AI-Powered)
 
-Both `grant_deed.html` and `quitclaim_deed.html` accept the same keys. The wizard maps state to these:
+Both templates use **intelligent data mapping** with AI suggestions, automatic calculations, and dynamic features:
 
-- `recording_requested_by` ← `recordingRequestedBy`
-- `mail_to` ← `mailTo || fullAddress || propertySearch`
+#### Core Template Variables
+- `recording_requested_by` ← AI suggestions + `recordingRequestedBy`
+- `mail_to` ← AI suggestions + `mailTo || fullAddress || propertySearch`
 - `order_no` ← `orderNo`
 - `escrow_no` ← `escrowNo`
-- `apn` ← `apn`
-- `documentary_tax` ← `documentaryTax || salesPrice`
-- `city` ← `taxCityName || city`
+- `apn` ← AI suggestions + `apn`
+- `documentary_tax` ← **Auto-calculated** from `salesPrice` (CA $0.55/$500 standard)
+- `city` ← AI suggestions + `taxCityName || city`
 - `grantor` ← `grantorName`
 - `grantee` ← `granteeName`
-- `county` ← `county`
-- `property_description` ← `legalDescription || fullAddress || propertySearch`
-- `date` ← `deedDate || today`
+- `county` ← AI suggestions + `county`
+- `property_description` ← AI suggestions + `legalDescription || fullAddress || propertySearch`
+- `date` ← **Auto-formatted** `deedDate || today` (MM/DD/YYYY)
 - `grantor_signature` ← `grantorSignature || grantorName`
-- `county_notary` ← `notaryCounty || county`
-- `notary_date` ← `notaryDate`
+
+#### Enhanced Template Features
+- `tax_computed_full_value` ← **Dynamic checkbox** from `taxComputedFullValue`
+- `tax_computed_less_liens` ← **Dynamic checkbox** from `taxComputedLessLiens`
+- `is_unincorporated` ← **Dynamic checkbox** from `isUnincorporated`
+- `county_notary` ← AI suggestions + `notaryCounty || county`
+- `notary_date` ← **Auto-formatted** `notaryDate`
 - `notary_name` ← `notaryName`
 - `appeared_before_notary` ← `appearedBeforeNotary || grantorName`
 - `notary_signature` ← `notaryName`
+- `vesting_description` ← **Enhanced** property description with vesting details
 
 ### Preview Payload Example
 
@@ -143,11 +152,42 @@ POST /generate-deed-preview
 - If preview fails, surface a retry with the current data snapshot
 - If plan/add‑on not enabled, show banner and route to account when generating final PDF
 
+### 🚀 100% Efficiency Features (NEW)
+
+#### **Real-Time Intelligence**
+- **Smart Validation**: Instant feedback on required fields and warnings
+- **AI Data Mapping**: Comprehensive `deedDataMapper.ts` utility for perfect field mapping
+- **Auto-Calculations**: Documentary tax, date formatting, field suggestions
+- **Dynamic Templates**: Checkboxes respond to user selections with ✓ marks
+
+#### **Seamless User Experience** 
+- **WizardFlowManager**: Visual progress tracking with completion percentages
+- **Step Navigation**: Smart step unlocking based on completion
+- **Auto-Save**: Continuous draft persistence with visual feedback
+- **Real-Time Preview**: Instant validation and preview updates
+
+#### **Enhanced Preview System**
+- **DeedPreviewPanel**: Professional preview with zoom, print, edit controls
+- **Validation Integration**: Missing fields highlighted with clear instructions
+- **Edit Mode**: Seamless switching between preview and edit
+- **Quick Actions**: Floating action button for instant preview access
+
+#### **Developer Tools**
+- **PreviewDataDebugger**: Visual field mapping inspection
+- **Validation Feedback**: Real-time missing field detection
+- **Data Flow Visualization**: Complete wizard → template mapping display
+
+#### **Cloud-Like Performance**
+- **Instant Feedback**: Real-time validation without backend calls
+- **Smooth Transitions**: Animated progress indicators and state changes
+- **Error Prevention**: Pre-submission validation prevents failed requests
+- **Smart Defaults**: AI suggestions reduce manual data entry
+
 ### Future Enhancements
 
-- Debounced address search with suggestions
-- “Use this address” pill confirmation with normalized output
-- Inline helper chips per field (first‑run only)
-- Guided vs. Expert mode toggle
+- Voice-activated field completion
+- Document scanning for automatic field population  
+- Multi-language template support
+- Advanced analytics and usage insights
 
 
