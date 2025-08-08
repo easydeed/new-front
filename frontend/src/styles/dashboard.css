@@ -6,7 +6,7 @@
 
 :root {
   /* Align with new flat/light palette */
-  --primary-dark: #4A5DBF; /* gentle-indigo */
+  --primary-dark: #4A5DBF; /* gentle-indigo (landing page primary) */
   --secondary-light: #D1DFE2; /* pale-slate */
   --background: #E5ECEE; /* light-seafoam */
   --text: #1A2A3A; /* dark-slate */

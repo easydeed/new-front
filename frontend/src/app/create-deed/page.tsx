@@ -23,13 +23,13 @@ const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }
           bottom: '100%',
           left: '50%',
           transform: 'translateX(-50%)',
-          backgroundColor: 'rgba(0, 0, 0, 0.9)',
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
           color: 'white',
           padding: '12px 16px',
           borderRadius: '12px',
           fontSize: '14px',
           lineHeight: '1.4',
-          maxWidth: '250px',
+          maxWidth: '420px',
           whiteSpace: 'normal',
           zIndex: 1000,
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
@@ -220,6 +220,12 @@ export default function CreateDeed() {
     propertySearch: '',
     apn: '',
     county: '',
+    city: '',
+    state: '',
+    zip: '',
+    fullAddress: '',
+    fips: '',
+    propertyId: '',
     legalDescription: '',
     ownerType: '',
     salesPrice: '',
@@ -239,6 +245,8 @@ export default function CreateDeed() {
   const [showPreview, setShowPreview] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
+  const [addressError, setAddressError] = useState('');
 
   const steps = [
     { 
@@ -459,6 +467,41 @@ export default function CreateDeed() {
     await handleGenerateDeed();
   };
 
+  const handlePropertySearch = async () => {
+    if (!formData.propertySearch.trim()) {
+      setAddressError('Please enter an address to search');
+      return;
+    }
+    setAddressError('');
+    setIsSearchingAddress(true);
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${baseUrl}/property/search?address=${encodeURIComponent(formData.propertySearch)}`);
+      if (!response.ok) {
+        throw new Error('Search failed');
+      }
+      const result = await response.json();
+      // Best-effort mapping based on backend
+      const data = (result && (result.data || result.property || result)) || {};
+      setFormData(prev => ({
+        ...prev,
+        apn: data.apn || prev.apn,
+        county: data.county || prev.county,
+        city: data.city || prev.city,
+        state: data.state || prev.state,
+        zip: data.zip || prev.zip,
+        fullAddress: data.full_address || data.fullAddress || prev.fullAddress,
+        fips: data.fips || prev.fips,
+        propertyId: data.property_id || data.id || prev.propertyId,
+        legalDescription: data.legal_description || prev.legalDescription
+      }));
+    } catch (e) {
+      setAddressError('Could not find that address. Please refine and try again.');
+    } finally {
+      setIsSearchingAddress(false);
+    }
+  };
+
   useEffect(() => {
     // Check widget access first
     const checkAccess = async () => {
@@ -654,9 +697,9 @@ export default function CreateDeed() {
                 className={`progress-step ${currentStep >= step.id ? 'active' : ''} ${currentStep > step.id ? 'completed' : ''}`}
               >
                 <div className="progress-step-circle">
-                  {currentStep > step.id ? 
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/></svg>
-                    : step.icon}
+                    {currentStep > step.id ? 
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/></svg>
+                      : step.icon}
                 </div>
                 <div className="progress-step-label">{step.title}</div>
               </div>
@@ -736,7 +779,7 @@ export default function CreateDeed() {
                 </p>
                 
                 <div className="form-grid" style={{ maxWidth: '1000px', margin: '0 auto' }}>
-                  <div className="form-group">
+                  <div className="form-group col-span-2">
                     <Tooltip text="Enter the complete street address including city, state, and ZIP code for accurate property identification.">
                       <label className="form-label">Property Address 💡</label>
                     </Tooltip>
@@ -745,11 +788,32 @@ export default function CreateDeed() {
                         type="text"
                         name="propertySearch"
                         className="form-control"
-                        placeholder="123 Main Street, Los Angeles, CA 90210"
+                        placeholder="e.g. ‘123 Success Ave’"
                         value={formData.propertySearch}
                         onChange={handleInputChange}
-                        style={{ paddingRight: '100px' }}
+                        style={{ paddingRight: '180px' }}
                       />
+                      <button
+                        type="button"
+                        onClick={handlePropertySearch}
+                        disabled={isSearchingAddress || !formData.propertySearch.trim()}
+                        style={{
+                          position: 'absolute',
+                          right: '12px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          backgroundColor: isSearchingAddress || !formData.propertySearch.trim() ? 'var(--secondary-light)' : 'var(--primary-dark)',
+                          color: isSearchingAddress || !formData.propertySearch.trim() ? 'var(--gray-600)' : '#FFFFFF',
+                          border: 'none',
+                          borderRadius: '10px',
+                          padding: '10px 16px',
+                          fontSize: '14px',
+                          fontWeight: 600,
+                          cursor: isSearchingAddress || !formData.propertySearch.trim() ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        {isSearchingAddress ? 'Searching…' : 'Search'}
+                      </button>
                       <AiSuggestion
                         fieldName="property_address"
                         fieldValue={formData.propertySearch}
@@ -757,6 +821,9 @@ export default function CreateDeed() {
                         onSuggestion={(suggestion) => setFormData({...formData, propertySearch: suggestion})}
                       />
                     </div>
+                    {addressError && (
+                      <div style={{ marginTop: '8px', color: '#b91c1c', fontSize: '0.95rem' }}>{addressError}</div>
+                    )}
                   </div>
                   
                   <div className="form-group">
