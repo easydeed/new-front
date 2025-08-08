@@ -1,6 +1,7 @@
 'use client';
 
 import { CurrencyDollarIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { useRouter } from 'next/navigation';
 
 interface PricingPlan {
   name: string;
@@ -14,6 +15,8 @@ interface PricingProps {
 }
 
 export default function Pricing({ pricing = [] }: PricingProps) {
+  const router = useRouter();
+  
   // Fallback plans adjusted for dual audiences (independents + enterprises)
   const fallbackPlans = [
     {
@@ -75,7 +78,7 @@ export default function Pricing({ pricing = [] }: PricingProps) {
     <section className="py-16 px-6 bg-pale-slate">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 bg-accent-soft text-dark-slate px-3 py-1.5 rounded-full text-xs font-medium border border-accent/10 w-fit mx-auto">
+          <div className="inline-flex items-center gap-2 bg-tertiary text-white px-4 py-2 rounded-full text-sm font-semibold w-fit mx-auto shadow-lg">
             <CurrencyDollarIcon className="h-4 w-4" />
             Flexible Pricing
           </div>
@@ -130,11 +133,22 @@ export default function Pricing({ pricing = [] }: PricingProps) {
                 ))}
               </ul>
               
-              <button className={`w-full py-3 px-5 rounded-xl font-medium text-sm ${
-                plan.popular 
-                  ? 'bg-gentle-indigo text-white' 
-                  : 'bg-surface text-dark-slate border border-dark-slate/10'
-              }`}>
+              <button 
+                onClick={() => {
+                  if (plan.name.toLowerCase() === "business") {
+                    router.push('/api-key-request');
+                  } else if (plan.name.toLowerCase() === "solo") {
+                    router.push('/create-deed');
+                  } else {
+                    router.push('/login?plan=' + plan.name.toLowerCase());
+                  }
+                }}
+                className={`w-full py-3 px-5 rounded-xl font-medium text-sm hover:transform hover:scale-105 transition-all duration-200 ${
+                  plan.popular 
+                    ? 'bg-gentle-indigo text-white hover:bg-blue-600' 
+                    : 'bg-surface text-dark-slate border border-dark-slate/10 hover:border-gentle-indigo hover:text-gentle-indigo'
+                }`}
+              >
                 {plan.name.toLowerCase() === "business" ? "Contact Sales" : "Get Started"}
               </button>
             </div>
@@ -150,12 +164,18 @@ export default function Pricing({ pricing = [] }: PricingProps) {
             Join over 1,200 escrow officers who have streamlined their deed creation process with DeedPro's AI-enhanced platform.
           </p>
           <div className="flex gap-3 justify-center flex-wrap">
-            <a href="/create-deed" className="bg-gentle-indigo text-white px-6 py-3 rounded-xl text-sm font-medium">
+            <button 
+              onClick={() => router.push('/create-deed')}
+              className="bg-gentle-indigo text-white px-6 py-3 rounded-xl text-sm font-medium hover:bg-blue-600 transition-colors"
+            >
               Try AI Wizard Free
-            </a>
-            <a href="#api" className="bg-surface text-dark-slate border border-dark-slate/10 px-6 py-3 rounded-xl text-sm font-medium">
+            </button>
+            <button 
+              onClick={() => router.push('/docs/API_REFERENCE')}
+              className="bg-surface text-dark-slate border border-dark-slate/10 px-6 py-3 rounded-xl text-sm font-medium hover:border-gentle-indigo hover:text-gentle-indigo transition-colors"
+            >
               Explore API
-            </a>
+            </button>
           </div>
         </div>
       </div>

@@ -95,7 +95,7 @@ export default function Features() {
       <div className="absolute top-4 right-4">
         <span className={`px-2 py-1 rounded-full text-xs font-semibold border ${
           feature.highlight 
-            ? 'bg-tertiary text-primary border-tertiary' 
+            ? 'bg-tertiary text-white border-tertiary' 
             : 'bg-background text-text-secondary border-silver'
         }`}>
           {feature.badge}
@@ -113,7 +113,7 @@ export default function Features() {
       <section id="features" className="py-20 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <div className="inline-block bg-tertiary text-primary px-4 py-2 rounded-full text-sm font-semibold mb-4 flex items-center gap-2 w-fit mx-auto">
+            <div className="inline-block bg-tertiary text-white px-4 py-2 rounded-full text-sm font-semibold mb-4 flex items-center gap-2 w-fit mx-auto">
               <CpuChipIcon className="h-4 w-4" />
               AI-Powered Innovation
             </div>
@@ -169,7 +169,7 @@ export default function Features() {
           <div className="bg-primary rounded-2xl p-8 text-white shadow-2xl">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold">API Example: Generate Deed</h3>
-              <span className="bg-tertiary text-primary px-3 py-1 rounded-full text-sm font-bold">Live API</span>
+              <span className="bg-tertiary text-white px-3 py-1 rounded-full text-sm font-bold">Live API</span>
             </div>
             <pre className="text-green-400 text-sm overflow-x-auto">
 {`POST /api/v1/softpro/webhook
@@ -194,10 +194,10 @@ Response: {
 }`}
             </pre>
             <div className="mt-6 flex gap-4">
-              <a href="/docs" className="bg-tertiary hover:bg-secondary text-primary px-4 py-2 rounded-lg font-semibold transition-colors">
+              <a href="/docs/API_REFERENCE" className="bg-tertiary hover:bg-secondary text-white px-4 py-2 rounded-lg font-semibold transition-colors">
                 View API Docs
               </a>
-              <a href="#" className="border border-silver hover:border-tertiary hover:text-tertiary px-4 py-2 rounded-lg font-semibold transition-colors">
+              <a href="/api-key-request" className="border border-silver hover:border-tertiary hover:text-tertiary px-4 py-2 rounded-lg font-semibold transition-colors">
                 Get API Key
               </a>
             </div>
@@ -209,9 +209,9 @@ Response: {
       <section className="py-20 px-6 bg-background">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <div className="inline-block bg-secondary text-white px-4 py-2 rounded-full text-sm font-semibold mb-4 flex items-center gap-2 w-fit mx-auto">
-              <BuildingOfficeIcon className="h-4 w-4" />
-              Enterprise Ready
+            <div className="inline-block bg-primary text-white px-4 py-2 rounded-full text-sm font-semibold mb-4 flex items-center gap-2 w-fit mx-auto">
+              <LockClosedIcon className="h-4 w-4" />
+              Security & Enterprise
             </div>
             <h2 className="text-4xl lg:text-5xl font-bold text-text-primary mb-6">
               Built for Scale

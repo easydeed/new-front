@@ -45,7 +45,7 @@ export default function Footer() {
               <li><a href="#" className="hover:text-white transition-colors">Deed Types Guide</a></li>
               <li><a href="#" className="hover:text-white transition-colors">Recording Requirements</a></li>
               <li><a href="#" className="hover:text-white transition-colors">State Regulations</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">API Documentation</a></li>
+              <li><a href="/docs/API_REFERENCE" className="hover:text-white transition-colors">API Documentation</a></li>
               <li><a href="#" className="hover:text-white transition-colors">SoftPro Integration</a></li>
               <li><a href="#" className="hover:text-white transition-colors">Qualia Integration</a></li>
             </ul>
@@ -64,7 +64,7 @@ export default function Footer() {
           </div>
         </div>
         
-        <div className="border-t border-slate-700 pt-8">
+        <div className="border-t pt-8" style={{ borderColor: '#e5e7eb' }}>
           <div className="flex flex-col md:flex-row justify-between items-center text-slate-300">
             <div className="mb-4 md:mb-0">
               <p>&copy; 2025 DeedPro. All rights reserved.</p>
