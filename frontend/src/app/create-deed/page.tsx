@@ -1102,49 +1102,30 @@ export default function CreateDeed() {
                 
                 <div className="deed-type-grid">
                   {deedTypes.map((deed) => (
-                    <Tooltip 
+                    <div
                       key={deed.type}
-                      text={deed.type === 'Quitclaim Deed' 
-                        ? 'Most common for family transfers, divorces, or adding/removing names from title. No warranties provided.' 
-                        : deed.type === 'Grant Deed' 
-                        ? 'Standard California deed with basic warranties. Grantor guarantees they own the property and haven\'t transferred it to anyone else.'
-                        : deed.type === 'Warranty Deed'
-                        ? 'Provides maximum protection with full warranties against any title defects, even from previous owners.'
-                        : 'Used for estate planning to transfer property into or out of a trust. Maintains same tax basis.'}
+                      className={`deed-type-card ${formData.deedType === deed.type ? 'selected' : ''}`}
+                      onClick={() => selectDeedType(deed.type)}
                     >
-                      <div
-                        className={`deed-type-card ${formData.deedType === deed.type ? 'selected' : ''}`}
-                        onClick={() => selectDeedType(deed.type)}
-                      >
-                        {deed.popular && (
-                          <div style={{
-                            position: 'absolute',
-                            top: '1rem',
-                            right: '1rem',
-                            background: 'var(--accent)',
-                            color: 'var(--primary-dark)',
-                            padding: '0.5rem 1rem',
-                            borderRadius: '12px',
-                            fontSize: '0.875rem',
-                            fontWeight: '600'
-                          }}>
-                            POPULAR
-                          </div>
-                        )}
-                        <div className="deed-type-icon">{deed.icon}</div>
-                        <h3 className="deed-type-title">{deed.type}</h3>
-                        <p className="deed-type-description">{deed.description}</p>
+                      {deed.popular && (
                         <div style={{
                           position: 'absolute',
-                          bottom: '1rem',
+                          top: '1rem',
                           right: '1rem',
-                          color: 'var(--gray-400)',
-                          fontSize: '12px'
+                          background: 'var(--accent)',
+                          color: 'var(--primary-dark)',
+                          padding: '0.5rem 1rem',
+                          borderRadius: '12px',
+                          fontSize: '0.875rem',
+                          fontWeight: '600'
                         }}>
-                          💡 Hover for details
+                          POPULAR
                         </div>
-                      </div>
-                    </Tooltip>
+                      )}
+                      <div className="deed-type-icon">{deed.icon}</div>
+                      <h3 className="deed-type-title">{deed.type}</h3>
+                      <p className="deed-type-description">{deed.description}</p>
+                    </div>
                   ))}
                 </div>
               </div>

@@ -138,23 +138,80 @@ export default function Dashboard() {
 } 
 
 function ResumeDraftBanner() {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = localStorage.getItem('deedWizardDraft');
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!parsed?.formData) return null;
-  } catch {
-    return null;
-  }
+  const [hasDraft, setHasDraft] = useState(false);
+  const [draftInfo, setDraftInfo] = useState<any>(null);
+
+  useEffect(() => {
+    const checkForDraft = () => {
+      if (typeof window === 'undefined') return;
+      try {
+        const raw = localStorage.getItem('deedWizardDraft');
+        if (!raw) {
+          setHasDraft(false);
+          return;
+        }
+        const parsed = JSON.parse(raw);
+        if (!parsed?.formData || !parsed?.formData?.deedType) {
+          setHasDraft(false);
+          return;
+        }
+        setHasDraft(true);
+        setDraftInfo(parsed);
+      } catch {
+        setHasDraft(false);
+      }
+    };
+
+    // Check initially
+    checkForDraft();
+
+    // Listen for storage changes (when draft is cleared from wizard)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'deedWizardDraft') {
+        checkForDraft();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also check periodically in case of same-tab changes
+    const interval = setInterval(checkForDraft, 1000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
+
+  if (!hasDraft || !draftInfo) return null;
+
+  const deedType = draftInfo.formData?.deedType || 'Deed';
+  const currentStep = draftInfo.currentStep || 1;
+  const savedAt = draftInfo.savedAt ? new Date(draftInfo.savedAt).toLocaleDateString() : 'recently';
+
   return (
-    <div className="card" style={{ borderLeft: '4px solid var(--primary-dark)' }}>
+    <div className="card" style={{ borderLeft: '4px solid rgb(37, 99, 235)' }}>
       <div className="card-body" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <div className="card-title" style={{ marginBottom: 4 }}>Resume AI Wizard</div>
-          <div style={{ color: 'var(--gray-600)' }}>Pick up where you left off. We’ve saved your progress.</div>
+          <div className="card-title" style={{ marginBottom: 4 }}>Resume {deedType} Creation</div>
+          <div style={{ color: 'var(--gray-600)' }}>
+            Step {currentStep} of 5 • Saved {savedAt}
+          </div>
         </div>
-        <a className="btn-primary" href="/create-deed">Continue</a>
+        <a 
+          className="btn-primary" 
+          href="/create-deed"
+          style={{ 
+            background: 'rgb(37, 99, 235)',
+            textDecoration: 'none',
+            padding: '8px 16px',
+            borderRadius: '6px',
+            color: 'white',
+            fontWeight: '600'
+          }}
+        >
+          Continue
+        </a>
       </div>
     </div>
   );

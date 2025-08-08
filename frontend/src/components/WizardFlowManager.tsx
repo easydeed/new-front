@@ -127,7 +127,7 @@ export default function WizardFlowManager({
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-lg mb-6">
+    <div className="relative bg-white rounded-2xl border border-gray-200 p-6 shadow-lg mb-6">
       {/* Progress Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -140,14 +140,6 @@ export default function WizardFlowManager({
         </div>
         
         <div className="flex items-center gap-4">
-          {/* Auto-save indicator */}
-          {lastSaved && (
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span>Saved {lastSaved}</span>
-            </div>
-          )}
-          
           {/* Overall progress */}
           <div className="text-right">
             <div className="text-sm font-semibold text-gray-900">
@@ -174,11 +166,12 @@ export default function WizardFlowManager({
       {/* Step Navigation */}
       <div className="relative">
         {/* Progress Line */}
-        <div className="absolute top-6 left-0 right-0 h-0.5 bg-gray-200">
+        <div className="absolute top-8 left-0 right-0 h-0.5 bg-gray-200">
           <div 
-            className="h-full bg-tertiary transition-all duration-500 ease-out"
+            className="h-full transition-all duration-500 ease-out"
             style={{ 
-              width: `${(completedSteps.length / totalSteps) * 100}%` 
+              width: `${(completedSteps.length / totalSteps) * 100}%`,
+              backgroundColor: 'rgb(37, 99, 235)'
             }}
           />
         </div>
@@ -198,42 +191,47 @@ export default function WizardFlowManager({
                   onClick={() => handleStepClick(step)}
                   disabled={!canNavigate}
                   className={`
-                    relative w-12 h-12 rounded-full border-2 transition-all duration-300 
-                    flex items-center justify-center text-lg font-bold
+                    relative w-16 h-16 rounded-full border-2 transition-all duration-300 
+                    flex items-center justify-center text-xl font-bold
                     ${status === 'completed' 
-                      ? 'bg-tertiary border-tertiary text-white shadow-lg' 
+                      ? 'border-blue-600 text-white shadow-lg' 
                       : status === 'current'
-                      ? 'bg-white border-tertiary text-tertiary shadow-lg ring-4 ring-blue-100'
+                      ? 'bg-white border-blue-600 text-blue-600 shadow-lg ring-4 ring-blue-100'
                       : status === 'visited'
                       ? 'bg-gray-100 border-gray-300 text-gray-600'
                       : 'bg-white border-gray-200 text-gray-400'
                     }
                     ${canNavigate ? 'cursor-pointer hover:scale-110' : 'cursor-not-allowed'}
                   `}
+                  style={{
+                    backgroundColor: status === 'completed' ? 'rgb(37, 99, 235)' : undefined,
+                    borderColor: status === 'completed' || status === 'current' ? 'rgb(37, 99, 235)' : undefined,
+                    color: status === 'current' ? 'rgb(37, 99, 235)' : undefined
+                  }}
                   title={`Step ${step}${!canNavigate ? ' (complete current step first)' : ''}`}
                 >
-                  <span className="text-sm">{getStepIcon(step)}</span>
+                  <span className="text-lg">{getStepIcon(step)}</span>
                   
                   {/* Progress Ring for current step */}
                   {status === 'current' && progress > 0 && progress < 100 && (
                     <div className="absolute inset-0">
-                      <svg className="w-full h-full -rotate-90" viewBox="0 0 48 48">
+                      <svg className="w-full h-full -rotate-90" viewBox="0 0 64 64">
                         <circle
-                          cx="24"
-                          cy="24"
-                          r="22"
+                          cx="32"
+                          cy="32"
+                          r="30"
                           fill="none"
-                          stroke="rgba(59, 130, 246, 0.2)"
+                          stroke="rgba(37, 99, 235, 0.2)"
                           strokeWidth="2"
                         />
                         <circle
-                          cx="24"
-                          cy="24"
-                          r="22"
+                          cx="32"
+                          cy="32"
+                          r="30"
                           fill="none"
-                          stroke="#3B82F6"
+                          stroke="rgb(37, 99, 235)"
                           strokeWidth="2"
-                          strokeDasharray={`${progress * 1.38} 138`}
+                          strokeDasharray={`${progress * 1.88} 188`}
                           className="transition-all duration-500"
                         />
                       </svg>
@@ -242,14 +240,19 @@ export default function WizardFlowManager({
                 </button>
 
                 {/* Step Label */}
-                <div className="mt-2 text-center">
-                  <div className={`text-xs font-medium ${
-                    status === 'current' ? 'text-tertiary' : 'text-gray-600'
-                  }`}>
+                <div className="mt-3 text-center">
+                  <div 
+                    className={`text-sm font-semibold ${
+                      status === 'current' ? 'text-gray-900' : 'text-gray-600'
+                    }`}
+                    style={{
+                      color: status === 'current' ? 'rgb(37, 99, 235)' : undefined
+                    }}
+                  >
                     Step {step}
                   </div>
                   {progress > 0 && progress < 100 && (
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-gray-500 mt-1">
                       {progress}%
                     </div>
                   )}
@@ -299,6 +302,14 @@ export default function WizardFlowManager({
           {currentStep === 5 && "Add notary information and review your deed"}
         </div>
       </div>
+
+      {/* Auto-save indicator - Bottom Right */}
+      {lastSaved && (
+        <div className="absolute bottom-4 right-4 flex items-center gap-2 text-xs text-gray-500 bg-white rounded-lg px-3 py-2 shadow-sm border border-gray-200">
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          <span>Saved {lastSaved}</span>
+        </div>
+      )}
     </div>
   );
 }

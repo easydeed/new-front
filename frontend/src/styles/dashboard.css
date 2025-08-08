@@ -69,7 +69,7 @@ body {
 
 /* Collapsible Sidebar Styles - flat, light */
 .sidebar {
-  background: var(--tertiary);
+  background: rgb(37, 99, 235);
   position: fixed;
   top: 0;
   left: 0;
@@ -384,8 +384,8 @@ body {
 }
 
 .deed-type-card {
-  background: var(--background);
-  border: 2px solid var(--secondary-light);
+  background: rgb(247, 249, 252);
+  border: none;
   border-radius: 12px;
   padding: 2rem;
   cursor: pointer;
@@ -408,9 +408,8 @@ body {
 }
 
 .deed-type-card:hover {
-  border-color: var(--gray-400);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
-  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
 }
 
 .deed-type-card:hover::before {
@@ -418,9 +417,9 @@ body {
 }
 
 .deed-type-card.selected {
-  border-color: var(--primary-dark);
   background: #FFFFFF;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.15);
+  border: 2px solid rgb(37, 99, 235);
 }
 
 .deed-type-card.selected::before {
