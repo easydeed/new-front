@@ -41,13 +41,18 @@ frontend/
 │   │       └── page.tsx              # Admin dashboard
 │   ├── components/                    # Reusable React components
 │   │   ├── Navbar.tsx                # Navigation header
-│   │   ├── Sidebar.tsx               # Dashboard sidebar
+│   │   ├── Sidebar.tsx               # Dashboard sidebar (brand blue)
 │   │   ├── AdminSidebar.tsx          # Admin navigation
 │   │   ├── Hero.tsx                  # Landing page hero
 │   │   ├── Features.tsx              # Feature showcase
 │   │   ├── Pricing.tsx               # Dynamic pricing display
 │   │   ├── Footer.tsx                # Site footer
-│   │   └── Particles.tsx             # Background animation
+│   │   ├── Particles.tsx             # Background animation
+│   │   ├── WizardFlowManager.tsx     # Smart progress tracking with visual indicators
+│   │   ├── DeedPreviewPanel.tsx      # Professional preview with controls
+│   │   └── PreviewDataDebugger.tsx   # Development debugging tools
+│   ├── utils/                        # Utility functions and helpers
+│   │   └── deedDataMapper.ts         # Comprehensive data mapping & validation
 │   └── styles/
 │       └── dashboard.css             # Dashboard-specific styles
 ├── package.json                      # Dependencies and scripts
@@ -126,6 +131,62 @@ font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif
 
 ---
 
+## ✨ Enhanced Wizard Components (Latest)
+
+### WizardFlowManager (`components/WizardFlowManager.tsx`)
+Smart progress tracking component with visual indicators and user control.
+
+**Key Features:**
+- **Visual Progress**: 64px circles with brand colors `rgb(37, 99, 235)`
+- **Smart Navigation**: Step unlocking based on completion percentage
+- **Cancel Control**: Confirmation dialog with complete data reset
+- **Auto-Save Indicator**: Bottom-right positioned with visual feedback
+- **Real-Time Validation**: Dynamic step completion tracking
+
+```typescript
+interface WizardFlowManagerProps {
+  currentStep: number;
+  totalSteps: number;
+  onStepChange: (step: number) => void;
+  formData: any;
+  validation: any;
+  onAutoSave: () => void;
+  onCancel?: () => void;
+  lastSaved?: string | null;
+}
+```
+
+### DeedPreviewPanel (`components/DeedPreviewPanel.tsx`)
+Professional preview interface with comprehensive controls.
+
+**Key Features:**
+- **Zoom Controls**: Scale preview from 50% to 200%
+- **Print Functionality**: Optimized print preview
+- **Edit Mode**: Seamless switching between preview and edit
+- **Validation Integration**: Missing fields highlighted with instructions
+- **Professional UI**: Loading states, error handling, action buttons
+
+### PreviewDataDebugger (`components/PreviewDataDebugger.tsx`)
+Development tool for field mapping inspection and debugging.
+
+**Key Features:**
+- **Field Mapping Visualization**: Shows wizard → template field relationships
+- **Validation Display**: Real-time validation results and missing fields
+- **Data Flow Inspection**: Complete data transformation visualization
+- **Copy Debug Data**: Export debug information for troubleshooting
+
+### Enhanced Data Utilities (`utils/deedDataMapper.ts`)
+Comprehensive data transformation and validation system.
+
+**Key Functions:**
+- `mapWizardDataToTemplate()`: Complete field mapping with AI integration
+- `validatePreviewData()`: Pre-submission validation with detailed feedback
+- `calculateDocumentaryTax()`: CA standard tax calculation ($0.55/$500)
+- `formatLegalDate()`: Legal document date formatting (MM/DD/YYYY)
+- `createPreviewPayload()`: Smart data transformation for backend
+
+---
+
 ## 🏗️ Component Architecture
 
 ### Page Components
@@ -164,14 +225,19 @@ export default function Home() {
 ```
 
 #### Dashboard (`dashboard/page.tsx`)
+Enhanced dashboard with smart draft detection and brand-consistent styling.
+
 ```typescript
 export default function Dashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
     <div style={{ display: 'flex' }}>
-      <Sidebar />
+      <Sidebar /> {/* Now uses rgb(37, 99, 235) brand color */}
       <div className={`main-content ${sidebarCollapsed ? 'expanded' : ''}`}>
+        {/* Smart Resume Banner - shows/hides based on draft existence */}
+        <ResumeDraftBanner />
+        
         {/* Dashboard content with stats grid */}
         <div className="stats-grid">
           <StatCard icon="document" value="12" label="Total Deeds" />
@@ -180,6 +246,43 @@ export default function Dashboard() {
           <StatCard icon="pending" value="1" label="Pending Review" />
         </div>
       </div>
+    </div>
+  );
+}
+
+// Enhanced ResumeDraftBanner Component
+function ResumeDraftBanner() {
+  const [hasDraft, setHasDraft] = useState(false);
+  const [draftInfo, setDraftInfo] = useState<any>(null);
+
+  useEffect(() => {
+    // Real-time monitoring of localStorage for draft changes
+    const checkForDraft = () => {
+      const raw = localStorage.getItem('deedWizardDraft');
+      if (!raw) return setHasDraft(false);
+      
+      const parsed = JSON.parse(raw);
+      if (!parsed?.formData?.deedType) return setHasDraft(false);
+      
+      setHasDraft(true);
+      setDraftInfo(parsed);
+    };
+
+    // Listen for storage changes and poll for updates
+    window.addEventListener('storage', checkForDraft);
+    const interval = setInterval(checkForDraft, 1000);
+    
+    return () => {
+      window.removeEventListener('storage', checkForDraft);
+      clearInterval(interval);
+    };
+  }, []);
+
+  if (!hasDraft) return null; // Automatically hides when cancelled
+
+  return (
+    <div className="card" style={{ borderLeft: '4px solid rgb(37, 99, 235)' }}>
+      {/* Enhanced with deed type, step progress, and save date */}
     </div>
   );
 }
