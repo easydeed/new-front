@@ -76,9 +76,9 @@
   <div class="section">
     <p class="bold">THE UNDERSIGNED GRANTOR(S) DECLARE(S):</p>
     <p>DOCUMENTARY TRANSFER TAX IS ${{ documentary_tax or "_____" }}</p>
-    <p><span class="checkbox"></span> Computed on full value of property conveyed, or</p>
-    <p><span class="checkbox"></span> Computed on full value less liens and encumbrances remaining at time of sale.</p>
-    <p><span class="checkbox"></span> Unincorporated area <span class="checkbox"></span> City of {{ city or "_____________________" }}</p>
+    <p><span class="checkbox">{{ "✓" if tax_computed_full_value else "" }}</span> Computed on full value of property conveyed, or</p>
+    <p><span class="checkbox">{{ "✓" if tax_computed_less_liens else "" }}</span> Computed on full value less liens and encumbrances remaining at time of sale.</p>
+    <p><span class="checkbox">{{ "✓" if is_unincorporated else "" }}</span> Unincorporated area <span class="checkbox">{{ "✓" if not is_unincorporated else "" }}</span> City of {{ city or "_____________________" }}</p>
   </div>
   
   <div class="section">

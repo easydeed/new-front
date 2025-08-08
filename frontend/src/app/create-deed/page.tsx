@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/Sidebar';
+import PreviewDataDebugger from '../../components/PreviewDataDebugger';
 import '../../styles/dashboard.css';
 
 // Tooltip Component for iPhone-like help text
@@ -269,6 +270,12 @@ export default function CreateDeed() {
   const [aiTips, setAiTips] = useState<string[]>([]);
   const [validation, setValidation] = useState<any>({});
   const [enhancedProfile, setEnhancedProfile] = useState<any>(null);
+  
+  // Debug state for preview data mapper
+  const [debugData, setDebugData] = useState<{
+    templateData: any;
+    validation: any;
+  } | null>(null);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [showAITips, setShowAITips] = useState(true);
   const [propertySuggestions, setPropertySuggestions] = useState<any[]>([]);
@@ -464,33 +471,30 @@ export default function CreateDeed() {
         return;
       }
 
-      // Convert formData to format expected by AI-enhanced backend
-      const deedData = {
-        deed_type: formData.deedType.toLowerCase().replace(/\s+/g, '_'),
-        data: {
-          // AI suggestions may have populated these fields
-          recording_requested_by: aiSuggestions.recordingRequestedBy || formData.recordingRequestedBy || "",
-          mail_to: aiSuggestions.mailTo || formData.mailTo || formData.fullAddress || formData.propertySearch,
-          order_no: formData.orderNo || "",
-          escrow_no: formData.escrowNo || "",
-          apn: aiSuggestions.apn || formData.apn || "",
-          documentary_tax: formData.documentaryTax || formData.salesPrice || "",
-          city: aiSuggestions.city || formData.taxCityName || formData.city || "",
-          grantor: formData.grantorName || "",
-          grantee: formData.granteeName || "",
-          county: aiSuggestions.county || formData.county || "",
-          property_description: aiSuggestions.legalDescription || formData.legalDescription || formData.fullAddress || formData.propertySearch || "",
-          date: formData.deedDate || new Date().toLocaleDateString(),
-          grantor_signature: formData.grantorSignature || formData.grantorName || "",
-          county_notary: aiSuggestions.notaryCounty || formData.notaryCounty || formData.county || "",
-          notary_date: formData.notaryDate || "",
-          notary_name: formData.notaryName || "",
-          appeared_before_notary: formData.appearedBeforeNotary || formData.grantorName || "",
-          notary_signature: formData.notaryName || "",
-          // Include all current form data for AI processing
-          ...formData
-        }
-      };
+      // Import the data mapper (dynamic import to avoid build issues)
+      const { createPreviewPayload, validatePreviewData } = await import('../../utils/deedDataMapper');
+      
+      // Validate data before sending
+      const validation = validatePreviewData(formData);
+      if (!validation.isValid) {
+        alert(`Please complete the following required fields:\n${validation.missingFields.join('\n')}`);
+        setIsLoadingPreview(false);
+        return;
+      }
+      
+      // Show warnings if any
+      if (validation.warnings.length > 0) {
+        console.warn('Preview generation warnings:', validation.warnings);
+      }
+
+      // Convert formData to format expected by backend using the improved mapper
+      const deedData = createPreviewPayload(formData, aiSuggestions);
+      
+      // Set debug data for debugger component
+      setDebugData({
+        templateData: deedData.data,
+        validation: validation
+      });
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/generate-deed-preview`, {
         method: 'POST',
@@ -1682,6 +1686,16 @@ export default function CreateDeed() {
           </div>
         </div>
       </div>
+      
+      {/* Debug component for development */}
+      {debugData && (
+        <PreviewDataDebugger
+          formData={formData}
+          aiSuggestions={aiSuggestions}
+          templateData={debugData.templateData}
+          validation={debugData.validation}
+        />
+      )}
     </div>
   );
 } 
