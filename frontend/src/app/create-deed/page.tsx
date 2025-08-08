@@ -230,7 +230,23 @@ export default function CreateDeed() {
     ownerType: '',
     salesPrice: '',
     granteeName: '',
-    vesting: ''
+    vesting: '',
+    grantorName: '',
+    deedDate: '',
+    documentaryTax: '',
+    taxComputedFullValue: true,
+    taxComputedLessLiens: false,
+    isUnincorporated: false,
+    taxCityName: '',
+    recordingRequestedBy: '',
+    mailTo: '',
+    orderNo: '',
+    escrowNo: '',
+    notaryCounty: '',
+    notaryDate: '',
+    notaryName: '',
+    appearedBeforeNotary: '',
+    grantorSignature: ''
   });
 
   // Plan limits state
@@ -414,24 +430,24 @@ export default function CreateDeed() {
       const deedData = {
         deed_type: formData.deedType.toLowerCase().replace(/\s+/g, '_'),
         data: {
-          recording_requested_by: "DeedPro User", // Default value
-          mail_to: formData.propertySearch || "Property Address",
-          order_no: "PREVIEW-ORDER",
-          escrow_no: "PREVIEW-ESCROW", 
-          apn: formData.apn || "000-000-000",
-          documentary_tax: formData.salesPrice || "0.00",
-          city: formData.county || "Unknown City",
-          grantor: "Current Owner", // Would come from form in full implementation
-          grantee: formData.granteeName || "New Owner",
-          county: formData.county || "Unknown County",
-          property_description: formData.legalDescription || formData.propertySearch || "Property Description",
-          date: new Date().toLocaleDateString(),
-          grantor_signature: "Current Owner",
-          county_notary: formData.county || "Unknown County",
-          notary_date: new Date().toLocaleDateString(),
-          notary_name: "Notary Public",
-          appeared_before_notary: "Current Owner",
-          notary_signature: "Notary Public"
+          recording_requested_by: formData.recordingRequestedBy || "",
+          mail_to: formData.mailTo || formData.fullAddress || formData.propertySearch,
+          order_no: formData.orderNo || "",
+          escrow_no: formData.escrowNo || "",
+          apn: formData.apn || "",
+          documentary_tax: formData.documentaryTax || formData.salesPrice || "",
+          city: formData.taxCityName || formData.city || "",
+          grantor: formData.grantorName || "",
+          grantee: formData.granteeName || "",
+          county: formData.county || "",
+          property_description: formData.legalDescription || formData.fullAddress || formData.propertySearch || "",
+          date: formData.deedDate || new Date().toLocaleDateString(),
+          grantor_signature: formData.grantorSignature || formData.grantorName || "",
+          county_notary: formData.notaryCounty || formData.county || "",
+          notary_date: formData.notaryDate || "",
+          notary_name: formData.notaryName || "",
+          appeared_before_notary: formData.appearedBeforeNotary || formData.grantorName || "",
+          notary_signature: formData.notaryName || ""
         }
       };
 
@@ -881,23 +897,54 @@ export default function CreateDeed() {
               </div>
             </div>
 
-            {/* Step 3: Parties */}
+            {/* Step 3: Parties & Recording Info */}
             <div className={`form-step ${currentStep === 3 ? 'active' : ''}`}>
               <div className="step-content">
-                <h2 className="step-title">Parties Involved</h2>
-                <p className="step-description">
-                  Specify the grantor (seller) and grantee (buyer) information.
-                </p>
-                
+                <h2 className="step-title">Parties & Recording Info</h2>
+                <p className="step-description">Who is transferring to whom, and how should recording be set up?</p>
+
                 <div className="form-grid" style={{ maxWidth: '1000px', margin: '0 auto' }}>
+                  <div className="form-group col-span-2">
+                    <label className="form-label">Recording Requested By</label>
+                    <input name="recordingRequestedBy" className="form-control" placeholder="Your company or name" value={formData.recordingRequestedBy} onChange={handleInputChange} />
+                  </div>
+
+                  <div className="form-group col-span-2">
+                    <label className="form-label">Mail Tax Statements / When Recorded Mail To</label>
+                    <input name="mailTo" className="form-control" placeholder="Recipient full address" value={formData.mailTo} onChange={handleInputChange} />
+                  </div>
+
                   <div className="form-group">
-                    <label className="form-label">Ownership Type</label>
-                    <select
-                      name="ownerType"
-                      className="form-control"
-                      value={formData.ownerType}
-                      onChange={handleInputChange}
-                    >
+                    <label className="form-label">Order No.</label>
+                    <input name="orderNo" className="form-control" placeholder="Order Number" value={formData.orderNo} onChange={handleInputChange} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Escrow No.</label>
+                    <input name="escrowNo" className="form-control" placeholder="Escrow Number" value={formData.escrowNo} onChange={handleInputChange} />
+                  </div>
+
+                  <div className="form-group col-span-2">
+                    <label className="form-label">Grantor (Seller)</label>
+                    <input name="grantorName" className="form-control" placeholder="Current owner(s) full legal name(s)" value={formData.grantorName} onChange={handleInputChange} />
+                  </div>
+
+                  <div className="form-group col-span-2">
+                    <label className="form-label">Grantee (Buyer)</label>
+                    <input name="granteeName" className="form-control" placeholder="New owner(s) full legal name(s)" value={formData.granteeName} onChange={handleInputChange} />
+                  </div>
+
+                  <div className="form-group col-span-2">
+                    <label className="form-label">Vesting</label>
+                    <input name="vesting" className="form-control" placeholder="How title will be held (e.g., Joint Tenants)" value={formData.vesting} onChange={handleInputChange} />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Deed Date</label>
+                    <input type="date" name="deedDate" className="form-control" value={formData.deedDate} onChange={handleInputChange} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Ownership Type (optional)</label>
+                    <select name="ownerType" className="form-control" value={formData.ownerType} onChange={handleInputChange}>
                       <option value="">Select Ownership Type</option>
                       <option value="Individual">Individual</option>
                       <option value="Joint Tenants">Joint Tenants</option>
@@ -907,41 +954,15 @@ export default function CreateDeed() {
                       <option value="Corporation">Corporation</option>
                     </select>
                   </div>
-                  
-                  <div className="form-group">
-                    <label className="form-label">Grantee Name(s)</label>
-                    <input
-                      type="text"
-                      name="granteeName"
-                      className="form-control"
-                      placeholder="Full legal name(s) of new owner(s)"
-                      value={formData.granteeName}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  
-                  <div className="form-group">
-                    <label className="form-label">Vesting</label>
-                    <input
-                      type="text"
-                      name="vesting"
-                      className="form-control"
-                      placeholder="How title will be held (e.g., as joint tenants)"
-                      value={formData.vesting}
-                      onChange={handleInputChange}
-                    />
-                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Step 4: Additional Details */}
+            {/* Step 4: Transfer Tax & Consideration */}
             <div className={`form-step ${currentStep === 4 ? 'active' : ''}`}>
               <div className="step-content">
-                <h2 className="step-title">Transfer Details</h2>
-                <p className="step-description">
-                  Additional information required for the deed preparation.
-                </p>
+                <h2 className="step-title">Transfer Tax & Consideration</h2>
+                <p className="step-description">Tax basis and location details for the deed.</p>
                 
                 <div className="form-grid" style={{ maxWidth: '1000px', margin: '0 auto' }}>
                   <div className="form-group">
@@ -955,7 +976,35 @@ export default function CreateDeed() {
                       onChange={handleInputChange}
                     />
                   </div>
-                  <div className="form-group"></div>
+                  <div className="form-group">
+                    <label className="form-label">Documentary Transfer Tax ($)</label>
+                    <input name="documentaryTax" className="form-control" placeholder="e.g., 0.00" value={formData.documentaryTax} onChange={handleInputChange} />
+                  </div>
+
+                  <div className="form-group col-span-2">
+                    <label className="form-label">Tax Computation</label>
+                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input type="checkbox" checked={!!formData.taxComputedFullValue} onChange={(e) => setFormData(prev => ({ ...prev, taxComputedFullValue: e.target.checked }))} />
+                        Computed on full value of property conveyed
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input type="checkbox" checked={!!formData.taxComputedLessLiens} onChange={(e) => setFormData(prev => ({ ...prev, taxComputedLessLiens: e.target.checked }))} />
+                        Computed on full value less liens and encumbrances remaining at time of sale
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Unincorporated Area</label>
+                    <div>
+                      <input type="checkbox" checked={!!formData.isUnincorporated} onChange={(e) => setFormData(prev => ({ ...prev, isUnincorporated: e.target.checked }))} />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">City (if incorporated)</label>
+                    <input name="taxCityName" className="form-control" placeholder="City name" value={formData.taxCityName} onChange={handleInputChange} />
+                  </div>
                   <div style={{
                     background: 'var(--gray-50)',
                     border: '1px solid var(--gray-200)',
@@ -974,13 +1023,36 @@ export default function CreateDeed() {
               </div>
             </div>
 
-            {/* Step 5: Review & Preview */}
+            {/* Step 5: Review, Notary & Preview */}
             <div className={`form-step ${currentStep === 5 ? 'active' : ''}`}>
               <div className="step-content">
                 <h2 className="step-title" style={{ color: '#111827' }}>Review & Preview</h2>
                 <p className="step-description" style={{ color: '#565F64' }}>
                   Review your information and preview the exact deed format before generating.
                 </p>
+                
+                <div className="form-grid" style={{ maxWidth: '1000px', margin: '0 auto', marginBottom: '2rem' }}>
+                  <div className="form-group">
+                    <label className="form-label">Notary County</label>
+                    <input name="notaryCounty" className="form-control" value={formData.notaryCounty} onChange={handleInputChange} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Notary Date</label>
+                    <input type="date" name="notaryDate" className="form-control" value={formData.notaryDate} onChange={handleInputChange} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Notary Name</label>
+                    <input name="notaryName" className="form-control" value={formData.notaryName} onChange={handleInputChange} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Appeared Before Notary (Name)</label>
+                    <input name="appearedBeforeNotary" className="form-control" value={formData.appearedBeforeNotary} onChange={handleInputChange} />
+                  </div>
+                  <div className="form-group col-span-2">
+                    <label className="form-label">Grantor Signature (typed)</label>
+                    <input name="grantorSignature" className="form-control" value={formData.grantorSignature} onChange={handleInputChange} />
+                  </div>
+                </div>
                 
                 <div style={{ maxWidth: '800px', margin: '0 auto' }}>
                   {/* Summary Section */}
