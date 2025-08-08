@@ -1,0 +1,140 @@
+{
+  "name": "DeedPro - AI-Enhanced Deed Creation",
+  "short_name": "DeedPro",
+  "description": "Professional deed creation with AI assistance for escrow and title professionals",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#667eea",
+  "theme_color": "#4F46E5",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "en-US",
+  "dir": "ltr",
+  "categories": ["business", "productivity", "professional"],
+  "screenshots": [
+    {
+      "src": "/images/screenshot-mobile-1.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "AI-Enhanced Deed Creation"
+    },
+    {
+      "src": "/images/screenshot-mobile-2.png", 
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Property Intelligence"
+    },
+    {
+      "src": "/images/screenshot-desktop-1.png",
+      "sizes": "1920x1080", 
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Team Collaboration Dashboard"
+    }
+  ],
+  "icons": [
+    {
+      "src": "/images/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/images/icon-96x96.png",
+      "sizes": "96x96", 
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/images/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png", 
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/images/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/images/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/images/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/images/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/images/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Create Deed",
+      "short_name": "New Deed",
+      "description": "Start creating a new deed with AI assistance",
+      "url": "/create-deed",
+      "icons": [
+        {
+          "src": "/images/shortcut-deed.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Property Search",
+      "short_name": "Search",
+      "description": "Search your cached properties",
+      "url": "/property-search",
+      "icons": [
+        {
+          "src": "/images/shortcut-search.png", 
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Team Dashboard",
+      "short_name": "Team",
+      "description": "View team collaboration dashboard",
+      "url": "/team",
+      "icons": [
+        {
+          "src": "/images/shortcut-team.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "handle_links": "preferred",
+  "protocol_handlers": [
+    {
+      "protocol": "web+deedpro",
+      "url": "/handle?deed=%s"
+    }
+  ]
+}
