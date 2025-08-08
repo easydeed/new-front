@@ -166,7 +166,7 @@ export default function WizardFlowManager({
       {/* Step Navigation */}
       <div className="relative">
         {/* Progress Line */}
-        <div className="absolute top-8 left-0 right-0 h-0.5 bg-gray-200">
+        <div className="absolute top-12 left-0 right-0 h-0.5 bg-gray-200">
           <div 
             className="h-full transition-all duration-500 ease-out"
             style={{ 
@@ -191,8 +191,8 @@ export default function WizardFlowManager({
                   onClick={() => handleStepClick(step)}
                   disabled={!canNavigate}
                   className={`
-                    relative w-16 h-16 rounded-full border-2 transition-all duration-300 
-                    flex items-center justify-center text-xl font-bold
+                    relative w-20 h-20 rounded-full border-2 transition-all duration-300 
+                    flex items-center justify-center text-2xl font-bold
                     ${status === 'completed' 
                       ? 'border-blue-600 text-white shadow-lg' 
                       : status === 'current'
@@ -210,28 +210,28 @@ export default function WizardFlowManager({
                   }}
                   title={`Step ${step}${!canNavigate ? ' (complete current step first)' : ''}`}
                 >
-                  <span className="text-lg">{getStepIcon(step)}</span>
+                  <span className="text-xl">{getStepIcon(step)}</span>
                   
                   {/* Progress Ring for current step */}
                   {status === 'current' && progress > 0 && progress < 100 && (
                     <div className="absolute inset-0">
-                      <svg className="w-full h-full -rotate-90" viewBox="0 0 64 64">
+                      <svg className="w-full h-full -rotate-90" viewBox="0 0 80 80">
                         <circle
-                          cx="32"
-                          cy="32"
-                          r="30"
+                          cx="40"
+                          cy="40"
+                          r="36"
                           fill="none"
                           stroke="rgba(37, 99, 235, 0.2)"
                           strokeWidth="2"
                         />
                         <circle
-                          cx="32"
-                          cy="32"
-                          r="30"
+                          cx="40"
+                          cy="40"
+                          r="36"
                           fill="none"
                           stroke="rgb(37, 99, 235)"
                           strokeWidth="2"
-                          strokeDasharray={`${progress * 1.88} 188`}
+                          strokeDasharray={`${progress * 2.26} 226`}
                           className="transition-all duration-500"
                         />
                       </svg>
@@ -242,7 +242,7 @@ export default function WizardFlowManager({
                 {/* Step Label */}
                 <div className="mt-3 text-center">
                   <div 
-                    className={`text-sm font-semibold ${
+                    className={`text-base md:text-lg font-semibold ${
                       status === 'current' ? 'text-gray-900' : 'text-gray-600'
                     }`}
                     style={{
@@ -252,7 +252,7 @@ export default function WizardFlowManager({
                     Step {step}
                   </div>
                   {progress > 0 && progress < 100 && (
-                    <div className="text-xs text-gray-500 mt-1">
+                    <div className="text-sm text-gray-500 mt-1">
                       {progress}%
                     </div>
                   )}

@@ -1001,9 +1001,10 @@ export default function CreateDeed() {
               )}
 
               {/* Enhanced Wizard Flow Manager */}
-              {!previewMode && (
+              {/* Progress bar should appear only after deed type is chosen (Step 1 completed) */}
+              {!previewMode && formData.deedType && (
                 <WizardFlowManager
-                  currentStep={currentStep}
+                  currentStep={Math.max(currentStep, 2)}
                   totalSteps={steps.length}
                   onStepChange={setCurrentStep}
                   formData={formData}
