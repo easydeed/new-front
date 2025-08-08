@@ -5,7 +5,20 @@
 This documentation provides comprehensive guides for developers, administrators, and AI agents working with the DeedPro platform.
 
 **Last Updated:** January 2025  
-**Platform Version:** 2.0.0  
+**Platform Version:** 2.0.0 with AI Enhancements  
+
+## 🌟 Recent Major Updates
+
+### AI-Enhanced Deed Generation (January 2025)
+DeedPro now features comprehensive AI assistance that provides a "walking on a cloud" user experience:
+
+- **🤖 Smart Defaults**: AI suggests field values based on user profile and cached data
+- **🏠 Property Intelligence**: Cached property searches with intelligent suggestions
+- **✨ Real-time Assistance**: Contextual tips and validation throughout the deed creation process
+- **👤 Personalized Experience**: Role-based suggestions for different user types
+- **🎯 Progressive Enhancement**: System learns from user patterns for better suggestions
+
+**Key Documentation**: Start with [AI_FEATURES_GUIDE.md](./AI_FEATURES_GUIDE.md) for a complete overview.
 
 ---
 
@@ -28,6 +41,14 @@ This documentation provides comprehensive guides for developers, administrators,
 | [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md) | Complete PostgreSQL schema, relationships, and queries | Database Developers |
 | [API_REFERENCE.md](./API_REFERENCE.md) | Complete API endpoint documentation | API Developers |
 
+### 🤖 AI Enhancement Features
+
+| Document | Purpose | Audience |
+|----------|---------|----------|
+| [AI_FEATURES_GUIDE.md](./AI_FEATURES_GUIDE.md) | **NEW** - Comprehensive guide to AI-enhanced deed generation | All Developers |
+| [AI_USER_GUIDE.md](./AI_USER_GUIDE.md) | **NEW** - User guide for AI features and "walking on a cloud" experience | End Users & Support |
+| [AI_DEPLOYMENT_GUIDE.md](./AI_DEPLOYMENT_GUIDE.md) | **NEW** - Deployment guide for AI features and database schema | DevOps Engineers |
+
 ### 🔧 Development & Integration
 
 | Document | Purpose | Audience |
@@ -36,12 +57,14 @@ This documentation provides comprehensive guides for developers, administrators,
 | [INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md) | Widget integration guide for external clients | Integration Partners |
 | [TEMPLATES_GUIDE.md](./TEMPLATES_GUIDE.md) | Deed template development and customization | Template Developers |
 | [DEED_GENERATION_GUIDE.md](./DEED_GENERATION_GUIDE.md) | Document generation system overview | Backend Developers |
+| [DEED_WIZARD_FLOW.md](./DEED_WIZARD_FLOW.md) | **NEW** - Address-first deed flow documentation | Frontend Developers |
 
 ### 🚀 Deployment & Operations
 
 | Document | Purpose | Audience |
 |----------|---------|----------|
 | [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) | Complete deployment instructions for production | DevOps Engineers |
+| [AI_DEPLOYMENT_GUIDE.md](./AI_DEPLOYMENT_GUIDE.md) | **NEW** - AI features deployment and database schema updates | DevOps Engineers |
 | [VERCEL_FRONTEND_DEPLOYMENT_GUIDE.md](./VERCEL_FRONTEND_DEPLOYMENT_GUIDE.md) | Frontend-specific deployment guide | Frontend Developers |
 | [DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md) | Step-by-step deployment verification checklist | DevOps Engineers |
 | [DEPLOYMENT.md](./DEPLOYMENT.md) | Simplified deployment overview | All |

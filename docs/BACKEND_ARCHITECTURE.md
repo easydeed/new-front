@@ -13,6 +13,8 @@ Complete guide to the DeedPro backend architecture built with FastAPI, PostgreSQ
 - **PDF Generation**: WeasyPrint for document creation
 - **Payments**: Stripe API integration
 - **External APIs**: SoftPro 360 & Qualia integrations
+- **AI Integration**: OpenAI API for intelligent suggestions
+- **Caching**: PostgreSQL-based property and user data caching
 
 ---
 
@@ -1068,5 +1070,121 @@ def get_cached_user_data(user_id: str) -> dict:
 
 ---
 
+## 🤖 AI Enhancement Architecture
+
+### AI System Overview
+
+The AI enhancement system provides intelligent assistance throughout the deed creation process, leveraging user profiles, property caching, and real-time suggestions to create a seamless user experience.
+
+#### Core AI Components
+
+1. **Smart Defaults Engine** (`ai_assist.py`)
+2. **Property Intelligence Cache** (PostgreSQL tables)
+3. **User Profile Management** (Enhanced user data)
+4. **Real-time Validation** (Field-level checking)
+5. **Contextual Assistance** (Dynamic tips and guidance)
+
+### Enhanced Database Schema
+
+#### User Profiles Table
+```sql
+CREATE TABLE user_profiles (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id),
+    company_name VARCHAR(255),
+    business_address TEXT,
+    license_number VARCHAR(50),
+    role VARCHAR(50) DEFAULT 'escrow_officer',
+    default_county VARCHAR(100),
+    notary_commission_exp DATE,
+    preferred_deed_type VARCHAR(50) DEFAULT 'grant_deed',
+    auto_populate_company_info BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### Property Cache Table
+```sql
+CREATE TABLE property_cache (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id),
+    property_address TEXT NOT NULL,
+    legal_description TEXT,
+    apn VARCHAR(50),
+    county VARCHAR(100),
+    city VARCHAR(100),
+    state VARCHAR(10),
+    zip_code VARCHAR(10),
+    lookup_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, property_address)
+);
+```
+
+#### User Preferences Table
+```sql
+CREATE TABLE user_preferences (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id),
+    default_recording_office VARCHAR(255),
+    standard_disclaimers TEXT,
+    enable_ai_suggestions BOOLEAN DEFAULT TRUE,
+    preferred_templates TEXT, -- JSON for template customizations
+    notification_preferences TEXT, -- JSON for notification settings
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### AI Endpoints Architecture
+
+#### Core AI Suggestion Logic
+```python
+def suggest_defaults(user_data, deed_data, recent_properties=None):
+    """Generate intelligent defaults based on user profile and cached data"""
+    suggestions = {}
+    
+    profile = user_data.get('profile', {})
+    cached_property = user_data.get('cached_property')
+    
+    # Company auto-population
+    if profile.get('auto_populate_company_info', True):
+        if not deed_data.get('recordingRequestedBy') and profile.get('company_name'):
+            suggestions['recordingRequestedBy'] = f"{profile['company_name']} - {profile.get('role', 'Escrow Officer').title()}"
+    
+    # Role-based deed type suggestions
+    if not deed_data.get('deedType'):
+        suggestions['deedType'] = profile.get('preferred_deed_type', 'grant_deed')
+    
+    # Property cache integration
+    if cached_property and deed_data.get('propertySearch'):
+        suggestions['legalDescription'] = cached_property.get('legal_description')
+        suggestions['apn'] = cached_property.get('apn')
+        suggestions['county'] = cached_property.get('county')
+    
+    return suggestions
+```
+
+#### Enhanced API Endpoints
+- **`POST /ai/deed-suggestions`**: Real-time AI suggestions
+- **`GET /users/profile/enhanced`**: Enhanced user profile with AI preferences
+- **`POST /users/profile/enhanced`**: Update profile for better AI suggestions
+- **`GET /property/suggestions`**: Property-based intelligent suggestions
+- **`POST /property/cache`**: Cache property data for future use
+
+### Performance Optimizations
+
+#### Caching Strategy
+- **Property Cache**: 90-day retention with automatic cleanup
+- **Profile Cache**: In-memory caching for frequent access
+- **Debounced Requests**: 1-second delay prevents excessive API calls
+- **Database Indexes**: Optimized for property and user lookups
+
+#### Error Handling
+- **Graceful Fallbacks**: Manual entry always available
+- **Retry Logic**: Automatic retry for failed AI requests
+- **Clear Feedback**: User notification when AI services unavailable
+- **Data Validation**: All suggestions validated before application
+
+---
+
 **Last Updated:** January 2025  
-**Backend Version:** FastAPI 1.0.0
+**Backend Version:** FastAPI 1.0.0 with AI Enhancements

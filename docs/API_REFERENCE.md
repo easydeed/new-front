@@ -306,6 +306,245 @@ Content-Type: application/json
 
 ---
 
+## 🤖 AI-Enhanced Features
+
+### AI Deed Suggestions
+Get real-time AI suggestions for deed form fields based on user profile and cached data.
+
+```http
+POST /ai/deed-suggestions
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+  "deedType": "grant_deed",
+  "propertySearch": "123 Main St, Los Angeles, CA",
+  "grantorName": "John Doe",
+  "granteeName": "Jane Smith",
+  "county": "Los Angeles"
+}
+```
+
+**Response:**
+```json
+{
+  "suggestions": {
+    "recordingRequestedBy": "ABC Escrow Services - Escrow Officer",
+    "mailTo": "123 Business St, Los Angeles, CA 90210",
+    "county": "Los Angeles",
+    "deedType": "grant_deed",
+    "ai_tips": [
+      "💡 Start by searching for the property address - I'll auto-populate other fields!",
+      "📋 Don't forget to add your order number for proper tracking!"
+    ]
+  },
+  "validation": {
+    "is_valid": true,
+    "warnings": [],
+    "suggestions": ["Consider adding a legal description for better document accuracy"],
+    "missing_required": []
+  },
+  "profile_available": true,
+  "cached_data_available": false
+}
+```
+
+### Enhanced User Profile Management
+
+#### Get Enhanced User Profile
+```http
+GET /users/profile/enhanced
+Authorization: Bearer <jwt_token>
+```
+
+**Response:**
+```json
+{
+  "profile": {
+    "company_name": "ABC Escrow Services",
+    "business_address": "123 Business St, Los Angeles, CA 90210",
+    "license_number": "ESC123456",
+    "role": "escrow_officer",
+    "default_county": "Los Angeles",
+    "preferred_deed_type": "grant_deed",
+    "auto_populate_company_info": true
+  },
+  "recent_properties": [
+    {
+      "property_address": "456 Oak Ave, Los Angeles, CA 90210",
+      "legal_description": "Lot 5, Block 3, Tract 54321...",
+      "county": "Los Angeles",
+      "city": "Los Angeles"
+    }
+  ],
+  "ai_enabled": true
+}
+```
+
+#### Update Enhanced User Profile
+```http
+POST /users/profile/enhanced
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+  "company_name": "ABC Escrow Services",
+  "business_address": "123 Business St, Los Angeles, CA 90210",
+  "license_number": "ESC123456",
+  "role": "escrow_officer",
+  "default_county": "Los Angeles",
+  "preferred_deed_type": "grant_deed",
+  "auto_populate_company_info": true
+}
+```
+
+**Response:**
+```json
+{
+  "status": "updated",
+  "message": "Profile updated successfully - AI suggestions will improve!"
+}
+```
+
+### Property Intelligence
+
+#### Get Property Suggestions
+```http
+GET /property/suggestions?address=123%20Main%20St
+Authorization: Bearer <jwt_token>
+```
+
+**Response:**
+```json
+{
+  "suggestions": [
+    {
+      "type": "cached_exact",
+      "property": {
+        "property_address": "123 Main St, Los Angeles, CA 90210",
+        "legal_description": "Lot 1, Block 2, Tract 12345...",
+        "apn": "123-456-789",
+        "county": "Los Angeles",
+        "city": "Los Angeles",
+        "state": "CA",
+        "zip_code": "90210"
+      },
+      "confidence": 0.95
+    },
+    {
+      "type": "recent_match",
+      "property": {
+        "property_address": "125 Main St, Los Angeles, CA 90210",
+        "legal_description": "Lot 3, Block 2, Tract 12345...",
+        "county": "Los Angeles",
+        "city": "Los Angeles"
+      },
+      "confidence": 0.8
+    }
+  ],
+  "total": 2
+}
+```
+
+#### Cache Property Data
+```http
+POST /property/cache
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+  "property_address": "123 Main St, Los Angeles, CA 90210",
+  "legal_description": "Lot 1, Block 2, Tract 12345...",
+  "apn": "123-456-789",
+  "county": "Los Angeles",
+  "city": "Los Angeles",
+  "state": "CA",
+  "zip_code": "90210"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "cached",
+  "message": "Property data cached for future suggestions"
+}
+```
+
+### Enhanced Deed Generation
+
+#### AI-Enhanced Deed Preview
+The existing `/generate-deed-preview` endpoint now includes AI enhancements:
+
+```http
+POST /generate-deed-preview
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+  "deed_type": "grant_deed",
+  "data": {
+    "recording_requested_by": "ABC Escrow Services",
+    "grantor": "John Doe",
+    "grantee": "Jane Smith",
+    "property_description": "123 Main St, Los Angeles, CA 90210",
+    "county": "Los Angeles"
+  }
+}
+```
+
+**Enhanced Response:**
+```json
+{
+  "html": "<html>...deed preview HTML...</html>",
+  "deed_type": "grant_deed",
+  "status": "preview_ready",
+  "ai_suggestions": {
+    "recordingRequestedBy": "ABC Escrow Services - Escrow Officer",
+    "mailTo": "123 Business St, Los Angeles, CA 90210",
+    "notaryCounty": "Los Angeles"
+  },
+  "validation": {
+    "is_valid": true,
+    "warnings": [],
+    "suggestions": [],
+    "missing_required": []
+  },
+  "user_profile_applied": true
+}
+```
+
+### AI Assistance for Form Fields
+
+#### Get Field-Specific AI Assistance
+```http
+POST /api/ai/assist
+Content-Type: application/json
+
+{
+  "deed_type": "Grant Deed",
+  "field": "legal_description",
+  "input": "123-456-789"
+}
+```
+
+**Response:**
+```json
+{
+  "suggestion": "Legal Description: The real property situated in the County of Los Angeles, State of California, described as: APN 123-456-789...",
+  "confidence": 0.85
+}
+```
+
+#### Supported Field Types
+- `property_address`: Format addresses for legal documents
+- `legal_description`: Generate proper legal descriptions
+- `grantee_name`: Format names for legal use
+- `grantor_name`: Format grantor names properly
+- `vesting`: Suggest appropriate vesting language
+
+---
+
 ## 👑 Admin Endpoints
 
 **Note:** All admin endpoints require admin role authentication.
