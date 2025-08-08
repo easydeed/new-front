@@ -69,7 +69,7 @@ body {
 
 /* Collapsible Sidebar Styles - flat, light */
 .sidebar {
-  background: var(--primary-dark);
+  background: var(--tertiary);
   position: fixed;
   top: 0;
   left: 0;

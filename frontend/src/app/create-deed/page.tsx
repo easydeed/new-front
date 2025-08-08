@@ -331,7 +331,7 @@ export default function CreateDeed() {
       type: 'Grant Deed',
       icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/><path d="M8,13V15H16V13H8M8,10V12H13V10H8Z"/></svg>,
       description: 'Standard ownership transfer with basic warranties. Most common type.',
-      popular: true
+      popular: false
     },
     {
       type: 'Warranty Deed',
@@ -613,6 +613,69 @@ export default function CreateDeed() {
   const handleAutoSave = () => {
     // Auto-save is handled by the existing useEffect
     setSavedAt(new Date().toLocaleTimeString());
+  };
+
+  // Cancel deed creation and clear all data
+  const handleCancelDeed = () => {
+    const shouldCancel = window.confirm(
+      "Are you sure you want to cancel? All progress will be lost and cannot be recovered."
+    );
+    
+    if (shouldCancel) {
+      // Clear all form data
+      setFormData({
+        deedType: '',
+        propertySearch: '',
+        apn: '',
+        county: '',
+        city: '',
+        state: '',
+        zip: '',
+        fullAddress: '',
+        fips: '',
+        propertyId: '',
+        legalDescription: '',
+        ownerType: '',
+        salesPrice: '',
+        granteeName: '',
+        vesting: '',
+        grantorName: '',
+        deedDate: '',
+        documentaryTax: '',
+        taxComputedFullValue: true,
+        taxComputedLessLiens: false,
+        isUnincorporated: false,
+        taxCityName: '',
+        recordingRequestedBy: '',
+        mailTo: '',
+        orderNo: '',
+        escrowNo: '',
+        notaryCounty: '',
+        notaryDate: '',
+        notaryName: '',
+        appearedBeforeNotary: '',
+        grantorSignature: ''
+      });
+      
+      // Reset wizard state
+      setCurrentStep(1);
+      setShowPreview(false);
+      setPreviewMode(false);
+      setPreviewHtml('');
+      
+      // Clear saved draft
+      try {
+        localStorage.removeItem('deedWizardDraft');
+      } catch (error) {
+        console.error('Failed to clear draft:', error);
+      }
+      
+      // Reset validation and AI state
+      setWizardValidation({ isValid: false, missingFields: [], warnings: [] });
+      setAiSuggestions({});
+      setDebugData(null);
+      setSavedAt(null);
+    }
   };
 
   useEffect(() => {
@@ -946,6 +1009,7 @@ export default function CreateDeed() {
                   formData={formData}
                   validation={wizardValidation}
                   onAutoSave={handleAutoSave}
+                  onCancel={handleCancelDeed}
                   lastSaved={savedAt}
                 />
               )}
@@ -1023,25 +1087,7 @@ export default function CreateDeed() {
               )}
             </div>
 
-          {/* Progress Bar */}
-            <div className="progress-bar">
-            {steps.map((step) => (
-              <div 
-                key={step.id}
-                className={`progress-step ${currentStep >= step.id ? 'active' : ''} ${currentStep > step.id ? 'completed' : ''}`}
-              >
-                <div className="progress-step-circle">
-                    {currentStep > step.id ? 
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/></svg>
-                      : step.icon}
-                </div>
-                <div className="progress-step-label">{step.title}</div>
-              </div>
-            ))}
-          </div>
-            <div style={{ textAlign: 'center', marginTop: '-1rem', marginBottom: '2rem', color: 'var(--gray-700)', fontSize: '1.25rem', fontWeight: 600 }}>
-              Step {currentStep} of {steps.length}
-            </div>
+
 
           {/* Step Content */}
           <div className="form-steps">

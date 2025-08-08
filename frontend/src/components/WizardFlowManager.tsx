@@ -9,6 +9,7 @@ interface WizardFlowManagerProps {
   formData: any;
   validation: any;
   onAutoSave: () => void;
+  onCancel?: () => void;
   lastSaved?: string | null;
 }
 
@@ -19,6 +20,7 @@ export default function WizardFlowManager({
   formData,
   validation,
   onAutoSave,
+  onCancel,
   lastSaved
 }: WizardFlowManagerProps) {
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
@@ -155,6 +157,17 @@ export default function WizardFlowManager({
               {completedSteps.length} of {totalSteps} steps
             </div>
           </div>
+
+          {/* Cancel button */}
+          {onCancel && (
+            <button
+              onClick={onCancel}
+              className="px-3 py-2 text-sm border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+              title="Cancel and start over"
+            >
+              ✕ Cancel
+            </button>
+          )}
         </div>
       </div>
 
