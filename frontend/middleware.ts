@@ -1,0 +1,82 @@
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+
+// Define protected routes that require authentication
+const protectedRoutes = [
+  '/dashboard',
+  '/create-deed',
+  '/past-deeds',
+  '/shared-deeds',
+  '/account-settings',
+  '/admin',
+  '/team',
+  '/voice',
+  '/mobile',
+  '/security',
+  '/api-key-request'
+]
+
+// Define public routes that should redirect if user is already logged in
+const publicRoutes = [
+  '/login',
+  '/register',
+  '/forgot-password'
+]
+
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+  
+  // Check if the current path is protected
+  const isProtectedRoute = protectedRoutes.some(route => 
+    pathname.startsWith(route)
+  )
+  
+  // Check if the current path is public
+  const isPublicRoute = publicRoutes.some(route => 
+    pathname.startsWith(route)
+  )
+  
+  // Get token from the request (check both cookies and headers)
+  const token = request.cookies.get('access_token')?.value || 
+                request.headers.get('authorization')?.replace('Bearer ', '')
+  
+  // Check if user has a valid token (basic check - you might want to verify JWT)
+  const isAuthenticated = !!token && token.length > 20
+  
+  // Handle protected routes
+  if (isProtectedRoute && !isAuthenticated) {
+    // Save the attempted URL for redirect after login
+    const loginUrl = new URL('/login', request.url)
+    loginUrl.searchParams.set('redirect', pathname)
+    
+    console.log(`🔒 Redirecting unauthenticated user from ${pathname} to login`)
+    return NextResponse.redirect(loginUrl)
+  }
+  
+  // Handle public routes when user is already authenticated
+  if (isPublicRoute && isAuthenticated) {
+    // Redirect to dashboard if user is already logged in
+    const dashboardUrl = new URL('/dashboard', request.url)
+    
+    console.log(`✅ Redirecting authenticated user from ${pathname} to dashboard`)
+    return NextResponse.redirect(dashboardUrl)
+  }
+  
+  // Allow access to all other routes
+  return NextResponse.next()
+}
+
+// Configure which paths the middleware should run on
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder files
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.gif$|.*\\.svg$).*)',
+  ],
+}

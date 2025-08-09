@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import React, { useState } from 'react';
+import { AuthManager } from '../utils/auth';
 
 export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false); // Default expanded
@@ -129,6 +130,42 @@ export default function Sidebar() {
               </svg>
               <span>Admin</span>
             </Link>
+          </li>
+          
+          {/* Logout Button */}
+          <li style={{ marginTop: 'auto', paddingTop: '1rem' }}>
+            <button 
+              onClick={() => AuthManager.logout()} 
+              data-tooltip="Logout"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                width: '100%',
+                padding: '0.75rem 1rem',
+                background: 'none',
+                border: 'none',
+                color: 'rgba(255, 255, 255, 0.8)',
+                cursor: 'pointer',
+                textDecoration: 'none',
+                borderRadius: '8px',
+                transition: 'all 0.3s ease',
+                fontSize: '0.95rem',
+                fontWeight: '500'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                e.currentTarget.style.color = '#FFFFFF';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'none';
+                e.currentTarget.style.color = 'rgba(255, 255, 255, 0.8)';
+              }}
+            >
+              <svg style={iconStyle()} viewBox="0 0 24 24" fill="currentColor">
+                <path d="M16,17V14H9V10H16V7L21,12L16,17M14,2A2,2 0 0,1 16,4V6H14V4H5V20H14V18H16V20A2,2 0 0,1 14,22H5A2,2 0 0,1 3,20V4A2,2 0 0,1 5,2H14Z"/>
+              </svg>
+              <span>Logout</span>
+            </button>
           </li>
         </ul>
       </nav>

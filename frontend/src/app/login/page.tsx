@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, LoadingSpinner, Eye } from "../../components/Icons";
 import { ParticlesMinimal } from "../../components/Particles";
+import { AuthManager } from "../../utils/auth";
 
 function LoginContent() {
   const [formData, setFormData] = useState({
@@ -21,6 +22,12 @@ function LoginContent() {
   useEffect(() => {
     setIsVisible(true);
     
+    // Check if user is already authenticated
+    if (AuthManager.isAuthenticated()) {
+      router.push('/dashboard');
+      return;
+    }
+    
     // Check for registration success
     if (searchParams.get('registered') === 'true') {
       const email = searchParams.get('email');
@@ -33,7 +40,7 @@ function LoginContent() {
         setFormData((prev: any) => ({ ...prev, email: decodeURIComponent(email) }));
       }
     }
-  }, [searchParams]);
+  }, [searchParams, router]);
 
   const handleChange = (e: any) => {
     const { name, value } = e.target;
@@ -70,23 +77,21 @@ function LoginContent() {
       if (response.ok) {
         const data = await response.json();
         
-        // Store the JWT token (try different possible field names)
+        // Store the JWT token and user data using AuthManager
         const token = data.access_token || data.token || data.jwt;
         if (token) {
-          localStorage.setItem('access_token', token);
-        }
-        
-        // Store user data if available
-        if (data.user) {
-          localStorage.setItem('user_data', JSON.stringify(data.user));
+          AuthManager.setAuth(token, data.user);
         }
         
         // Show success message briefly before redirect
         setSuccessMessage("Login successful! Redirecting...");
         
+        // Check for redirect parameter
+        const redirectTo = searchParams.get('redirect') || '/dashboard';
+        
         // Small delay to show success message
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push(redirectTo);
         }, 1000);
       } else if (response.status === 401) {
         // Handle 401 Unauthorized specifically
