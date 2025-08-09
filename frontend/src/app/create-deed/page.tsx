@@ -729,7 +729,16 @@ export default function CreateDeed() {
   };
 
   const selectDeedType = (type: string) => {
-    setFormData({ ...formData, deedType: type });
+    // Set deed type and immediately advance to Step 2 (Property Info)
+    setFormData(prev => ({ ...prev, deedType: type }));
+    setCurrentStep(2);
+    // Focus the property search field for a smooth handoff to Step 2
+    setTimeout(() => {
+      try {
+        const el = document.querySelector<HTMLInputElement>('input[name="propertySearch"]');
+        el?.focus();
+      } catch {}
+    }, 0);
   };
 
   // Draft: load on mount
