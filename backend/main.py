@@ -1338,13 +1338,17 @@ def search_property_endpoint(address: str):
 async def generate_deed_preview(deed: DeedData, user_id: int = Depends(get_current_user_id)):
     """Generate HTML preview of deed with AI-enhanced suggestions and validation"""
     try:
+        # Ensure deed.data is properly accessible (fix for coroutine issue)
+        deed_data = deed.data if hasattr(deed, 'data') else {}
+        deed_type = deed.deed_type if hasattr(deed, 'deed_type') else 'grant_deed'
+        
         # Get user profile and cached property data for AI suggestions
         profile = get_user_profile(user_id)
         cached_property = None
         
         # Look for cached property data if address is provided
-        if deed.data.get('propertySearch'):
-            cached_property = get_cached_property(user_id, deed.data['propertySearch'])
+        if deed_data.get('propertySearch'):
+            cached_property = get_cached_property(user_id, deed_data['propertySearch'])
         
         # Prepare user data for AI suggestions
         user_data = {
@@ -1353,14 +1357,14 @@ async def generate_deed_preview(deed: DeedData, user_id: int = Depends(get_curre
         }
         
         # Generate AI suggestions and validation
-        ai_suggestions = suggest_defaults(user_data, deed.data)
-        validation = validate_deed_data(deed.data, deed.deed_type)
+        ai_suggestions = suggest_defaults(user_data, deed_data)
+        validation = validate_deed_data(deed_data, deed_type)
         
         # Merge AI suggestions with existing data (don't override user input)
-        enhanced_data = {**ai_suggestions, **deed.data}  # User data takes precedence
+        enhanced_data = {**ai_suggestions, **deed_data}  # User data takes precedence
         
         # Get the template for the specified deed type
-        template = env.get_template(f"{deed.deed_type}.html")
+        template = env.get_template(f"{deed_type}.html")
         
         # Render HTML with enhanced data
         html_content = template.render(enhanced_data)
@@ -1368,7 +1372,7 @@ async def generate_deed_preview(deed: DeedData, user_id: int = Depends(get_curre
         # Return HTML with AI suggestions and validation
         return {
             "html": html_content,
-            "deed_type": deed.deed_type,
+            "deed_type": deed_type,
             "status": "preview_ready",
             "ai_suggestions": ai_suggestions,
             "validation": validation,
@@ -1447,6 +1451,11 @@ async def get_pricing():
             ]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch pricing: {str(e)}")
+
+@app.get("/pricing/plans")
+async def get_pricing_plans():
+    """Get all pricing plans - alternative endpoint for consistency"""
+    return await get_pricing()
 
 @app.post("/admin/create-plan")
 async def create_plan(plan: NewPlan, admin: str = Depends(get_current_admin)):

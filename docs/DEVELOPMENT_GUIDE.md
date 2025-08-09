@@ -12,22 +12,35 @@
 
 ## 🏗️ **Development Environment Setup**
 
-### **Quick Start Commands**
+### ⚠️ **PRODUCTION-ONLY TESTING POLICY**
+
+**DeedPro uses PRODUCTION-ONLY testing and development:**
+- ✅ All testing is performed directly on production environment (Render)
+- ❌ No local development environment is maintained
+- ✅ All database operations, API testing, and feature development happens on production
+- ✅ Backend API: `https://deedpro-main-api.onrender.com`
+- ✅ Frontend: Deployed on Vercel
+
+### **Production Development Workflow**
+
 ```bash
-# Clone monorepo
+# Clone monorepo for code changes only
 git clone https://github.com/easydeed/new-front
 cd new-front
 
-# Frontend setup
-cd frontend && npm install && npm run dev &
+# All testing uses production endpoints
+curl https://deedpro-main-api.onrender.com/health
 
-# Backend setup (new terminal)
-cd backend && pip install -r requirements.txt && python main.py &
-
-# Full stack running on:
-# Frontend: http://localhost:3000
-# Backend:  http://localhost:8000
+# Test user credentials for production testing
+Email: test@deedpro-check.com
+Password: TestPassword123!
 ```
+
+### **Production Environment Access**
+- **Backend**: Render.com deployment
+- **Database**: Render PostgreSQL instance  
+- **Frontend**: Vercel deployment
+- **All Testing**: Direct on production systems
 
 ### **Directory Structure for Development**
 ```
