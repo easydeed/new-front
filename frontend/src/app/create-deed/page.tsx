@@ -1615,24 +1615,30 @@ export default function CreateDeed() {
                   />
                   
                   {/* Ready to Generate Section */}
-                  <div style={{
-                    padding: '2rem',
-                    background: '#FFFFFF',
-                    border: '1px solid var(--secondary-light)',
-                    borderRadius: '12px',
-                    color: 'var(--text)',
-                    textAlign: 'center'
-                  }}>
-                    <h4 style={{ margin: '0 0 1rem 0', fontSize: '1.5rem' }}>
-                      {showPreview ? '🎉 Ready to Generate' : '📋 Complete Your Review'}
-                    </h4>
-                    <p style={{ margin: 0, opacity: 0.9, fontSize: '1.125rem', lineHeight: '1.6' }}>
-                      {showPreview 
-                        ? 'Your deed preview looks perfect! Generate the final PDF document.'
-                        : 'Preview your deed first to ensure everything looks correct, then generate the final document.'
-                      }
-                    </p>
-                  </div>
+                  {!showPreview && (
+                    <div style={{
+                      padding: '2rem',
+                      background: '#FFFFFF',
+                      border: '1px solid var(--secondary-light)',
+                      borderRadius: '12px',
+                      color: 'var(--text)',
+                      textAlign: 'center'
+                    }}>
+                      <h4 style={{ margin: '0 0 1rem 0', fontSize: '1.5rem' }}>
+                        📋 Complete Your Review
+                      </h4>
+                      <p style={{ margin: '0 0 1rem 0', opacity: 0.9, fontSize: '1.125rem', lineHeight: '1.6' }}>
+                        Preview your deed first to ensure everything looks correct, then generate the final document.
+                      </p>
+                      <button
+                        onClick={handleEnterPreviewMode}
+                        className="wizard-btn wizard-btn-primary"
+                        style={{ display: 'inline-flex' }}
+                      >
+                        ✨ Preview Your Deed
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1710,27 +1716,27 @@ export default function CreateDeed() {
                   </div>
                 )}
                 
-                <button
-                  className="wizard-btn wizard-btn-primary"
-                  onClick={handleGenerateFinalDeed}
-                  disabled={isGenerating || !!planLimitsError || !showPreview}
-                  style={{ 
-                    opacity: isGenerating || planLimitsError || !showPreview ? 0.6 : 1,
-                    cursor: isGenerating || planLimitsError || !showPreview ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  {isGenerating ? '⏳ Generating PDF...' : showPreview ? '📄 Generate & Download PDF' : '👁️ Preview First'}
-                </button>
-                
-                {!showPreview && !isLoadingPreview && (
-                  <div style={{
-                    fontSize: '12px',
-                    color: '#565F64',
-                    textAlign: 'center',
-                    marginTop: '8px'
-                  }}>
-                    💡 Preview your deed first to ensure formatting is correct
-                  </div>
+                {/* Single primary action for Step 5 */}
+                {showPreview ? (
+                  <button
+                    className="wizard-btn wizard-btn-primary"
+                    onClick={handleGenerateFinalDeed}
+                    disabled={isGenerating || !!planLimitsError}
+                    style={{ 
+                      opacity: isGenerating || planLimitsError ? 0.6 : 1,
+                      cursor: isGenerating || planLimitsError ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    {isGenerating ? '⏳ Generating PDF...' : '📄 Generate & Download PDF'}
+                  </button>
+                ) : (
+                  <button
+                    className="wizard-btn wizard-btn-primary"
+                    onClick={handleEnterPreviewMode}
+                    disabled={isLoadingPreview}
+                  >
+                    {isLoadingPreview ? '⏳ Preparing Preview...' : '✨ Preview Your Deed'}
+                  </button>
                 )}
               </div>
             )}
@@ -1739,18 +1745,7 @@ export default function CreateDeed() {
       </div>
 
       {/* Quick Preview Action - Floating when ready */}
-      {!previewMode && currentStep === 5 && wizardValidation.isValid && !showPreview && (
-        <button
-          onClick={handleEnterPreviewMode}
-          className="fixed bottom-6 right-6 bg-green-600 text-white px-6 py-4 rounded-full shadow-2xl font-semibold text-lg hover:bg-green-700 transition-all duration-300 hover:scale-110 z-50"
-          style={{
-            background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-            boxShadow: '0 10px 25px rgba(16, 185, 129, 0.4)'
-          }}
-        >
-          ✨ Preview Your Deed
-        </button>
-      )}
+      {/* Remove floating quick-preview to avoid redundancy */}
       
       {/* Debug component for development */}
       {debugData && (
