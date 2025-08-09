@@ -292,6 +292,14 @@ export default function CreateDeed() {
   const [showAITips, setShowAITips] = useState(true);
   const [propertySuggestions, setPropertySuggestions] = useState<any[]>([]);
 
+  // Helpers for Review section
+  const formatCurrency = (val?: string) => {
+    if (!val) return '—';
+    const n = parseFloat(val);
+    return isNaN(n) ? val : n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+  };
+  const display = (val?: string) => (val && String(val).trim().length ? val : '—');
+
   const steps = [
     { 
       id: 1, 
@@ -1498,7 +1506,7 @@ export default function CreateDeed() {
               </div>
             </div>
 
-            {/* Step 5: Review, Notary & Preview */}
+            {/* Step 5: Review & Preview (inputs removed) */}
             <div className={`form-step ${currentStep === 5 ? 'active' : ''}`}>
               <div className="step-content">
                 <h2 className="step-title" style={{ color: '#111827' }}>Review & Preview</h2>
@@ -1506,47 +1514,92 @@ export default function CreateDeed() {
                   Review your information and preview the exact deed format before generating.
                 </p>
                 
-                <div className="form-grid" style={{ maxWidth: '1000px', margin: '0 auto', marginBottom: '2rem' }}>
-                  <div className="form-group">
-                    <label className="form-label">Notary County</label>
-                    <input name="notaryCounty" className="form-control" value={formData.notaryCounty} onChange={handleInputChange} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Notary Date</label>
-                    <input type="date" name="notaryDate" className="form-control" value={formData.notaryDate} onChange={handleInputChange} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Notary Name</label>
-                    <input name="notaryName" className="form-control" value={formData.notaryName} onChange={handleInputChange} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Appeared Before Notary (Name)</label>
-                    <input name="appearedBeforeNotary" className="form-control" value={formData.appearedBeforeNotary} onChange={handleInputChange} />
-                  </div>
-                  <div className="form-group col-span-2">
-                    <label className="form-label">Grantor Signature (typed)</label>
-                    <input name="grantorSignature" className="form-control" value={formData.grantorSignature} onChange={handleInputChange} />
-                  </div>
-                </div>
-                
-                <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-                  {/* Summary Section */}
-                  <div className="contact-wrapper" style={{
+                {/* Beautiful, wide review summary */}
+                <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+                  {/* Header card */}
+                  <div style={{
                     background: '#FFFFFF',
-                    border: '1px solid #C8CCCE',
-                    borderRadius: '12px',
-                    padding: '2.5rem',
-                    marginBottom: '2rem'
+                    border: '1px solid var(--secondary-light)',
+                    borderRadius: '14px',
+                    padding: '1.5rem 2rem',
+                    marginBottom: '1.5rem',
                   }}>
-                    <h3 style={{ color: '#111827', marginBottom: '1.5rem', fontSize: '1.25rem' }}>📋 Summary</h3>
-                    <div style={{ display: 'grid', gap: '1.5rem', fontSize: '1.125rem' }}>
-                      <div><strong style={{ color: '#111827' }}>Deed Type:</strong> <span style={{ color: '#565F64' }}>{formData.deedType || 'Not selected'}</span></div>
-                      <div><strong style={{ color: '#111827' }}>Property:</strong> <span style={{ color: '#565F64' }}>{formData.propertySearch || 'Not entered'}</span></div>
-                      <div><strong style={{ color: '#111827' }}>APN:</strong> <span style={{ color: '#565F64' }}>{formData.apn || 'Not entered'}</span></div>
-                      <div><strong style={{ color: '#111827' }}>County:</strong> <span style={{ color: '#565F64' }}>{formData.county || 'Not selected'}</span></div>
-                      <div><strong style={{ color: '#111827' }}>Grantee:</strong> <span style={{ color: '#565F64' }}>{formData.granteeName || 'Not entered'}</span></div>
-                      <div><strong style={{ color: '#111827' }}>Consideration:</strong> <span style={{ color: '#565F64' }}>{formData.salesPrice || 'Not entered'}</span></div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div style={{ width: 10, height: 10, borderRadius: 999, background: 'var(--accent)' }} />
+                        <h3 style={{ margin: 0, color: 'var(--text)', fontSize: '1.25rem', fontWeight: 700 }}>Review Your Information</h3>
+                      </div>
+                      <div style={{ color: 'var(--gray-600)', fontSize: '0.95rem' }}>
+                        Ensure everything looks correct before previewing the deed
+                      </div>
                     </div>
+                  </div>
+
+                  {/* Sections grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                    {/* Property Section */}
+                    <div style={{ background: '#FFFFFF', border: '1px solid var(--secondary-light)', borderRadius: 12, padding: '1.25rem 1.5rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                        <h4 style={{ margin: 0, color: 'var(--text)', fontWeight: 700 }}>🏠 Property</h4>
+                        <button onClick={() => setCurrentStep(2)} className="btn-secondary" style={{ padding: '0.4rem 0.9rem' }}>Edit</button>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem 1rem', color: 'var(--gray-700)' }}>
+                        <div><strong>Address:</strong> {display(formData.propertySearch)}</div>
+                        <div><strong>APN:</strong> {display(formData.apn)}</div>
+                        <div><strong>County:</strong> {display(formData.county)}</div>
+                        <div><strong>City/State/ZIP:</strong> {display([formData.city, formData.state, formData.zip].filter(Boolean).join(', '))}</div>
+                        <div className="col-span-2" style={{ gridColumn: 'span 2' }}><strong>Legal Description:</strong> {display(formData.legalDescription)}</div>
+                      </div>
+                    </div>
+
+                    {/* Parties & Recording */}
+                    <div style={{ background: '#FFFFFF', border: '1px solid var(--secondary-light)', borderRadius: 12, padding: '1.25rem 1.5rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                        <h4 style={{ margin: 0, color: 'var(--text)', fontWeight: 700 }}>👥 Parties & Recording</h4>
+                        <button onClick={() => setCurrentStep(3)} className="btn-secondary" style={{ padding: '0.4rem 0.9rem' }}>Edit</button>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem 1rem', color: 'var(--gray-700)' }}>
+                        <div><strong>Grantor:</strong> {display(formData.grantorName)}</div>
+                        <div><strong>Grantee:</strong> {display(formData.granteeName)}</div>
+                        <div><strong>Vesting:</strong> {display(formData.vesting)}</div>
+                        <div><strong>Deed Date:</strong> {display(formData.deedDate)}</div>
+                        <div className="col-span-2" style={{ gridColumn: 'span 2' }}><strong>Recording Requested By:</strong> {display(formData.recordingRequestedBy)}</div>
+                        <div className="col-span-2" style={{ gridColumn: 'span 2' }}><strong>Mail To:</strong> {display(formData.mailTo)}</div>
+                        <div><strong>Order No.:</strong> {display(formData.orderNo)}</div>
+                        <div><strong>Escrow No.:</strong> {display(formData.escrowNo)}</div>
+                      </div>
+                    </div>
+
+                    {/* Consideration & Tax */}
+                    <div style={{ background: '#FFFFFF', border: '1px solid var(--secondary-light)', borderRadius: 12, padding: '1.25rem 1.5rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                        <h4 style={{ margin: 0, color: 'var(--text)', fontWeight: 700 }}>🧾 Consideration & Tax</h4>
+                        <button onClick={() => setCurrentStep(4)} className="btn-secondary" style={{ padding: '0.4rem 0.9rem' }}>Edit</button>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem 1rem', color: 'var(--gray-700)' }}>
+                        <div><strong>Sales Price:</strong> {formatCurrency(formData.salesPrice)}</div>
+                        <div><strong>Transfer Tax:</strong> {formatCurrency(formData.documentaryTax)}</div>
+                        <div><strong>Tax Basis:</strong> {formData.taxComputedFullValue ? '✓ Full Value' : formData.taxComputedLessLiens ? '✓ Less Liens' : '—'}</div>
+                        <div><strong>Unincorporated:</strong> {formData.isUnincorporated ? '✓ Yes' : '—'}</div>
+                        <div className="col-span-2" style={{ gridColumn: 'span 2' }}><strong>City (if incorporated):</strong> {display(formData.taxCityName)}</div>
+                      </div>
+                    </div>
+
+                    {/* Notary (only if provided earlier) */}
+                    {(formData.notaryCounty || formData.notaryDate || formData.notaryName || formData.appearedBeforeNotary || formData.grantorSignature) && (
+                      <div style={{ background: '#FFFFFF', border: '1px solid var(--secondary-light)', borderRadius: 12, padding: '1.25rem 1.5rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                          <h4 style={{ margin: 0, color: 'var(--text)', fontWeight: 700 }}>🖋️ Notary</h4>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem 1rem', color: 'var(--gray-700)' }}>
+                          <div><strong>County:</strong> {display(formData.notaryCounty)}</div>
+                          <div><strong>Date:</strong> {display(formData.notaryDate)}</div>
+                          <div><strong>Notary Name:</strong> {display(formData.notaryName)}</div>
+                          <div><strong>Appeared Before:</strong> {display(formData.appearedBeforeNotary)}</div>
+                          <div className="col-span-2" style={{ gridColumn: 'span 2' }}><strong>Grantor Signature:</strong> {display(formData.grantorSignature)}</div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Enhanced Preview Panel */}
