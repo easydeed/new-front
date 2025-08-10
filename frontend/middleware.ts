@@ -1,6 +1,26 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+// Helper function to validate if token is from our DeedPro API
+function isDeedProToken(token: string): boolean {
+  try {
+    // Decode the JWT payload (basic validation)
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    
+    // Check if it has the structure of our DeedPro tokens
+    // Our tokens have 'sub' as user ID (number as string) and 'email' field
+    return (
+      payload.sub &&
+      payload.email &&
+      payload.exp &&
+      !payload.username && // Exclude SSO tokens
+      !payload.ownerId    // Exclude Vercel tokens
+    )
+  } catch {
+    return false
+  }
+}
+
 // Define protected routes that require authentication
 const protectedRoutes = [
   '/dashboard',
@@ -40,8 +60,8 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('access_token')?.value || 
                 request.headers.get('authorization')?.replace('Bearer ', '')
   
-  // Check if user has a valid token (basic check - you might want to verify JWT)
-  const isAuthenticated = !!token && token.length > 20
+  // Check if user has a valid DeedPro token (must be from our API)
+  const isAuthenticated = !!token && token.length > 20 && isDeedProToken(token)
   
   // Handle protected routes
   if (isProtectedRoute && !isAuthenticated) {
