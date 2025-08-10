@@ -253,15 +253,17 @@ docs/DEVELOPMENT_GUIDE.md               # Updated with production-only policy
 ### **Render Backend Environment**
 ```bash
 # OpenAI Integration
-OPENAI_API_KEY=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
+OPENAI_API_KEY=sk-proj-[REDACTED-FOR-SECURITY]
 
-# Stripe Integration
-STRIPE_SECRET_KEY=sk_test_51RnOGWGbFaaG6u2MwDcYL8F8XSQZDeS2qn2sTmhLvm5osSJGDdb3zRO4kr6uAP6nBb9RHMGfwTkaNkx1IF6pGfhE00iCJeMIF2
-STRIPE_PUBLISHABLE_KEY=pk_test_51RnOGWGbFaaG6u2M8eNvlkz052ORvtPRb2CqlTSYWfaKCm1qfrJPwFDXyz3nRAm04ozmOHHGAYWYx26BYfFkjntr00Xwxp7jkR
+# Stripe Integration  
+STRIPE_SECRET_KEY=sk_test_[REDACTED-FOR-SECURITY]
+STRIPE_PUBLISHABLE_KEY=pk_test_[REDACTED-FOR-SECURITY]
 
 # Database (existing)
-DATABASE_URL=postgresql://deedpro_user:4MkRMdYMHnnoUwvD03rI3kVfjMLwV6j3@dpg-d208q5umcj7s73as68g0-a.ohio-postgres.render.com/deedpro
+DATABASE_URL=postgresql://[REDACTED-FOR-SECURITY]
 ```
+
+**Note**: Actual API keys are configured in Render environment variables and not stored in code.
 
 ## 👥 **Test Accounts & Credentials**
 
