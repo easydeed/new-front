@@ -53,7 +53,16 @@ else:
     print("Warning: No database connection URL found")
 
 # Jinja2 environment for deed templates
-env = Environment(loader=FileSystemLoader('../templates'))
+# Use absolute path that works both locally and on Render
+import os
+template_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'templates')
+if not os.path.exists(template_dir):
+    # Fallback for different deployment structures
+    template_dir = os.path.join(os.getcwd(), 'templates')
+    if not os.path.exists(template_dir):
+        template_dir = '../templates'  # Original fallback
+
+env = Environment(loader=FileSystemLoader(template_dir))
 
 # Pydantic models
 class UserCreate(BaseModel):
@@ -1338,33 +1347,67 @@ def search_property_endpoint(address: str):
 async def generate_deed_preview(deed: DeedData, user_id: int = Depends(get_current_user_id)):
     """Generate HTML preview of deed with AI-enhanced suggestions and validation"""
     try:
-        # Ensure deed.data is properly accessible (fix for coroutine issue)
-        deed_data = deed.data if hasattr(deed, 'data') else {}
-        deed_type = deed.deed_type if hasattr(deed, 'deed_type') else 'grant_deed'
+        # Debug: Check the incoming data structure
+        print(f"DEBUG: Received deed object type: {type(deed)}")
+        print(f"DEBUG: deed.data type: {type(deed.data)}")
+        print(f"DEBUG: deed.deed_type: {deed.deed_type}")
         
-        # Get user profile and cached property data for AI suggestions
-        profile = get_user_profile(user_id)
+        # Ensure we have proper data structure
+        if not isinstance(deed.data, dict):
+            raise ValueError(f"Invalid deed.data type: {type(deed.data)}, expected dict")
+        
+        deed_data = deed.data
+        deed_type = deed.deed_type
+        
+        # Initialize AI data to prevent issues
+        ai_suggestions = {}
+        validation = {'is_valid': True, 'warnings': [], 'suggestions': []}
+        profile = None
         cached_property = None
         
-        # Look for cached property data if address is provided
-        if deed_data.get('propertySearch'):
-            cached_property = get_cached_property(user_id, deed_data['propertySearch'])
+        try:
+            # Get user profile (wrapped in try-catch to prevent blocking the main flow)
+            profile = get_user_profile(user_id)
+        except Exception as profile_error:
+            print(f"DEBUG: Profile fetch failed: {profile_error}")
         
-        # Prepare user data for AI suggestions
-        user_data = {
-            'profile': profile,
-            'cached_property': cached_property
-        }
+        try:
+            # Look for cached property data if address is provided
+            if deed_data.get('propertySearch'):
+                cached_property = get_cached_property(user_id, deed_data['propertySearch'])
+        except Exception as cache_error:
+            print(f"DEBUG: Property cache fetch failed: {cache_error}")
         
-        # Generate AI suggestions and validation
-        ai_suggestions = suggest_defaults(user_data, deed_data)
-        validation = validate_deed_data(deed_data, deed_type)
+        try:
+            # Prepare user data for AI suggestions
+            user_data = {
+                'profile': profile,
+                'cached_property': cached_property
+            }
+            
+            # Generate AI suggestions and validation (with fallbacks)
+            ai_suggestions = suggest_defaults(user_data, deed_data)
+            validation = validate_deed_data(deed_data, deed_type)
+        except Exception as ai_error:
+            print(f"DEBUG: AI processing failed: {ai_error}")
+            # Continue without AI suggestions
         
         # Merge AI suggestions with existing data (don't override user input)
         enhanced_data = {**ai_suggestions, **deed_data}  # User data takes precedence
         
         # Get the template for the specified deed type
-        template = env.get_template(f"{deed_type}.html")
+        try:
+            template = env.get_template(f"{deed_type}.html")
+        except Exception as template_error:
+            print(f"DEBUG: Template loading failed: {template_error}")
+            # Try to list available templates
+            try:
+                import os
+                available_templates = os.listdir(template_dir)
+                print(f"DEBUG: Available templates: {available_templates}")
+            except:
+                pass
+            raise HTTPException(status_code=500, detail=f"Template not found: {deed_type}.html")
         
         # Render HTML with enhanced data
         html_content = template.render(enhanced_data)
@@ -1380,6 +1423,9 @@ async def generate_deed_preview(deed: DeedData, user_id: int = Depends(get_curre
         }
         
     except Exception as e:
+        print(f"DEBUG: Full error details: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Deed preview failed: {str(e)}")
 
 # Optional: Full deed generation endpoint with PDF
