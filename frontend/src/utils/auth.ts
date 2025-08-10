@@ -31,7 +31,7 @@ export class AuthManager {
   }
 
   /**
-   * Get authentication token
+   * Get stored authentication token
    */
   static getToken(): string | null {
     if (typeof window !== 'undefined') {
@@ -46,65 +46,57 @@ export class AuthManager {
   static getUser(): User | null {
     if (typeof window !== 'undefined') {
       const userData = localStorage.getItem(this.USER_KEY);
-      return userData ? JSON.parse(userData) : null;
+      if (userData) {
+        try {
+          return JSON.parse(userData);
+        } catch {
+          return null;
+        }
+      }
     }
     return null;
   }
 
   /**
-   * Check if user is authenticated
+   * Check if user is currently authenticated
    */
   static isAuthenticated(): boolean {
-    const token = this.getToken();
-    if (!token) return false;
+    if (typeof window !== 'undefined') {
+      const token = this.getToken();
+      if (!token) return false;
 
-    try {
-      // Basic JWT validation - check if it's not expired
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const currentTime = Date.now() / 1000;
-      
-      if (payload.exp && payload.exp < currentTime) {
-        // Token is expired, clear it
-        this.clearAuth();
+      try {
+        // Decode JWT to check expiration
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const currentTime = Date.now() / 1000;
+        
+        if (payload.exp < currentTime) {
+          // Token expired, clean up
+          this.logout();
+          return false;
+        }
+        return true;
+      } catch {
+        // Invalid token, clean up
+        this.logout();
         return false;
       }
-      
-      return true;
-    } catch (error) {
-      // Invalid token format
-      this.clearAuth();
-      return false;
     }
+    return false;
   }
 
   /**
-   * Clear all authentication data
+   * Logout user and clear all auth data
    */
-  static clearAuth(): void {
+  static logout(redirectPath?: string): void {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(this.TOKEN_KEY);
       localStorage.removeItem(this.USER_KEY);
       
       // Clear cookie
-      document.cookie = 'access_token=; path=/; max-age=0; secure; samesite=strict';
-    }
-  }
-
-  /**
-   * Get authorization header for API requests
-   */
-  static getAuthHeader(): Record<string, string> {
-    const token = this.getToken();
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
-  }
-
-  /**
-   * Logout user and redirect to login
-   */
-  static logout(redirectPath?: string): void {
-    this.clearAuth();
-    
-    if (typeof window !== 'undefined') {
+      document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      
+      // Redirect to login
       const loginUrl = redirectPath 
         ? `/login?redirect=${encodeURIComponent(redirectPath)}`
         : '/login';
@@ -113,7 +105,7 @@ export class AuthManager {
   }
 
   /**
-   * Check if user has admin role
+   * Check if user is an admin
    */
   static isAdmin(): boolean {
     const user = this.getUser();
@@ -121,7 +113,7 @@ export class AuthManager {
   }
 
   /**
-   * Check if user has specific plan
+   * Check if user has a specific plan
    */
   static hasPlan(planName: string): boolean {
     const user = this.getUser();
@@ -135,74 +127,28 @@ export class AuthManager {
     const user = this.getUser();
     return user?.plan === 'professional' || user?.plan === 'enterprise';
   }
+
+  /**
+   * Get user's plan name
+   */
+  static getUserPlan(): string | null {
+    const user = this.getUser();
+    return user?.plan || null;
+  }
+
+  /**
+   * Get user's role
+   */
+  static getUserRole(): string | null {
+    const user = this.getUser();
+    return user?.role || null;
+  }
+
+  /**
+   * Get user's ID
+   */
+  static getUserId(): number | null {
+    const user = this.getUser();
+    return user?.id || null;
+  }
 }
-
-/**
- * Higher-order component for protecting routes
- */
-export function withAuth<T extends object>(
-  WrappedComponent: React.ComponentType<T>
-): React.ComponentType<T> {
-  return function AuthenticatedComponent(props: T) {
-    React.useEffect(() => {
-      if (!AuthManager.isAuthenticated()) {
-        AuthManager.logout(window.location.pathname);
-      }
-    }, []);
-
-    if (!AuthManager.isAuthenticated()) {
-      return <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Checking authentication...</p>
-        </div>
-      </div>;
-    }
-
-    return <WrappedComponent {...props} />;
-  };
-}
-
-/**
- * React hook for authentication state
- */
-export function useAuth() {
-  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
-  const [user, setUser] = React.useState<User | null>(null);
-  const [loading, setLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    const checkAuth = () => {
-      const authenticated = AuthManager.isAuthenticated();
-      const userData = AuthManager.getUser();
-      
-      setIsAuthenticated(authenticated);
-      setUser(userData);
-      setLoading(false);
-    };
-
-    checkAuth();
-    
-    // Listen for storage changes (logout in another tab)
-    const handleStorageChange = () => {
-      checkAuth();
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
-
-  return {
-    isAuthenticated,
-    user,
-    loading,
-    login: AuthManager.setAuth,
-    logout: AuthManager.logout,
-    isAdmin: AuthManager.isAdmin,
-    hasPlan: AuthManager.hasPlan,
-    hasPremiumAccess: AuthManager.hasPremiumAccess
-  };
-}
-
-// For Next.js imports
-import React from 'react';
