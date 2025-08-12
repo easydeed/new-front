@@ -376,7 +376,7 @@ export default function AdminDashboard() {
   // Pricing API Functions
   const fetchPricing = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pricing`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com'}/pricing`);
       const data = await response.json();
       setPricing(data);
     } catch (error) {
@@ -395,7 +395,7 @@ export default function AdminDashboard() {
     setPricingMessage('');
     
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/create-plan`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com'}/admin/create-plan`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -428,7 +428,7 @@ export default function AdminDashboard() {
     setPricingMessage('');
     
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/sync-pricing`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com'}/admin/sync-pricing`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -455,7 +455,7 @@ export default function AdminDashboard() {
     setPricingMessage('');
     
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/update-price`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com'}/admin/update-price`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,

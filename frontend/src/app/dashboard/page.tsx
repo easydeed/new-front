@@ -23,7 +23,7 @@ export default function Dashboard() {
         }
 
         // Verify token with backend
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-api.onrender.com'}/users/profile`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com'}/users/profile`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         

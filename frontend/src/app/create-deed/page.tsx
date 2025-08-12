@@ -391,7 +391,7 @@ export default function CreateDeed() {
       const token = localStorage.getItem('access_token');
       if (!token) return;
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/users/profile`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com'}/users/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -438,7 +438,7 @@ export default function CreateDeed() {
     try {
       // Simulate deed creation API call
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/deeds`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com'}/deeds`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -516,7 +516,7 @@ export default function CreateDeed() {
         validation: validation
       });
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/generate-deed-preview`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com'}/generate-deed-preview`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -576,7 +576,7 @@ export default function CreateDeed() {
     setAddressError('');
     setIsSearchingAddress(true);
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com';
       const response = await fetch(`${baseUrl}/property/search?address=${encodeURIComponent(formData.propertySearch)}`);
       if (!response.ok) {
         throw new Error('Search failed');
@@ -696,7 +696,7 @@ export default function CreateDeed() {
           return;
         }
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/check-widget-access`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com'}/check-widget-access`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -802,7 +802,7 @@ export default function CreateDeed() {
         const token = localStorage.getItem('access_token');
         if (!token) return;
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/users/profile/enhanced`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com'}/users/profile/enhanced`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -843,7 +843,7 @@ export default function CreateDeed() {
       const token = localStorage.getItem('access_token');
       if (!token) return;
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/ai/deed-suggestions`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com'}/ai/deed-suggestions`, {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -876,7 +876,7 @@ export default function CreateDeed() {
       const token = localStorage.getItem('access_token');
       if (!token) return;
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/property/suggestions?address=${encodeURIComponent(address)}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com'}/property/suggestions?address=${encodeURIComponent(address)}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -895,7 +895,7 @@ export default function CreateDeed() {
       const token = localStorage.getItem('access_token');
       if (!token || !formData.propertySearch) return;
 
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/property/cache`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com'}/property/cache`, {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,

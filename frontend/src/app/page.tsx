@@ -22,7 +22,7 @@ export default function Home() {
   useEffect(() => {
     const fetchPricing = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pricing`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com'}/pricing`);
         if (response.ok) {
           const data = await response.json();
           setPricing(data);
