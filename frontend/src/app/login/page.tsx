@@ -252,26 +252,19 @@ function LoginContent() {
             </div>
           </div>
         </div>
-        {/* Optional test accounts (styled to match palette) */}
+        {/* Demo Account (for testing purposes) */}
         <div className="mt-8 rounded-2xl p-6 border border-dark-slate/10 shadow-elevated bg-surface">
-          <h3 className="font-semibold text-dark-slate mb-4">Test Accounts Available</h3>
+          <h3 className="font-semibold text-dark-slate mb-4">Demo Account</h3>
           <div className="space-y-3 text-sm">
-            {[
-              { title: "Free Plan User", email: "test@escrow.com", password: "testpass123" },
-              { title: "Professional Plan User", email: "pro@title.com", password: "propass123" },
-              { title: "Enterprise Admin User", email: "admin@deedpro.com", password: "adminpass123" }
-            ].map((account, index) => (
-              <div 
-                key={index}
-                className="rounded-xl p-4 border border-dark-slate/10 hover:border-gentle-indigo/40 transition-all duration-300 hover:scale-[1.02] group cursor-pointer"
-                onClick={() => setFormData({ email: account.email, password: account.password })}
-              >
-                <div className="font-medium text-gentle-indigo group-hover:text-deep-teal transition-colors">{account.title}</div>
-                <div className="text-dark-slate/70 text-xs mt-1">
-                  {account.email} • {account.password}
-                </div>
+            <div 
+              className="rounded-xl p-4 border border-dark-slate/10 hover:border-gentle-indigo/40 transition-all duration-300 hover:scale-[1.02] group cursor-pointer"
+              onClick={() => setFormData({ email: "test@deedpro-check.com", password: "TestPassword123!" })}
+            >
+              <div className="font-medium text-gentle-indigo group-hover:text-deep-teal transition-colors">Demo User Account</div>
+              <div className="text-dark-slate/70 text-xs mt-1">
+                test@deedpro-check.com • TestPassword123!
               </div>
-            ))}
+            </div>
           </div>
         </div>
 

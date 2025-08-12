@@ -584,77 +584,99 @@ def admin_list_all_users(
     if not verify_admin():
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    # Mock user data - in production, query from database
-    all_users = [
-        {
-            "id": 1,
-            "email": "john@example.com",
-            "first_name": "John",
-            "last_name": "Doe",
-            "username": "johndoe",
-            "city": "Los Angeles",
-            "country": "USA",
-            "created_at": "2024-01-01T00:00:00Z",
-            "last_login": "2024-01-15T09:30:00Z",
-            "is_active": True,
-            "subscription_plan": "pro",
-            "subscription_status": "active",
-            "total_deeds": 12,
-            "monthly_revenue": 29.99
-        },
-        {
-            "id": 2,
-            "email": "jane@company.com",
-            "first_name": "Jane",
-            "last_name": "Smith",
-            "username": "janesmith",
-            "city": "San Francisco",
-            "country": "USA",
-            "created_at": "2024-01-05T00:00:00Z",
-            "last_login": "2024-01-14T15:20:00Z",
-            "is_active": True,
-            "subscription_plan": "basic",
-            "subscription_status": "active",
-            "total_deeds": 8,
-            "monthly_revenue": 9.99
-        },
-        {
-            "id": 3,
-            "email": "bob@firm.com",
-            "first_name": "Bob",
-            "last_name": "Wilson",
-            "username": "bobwilson",
-            "city": "Chicago",
-            "country": "USA",
-            "created_at": "2024-01-10T00:00:00Z",
-            "last_login": "2024-01-13T11:45:00Z",
-            "is_active": False,
-            "subscription_plan": "free",
-            "subscription_status": "cancelled",
-            "total_deeds": 3,
-            "monthly_revenue": 0.00
-        }
-    ]
-    
-    # Apply filters (in production, use database queries)
-    filtered_users = all_users
-    if search:
-        filtered_users = [u for u in filtered_users if search.lower() in u['email'].lower() or search.lower() in f"{u['first_name']} {u['last_name']}".lower()]
-    if status:
-        filtered_users = [u for u in filtered_users if u['subscription_status'] == status]
-    
-    # Pagination
-    start = (page - 1) * limit
-    end = start + limit
-    paginated_users = filtered_users[start:end]
-    
-    return {
-        "users": paginated_users,
-        "total": len(filtered_users),
-        "page": page,
-        "limit": limit,
-        "total_pages": (len(filtered_users) + limit - 1) // limit
-    }
+    # Query real user data from database
+    try:
+        if not conn:
+            raise HTTPException(status_code=500, detail="Database connection not available")
+        
+        with conn.cursor() as cur:
+            # Build query with filters
+            where_conditions = ["TRUE"]
+            params = []
+            
+            if search:
+                where_conditions.append("(email ILIKE %s OR full_name ILIKE %s)")
+                params.extend([f"%{search}%", f"%{search}%"])
+            
+            if status == "active":
+                where_conditions.append("is_active = TRUE")
+            elif status == "inactive":
+                where_conditions.append("is_active = FALSE")
+            
+            where_clause = " AND ".join(where_conditions)
+            
+            # Get total count for pagination
+            count_query = f"SELECT COUNT(*) FROM users WHERE {where_clause}"
+            cur.execute(count_query, params)
+            total_count = cur.fetchone()[0]
+            
+            # Get users with pagination
+            offset = (page - 1) * limit
+            query = f"""
+                SELECT id, email, full_name, role, company_name, phone, state, plan, 
+                       created_at, last_login, is_active
+                FROM users 
+                WHERE {where_clause}
+                ORDER BY created_at DESC
+                LIMIT %s OFFSET %s
+            """
+            params.extend([limit, offset])
+            cur.execute(query, params)
+            users = cur.fetchall()
+            
+            # Get deed counts for each user
+            user_ids = [user[0] for user in users]
+            deed_counts = {}
+            if user_ids:
+                cur.execute("""
+                    SELECT user_id, COUNT(*) 
+                    FROM deeds 
+                    WHERE user_id = ANY(%s)
+                    GROUP BY user_id
+                """, (user_ids,))
+                deed_counts = dict(cur.fetchall())
+            
+            # Format users for response
+            formatted_users = []
+            for user in users:
+                # Split full_name into first and last name
+                full_name = user[2] or ""
+                name_parts = full_name.split(" ", 1)
+                first_name = name_parts[0] if name_parts else ""
+                last_name = name_parts[1] if len(name_parts) > 1 else ""
+                
+                formatted_users.append({
+                    "id": user[0],
+                    "email": user[1],
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "full_name": user[2],
+                    "role": user[3],
+                    "company_name": user[4],
+                    "phone": user[5],
+                    "state": user[6],
+                    "subscription_plan": user[7],
+                    "subscription_status": "active" if user[10] else "inactive",
+                    "created_at": user[8].isoformat() if user[8] else None,
+                    "last_login": user[9].isoformat() if user[9] else None,
+                    "is_active": user[10],
+                    "total_deeds": deed_counts.get(user[0], 0),
+                    "monthly_revenue": 29.99 if user[7] == "professional" else 99.99 if user[7] == "enterprise" else 0.00
+                })
+            
+            return {
+                "users": formatted_users,
+                "total": total_count,
+                "page": page,
+                "limit": limit,
+                "total_pages": (total_count + limit - 1) // limit
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching admin users: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch users: {str(e)}")
 
 @app.get("/admin/users/{user_id}")
 def admin_get_user_details(user_id: int):
@@ -734,59 +756,78 @@ def admin_list_all_deeds(
     if not verify_admin():
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    # Mock deed data - in production, query from database
-    all_deeds = [
-        {
-            "id": 1,
-            "user_id": 1,
-            "user_email": "john@example.com",
-            "user_name": "John Doe",
-            "deed_type": "Quitclaim Deed",
-            "property_address": "123 Main St, Los Angeles, CA",
-            "apn": "123-456-789",
-            "status": "completed",
-            "created_at": "2024-01-10T00:00:00Z",
-            "completed_at": "2024-01-12T00:00:00Z",
-            "recorded": True,
-            "shared_count": 2,
-            "approval_count": 1
-        },
-        {
-            "id": 2,
-            "user_id": 2,
-            "user_email": "jane@company.com",
-            "user_name": "Jane Smith",
-            "deed_type": "Grant Deed",
-            "property_address": "456 Oak Ave, Beverly Hills, CA",
-            "apn": "987-654-321",
-            "status": "draft",
-            "created_at": "2024-01-14T00:00:00Z",
-            "completed_at": None,
-            "recorded": False,
-            "shared_count": 0,
-            "approval_count": 0
-        }
-    ]
-    
-    # Apply filters
-    filtered_deeds = all_deeds
-    if status:
-        filtered_deeds = [d for d in filtered_deeds if d['status'] == status]
-    if user_id:
-        filtered_deeds = [d for d in filtered_deeds if d['user_id'] == user_id]
-    
-    # Pagination
-    start = (page - 1) * limit
-    end = start + limit
-    paginated_deeds = filtered_deeds[start:end]
-    
-    return {
-        "deeds": paginated_deeds,
-        "total": len(filtered_deeds),
-        "page": page,
-        "limit": limit,
-        "total_pages": (len(filtered_deeds) + limit - 1) // limit
-    }
+    # Query real deed data from database
+    try:
+        if not conn:
+            raise HTTPException(status_code=500, detail="Database connection not available")
+        
+        with conn.cursor() as cur:
+            # Build query with filters
+            where_conditions = ["TRUE"]
+            params = []
+            
+            if user_id:
+                where_conditions.append("d.user_id = %s")
+                params.append(user_id)
+            
+            # Note: status filter can be added when status column is added to deeds table
+            
+            where_clause = " AND ".join(where_conditions)
+            
+            # Get total count for pagination
+            count_query = f"SELECT COUNT(*) FROM deeds d WHERE {where_clause}"
+            cur.execute(count_query, params)
+            total_count = cur.fetchone()[0]
+            
+            # Get deeds with user information
+            offset = (page - 1) * limit
+            query = f"""
+                SELECT d.id, d.user_id, d.deed_type, d.property_address, 
+                       d.grantor_name, d.grantee_name, d.created_at, d.updated_at,
+                       u.email, u.full_name
+                FROM deeds d
+                JOIN users u ON d.user_id = u.id
+                WHERE {where_clause}
+                ORDER BY d.created_at DESC
+                LIMIT %s OFFSET %s
+            """
+            params.extend([limit, offset])
+            cur.execute(query, params)
+            deeds = cur.fetchall()
+            
+            # Format deeds for response
+            formatted_deeds = []
+            for deed in deeds:
+                formatted_deeds.append({
+                    "id": deed[0],
+                    "user_id": deed[1],
+                    "deed_type": deed[2],
+                    "property_address": deed[3],
+                    "grantor_name": deed[4],
+                    "grantee_name": deed[5],
+                    "created_at": deed[6].isoformat() if deed[6] else None,
+                    "updated_at": deed[7].isoformat() if deed[7] else None,
+                    "user_email": deed[8],
+                    "user_name": deed[9],
+                    "status": "completed",  # Default - can add status column later
+                    "recorded": False,      # Default - can add recorded column later
+                    "shared_count": 0,      # Default - can add sharing tracking later
+                    "approval_count": 0     # Default - can add approval tracking later
+                })
+            
+            return {
+                "deeds": formatted_deeds,
+                "total": total_count,
+                "page": page,
+                "limit": limit,
+                "total_pages": (total_count + limit - 1) // limit
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching admin deeds: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch deeds: {str(e)}")
 
 @app.get("/admin/revenue")
 def admin_revenue_analytics():
@@ -934,18 +975,48 @@ def get_user_endpoint(email: str):
     return user
 
 @app.get("/user/me")
-def get_current_user():
-    """Get current user (placeholder - would use JWT token in production)"""
-    # For demo purposes, return a sample user
-    return {
-        "id": 1,
-        "email": "john@example.com",
-        "first_name": "John",
-        "last_name": "Doe",
-        "username": "johndoe",
-        "city": "Los Angeles",
-        "country": "USA"
-    }
+def get_current_user(user_id: int = Depends(get_current_user_id)):
+    """Get current user information from JWT token"""
+    try:
+        if not conn:
+            raise HTTPException(status_code=500, detail="Database connection not available")
+        
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, email, full_name, role, company_name, phone, state, plan
+                FROM users 
+                WHERE id = %s AND is_active = TRUE
+            """, (user_id,))
+            
+            user = cur.fetchone()
+            
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            # Split full_name into first and last name
+            full_name = user[2] or ""
+            name_parts = full_name.split(" ", 1)
+            first_name = name_parts[0] if name_parts else ""
+            last_name = name_parts[1] if len(name_parts) > 1 else ""
+            
+            return {
+                "id": user[0],
+                "email": user[1],
+                "first_name": first_name,
+                "last_name": last_name,
+                "full_name": user[2],
+                "role": user[3],
+                "company": user[4],
+                "phone": user[5],
+                "state": user[6],
+                "plan": user[7]
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching current user: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch user: {str(e)}")
 
 # Deed endpoints
 @app.post("/deeds")
@@ -963,58 +1034,78 @@ def create_deed_endpoint(deed: DeedCreate):
     return new_deed
 
 @app.get("/deeds")
-def list_deeds_endpoint():
+def list_deeds_endpoint(user_id: int = Depends(get_current_user_id)):
     """List all deeds for current user"""
-    # In production, get user_id from JWT token
-    user_id = 1  # Placeholder
-    
-    # Sample data with various statuses for testing
-    sample_deeds = [
-        {
-            "id": 1,
-            "date": "2024-01-15",
-            "apn": "123-456-789",
-            "address": "123 Main St, Los Angeles, CA",
-            "escrow_number": "ESC001",
-            "deed_type": "Quitclaim Deed",
-            "status": "completed",
-            "recorded": True
-        },
-        {
-            "id": 2,
-            "date": "2024-01-10",
-            "apn": "987-654-321",
-            "address": "456 Oak Ave, Beverly Hills, CA",
-            "escrow_number": "ESC002",
-            "deed_type": "Grant Deed",
-            "status": "draft",
-            "recorded": False
-        },
-        {
-            "id": 3,
-            "date": "2024-01-08",
-            "apn": "555-777-999",
-            "address": "789 Pine Rd, Santa Monica, CA",
-            "escrow_number": "ESC003",
-            "deed_type": "Warranty Deed",
-            "status": "pending",
-            "recorded": False
-        }
-    ]
-    
-    return {"deeds": sample_deeds}
+    try:
+        if not conn:
+            raise HTTPException(status_code=500, detail="Database connection not available")
+        
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, deed_type, property_address, grantor_name, grantee_name, 
+                       created_at, updated_at
+                FROM deeds 
+                WHERE user_id = %s 
+                ORDER BY created_at DESC
+            """, (user_id,))
+            
+            deeds = cur.fetchall()
+            
+            # Format deeds for frontend
+            formatted_deeds = []
+            for deed in deeds:
+                formatted_deeds.append({
+                    "id": deed[0],
+                    "deed_type": deed[1],
+                    "address": deed[2],
+                    "grantor": deed[3],
+                    "grantee": deed[4],
+                    "date": deed[5].strftime("%Y-%m-%d") if deed[5] else None,
+                    "status": "completed",  # Default status - you can add a status column later
+                    "recorded": False  # Default - you can add a recorded column later
+                })
+            
+            return {"deeds": formatted_deeds}
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching deeds: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch deeds: {str(e)}")
 
 @app.get("/deeds/available")
-def list_available_deeds_for_sharing():
+def list_available_deeds_for_sharing(user_id: int = Depends(get_current_user_id)):
     """List deeds available for sharing (completed deeds)"""
-    # Sample data of completed deeds that can be shared
-    available_deeds = [
-        { "id": 105, "address": "100 New St, LA, CA", "deed_type": "Quitclaim Deed" },
-        { "id": 106, "address": "200 Fresh Ave, LA, CA", "deed_type": "Grant Deed" },
-        { "id": 107, "address": "300 Clean Rd, LA, CA", "deed_type": "Warranty Deed" },
-        { "id": 1, "address": "123 Main St, Los Angeles, CA", "deed_type": "Quitclaim Deed" }
-    ]
-    return {"available_deeds": available_deeds}
+    try:
+        if not conn:
+            raise HTTPException(status_code=500, detail="Database connection not available")
+        
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, property_address, deed_type
+                FROM deeds 
+                WHERE user_id = %s 
+                ORDER BY created_at DESC
+            """, (user_id,))
+            
+            deeds = cur.fetchall()
+            
+            # Format for sharing dropdown
+            available_deeds = []
+            for deed in deeds:
+                available_deeds.append({
+                    "id": deed[0],
+                    "address": deed[1],
+                    "deed_type": deed[2]
+                })
+            
+            return {"available_deeds": available_deeds}
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching available deeds: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch available deeds: {str(e)}")
 
 @app.get("/deeds/{deed_id}")
 def get_deed_endpoint(deed_id: int):

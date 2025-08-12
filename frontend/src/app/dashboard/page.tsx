@@ -3,12 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/Sidebar';
+import { AuthManager } from '../../utils/auth';
 import '../../styles/dashboard.css';
 
 export default function Dashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // Default expanded
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [recentDeeds, setRecentDeeds] = useState([]);
   const router = useRouter();
 
   // Authentication check useEffect
@@ -30,6 +32,8 @@ export default function Dashboard() {
         if (response.ok) {
           console.log('✅ Dashboard: Authentication verified');
           setIsAuthenticated(true);
+          // Fetch recent deeds data
+          await fetchRecentDeeds();
         } else {
           console.log('🔒 Dashboard: Token invalid, redirecting to login');
           localStorage.removeItem('access_token');
@@ -47,6 +51,30 @@ export default function Dashboard() {
 
     checkAuth();
   }, [router]);
+
+  const fetchRecentDeeds = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+
+      const response = await fetch('https://deedpro-main-api.onrender.com/deeds', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setRecentDeeds(data.deeds || []);
+      } else {
+        console.warn('Failed to fetch recent deeds:', response.status);
+      }
+    } catch (error) {
+      console.error('Error fetching recent deeds:', error);
+    }
+  };
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -167,36 +195,26 @@ export default function Dashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td>Deed Created</td>
-                      <td>123 Main St, Los Angeles, CA</td>
-                      <td>Jan 15, 2024</td>
-                      <td><span className="badge badge-success">Completed</span></td>
-                    </tr>
-                    <tr>
-                      <td>Document Shared</td>
-                      <td>456 Oak Ave, Beverly Hills, CA</td>
-                      <td>Jan 14, 2024</td>
-                      <td><span className="badge badge-warning">Pending</span></td>
-                    </tr>
-                    <tr>
-                      <td>Review Requested</td>
-                      <td>789 Pine Rd, Santa Monica, CA</td>
-                      <td>Jan 13, 2024</td>
-                      <td><span className="badge badge-info">In Review</span></td>
-                    </tr>
-                    <tr>
-                      <td>Transfer Completed</td>
-                      <td>321 Elm St, Pasadena, CA</td>
-                      <td>Jan 12, 2024</td>
-                      <td><span className="badge badge-success">Completed</span></td>
-                    </tr>
-                    <tr>
-                      <td>Notarization Required</td>
-                      <td>555 Valley Blvd, Alhambra, CA</td>
-                      <td>Jan 11, 2024</td>
-                      <td><span className="badge badge-warning">Action Needed</span></td>
-                    </tr>
+                    {recentDeeds.length > 0 ? (
+                      recentDeeds.slice(0, 5).map((deed) => (
+                        <tr key={deed.id}>
+                          <td>Deed Created</td>
+                          <td>{deed.address || deed.property_address || 'No address'}</td>
+                          <td>{deed.date ? new Date(deed.date).toLocaleDateString() : 'No date'}</td>
+                          <td>
+                            <span className={`badge ${deed.status === 'completed' ? 'badge-success' : 'badge-info'}`}>
+                              {deed.status || 'Completed'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="4" className="text-center text-muted">
+                          No recent activity. <a href="/create-deed" className="text-primary">Create your first deed</a>
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
