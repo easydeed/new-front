@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Loader } from '@googlemaps/js-api-loader';
 
 // Types for property data
 interface PropertyData {
@@ -46,7 +45,7 @@ export default function PropertySearch({
   const placesService = useRef<any>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
 
-  // Initialize Google Maps API
+  // Initialize Google Maps API with modern approach
   useEffect(() => {
     const initializeGoogle = async () => {
       const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
@@ -57,23 +56,54 @@ export default function PropertySearch({
       }
 
       try {
-        const loader = new Loader({
-          apiKey: apiKey,
-          libraries: ['places'],
-          version: 'weekly'
-        });
-
-        await loader.load();
-        
-        if (window.google) {
-          autocompleteService.current = new window.google.maps.places.AutocompleteService();
-          placesService.current = new window.google.maps.places.PlacesService(
-            document.createElement('div')
-          );
-          setIsGoogleLoaded(true);
+        // Load Google Maps JavaScript API directly
+        if (!window.google) {
+          const script = document.createElement('script');
+          script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&loading=async&callback=initMap`;
+          script.async = true;
+          script.defer = true;
+          
+          // Define callback function
+          (window as any).initMap = () => {
+            if (window.google?.maps?.places) {
+              // Initialize services with fallback support
+              try {
+                // Try new API first, fallback to old if needed
+                autocompleteService.current = new window.google.maps.places.AutocompleteService();
+                placesService.current = new window.google.maps.places.PlacesService(
+                  document.createElement('div')
+                );
+                setIsGoogleLoaded(true);
+              } catch (error) {
+                console.warn('Using fallback Google Places API initialization:', error);
+                // Fallback initialization
+                autocompleteService.current = new window.google.maps.places.AutocompleteService();
+                placesService.current = new window.google.maps.places.PlacesService(
+                  document.createElement('div')
+                );
+                setIsGoogleLoaded(true);
+              }
+            }
+          };
+          
+          script.onerror = () => {
+            console.error('Failed to load Google Maps script');
+            onError?.('Failed to load Google Places service');
+          };
+          
+          document.head.appendChild(script);
+        } else {
+          // Google Maps already loaded
+          if (window.google?.maps?.places) {
+            autocompleteService.current = new window.google.maps.places.AutocompleteService();
+            placesService.current = new window.google.maps.places.PlacesService(
+              document.createElement('div')
+            );
+            setIsGoogleLoaded(true);
+          }
         }
       } catch (error) {
-        console.error('Failed to load Google Maps:', error);
+        console.error('Failed to initialize Google Maps:', error);
         onError?.('Failed to load Google Places service');
       }
     };
