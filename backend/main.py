@@ -546,32 +546,99 @@ def admin_dashboard():
     if not verify_admin():
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    # In production, calculate real metrics from database
-    dashboard_data = {
-        "total_users": 1247,
-        "active_users": 892,
-        "total_deeds": 3456,
-        "deeds_this_month": 234,
-        "total_revenue": 45230.50,
-        "monthly_revenue": 8750.25,
-        "subscription_breakdown": {
-            "free": 456,
-            "basic": 523,
-            "pro": 268
-        },
-        "recent_activity": [
-            {"type": "user_signup", "user": "john@example.com", "timestamp": "2024-01-15T10:30:00Z"},
-            {"type": "deed_created", "user": "jane@company.com", "deed_id": 1234, "timestamp": "2024-01-15T09:45:00Z"},
-            {"type": "subscription", "user": "bob@firm.com", "plan": "pro", "timestamp": "2024-01-15T08:20:00Z"}
-        ],
-        "growth_metrics": {
-            "user_growth_rate": 12.5,  # % this month
-            "revenue_growth_rate": 8.3,
-            "deed_completion_rate": 87.2
+    try:
+        if not conn:
+            raise HTTPException(status_code=500, detail="Database connection not available")
+        
+        with conn.cursor() as cur:
+            # Get total users
+            cur.execute("SELECT COUNT(*) FROM users")
+            total_users = cur.fetchone()[0]
+            
+            # Get active users (logged in within 30 days)
+            cur.execute("""
+                SELECT COUNT(*) FROM users 
+                WHERE is_active = TRUE AND (last_login > NOW() - INTERVAL '30 days' OR last_login IS NULL)
+            """)
+            active_users = cur.fetchone()[0]
+            
+            # Get total deeds
+            cur.execute("SELECT COUNT(*) FROM deeds")
+            total_deeds = cur.fetchone()[0]
+            
+            # Get deeds this month
+            cur.execute("""
+                SELECT COUNT(*) FROM deeds 
+                WHERE created_at >= DATE_TRUNC('month', CURRENT_DATE)
+            """)
+            deeds_this_month = cur.fetchone()[0]
+            
+            # Get subscription breakdown
+            cur.execute("""
+                SELECT plan, COUNT(*) 
+                FROM users 
+                WHERE is_active = TRUE 
+                GROUP BY plan
+            """)
+            plan_counts = dict(cur.fetchall())
+            
+            # Calculate estimated revenue (simplified calculation)
+            professional_users = plan_counts.get('professional', 0)
+            enterprise_users = plan_counts.get('enterprise', 0)
+            monthly_revenue = (professional_users * 29.99) + (enterprise_users * 99.99)
+            total_revenue = monthly_revenue * 12  # Simplified annual estimate
+            
+            # Get recent activity (recent user signups and deed creations)
+            cur.execute("""
+                SELECT 'user_signup' as type, email as user, created_at as timestamp, NULL as deed_id
+                FROM users 
+                WHERE created_at >= NOW() - INTERVAL '7 days'
+                UNION ALL
+                SELECT 'deed_created' as type, u.email as user, d.created_at as timestamp, d.id as deed_id
+                FROM deeds d
+                JOIN users u ON d.user_id = u.id
+                WHERE d.created_at >= NOW() - INTERVAL '7 days'
+                ORDER BY timestamp DESC
+                LIMIT 10
+            """)
+            recent_activity = []
+            for row in cur.fetchall():
+                activity = {
+                    "type": row[0],
+                    "user": row[1],
+                    "timestamp": row[2].isoformat() if row[2] else None
+                }
+                if row[3]:  # deed_id
+                    activity["deed_id"] = row[3]
+                recent_activity.append(activity)
+        
+        dashboard_data = {
+            "total_users": total_users,
+            "active_users": active_users,
+            "total_deeds": total_deeds,
+            "deeds_this_month": deeds_this_month,
+            "total_revenue": total_revenue,
+            "monthly_revenue": monthly_revenue,
+            "subscription_breakdown": {
+                "free": plan_counts.get('free', 0),
+                "professional": plan_counts.get('professional', 0),
+                "enterprise": plan_counts.get('enterprise', 0)
+            },
+            "recent_activity": recent_activity,
+            "growth_metrics": {
+                "user_growth_rate": 0.0,  # Would need historical data
+                "revenue_growth_rate": 0.0,  # Would need historical data
+                "deed_completion_rate": 100.0 if total_deeds > 0 else 0  # Simplified
+            }
         }
-    }
-    
-    return dashboard_data
+        
+        return dashboard_data
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching admin dashboard: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch dashboard data: {str(e)}")
 
 @app.get("/admin/users")
 def admin_list_all_users(

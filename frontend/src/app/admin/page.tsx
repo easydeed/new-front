@@ -143,106 +143,60 @@ export default function AdminDashboard() {
   const [pricingMessage, setPricingMessage] = useState("");
 
   useEffect(() => {
-    // Simulate API calls to admin endpoints
-    setTimeout(() => {
-      setStats({
-        total_users: 1247,
-        active_users: 892,
-        total_deeds: 3456,
-        deeds_this_month: 234,
-        total_revenue: 45230.50,
-        monthly_revenue: 8750.25,
-        api_calls_today: 15420,
-        api_calls_month: 284750,
-        system_health: 'healthy',
-        active_integrations: 156
-      });
-
-      setUsers([
-        {
-          id: 1,
-          email: "john@example.com",
-          first_name: "John",
-          last_name: "Doe",
-          subscription_plan: "enterprise",
-          subscription_status: "active",
-          total_deeds: 45,
-          monthly_revenue: 299.99,
-          created_at: "2024-01-01",
-          last_login: "2024-01-15",
-          is_active: true,
-          api_key: "dp_live_123456789",
-          api_calls_this_month: 2847,
-          integrations: ["SoftPro 360", "Qualia"],
-          company: "ABC Title Company",
-          role: "Escrow Officer"
-        },
-        {
-          id: 2,
-          email: "jane@company.com",
-          first_name: "Jane",
-          last_name: "Smith",
-          subscription_plan: "professional",
-          subscription_status: "active",
-          total_deeds: 23,
-          monthly_revenue: 89.99,
-          created_at: "2024-01-05",
-          last_login: "2024-01-14",
-          is_active: true,
-          api_key: "dp_live_987654321",
-          api_calls_this_month: 156,
-          integrations: ["SoftPro 360"],
-          company: "Smith Real Estate",
-          role: "Real Estate Agent"
-        },
-        {
-          id: 3,
-          email: "bob@firm.com",
-          first_name: "Bob",
-          last_name: "Wilson",
-          subscription_plan: "starter",
-          subscription_status: "active",
-          total_deeds: 8,
-          monthly_revenue: 29.99,
-          created_at: "2024-01-10",
-          last_login: "2024-01-13",
-          is_active: true,
-          api_calls_this_month: 0,
-          integrations: [],
-          company: "Wilson Law Firm",
-          role: "Attorney"
+    // Fetch real admin data from API endpoints
+    const fetchAdminData = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          console.error('No admin token found');
+          return;
         }
-      ]);
 
-      setDeeds([
-        {
-          id: 1,
-          user_email: "john@example.com",
-          user_name: "John Doe",
-          deed_type: "Quitclaim Deed",
-          property_address: "123 Main St, Los Angeles, CA",
-          status: "completed",
-          created_at: "2024-01-10",
-          shared_count: 2,
-          approval_count: 1,
-          ai_assistance_used: true,
-          api_generated: true,
-          integration_source: "SoftPro 360"
-        },
-        {
-          id: 2,
-          user_email: "jane@company.com",
-          user_name: "Jane Smith",
-          deed_type: "Grant Deed",
-          property_address: "456 Oak Ave, Beverly Hills, CA",
-          status: "draft",
-          created_at: "2024-01-14",
-          shared_count: 0,
-          approval_count: 0,
-          ai_assistance_used: true,
-          api_generated: false
+        const headers = {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        };
+
+        // Fetch dashboard stats
+        const dashboardResponse = await fetch('https://deedpro-main-api.onrender.com/admin/dashboard', {
+          headers
+        });
+        
+        if (dashboardResponse.ok) {
+          const dashboardData = await dashboardResponse.json();
+          setStats({
+            total_users: dashboardData.total_users,
+            active_users: dashboardData.active_users,
+            total_deeds: dashboardData.total_deeds,
+            deeds_this_month: dashboardData.deeds_this_month,
+            total_revenue: dashboardData.total_revenue,
+            monthly_revenue: dashboardData.monthly_revenue,
+            api_calls_today: 0, // Not implemented yet
+            api_calls_month: 0, // Not implemented yet
+            system_health: 'healthy',
+            active_integrations: 0 // Not implemented yet
+          });
         }
-      ]);
+
+        // Fetch users
+        const usersResponse = await fetch('https://deedpro-main-api.onrender.com/admin/users?limit=10', {
+          headers
+        });
+        
+        if (usersResponse.ok) {
+          const usersData = await usersResponse.json();
+          setUsers(usersData.users || []);
+        }
+
+        // Fetch deeds
+        const deedsResponse = await fetch('https://deedpro-main-api.onrender.com/admin/deeds?limit=10', {
+          headers
+        });
+        
+        if (deedsResponse.ok) {
+          const deedsData = await deedsResponse.json();
+          setDeeds(deedsData.deeds || []);
+        }
 
       setApiUsage([
         {
@@ -369,8 +323,21 @@ export default function AdminDashboard() {
         { timestamp: "2024-01-15T10:00:00Z", api_calls: 2150, response_time: 46, error_rate: 0.02, active_users: 467 }
       ]);
 
-      setLoading(false);
-    }, 1000);
+        // Set empty arrays for features not yet implemented with real endpoints
+        setApiUsage([]);
+        setIntegrations([]);
+        setAuditLogs([]);
+        setNotifications([]);
+        setSystemMetrics([]);
+
+      } catch (error) {
+        console.error('Error fetching admin data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAdminData();
   }, []);
 
   // Pricing API Functions
