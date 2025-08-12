@@ -6,6 +6,7 @@ import Sidebar from '../../components/Sidebar';
 import PreviewDataDebugger from '../../components/PreviewDataDebugger';
 import DeedPreviewPanel from '../../components/DeedPreviewPanel';
 import WizardFlowManager from '../../components/WizardFlowManager';
+import PropertySearch from '../../components/PropertySearch';
 import '../../styles/dashboard.css';
 
 // Tooltip Component for iPhone-like help text
@@ -920,6 +921,108 @@ export default function CreateDeed() {
     }
   };
 
+  // Handle Google Places selection with full integration
+  const handleGooglePlacesSelect = async (propertyData: any) => {
+    try {
+      setIsSearchingAddress(true);
+      setAddressError('');
+      
+      // Update form with Google Places data
+      setFormData(prev => ({
+        ...prev,
+        propertySearch: propertyData.fullAddress,
+        city: propertyData.city || '',
+        state: propertyData.state || 'CA',
+        zip: propertyData.zip || '',
+        neighborhood: propertyData.neighborhood || ''
+      }));
+
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com';
+      
+      // Step 1: Validate with Google Places
+      const validateResponse = await fetch(`${baseUrl}/api/property/validate`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(propertyData)
+      });
+      
+      if (validateResponse.ok) {
+        const validatedData = await validateResponse.json();
+        
+        // Step 2: Enrich with SiteX and TitlePoint
+        const enrichResponse = await fetch(`${baseUrl}/api/property/enrich`, {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            address: propertyData.street || propertyData.fullAddress,
+            city: propertyData.city,
+            state: propertyData.state || 'CA',
+            county: validatedData.data.county,
+            apn: validatedData.data.apn
+          })
+        });
+        
+        if (enrichResponse.ok) {
+          const enrichedData = await enrichResponse.json();
+          
+          // Update form with all enriched data
+          setFormData(prev => ({
+            ...prev,
+            propertySearch: enrichedData.data.formatted_address || validatedData.data.formatted_address || propertyData.fullAddress,
+            apn: enrichedData.data.apn || validatedData.data.apn || '',
+            county: enrichedData.data.county || enrichedData.data.county_name || validatedData.data.county || '',
+            legalDescription: enrichedData.data.legal_description || '',
+            grantorName: enrichedData.data.primary_owner || '',
+            vesting: enrichedData.data.vesting_details || '',
+            city: enrichedData.data.city || propertyData.city || '',
+            state: enrichedData.data.state || propertyData.state || 'CA',
+            zip: enrichedData.data.zip_code || propertyData.zip || ''
+          }));
+          
+          // Show success message
+          setPropertySuggestions([{
+            type: 'success',
+            message: '✅ Property data successfully enriched with real estate information',
+            confidence: enrichedData.confidence || 0.9
+          }]);
+          
+        } else {
+          // Use validated data only
+          setFormData(prev => ({
+            ...prev,
+            propertySearch: validatedData.data.formatted_address || propertyData.fullAddress,
+            apn: validatedData.data.apn || '',
+            county: validatedData.data.county || '',
+            city: validatedData.data.city || propertyData.city || '',
+            state: validatedData.data.state || propertyData.state || 'CA',
+            zip: validatedData.data.zip_code || propertyData.zip || ''
+          }));
+          
+          setPropertySuggestions([{
+            type: 'partial',
+            message: '🔍 Address validated. Some property data may need manual entry.',
+            confidence: validatedData.confidence || 0.8
+          }]);
+        }
+      }
+      
+    } catch (error) {
+      console.error('Property selection error:', error);
+      setAddressError('Failed to process property data. Please try manual entry.');
+    } finally {
+      setIsSearchingAddress(false);
+    }
+  };
+
   // Cache property data when user fills in details
   const cachePropertyData = async () => {
     try {
@@ -1190,40 +1293,22 @@ export default function CreateDeed() {
                 
                 <div className="form-grid" style={{ maxWidth: '1000px', margin: '0 auto' }}>
                   <div className="form-group col-span-2">
-                    <Tooltip text="Enter the complete street address including city, state, and ZIP code for accurate property identification.">
-                      <label className="form-label">Property Address 💡</label>
+                    <Tooltip text="Start typing a property address and select from Google Places suggestions. The system will automatically validate and enrich the property data using SiteX and TitlePoint.">
+                      <label className="form-label">Property Address 🌐✨</label>
                     </Tooltip>
-                    <div style={{ position: 'relative' }}>
-                      <input
-                        type="text"
-                        name="propertySearch"
-                        className="form-control"
-                        placeholder="e.g. ‘123 Success Ave’"
-                        value={formData.propertySearch}
-                        onChange={handleInputChange}
-                        style={{ paddingRight: '180px' }}
-                      />
-                      <button
-                        type="button"
-                        onClick={handlePropertySearch}
-                        disabled={isSearchingAddress || !formData.propertySearch.trim()}
-                        style={{
-                          position: 'absolute',
-                          right: '12px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          backgroundColor: isSearchingAddress || !formData.propertySearch.trim() ? 'var(--secondary-light)' : 'var(--primary-dark)',
-                          color: isSearchingAddress || !formData.propertySearch.trim() ? 'var(--gray-600)' : '#FFFFFF',
-                          border: 'none',
-                          borderRadius: '10px',
-                          padding: '10px 16px',
-                          fontSize: '14px',
-                          fontWeight: 600,
-                          cursor: isSearchingAddress || !formData.propertySearch.trim() ? 'not-allowed' : 'pointer'
-                        }}
-                      >
-                        {isSearchingAddress ? 'Searching…' : 'Search'}
-                      </button>
+                    <PropertySearch
+                      onSelect={handleGooglePlacesSelect}
+                      onError={(error) => setAddressError(error)}
+                      placeholder="Start typing property address..."
+                      value={formData.propertySearch}
+                      className="w-full"
+                    />
+                    {addressError && (
+                      <div style={{ marginTop: '8px', color: '#b91c1c', fontSize: '0.95rem' }}>{addressError}</div>
+                    )}
+                    
+                    {/* AI Suggestion for manual entry */}
+                    <div style={{ marginTop: '8px' }}>
                       <AiSuggestion
                         fieldName="property_address"
                         fieldValue={formData.propertySearch}
@@ -1231,9 +1316,6 @@ export default function CreateDeed() {
                         onSuggestion={(suggestion) => setFormData({...formData, propertySearch: suggestion})}
                       />
                     </div>
-                    {addressError && (
-                      <div style={{ marginTop: '8px', color: '#b91c1c', fontSize: '0.95rem' }}>{addressError}</div>
-                    )}
                     
                     {/* Property Suggestions Dropdown */}
                     {propertySuggestions.length > 0 && (

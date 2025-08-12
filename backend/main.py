@@ -31,6 +31,13 @@ app = FastAPI(title="DeedPro API", version="1.0.0")
 # Include AI assistance router
 app.include_router(ai_router)
 
+# Include Property Integration API router
+try:
+    from api.property_endpoints import router as property_router
+    app.include_router(property_router)
+except ImportError as e:
+    print(f"Property integration endpoints not available: {e}")
+
 # Allow CORS for local dev and frontend
 app.add_middleware(
     CORSMiddleware,

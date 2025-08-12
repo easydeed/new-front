@@ -12,3 +12,9 @@ requests
 jinja2
 weasyprint
 pytest
+
+# Property Integration APIs
+httpx
+xmltodict
+zeep
+googlemaps
