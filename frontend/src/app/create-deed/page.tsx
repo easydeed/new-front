@@ -436,43 +436,63 @@ export default function CreateDeed() {
     setPlanLimitsError('');
 
     try {
-      // Simulate deed creation API call
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com'}/deeds`, {
+      if (!token) {
+        alert('Please log in to generate deed');
+        return;
+      }
+
+      // Use the same data mapper as preview generation for consistency
+      const { createPreviewPayload } = await import('../../utils/deedDataMapper');
+      const deedData = createPreviewPayload(formData, aiSuggestions);
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com'}/generate-deed`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          deed_type: formData.deedType,
-          property_address: formData.propertySearch,
-          apn: formData.apn,
-          county: formData.county,
-          legal_description: formData.legalDescription,
-          owner_type: formData.ownerType,
-          sales_price: parseFloat(formData.salesPrice) || 0,
-          grantee_name: formData.granteeName,
-          vesting: formData.vesting
-        })
+        body: JSON.stringify(deedData)
       });
 
       if (response.ok) {
+        const result = await response.json();
+        
         // Update usage count for free users
         if (userProfile?.plan === 'free') {
           setDeedUsageCount(prev => prev + 1);
         }
-        alert('Deed generated successfully! 🎉');
-        // Redirect to dashboard or deed view
+
+        // Handle the PDF download
+        if (result.pdf_base64) {
+          // Convert base64 to blob and download
+          const pdfBlob = new Blob([Uint8Array.from(atob(result.pdf_base64), c => c.charCodeAt(0))], {
+            type: 'application/pdf'
+          });
+          
+          const url = URL.createObjectURL(pdfBlob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${formData.deedType.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          
+          alert('Deed PDF generated and downloaded successfully! 🎉');
+        } else {
+          alert('Deed generated but PDF download failed. Please try again.');
+        }
       } else {
         const error = await response.json();
         if (error.detail?.includes('limit')) {
           setPlanLimitsError(error.detail);
         } else {
-          alert('Failed to generate deed. Please try again.');
+          alert(`Failed to generate deed: ${error.detail || 'Please try again.'}`);
         }
       }
     } catch (error) {
+      console.error('PDF generation error:', error);
       alert('Failed to generate deed. Please check your connection.');
     } finally {
       setIsGenerating(false);
