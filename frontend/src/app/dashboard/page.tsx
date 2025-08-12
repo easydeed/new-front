@@ -1,13 +1,56 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/Sidebar';
 import '../../styles/dashboard.css';
 
 export default function Dashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // Default expanded
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  // Authentication check useEffect
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          console.log('🔒 Dashboard: No token found, redirecting to login');
+          router.push('/login?redirect=/dashboard');
+          return;
+        }
+
+        // Verify token with backend
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-api.onrender.com'}/users/profile`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          console.log('✅ Dashboard: Authentication verified');
+          setIsAuthenticated(true);
+        } else {
+          console.log('🔒 Dashboard: Token invalid, redirecting to login');
+          localStorage.removeItem('access_token');
+          router.push('/login?redirect=/dashboard');
+          return;
+        }
+      } catch (error) {
+        console.error('🔒 Dashboard: Auth check failed:', error);
+        router.push('/login?redirect=/dashboard');
+        return;
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, [router]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+    
     // Listen for sidebar state changes
     const handleSidebarToggle = () => {
       const sidebar = document.querySelector('.sidebar');
@@ -25,7 +68,37 @@ export default function Dashboard() {
     }
 
     return () => observer.disconnect();
-  }, []);
+  }, [isAuthenticated]);
+
+  // Show loading spinner while checking authentication
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        background: 'var(--background)',
+        flexDirection: 'column',
+        gap: '1rem'
+      }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '4px solid #f3f4f6',
+          borderTop: '4px solid #3b82f6',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <p style={{ color: '#6b7280', fontSize: '1.125rem' }}>Verifying authentication...</p>
+      </div>
+    );
+  }
+
+  // Don't render dashboard content if not authenticated (user will be redirected)
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div style={{ display: 'flex', background: 'var(--background)', color: 'var(--text)' }}>
