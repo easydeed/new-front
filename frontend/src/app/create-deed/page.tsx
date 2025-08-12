@@ -479,7 +479,18 @@ export default function CreateDeed() {
           document.body.removeChild(link);
           URL.revokeObjectURL(url);
           
-          alert('Deed PDF generated and downloaded successfully! 🎉');
+          // TODO: Save deed to database with status 'completed'
+          // This will be implemented when backend /deeds POST endpoint is ready
+          
+          alert('Deed PDF generated and downloaded successfully! 🎉\n\nRedirecting to your past deeds...');
+          
+          // Clear the form data after successful generation
+          localStorage.removeItem('deedWizardDraft');
+          
+          // Redirect to past deeds to show the completed deed
+          setTimeout(() => {
+            router.push('/past-deeds');
+          }, 2000);
         } else {
           alert('Deed generated but PDF download failed. Please try again.');
         }
