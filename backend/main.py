@@ -35,8 +35,13 @@ app.include_router(ai_router)
 try:
     from api.property_endpoints import router as property_router
     app.include_router(property_router)
+    print("✅ Property integration endpoints loaded successfully")
 except ImportError as e:
-    print(f"Property integration endpoints not available: {e}")
+    print(f"⚠️ Property integration endpoints not available: {e}")
+    print("⚠️ Core functionality will work without property integration")
+except Exception as e:
+    print(f"❌ Error loading property endpoints: {e}")
+    print("⚠️ Core functionality will work without property integration")
 
 # Allow CORS for local dev and frontend
 app.add_middleware(

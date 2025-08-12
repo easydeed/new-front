@@ -10,9 +10,17 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 
 from auth import get_current_user_id
-from services.google_places_service import GooglePlacesService
-from services.sitex_service import SiteXService
-from services.titlepoint_service import TitlePointService
+try:
+    from services.google_places_service import GooglePlacesService
+    from services.sitex_service import SiteXService
+    from services.titlepoint_service import TitlePointService
+    SERVICES_AVAILABLE = True
+except ImportError as e:
+    print(f"Property services not available: {e}")
+    GooglePlacesService = None
+    SiteXService = None
+    TitlePointService = None
+    SERVICES_AVAILABLE = False
 
 
 # Request/Response Models
@@ -63,26 +71,32 @@ sitex_service = None
 titlepoint_service = None
 
 def get_services():
-    """Initialize services lazily"""
+    """Initialize services lazily - returns None if services not available"""
     global google_service, sitex_service, titlepoint_service
     
+    if not SERVICES_AVAILABLE:
+        return None, None, None
+    
     try:
-        if not google_service:
+        if not google_service and GooglePlacesService:
             google_service = GooglePlacesService()
     except Exception as e:
         print(f"Google Places service unavailable: {e}")
+        google_service = None
     
     try:
-        if not sitex_service:
+        if not sitex_service and SiteXService:
             sitex_service = SiteXService()
     except Exception as e:
         print(f"SiteX service unavailable: {e}")
+        sitex_service = None
     
     try:
-        if not titlepoint_service:
+        if not titlepoint_service and TitlePointService:
             titlepoint_service = TitlePointService()
     except Exception as e:
         print(f"TitlePoint service unavailable: {e}")
+        titlepoint_service = None
     
     return google_service, sitex_service, titlepoint_service
 
