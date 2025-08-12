@@ -992,8 +992,17 @@ export default function CreateDeed() {
           setPropertySuggestions([{
             type: 'success',
             message: '✅ Property data successfully enriched with real estate information',
-            confidence: enrichedData.confidence || 0.9
+            confidence: enrichedData.confidence || 0.9,
+            property: {
+              property_address: enrichedData.data.formatted_address || validatedData.data.formatted_address || propertyData.fullAddress,
+              legal_description: enrichedData.data.legal_description,
+              apn: enrichedData.data.apn,
+              county: enrichedData.data.county || enrichedData.data.county_name
+            }
           }]);
+          
+          // Auto-dismiss success message after 5 seconds
+          setTimeout(() => setPropertySuggestions([]), 5000);
           
         } else {
           // Use validated data only
@@ -1010,8 +1019,17 @@ export default function CreateDeed() {
           setPropertySuggestions([{
             type: 'partial',
             message: '🔍 Address validated. Some property data may need manual entry.',
-            confidence: validatedData.confidence || 0.8
+            confidence: validatedData.confidence || 0.8,
+            property: {
+              property_address: validatedData.data.formatted_address || propertyData.fullAddress,
+              legal_description: null,
+              apn: validatedData.data.apn,
+              county: validatedData.data.county
+            }
           }]);
+          
+          // Auto-dismiss partial message after 4 seconds
+          setTimeout(() => setPropertySuggestions([]), 4000);
         }
       }
       
@@ -1337,56 +1355,90 @@ export default function CreateDeed() {
                           <div
                             key={index}
                             onClick={() => {
-                              const property = suggestion.property;
-                              setFormData(prev => ({
-                                ...prev,
-                                propertySearch: property.property_address,
-                                legalDescription: property.legal_description || prev.legalDescription,
-                                apn: property.apn || prev.apn,
-                                county: property.county || prev.county,
-                                city: property.city || prev.city
-                              }));
-                              setPropertySuggestions([]);
+                              // Handle clickable property suggestions
+                              if (suggestion.property && suggestion.type !== 'success' && suggestion.type !== 'partial') {
+                                const property = suggestion.property;
+                                setFormData(prev => ({
+                                  ...prev,
+                                  propertySearch: property.property_address,
+                                  legalDescription: property.legal_description || prev.legalDescription,
+                                  apn: property.apn || prev.apn,
+                                  county: property.county || prev.county,
+                                  city: property.city || prev.city
+                                }));
+                                setPropertySuggestions([]);
+                              } else {
+                                // For status messages, just dismiss after a moment
+                                setTimeout(() => setPropertySuggestions([]), 3000);
+                              }
                             }}
                             style={{
                               padding: '12px 16px',
                               borderBottom: index < propertySuggestions.length - 1 ? '1px solid var(--gray-200)' : 'none',
-                              cursor: 'pointer',
-                              transition: 'all 0.2s ease'
+                              cursor: suggestion.type === 'success' || suggestion.type === 'partial' ? 'default' : 'pointer',
+                              transition: 'all 0.2s ease',
+                              backgroundColor: suggestion.type === 'success' ? '#f0f9ff' : suggestion.type === 'partial' ? '#fffbf0' : 'transparent'
                             }}
                             onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = 'var(--accent-soft)';
+                              if (suggestion.type !== 'success' && suggestion.type !== 'partial') {
+                                e.currentTarget.style.backgroundColor = 'var(--accent-soft)';
+                              }
                             }}
                             onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'transparent';
+                              if (suggestion.type !== 'success' && suggestion.type !== 'partial') {
+                                e.currentTarget.style.backgroundColor = 'transparent';
+                              }
                             }}
                           >
-                            <div style={{ 
-                              fontWeight: '600', 
-                              color: 'var(--gray-900)',
-                              fontSize: '0.9rem',
-                              marginBottom: '4px'
-                            }}>
-                              📋 {suggestion.type === 'cached_exact' ? 'Previously Used' : 'Recent Property'}
-                            </div>
-                            <div style={{ 
-                              color: 'var(--gray-700)',
-                              fontSize: '0.85rem'
-                            }}>
-                              {suggestion.property.property_address}
-                            </div>
-                            {suggestion.property.legal_description && (
+                            {/* Status messages */}
+                            {(suggestion.type === 'success' || suggestion.type === 'partial') ? (
                               <div style={{ 
-                                color: 'var(--gray-500)',
-                                fontSize: '0.8rem',
-                                marginTop: '2px',
-                                maxWidth: '300px',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap'
+                                color: suggestion.type === 'success' ? '#059669' : '#d97706',
+                                fontSize: '0.9rem',
+                                fontWeight: '500'
                               }}>
-                                {suggestion.property.legal_description}
+                                {suggestion.message}
+                                {suggestion.confidence && (
+                                  <span style={{ 
+                                    marginLeft: '8px',
+                                    fontSize: '0.8rem',
+                                    opacity: 0.8
+                                  }}>
+                                    ({Math.round(suggestion.confidence * 100)}% confidence)
+                                  </span>
+                                )}
                               </div>
+                            ) : (
+                              /* Property suggestions */
+                              <>
+                                <div style={{ 
+                                  fontWeight: '600', 
+                                  color: 'var(--gray-900)',
+                                  fontSize: '0.9rem',
+                                  marginBottom: '4px'
+                                }}>
+                                  📋 {suggestion.type === 'cached_exact' ? 'Previously Used' : 'Recent Property'}
+                                </div>
+                                <div style={{ 
+                                  color: 'var(--gray-700)',
+                                  fontSize: '0.85rem'
+                                }}>
+                                  {suggestion.property?.property_address || 'Address not available'}
+                                </div>
+                                {suggestion.property?.legal_description && (
+                                  <div style={{ 
+                                    color: 'var(--gray-500)',
+                                    fontSize: '0.8rem',
+                                    marginTop: '2px',
+                                    maxWidth: '300px',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap'
+                                  }}>
+                                    {suggestion.property.legal_description}
+                                  </div>
+                                )}
+                              </>
                             )}
                           </div>
                         ))}
