@@ -131,7 +131,7 @@ export default function RegisterPage() {
     setError("");
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com'}/register`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com'}/users/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

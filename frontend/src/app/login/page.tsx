@@ -63,7 +63,7 @@ function LoginContent() {
     setSuccessMessage("");
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com'}/login`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com'}/users/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
