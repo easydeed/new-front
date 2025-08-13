@@ -26,7 +26,7 @@ interface PropertySearchProps {
   onPopulate: (data: PropertyData) => void;
 }
 
-// Initialize Google Maps Loader
+// Initialize Google Maps Loader for TitlePoint integration
 const loader = new Loader({ 
   apiKey: process.env.NEXT_PUBLIC_GOOGLE_API_KEY!, 
   libraries: ['places'] 
