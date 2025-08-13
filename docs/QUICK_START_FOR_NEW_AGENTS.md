@@ -6,6 +6,28 @@
 
 ---
 
+## 🔧 **Git Configuration Requirements**
+
+### **CRITICAL: Proper Git Authoring for Auto-Deployment**
+```bash
+# Configure git with Vercel-authorized credentials
+git config user.name "easydeed"
+git config user.email "gerardoh@gmail.com"
+```
+
+### **Deployment Rules**
+- ✅ **All commits MUST use authorized git credentials**
+- ❌ **Commits from unauthorized users will NOT trigger Vercel deployment**
+- ✅ **Always verify git config before committing**
+- ✅ **Production-only development - no local testing**
+
+### **Auto-Deployment Verification**
+- Vercel deploys frontend automatically from main branch
+- Render deploys backend automatically from main branch
+- Check deployment status in respective dashboards
+
+---
+
 ## 📋 **Repository Structure**
 
 ### **🌐 DeedPro Repository: `easydeed/new-front` (THIS REPO)**
