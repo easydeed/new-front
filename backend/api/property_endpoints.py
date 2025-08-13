@@ -298,12 +298,68 @@ async def get_cached_properties(
 
 
 @router.post("/search")
-async def search_properties(
+async def titlepoint_property_search(
+    request: PropertySearchRequest,
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    TitlePoint property search endpoint for Google Places integration
+    Searches TitlePoint for APN, brief legal description, and current owners
+    """
+    try:
+        # Check cache first
+        cache_key = request.fullAddress
+        cached_data = await get_cached_titlepoint_data(user_id, cache_key)
+        if cached_data:
+            return cached_data
+        
+        # Get TitlePoint service
+        _, _, titlepoint_service = get_services()
+        
+        if not titlepoint_service:
+            return {
+                'success': False,
+                'message': 'TitlePoint service not available. Please enter details manually.',
+                'fullAddress': request.fullAddress,
+                'county': request.city or '',
+                'city': request.city or '',
+                'state': request.state or 'CA',
+                'zip': request.zip or ''
+            }
+        
+        # Call TitlePoint service with the address data
+        result = await titlepoint_service.enrich_property(request.dict())
+        
+        # Cache the result
+        if result.get('success'):
+            await cache_titlepoint_data(user_id, cache_key, result)
+        
+        # Log API usage
+        await log_api_usage(user_id, "titlepoint", "property_search", request.dict(), result)
+        
+        return result
+        
+    except Exception as e:
+        # Log error and return graceful fallback
+        await log_api_usage(user_id, "titlepoint", "property_search", request.dict(), None, str(e))
+        return {
+            'success': False,
+            'message': f'Property search failed: {str(e)}. Please enter details manually.',
+            'fullAddress': request.fullAddress,
+            'county': request.city or '',
+            'city': request.city or '',
+            'state': request.state or 'CA',
+            'zip': request.zip or ''
+        }
+
+
+@router.get("/search-legacy")
+async def search_properties_legacy(
     query: str,
     user_id: str = Depends(get_current_user_id)
 ):
     """
-    Search for properties with both cached and live results
+    Search for properties with both cached and live results (legacy endpoint)
     """
     try:
         results = {
@@ -508,6 +564,57 @@ async def log_api_usage(user_id: str, service: str, method: str, request_data: D
         
     except Exception as e:
         print(f"API logging failed: {e}")
+
+
+async def get_cached_titlepoint_data(user_id: str, address: str) -> Optional[Dict]:
+    """Get cached TitlePoint data for faster responses"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT data FROM property_cache 
+            WHERE user_id = %s 
+              AND address = %s 
+              AND created_at > NOW() - INTERVAL '24 hours'
+            ORDER BY created_at DESC 
+            LIMIT 1
+        """, (user_id, address))
+        
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if result:
+            return result['data']
+        return None
+        
+    except Exception as e:
+        print(f"TitlePoint cache lookup failed: {e}")
+        return None
+
+
+async def cache_titlepoint_data(user_id: str, address: str, data: Dict):
+    """Cache TitlePoint results for 24 hours"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO property_cache (user_id, address, data, created_at)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (user_id, address) 
+            DO UPDATE SET 
+                data = EXCLUDED.data,
+                created_at = EXCLUDED.created_at
+        """, (user_id, address, json.dumps(data), datetime.now()))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+    except Exception as e:
+        print(f"TitlePoint cache storage failed: {e}")
 
 
 async def log_search_history(user_id: str, query: str, results: Dict):

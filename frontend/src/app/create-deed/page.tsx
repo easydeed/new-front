@@ -921,6 +921,53 @@ export default function CreateDeed() {
     }
   };
 
+  // Handle TitlePoint property data population
+  const handlePropertyDataPopulate = (tpData: any) => {
+    if (tpData.success) {
+      // Update form data with TitlePoint results
+      setFormData(prev => ({
+        ...prev,
+        propertySearch: tpData.fullAddress || prev.propertySearch,
+        apn: tpData.apn || prev.apn,
+        county: tpData.county || prev.county,
+        city: tpData.city || prev.city,
+        state: tpData.state || prev.state,
+        zip: tpData.zip || prev.zip,
+        legalDescription: tpData.brief_legal || prev.legalDescription,
+        grantorName: tpData.current_owner_primary || prev.grantorName,
+        // Add secondary owner if available
+        secondaryOwner: tpData.current_owner_secondary || ''
+      }));
+      
+      // Clear any previous error
+      setAddressError('');
+      
+      // Show success message
+      setPropertySuggestions([{
+        type: 'success',
+        message: '✅ Property data successfully enriched with TitlePoint information',
+        confidence: 0.95,
+        property: {
+          property_address: tpData.fullAddress,
+          legal_description: tpData.brief_legal,
+          apn: tpData.apn,
+          county: tpData.county
+        }
+      }]);
+      
+      // Auto-dismiss success message after 5 seconds
+      setTimeout(() => setPropertySuggestions([]), 5000);
+      
+      // Optionally trigger AI suggestions with the new data
+      if (enhancedProfile?.ai_enabled) {
+        getAISuggestions();
+      }
+    } else {
+      // Handle error case
+      setAddressError(tpData.message || 'No property data found. Please enter details manually.');
+    }
+  };
+
   // Handle Google Places selection with full integration
   const handleGooglePlacesSelect = async (propertyData: any) => {
     try {
@@ -1311,15 +1358,11 @@ export default function CreateDeed() {
                 
                 <div className="form-grid" style={{ maxWidth: '1000px', margin: '0 auto' }}>
                   <div className="form-group col-span-2">
-                    <Tooltip text="Start typing a property address and select from Google Places suggestions. The system will automatically validate and enrich the property data using SiteX and TitlePoint.">
+                    <Tooltip text="Start typing a property address and select from Google Places suggestions. Click Search to get TitlePoint data including APN, legal description, and current owners.">
                       <label className="form-label">Property Address 🌐✨</label>
                     </Tooltip>
                     <PropertySearch
-                      onSelect={handleGooglePlacesSelect}
-                      onError={(error) => setAddressError(error)}
-                      placeholder="Start typing property address..."
-                      value={formData.propertySearch}
-                      className="w-full"
+                      onPopulate={handlePropertyDataPopulate}
                     />
                     {addressError && (
                       <div style={{ marginTop: '8px', color: '#b91c1c', fontSize: '0.95rem' }}>{addressError}</div>

@@ -33,33 +33,49 @@ class TitlePointService:
         self.max_wait_seconds = 300  # 5 minutes max wait
         self.poll_interval = 10  # Poll every 10 seconds
     
-    async def enrich_property(self, state: str, county: str, apn: str = None, address: str = None) -> Dict:
+    async def enrich_property(self, data: Dict) -> Dict:
         """
         Enrich property data using TitlePoint services
         
         Args:
-            state: State abbreviation (e.g., 'CA')
-            county: County name
-            apn: Assessor's Parcel Number (optional)
-            address: Full property address (optional)
+            data: Dictionary containing property information from Google Places
+                - fullAddress: Complete address
+                - street: Street address  
+                - city: City name
+                - state: State abbreviation (e.g., 'CA')
+                - county: County name
+                - zip: ZIP code
             
         Returns:
-            Enriched property data including vesting, tax, and deed information
+            Standardized property data for deed generation:
+            {
+                'success': True/False,
+                'apn': 'Assessor Parcel Number',
+                'brief_legal': 'Brief legal description',
+                'current_owner_primary': 'Primary owner name',
+                'current_owner_secondary': 'Secondary owner name' (optional),
+                'fullAddress': 'Full formatted address',
+                'county': 'County name',
+                'city': 'City name',
+                'state': 'State abbreviation',
+                'zip': 'ZIP code',
+                'message': 'Error message if failed'
+            }
         """
-        if not apn and not address:
-            raise HTTPException(
-                status_code=400,
-                detail="Either APN or address must be provided"
-            )
-        
         try:
-            # Determine service type and parameters
-            if apn:
-                service_type = "TitlePoint.Geo.Tax"
-                parameters = f"Tax.APN={apn};General.AutoSearchTaxes=true"
-            else:
-                service_type = "TitlePoint.Geo.LegalVesting"
-                parameters = f"LegalVesting.FullAddress={address}"
+            state = data.get('state', 'CA')
+            county = data.get('county', '')
+            full_address = data.get('fullAddress', '')
+            
+            if not full_address:
+                return {
+                    'success': False,
+                    'message': 'Full address is required for TitlePoint lookup'
+                }
+            
+            # Use TitlePoint.Geo.LegalVesting service for property data
+            service_type = "TitlePoint.Geo.LegalVesting"
+            parameters = f"LegalVesting.FullAddress={full_address}"
             
             # Create service request
             request_id = await self._create_service_request(
@@ -70,16 +86,22 @@ class TitlePointService:
             )
             
             # Wait for completion and get results
-            result_data = await self._wait_for_completion(request_id)
+            result_xml = await self._wait_for_completion(request_id)
             
-            # Parse and return enriched data
-            return self._parse_titlepoint_result(result_data, state, county, apn, address)
+            # Parse and return formatted data
+            return self._parse_titlepoint_result(result_xml, data)
             
         except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail=f"TitlePoint enrichment error: {str(e)}"
-            )
+            # Return error response instead of raising exception
+            return {
+                'success': False,
+                'message': f"TitlePoint enrichment error: {str(e)}",
+                'fullAddress': data.get('fullAddress', ''),
+                'county': data.get('county', ''),
+                'city': data.get('city', ''),
+                'state': data.get('state', 'CA'),
+                'zip': data.get('zip', '')
+            }
     
     async def _create_service_request(self, state: str, county: str, service_type: str, parameters: str) -> str:
         """Create a TitlePoint service request"""
@@ -196,41 +218,89 @@ class TitlePointService:
             requestID=request_id
         )
     
-    def _parse_titlepoint_result(self, result_xml: str, state: str, county: str, apn: str = None, address: str = None) -> Dict:
-        """Parse TitlePoint XML result into standardized format"""
+    def _parse_titlepoint_result(self, result_xml: str, input_data: Dict) -> Dict:
+        """Parse TitlePoint XML result into standardized format for frontend"""
         try:
             # Parse XML to dictionary
             data = xmltodict.parse(result_xml)
             
-            # Initialize result structure
-            parsed_result = {
-                'state': state,
-                'county': county,
-                'apn': apn,
-                'address': address,
-                'titlepoint_enriched': True,
-                'raw_data': data  # Store raw data for debugging
+            # Extract key fields according to user requirements
+            # Based on TitlePoint API research, look for these paths:
+            apn = self._extract_field(data, [
+                'PropertyProfile.APN',
+                'Property.APN', 
+                'TaxInfo.APN',
+                'GeneralInfo.APN'
+            ])
+            
+            brief_legal = self._extract_field(data, [
+                'PropertyProfile.LegalBriefDescription',
+                'Property.LegalDescription',
+                'LegalDescription',
+                'PropertyInfo.LegalDescription'
+            ])
+            
+            # Extract current owners from vesting section
+            primary_owner = self._extract_field(data, [
+                'PropertyProfile.OwnerName.Primary',
+                'Vesting.PrimaryOwner',
+                'OwnerInfo.Primary',
+                'Owner.Primary'
+            ])
+            
+            secondary_owner = self._extract_field(data, [
+                'PropertyProfile.OwnerName.Secondary', 
+                'Vesting.SecondaryOwner',
+                'OwnerInfo.Secondary',
+                'Owner.Secondary'
+            ])
+            
+            # Return standardized format
+            return {
+                'success': True,
+                'apn': apn or '',
+                'brief_legal': brief_legal or '',
+                'current_owner_primary': primary_owner or '',
+                'current_owner_secondary': secondary_owner or '',
+                'fullAddress': input_data.get('fullAddress', ''),
+                'county': input_data.get('county', ''),
+                'city': input_data.get('city', ''),
+                'state': input_data.get('state', 'CA'),
+                'zip': input_data.get('zip', ''),
+                'raw_data': data  # Store for debugging if needed
             }
             
-            # Extract property information
-            self._extract_property_info(data, parsed_result)
-            
-            # Extract tax information
-            self._extract_tax_info(data, parsed_result)
-            
-            # Extract vesting information
-            self._extract_vesting_info(data, parsed_result)
-            
-            # Extract deed information
-            self._extract_deed_info(data, parsed_result)
-            
-            return parsed_result
-            
         except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Failed to parse TitlePoint result: {str(e)}"
-            )
+            # Return error response with fallback to input data
+            return {
+                'success': False,
+                'message': f"Failed to parse TitlePoint result: {str(e)}",
+                'apn': '',
+                'brief_legal': '',
+                'current_owner_primary': '',
+                'current_owner_secondary': '',
+                'fullAddress': input_data.get('fullAddress', ''),
+                'county': input_data.get('county', ''),
+                'city': input_data.get('city', ''),
+                'state': input_data.get('state', 'CA'),
+                'zip': input_data.get('zip', '')
+            }
+    
+    def _extract_field(self, data: Dict, paths: list) -> Optional[str]:
+        """Extract a field using multiple possible XML paths"""
+        for path in paths:
+            current = data
+            for key in path.split('.'):
+                if isinstance(current, dict) and key in current:
+                    current = current[key]
+                else:
+                    current = None
+                    break
+            
+            if current and isinstance(current, (str, int, float)):
+                return str(current).strip()
+        
+        return None
     
     def _extract_property_info(self, data: Dict, result: Dict):
         """Extract general property information"""
