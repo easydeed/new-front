@@ -25,7 +25,7 @@ from auth import (
 
 load_dotenv()
 
-app = FastAPI(title="DeedPro API", version="1.0.0")
+app = FastAPI(title="DeedPro API", version="2.0.0-dynamic-wizard")
 # Updated for new-front monorepo with pricing management
 
 # Include AI assistance router
