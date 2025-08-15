@@ -2,12 +2,54 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../../components/Sidebar';
 import PreviewDataDebugger from '../../components/PreviewDataDebugger';
 import DeedPreviewPanel from '../../components/DeedPreviewPanel';
 import WizardFlowManager from '../../components/WizardFlowManager';
 import PropertySearch from '../../components/PropertySearch';
+import DynamicWizard from './dynamic-wizard';
 import '../../styles/dashboard.css';
+
+// Document types configuration
+const DOC_TYPES = {
+  grant_deed: {
+    label: 'Grant Deed',
+    fields: ['consideration'],
+    buttons: ['vesting', 'grant_deed', 'tax_roll'],
+    required: ['grantee', 'consideration']
+  },
+  quit_claim: {
+    label: 'Quitclaim Deed', 
+    fields: [],
+    buttons: ['vesting'],
+    required: ['grantee']
+  },
+  interspousal_transfer: {
+    label: 'Interspousal Transfer',
+    fields: ['spouse'],
+    buttons: ['vesting'],
+    required: ['spouse']
+  },
+  warranty_deed: {
+    label: 'Warranty Deed',
+    fields: ['covenants'],
+    buttons: ['grant_deed'],
+    required: ['grantee', 'covenants']
+  },
+  tax_deed: {
+    label: 'Tax Deed',
+    fields: ['buyer'],
+    buttons: ['tax_roll'],
+    required: ['buyer']
+  },
+  property_profile: {
+    label: 'Property Profile Report',
+    fields: [],
+    buttons: ['vesting', 'grant_deed', 'tax_roll'],
+    required: []
+  }
+};
 
 // Tooltip Component for iPhone-like help text
 const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }) => {
@@ -219,6 +261,10 @@ export default function CreateDeed() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
+  const [docType, setDocType] = useState('');
+  const [verifiedData, setVerifiedData] = useState({});
+  const [customPrompt, setCustomPrompt] = useState('');
+  const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     deedType: '',
     propertySearch: '',
@@ -301,29 +347,124 @@ export default function CreateDeed() {
   };
   const display = (val?: string) => (val && String(val).trim().length ? val : '—');
 
+  // Fast-forward logic
+  const checkFastForward = (data: any) => {
+    if (!docType || !DOC_TYPES[docType as keyof typeof DOC_TYPES]) return false;
+    
+    const required = DOC_TYPES[docType as keyof typeof DOC_TYPES].required;
+    const filled = required.every(field => data[field] && data[field].trim());
+    
+    return filled && data.fastForward;
+  };
+
+  // Handle property search completion
+  const handlePropertyVerified = (data: any) => {
+    setVerifiedData(data);
+    setFormData(prev => ({ ...prev, ...data }));
+    setCurrentStep(2);
+  };
+
+  // Handle doc type selection
+  const handleDocTypeChange = (type: string) => {
+    setDocType(type);
+    setFormData(prev => ({ ...prev, deedType: type }));
+    setErrors({});
+    
+    // Auto-advance for property profile
+    if (type === 'property_profile') {
+      handleButtonPrompt('all');
+    }
+  };
+
+  // Handle button prompts
+  const handleButtonPrompt = async (promptType: string) => {
+    if (!docType) return;
+    
+    setLoading(true);
+    setErrors({});
+
+    try {
+      const response = await fetch('/api/ai/assist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: promptType,
+          docType,
+          verifiedData,
+          currentData: formData
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.error) {
+        setErrors({ prompt: result.error });
+        return;
+      }
+
+      setFormData(prev => ({ ...prev, ...result }));
+      
+      // Check for fast-forward
+      if (checkFastForward(result)) {
+        setCurrentStep(3);
+      }
+      
+    } catch (error) {
+      setErrors({ prompt: 'Failed to fetch data. Please try again.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle custom prompt
+  const handleCustomPrompt = async () => {
+    if (!customPrompt.trim()) return;
+    
+    setLoading(true);
+    setErrors({});
+
+    try {
+      const response = await fetch('/api/ai/assist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: customPrompt,
+          docType,
+          verifiedData,
+          currentData: formData
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.error) {
+        setErrors({ custom: result.error });
+        return;
+      }
+
+      setFormData(prev => ({ ...prev, ...result }));
+      setCustomPrompt('');
+      
+    } catch (error) {
+      setErrors({ custom: 'Failed to process prompt. Please try again.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const steps = [
     { 
       id: 1, 
-      title: 'Deed Type', 
-      icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/></svg>
-    },
-    { 
-      id: 2, 
-      title: 'Property Info', 
+      title: 'Address', 
       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
     },
     { 
+      id: 2, 
+      title: 'Doc Type & Data', 
+      icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/></svg>
+    },
+    { 
       id: 3, 
-      title: 'Parties', 
-      icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12,5.5A3.5,3.5 0 0,1 15.5,9A3.5,3.5 0 0,1 12,12.5A3.5,3.5 0 0,1 8.5,9A3.5,3.5 0 0,1 12,5.5M5,8C5.56,8 6.08,8.15 6.53,8.42C6.38,9.85 6.8,11.27 7.66,12.38C7.16,13.34 6.16,14 5,14A3,3 0 0,1 2,11A3,3 0 0,1 5,8M19,8A3,3 0 0,1 22,11A3,3 0 0,1 19,14C17.84,14 16.84,13.34 16.34,12.38C17.2,11.27 17.62,9.85 17.47,8.42C17.92,8.15 18.44,8 19,8M5.5,18.25C5.5,16.18 8.41,14.5 12,14.5C15.59,14.5 18.5,16.18 18.5,18.25V20H5.5V18.25M0,20V18.5C0,17.11 1.89,15.94 4.45,15.6C3.86,16.28 3.5,17.22 3.5,18.25V20H0M24,20H20.5V18.25C20.5,17.22 20.14,16.28 19.55,15.6C22.11,15.94 24,17.11 24,18.5V20Z"/></svg>
-    },
-    { 
-      id: 4, 
-      title: 'Details', 
-      icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7,15H9C9,16.08 10.37,17 12,17C13.63,17 15,16.08 15,15C15,13.9 13.96,13.5 11.76,12.97C9.64,12.44 7,11.78 7,9C7,7.21 8.47,5.69 10.5,5.18V3H13.5V5.18C15.53,5.69 17,7.21 17,9H15C15,7.92 13.63,7 12,7C10.37,7 9,7.92 9,9C9,10.1 10.04,10.5 12.24,11.03C14.36,11.56 17,12.22 17,15C17,16.79 15.53,18.31 13.5,18.82V21H10.5V18.82C8.47,18.31 7,16.79 7,15Z"/></svg>
-    },
-    { 
-      id: 5, 
       title: 'Review', 
       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/></svg>
     }
@@ -1306,8 +1447,9 @@ export default function CreateDeed() {
 
 
 
-          {/* Step Content */}
+          {/* Step Content - New Dynamic 3-Step System */}
           <div className="form-steps">
+            <AnimatePresence mode="wait">
             
             {/* Step 1: Deed Type Selection */}
             <div className={`form-step ${currentStep === 1 ? 'active' : ''}`}>
