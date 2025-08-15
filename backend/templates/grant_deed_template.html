@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grant Deed</title>
+    <style>
+        body {
+            font-family: 'Times New Roman', serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            margin: 1in;
+            color: #000;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .title {
+            font-size: 16pt;
+            font-weight: bold;
+            text-decoration: underline;
+            margin-bottom: 20px;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .field {
+            display: inline-block;
+            min-width: 200px;
+            border-bottom: 1px solid #000;
+            margin: 0 5px;
+        }
+        .signature-line {
+            border-bottom: 1px solid #000;
+            width: 300px;
+            display: inline-block;
+            margin: 10px 0;
+        }
+        .notary-section {
+            margin-top: 40px;
+            border: 2px solid #000;
+            padding: 20px;
+        }
+        .checkbox {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            border: 1px solid #000;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">GRANT DEED</div>
+        <p>Assessor's Parcel Number: <span class="field">{{ apn or 'TBD' }}</span></p>
+    </div>
+
+    <div class="section">
+        <p><strong>GRANTOR(S):</strong> <span class="field">{{ grantorName or 'TBD' }}</span></p>
+        <p><strong>GRANTEE(S):</strong> <span class="field">{{ granteeName or 'TBD' }}</span></p>
+    </div>
+
+    <div class="section">
+        <p>For valuable consideration, receipt of which is hereby acknowledged, 
+        <strong>{{ grantorName or 'GRANTOR' }}</strong>, hereby GRANTS to 
+        <strong>{{ granteeName or 'GRANTEE' }}</strong>, the following described real property 
+        situated in the County of <strong>{{ county or 'TBD' }}</strong>, State of California:</p>
+    </div>
+
+    <div class="section">
+        <p><strong>PROPERTY DESCRIPTION:</strong></p>
+        <p>{{ property_description or 'TBD' }}</p>
+    </div>
+
+    <div class="section">
+        <p><strong>CONSIDERATION:</strong> {{ formatted_consideration or '$TBD' }}</p>
+    </div>
+
+    <div class="section">
+        <p><strong>VESTING:</strong> {{ vesting or 'TBD' }}</p>
+    </div>
+
+    <div class="section">
+        <p><strong>DATE:</strong> {{ formatted_date or 'TBD' }}</p>
+    </div>
+
+    <div class="section">
+        <p><strong>GRANTOR SIGNATURE:</strong></p>
+        <br>
+        <div class="signature-line"></div>
+        <br>
+        <p>{{ grantorName or 'GRANTOR NAME' }}</p>
+    </div>
+
+    {% if recordingRequestedBy %}
+    <div class="section">
+        <p><strong>Recording Requested By:</strong> {{ recordingRequestedBy }}</p>
+    </div>
+    {% endif %}
+
+    {% if mailTo %}
+    <div class="section">
+        <p><strong>When Recorded Mail To:</strong> {{ mailTo }}</p>
+    </div>
+    {% endif %}
+
+    <div class="notary-section">
+        <p><strong>STATE OF CALIFORNIA</strong></p>
+        <p><strong>COUNTY OF {{ county|upper or 'TBD' }}</strong></p>
+        <br>
+        <p>On ________________, before me, ________________________________, personally appeared 
+        {{ grantorName or 'TBD' }}, who proved to me on the basis of satisfactory evidence to be the person(s) 
+        whose name(s) is/are subscribed to the within instrument and acknowledged to me that he/she/they 
+        executed the same in his/her/their authorized capacity, and that by his/her/their signature(s) on 
+        the instrument the person(s), or the entity upon behalf of which the person(s) acted, executed the instrument.</p>
+        <br>
+        <p>I certify under PENALTY OF PERJURY under the laws of the State of California that the foregoing 
+        paragraph is true and correct.</p>
+        <br>
+        <p>WITNESS my hand and official seal.</p>
+        <br>
+        <div class="signature-line"></div>
+        <br>
+        <p>Signature of Notary Public</p>
+    </div>
+</body>
+</html>

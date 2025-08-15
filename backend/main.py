@@ -43,6 +43,34 @@ except Exception as e:
     print(f"❌ Error loading property endpoints: {e}")
     print("⚠️ Core functionality will work without property integration")
 
+# Include new dynamic wizard API routers
+try:
+    from api.ai_assist import router as ai_assist_router
+    app.include_router(ai_assist_router, prefix="/api/ai", tags=["AI Assistant"])
+    print("✅ AI assist endpoints loaded successfully")
+except ImportError as e:
+    print(f"⚠️ AI assist endpoints not available: {e}")
+except Exception as e:
+    print(f"❌ Error loading AI assist endpoints: {e}")
+
+try:
+    from api.property_search import router as property_search_router
+    app.include_router(property_search_router, prefix="/api/property", tags=["Property Search"])
+    print("✅ Property search endpoints loaded successfully")
+except ImportError as e:
+    print(f"⚠️ Property search endpoints not available: {e}")
+except Exception as e:
+    print(f"❌ Error loading property search endpoints: {e}")
+
+try:
+    from api.generate_deed import router as generate_deed_router
+    app.include_router(generate_deed_router, prefix="/api", tags=["Document Generation"])
+    print("✅ Document generation endpoints loaded successfully")
+except ImportError as e:
+    print(f"⚠️ Document generation endpoints not available: {e}")
+except Exception as e:
+    print(f"❌ Error loading document generation endpoints: {e}")
+
 # Allow CORS for local dev and frontend
 app.add_middleware(
     CORSMiddleware,

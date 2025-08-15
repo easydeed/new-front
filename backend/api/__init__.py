@@ -1,1 +1,1 @@
-# API package for property integration endpoints
+# API modules for DeedPro dynamic wizard
