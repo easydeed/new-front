@@ -87,6 +87,21 @@ async def handle_button_prompt(request: PromptRequest, current_user: dict) -> Pr
                 'exemptions': tax_data.get('exemptions', [])
             })
             
+        elif request.type == "chain_of_title":
+            # Pull chain of title (ownership history)
+            chain_data = await title_service.get_chain_of_title(
+                address=request.verifiedData.get('address'),
+                apn=request.verifiedData.get('apn')
+            )
+            result_data.update({
+                'chainOfTitle': chain_data.get('chain_of_title', []),
+                'ownershipDuration': chain_data.get('ownership_duration', []),
+                'titleIssues': chain_data.get('title_issues', []),
+                'totalTransfers': chain_data.get('total_transfers', 0),
+                'currentOwner': chain_data.get('chain_of_title', [{}])[-1].get('grantee', '') if chain_data.get('chain_of_title') else '',
+                'lastTransferDate': chain_data.get('chain_of_title', [{}])[-1].get('date', '') if chain_data.get('chain_of_title') else ''
+            })
+            
         elif request.type == "all":
             # Pull all available data
             all_data = await title_service.get_comprehensive_report(
@@ -120,6 +135,17 @@ async def handle_custom_prompt(request: PromptRequest, current_user: dict) -> Pr
                 apn=request.verifiedData.get('apn')
             )
             result_data.update(vesting_data)
+            
+        if 'chain_of_title' in prompt_analysis['actions']:
+            chain_data = await title_service.get_chain_of_title(
+                address=request.verifiedData.get('address'),
+                apn=request.verifiedData.get('apn')
+            )
+            result_data.update({
+                'chainOfTitle': chain_data.get('chain_of_title', []),
+                'ownershipDuration': chain_data.get('ownership_duration', []),
+                'titleIssues': chain_data.get('title_issues', [])
+            })
             
         if 'ownership' in prompt_analysis['actions']:
             ownership_data = await title_service.get_ownership_chain(
@@ -155,6 +181,8 @@ async def analyze_custom_prompt(prompt: str, doc_type: str) -> Dict[str, Any]:
         
         if any(word in prompt_lower for word in ['vesting', 'title', 'ownership']):
             actions.append('vesting')
+        if any(word in prompt_lower for word in ['chain of title', 'ownership history', 'deed history', 'transfer history']):
+            actions.append('chain_of_title')
         if any(word in prompt_lower for word in ['owner', 'chain', 'history']):
             actions.append('ownership')
         if any(word in prompt_lower for word in ['lien', 'encumbrance', 'debt']):

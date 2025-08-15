@@ -4,13 +4,14 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 // Removed framer-motion to fix build issues
 import Sidebar from '../../components/Sidebar';
+import PropertySearch from '../../components/PropertySearch';
 
 // Document types configuration
 const DOC_TYPES = {
   grant_deed: {
     label: 'Grant Deed',
     fields: ['consideration'],
-    buttons: ['vesting', 'grant_deed', 'tax_roll'],
+    buttons: ['vesting', 'grant_deed', 'tax_roll', 'chain_of_title'],
     required: ['granteeName', 'consideration']
   },
   quit_claim: {
@@ -28,7 +29,7 @@ const DOC_TYPES = {
   warranty_deed: {
     label: 'Warranty Deed',
     fields: ['covenants'],
-    buttons: ['grant_deed'],
+    buttons: ['grant_deed', 'chain_of_title'],
     required: ['granteeName', 'covenants']
   },
   tax_deed: {
@@ -40,7 +41,7 @@ const DOC_TYPES = {
   property_profile: {
     label: 'Property Profile Report',
     fields: [],
-    buttons: ['vesting', 'grant_deed', 'tax_roll'],
+    buttons: ['vesting', 'grant_deed', 'tax_roll', 'chain_of_title'],
     required: []
   }
 };
@@ -66,32 +67,22 @@ export default function CreateDeed() {
     consideration: '',
     spouse: '',
     covenants: '',
-    buyer: ''
+    buyer: '',
+    chainOfTitle: [],
+    titleIssues: [],
+    ownershipDuration: []
   });
   const router = useRouter();
 
-  // Handle property search completion
-  const handlePropertyVerified = async (address: string) => {
-    if (!address.trim()) return;
-    
-    setLoading(true);
-    try {
-      const response = await fetch('/api/property/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address })
-      });
-
-      const result = await response.json();
-      setVerifiedData(result);
-      setFormData(prev => ({ ...prev, ...result, propertySearch: address }));
-      setCurrentStep(2);
-    } catch (error) {
-      console.error('Property search failed:', error);
-      setErrors({ property: 'Property search failed. Please try again.' });
-    } finally {
-      setLoading(false);
-    }
+  // Handle property search completion from PropertySearch component
+  const handlePropertyVerified = (propertyData: any) => {
+    setVerifiedData(propertyData);
+    setFormData(prev => ({ 
+      ...prev, 
+      ...propertyData,
+      propertySearch: propertyData.fullAddress || propertyData.address
+    }));
+    setCurrentStep(2);
   };
 
   // Handle doc type selection
@@ -303,42 +294,9 @@ export default function CreateDeed() {
                   Enter the property address to begin document creation
                 </p>
                 
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <input
-                    type="text"
-                    value={formData.propertySearch}
-                    onChange={(e) => setFormData(prev => ({ ...prev, propertySearch: e.target.value }))}
-                    placeholder="Enter property address..."
-                    style={{
-                      flex: 1,
-                      padding: '0.75rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '0.5rem',
-                      fontSize: '1rem'
-                    }}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        handlePropertyVerified(formData.propertySearch);
-                      }
-                    }}
-                  />
-                  <button
-                    onClick={() => handlePropertyVerified(formData.propertySearch)}
-                    disabled={loading || !formData.propertySearch.trim()}
-                    style={{
-                      padding: '0.75rem 1.5rem',
-                      backgroundColor: '#3b82f6',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '0.5rem',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      opacity: loading || !formData.propertySearch.trim() ? 0.5 : 1
-                    }}
-                  >
-                    {loading ? 'Searching...' : 'Search'}
-                  </button>
-                </div>
+                <PropertySearch 
+                  onPopulate={handlePropertyVerified}
+                />
                 
                 {errors.property && (
                   <p style={{ color: '#dc2626', fontSize: '0.875rem', marginTop: '0.5rem' }}>
@@ -415,6 +373,7 @@ export default function CreateDeed() {
                           {buttonType === 'vesting' && 'Pull Vesting'}
                           {buttonType === 'grant_deed' && 'Pull Grant History'}
                           {buttonType === 'tax_roll' && 'Pull Tax Roll'}
+                          {buttonType === 'chain_of_title' && 'Pull Chain of Title'}
                           {buttonType === 'all' && 'Pull All Data'}
                         </button>
                       ))}
@@ -538,6 +497,78 @@ export default function CreateDeed() {
                     />
                   </div>
                 ))}
+
+                {/* Chain of Title Display */}
+                {formData.chainOfTitle && formData.chainOfTitle.length > 0 && (
+                  <div style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: '#f9fafb', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }}>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem', color: '#374151' }}>
+                      📜 Chain of Title ({formData.chainOfTitle.length} transfers)
+                    </h3>
+                    
+                    {/* Title Issues Alert */}
+                    {formData.titleIssues && formData.titleIssues.length > 0 && (
+                      <div style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#fef3c7', border: '1px solid #f59e0b', borderRadius: '0.5rem' }}>
+                        <h4 style={{ color: '#92400e', fontWeight: '600', marginBottom: '0.5rem' }}>⚠️ Title Issues Found:</h4>
+                        <ul style={{ color: '#92400e', fontSize: '0.875rem', listStyleType: 'disc', paddingLeft: '1.5rem' }}>
+                          {formData.titleIssues.map((issue, index) => (
+                            <li key={index}>{issue}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {/* Chain of Title Timeline */}
+                    <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                      {formData.chainOfTitle.map((transfer, index) => (
+                        <div key={index} style={{
+                          marginBottom: '0.75rem',
+                          padding: '0.75rem',
+                          backgroundColor: 'white',
+                          borderRadius: '0.5rem',
+                          border: '1px solid #d1d5db',
+                          borderLeft: index === formData.chainOfTitle.length - 1 ? '4px solid #10b981' : '4px solid #6b7280'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                            <span style={{ fontWeight: '600', color: '#374151' }}>
+                              {transfer.date || 'Unknown Date'}
+                            </span>
+                            <span style={{ 
+                              fontSize: '0.75rem', 
+                              padding: '0.25rem 0.5rem', 
+                              backgroundColor: index === formData.chainOfTitle.length - 1 ? '#d1fae5' : '#f3f4f6',
+                              color: index === formData.chainOfTitle.length - 1 ? '#047857' : '#6b7280',
+                              borderRadius: '0.25rem'
+                            }}>
+                              {transfer.deed_type || 'Unknown Deed Type'}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                            <div><strong>From:</strong> {transfer.grantor || 'Unknown'}</div>
+                            <div><strong>To:</strong> {transfer.grantee || 'Unknown'}</div>
+                            {transfer.consideration && (
+                              <div><strong>Consideration:</strong> {transfer.consideration}</div>
+                            )}
+                            {transfer.document_number && (
+                              <div><strong>Doc #:</strong> {transfer.document_number}</div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Ownership Duration Summary */}
+                    {formData.ownershipDuration && formData.ownershipDuration.length > 0 && (
+                      <div style={{ marginTop: '1rem', fontSize: '0.875rem', color: '#6b7280' }}>
+                        <strong>Ownership Summary:</strong>
+                        {formData.ownershipDuration.slice(-3).map((duration, index) => (
+                          <div key={index} style={{ marginLeft: '1rem' }}>
+                            • {duration.owner}: {duration.duration_years ? `${duration.duration_years} years` : 'Current owner'}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Standard fields that all deeds need */}
                 <div style={{ marginBottom: '1rem' }}>

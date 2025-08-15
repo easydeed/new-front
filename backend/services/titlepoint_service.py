@@ -435,3 +435,218 @@ class TitlePointService:
             return int(float(value))
         except (ValueError, TypeError):
             return None
+    
+    async def get_chain_of_title(self, address: str, apn: str = None, state: str = "CA") -> Dict:
+        """
+        Get complete chain of title (ownership history) for a property
+        
+        Returns:
+            {
+                'success': True/False,
+                'chain_of_title': [
+                    {
+                        'date': 'YYYY-MM-DD',
+                        'grantor': 'Previous owner name',
+                        'grantee': 'New owner name',
+                        'deed_type': 'Grant Deed, Quitclaim, etc.',
+                        'document_number': 'Recording document number',
+                        'consideration': 'Sale price or consideration',
+                        'legal_description': 'Property legal description'
+                    },
+                    ...
+                ],
+                'ownership_duration': [
+                    {
+                        'owner': 'Owner name',
+                        'start_date': 'YYYY-MM-DD',
+                        'end_date': 'YYYY-MM-DD',
+                        'duration_years': 5.2
+                    }
+                ],
+                'title_issues': [
+                    'Any potential title issues found'
+                ]
+            }
+        """
+        try:
+            if not address and not apn:
+                return {
+                    'success': False,
+                    'message': 'Address or APN is required for chain of title lookup'
+                }
+            
+            # Use TitlePoint.Geo.DeedHistory service for deed chain
+            service_type = "TitlePoint.Geo.DeedHistory"
+            parameters = f"DeedHistory.FullAddress={address}" if address else f"DeedHistory.APN={apn}"
+            
+            # Create service request
+            request_id = await self._create_service_request(
+                state=state,
+                county="",  # TitlePoint will determine county from address
+                service_type=service_type,
+                parameters=parameters
+            )
+            
+            # Wait for completion and get results
+            result_xml = await self._wait_for_completion(request_id)
+            
+            # Parse chain of title from XML
+            return self._parse_chain_of_title(result_xml)
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'message': f"Chain of title lookup failed: {str(e)}",
+                'chain_of_title': [],
+                'ownership_duration': [],
+                'title_issues': []
+            }
+    
+    def _parse_chain_of_title(self, result_xml: str) -> Dict:
+        """Parse TitlePoint deed history XML into chain of title format"""
+        try:
+            data = xmltodict.parse(result_xml)
+            
+            # Extract deed transactions - paths vary by TitlePoint response format
+            deed_transactions = self._extract_deed_transactions(data)
+            
+            # Sort by date (oldest first)
+            deed_transactions.sort(key=lambda x: x.get('date', ''))
+            
+            # Calculate ownership durations
+            ownership_duration = self._calculate_ownership_duration(deed_transactions)
+            
+            # Identify potential title issues
+            title_issues = self._identify_title_issues(deed_transactions)
+            
+            return {
+                'success': True,
+                'chain_of_title': deed_transactions,
+                'ownership_duration': ownership_duration,
+                'title_issues': title_issues,
+                'total_transfers': len(deed_transactions)
+            }
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'message': f"Failed to parse chain of title: {str(e)}",
+                'chain_of_title': [],
+                'ownership_duration': [],
+                'title_issues': []
+            }
+    
+    def _extract_deed_transactions(self, data: Dict) -> list:
+        """Extract deed transactions from TitlePoint XML"""
+        transactions = []
+        
+        # Common paths for deed history in TitlePoint responses
+        deed_paths = [
+            'TitlePointResult.DeedHistory.Transaction',
+            'DeedHistory.Transaction',
+            'PropertyHistory.Deed',
+            'TransactionHistory.Transaction'
+        ]
+        
+        deed_data = self._find_data_by_paths(data, deed_paths)
+        
+        if deed_data:
+            # Handle both single transaction and array of transactions
+            if isinstance(deed_data, list):
+                deed_list = deed_data
+            else:
+                deed_list = [deed_data]
+            
+            for deed in deed_list:
+                transaction = {
+                    'date': deed.get('Date', deed.get('RecordingDate', '')),
+                    'grantor': deed.get('Grantor', deed.get('GrantorName', '')),
+                    'grantee': deed.get('Grantee', deed.get('GranteeName', '')),
+                    'deed_type': deed.get('DeedType', deed.get('InstrumentType', '')),
+                    'document_number': deed.get('DocumentNumber', deed.get('RecordingNumber', '')),
+                    'consideration': deed.get('Consideration', deed.get('SalePrice', '')),
+                    'legal_description': deed.get('LegalDescription', ''),
+                    'book': deed.get('Book', ''),
+                    'page': deed.get('Page', ''),
+                    'transfer_tax': deed.get('TransferTax', ''),
+                    'recording_fee': deed.get('RecordingFee', '')
+                }
+                transactions.append(transaction)
+        
+        return transactions
+    
+    def _calculate_ownership_duration(self, transactions: list) -> list:
+        """Calculate how long each owner held the property"""
+        durations = []
+        
+        for i, transaction in enumerate(transactions):
+            owner = transaction.get('grantee', '')
+            start_date = transaction.get('date', '')
+            
+            # Find when this owner transferred the property
+            end_date = None
+            for j in range(i + 1, len(transactions)):
+                if transactions[j].get('grantor', '') == owner:
+                    end_date = transactions[j].get('date', '')
+                    break
+            
+            # If no end date found, owner still owns property
+            if not end_date:
+                end_date = 'Current'
+            
+            # Calculate duration in years
+            duration_years = None
+            if start_date and end_date != 'Current':
+                try:
+                    from datetime import datetime
+                    start = datetime.strptime(start_date, '%Y-%m-%d')
+                    end = datetime.strptime(end_date, '%Y-%m-%d')
+                    duration_days = (end - start).days
+                    duration_years = round(duration_days / 365.25, 1)
+                except:
+                    duration_years = None
+            
+            durations.append({
+                'owner': owner,
+                'start_date': start_date,
+                'end_date': end_date,
+                'duration_years': duration_years
+            })
+        
+        return durations
+    
+    def _identify_title_issues(self, transactions: list) -> list:
+        """Identify potential title issues from transaction history"""
+        issues = []
+        
+        # Check for gaps in ownership chain
+        for i in range(len(transactions) - 1):
+            current_grantee = transactions[i].get('grantee', '')
+            next_grantor = transactions[i + 1].get('grantor', '')
+            
+            if current_grantee != next_grantor:
+                issues.append(f"Ownership gap: {current_grantee} to {next_grantor}")
+        
+        # Check for quitclaim deeds (potential title concerns)
+        quitclaim_deeds = [t for t in transactions if 'quitclaim' in t.get('deed_type', '').lower()]
+        if quitclaim_deeds:
+            issues.append(f"Found {len(quitclaim_deeds)} quitclaim deed(s) - verify clear title")
+        
+        # Check for short ownership periods (potential flipping)
+        quick_sales = []
+        for i in range(len(transactions) - 1):
+            try:
+                from datetime import datetime
+                current_date = datetime.strptime(transactions[i].get('date', ''), '%Y-%m-%d')
+                next_date = datetime.strptime(transactions[i + 1].get('date', ''), '%Y-%m-%d')
+                days_owned = (next_date - current_date).days
+                
+                if days_owned < 30:  # Less than 30 days
+                    quick_sales.append(f"{transactions[i].get('grantee', '')} owned for only {days_owned} days")
+            except:
+                continue
+        
+        if quick_sales:
+            issues.extend(quick_sales)
+        
+        return issues
