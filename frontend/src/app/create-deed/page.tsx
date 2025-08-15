@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+// Removed framer-motion to fix build issues
 import Sidebar from '../../components/Sidebar';
 
 // Document types configuration
@@ -285,14 +285,9 @@ export default function CreateDeed() {
           </div>
 
           {/* Step Content */}
-          <AnimatePresence mode="wait">
             {/* Step 1: Address Verification */}
             {currentStep === 1 && (
-              <motion.div
-                key="step1"
-                initial={{ opacity: 0, x: 50 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -50 }}
+              <div
                 style={{
                   backgroundColor: 'white',
                   borderRadius: '12px',
@@ -350,16 +345,12 @@ export default function CreateDeed() {
                     {errors.property}
                   </p>
                 )}
-              </motion.div>
+              </div>
             )}
 
             {/* Step 2: Document Type & Data Prompts */}
             {currentStep === 2 && (
-              <motion.div
-                key="step2"
-                initial={{ opacity: 0, x: 50 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -50 }}
+              <div
                 style={{
                   backgroundColor: 'white',
                   borderRadius: '12px',
@@ -508,16 +499,12 @@ export default function CreateDeed() {
                     Continue to Review
                   </button>
                 )}
-              </motion.div>
+              </div>
             )}
 
             {/* Step 3: Dynamic Fields & Review */}
             {currentStep === 3 && (
-              <motion.div
-                key="step3"
-                initial={{ opacity: 0, x: 50 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -50 }}
+              <div
                 style={{
                   backgroundColor: 'white',
                   borderRadius: '12px',
@@ -622,9 +609,9 @@ export default function CreateDeed() {
                 >
                   {loading ? 'Generating...' : `Generate ${DOC_TYPES[docType as keyof typeof DOC_TYPES]?.label}`}
                 </button>
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
+
 
           {/* Loading Overlay */}
           {loading && (
