@@ -2,7 +2,19 @@
 
 **⚠️ IMPORTANT**: This is a **MONOREPO** containing both frontend and backend with dual deployments.
 
-## 🎉 **LATEST UPDATE (August 10, 2025)**
+## 🎉 **LATEST UPDATE (December 2024)**
+
+**🚀 DYNAMIC WIZARD SYSTEM LAUNCHED**
+
+Revolutionary new 3-step document creation system with AI-powered prompts:
+- ✨ **Dynamic 3-Step Flow**: Address → Doc Type & Data → Review
+- 🎯 **Smart Button Prompts**: Pull vesting, grant history, tax roll data
+- 🗣️ **Custom AI Prompts**: Natural language data requests
+- 📊 **6 Document Types**: Grant deed, quitclaim, interspousal, warranty, tax deed, property profile
+- ⚡ **Fast-Forward Logic**: Auto-advance when data is complete
+- 🔗 **TitlePoint Integration**: Real-time property data enrichment
+
+## 🎉 **PREVIOUS UPDATE (August 10, 2025)**
 
 **✅ PRODUCTION SYSTEM FULLY OPERATIONAL & REFINED**
 

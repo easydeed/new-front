@@ -55,9 +55,11 @@ Comprehensive AI assistance providing a "walking on a cloud" user experience:
 
 | Document | Purpose | Audience |
 |----------|---------|----------|
-| [AI_FEATURES_GUIDE.md](./AI_FEATURES_GUIDE.md) | **NEW** - Comprehensive guide to AI-enhanced deed generation | All Developers |
-| [AI_USER_GUIDE.md](./AI_USER_GUIDE.md) | **NEW** - User guide for AI features and "walking on a cloud" experience | End Users & Support |
-| [AI_DEPLOYMENT_GUIDE.md](./AI_DEPLOYMENT_GUIDE.md) | **NEW** - Deployment guide for AI features and database schema | DevOps Engineers |
+| [DYNAMIC_WIZARD_GUIDE.md](./DYNAMIC_WIZARD_GUIDE.md) | **LATEST** - Revolutionary 3-step dynamic wizard with AI prompts | All Developers |
+| [DYNAMIC_WIZARD_DEPLOYMENT.md](./DYNAMIC_WIZARD_DEPLOYMENT.md) | **LATEST** - Deployment guide for dynamic wizard system | DevOps Engineers |
+| [AI_FEATURES_GUIDE.md](./AI_FEATURES_GUIDE.md) | Comprehensive guide to AI-enhanced deed generation | All Developers |
+| [AI_USER_GUIDE.md](./AI_USER_GUIDE.md) | User guide for AI features and "walking on a cloud" experience | End Users & Support |
+| [AI_DEPLOYMENT_GUIDE.md](./AI_DEPLOYMENT_GUIDE.md) | Deployment guide for AI features and database schema | DevOps Engineers |
 
 ### 🔧 Development & Integration
 
