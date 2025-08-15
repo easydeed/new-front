@@ -1,13 +1,12 @@
 {
-  "name": "deedpro-project",
-  "version": "1.0.0", 
-  "description": "AI-Enhanced Real Estate Document Platform",
-  "scripts": {
-    "build": "cd frontend && npm install && npm run build",
-    "start": "cd frontend && npm start",
-    "dev": "cd frontend && npm run dev"
+  "name": "deedpro-monorepo",
+  "private": true,
+  "devDependencies": {
+    "turbo": "^1.10.0"
   },
-  "dependencies": {
-    "@heroicons/react": "^2.1.6"
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "test": "turbo run test"
   }
 }
