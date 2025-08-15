@@ -307,7 +307,96 @@ Authorization: Bearer <token>
 
 ## 🤖 AI Assistance
 
-### Get AI Suggestions
+### Dynamic Wizard AI Assistant
+
+#### Button Prompts
+Execute predefined data pulls using button prompts:
+
+```http
+POST /api/ai/assist
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "type": "vesting",                    // Button prompt type
+  "docType": "grant_deed",
+  "verifiedData": {                     // Property data from Step 1
+    "address": "123 Main St, Los Angeles, CA",
+    "apn": "123-456-789"
+  },
+  "currentData": {}                     // Current form data
+}
+```
+
+**Supported Button Types:**
+- `vesting` - Current ownership and vesting information
+- `grant_deed` - Recent deed transfers and sale prices  
+- `tax_roll` - Assessed values and tax information
+- `chain_of_title` - 🆕 Complete ownership history with title analysis
+- `all` - Comprehensive data pull for Property Profile reports
+
+#### Custom Prompts
+Natural language requests for data:
+
+```http
+POST /api/ai/assist
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "prompt": "pull chain of title",     // Natural language prompt
+  "docType": "grant_deed",
+  "verifiedData": {
+    "address": "123 Main St, Los Angeles, CA",
+    "apn": "123-456-789"
+  },
+  "currentData": {}
+}
+```
+
+**Supported Custom Prompts:**
+- `"pull chain of title"` - Complete ownership history analysis
+- `"deed history"` - Same as chain of title
+- `"ownership history"` - Transfer timeline with durations
+- `"get lien information"` - Active liens and encumbrances
+
+#### 🆕 Chain of Title Response
+```json
+{
+  "success": true,
+  "data": {
+    "chainOfTitle": [
+      {
+        "date": "2020-05-15",
+        "grantor": "John Smith",
+        "grantee": "Mary Johnson", 
+        "deed_type": "Grant Deed",
+        "document_number": "2020-123456",
+        "consideration": "$750,000",
+        "legal_description": "Lot 1, Block 2..."
+      }
+    ],
+    "ownershipDuration": [
+      {
+        "owner": "Mary Johnson",
+        "start_date": "2020-05-15",
+        "end_date": "Current",
+        "duration_years": 3.7
+      }
+    ],
+    "titleIssues": [
+      "Found 1 quitclaim deed(s) - verify clear title"
+    ],
+    "totalTransfers": 5,
+    "currentOwner": "Mary Johnson",
+    "lastTransferDate": "2020-05-15"
+  }
+}
+```
+
+### Legacy Field Suggestions
+Field-specific suggestions (for backward compatibility):
+
 ```http
 POST /api/ai/assist
 Content-Type: application/json

@@ -29,9 +29,10 @@ backend/
 ## The 3-Step Process
 
 ### Step 1: Address Verification
-- User enters property address
-- System validates and enriches with external data
-- Auto-populates APN, county, legal description via TitlePoint
+- **Google Places Autocomplete**: Smart address suggestions as user types
+- **TitlePoint Integration**: Validates and enriches with property data
+- **Auto-population**: APN, county, legal description, current owner info
+- **Search Button**: Triggers verification and advances to Step 2
 
 ### Step 2: Document Type & Data Pulls
 - Select from 6 supported document types:
@@ -47,18 +48,24 @@ Each document type provides smart button prompts:
 - **Pull Vesting**: Gets current ownership and vesting information
 - **Pull Grant History**: Retrieves recent deed transfers and sale prices
 - **Pull Tax Roll**: Fetches assessed values and tax information
+- **Pull Chain of Title**: 🆕 Complete ownership history with title issue analysis
 - **Pull All Data**: Comprehensive data pull for Property Profile reports
 
 #### Custom Prompts
 Users can enter natural language requests:
-- "pull chain of title"
-- "get lien information"
-- "show ownership history"
+- **"pull chain of title"** - Complete ownership history analysis
+- **"deed history"** - Same as chain of title  
+- **"ownership history"** - Transfer timeline with durations
+- **"get lien information"** - Active liens and encumbrances
+- **"show ownership history"** - Previous owners and dates
 
 ### Step 3: Dynamic Fields & Review
-- Fields appear based on document type and pulled data
-- Users can review and edit all information
-- Generate final PDF with one click
+- **Chain of Title Display**: 🆕 Visual timeline of ownership transfers
+- **Title Issue Alerts**: 🆕 Automatic detection of ownership gaps, quitclaim deeds, quick sales
+- **Dynamic Fields**: Appear based on document type and pulled data
+- **Ownership Duration**: 🆕 Shows how long each owner held the property
+- **Manual Review**: Users can edit all information before generation
+- **PDF Generation**: One-click document creation with all data
 
 ## Document Type Configuration
 
@@ -67,7 +74,7 @@ const DOC_TYPES = {
   grant_deed: {
     label: 'Grant Deed',
     fields: ['consideration'],          // Dynamic fields to show
-    buttons: ['vesting', 'grant_deed', 'tax_roll'],  // Available prompts
+    buttons: ['vesting', 'grant_deed', 'tax_roll', 'chain_of_title'],  // Available prompts
     required: ['granteeName', 'consideration']        // Required fields
   },
   // ... other types
@@ -132,7 +139,41 @@ The system automatically advances users to the review step when:
 - **Grant History**: Recent transfers, sale prices, deed types
 - **Tax Information**: Assessed values, tax amounts, exemptions
 - **Lien Information**: Active liens, encumbrances
-- **Ownership Chain**: Complete title history
+- **🆕 Chain of Title**: Complete ownership history with transfer dates, deed types, and considerations
+- **🆕 Title Issue Analysis**: Automatic detection of ownership gaps, quitclaim deeds, and short ownership periods
+- **🆕 Ownership Duration**: Calculated time periods for each owner in the chain
+
+### 🆕 Chain of Title Feature
+
+#### What It Does
+The Chain of Title feature provides complete ownership history analysis for any property:
+
+**Data Retrieved:**
+- Chronological list of all ownership transfers
+- Transfer dates and deed types (Grant Deed, Quitclaim, etc.)
+- Grantor and grantee names for each transfer
+- Purchase prices/considerations when available
+- Document numbers and recording information
+
+**Intelligence Features:**
+- **Title Issue Detection**: Automatically identifies potential problems:
+  - Ownership gaps in the chain
+  - Quitclaim deeds (may indicate title concerns)
+  - Short ownership periods (potential flipping)
+- **Duration Analysis**: Calculates how long each owner held the property
+- **Visual Timeline**: Beautiful chronological display with current owner highlighted
+
+#### How to Use
+1. **Button Method**: Click "Pull Chain of Title" on supported document types
+2. **Custom Prompt**: Type "pull chain of title", "deed history", or "ownership history"
+3. **Results Display**: Review timeline in Step 3 with automatic issue alerts
+
+#### Business Value
+- **Due Diligence**: Instant title verification for real estate transactions
+- **Risk Assessment**: Automatic identification of potential title issues
+- **Time Savings**: Eliminates manual county record searches
+- **Professional Reports**: Comprehensive ownership documentation
+- **Competitive Edge**: Professional-grade title intelligence in seconds
 
 ### Error Handling
 - Graceful fallback when external services unavailable
