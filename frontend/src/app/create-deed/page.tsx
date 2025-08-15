@@ -1449,7 +1449,6 @@ export default function CreateDeed() {
 
           {/* Step Content - New Dynamic 3-Step System */}
           <div className="form-steps">
-            <AnimatePresence mode="wait">
             
             {/* Step 1: Deed Type Selection */}
             <div className={`form-step ${currentStep === 1 ? 'active' : ''}`}>
