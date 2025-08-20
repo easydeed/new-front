@@ -69,13 +69,14 @@ export default function PropertySearchWithTitlePoint({
         return;
       }
 
-      // Load Google Maps API if not already loaded
+      // Load Google Maps API if not already loaded with modern loading approach
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_API_KEY}&libraries=places`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_API_KEY}&libraries=places&loading=async&callback=initGoogleMaps`;
       script.async = true;
       script.defer = true;
       
-      script.onload = () => {
+      // Define global callback
+      (window as any).initGoogleMaps = () => {
         setIsGoogleLoaded(true);
         initializeServices();
       };
@@ -278,7 +279,8 @@ export default function PropertySearchWithTitlePoint({
     try {
       console.log('Looking up property details for:', addressData);
       
-      const response = await fetch('/api/property/search', {
+      // First validate the address
+      const validateResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://deedpro-backend-new.onrender.com'}/api/property/validate`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -294,12 +296,37 @@ export default function PropertySearchWithTitlePoint({
         })
       });
 
-      if (!response.ok) {
-        console.error(`API response error: ${response.status} ${response.statusText}`);
-        throw new Error(`API error: ${response.status}`);
+      if (!validateResponse.ok) {
+        console.error(`Validation API response error: ${validateResponse.status} ${validateResponse.statusText}`);
+        throw new Error(`Validation API error: ${validateResponse.status}`);
       }
 
-      const result = await response.json();
+      const validateResult = await validateResponse.json();
+      console.log('Address validation result:', validateResult);
+
+      // Then enrich with TitlePoint data
+      const enrichResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://deedpro-backend-new.onrender.com'}/api/property/enrich`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          fullAddress: addressData.fullAddress,
+          street: addressData.street,
+          city: addressData.city,
+          state: addressData.state,
+          zip: addressData.zip,
+          county: addressData.county || ''
+        })
+      });
+
+      if (!enrichResponse.ok) {
+        console.error(`Enrich API response error: ${enrichResponse.status} ${enrichResponse.statusText}`);
+        throw new Error(`Enrich API error: ${enrichResponse.status}`);
+      }
+
+      const result = await enrichResponse.json();
       console.log('TitlePoint property details result:', result);
 
       if (result.success && (result.apn || result.county || result.brief_legal || result.current_owner_primary)) {
