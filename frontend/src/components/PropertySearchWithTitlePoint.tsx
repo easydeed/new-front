@@ -25,6 +25,7 @@ interface PropertySearchProps {
   onError?: (error: string) => void;
   placeholder?: string;
   className?: string;
+  onPropertyFound?: (data: PropertyData) => void; // New callback for property details
 }
 
 declare global {
@@ -37,7 +38,8 @@ export default function PropertySearchWithTitlePoint({
   onVerified, 
   onError, 
   placeholder = "Enter property address",
-  className = ""
+  className = "",
+  onPropertyFound
 }: PropertySearchProps) {
   
   const [inputValue, setInputValue] = useState('');
@@ -50,6 +52,8 @@ export default function PropertySearchWithTitlePoint({
   const [isTitlePointLoading, setIsTitlePointLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [searchAttempted, setSearchAttempted] = useState(false);
+  const [propertyDetails, setPropertyDetails] = useState<any>(null);
+  const [showPropertyDetails, setShowPropertyDetails] = useState(false);
   
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteService = useRef<any>(null);
@@ -132,8 +136,8 @@ export default function PropertySearchWithTitlePoint({
     }
   }, [suggestions, searchAttempted, showSuggestions]);
 
-  // Combined search - does Google Places AND TitlePoint in one click
-  const handleCombinedSearch = async () => {
+  // Address validation only - separated from TitlePoint lookup
+  const handleAddressSearch = async () => {
     if (!inputValue.trim() || inputValue.length < 3) {
       setErrorMessage('Please enter at least 3 characters to search for addresses');
       return;
@@ -144,25 +148,26 @@ export default function PropertySearchWithTitlePoint({
     setSuggestions([]);
     setShowSuggestions(false);
     setErrorMessage(null);
+    setPropertyDetails(null);
+    setShowPropertyDetails(false);
     
     try {
       // If user has selected a suggestion, use it
       if (selectedSuggestion) {
-        await processSelectedSuggestion(selectedSuggestion);
+        await processSelectedSuggestionForAddress(selectedSuggestion);
       } else {
         // Search for addresses using Google Places and auto-select first
-        await searchPlacesAndSelectFirst(inputValue);
+        await searchPlacesAndSelectFirstForAddress(inputValue);
       }
     } catch (error) {
-      console.error('Search error:', error);
+      console.error('Address search error:', error);
       setIsLoading(false);
       setErrorMessage('Address search failed. Please try again or select from suggestions.');
     }
   };
 
-  // Process a selected suggestion
-  const processSelectedSuggestion = async (suggestion: any) => {
-    // Get detailed place information
+  // Process a selected suggestion for address validation only
+  const processSelectedSuggestionForAddress = async (suggestion: any) => {
     const request = {
       placeId: suggestion.place_id,
       fields: ['address_components', 'formatted_address', 'name', 'place_id']
@@ -184,9 +189,10 @@ export default function PropertySearchWithTitlePoint({
           };
 
           setSelectedAddress(propertyData);
+          setIsLoading(false);
           
-          // Now automatically search TitlePoint
-          await performTitlePointSearch(propertyData);
+          // Now trigger TitlePoint lookup for property details
+          await lookupPropertyDetails(propertyData);
           resolve(true);
         } else {
           reject(new Error('Failed to get place details'));
@@ -195,8 +201,8 @@ export default function PropertySearchWithTitlePoint({
     });
   };
 
-  // Search for places and auto-select the first result
-  const searchPlacesAndSelectFirst = async (input: string) => {
+  // Search for places and auto-select the first result for address validation only
+  const searchPlacesAndSelectFirstForAddress = async (input: string) => {
     if (!autocompleteService.current || !isGoogleLoaded) {
       throw new Error('Google Maps not loaded');
     }
@@ -237,9 +243,10 @@ export default function PropertySearchWithTitlePoint({
                 };
 
                 setSelectedAddress(propertyData);
+                setIsLoading(false);
                 
-                // Now automatically search TitlePoint
-                await performTitlePointSearch(propertyData);
+                // Now trigger TitlePoint lookup for property details
+                await lookupPropertyDetails(propertyData);
                 resolve(true);
               } else {
                 reject(new Error('Failed to get place details'));
@@ -253,13 +260,13 @@ export default function PropertySearchWithTitlePoint({
     });
   };
 
-  // Perform TitlePoint search automatically with better error handling
-  const performTitlePointSearch = async (addressData: any) => {
+  // Look up property details from TitlePoint after address validation
+  const lookupPropertyDetails = async (addressData: PropertyData) => {
     setIsTitlePointLoading(true);
     setErrorMessage(null);
     
     try {
-      console.log('Searching TitlePoint for:', addressData);
+      console.log('Looking up property details for:', addressData);
       
       const response = await fetch('/api/property/search', {
         method: 'POST',
@@ -283,37 +290,46 @@ export default function PropertySearchWithTitlePoint({
       }
 
       const result = await response.json();
-      console.log('TitlePoint API result:', result);
+      console.log('TitlePoint property details result:', result);
 
-      if (result.success && (result.apn || result.county || result.brief_legal)) {
-        // We have meaningful property data
-        const enrichedData = {
+      if (result.success && (result.apn || result.county || result.brief_legal || result.current_owner_primary)) {
+        // We have property details - display them for user confirmation
+        const propertyInfo = {
           ...addressData,
-          apn: result.apn || '',
-          county: result.county || '',
-          legalDescription: result.brief_legal || result.legalDescription || '',
-          grantorName: result.current_owner_primary || result.grantorName || '',
-          currentOwnerPrimary: result.current_owner_primary || '',
-          currentOwnerSecondary: result.current_owner_secondary || ''
+          apn: result.apn || 'Not available',
+          county: result.county || 'Not available',
+          legalDescription: result.brief_legal || result.legalDescription || 'Not available',
+          currentOwnerPrimary: result.current_owner_primary || 'Not available',
+          currentOwnerSecondary: result.current_owner_secondary || '',
+          grantorName: result.current_owner_primary || '',
+          // Additional details for display
+          propertyType: result.property_type || 'Not available',
+          taxYear: result.tax_year || 'Not available',
+          assessedValue: result.assessed_value || 'Not available'
         };
 
-        setSelectedAddress(enrichedData);
-        onVerified(enrichedData);
+        setPropertyDetails(propertyInfo);
+        setShowPropertyDetails(true);
+        onPropertyFound?.(propertyInfo);
       } else {
-        // TitlePoint didn't return property data - proceed with address validation only
-        console.log('TitlePoint returned no property data, proceeding with address only');
-        setErrorMessage('⚠️ Address found but property data unavailable. You can proceed with manual entry.');
-        setSelectedAddress(addressData);
-        onVerified(addressData);
+        // TitlePoint didn't return property data
+        console.log('TitlePoint returned no property data');
+        setErrorMessage('⚠️ Property details not available from TitlePoint. You can proceed with manual entry.');
+        setShowPropertyDetails(false);
       }
     } catch (error) {
-      console.error('TitlePoint search failed:', error);
-      setErrorMessage('⚠️ Address found but property data unavailable. You can proceed with manual entry.');
-      setSelectedAddress(addressData);
-      onVerified(addressData);
+      console.error('TitlePoint property lookup failed:', error);
+      setErrorMessage('⚠️ Unable to retrieve property details. You can proceed with manual entry.');
+      setShowPropertyDetails(false);
     } finally {
       setIsTitlePointLoading(false);
-      setIsLoading(false);
+    }
+  };
+
+  // User confirms property details and proceeds
+  const handleConfirmProperty = () => {
+    if (propertyDetails) {
+      onVerified(propertyDetails);
     }
   };
 
@@ -450,9 +466,9 @@ export default function PropertySearchWithTitlePoint({
             )}
           </div>
           
-          {/* Combined Search Button */}
+          {/* Address Search Button */}
           <button
-            onClick={handleCombinedSearch}
+            onClick={handleAddressSearch}
             disabled={isLoading || isTitlePointLoading || !inputValue.trim()}
             style={{
               padding: '20px 28px',
@@ -553,8 +569,166 @@ export default function PropertySearchWithTitlePoint({
           </div>
         )}
 
+        {/* Property Details Display for User Confirmation */}
+        {showPropertyDetails && propertyDetails && (
+          <div style={{
+            padding: '20px',
+            backgroundColor: '#f8fafc',
+            border: '2px solid #e2e8f0',
+            borderRadius: '16px',
+            marginTop: '16px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1e293b', margin: 0 }}>
+                🏠 Property Details Found
+              </h3>
+              {isTitlePointLoading && (
+                <div style={{
+                  width: '20px',
+                  height: '20px',
+                  border: '2px solid #e5e7eb',
+                  borderTop: '2px solid #F57C00',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }}></div>
+              )}
+            </div>
+            
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>
+                📍 Address
+              </div>
+              <div style={{ fontSize: '16px', color: '#1e293b', marginBottom: '12px' }}>
+                {propertyDetails.fullAddress}
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', marginBottom: '4px' }}>
+                  📋 APN (Parcel Number)
+                </div>
+                <div style={{ fontSize: '14px', color: '#1e293b' }}>
+                  {propertyDetails.apn}
+                </div>
+              </div>
+              
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', marginBottom: '4px' }}>
+                  🏛️ County
+                </div>
+                <div style={{ fontSize: '14px', color: '#1e293b' }}>
+                  {propertyDetails.county}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', marginBottom: '4px' }}>
+                  👤 Current Owner
+                </div>
+                <div style={{ fontSize: '14px', color: '#1e293b' }}>
+                  {propertyDetails.currentOwnerPrimary}
+                  {propertyDetails.currentOwnerSecondary && (
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>
+                      & {propertyDetails.currentOwnerSecondary}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', marginBottom: '4px' }}>
+                  🏘️ Property Type
+                </div>
+                <div style={{ fontSize: '14px', color: '#1e293b' }}>
+                  {propertyDetails.propertyType}
+                </div>
+              </div>
+            </div>
+
+            {propertyDetails.legalDescription !== 'Not available' && (
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', marginBottom: '4px' }}>
+                  📜 Legal Description
+                </div>
+                <div style={{ fontSize: '14px', color: '#1e293b', lineHeight: '1.5' }}>
+                  {propertyDetails.legalDescription}
+                </div>
+              </div>
+            )}
+
+            <div style={{ 
+              padding: '12px 16px', 
+              backgroundColor: '#dbeafe', 
+              border: '1px solid #93c5fd',
+              borderRadius: '8px',
+              marginBottom: '16px'
+            }}>
+              <div style={{ fontSize: '14px', color: '#1e40af', fontWeight: '500' }}>
+                ✅ Please review the property details above to ensure they are correct before proceeding.
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={handleConfirmProperty}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: '#22c55e',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#16a34a';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#22c55e';
+                }}
+              >
+                ✓ Confirm & Continue
+              </button>
+              
+              <button
+                onClick={() => {
+                  setShowPropertyDetails(false);
+                  setPropertyDetails(null);
+                  setInputValue('');
+                  setSelectedAddress(null);
+                  setSelectedSuggestion(null);
+                }}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: 'white',
+                  color: '#6b7280',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#9ca3af';
+                  e.currentTarget.style.color = '#374151';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#d1d5db';
+                  e.currentTarget.style.color = '#6b7280';
+                }}
+              >
+                🔄 Search Different Address
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Address Found but No Property Data */}
-        {selectedAddress && errorMessage && (
+        {selectedAddress && errorMessage && !showPropertyDetails && (
           <div style={{
             padding: '16px',
             backgroundColor: '#fef3c7',
@@ -575,6 +749,24 @@ export default function PropertySearchWithTitlePoint({
                 </div>
               </div>
               <div style={{ fontSize: '24px', color: '#f59e0b' }}>⚠️</div>
+            </div>
+            
+            <div style={{ marginTop: '12px' }}>
+              <button
+                onClick={() => onVerified(selectedAddress)}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#f59e0b',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Continue with Manual Entry
+              </button>
             </div>
           </div>
         )}

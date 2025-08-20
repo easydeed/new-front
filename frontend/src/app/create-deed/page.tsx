@@ -134,11 +134,12 @@ const enhanceDataForDocumentType = (rawData: any, docType: string) => {
 export default function CreateDeed() {
   const [currentStep, setCurrentStep] = useState(1);
   const [docType, setDocType] = useState('');
-  const [verifiedData, setVerifiedData] = useState({});
+  const [verifiedData, setVerifiedData] = useState<{[key: string]: any}>({});
   const [customPrompt, setCustomPrompt] = useState('');
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [loading, setLoading] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState('');
+  const [propertyConfirmed, setPropertyConfirmed] = useState(false);
   const [formData, setFormData] = useState({
     propertySearch: '',
     apn: '',
@@ -210,6 +211,7 @@ export default function CreateDeed() {
   // Handle property search completion from PropertySearch component
   const handlePropertyVerified = (propertyData: any) => {
     setVerifiedData(propertyData);
+    setPropertyConfirmed(true); // User has confirmed the property details
     setFormData(prev => ({ 
       ...prev, 
       ...propertyData,
@@ -533,6 +535,10 @@ export default function CreateDeed() {
                 
                 <PropertySearchWithTitlePoint 
                   onVerified={handlePropertyVerified}
+                  onPropertyFound={(data) => {
+                    // Property details found - user hasn't confirmed yet
+                    setPropertyConfirmed(false);
+                  }}
                 />
                 
                 {errors.property && (
@@ -551,87 +557,35 @@ export default function CreateDeed() {
                   <div></div> {/* Empty div for spacing */}
                   <button
                     onClick={() => {
-                      const hasTitlePointData = verifiedData && (
-                        verifiedData.apn || 
-                        verifiedData.county || 
-                        verifiedData.legalDescription ||
-                        verifiedData.currentOwnerPrimary ||
-                        verifiedData.grantorName ||
-                        Object.keys(verifiedData).length > 3 // Has more than just basic address data
-                      );
-                      if (!hasTitlePointData) {
-                        setErrors({property: 'Please complete property search to retrieve title information before proceeding'});
+                      if (!propertyConfirmed) {
+                        setErrors({property: 'Please complete property search and confirm property details before proceeding'});
                         return;
                       }
                       setCurrentStep(2);
                     }}
-                    disabled={!verifiedData || !(
-                      verifiedData.apn || 
-                      verifiedData.county || 
-                      verifiedData.legalDescription ||
-                      verifiedData.currentOwnerPrimary ||
-                      verifiedData.grantorName ||
-                      Object.keys(verifiedData).length > 3
-                    )}
+                    disabled={!propertyConfirmed}
                     style={{
                       padding: '20px 36px',
-                      backgroundColor: (verifiedData && (
-                        verifiedData.apn || 
-                        verifiedData.county || 
-                        verifiedData.legalDescription ||
-                        verifiedData.currentOwnerPrimary ||
-                        verifiedData.grantorName ||
-                        Object.keys(verifiedData).length > 3
-                      )) ? '#F57C00' : '#d1d5db',
+                      backgroundColor: propertyConfirmed ? '#F57C00' : '#d1d5db',
                       color: 'white',
                       border: 'none',
                       borderRadius: '16px',
                       fontSize: '16px',
                       fontWeight: '600',
-                      cursor: (verifiedData && (
-                        verifiedData.apn || 
-                        verifiedData.county || 
-                        verifiedData.legalDescription ||
-                        verifiedData.currentOwnerPrimary ||
-                        verifiedData.grantorName ||
-                        Object.keys(verifiedData).length > 3
-                      )) ? 'pointer' : 'not-allowed',
+                      cursor: propertyConfirmed ? 'pointer' : 'not-allowed',
                       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      boxShadow: (verifiedData && (
-                        verifiedData.apn || 
-                        verifiedData.county || 
-                        verifiedData.legalDescription ||
-                        verifiedData.currentOwnerPrimary ||
-                        verifiedData.grantorName ||
-                        Object.keys(verifiedData).length > 3
-                      )) ? '0 6px 20px rgba(245, 124, 0, 0.25)' : '0 2px 8px rgba(0, 0, 0, 0.1)',
+                      boxShadow: propertyConfirmed ? '0 6px 20px rgba(245, 124, 0, 0.25)' : '0 2px 8px rgba(0, 0, 0, 0.1)',
                       transform: 'translateY(0px)'
                     }}
                     onMouseEnter={(e) => {
-                      const hasData = verifiedData && (
-                        verifiedData.apn || 
-                        verifiedData.county || 
-                        verifiedData.legalDescription ||
-                        verifiedData.currentOwnerPrimary ||
-                        verifiedData.grantorName ||
-                        Object.keys(verifiedData).length > 3
-                      );
-                      if (hasData) {
+                      if (propertyConfirmed) {
                         e.currentTarget.style.backgroundColor = '#e67100';
                         e.currentTarget.style.transform = 'translateY(-2px)';
                         e.currentTarget.style.boxShadow = '0 8px 24px rgba(245, 124, 0, 0.35)';
                       }
                     }}
                     onMouseLeave={(e) => {
-                      const hasData = verifiedData && (
-                        verifiedData.apn || 
-                        verifiedData.county || 
-                        verifiedData.legalDescription ||
-                        verifiedData.currentOwnerPrimary ||
-                        verifiedData.grantorName ||
-                        Object.keys(verifiedData).length > 3
-                      );
-                      if (hasData) {
+                      if (propertyConfirmed) {
                         e.currentTarget.style.backgroundColor = '#F57C00';
                         e.currentTarget.style.transform = 'translateY(0px)';
                         e.currentTarget.style.boxShadow = '0 6px 20px rgba(245, 124, 0, 0.25)';
