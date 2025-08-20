@@ -1,6 +1,6 @@
 # 🚨 Property Integration Troubleshooting Guide
 
-## 🔍 Current Issue: Google Places Autocomplete Not Working
+## 🔍 Current Issue: TitlePoint LV returns empty; DB schema conflict on property_cache
 
 ### **Symptoms**
 - No autocomplete suggestions appear when typing addresses
@@ -14,7 +14,17 @@ The backend integration is working (dependencies installed, database migrated), 
 
 ## 🛠️ Step-by-Step Resolution
 
-### **Step 1: Verify Frontend Deployment**
+### **Step 1: Resolve DB schema conflict**
+
+1. We saw: `Error creating tables: column "address" does not exist` at startup.
+2. Cause: two different historical definitions of `property_cache`.
+3. Fix: created `property_cache_tp` for TitlePoint caching and updated API to use it.
+4. Verify in Render logs that startup no longer shows the error, or run:
+   ```sql
+   SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name ILIKE 'property_cache%';
+   ```
+
+### **Step 2: Verify Frontend Deployment**
 
 1. **Check Vercel Dashboard**:
    - Go to https://vercel.com/dashboard
@@ -99,6 +109,13 @@ If frontend hasn't updated properly:
    - Verify quotas aren't exceeded
 
 ### **Fix 4: Component Loading Issues**
+
+### **Fix 5: TitlePoint LV returns empty**
+1. Ensure county is normalized (strip “County”, title-case): e.g., `Los Angeles`.
+2. Include FIPS when available (e.g., `06037`).
+3. Try Tax flow with a known-good APN to confirm credentials and county access.
+4. Confirm TitlePoint serviceType access for your org (TitlePoint.Geo.LegalVesting, TitlePoint.Geo.Tax).
+5. Check Render logs for CreateService response body; adjust parameters per fail-proof guide.
 
 If Google Maps isn't initializing:
 

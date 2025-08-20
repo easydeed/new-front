@@ -10,6 +10,20 @@ This comprehensive guide documents the integration of Google Places API, SiteX D
 **Data Sources**: Google Places, SiteX Data, TitlePoint  
 
 ---
+## 📣 Operational Status Update — Aug 20, 2025
+
+- Validate endpoint: production OK for multiple addresses (Google Places normalization working).
+- TitlePoint flow: aligned to fail‑proof guide (CreateService3 via GET, GetRequestSummaries via asmx, GetResultByID/3 as applicable), plus POST fallback and county normalization.
+- DB: introduced dedicated `property_cache_tp` for TitlePoint caching to avoid schema conflicts with earlier `property_cache` variants.
+- Current behavior for some LV inputs (e.g., 1358 5th St, La Verne, CA 91750): call completes but returns no extractable legal/vesting data.
+
+Action items when LV returns empty:
+- Provide known‑good APN + county to exercise Tax (Method 3) for comparison.
+- Confirm TitlePoint account serviceType access (TitlePoint.Geo.LegalVesting / .Tax) for the county/state.
+- Verify FIPS is supplied (e.g., Los Angeles 06037) and county formatted without the word “County”.
+- If available, share TitlePoint response body from logs for precise parameter tuning.
+
+---
 
 ## 🎯 Integration Objectives
 

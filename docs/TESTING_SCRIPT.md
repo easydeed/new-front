@@ -32,6 +32,54 @@
    ```
 
 ---
+## 🧭 Production Smoke Test (TitlePoint)
+
+1. Validate address (JWT required):
+```bash
+curl -s -X POST "$BACKEND/api/property/validate" \
+ -H "Content-Type: application/json" \
+ -H "Authorization: Bearer $TOKEN" \
+ -d '{
+  "fullAddress": "1358 5th St, La Verne, CA 91750",
+  "street": "1358 5th St",
+  "city": "La Verne",
+  "state": "CA",
+  "zip": "91750"
+}' | jq .
+```
+
+2. Enrich LV (include normalized county, optional FIPS):
+```bash
+curl -s -X POST "$BACKEND/api/property/enrich" \
+ -H "Content-Type: application/json" \
+ -H "Authorization: Bearer $TOKEN" \
+ -d '{
+  "address": "1358 5th St, La Verne, CA 91750",
+  "city": "La Verne",
+  "state": "CA",
+  "county": "Los Angeles",
+  "fips": "06037"
+}' | jq .
+```
+
+3. Enrich Tax (use known-good APN + county):
+```bash
+curl -s -X POST "$BACKEND/api/property/enrich" \
+ -H "Content-Type: application/json" \
+ -H "Authorization: Bearer $TOKEN" \
+ -d '{
+  "address": "",
+  "city": "",
+  "state": "CA",
+  "county": "Los Angeles",
+  "apn": "<YOUR_APN_HERE>"
+}' | jq .
+```
+
+Expected:
+- Validation: success=true, county present.
+- Enrich LV/Tax: success=true; if LV empty, verify account access and parameters.
+
 
 ## 🗄️ Database Setup
 
