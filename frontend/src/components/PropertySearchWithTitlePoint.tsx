@@ -10,10 +10,10 @@ interface PropertyData {
   state: string;
   zip: string;
   neighborhood?: string;
+  county?: string;
   placeId: string;
   // TitlePoint data
   apn?: string;
-  county?: string;
   legalDescription?: string;
   grantorName?: string;
   currentOwnerPrimary?: string;
@@ -178,13 +178,18 @@ export default function PropertySearchWithTitlePoint({
         if (status === window.google.maps.places.PlacesServiceStatus.OK && place) {
           const components = place.address_components || [];
           
+          const city = getComponent(components, 'locality') || '';
+          const state = getComponent(components, 'administrative_area_level_1', 'short_name') || 'CA';
+          const county = getComponent(components, 'administrative_area_level_2') || getCountyFallback(city, state);
+
           const propertyData = {
             fullAddress: place.formatted_address || suggestion.description,
             street: extractStreetAddress(components, place.name),
-            city: getComponent(components, 'locality') || '',
-            state: getComponent(components, 'administrative_area_level_1', 'short_name') || 'CA',
+            city,
+            state,
             zip: getComponent(components, 'postal_code') || '',
             neighborhood: getComponent(components, 'neighborhood'),
+            county,
             placeId: place.place_id
           };
 
@@ -232,13 +237,18 @@ export default function PropertySearchWithTitlePoint({
               if (placeStatus === window.google.maps.places.PlacesServiceStatus.OK && place) {
                 const components = place.address_components || [];
                 
+                const city = getComponent(components, 'locality') || '';
+                const state = getComponent(components, 'administrative_area_level_1', 'short_name') || 'CA';
+                const county = getComponent(components, 'administrative_area_level_2') || getCountyFallback(city, state);
+
                 const propertyData = {
                   fullAddress: place.formatted_address || firstSuggestion.description,
                   street: extractStreetAddress(components, place.name),
-                  city: getComponent(components, 'locality') || '',
-                  state: getComponent(components, 'administrative_area_level_1', 'short_name') || 'CA',
+                  city,
+                  state,
                   zip: getComponent(components, 'postal_code') || '',
                   neighborhood: getComponent(components, 'neighborhood'),
+                  county,
                   placeId: place.place_id
                 };
 
@@ -404,6 +414,44 @@ export default function PropertySearchWithTitlePoint({
   const getComponent = (components: any[], type: string, nameType: string = 'long_name') => {
     const component = components.find((comp: any) => comp.types.includes(type));
     return component ? component[nameType] : null;
+  };
+
+  // Helper function to get county fallback based on city and state
+  const getCountyFallback = (city: string, state: string) => {
+    // Common California county mappings for major cities
+    const countyMappings: {[key: string]: string} = {
+      'los angeles': 'Los Angeles',
+      'beverly hills': 'Los Angeles',
+      'santa monica': 'Los Angeles',
+      'hollywood': 'Los Angeles',
+      'pasadena': 'Los Angeles',
+      'glendale': 'Los Angeles',
+      'burbank': 'Los Angeles',
+      'long beach': 'Los Angeles',
+      'torrance': 'Los Angeles',
+      'la verne': 'Los Angeles',
+      'pomona': 'Los Angeles',
+      'san francisco': 'San Francisco',
+      'oakland': 'Alameda',
+      'san jose': 'Santa Clara',
+      'san diego': 'San Diego',
+      'sacramento': 'Sacramento',
+      'fresno': 'Fresno',
+      'bakersfield': 'Kern',
+      'anaheim': 'Orange',
+      'santa ana': 'Orange',
+      'riverside': 'Riverside',
+      'stockton': 'San Joaquin',
+      'irvine': 'Orange',
+      'fremont': 'Alameda',
+      'san bernardino': 'San Bernardino',
+      'modesto': 'Stanislaus'
+    };
+
+    if (state === 'CA' && city) {
+      return countyMappings[city.toLowerCase()] || '';
+    }
+    return '';
   };
 
   return (
