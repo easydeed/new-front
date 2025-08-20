@@ -35,7 +35,12 @@ class TitlePointService:
     
     async def enrich_property(self, data: Dict) -> Dict:
         """
-        Enrich property data using TitlePoint services
+        Enrich property data using TitlePoint services (multi-step workflow)
+        
+        This follows the proper TitlePoint workflow:
+        1. TitlePoint.Geo.Property - for basic property information (APN, legal description)
+        2. TitlePoint.Geo.Owner - for current ownership/vesting information
+        3. TitlePoint.Geo.Tax - for tax information (optional)
         
         Args:
             data: Dictionary containing property information from Google Places
@@ -67,29 +72,81 @@ class TitlePointService:
             county = data.get('county', '')
             full_address = data.get('fullAddress', '')
             
+            if not county:
+                return {
+                    'success': False,
+                    'message': 'County is required for TitlePoint lookup'
+                }
+            
             if not full_address:
                 return {
                     'success': False,
                     'message': 'Full address is required for TitlePoint lookup'
                 }
             
-            # Use TitlePoint.Geo.Owner service for legal vesting/ownership data (VERIFIED WORKING)
-            service_type = "TitlePoint.Geo.Owner"
-            parameters = f"Owner.FullAddress={full_address}"
+            print(f"🔍 Starting TitlePoint multi-step enrichment for: {full_address}")
             
-            # Create service request
-            request_id = await self._create_service_request(
-                state=state,
-                county=county,
-                service_type=service_type,
-                parameters=parameters
+            # Initialize combined results
+            combined_results = {
+                'success': True,
+                'fullAddress': full_address,
+                'county': county,
+                'city': data.get('city', ''),
+                'state': state,
+                'zip': data.get('zip', ''),
+                'apn': '',
+                'brief_legal': '',
+                'current_owner_primary': '',
+                'current_owner_secondary': '',
+                'tax_year': '',
+                'assessed_value': '',
+                'property_type': ''
+            }
+            
+            # Step 1: Get basic property information using TitlePoint.Geo.Property
+            try:
+                print("📋 Step 1: Getting property information...")
+                property_data = await self._get_property_info(state, county, full_address)
+                if property_data.get('success'):
+                    combined_results.update(property_data.get('data', {}))
+                    print(f"✅ Property info retrieved: APN={combined_results.get('apn', 'N/A')}")
+                else:
+                    print(f"⚠️ Property info failed: {property_data.get('message', 'Unknown error')}")
+            except Exception as e:
+                print(f"❌ Property info error: {str(e)}")
+            
+            # Step 2: Get ownership/vesting information using TitlePoint.Geo.Owner  
+            try:
+                print("👤 Step 2: Getting ownership information...")
+                owner_data = await self._get_owner_info(state, county, full_address)
+                if owner_data.get('success'):
+                    combined_results.update(owner_data.get('data', {}))
+                    print(f"✅ Owner info retrieved: Owner={combined_results.get('current_owner_primary', 'N/A')}")
+                else:
+                    print(f"⚠️ Owner info failed: {owner_data.get('message', 'Unknown error')}")
+            except Exception as e:
+                print(f"❌ Owner info error: {str(e)}")
+            
+            # Check if we got meaningful data from either service
+            has_property_data = bool(
+                combined_results.get('apn') or 
+                combined_results.get('brief_legal') or 
+                combined_results.get('current_owner_primary')
             )
             
-            # Wait for completion and get results
-            result_xml = await self._wait_for_completion(request_id)
-            
-            # Parse and return formatted data
-            return self._parse_titlepoint_result(result_xml, data)
+            if has_property_data:
+                print(f"🎉 TitlePoint enrichment successful!")
+                return {
+                    'success': True,
+                    **combined_results
+                }
+            else:
+                print(f"❌ No meaningful property data retrieved from TitlePoint")
+                return {
+                    'success': False,
+                    'message': 'No property data available from TitlePoint for this address',
+                    **combined_results
+                }
             
         except Exception as e:
             # Return error response with more detailed debugging info
@@ -108,6 +165,42 @@ class TitlePointService:
                     'error_type': type(e).__name__,
                     'error_details': str(e)
                 }
+            }
+    
+    async def _get_property_info(self, state: str, county: str, full_address: str) -> Dict:
+        """Get basic property information using TitlePoint.Geo.Property"""
+        try:
+            service_type = "TitlePoint.Geo.Property"
+            parameters = f"Property.FullAddress={full_address}"
+            
+            request_id = await self._create_service_request(state, county, service_type, parameters)
+            result_xml = await self._wait_for_completion(request_id)
+            
+            return self._parse_property_result(result_xml)
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'message': f'Property info lookup failed: {str(e)}',
+                'data': {}
+            }
+    
+    async def _get_owner_info(self, state: str, county: str, full_address: str) -> Dict:
+        """Get ownership information using TitlePoint.Geo.Owner"""
+        try:
+            service_type = "TitlePoint.Geo.Owner"
+            parameters = f"Owner.FullAddress={full_address}"
+            
+            request_id = await self._create_service_request(state, county, service_type, parameters)
+            result_xml = await self._wait_for_completion(request_id)
+            
+            return self._parse_owner_result(result_xml)
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'message': f'Owner info lookup failed: {str(e)}',
+                'data': {}
             }
     
     async def _create_service_request(self, state: str, county: str, service_type: str, parameters: str) -> str:
@@ -253,6 +346,112 @@ class TitlePointService:
             maxWaitSeconds=30
         )
     
+    def _parse_property_result(self, result_xml: str) -> Dict:
+        """Parse TitlePoint.Geo.Property service result"""
+        try:
+            if not result_xml or result_xml.strip() == '':
+                return {'success': False, 'message': 'Empty XML response', 'data': {}}
+            
+            # Convert XML to dictionary
+            result_dict = xmltodict.parse(result_xml)
+            
+            # Extract property information
+            data = {}
+            
+            # Look for common property data structures
+            if 'PropertyProfile' in str(result_dict):
+                # Try to extract APN
+                apn = self._extract_text_value(result_dict, ['PropertyProfile', 'APN'])
+                if apn:
+                    data['apn'] = apn
+                
+                # Try to extract legal description
+                legal_desc = self._extract_text_value(result_dict, ['PropertyProfile', 'LegalBriefDescription'])
+                if legal_desc:
+                    data['brief_legal'] = legal_desc.replace('  ', ' ').strip()
+                
+                # Try to extract property type
+                prop_type = self._extract_text_value(result_dict, ['PropertyProfile', 'PropertyType'])
+                if prop_type:
+                    data['property_type'] = prop_type
+            
+            return {
+                'success': len(data) > 0,
+                'message': 'Property data extracted' if data else 'No property data found',
+                'data': data
+            }
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'message': f'Property result parsing failed: {str(e)}',
+                'data': {}
+            }
+    
+    def _parse_owner_result(self, result_xml: str) -> Dict:
+        """Parse TitlePoint.Geo.Owner service result"""
+        try:
+            if not result_xml or result_xml.strip() == '':
+                return {'success': False, 'message': 'Empty XML response', 'data': {}}
+            
+            # Convert XML to dictionary
+            result_dict = xmltodict.parse(result_xml)
+            
+            # Extract ownership information
+            data = {}
+            
+            # Look for common owner data structures
+            if 'OwnerName' in str(result_dict):
+                # Try to extract primary owner
+                primary_owner = self._extract_text_value(result_dict, ['OwnerName', 'Primary'])
+                if primary_owner:
+                    data['current_owner_primary'] = primary_owner
+                
+                # Try to extract secondary owner
+                secondary_owner = self._extract_text_value(result_dict, ['OwnerName', 'Secondary'])
+                if secondary_owner:
+                    data['current_owner_secondary'] = secondary_owner
+            
+            # Also check for vesting information
+            if 'VestingInformation' in str(result_dict):
+                vesting = self._extract_text_value(result_dict, ['VestingInformation'])
+                if vesting:
+                    data['vesting_info'] = vesting
+            
+            return {
+                'success': len(data) > 0,
+                'message': 'Owner data extracted' if data else 'No owner data found',
+                'data': data
+            }
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'message': f'Owner result parsing failed: {str(e)}',
+                'data': {}
+            }
+    
+    def _extract_text_value(self, data_dict: Dict, path: list) -> str:
+        """Helper method to extract text values from nested dictionary"""
+        try:
+            current = data_dict
+            for key in path:
+                if isinstance(current, dict) and key in current:
+                    current = current[key]
+                else:
+                    return ''
+            
+            # Handle different text representations
+            if isinstance(current, dict) and '#text' in current:
+                return str(current['#text']).strip()
+            elif isinstance(current, str):
+                return current.strip()
+            else:
+                return str(current).strip() if current else ''
+                
+        except Exception:
+            return ''
+
     def _parse_titlepoint_result(self, result_xml: str, input_data: Dict) -> Dict:
         """Parse TitlePoint XML result into standardized format for frontend"""
         try:
