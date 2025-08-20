@@ -53,6 +53,15 @@ class TitlePointService:
 
         # HTTP client configuration
         self.timeout = httpx.Timeout(30.0)
+
+    def _normalize_county(self, county: str) -> str:
+        """Normalize county names to TitlePoint expected format (strip 'County', title-case)."""
+        if not county:
+            return county
+        c = county.strip()
+        if c.lower().endswith(" county"):
+            c = c[:-7]
+        return c.strip().title()
     
     async def enrich_property(self, data: Dict) -> Dict:
         """
@@ -90,7 +99,7 @@ class TitlePointService:
         """
         try:
             state = data.get('state', 'CA')
-            county = (data.get('county') or '').strip()
+            county = self._normalize_county((data.get('county') or '').strip())
             full_address = (data.get('fullAddress') or '').strip()
             city = (data.get('city') or '').strip()
             zip_code = (data.get('zip') or '').strip()
@@ -223,7 +232,7 @@ class TitlePointService:
             }
     
     async def _create_service_get(self, endpoint: str, query: Dict) -> str:
-        """Create a TitlePoint service using GET and return RequestID"""
+        """Create a TitlePoint service using GET (fallback to POST once) and return RequestID"""
         try:
             import random
             q = {**query}
@@ -238,6 +247,17 @@ class TitlePointService:
             url = f"{endpoint}?{urlencode(q)}"
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(url, headers={"Accept": "text/xml, application/xml"})
+            if response.status_code != 200:
+                # Fallback: try POST form once
+                async with httpx.AsyncClient(timeout=self.timeout) as client:
+                    response = await client.post(
+                        endpoint,
+                        data=q,
+                        headers={
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'Accept': 'text/xml, application/xml'
+                        }
+                    )
             if response.status_code != 200:
                 # Include response text (truncated) to surface TitlePoint error details
                 body = response.text[:400] if response.text else ''
