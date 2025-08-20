@@ -73,9 +73,9 @@ class TitlePointService:
                     'message': 'Full address is required for TitlePoint lookup'
                 }
             
-            # Use TitlePoint.Geo.Property service for property data (WORKING SERVICE TYPE)
-            service_type = "TitlePoint.Geo.Property"
-            parameters = f"Property.FullAddress={full_address}"
+            # Use TitlePoint.Geo.Owner service for legal vesting/ownership data (VERIFIED WORKING)
+            service_type = "TitlePoint.Geo.Owner"
+            parameters = f"Owner.FullAddress={full_address}"
             
             # Create service request
             request_id = await self._create_service_request(
