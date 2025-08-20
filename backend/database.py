@@ -120,30 +120,22 @@ def create_tables():
             )
         """)
         
-        # Create property_cache table for TitlePoint data caching
+        # Create property_cache_tp table for TitlePoint data caching (separate from suggestions cache)
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS property_cache (
+            CREATE TABLE IF NOT EXISTS property_cache_tp (
                 id SERIAL PRIMARY KEY,
-                user_id INTEGER REFERENCES users(id),
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
                 address TEXT NOT NULL,
-                state VARCHAR(2),
-                county TEXT,
-                cached_data JSONB NOT NULL,
+                data JSONB NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                expires_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL '90 days'),
-                UNIQUE(user_id, address, state, county)
+                UNIQUE(user_id, address)
             )
         """)
         
-        # Create indexes for property_cache for faster lookups
+        # Index for faster TitlePoint cache lookups
         cursor.execute("""
-            CREATE INDEX IF NOT EXISTS idx_property_cache_lookup 
-            ON property_cache(user_id, address, state, county)
-        """)
-        
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS idx_property_cache_expires 
-            ON property_cache(expires_at)
+            CREATE INDEX IF NOT EXISTS idx_property_cache_tp_user_address 
+            ON property_cache_tp(user_id, address)
         """)
         
         conn.commit()

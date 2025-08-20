@@ -573,7 +573,7 @@ async def get_cached_titlepoint_data(user_id: str, address: str) -> Optional[Dic
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT data FROM property_cache 
+            SELECT data FROM property_cache_tp 
             WHERE user_id = %s 
               AND address = %s 
               AND created_at > NOW() - INTERVAL '24 hours'
@@ -601,7 +601,7 @@ async def cache_titlepoint_data(user_id: str, address: str, data: Dict):
         cursor = conn.cursor()
         
         cursor.execute("""
-            INSERT INTO property_cache (user_id, address, data, created_at)
+            INSERT INTO property_cache_tp (user_id, address, data, created_at)
             VALUES (%s, %s, %s, %s)
             ON CONFLICT (user_id, address) 
             DO UPDATE SET 
