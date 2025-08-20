@@ -138,6 +138,7 @@ export default function CreateDeed() {
   const [customPrompt, setCustomPrompt] = useState('');
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState('');
   const [formData, setFormData] = useState({
     propertySearch: '',
     apn: '',
@@ -158,6 +159,53 @@ export default function CreateDeed() {
     ownershipDuration: []
   });
   const router = useRouter();
+
+  // Auto-save functionality
+  useEffect(() => {
+    const saveData = {
+      currentStep,
+      docType,
+      verifiedData,
+      formData,
+      timestamp: new Date().toISOString()
+    };
+    
+    localStorage.setItem('deedWizardDraft', JSON.stringify(saveData));
+    setAutoSaveStatus('Saved');
+    
+    const timer = setTimeout(() => {
+      setAutoSaveStatus('');
+    }, 2000);
+    
+    return () => clearTimeout(timer);
+  }, [currentStep, docType, verifiedData, formData]);
+
+  // Load saved data on component mount
+  useEffect(() => {
+    const savedData = localStorage.getItem('deedWizardDraft');
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        if (parsed.currentStep && parsed.currentStep > 1) {
+          // Only restore if user was past step 1
+          setCurrentStep(parsed.currentStep);
+          setDocType(parsed.docType || '');
+          setVerifiedData(parsed.verifiedData || {});
+          setFormData(prev => ({ ...prev, ...parsed.formData }));
+        }
+      } catch (error) {
+        console.error('Failed to load saved wizard data:', error);
+      }
+    }
+  }, []);
+
+  // Cancel wizard function
+  const handleCancelWizard = () => {
+    if (window.confirm('Are you sure you want to cancel? All progress will be lost.')) {
+      localStorage.removeItem('deedWizardDraft');
+      router.push('/dashboard');
+    }
+  };
 
   // Handle property search completion from PropertySearch component
   const handlePropertyVerified = (propertyData: any) => {
@@ -310,9 +358,55 @@ export default function CreateDeed() {
       <div className="main-content">
         <div className="wizard-container">
           {/* Header */}
-          <div className="wizard-header">
-            <h1 className="wizard-title">Create Your Document</h1>
-            <p className="wizard-subtitle">Dynamic prompt-driven document generation</p>
+          <div className="wizard-header" style={{ position: 'relative' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h1 className="wizard-title">Create Your Document</h1>
+                <p className="wizard-subtitle">Dynamic prompt-driven document generation</p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                {/* Auto-save indicator */}
+                {autoSaveStatus && (
+                  <div style={{
+                    padding: '8px 12px',
+                    backgroundColor: '#f0fdf4',
+                    border: '1px solid #bbf7d0',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    color: '#15803d',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    ✓ {autoSaveStatus}
+                  </div>
+                )}
+                {/* Cancel button */}
+                <button
+                  onClick={handleCancelWizard}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: 'white',
+                    color: '#6b7280',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = '#ef4444';
+                    e.currentTarget.style.color = '#ef4444';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = '#d1d5db';
+                    e.currentTarget.style.color = '#6b7280';
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Progress Bar - Cloud-like Experience with 64px circles */}
@@ -415,11 +509,26 @@ export default function CreateDeed() {
                   marginBottom: '2rem'
                 }}
               >
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>
-                  Property Address
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+                  🏠 Find Your Property
                 </h2>
-                <p style={{ color: '#6b7280', marginBottom: '1.5rem' }}>
-                  Enter the property address to begin document creation
+                <div style={{ 
+                  backgroundColor: '#f0f9ff', 
+                  border: '1px solid #bae6fd', 
+                  borderRadius: '8px', 
+                  padding: '16px', 
+                  marginBottom: '1.5rem' 
+                }}>
+                  <p style={{ color: '#0c4a6e', margin: 0, fontSize: '14px', lineHeight: '1.5' }}>
+                    💡 <strong>Here's how it works:</strong><br/>
+                    1. Start typing your property address<br/>
+                    2. Select from the helpful suggestions (or keep typing)<br/>
+                    3. Click "Search" to find property details automatically<br/>
+                    4. We'll get ownership, tax, and legal information for you!
+                  </p>
+                </div>
+                <p style={{ color: '#6b7280', marginBottom: '1.5rem', fontSize: '16px' }}>
+                  Let's start with the property address. Our system will automatically find ownership and legal details.
                 </p>
                 
                 <PropertySearchWithTitlePoint 
@@ -546,9 +655,21 @@ export default function CreateDeed() {
                   marginBottom: '2rem'
                 }}
               >
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>
-                  Document Type & Data
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+                  📋 Choose Your Document
                 </h2>
+                <div style={{ 
+                  backgroundColor: '#f0fdf4', 
+                  border: '1px solid #bbf7d0', 
+                  borderRadius: '8px', 
+                  padding: '16px', 
+                  marginBottom: '1.5rem' 
+                }}>
+                  <p style={{ color: '#15803d', margin: 0, fontSize: '14px', lineHeight: '1.5' }}>
+                    🎯 <strong>Perfect! Your property data is ready.</strong><br/>
+                    Now choose the type of document you need. Each card shows what information is required and what we can pull automatically for you.
+                  </p>
+                </div>
                 
                 {/* Document Type Cards */}
                 <div style={{ marginBottom: '1.5rem' }}>
@@ -833,9 +954,20 @@ export default function CreateDeed() {
                   marginBottom: '2rem'
                 }}
               >
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>
-                  Review & Generate
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+                  ✨ Almost Done!
                 </h2>
+                <div style={{ 
+                  backgroundColor: '#fef3c7', 
+                  border: '1px solid #fed7aa', 
+                  borderRadius: '8px', 
+                  padding: '16px', 
+                  marginBottom: '1.5rem' 
+                }}>
+                  <p style={{ color: '#92400e', margin: 0, fontSize: '14px', lineHeight: '1.5' }}>
+                    🎉 <strong>Great choice!</strong> Review the information below and fill in any missing details. We've pre-filled what we found, but you can always make changes before generating your document.
+                  </p>
+                </div>
                 
                 {/* Dynamic Fields based on doc type */}
                 {docType && DOC_TYPES[docType as keyof typeof DOC_TYPES].fields.map((field) => (

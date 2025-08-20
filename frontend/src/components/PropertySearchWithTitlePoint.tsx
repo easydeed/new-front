@@ -46,6 +46,7 @@ export default function PropertySearchWithTitlePoint({
   const [isGoogleLoaded, setIsGoogleLoaded] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<PropertyData | null>(null);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<any>(null);
   const [isTitlePointLoading, setIsTitlePointLoading] = useState(false);
   
   const inputRef = useRef<HTMLInputElement>(null);
@@ -98,6 +99,7 @@ export default function PropertySearchWithTitlePoint({
   const handleInputChange = (value: string) => {
     setInputValue(value);
     setSelectedAddress(null); // Clear selection when typing
+    setSelectedSuggestion(null); // Clear suggestion when typing
 
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -127,9 +129,9 @@ export default function PropertySearchWithTitlePoint({
     setShowSuggestions(false);
     
     try {
-      // If user has already selected an address, use it, otherwise search
-      if (selectedAddress) {
-        await performTitlePointSearch(selectedAddress);
+      // If user has selected a suggestion, use it
+      if (selectedSuggestion) {
+        await processSelectedSuggestion(selectedSuggestion);
       } else {
         // Search for addresses using Google Places and auto-select first
         await searchPlacesAndSelectFirst(inputValue);
@@ -138,6 +140,41 @@ export default function PropertySearchWithTitlePoint({
       setIsLoading(false);
       onError?.('Address search failed. Please try again.');
     }
+  };
+
+  // Process a selected suggestion
+  const processSelectedSuggestion = async (suggestion: any) => {
+    // Get detailed place information
+    const request = {
+      placeId: suggestion.place_id,
+      fields: ['address_components', 'formatted_address', 'name', 'place_id']
+    };
+
+    return new Promise((resolve, reject) => {
+      placesService.current.getDetails(request, async (place: any, status: any) => {
+        if (status === window.google.maps.places.PlacesServiceStatus.OK && place) {
+          const components = place.address_components || [];
+          
+          const propertyData = {
+            fullAddress: place.formatted_address || suggestion.description,
+            street: extractStreetAddress(components, place.name),
+            city: getComponent(components, 'locality') || '',
+            state: getComponent(components, 'administrative_area_level_1', 'short_name') || 'CA',
+            zip: getComponent(components, 'postal_code') || '',
+            neighborhood: getComponent(components, 'neighborhood'),
+            placeId: place.place_id
+          };
+
+          setSelectedAddress(propertyData);
+          
+          // Now automatically search TitlePoint
+          await performTitlePointSearch(propertyData);
+          resolve(true);
+        } else {
+          reject(new Error('Failed to get place details'));
+        }
+      });
+    });
   };
 
   // Search for places and auto-select the first result
@@ -278,38 +315,17 @@ export default function PropertySearchWithTitlePoint({
     );
   };
 
-  // Handle suggestion selection (Google Places)
+  // Handle suggestion selection (Google Places) - NO auto-validation
   const handleSuggestionSelect = (suggestion: any) => {
     setInputValue(suggestion.description);
     setShowSuggestions(false);
     setSuggestions([]);
-
-    // Get detailed place information
-    const request = {
-      placeId: suggestion.place_id,
-      fields: ['address_components', 'formatted_address', 'name', 'place_id']
-    };
-
-    placesService.current.getDetails(request, (place: any, status: any) => {
-      if (status === window.google.maps.places.PlacesServiceStatus.OK && place) {
-        const components = place.address_components || [];
-        
-        // Extract address components
-        const propertyData: PropertyData = {
-          fullAddress: place.formatted_address || suggestion.description,
-          street: extractStreetAddress(components, place.name),
-          city: getComponent(components, 'locality') || '',
-          state: getComponent(components, 'administrative_area_level_1', 'short_name') || 'CA',
-          zip: getComponent(components, 'postal_code') || '',
-          neighborhood: getComponent(components, 'neighborhood'),
-          placeId: place.place_id
-        };
-
-        setSelectedAddress(propertyData);
-      } else {
-        onError?.('Failed to get place details');
-      }
-    });
+    
+    // Store the suggestion for later use but DON'T auto-validate
+    setSelectedSuggestion(suggestion);
+    
+    // Clear any previous validated data since user selected a new address
+    setSelectedAddress(null);
   };
 
 
