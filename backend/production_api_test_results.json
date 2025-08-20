@@ -1,6 +1,6 @@
 {
   "test_address": "1358 5th St. La Verne, CA 91750",
-  "timestamp": 1755653693.6269965,
+  "timestamp": 1755653941.1668699,
   "google_places": {
     "success": true,
     "data": {
@@ -25,12 +25,16 @@
   },
   "titlepoint": {
     "success": false,
-    "message": "TitlePoint enrichment error: CreateAsynchServicesReturn instance has no attribute 'Message'",
+    "message": "TitlePoint enrichment error: 400: TitlePoint service creation failed: No message",
     "fullAddress": "1358 5th St. La Verne, CA 91750",
     "county": "",
     "city": "La Verne",
     "state": "CA",
-    "zip": "91750"
+    "zip": "91750",
+    "debug_info": {
+      "error_type": "HTTPException",
+      "error_details": "400: TitlePoint service creation failed: No message"
+    }
   },
   "summary": {
     "google_success": true,

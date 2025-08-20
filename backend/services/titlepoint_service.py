@@ -73,9 +73,9 @@ class TitlePointService:
                     'message': 'Full address is required for TitlePoint lookup'
                 }
             
-            # Use TitlePoint.Geo.LegalVesting service for property data
-            service_type = "TitlePoint.Geo.LegalVesting"
-            parameters = f"LegalVesting.FullAddress={full_address}"
+            # Use TitlePoint.Geo.Property service for property data (WORKING SERVICE TYPE)
+            service_type = "TitlePoint.Geo.Property"
+            parameters = f"Property.FullAddress={full_address}"
             
             # Create service request
             request_id = await self._create_service_request(
@@ -160,8 +160,8 @@ class TitlePointService:
             password=self.password,
             state=state,
             county=county,
-            parameters=parameters,
-            serviceType=service_type
+            serviceType=service_type,
+            parameters=parameters
         )
     
     async def _wait_for_completion(self, request_id: str) -> str:
@@ -246,7 +246,11 @@ class TitlePointService:
         return self.client.service.GetResultByRequestID(
             userID=self.user_id,
             password=self.password,
-            requestID=request_id
+            company="",
+            department="",
+            titleOfficer="",
+            requestId=int(request_id),  # Note: requestId (not requestID) and must be int
+            maxWaitSeconds=30
         )
     
     def _parse_titlepoint_result(self, result_xml: str, input_data: Dict) -> Dict:
