@@ -92,15 +92,22 @@ class TitlePointService:
             return self._parse_titlepoint_result(result_xml, data)
             
         except Exception as e:
-            # Return error response instead of raising exception
+            # Return error response with more detailed debugging info
+            error_message = f"TitlePoint enrichment error: {str(e)}"
+            print(f"TitlePoint Error Details: {error_message}")  # For debugging
+            
             return {
                 'success': False,
-                'message': f"TitlePoint enrichment error: {str(e)}",
+                'message': error_message,
                 'fullAddress': data.get('fullAddress', ''),
                 'county': data.get('county', ''),
                 'city': data.get('city', ''),
                 'state': data.get('state', 'CA'),
-                'zip': data.get('zip', '')
+                'zip': data.get('zip', ''),
+                'debug_info': {
+                    'error_type': type(e).__name__,
+                    'error_details': str(e)
+                }
             }
     
     async def _create_service_request(self, state: str, county: str, service_type: str, parameters: str) -> str:
@@ -114,13 +121,31 @@ class TitlePointService:
                 state, county, service_type, parameters
             )
             
-            if response.ReturnStatus != 'Success':
+            # Debug: Print response attributes to understand structure
+            print(f"TitlePoint Response Type: {type(response)}")
+            print(f"TitlePoint Response Attributes: {dir(response)}")
+            if hasattr(response, '__dict__'):
+                print(f"TitlePoint Response Dict: {response.__dict__}")
+            
+            # Check response status - handle different attribute names
+            status = getattr(response, 'ReturnStatus', getattr(response, 'Status', 'Unknown'))
+            message = getattr(response, 'Message', getattr(response, 'ErrorMessage', 'No message'))
+            
+            if status != 'Success':
                 raise HTTPException(
                     status_code=400,
-                    detail=f"TitlePoint service creation failed: {response.Message}"
+                    detail=f"TitlePoint service creation failed: {message}"
                 )
             
-            return response.RequestID
+            # Get RequestID - handle different attribute names
+            request_id = getattr(response, 'RequestID', getattr(response, 'Id', None))
+            if not request_id:
+                raise HTTPException(
+                    status_code=500,
+                    detail="TitlePoint service did not return a request ID"
+                )
+            
+            return request_id
             
         except Fault as e:
             raise HTTPException(
@@ -196,13 +221,19 @@ class TitlePointService:
                 request_id
             )
             
-            if response.ReturnStatus != 'Success':
+            # Check response status - handle different attribute names
+            status = getattr(response, 'ReturnStatus', getattr(response, 'Status', 'Unknown'))
+            message = getattr(response, 'Message', getattr(response, 'ErrorMessage', 'No message'))
+            
+            if status != 'Success':
                 raise HTTPException(
                     status_code=400,
-                    detail=f"TitlePoint result retrieval failed: {response.Message}"
+                    detail=f"TitlePoint result retrieval failed: {message}"
                 )
             
-            return response.ResultData
+            # Get result data - handle different attribute names
+            result_data = getattr(response, 'ResultData', getattr(response, 'Data', ''))
+            return result_data
             
         except Fault as e:
             raise HTTPException(

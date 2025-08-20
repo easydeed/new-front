@@ -1,0 +1,40 @@
+{
+  "test_address": "1358 5th St. La Verne, CA 91750",
+  "timestamp": 1755653693.6269965,
+  "google_places": {
+    "success": true,
+    "data": {
+      "google_place_id": "ChIJhYGcj6kvw4ARlKyyFHGtmGU",
+      "formatted_address": "1358 5th St, La Verne, CA 91750, USA",
+      "street_number": "1358",
+      "route": "5th Street",
+      "neighborhood": null,
+      "city": "La Verne",
+      "county": "Los Angeles County",
+      "state": "CA",
+      "state_long": "California",
+      "zip_code": "91750",
+      "country": "US",
+      "street_address": "1358 5th Street",
+      "latitude": 34.1055077,
+      "longitude": -117.7821395
+    },
+    "source": "google",
+    "cached": false,
+    "confidence": 0.9
+  },
+  "titlepoint": {
+    "success": false,
+    "message": "TitlePoint enrichment error: CreateAsynchServicesReturn instance has no attribute 'Message'",
+    "fullAddress": "1358 5th St. La Verne, CA 91750",
+    "county": "",
+    "city": "La Verne",
+    "state": "CA",
+    "zip": "91750"
+  },
+  "summary": {
+    "google_success": true,
+    "titlepoint_success": false,
+    "overall_success": false
+  }
+}
