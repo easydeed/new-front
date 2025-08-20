@@ -36,7 +36,7 @@ class TitlePointService:
         )
         self.request_summary_endpoint = os.getenv(
             "TP_REQUEST_SUMMARY_ENDPOINT",
-            "https://www.titlepoint.com/TitlePointServices/TpsServiceWS.asmx/GetRequestSummaries?",
+            "https://www.titlepoint.com/TitlePointServices/TpsService.asmx/GetRequestSummaries?",
         )
         self.get_result_by_id = os.getenv(
             "TP_GET_RESULT_BY_ID",
