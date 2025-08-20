@@ -465,7 +465,7 @@ export default function CreateDeed() {
                       Object.keys(verifiedData).length > 3
                     )}
                     style={{
-                      padding: '16px 32px',
+                      padding: '20px 36px',
                       backgroundColor: (verifiedData && (
                         verifiedData.apn || 
                         verifiedData.county || 
@@ -564,14 +564,18 @@ export default function CreateDeed() {
                       <div
                         key={key}
                         onClick={() => handleDocTypeChange(key)}
-                    style={{
+                                            style={{
                           padding: '1.5rem',
                           border: docType === key ? '2px solid #F57C00' : '2px solid #e5e7eb',
                           borderRadius: '12px',
                           cursor: 'pointer',
                           backgroundColor: docType === key ? '#fff8f0' : 'white',
                           transition: 'all 0.2s ease',
-                          boxShadow: docType === key ? '0 4px 12px rgba(245, 124, 0, 0.15)' : '0 1px 3px rgba(0, 0, 0, 0.1)'
+                          boxShadow: docType === key ? '0 4px 12px rgba(245, 124, 0, 0.15)' : '0 1px 3px rgba(0, 0, 0, 0.1)',
+                          minHeight: '160px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between'
                         }}
                         onMouseEnter={(e) => {
                           if (docType !== key) {
@@ -585,24 +589,26 @@ export default function CreateDeed() {
                             e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
                           }
                         }}
-                      >
-                        <div style={{ 
-                          fontSize: '1.125rem', 
-                          fontWeight: 'bold', 
-                          marginBottom: '0.5rem',
-                          color: docType === key ? '#F57C00' : '#111827'
-                        }}>
-                        {config.label}
-                        </div>
-                        <div style={{ 
-                          fontSize: '0.875rem', 
-                          color: '#6b7280',
-                          marginBottom: '0.75rem'
-                        }}>
-                          {getDocumentDescription(key)}
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
-                          Required: {config.required.length > 0 ? config.required.join(', ') : 'Basic property info'}
+                                            >
+                        <div>
+                          <div style={{ 
+                            fontSize: '1.125rem', 
+                            fontWeight: 'bold', 
+                            marginBottom: '0.5rem',
+                            color: docType === key ? '#F57C00' : '#111827'
+                          }}>
+                            {config.label}
+                          </div>
+                          <div style={{ 
+                            fontSize: '0.875rem', 
+                            color: '#6b7280',
+                            marginBottom: '0.75rem'
+                          }}>
+                            {getDocumentDescription(key)}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                            Required: {config.required.length > 0 ? config.required.join(', ') : 'Basic property info'}
+                          </div>
                         </div>
                         {docType === key && (
                           <div style={{ 
@@ -746,7 +752,7 @@ export default function CreateDeed() {
                   <button
                     onClick={() => setCurrentStep(1)}
                     style={{
-                      padding: '16px 32px',
+                      padding: '20px 36px',
                       backgroundColor: 'white',
                       color: '#6b7280',
                       border: '2px solid #e5e7eb',
@@ -783,7 +789,7 @@ export default function CreateDeed() {
                     }}
                     disabled={!docType}
                     style={{
-                      padding: '16px 32px',
+                      padding: '20px 36px',
                       backgroundColor: docType ? '#F57C00' : '#d1d5db',
                       color: 'white',
                       border: 'none',
@@ -986,7 +992,7 @@ export default function CreateDeed() {
                   <button
                     onClick={() => setCurrentStep(2)}
                     style={{
-                      padding: '16px 32px',
+                      padding: '20px 36px',
                       backgroundColor: 'white',
                       color: '#6b7280',
                       border: '2px solid #e5e7eb',

@@ -94,17 +94,25 @@ export default function PropertySearchWithTitlePoint({
     initializeGoogle();
   }, [onError]);
 
-  // Handle input change - NO auto-search while typing
+  // Handle input change with address suggestions
   const handleInputChange = (value: string) => {
     setInputValue(value);
     setSelectedAddress(null); // Clear selection when typing
-    setSuggestions([]);
-    setShowSuggestions(false);
 
-    // Clear any existing timeouts
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
+
+    if (value.length < 3) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    // Show suggestions after a brief delay
+    timeoutRef.current = setTimeout(() => {
+      searchPlaces(value);
+    }, 300);
   };
 
   // Combined search - does Google Places AND TitlePoint in one click
@@ -115,10 +123,17 @@ export default function PropertySearchWithTitlePoint({
     }
 
     setIsLoading(true);
+    setSuggestions([]);
+    setShowSuggestions(false);
     
     try {
-      // First, search for addresses using Google Places
-      await searchPlacesAndSelectFirst(inputValue);
+      // If user has already selected an address, use it, otherwise search
+      if (selectedAddress) {
+        await performTitlePointSearch(selectedAddress);
+      } else {
+        // Search for addresses using Google Places and auto-select first
+        await searchPlacesAndSelectFirst(inputValue);
+      }
     } catch (error) {
       setIsLoading(false);
       onError?.('Address search failed. Please try again.');
@@ -341,7 +356,7 @@ export default function PropertySearchWithTitlePoint({
               placeholder={placeholder}
               style={{
                 width: '100%',
-                padding: '16px 20px',
+                padding: '20px 24px',
                 border: '2px solid #e5e7eb',
                 borderRadius: '16px',
                 fontSize: '16px',
@@ -385,7 +400,7 @@ export default function PropertySearchWithTitlePoint({
             onClick={handleCombinedSearch}
             disabled={isLoading || isTitlePointLoading || !inputValue.trim()}
             style={{
-              padding: '16px 24px',
+              padding: '20px 28px',
               backgroundColor: (inputValue.trim() && !isLoading && !isTitlePointLoading) ? '#F57C00' : '#d1d5db',
               color: 'white',
               border: 'none',
@@ -394,7 +409,7 @@ export default function PropertySearchWithTitlePoint({
               fontWeight: '600',
               cursor: (inputValue.trim() && !isLoading && !isTitlePointLoading) ? 'pointer' : 'not-allowed',
               transition: 'all 0.2s ease',
-              minWidth: '100px',
+              minWidth: '110px',
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
               whiteSpace: 'nowrap'
             }}
