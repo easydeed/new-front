@@ -53,6 +53,12 @@ class TitlePointService:
 
         # HTTP client configuration
         self.timeout = httpx.Timeout(30.0)
+        
+        # Alternative PropertyLookup endpoint (simpler, synchronous)
+        self.property_lookup_endpoint = os.getenv(
+            "TP_PROPERTY_LOOKUP_ENDPOINT",
+            "https://www.titlepoint.com/TitlePointServices/TpsService.asmx/PropertyLookup",
+        )
 
     def _normalize_county(self, county: str) -> str:
         """Normalize county names to TitlePoint expected format (strip 'County', title-case)."""
@@ -340,9 +346,13 @@ class TitlePointService:
         
         while time.time() - start_time < self.max_wait_seconds:
             try:
+                # CRITICAL: GetRequestSummaries requires company/department/titleOfficer per API docs
                 params = {
                     "userID": self.user_id,
                     "password": self.password,
+                    "company": "",  # Required by API (empty string acceptable)
+                    "department": "",  # Required by API (empty string acceptable)
+                    "titleOfficer": "",  # Required by API (empty string acceptable)
                     "requestId": request_id,
                     "maxWaitSeconds": str(self.max_wait_seconds),
                 }
@@ -396,9 +406,13 @@ class TitlePointService:
 
     async def _fetch_result_by_id(self, endpoint: str, result_id: str, method: int) -> str:
         """Fetch full result payload by ID"""
+        # CRITICAL: GetResultByID3 requires company/department/titleOfficer per API docs
         params = {
             "userID": self.user_id,
             "password": self.password,
+            "company": "",  # Required by API (empty string acceptable)
+            "department": "",  # Required by API (empty string acceptable)
+            "titleOfficer": "",  # Required by API (empty string acceptable)
             "resultID": result_id,
         }
         if method == 3:
@@ -542,6 +556,136 @@ class TitlePointService:
 
 
 
+    
+    async def property_lookup_simple(self, data: Dict) -> Dict:
+        """
+        Simple PropertyLookup API call (synchronous alternative to CreateService3 flow)
+        
+        Args:
+            data: Dictionary containing property information
+                - fullAddress: Complete address
+                - city: City name
+                - state: State abbreviation (e.g., 'CA')
+                - county: County name
+                - fips: FIPS code (optional)
+        
+        Returns:
+            Simplified property data including addresses, APNs, and owners
+        """
+        try:
+            state = data.get('state', 'CA')
+            county = self._normalize_county((data.get('county') or '').strip())
+            full_address = (data.get('fullAddress') or '').strip()
+            fips = (data.get('fips') or '').strip()
+            
+            if not county and not fips:
+                return {
+                    'success': False,
+                    'message': 'County or FIPS code is required for PropertyLookup'
+                }
+                
+            if not full_address:
+                return {
+                    'success': False,
+                    'message': 'Full address is required for PropertyLookup'
+                }
+            
+            print(f"🔍 PropertyLookup (simple) for: {full_address}")
+            
+            # Use address as parameter (PropertyLookup parameter format)
+            parameters = f"Address1={full_address}"
+            
+            query = {
+                "userID": self.user_id,
+                "password": self.password,
+                "company": "",  # Required by API
+                "department": "",  # Required by API
+                "titleOfficer": "",  # Required by API
+                "parameters": parameters,
+                "state": state,
+                "county": county,
+            }
+            
+            if fips:
+                query["fipsCode"] = fips
+            
+            print(f"🔗 PropertyLookup URL: {self.property_lookup_endpoint}")
+            print(f"📋 Parameters: {query}")
+            
+            # Make synchronous HTTP call
+            url = f"{self.property_lookup_endpoint}?{urlencode(query)}"
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(url, headers={"Accept": "text/xml, application/xml"})
+            
+            if response.status_code != 200:
+                body = response.text[:500] if response.text else ''
+                print(f"❌ PropertyLookup failed: HTTP {response.status_code}. Body: {body}")
+                raise HTTPException(status_code=response.status_code, detail=f"PropertyLookup failed: HTTP {response.status_code}. Body: {body}")
+            
+            print(f"✅ PropertyLookup HTTP {response.status_code}")
+            print(f"📄 Response XML: {response.text[:1000]}...")
+            
+            # Parse XML response
+            root = ET.fromstring(response.text)
+            
+            # Extract lookup status
+            lookup_status = None
+            addresses = []
+            apns = []
+            owners = []
+            
+            for elem in root.iter():
+                tag = elem.tag.lower()
+                if "lookupstatus" in tag and elem.text:
+                    lookup_status = elem.text.strip()
+                elif "apn" in tag and elem.text:
+                    apns.append(elem.text.strip())
+                elif "owner" in tag and elem.text:
+                    owners.append(elem.text.strip())
+            
+            print(f"📊 PropertyLookup Status: {lookup_status}")
+            print(f"📊 Found APNs: {apns}")
+            print(f"📊 Found Owners: {owners}")
+            
+            if lookup_status and lookup_status.lower() == "success":
+                return {
+                    'success': True,
+                    'method': 'PropertyLookup',
+                    'fullAddress': full_address,
+                    'county': county,
+                    'state': state,
+                    'apns': apns,
+                    'owners': owners,
+                    'primary_owner': owners[0] if owners else '',
+                    'secondary_owner': owners[1] if len(owners) > 1 else '',
+                    'apn': apns[0] if apns else '',
+                }
+            else:
+                return {
+                    'success': False,
+                    'method': 'PropertyLookup',
+                    'message': f'PropertyLookup status: {lookup_status}',
+                    'fullAddress': full_address,
+                    'county': county,
+                    'state': state,
+                }
+                
+        except Exception as e:
+            error_message = f"PropertyLookup error: {str(e)}"
+            print(f"PropertyLookup Error: {error_message}")
+            
+            return {
+                'success': False,
+                'method': 'PropertyLookup',
+                'message': error_message,
+                'fullAddress': data.get('fullAddress', ''),
+                'county': data.get('county', ''),
+                'state': data.get('state', 'CA'),
+                'debug_info': {
+                    'error_type': type(e).__name__,
+                    'error_details': str(e)
+                }
+            }
     
     # Chain of title functionality can be added later if needed
     # For now, focus on the core property enrichment using Pacific Coast Title's proven method
