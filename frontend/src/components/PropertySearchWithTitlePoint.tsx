@@ -197,8 +197,8 @@ export default function PropertySearchWithTitlePoint({
           setSelectedAddress(propertyData);
           setIsLoading(false);
           
-          // Now trigger TitlePoint lookup for property details
-          await lookupPropertyDetails(propertyData);
+          // Don't automatically call TitlePoint - let user confirm first
+          // await lookupPropertyDetails(propertyData);
           resolve(true);
         } else {
           reject(new Error('Failed to get place details'));
@@ -256,8 +256,8 @@ export default function PropertySearchWithTitlePoint({
                 setSelectedAddress(propertyData);
                 setIsLoading(false);
                 
-                // Now trigger TitlePoint lookup for property details
-                await lookupPropertyDetails(propertyData);
+                // Don't automatically call TitlePoint - let user confirm first
+                // await lookupPropertyDetails(propertyData);
                 resolve(true);
               } else {
                 reject(new Error('Failed to get place details'));
@@ -591,7 +591,7 @@ export default function PropertySearchWithTitlePoint({
         )}
 
         {/* Selected Address Display */}
-        {selectedAddress && !errorMessage && (
+        {selectedAddress && !errorMessage && !showPropertyDetails && (
           <div style={{
             padding: '16px',
             backgroundColor: '#f0fdf4',
@@ -599,22 +599,70 @@ export default function PropertySearchWithTitlePoint({
             borderRadius: '12px',
             marginTop: '12px'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
               <div>
                 <div style={{ fontSize: '14px', fontWeight: '600', color: '#15803d', marginBottom: '4px' }}>
-                  ✅ Property Found & Data Retrieved
+                  ✅ Address Validated
                 </div>
                 <div style={{ fontSize: '14px', color: '#166534' }}>
                   {selectedAddress.fullAddress}
                 </div>
-                {selectedAddress.apn && (
-                  <div style={{ fontSize: '12px', color: '#166534', marginTop: '4px' }}>
-                    APN: {selectedAddress.apn}
-                  </div>
-                )}
+                <div style={{ fontSize: '12px', color: '#166534', marginTop: '4px' }}>
+                  County: {selectedAddress.county}
+                </div>
               </div>
               <div style={{ fontSize: '24px', color: '#22c55e' }}>✓</div>
             </div>
+            
+            {/* Get Property Details Button */}
+            <button
+              onClick={() => lookupPropertyDetails(selectedAddress)}
+              disabled={isTitlePointLoading}
+              style={{
+                width: '100%',
+                padding: '12px 20px',
+                backgroundColor: isTitlePointLoading ? '#d1d5db' : '#F57C00',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: isTitlePointLoading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+              onMouseEnter={(e) => {
+                if (!isTitlePointLoading) {
+                  e.currentTarget.style.backgroundColor = '#e67100';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isTitlePointLoading) {
+                  e.currentTarget.style.backgroundColor = '#F57C00';
+                }
+              }}
+            >
+              {isTitlePointLoading ? (
+                <>
+                  <div style={{
+                    width: '16px',
+                    height: '16px',
+                    border: '2px solid #ffffff40',
+                    borderTop: '2px solid #ffffff',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }}></div>
+                  Getting Property Details...
+                </>
+              ) : (
+                <>
+                  🏠 Get Property Details from TitlePoint
+                </>
+              )}
+            </button>
           </div>
         )}
 

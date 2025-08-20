@@ -74,9 +74,14 @@ except Exception as e:
 # Allow CORS for local dev and frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3000",
+        "https://deedpro-frontend-new.vercel.app",
+        "https://deedpro-frontend-new-*.vercel.app",  # Preview deployments
+        "*"  # Fallback for development
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
