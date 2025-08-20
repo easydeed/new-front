@@ -617,6 +617,185 @@ async def cache_titlepoint_data(user_id: str, address: str, data: Dict):
         print(f"TitlePoint cache storage failed: {e}")
 
 
+# Diagnostic test endpoints for TitlePoint flows
+class TitlePointTestRequest(BaseModel):
+    """Test request for individual TitlePoint flows"""
+    apn: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = "CA"
+    county: Optional[str] = None
+    fips: Optional[str] = None
+    
+@router.post("/test/titlepoint-tax")
+async def test_titlepoint_tax_flow(
+    request: TitlePointTestRequest,
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    Test TitlePoint Tax flow (Method 3) with APN
+    Endpoint: CreateService3 with TitlePoint.Geo.Tax
+    """
+    try:
+        from services.titlepoint_service import TitlePointService
+        
+        if not request.apn:
+            raise HTTPException(status_code=400, detail="APN is required for Tax flow test")
+        if not request.county:
+            raise HTTPException(status_code=400, detail="County is required for Tax flow test")
+            
+        service = TitlePointService()
+        
+        print(f"🧪 Testing TitlePoint Tax Flow")
+        print(f"📋 APN: {request.apn}, County: {request.county}, State: {request.state}")
+        
+        # Test CreateService3 for Tax
+        import os
+        query = {
+            "userID": service.user_id,
+            "password": service.password,
+            "serviceType": os.getenv("TAX_SEARCH_SERVICE_TYPE", "TitlePoint.Geo.Tax"),
+            "parameters": f"Tax.APN={request.apn};General.AutoSearchTaxes=true;General.AutoSearchProperty=false",
+            "state": request.state,
+            "county": service._normalize_county(request.county),
+        }
+        
+        request_id = await service._create_service_get(service.tax_create_service_endpoint, query)
+        
+        return {
+            "success": True,
+            "flow": "Tax (Method 3)",
+            "request_id": request_id,
+            "apn": request.apn,
+            "county": request.county,
+            "message": f"CreateService3 successful - RequestID: {request_id}"
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "flow": "Tax (Method 3)",
+            "error": str(e),
+            "apn": request.apn,
+            "county": request.county
+        }
+
+@router.post("/test/titlepoint-lv")
+async def test_titlepoint_lv_flow(
+    request: TitlePointTestRequest,
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    Test TitlePoint Legal/Vesting flow (Method 4) with Address
+    Endpoint: CreateService3 with TitlePoint.Geo.LegalVesting
+    """
+    try:
+        from services.titlepoint_service import TitlePointService
+        
+        if not request.address:
+            raise HTTPException(status_code=400, detail="Address is required for LV flow test")
+        if not request.city:
+            raise HTTPException(status_code=400, detail="City is required for LV flow test")
+        if not request.county:
+            raise HTTPException(status_code=400, detail="County is required for LV flow test")
+            
+        service = TitlePointService()
+        
+        print(f"🧪 Testing TitlePoint Legal/Vesting Flow")
+        print(f"📋 Address: {request.address}, City: {request.city}, County: {request.county}")
+        
+        # Test CreateService3 for Legal/Vesting
+        import os
+        parameters = (
+            f"Address1={request.address};City={request.city};"
+            f"Pin={request.apn or ''};LvLookup=Address;LvLookupValue={request.address}, {request.city};"
+            f"LvReportFormat=LV;IncludeTaxAssessor=true"
+        )
+        
+        query = {
+            "userID": service.user_id,
+            "password": service.password,
+            "serviceType": os.getenv("SERVICE_TYPE", "TitlePoint.Geo.LegalVesting"),
+            "parameters": parameters,
+            "state": request.state,
+            "county": service._normalize_county(request.county),
+        }
+        
+        if request.fips:
+            query["fipsCode"] = request.fips
+        
+        request_id = await service._create_service_get(service.create_service_endpoint, query)
+        
+        return {
+            "success": True,
+            "flow": "Legal/Vesting (Method 4)",
+            "request_id": request_id,
+            "address": request.address,
+            "city": request.city,
+            "county": request.county,
+            "fips": request.fips,
+            "message": f"CreateService3 successful - RequestID: {request_id}"
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "flow": "Legal/Vesting (Method 4)",
+            "error": str(e),
+            "address": request.address,
+            "city": request.city,
+            "county": request.county
+        }
+
+@router.post("/test/titlepoint-credentials")
+async def test_titlepoint_credentials(user_id: str = Depends(get_current_user_id)):
+    """
+    Test TitlePoint credentials and basic connectivity
+    """
+    try:
+        from services.titlepoint_service import TitlePointService
+        
+        service = TitlePointService()
+        
+        print(f"🔐 Testing TitlePoint Credentials")
+        print(f"👤 User ID: {service.user_id}")
+        print(f"🔗 Endpoint: {service.create_service_endpoint}")
+        
+        # Simple test with minimal valid parameters  
+        query = {
+            "userID": service.user_id,
+            "password": service.password,
+            "serviceType": "TitlePoint.Geo.LegalVesting",
+            "parameters": "Test=true",
+            "state": "CA",
+            "county": "Los Angeles",
+        }
+        
+        # Just test the HTTP call without expecting valid data
+        import httpx
+        from urllib.parse import urlencode
+        
+        url = f"{service.create_service_endpoint}?{urlencode(query)}"
+        async with httpx.AsyncClient(timeout=service.timeout) as client:
+            response = await client.get(url, headers={"Accept": "text/xml, application/xml"})
+        
+        return {
+            "success": True,
+            "status_code": response.status_code,
+            "credentials_valid": response.status_code != 401,
+            "response_sample": response.text[:500],
+            "endpoint": service.create_service_endpoint,
+            "user_id": service.user_id
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "Failed to test TitlePoint credentials"
+        }
+
+
 async def log_search_history(user_id: str, query: str, results: Dict):
     """Log search history for analytics"""
     try:

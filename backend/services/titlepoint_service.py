@@ -244,11 +244,16 @@ class TitlePointService:
             q.setdefault("orderComment", f"DeedPro Request {q['orderNo']}")
             q.setdefault("starterRemarks", "")
 
+            print(f"🔗 Calling CreateService3: {endpoint}")
+            print(f"📋 Parameters: {q}")
+
             url = f"{endpoint}?{urlencode(q)}"
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(url, headers={"Accept": "text/xml, application/xml"})
+            
             if response.status_code != 200:
                 # Fallback: try POST form once
+                print(f"⚠️ GET failed with {response.status_code}, trying POST fallback")
                 async with httpx.AsyncClient(timeout=self.timeout) as client:
                     response = await client.post(
                         endpoint,
@@ -258,22 +263,58 @@ class TitlePointService:
                             'Accept': 'text/xml, application/xml'
                         }
                     )
+            
             if response.status_code != 200:
                 # Include response text (truncated) to surface TitlePoint error details
-                body = response.text[:400] if response.text else ''
+                body = response.text[:500] if response.text else ''
+                print(f"❌ CreateService failed: HTTP {response.status_code}. Body: {body}")
                 raise HTTPException(status_code=response.status_code, detail=f"CreateService failed: HTTP {response.status_code}. Body: {body}")
 
+            # Parse XML response and check for TitlePoint errors
+            print(f"✅ CreateService HTTP {response.status_code}")
+            print(f"📄 Response XML: {response.text[:1000]}...")
+            
             root = ET.fromstring(response.text)
-            request_id: Optional[str] = None
+            
+            # Check ReturnStatus first (CRITICAL per fail-proof guide)
+            return_status = None
+            request_id = None
+            error_message = None
+            
             for elem in root.iter():
                 tag = elem.tag.lower()
-                if "requestid" in tag and elem.text and elem.text.strip():
+                if "returnstatus" in tag and elem.text:
+                    return_status = elem.text.strip()
+                elif "requestid" in tag and elem.text and elem.text.strip():
                     request_id = elem.text.strip()
-                    break
-            if not request_id:
-                raise HTTPException(status_code=500, detail="CreateService did not return a RequestID")
+                elif "errordescription" in tag and elem.text:
+                    error_message = elem.text.strip()
+            
+            print(f"📊 ReturnStatus: {return_status}, RequestID: {request_id}")
+            
+            # Fail fast if ReturnStatus != Success (per fail-proof guide)
+            if return_status and return_status.lower() != "success":
+                error_detail = f"TitlePoint ReturnStatus: {return_status}"
+                if error_message:
+                    error_detail += f". Error: {error_message}"
+                print(f"❌ {error_detail}")
+                raise HTTPException(status_code=500, detail=error_detail)
+            
+            # Fail fast if RequestID is 0 or empty (indicates CreateService failure)
+            if not request_id or request_id == "0":
+                error_detail = f"CreateService returned invalid RequestID: {request_id}"
+                if error_message:
+                    error_detail += f". Error: {error_message}"
+                print(f"❌ {error_detail}")
+                raise HTTPException(status_code=500, detail=error_detail)
+            
+            print(f"✅ CreateService successful - RequestID: {request_id}")
             return request_id
+            
+        except HTTPException:
+            raise  # Re-raise HTTPExceptions as-is
         except Exception as e:
+            print(f"❌ CreateService exception: {str(e)}")
             raise HTTPException(status_code=500, detail=f"CreateService error: {str(e)}")
     
     async def _wait_for_http_completion(self, request_id: str) -> (str, Optional[str]):
