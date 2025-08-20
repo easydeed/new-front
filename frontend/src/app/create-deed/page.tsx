@@ -12,38 +12,122 @@ const DOC_TYPES = {
     label: 'Grant Deed',
     fields: ['consideration'],
     buttons: ['vesting', 'grant_deed', 'tax_roll', 'chain_of_title'],
-    required: ['granteeName', 'consideration']
+    required: ['granteeName', 'consideration'],
+    dataNeeds: ['current_owner', 'legal_description', 'consideration_amount', 'vesting_type', 'tax_assessments']
   },
   quit_claim: {
     label: 'Quitclaim Deed', 
     fields: [],
     buttons: ['vesting'],
-    required: ['granteeName']
+    required: ['granteeName'],
+    dataNeeds: ['current_owner', 'legal_description', 'vesting_type']
   },
   interspousal_transfer: {
     label: 'Interspousal Transfer',
     fields: ['spouse'],
     buttons: ['vesting'],
-    required: ['spouse']
+    required: ['spouse'],
+    dataNeeds: ['current_owner', 'legal_description', 'vesting_type', 'spouse_confirmation']
   },
   warranty_deed: {
     label: 'Warranty Deed',
     fields: ['covenants'],
     buttons: ['grant_deed', 'chain_of_title'],
-    required: ['granteeName', 'covenants']
+    required: ['granteeName', 'covenants'],
+    dataNeeds: ['current_owner', 'legal_description', 'consideration_amount', 'chain_of_title', 'title_warranty']
   },
   tax_deed: {
     label: 'Tax Deed',
     fields: ['buyer'],
     buttons: ['tax_roll'],
-    required: ['buyer']
+    required: ['buyer'],
+    dataNeeds: ['tax_sale_info', 'legal_description', 'tax_amounts', 'auction_details']
   },
   property_profile: {
     label: 'Property Profile Report',
     fields: [],
     buttons: ['vesting', 'grant_deed', 'tax_roll', 'chain_of_title'],
-    required: []
+    required: [],
+    dataNeeds: ['all_property_data', 'ownership_history', 'tax_history', 'legal_description', 'liens_encumbrances']
   }
+};
+
+// Helper function to get document descriptions
+const getDocumentDescription = (docType: string) => {
+  const descriptions = {
+    grant_deed: 'Standard property transfer with warranties and consideration',
+    quit_claim: 'Simple ownership transfer without warranties',
+    interspousal_transfer: 'Property transfer between spouses',
+    warranty_deed: 'Property transfer with full warranty protection',
+    tax_deed: 'Property transfer from tax sale or auction',
+    property_profile: 'Comprehensive property analysis and ownership report'
+  };
+  return descriptions[docType] || 'Legal document for property transfer';
+};
+
+// Enhanced data mapping based on document type
+const enhanceDataForDocumentType = (rawData: any, docType: string) => {
+  const enhanced = { ...rawData };
+  
+  switch (docType) {
+    case 'grant_deed':
+      // Ensure we have consideration and vesting information
+      if (rawData.current_owner_primary) {
+        enhanced.grantorName = rawData.current_owner_primary;
+      }
+      if (rawData.vesting) {
+        enhanced.vesting = rawData.vesting;
+      }
+      break;
+      
+    case 'quit_claim':
+      // Focus on ownership transfer without consideration
+      if (rawData.current_owner_primary) {
+        enhanced.grantorName = rawData.current_owner_primary;
+      }
+      break;
+      
+    case 'interspousal_transfer':
+      // Handle spouse-to-spouse transfer
+      if (rawData.current_owner_primary && rawData.current_owner_secondary) {
+        enhanced.grantorName = rawData.current_owner_primary;
+        enhanced.spouse = rawData.current_owner_secondary;
+      }
+      break;
+      
+    case 'warranty_deed':
+      // Full warranty protection requirements
+      if (rawData.current_owner_primary) {
+        enhanced.grantorName = rawData.current_owner_primary;
+      }
+      if (rawData.chainOfTitle) {
+        enhanced.chainOfTitle = rawData.chainOfTitle;
+      }
+      break;
+      
+    case 'tax_deed':
+      // Tax sale specific information
+      if (rawData.tax_sale_info) {
+        enhanced.taxSaleInfo = rawData.tax_sale_info;
+      }
+      if (rawData.assessed_value) {
+        enhanced.consideration = rawData.assessed_value;
+      }
+      break;
+      
+    case 'property_profile':
+      // Comprehensive property report
+      enhanced.propertyProfile = {
+        ownership: rawData.ownership || {},
+        taxInfo: rawData.taxInfo || {},
+        legalDescription: rawData.legalDescription || '',
+        chainOfTitle: rawData.chainOfTitle || [],
+        liens: rawData.liens || []
+      };
+      break;
+  }
+  
+  return enhanced;
 };
 
 export default function CreateDeed() {
@@ -105,6 +189,8 @@ export default function CreateDeed() {
     setErrors({});
 
     try {
+      const currentDocType = DOC_TYPES[docType as keyof typeof DOC_TYPES];
+      
       const response = await fetch('/api/ai/assist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -112,7 +198,9 @@ export default function CreateDeed() {
           type: promptType,
           docType,
           verifiedData,
-          currentData: formData
+          currentData: formData,
+          dataNeeds: currentDocType?.dataNeeds || [], // Include specific data needs for this document type
+          requiredFields: currentDocType?.required || [] // Include required fields
         })
       });
 
@@ -123,10 +211,12 @@ export default function CreateDeed() {
         return;
       }
 
-      setFormData(prev => ({ ...prev, ...result }));
+      // Enhanced data mapping based on document type
+      const enhancedData = enhanceDataForDocumentType(result, docType);
+      setFormData(prev => ({ ...prev, ...enhancedData }));
       
       // Check for fast-forward
-      if (checkFastForward(result)) {
+      if (checkFastForward(enhancedData)) {
         setCurrentStep(3);
       }
       
@@ -303,6 +393,40 @@ export default function CreateDeed() {
                     {errors.property}
                   </p>
                 )}
+                
+                {/* Step 1 Navigation */}
+                <div style={{ 
+                  marginTop: '2rem',
+                  display: 'flex', 
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div></div> {/* Empty div for spacing */}
+                  <button
+                    onClick={() => {
+                      if (!verifiedData || Object.keys(verifiedData).length === 0) {
+                        setErrors({property: 'Please complete address search before proceeding'});
+                        return;
+                      }
+                      setCurrentStep(2);
+                    }}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      backgroundColor: '#F57C00',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e67100'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#F57C00'}
+                  >
+                    Next: Select Document Type →
+                  </button>
+                </div>
               </div>
             )}
 
@@ -321,29 +445,77 @@ export default function CreateDeed() {
                   Document Type & Data
                 </h2>
                 
-                {/* Document Type Selector */}
+                {/* Document Type Cards */}
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>
-                    Document Type
+                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '1rem' }}>
+                    Select Document Type
                   </label>
-                  <select
-                    value={docType}
-                    onChange={(e) => handleDocTypeChange(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '0.5rem',
-                      fontSize: '1rem'
-                    }}
-                  >
-                    <option value="">Select document type...</option>
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+                    gap: '1rem' 
+                  }}>
                     {Object.entries(DOC_TYPES).map(([key, config]) => (
-                      <option key={key} value={key}>
-                        {config.label}
-                      </option>
+                      <div
+                        key={key}
+                        onClick={() => handleDocTypeChange(key)}
+                        style={{
+                          padding: '1.5rem',
+                          border: docType === key ? '2px solid #F57C00' : '2px solid #e5e7eb',
+                          borderRadius: '12px',
+                          cursor: 'pointer',
+                          backgroundColor: docType === key ? '#fff8f0' : 'white',
+                          transition: 'all 0.2s ease',
+                          boxShadow: docType === key ? '0 4px 12px rgba(245, 124, 0, 0.15)' : '0 1px 3px rgba(0, 0, 0, 0.1)'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (docType !== key) {
+                            e.currentTarget.style.borderColor = '#F57C00';
+                            e.currentTarget.style.boxShadow = '0 2px 8px rgba(245, 124, 0, 0.1)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (docType !== key) {
+                            e.currentTarget.style.borderColor = '#e5e7eb';
+                            e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+                          }
+                        }}
+                      >
+                        <div style={{ 
+                          fontSize: '1.125rem', 
+                          fontWeight: 'bold', 
+                          marginBottom: '0.5rem',
+                          color: docType === key ? '#F57C00' : '#111827'
+                        }}>
+                          {config.label}
+                        </div>
+                        <div style={{ 
+                          fontSize: '0.875rem', 
+                          color: '#6b7280',
+                          marginBottom: '0.75rem'
+                        }}>
+                          {getDocumentDescription(key)}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                          Required: {config.required.length > 0 ? config.required.join(', ') : 'Basic property info'}
+                        </div>
+                        {docType === key && (
+                          <div style={{ 
+                            marginTop: '0.75rem',
+                            padding: '0.5rem',
+                            backgroundColor: '#F57C00',
+                            color: 'white',
+                            borderRadius: '6px',
+                            fontSize: '0.75rem',
+                            fontWeight: '500',
+                            textAlign: 'center'
+                          }}>
+                            Selected ✓
+                          </div>
+                        )}
+                      </div>
                     ))}
-                  </select>
+                  </div>
                 </div>
 
                 {/* Button Prompts */}
@@ -458,6 +630,68 @@ export default function CreateDeed() {
                     Continue to Review
                   </button>
                 )}
+                
+                {/* Step 2 Navigation */}
+                <div style={{ 
+                  marginTop: '2rem',
+                  display: 'flex', 
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <button
+                    onClick={() => setCurrentStep(1)}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      backgroundColor: 'white',
+                      color: '#6b7280',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#F57C00';
+                      e.currentTarget.style.color = '#F57C00';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#e5e7eb';
+                      e.currentTarget.style.color = '#6b7280';
+                    }}
+                  >
+                    ← Back to Address
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!docType) {
+                        setErrors({docType: 'Please select a document type'});
+                        return;
+                      }
+                      setCurrentStep(3);
+                    }}
+                    disabled={!docType}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      backgroundColor: docType ? '#F57C00' : '#d1d5db',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      fontWeight: '500',
+                      cursor: docType ? 'pointer' : 'not-allowed',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (docType) e.currentTarget.style.backgroundColor = '#e67100';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (docType) e.currentTarget.style.backgroundColor = '#F57C00';
+                    }}
+                  >
+                    Next: Review & Generate →
+                  </button>
+                </div>
               </div>
             )}
 
@@ -620,6 +854,39 @@ export default function CreateDeed() {
                     <p style={{ color: '#dc2626', fontSize: '0.875rem' }}>{errors.generate}</p>
                   </div>
                 )}
+
+                {/* Step 3 Navigation */}
+                <div style={{ 
+                  marginBottom: '1.5rem',
+                  display: 'flex', 
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <button
+                    onClick={() => setCurrentStep(2)}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      backgroundColor: 'white',
+                      color: '#6b7280',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#F57C00';
+                      e.currentTarget.style.color = '#F57C00';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#e5e7eb';
+                      e.currentTarget.style.color = '#6b7280';
+                    }}
+                  >
+                    ← Back to Document Type
+                  </button>
+                </div>
 
                 {/* Generate Button */}
                 <button

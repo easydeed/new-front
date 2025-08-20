@@ -9,9 +9,13 @@ The DeedPro dynamic wizard is a revolutionary 3-step document creation system th
 ### Frontend Structure
 ```
 frontend/src/app/create-deed/
-├── page.tsx                 # Original wizard (legacy)
-├── dynamic-page.tsx         # New dynamic wizard implementation
-└── dynamic-wizard.tsx       # Reusable wizard component
+├── page.tsx                 # Main wizard with PropertySearchWithTitlePoint integration
+├── dynamic-page.tsx         # Dynamic wizard implementation
+├── dynamic-wizard.tsx       # Reusable wizard component
+└── components/
+    ├── PropertySearch.tsx               # Google Places autocomplete only
+    ├── PropertySearchComponent.tsx      # Basic search with TitlePoint call
+    └── PropertySearchWithTitlePoint.tsx # 🆕 Complete Google Places + TitlePoint integration
 ```
 
 ### Backend Structure
@@ -28,11 +32,13 @@ backend/
 
 ## The 3-Step Process
 
-### Step 1: Address Verification
+### Step 1: Address Verification & Property Search
 - **Google Places Autocomplete**: Smart address suggestions as user types
-- **TitlePoint Integration**: Validates and enriches with property data
-- **Auto-population**: APN, county, legal description, current owner info
-- **Search Button**: Triggers verification and advances to Step 2
+- **Address Selection**: User selects from suggested addresses with visual confirmation
+- **TitlePoint Search Button**: "🏠 Search Property & Get Title Information" appears after address selection
+- **Complete Integration**: Button triggers TitlePoint property data retrieval
+- **Auto-population**: APN, county, legal description, current owner, vesting info
+- **Seamless Flow**: Automatically advances to Step 2 after successful property search
 
 ### Step 2: Document Type & Data Pulls
 - Select from 6 supported document types:
@@ -166,16 +172,82 @@ The Chain of Title feature provides complete ownership history analysis for any 
 #### How to Use
 1. **Button Method**: Click "Pull Chain of Title" on supported document types
 2. **Custom Prompt**: Type "pull chain of title", "deed history", or "ownership history"
-3. **Results Display**: Review timeline in Step 3 with automatic issue alerts
 
-#### Business Value
-- **Due Diligence**: Instant title verification for real estate transactions
-- **Risk Assessment**: Automatic identification of potential title issues
+---
+
+## 🎯 Complete Wizard User Experience
+
+### **Address Search & Property Data Flow**
+
+#### **Step 1a: Address Input**
+1. User types in the address field
+2. Google Places provides real-time suggestions
+3. User selects an address from the dropdown
+4. Green confirmation box appears: "Address Selected ✓"
+
+#### **Step 1b: Property Data Search**
+1. Blue search button appears: "🏠 Search Property & Get Title Information"
+2. User clicks the search button
+3. Loading state shows: "Searching Property Data..."
+4. System calls TitlePoint API to retrieve:
+   - APN (Assessor's Parcel Number)
+   - County information
+   - Legal description
+   - Current owner/grantor information
+   - Vesting details
+
+#### **Step 1c: Form Auto-Population**
+1. Retrieved property data automatically populates form fields
+2. User is advanced to Step 2 (Document Type Selection)
+3. Wizard now has enriched property data for document generation
+
+### **🔄 Integration Behind the Scenes**
+
+**Frontend Flow**:
+```
+PropertySearchWithTitlePoint Component
+├── Google Places Autocomplete (user types)
+├── Address Selection (user clicks suggestion)
+├── Search Button Display (after selection)
+├── TitlePoint API Call (user clicks search)
+└── Data Merge & Verification (Google + TitlePoint data)
+```
+
+**Backend Flow**:
+```
+/api/property/search endpoint
+├── Receives address data from frontend
+├── Calls TitlePoint.Geo.Property service
+├── Also calls TitlePoint.Geo.Owner for vesting
+├── Merges and formats response data
+└── Returns enriched property information
+```
+
+### **🎪 Visual Experience**
+
+**Before Fix**: 
+- User enters address → no search button → manual data entry required
+
+**After Fix**:
+- User enters address → suggestions appear → user selects → green confirmation → search button appears → click search → property data retrieved → form auto-populated
+
+**Key Visual Elements**:
+- 🔍 Real-time address suggestions dropdown
+- ✅ Green "Address Selected" confirmation box  
+- 🏠 Blue "Search Property & Get Title Information" button
+- ⏳ Loading spinner during TitlePoint search
+- 📋 Auto-populated form fields with property data
+
+**Business Benefits**:
 - **Time Savings**: Eliminates manual county record searches
-- **Professional Reports**: Comprehensive ownership documentation
+- **Professional Reports**: Comprehensive ownership documentation  
 - **Competitive Edge**: Professional-grade title intelligence in seconds
 
-### Error Handling
+---
+
+## 🔧 Technical Implementation
+
+### Component Architecture
 - Graceful fallback when external services unavailable
 - User can always proceed with manual data entry
 - Clear error messages for service failures

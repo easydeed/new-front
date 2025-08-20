@@ -54,32 +54,52 @@ AI Enhancement Integration → Cache Storage → Deed Generation
 
 ### **Frontend Components**
 
-#### **PropertySearch Component** (`frontend/src/components/PropertySearch.tsx`)
-**Purpose**: Modern React component providing Google Places autocomplete functionality
+#### **PropertySearchWithTitlePoint Component** (`frontend/src/components/PropertySearchWithTitlePoint.tsx`) 🆕
+**Purpose**: Complete address validation and property data integration component
 
 **Key Features**:
-- Real-time address suggestions as user types
-- Google Places integration with proper error handling
-- Responsive design with loading states
-- TypeScript interfaces for type safety
-- Debounced search to prevent excessive API calls
+- **Google Places Autocomplete**: Real-time address suggestions with debounced search
+- **Address Selection Confirmation**: Visual feedback when address is selected
+- **TitlePoint Search Button**: Appears after address selection to trigger property data retrieval
+- **Complete Integration Flow**: Seamlessly combines Google Places + TitlePoint data
+- **Loading States**: Visual feedback during both address validation and property search
+- **Error Handling**: Graceful fallback to Google Places data if TitlePoint fails
+- **TypeScript Interfaces**: Full type safety for property data
 
 **Props Interface**:
 ```typescript
 interface PropertySearchProps {
-  onSelect: (data: PropertyData) => void;
+  onVerified: (data: PropertyData) => void;
   onError?: (error: string) => void;
   placeholder?: string;
-  value?: string;
   className?: string;
+}
+
+interface PropertyData {
+  // Google Places data
+  fullAddress: string;
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+  neighborhood?: string;
+  placeId: string;
+  // TitlePoint data
+  apn?: string;
+  county?: string;
+  legalDescription?: string;
+  grantorName?: string;
+  currentOwnerPrimary?: string;
+  currentOwnerSecondary?: string;
 }
 ```
 
 **Integration Points**:
-- Integrated into `/create-deed/page.tsx` deed wizard
-- Replaces basic property address input field
-- Triggers complete data enrichment workflow
-- Provides visual feedback during processing
+- Primary component in `/create-deed/page.tsx` deed wizard
+- Also used in `/create-deed/dynamic-wizard.tsx`
+- Replaces separate PropertySearch and PropertySearchComponent usage
+- Provides complete address-to-property-data workflow
+- Triggers automatic form field population with enriched data
 
 #### **Enhanced Create Deed Page**
 **Updated**: `frontend/src/app/create-deed/page.tsx`
