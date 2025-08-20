@@ -94,25 +94,26 @@ export default function PropertySearchWithTitlePoint({
     initializeGoogle();
   }, [onError]);
 
-  // Handle input change with debounced search
+  // Handle input change - NO auto-search while typing
   const handleInputChange = (value: string) => {
     setInputValue(value);
     setSelectedAddress(null); // Clear selection when typing
+    setSuggestions([]);
+    setShowSuggestions(false);
 
+    // Clear any existing timeouts
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
+  };
 
-    if (value.length < 3) {
-      setSuggestions([]);
-      setShowSuggestions(false);
+  // Manual search triggered by search button
+  const handleAddressSearch = () => {
+    if (!inputValue.trim() || inputValue.length < 3) {
+      onError?.('Please enter at least 3 characters to search for addresses');
       return;
     }
-
-    // Increased debounce time to reduce lag and interference
-    timeoutRef.current = setTimeout(() => {
-      searchPlaces(value);
-    }, 500);
+    searchPlaces(inputValue);
   };
 
   // Search for places using Google Places API
@@ -140,6 +141,7 @@ export default function PropertySearchWithTitlePoint({
         } else {
           setSuggestions([]);
           setShowSuggestions(false);
+          onError?.('No addresses found. Please try a different search term.');
         }
       }
     );
@@ -270,24 +272,92 @@ export default function PropertySearchWithTitlePoint({
         }
       `}</style>
       <div className={`relative ${className}`}>
-      {/* Address Input with Google Places Autocomplete */}
+      {/* Address Input with Search Button */}
       <div className="space-y-4">
-        <div className="relative">
-          <input
-            ref={inputRef}
-            type="text"
-            value={inputValue}
-            onChange={(e) => handleInputChange(e.target.value)}
-            placeholder={placeholder}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            disabled={isLoading}
-          />
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+          <div style={{ flex: 1, position: 'relative' }}>
+            <input
+              ref={inputRef}
+              type="text"
+              value={inputValue}
+              onChange={(e) => handleInputChange(e.target.value)}
+              placeholder={placeholder}
+              style={{
+                width: '100%',
+                padding: '16px 20px',
+                border: '2px solid #e5e7eb',
+                borderRadius: '16px',
+                fontSize: '16px',
+                fontWeight: '400',
+                outline: 'none',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#F57C00';
+                e.target.style.boxShadow = '0 0 0 4px rgba(245, 124, 0, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e5e7eb';
+                e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.05)';
+              }}
+              disabled={isLoading}
+            />
+            
+            {isLoading && (
+              <div style={{
+                position: 'absolute',
+                right: '20px',
+                top: '50%',
+                transform: 'translateY(-50%)'
+              }}>
+                <div style={{
+                  width: '20px',
+                  height: '20px',
+                  border: '2px solid #e5e7eb',
+                  borderTop: '2px solid #F57C00',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }}></div>
+              </div>
+            )}
+          </div>
           
-          {isLoading && (
-            <div className="absolute right-3 top-3">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-            </div>
-          )}
+          {/* Address Search Button */}
+          <button
+            onClick={handleAddressSearch}
+            disabled={isLoading || !inputValue.trim()}
+            style={{
+              padding: '16px 24px',
+              backgroundColor: (inputValue.trim() && !isLoading) ? '#F57C00' : '#d1d5db',
+              color: 'white',
+              border: 'none',
+              borderRadius: '16px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: (inputValue.trim() && !isLoading) ? 'pointer' : 'not-allowed',
+              transition: 'all 0.2s ease',
+              minWidth: '100px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+              whiteSpace: 'nowrap'
+            }}
+            onMouseEnter={(e) => {
+              if (inputValue.trim() && !isLoading) {
+                e.currentTarget.style.backgroundColor = '#e67100';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.15)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (inputValue.trim() && !isLoading) {
+                e.currentTarget.style.backgroundColor = '#F57C00';
+                e.currentTarget.style.transform = 'translateY(0px)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+              }
+            }}
+          >
+            Search
+          </button>
         </div>
 
         {/* Google Places Suggestions */}
@@ -323,43 +393,59 @@ export default function PropertySearchWithTitlePoint({
           </div>
         )}
 
-        {/* TitlePoint Search Button - Always Visible */}
+        {/* TitlePoint Search Button - Big Bubbly Style */}
         <button
           onClick={handleTitlePointSearch}
           disabled={!selectedAddress || isTitlePointLoading}
           style={{
             width: '100%',
-            padding: '0.75rem 1.5rem',
+            padding: '20px 32px',
             backgroundColor: selectedAddress ? '#F57C00' : '#d1d5db',
             color: 'white',
             border: 'none',
-            borderRadius: '8px',
-            fontSize: '0.875rem',
-            fontWeight: '500',
+            borderRadius: '24px',
+            fontSize: '18px',
+            fontWeight: '600',
             cursor: selectedAddress ? 'pointer' : 'not-allowed',
-            transition: 'all 0.2s ease',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '0.5rem'
+            gap: '12px',
+            boxShadow: selectedAddress ? '0 8px 24px rgba(245, 124, 0, 0.25)' : '0 4px 12px rgba(0, 0, 0, 0.1)',
+            transform: 'translateY(0px)'
+          }}
+          onMouseEnter={(e) => {
+            if (selectedAddress && !isTitlePointLoading) {
+              e.currentTarget.style.backgroundColor = '#e67100';
+              e.currentTarget.style.transform = 'translateY(-4px)';
+              e.currentTarget.style.boxShadow = '0 12px 32px rgba(245, 124, 0, 0.35)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (selectedAddress && !isTitlePointLoading) {
+              e.currentTarget.style.backgroundColor = '#F57C00';
+              e.currentTarget.style.transform = 'translateY(0px)';
+              e.currentTarget.style.boxShadow = '0 8px 24px rgba(245, 124, 0, 0.25)';
+            }
           }}
         >
           {isTitlePointLoading ? (
             <>
               <div style={{
-                width: '16px',
-                height: '16px',
-                border: '2px solid transparent',
-                borderTop: '2px solid white',
+                width: '20px',
+                height: '20px',
+                border: '3px solid transparent',
+                borderTop: '3px solid white',
                 borderRadius: '50%',
                 animation: 'spin 1s linear infinite'
               }}></div>
-              <span>Searching Property Data...</span>
+              <span style={{ fontSize: '16px' }}>Searching Property Data...</span>
             </>
           ) : (
             <>
-              <span>🏠</span>
-              <span>Search Property & Get Title Information</span>
+              <span style={{ fontSize: '24px' }}>🏠</span>
+              <span>Get Property & Title Information</span>
             </>
           )}
         </button>

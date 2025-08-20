@@ -314,8 +314,8 @@ export default function CreateDeed() {
             <p className="wizard-subtitle">Dynamic prompt-driven document generation</p>
           </div>
 
-          {/* Progress Bar */}
-          <div className="progress-container" style={{ marginBottom: '2rem' }}>
+          {/* Progress Bar - Cloud-like Experience with 64px circles */}
+          <div className="progress-container" style={{ marginBottom: '3rem' }}>
             <div className="progress-bar">
               {[1, 2, 3].map((step) => (
                 <div
@@ -330,38 +330,75 @@ export default function CreateDeed() {
                 >
                   <div
                     style={{
-                      width: '32px',
-                      height: '32px',
+                      width: '64px',
+                      height: '64px',
                       borderRadius: '50%',
-                      backgroundColor: currentStep >= step ? '#3b82f6' : '#e5e7eb',
-                      color: currentStep >= step ? 'white' : '#9ca3af',
+                      backgroundColor: currentStep >= step ? '#F57C00' : '#e5e7eb',
+                      color: currentStep >= step ? 'white' : '#6b7280',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontWeight: '600',
-                      fontSize: '14px',
+                      fontWeight: 'bold',
+                      fontSize: '24px',
+                      margin: '0 auto',
+                      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                      boxShadow: currentStep >= step ? '0 8px 24px rgba(245, 124, 0, 0.25)' : '0 4px 12px rgba(0, 0, 0, 0.05)',
+                      transform: currentStep === step ? 'scale(1.1)' : 'scale(1)',
                       zIndex: 10
                     }}
                   >
-                    {step}
+                    {currentStep > step ? '✓' : step}
                   </div>
                   {step < 3 && (
                     <div
                       style={{
-                        height: '2px',
-                        flex: 1,
-                        backgroundColor: currentStep > step ? '#3b82f6' : '#e5e7eb',
-                        marginLeft: '8px'
+                        position: 'absolute',
+                        left: 'calc(50% + 32px)',
+                        right: 'calc(-50% + 32px)',
+                        height: '4px',
+                        backgroundColor: currentStep > step ? '#F57C00' : '#e5e7eb',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                        zIndex: 1,
+                        borderRadius: '2px'
                       }}
                     />
                   )}
                 </div>
               ))}
             </div>
-            <div className="progress-labels" style={{ display: 'flex', marginTop: '8px' }}>
-              <div style={{ flex: 1, textAlign: 'center', fontSize: '12px', color: '#6b7280' }}>Address</div>
-              <div style={{ flex: 1, textAlign: 'center', fontSize: '12px', color: '#6b7280' }}>Doc Type & Data</div>
-              <div style={{ flex: 1, textAlign: 'center', fontSize: '12px', color: '#6b7280' }}>Review</div>
+            <div className="progress-labels" style={{ display: 'flex', marginTop: '16px' }}>
+              <div style={{ 
+                flex: 1, 
+                textAlign: 'center', 
+                fontSize: '16px', 
+                fontWeight: '600',
+                color: currentStep >= 1 ? '#F57C00' : '#6b7280',
+                transition: 'color 0.3s ease'
+              }}>
+                Address
+              </div>
+              <div style={{ 
+                flex: 1, 
+                textAlign: 'center', 
+                fontSize: '16px', 
+                fontWeight: '600',
+                color: currentStep >= 2 ? '#F57C00' : '#6b7280',
+                transition: 'color 0.3s ease'
+              }}>
+                Document Type
+              </div>
+              <div style={{ 
+                flex: 1, 
+                textAlign: 'center', 
+                fontSize: '16px', 
+                fontWeight: '600',
+                color: currentStep >= 3 ? '#F57C00' : '#6b7280',
+                transition: 'color 0.3s ease'
+              }}>
+                Review & Generate
+              </div>
             </div>
           </div>
 
@@ -404,33 +441,90 @@ export default function CreateDeed() {
                   <div></div> {/* Empty div for spacing */}
                   <button
                     onClick={() => {
-                      const hasTitlePointData = verifiedData && (verifiedData.apn || verifiedData.county || verifiedData.legalDescription);
+                      const hasTitlePointData = verifiedData && (
+                        verifiedData.apn || 
+                        verifiedData.county || 
+                        verifiedData.legalDescription ||
+                        verifiedData.currentOwnerPrimary ||
+                        verifiedData.grantorName ||
+                        Object.keys(verifiedData).length > 3 // Has more than just basic address data
+                      );
                       if (!hasTitlePointData) {
                         setErrors({property: 'Please complete property search to retrieve title information before proceeding'});
                         return;
                       }
                       setCurrentStep(2);
                     }}
-                    disabled={!verifiedData || !(verifiedData.apn || verifiedData.county || verifiedData.legalDescription)}
+                    disabled={!verifiedData || !(
+                      verifiedData.apn || 
+                      verifiedData.county || 
+                      verifiedData.legalDescription ||
+                      verifiedData.currentOwnerPrimary ||
+                      verifiedData.grantorName ||
+                      Object.keys(verifiedData).length > 3
+                    )}
                     style={{
-                      padding: '0.75rem 1.5rem',
-                      backgroundColor: (verifiedData && (verifiedData.apn || verifiedData.county || verifiedData.legalDescription)) ? '#F57C00' : '#d1d5db',
+                      padding: '16px 32px',
+                      backgroundColor: (verifiedData && (
+                        verifiedData.apn || 
+                        verifiedData.county || 
+                        verifiedData.legalDescription ||
+                        verifiedData.currentOwnerPrimary ||
+                        verifiedData.grantorName ||
+                        Object.keys(verifiedData).length > 3
+                      )) ? '#F57C00' : '#d1d5db',
                       color: 'white',
                       border: 'none',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      fontWeight: '500',
-                      cursor: (verifiedData && (verifiedData.apn || verifiedData.county || verifiedData.legalDescription)) ? 'pointer' : 'not-allowed',
-                      transition: 'background-color 0.2s'
+                      borderRadius: '16px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      cursor: (verifiedData && (
+                        verifiedData.apn || 
+                        verifiedData.county || 
+                        verifiedData.legalDescription ||
+                        verifiedData.currentOwnerPrimary ||
+                        verifiedData.grantorName ||
+                        Object.keys(verifiedData).length > 3
+                      )) ? 'pointer' : 'not-allowed',
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      boxShadow: (verifiedData && (
+                        verifiedData.apn || 
+                        verifiedData.county || 
+                        verifiedData.legalDescription ||
+                        verifiedData.currentOwnerPrimary ||
+                        verifiedData.grantorName ||
+                        Object.keys(verifiedData).length > 3
+                      )) ? '0 6px 20px rgba(245, 124, 0, 0.25)' : '0 2px 8px rgba(0, 0, 0, 0.1)',
+                      transform: 'translateY(0px)'
                     }}
                     onMouseEnter={(e) => {
-                      if (verifiedData && (verifiedData.apn || verifiedData.county || verifiedData.legalDescription)) {
+                      const hasData = verifiedData && (
+                        verifiedData.apn || 
+                        verifiedData.county || 
+                        verifiedData.legalDescription ||
+                        verifiedData.currentOwnerPrimary ||
+                        verifiedData.grantorName ||
+                        Object.keys(verifiedData).length > 3
+                      );
+                      if (hasData) {
                         e.currentTarget.style.backgroundColor = '#e67100';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 8px 24px rgba(245, 124, 0, 0.35)';
                       }
                     }}
                     onMouseLeave={(e) => {
-                      if (verifiedData && (verifiedData.apn || verifiedData.county || verifiedData.legalDescription)) {
+                      const hasData = verifiedData && (
+                        verifiedData.apn || 
+                        verifiedData.county || 
+                        verifiedData.legalDescription ||
+                        verifiedData.currentOwnerPrimary ||
+                        verifiedData.grantorName ||
+                        Object.keys(verifiedData).length > 3
+                      );
+                      if (hasData) {
                         e.currentTarget.style.backgroundColor = '#F57C00';
+                        e.currentTarget.style.transform = 'translateY(0px)';
+                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(245, 124, 0, 0.25)';
                       }
                     }}
                   >
@@ -469,7 +563,7 @@ export default function CreateDeed() {
                       <div
                         key={key}
                         onClick={() => handleDocTypeChange(key)}
-                        style={{
+                    style={{
                           padding: '1.5rem',
                           border: docType === key ? '2px solid #F57C00' : '2px solid #e5e7eb',
                           borderRadius: '12px',
@@ -497,7 +591,7 @@ export default function CreateDeed() {
                           marginBottom: '0.5rem',
                           color: docType === key ? '#F57C00' : '#111827'
                         }}>
-                          {config.label}
+                        {config.label}
                         </div>
                         <div style={{ 
                           fontSize: '0.875rem', 
@@ -651,23 +745,29 @@ export default function CreateDeed() {
                   <button
                     onClick={() => setCurrentStep(1)}
                     style={{
-                      padding: '0.75rem 1.5rem',
+                      padding: '16px 32px',
                       backgroundColor: 'white',
                       color: '#6b7280',
                       border: '2px solid #e5e7eb',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      fontWeight: '500',
+                      borderRadius: '16px',
+                      fontSize: '16px',
+                      fontWeight: '600',
                       cursor: 'pointer',
-                      transition: 'all 0.2s'
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+                      transform: 'translateY(0px)'
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.borderColor = '#F57C00';
                       e.currentTarget.style.color = '#F57C00';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 6px 16px rgba(245, 124, 0, 0.15)';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.borderColor = '#e5e7eb';
                       e.currentTarget.style.color = '#6b7280';
+                      e.currentTarget.style.transform = 'translateY(0px)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.05)';
                     }}
                   >
                     ← Back to Address
@@ -682,21 +782,31 @@ export default function CreateDeed() {
                     }}
                     disabled={!docType}
                     style={{
-                      padding: '0.75rem 1.5rem',
+                      padding: '16px 32px',
                       backgroundColor: docType ? '#F57C00' : '#d1d5db',
                       color: 'white',
                       border: 'none',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      fontWeight: '500',
+                      borderRadius: '16px',
+                      fontSize: '16px',
+                      fontWeight: '600',
                       cursor: docType ? 'pointer' : 'not-allowed',
-                      transition: 'background-color 0.2s'
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      boxShadow: docType ? '0 6px 20px rgba(245, 124, 0, 0.25)' : '0 2px 8px rgba(0, 0, 0, 0.1)',
+                      transform: 'translateY(0px)'
                     }}
                     onMouseEnter={(e) => {
-                      if (docType) e.currentTarget.style.backgroundColor = '#e67100';
+                      if (docType) {
+                        e.currentTarget.style.backgroundColor = '#e67100';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 8px 24px rgba(245, 124, 0, 0.35)';
+                      }
                     }}
                     onMouseLeave={(e) => {
-                      if (docType) e.currentTarget.style.backgroundColor = '#F57C00';
+                      if (docType) {
+                        e.currentTarget.style.backgroundColor = '#F57C00';
+                        e.currentTarget.style.transform = 'translateY(0px)';
+                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(245, 124, 0, 0.25)';
+                      }
                     }}
                   >
                     Next: Review & Generate →
@@ -875,47 +985,90 @@ export default function CreateDeed() {
                   <button
                     onClick={() => setCurrentStep(2)}
                     style={{
-                      padding: '0.75rem 1.5rem',
+                      padding: '16px 32px',
                       backgroundColor: 'white',
                       color: '#6b7280',
                       border: '2px solid #e5e7eb',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      fontWeight: '500',
+                      borderRadius: '16px',
+                      fontSize: '16px',
+                      fontWeight: '600',
                       cursor: 'pointer',
-                      transition: 'all 0.2s'
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+                      transform: 'translateY(0px)'
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.borderColor = '#F57C00';
                       e.currentTarget.style.color = '#F57C00';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 6px 16px rgba(245, 124, 0, 0.15)';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.borderColor = '#e5e7eb';
                       e.currentTarget.style.color = '#6b7280';
+                      e.currentTarget.style.transform = 'translateY(0px)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.05)';
                     }}
                   >
                     ← Back to Document Type
                   </button>
                 </div>
 
-                {/* Generate Button */}
+                {/* Generate Button - Big Bubbly Style */}
                 <button
                   onClick={handleGenerate}
                   disabled={loading}
                   style={{
                     width: '100%',
-                    padding: '0.75rem 1.5rem',
-                    backgroundColor: '#10b981',
+                    padding: '24px 40px',
+                    backgroundColor: loading ? '#d1d5db' : '#10b981',
                     color: 'white',
                     border: 'none',
-                    borderRadius: '0.5rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    opacity: loading ? 0.5 : 1,
-                    transition: 'all 0.2s'
+                    borderRadius: '24px',
+                    fontSize: '20px',
+                    fontWeight: '700',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: loading ? '0 4px 12px rgba(0, 0, 0, 0.1)' : '0 8px 32px rgba(16, 185, 129, 0.3)',
+                    transform: 'translateY(0px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '12px'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!loading) {
+                      e.currentTarget.style.backgroundColor = '#059669';
+                      e.currentTarget.style.transform = 'translateY(-4px)';
+                      e.currentTarget.style.boxShadow = '0 12px 40px rgba(16, 185, 129, 0.4)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!loading) {
+                      e.currentTarget.style.backgroundColor = '#10b981';
+                      e.currentTarget.style.transform = 'translateY(0px)';
+                      e.currentTarget.style.boxShadow = '0 8px 32px rgba(16, 185, 129, 0.3)';
+                    }
                   }}
                 >
-                  {loading ? 'Generating...' : `Generate ${DOC_TYPES[docType as keyof typeof DOC_TYPES]?.label}`}
+                  {loading ? (
+                    <>
+                      <div style={{
+                        width: '24px',
+                        height: '24px',
+                        border: '3px solid transparent',
+                        borderTop: '3px solid white',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite'
+                      }}></div>
+                      <span>Generating Document...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span style={{ fontSize: '24px' }}>📄</span>
+                      <span>Generate {DOC_TYPES[docType as keyof typeof DOC_TYPES]?.label}</span>
+                    </>
+                  )}
                 </button>
               </div>
             )}
