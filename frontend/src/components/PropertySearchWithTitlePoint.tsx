@@ -107,13 +107,129 @@ export default function PropertySearchWithTitlePoint({
     }
   };
 
-  // Manual search triggered by search button
-  const handleAddressSearch = () => {
+  // Combined search - does Google Places AND TitlePoint in one click
+  const handleCombinedSearch = async () => {
     if (!inputValue.trim() || inputValue.length < 3) {
       onError?.('Please enter at least 3 characters to search for addresses');
       return;
     }
-    searchPlaces(inputValue);
+
+    setIsLoading(true);
+    
+    try {
+      // First, search for addresses using Google Places
+      await searchPlacesAndSelectFirst(inputValue);
+    } catch (error) {
+      setIsLoading(false);
+      onError?.('Address search failed. Please try again.');
+    }
+  };
+
+  // Search for places and auto-select the first result
+  const searchPlacesAndSelectFirst = async (input: string) => {
+    if (!autocompleteService.current || !isGoogleLoaded) {
+      throw new Error('Google Maps not loaded');
+    }
+
+    const request = {
+      input,
+      componentRestrictions: { country: 'us' },
+      types: ['address']
+    };
+
+    return new Promise((resolve, reject) => {
+      autocompleteService.current.getPlacePredictions(
+        request,
+        async (predictions: any[], status: any) => {
+          if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions && predictions.length > 0) {
+            // Auto-select the first suggestion
+            const firstSuggestion = predictions[0];
+            setInputValue(firstSuggestion.description);
+            
+            // Get detailed place information
+            const placeRequest = {
+              placeId: firstSuggestion.place_id,
+              fields: ['address_components', 'formatted_address', 'name', 'place_id']
+            };
+
+            placesService.current.getDetails(placeRequest, async (place: any, placeStatus: any) => {
+              if (placeStatus === window.google.maps.places.PlacesServiceStatus.OK && place) {
+                const components = place.address_components || [];
+                
+                const propertyData = {
+                  fullAddress: place.formatted_address || firstSuggestion.description,
+                  street: extractStreetAddress(components, place.name),
+                  city: getComponent(components, 'locality') || '',
+                  state: getComponent(components, 'administrative_area_level_1', 'short_name') || 'CA',
+                  zip: getComponent(components, 'postal_code') || '',
+                  neighborhood: getComponent(components, 'neighborhood'),
+                  placeId: place.place_id
+                };
+
+                setSelectedAddress(propertyData);
+                
+                // Now automatically search TitlePoint
+                await performTitlePointSearch(propertyData);
+                resolve(true);
+              } else {
+                reject(new Error('Failed to get place details'));
+              }
+            });
+          } else {
+            reject(new Error('No addresses found'));
+          }
+        }
+      );
+    });
+  };
+
+  // Perform TitlePoint search automatically
+  const performTitlePointSearch = async (addressData: any) => {
+    setIsTitlePointLoading(true);
+    
+    try {
+      const response = await fetch('/api/property/search', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(addressData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        const enrichedData = {
+          ...addressData,
+          apn: result.apn || '',
+          county: result.county || '',
+          legalDescription: result.brief_legal || result.legalDescription || '',
+          grantorName: result.current_owner_primary || result.grantorName || '',
+          currentOwnerPrimary: result.current_owner_primary || '',
+          currentOwnerSecondary: result.current_owner_secondary || ''
+        };
+
+        // Show success message
+        alert('✅ Address found and property data retrieved successfully!');
+        onVerified(enrichedData);
+      } else {
+        // Still proceed with Google Places data if TitlePoint fails
+        alert('⚠️ Address found but property data unavailable. You can proceed with manual entry.');
+        onVerified(addressData);
+      }
+    } catch (error) {
+      console.error('TitlePoint search failed:', error);
+      alert('⚠️ Address found but property data unavailable. You can proceed with manual entry.');
+      onVerified(addressData);
+    } finally {
+      setIsTitlePointLoading(false);
+      setIsLoading(false);
+    }
   };
 
   // Search for places using Google Places API
@@ -181,66 +297,7 @@ export default function PropertySearchWithTitlePoint({
     });
   };
 
-  // Handle TitlePoint search button click
-  const handleTitlePointSearch = async () => {
-    if (!selectedAddress) {
-      onError?.('Please select an address first');
-      return;
-    }
 
-    setIsTitlePointLoading(true);
-    
-    try {
-      // Call our backend TitlePoint integration
-      const response = await fetch('/api/property/search', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          fullAddress: selectedAddress.fullAddress,
-          street: selectedAddress.street,
-          city: selectedAddress.city,
-          state: selectedAddress.state,
-          zip: selectedAddress.zip,
-          placeId: selectedAddress.placeId
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      if (result.success) {
-        // Merge Google Places data with TitlePoint data
-        const enrichedData: PropertyData = {
-          ...selectedAddress,
-          // TitlePoint data
-          apn: result.apn || '',
-          county: result.county || '',
-          legalDescription: result.brief_legal || result.legalDescription || '',
-          grantorName: result.current_owner_primary || result.grantorName || '',
-          currentOwnerPrimary: result.current_owner_primary || '',
-          currentOwnerSecondary: result.current_owner_secondary || ''
-        };
-
-        onVerified(enrichedData);
-      } else {
-        // Even if TitlePoint fails, we can proceed with Google Places data
-        console.warn('TitlePoint search failed, proceeding with Google Places data:', result.message);
-        onVerified(selectedAddress);
-      }
-    } catch (error) {
-      console.error('TitlePoint search failed:', error);
-      // Fallback to Google Places data only
-      onVerified(selectedAddress);
-    } finally {
-      setIsTitlePointLoading(false);
-    }
-  };
 
   // Helper function to extract street address
   const extractStreetAddress = (components: any[], placeName?: string) => {
@@ -323,40 +380,40 @@ export default function PropertySearchWithTitlePoint({
             )}
           </div>
           
-          {/* Address Search Button */}
+          {/* Combined Search Button */}
           <button
-            onClick={handleAddressSearch}
-            disabled={isLoading || !inputValue.trim()}
+            onClick={handleCombinedSearch}
+            disabled={isLoading || isTitlePointLoading || !inputValue.trim()}
             style={{
               padding: '16px 24px',
-              backgroundColor: (inputValue.trim() && !isLoading) ? '#F57C00' : '#d1d5db',
+              backgroundColor: (inputValue.trim() && !isLoading && !isTitlePointLoading) ? '#F57C00' : '#d1d5db',
               color: 'white',
               border: 'none',
               borderRadius: '16px',
               fontSize: '16px',
               fontWeight: '600',
-              cursor: (inputValue.trim() && !isLoading) ? 'pointer' : 'not-allowed',
+              cursor: (inputValue.trim() && !isLoading && !isTitlePointLoading) ? 'pointer' : 'not-allowed',
               transition: 'all 0.2s ease',
               minWidth: '100px',
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
               whiteSpace: 'nowrap'
             }}
             onMouseEnter={(e) => {
-              if (inputValue.trim() && !isLoading) {
+              if (inputValue.trim() && !isLoading && !isTitlePointLoading) {
                 e.currentTarget.style.backgroundColor = '#e67100';
                 e.currentTarget.style.transform = 'translateY(-2px)';
                 e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.15)';
               }
             }}
             onMouseLeave={(e) => {
-              if (inputValue.trim() && !isLoading) {
+              if (inputValue.trim() && !isLoading && !isTitlePointLoading) {
                 e.currentTarget.style.backgroundColor = '#F57C00';
                 e.currentTarget.style.transform = 'translateY(0px)';
                 e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
               }
             }}
           >
-            Search
+            {isLoading || isTitlePointLoading ? 'Searching...' : 'Search'}
           </button>
         </div>
 
@@ -382,73 +439,26 @@ export default function PropertySearchWithTitlePoint({
 
         {/* Selected Address Display */}
         {selectedAddress && (
-          <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-            <div className="flex items-center justify-between">
+          <div style={{
+            padding: '16px',
+            backgroundColor: '#f0fdf4',
+            border: '2px solid #22c55e',
+            borderRadius: '12px',
+            marginTop: '12px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <div className="text-sm font-medium text-green-800">Address Selected:</div>
-                <div className="text-sm text-green-700">{selectedAddress.fullAddress}</div>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: '#15803d', marginBottom: '4px' }}>
+                  ✅ Property Found & Data Retrieved
+                </div>
+                <div style={{ fontSize: '14px', color: '#166534' }}>
+                  {selectedAddress.fullAddress}
+                </div>
               </div>
-              <div className="text-green-600">✓</div>
+              <div style={{ fontSize: '24px', color: '#22c55e' }}>✓</div>
             </div>
           </div>
         )}
-
-        {/* TitlePoint Search Button - Big Bubbly Style */}
-        <button
-          onClick={handleTitlePointSearch}
-          disabled={!selectedAddress || isTitlePointLoading}
-          style={{
-            width: '100%',
-            padding: '20px 32px',
-            backgroundColor: selectedAddress ? '#F57C00' : '#d1d5db',
-            color: 'white',
-            border: 'none',
-            borderRadius: '24px',
-            fontSize: '18px',
-            fontWeight: '600',
-            cursor: selectedAddress ? 'pointer' : 'not-allowed',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '12px',
-            boxShadow: selectedAddress ? '0 8px 24px rgba(245, 124, 0, 0.25)' : '0 4px 12px rgba(0, 0, 0, 0.1)',
-            transform: 'translateY(0px)'
-          }}
-          onMouseEnter={(e) => {
-            if (selectedAddress && !isTitlePointLoading) {
-              e.currentTarget.style.backgroundColor = '#e67100';
-              e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = '0 12px 32px rgba(245, 124, 0, 0.35)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (selectedAddress && !isTitlePointLoading) {
-              e.currentTarget.style.backgroundColor = '#F57C00';
-              e.currentTarget.style.transform = 'translateY(0px)';
-              e.currentTarget.style.boxShadow = '0 8px 24px rgba(245, 124, 0, 0.25)';
-            }
-          }}
-        >
-          {isTitlePointLoading ? (
-            <>
-              <div style={{
-                width: '20px',
-                height: '20px',
-                border: '3px solid transparent',
-                borderTop: '3px solid white',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite'
-              }}></div>
-              <span style={{ fontSize: '16px' }}>Searching Property Data...</span>
-            </>
-          ) : (
-            <>
-              <span style={{ fontSize: '24px' }}>🏠</span>
-              <span>Get Property & Title Information</span>
-            </>
-          )}
-        </button>
       </div>
       </div>
     </>

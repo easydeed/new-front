@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 // Removed framer-motion to fix build issues
 import Sidebar from '../../components/Sidebar';
 import PropertySearchWithTitlePoint from '../../components/PropertySearchWithTitlePoint';
+import '../../styles/dashboard.css';
 
 // Document types configuration
 const DOC_TYPES = {
