@@ -29,9 +29,9 @@ class TitlePointService:
         except Exception as e:
             raise ValueError(f"Failed to initialize TitlePoint SOAP clients: {str(e)}")
         
-        # Service configurations
-        self.max_wait_seconds = 300  # 5 minutes max wait
-        self.poll_interval = 10  # Poll every 10 seconds
+        # Service configurations (matching Pacific Coast Title)
+        self.max_wait_seconds = 20  # 20 seconds max wait (matches working implementation)
+        self.poll_interval = 2  # Poll every 2 seconds for faster response
     
     async def enrich_property(self, data: Dict) -> Dict:
         """
@@ -103,29 +103,17 @@ class TitlePointService:
                 'property_type': ''
             }
             
-            # Step 1: Get basic property information using TitlePoint.Geo.Property
+            # Step 1: Get legal/vesting information using TitlePoint.Geo.LegalVesting (Pacific Coast Title method)
             try:
-                print("📋 Step 1: Getting property information...")
-                property_data = await self._get_property_info(state, county, full_address)
-                if property_data.get('success'):
-                    combined_results.update(property_data.get('data', {}))
-                    print(f"✅ Property info retrieved: APN={combined_results.get('apn', 'N/A')}")
+                print("📜 Step 1: Getting legal vesting information...")
+                vesting_data = await self._get_legal_vesting_info(state, county, full_address)
+                if vesting_data.get('success'):
+                    combined_results.update(vesting_data.get('data', {}))
+                    print(f"✅ Legal vesting retrieved: Owner={combined_results.get('current_owner_primary', 'N/A')}")
                 else:
-                    print(f"⚠️ Property info failed: {property_data.get('message', 'Unknown error')}")
+                    print(f"⚠️ Legal vesting failed: {vesting_data.get('message', 'Unknown error')}")
             except Exception as e:
-                print(f"❌ Property info error: {str(e)}")
-            
-            # Step 2: Get ownership/vesting information using TitlePoint.Geo.Owner  
-            try:
-                print("👤 Step 2: Getting ownership information...")
-                owner_data = await self._get_owner_info(state, county, full_address)
-                if owner_data.get('success'):
-                    combined_results.update(owner_data.get('data', {}))
-                    print(f"✅ Owner info retrieved: Owner={combined_results.get('current_owner_primary', 'N/A')}")
-                else:
-                    print(f"⚠️ Owner info failed: {owner_data.get('message', 'Unknown error')}")
-            except Exception as e:
-                print(f"❌ Owner info error: {str(e)}")
+                print(f"❌ Legal vesting error: {str(e)}")
             
             # Check if we got meaningful data from either service
             has_property_data = bool(
@@ -167,39 +155,25 @@ class TitlePointService:
                 }
             }
     
-    async def _get_property_info(self, state: str, county: str, full_address: str) -> Dict:
-        """Get basic property information using TitlePoint.Geo.Property"""
+    async def _get_legal_vesting_info(self, state: str, county: str, full_address: str) -> Dict:
+        """Get legal vesting information using TitlePoint.Geo.LegalVesting (Pacific Coast Title method)"""
         try:
-            service_type = "TitlePoint.Geo.Property"
-            parameters = f"Property.FullAddress={full_address}"
+            service_type = "TitlePoint.Geo.LegalVesting"
+            # Use Pacific Coast Title parameter format: LegalVesting.FullAddress=
+            parameters = f"LegalVesting.FullAddress={full_address}"
+            
+            print(f"🔧 Service: {service_type}")
+            print(f"🔧 Parameters: {parameters}")
             
             request_id = await self._create_service_request(state, county, service_type, parameters)
             result_xml = await self._wait_for_completion(request_id)
             
-            return self._parse_property_result(result_xml)
+            return self._parse_legal_vesting_result(result_xml)
             
         except Exception as e:
             return {
                 'success': False,
-                'message': f'Property info lookup failed: {str(e)}',
-                'data': {}
-            }
-    
-    async def _get_owner_info(self, state: str, county: str, full_address: str) -> Dict:
-        """Get ownership information using TitlePoint.Geo.Owner"""
-        try:
-            service_type = "TitlePoint.Geo.Owner"
-            parameters = f"Owner.FullAddress={full_address}"
-            
-            request_id = await self._create_service_request(state, county, service_type, parameters)
-            result_xml = await self._wait_for_completion(request_id)
-            
-            return self._parse_owner_result(result_xml)
-            
-        except Exception as e:
-            return {
-                'success': False,
-                'message': f'Owner info lookup failed: {str(e)}',
+                'message': f'Legal vesting lookup failed: {str(e)}',
                 'data': {}
             }
     
@@ -343,7 +317,7 @@ class TitlePointService:
             department="",
             titleOfficer="",
             requestId=int(request_id),  # Note: requestId (not requestID) and must be int
-            maxWaitSeconds=30
+            maxWaitSeconds=20  # Match Pacific Coast Title configuration
         )
     
     def _parse_property_result(self, result_xml: str) -> Dict:
@@ -388,6 +362,68 @@ class TitlePointService:
                 'data': {}
             }
     
+    def _parse_legal_vesting_result(self, result_xml: str) -> Dict:
+        """Parse TitlePoint.Geo.LegalVesting service result (Pacific Coast Title method)"""
+        try:
+            if not result_xml or result_xml.strip() == '':
+                return {'success': False, 'message': 'Empty XML response', 'data': {}}
+            
+            # Convert XML to dictionary
+            result_dict = xmltodict.parse(result_xml)
+            
+            print(f"🔍 Legal Vesting XML Keys: {list(result_dict.keys()) if isinstance(result_dict, dict) else 'Not a dict'}")
+            
+            # Extract legal vesting information
+            data = {}
+            
+            # Look for common legal vesting data structures (from Pacific Coast Title)
+            xml_str = str(result_dict)
+            
+            # Try multiple possible data locations
+            possible_paths = [
+                ['PropertyProfile', 'APN'],
+                ['PropertyProfile', 'LegalBriefDescription'], 
+                ['PropertyProfile', 'OwnerName', 'Primary'],
+                ['PropertyProfile', 'OwnerName', 'Secondary'],
+                ['LegalVesting', 'APN'],
+                ['LegalVesting', 'LegalDescription'],
+                ['LegalVesting', 'OwnerName'],
+                ['VestingInformation'],
+                ['APN'],
+                ['LegalDescription'],
+                ['OwnerName']
+            ]
+            
+            for path in possible_paths:
+                value = self._extract_text_value(result_dict, path)
+                if value:
+                    if 'APN' in path[-1]:
+                        data['apn'] = value
+                    elif 'Legal' in path[-1]:
+                        data['brief_legal'] = value.replace('  ', ' ').strip()
+                    elif 'Primary' in path[-1] or ('OwnerName' in path[-1] and 'Primary' not in data):
+                        data['current_owner_primary'] = value
+                    elif 'Secondary' in path[-1]:
+                        data['current_owner_secondary'] = value
+                    elif 'Vesting' in path[-1]:
+                        data['vesting_info'] = value
+            
+            print(f"📊 Extracted data: {data}")
+            
+            return {
+                'success': len(data) > 0,
+                'message': 'Legal vesting data extracted' if data else 'No legal vesting data found',
+                'data': data
+            }
+            
+        except Exception as e:
+            print(f"❌ Legal vesting parsing error: {str(e)}")
+            return {
+                'success': False,
+                'message': f'Legal vesting result parsing failed: {str(e)}',
+                'data': {}
+            }
+
     def _parse_owner_result(self, result_xml: str) -> Dict:
         """Parse TitlePoint.Geo.Owner service result"""
         try:
