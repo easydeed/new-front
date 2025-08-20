@@ -680,42 +680,42 @@ async def test_titlepoint_tax_flow(
             "county": request.county
         }
 
-@router.post("/test/titlepoint-lv")
-async def test_titlepoint_lv_flow(
+@router.post("/test/titlepoint-property")
+async def test_titlepoint_property_flow(
     request: TitlePointTestRequest,
     user_id: str = Depends(get_current_user_id)
 ):
     """
-    Test TitlePoint Legal/Vesting flow (Method 4) with Address
-    Endpoint: CreateService3 with TitlePoint.Geo.LegalVesting
+    Test TitlePoint Property flow (Method 4) with Address
+    Endpoint: CreateService3 with TitlePoint.Geo.Property
     """
     try:
         from services.titlepoint_service import TitlePointService
         
         if not request.address:
-            raise HTTPException(status_code=400, detail="Address is required for LV flow test")
+            raise HTTPException(status_code=400, detail="Address is required for Property flow test")
         if not request.city:
-            raise HTTPException(status_code=400, detail="City is required for LV flow test")
+            raise HTTPException(status_code=400, detail="City is required for Property flow test")
         if not request.county:
-            raise HTTPException(status_code=400, detail="County is required for LV flow test")
+            raise HTTPException(status_code=400, detail="County is required for Property flow test")
             
         service = TitlePointService()
         
-        print(f"🧪 Testing TitlePoint Legal/Vesting Flow")
+        print(f"🧪 Testing TitlePoint Property Flow")
         print(f"📋 Address: {request.address}, City: {request.city}, County: {request.county}")
         
-        # Test CreateService3 for Legal/Vesting
+        # Test CreateService3 for Property (corrected service type)
         import os
         parameters = (
             f"Address1={request.address};City={request.city};"
-            f"Pin={request.apn or ''};LvLookup=Address;LvLookupValue={request.address}, {request.city};"
-            f"LvReportFormat=LV;IncludeTaxAssessor=true"
+            f"PropertyAutoRun=True;IncludeTax=True;"
+            f"LvLookup=Address"
         )
         
         query = {
             "userID": service.user_id,
             "password": service.password,
-            "serviceType": os.getenv("SERVICE_TYPE", "TitlePoint.Geo.LegalVesting"),
+            "serviceType": os.getenv("SERVICE_TYPE", "TitlePoint.Geo.Property"),
             "parameters": parameters,
             "state": request.state,
             "county": service._normalize_county(request.county),
@@ -728,7 +728,7 @@ async def test_titlepoint_lv_flow(
         
         return {
             "success": True,
-            "flow": "Legal/Vesting (Method 4)",
+            "flow": "Property (Method 4)",
             "request_id": request_id,
             "address": request.address,
             "city": request.city,
@@ -740,7 +740,7 @@ async def test_titlepoint_lv_flow(
     except Exception as e:
         return {
             "success": False,
-            "flow": "Legal/Vesting (Method 4)",
+            "flow": "Property (Method 4)",
             "error": str(e),
             "address": request.address,
             "city": request.city,

@@ -138,11 +138,12 @@ class TitlePointService:
                 'property_type': ''
             }
             
-            # Decide flow: Tax (APN) vs LV (Address/FIPS)
+            # Decide flow: Tax (APN) vs Property/Address (FIPS/Address)
             if apn:
-                # Tax flow (MethodId 3)
+                # Tax flow (MethodId 3) - Per official TitlePoint docs
                 service_type = os.getenv("TAX_SEARCH_SERVICE_TYPE", "TitlePoint.Geo.Tax")
-                parameters = f"Tax.APN={apn};General.AutoSearchTaxes=true;General.AutoSearchProperty=false"
+                # Use official parameter format from TitlePoint documentation
+                parameters = f"Tax.APN={apn};General.AutoSearchProperty=True;General.AutoSearchTaxes=True"
                 print(f"🔧 TAX Parameters: {parameters}")
                 request_id = await self._create_service_get(
                     endpoint=self.tax_create_service_endpoint,
@@ -153,18 +154,31 @@ class TitlePointService:
                         "parameters": parameters,
                         "state": state,
                         "county": county,
+                        # Don't specify orderNo for new orders
                     },
                 )
                 method = 3
             else:
-                # Legal/Vesting flow (MethodId 4)
-                service_type = os.getenv("SERVICE_TYPE", "TitlePoint.Geo.LegalVesting")
-                parameters = (
-                    f"Address1={full_address};City={city};"
-                    f"Pin={apn};LvLookup=Address;LvLookupValue={full_address}, {city};"
-                    f"LvReportFormat=LV;IncludeTaxAssessor=true"
-                )
-                print(f"🔧 LV Parameters: {parameters}")
+                # Property/Address flow - Use official TitlePoint service types
+                service_type = os.getenv("SERVICE_TYPE", "TitlePoint.Geo.Property")
+                
+                # Use official parameter format for address-based property search
+                if fips:
+                    # FIPS-based search (preferred when available)
+                    parameters = (
+                        f"Address1={full_address};City={city};"
+                        f"IncludePlatMap=True;PropertyAutoRun=True;IncludeTax=True;"
+                        f"IncludeReference=True;LvLookup=Address"
+                    )
+                else:
+                    # Address-based search without FIPS
+                    parameters = (
+                        f"Address1={full_address};City={city};"
+                        f"PropertyAutoRun=True;IncludeTax=True;"
+                        f"LvLookup=Address"
+                    )
+                
+                print(f"🔧 PROPERTY Parameters: {parameters}")
                 query = {
                     "userID": self.user_id,
                     "password": self.password,
@@ -236,12 +250,13 @@ class TitlePointService:
         try:
             import random
             q = {**query}
-            q.setdefault("orderNo", str(random.randint(100000, 999999)))
-            q.setdefault("customerRef", str(random.randint(100000, 999999)))
-            q.setdefault("company", "DeedPro")
+            # Don't set orderNo for new orders (per TitlePoint docs)
+            # Only set orderNo when adding to existing orders
+            q.setdefault("customerRef", f"DP{random.randint(100000, 999999)}")
+            q.setdefault("company", "")  # Leave empty unless provided by account manager
             q.setdefault("department", "")
             q.setdefault("titleOfficer", "")
-            q.setdefault("orderComment", f"DeedPro Request {q['orderNo']}")
+            q.setdefault("orderComment", f"DeedPro Property Search {q['customerRef']}")
             q.setdefault("starterRemarks", "")
 
             print(f"🔗 Calling CreateService3: {endpoint}")

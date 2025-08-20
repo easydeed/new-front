@@ -212,8 +212,8 @@ export default function CreateDeed() {
   const handlePropertyVerified = (propertyData: any) => {
     setVerifiedData(propertyData);
     setPropertyConfirmed(true); // User has confirmed the property details
-    setFormData(prev => ({ 
-      ...prev, 
+        setFormData(prev => ({
+          ...prev,
       ...propertyData,
       propertySearch: propertyData.fullAddress || propertyData.address
     }));
@@ -255,8 +255,8 @@ export default function CreateDeed() {
         })
       });
 
-      const result = await response.json();
-      
+        const result = await response.json();
+        
       if (result.error) {
         setErrors({ prompt: result.error });
         return;
@@ -297,22 +297,22 @@ export default function CreateDeed() {
         })
       });
 
-      const result = await response.json();
+        const result = await response.json();
       
       if (result.error) {
         setErrors({ custom: result.error });
-        return;
-      }
+      return;
+    }
 
       setFormData(prev => ({ ...prev, ...result }));
       setCustomPrompt('');
       
-    } catch (error) {
+      } catch (error) {
       setErrors({ custom: 'Failed to process prompt. Please try again.' });
-    } finally {
-      setLoading(false);
-    }
-  };
+      } finally {
+        setLoading(false);
+      }
+    };
 
   // Fast-forward logic
   const checkFastForward = (data: any) => {
@@ -337,7 +337,7 @@ export default function CreateDeed() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
-
+      
       const result = await response.json();
       
       if (result.success) {
@@ -354,11 +354,11 @@ export default function CreateDeed() {
     }
   };
 
-  return (
-    <div style={{ display: 'flex' }}>
-      <Sidebar />
-      <div className="main-content">
-        <div className="wizard-container">
+    return (
+      <div style={{ display: 'flex' }}>
+        <Sidebar />
+        <div className="main-content">
+          <div className="wizard-container">
           {/* Header */}
           <div className="wizard-header" style={{ position: 'relative' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -369,19 +369,19 @@ export default function CreateDeed() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 {/* Auto-save indicator */}
                 {autoSaveStatus && (
-                  <div style={{
+            <div style={{
                     padding: '8px 12px',
                     backgroundColor: '#f0fdf4',
                     border: '1px solid #bbf7d0',
                     borderRadius: '6px',
                     fontSize: '12px',
                     color: '#15803d',
-                    display: 'flex',
-                    alignItems: 'center',
+              display: 'flex',
+              alignItems: 'center',
                     gap: '4px'
                   }}>
                     ✓ {autoSaveStatus}
-                  </div>
+            </div>
                 )}
                 {/* Cancel button */}
                 <button
@@ -407,9 +407,9 @@ export default function CreateDeed() {
                 >
                   Cancel
                 </button>
-              </div>
-            </div>
           </div>
+        </div>
+      </div>
 
           {/* Progress Bar - Cloud-like Experience with 64px circles */}
           <div className="progress-container" style={{ marginBottom: '3rem' }}>
@@ -419,14 +419,14 @@ export default function CreateDeed() {
                   key={step}
                   className={`progress-step ${currentStep >= step ? 'active' : ''}`}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
+              display: 'flex',
+              alignItems: 'center',
                     flex: 1,
                     position: 'relative'
                   }}
                 >
                   <div
-                    style={{
+                style={{
                       width: '64px',
                       height: '64px',
                       borderRadius: '50%',
@@ -445,7 +445,7 @@ export default function CreateDeed() {
                     }}
                   >
                     {currentStep > step ? '✓' : step}
-                  </div>
+            </div>
                   {step < 3 && (
                     <div
                       style={{
@@ -462,11 +462,11 @@ export default function CreateDeed() {
                       }}
                     />
                   )}
-                </div>
+          </div>
               ))}
-            </div>
+        </div>
             <div className="progress-labels" style={{ display: 'flex', marginTop: '16px' }}>
-              <div style={{ 
+                <div style={{
                 flex: 1, 
                 textAlign: 'center', 
                 fontSize: '16px', 
@@ -475,8 +475,8 @@ export default function CreateDeed() {
                 transition: 'color 0.3s ease'
               }}>
                 Address
-              </div>
-              <div style={{ 
+                </div>
+                <div style={{
                 flex: 1, 
                 textAlign: 'center', 
                 fontSize: '16px', 
@@ -486,24 +486,24 @@ export default function CreateDeed() {
               }}>
                 Document Type
               </div>
-              <div style={{ 
+                  <div style={{ 
                 flex: 1, 
                 textAlign: 'center', 
                 fontSize: '16px', 
-                fontWeight: '600',
+                    fontWeight: '600',
                 color: currentStep >= 3 ? '#F57C00' : '#6b7280',
                 transition: 'color 0.3s ease'
               }}>
                 Review & Generate
-              </div>
-            </div>
+                  </div>
+                    </div>
           </div>
 
           {/* Step Content */}
             {/* Step 1: Address Verification */}
             {currentStep === 1 && (
               <div
-                style={{
+                    style={{
                   backgroundColor: 'white',
                   borderRadius: '12px',
                   padding: '2rem',
@@ -514,10 +514,10 @@ export default function CreateDeed() {
                 <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
                   🏠 Find Your Property
                 </h2>
-                <div style={{ 
+                    <div style={{
                   backgroundColor: '#f0f9ff', 
                   border: '1px solid #bae6fd', 
-                  borderRadius: '8px', 
+                      borderRadius: '8px',
                   padding: '16px', 
                   marginBottom: '1.5rem' 
                 }}>
@@ -528,7 +528,7 @@ export default function CreateDeed() {
                     3. Click "Search" to find property details automatically<br/>
                     4. We'll get ownership, tax, and legal information for you!
                   </p>
-                </div>
+                    </div>
                 <p style={{ color: '#6b7280', marginBottom: '1.5rem', fontSize: '16px' }}>
                   Let's start with the property address. Our system will automatically find ownership and legal details.
                 </p>
@@ -548,14 +548,14 @@ export default function CreateDeed() {
                 )}
                 
                 {/* Step 1 Navigation */}
-                <div style={{ 
+                        <div style={{
                   marginTop: '2rem',
                   display: 'flex', 
                   justifyContent: 'space-between',
                   alignItems: 'center'
                 }}>
                   <div></div> {/* Empty div for spacing */}
-                  <button
+                      <button
                     onClick={() => {
                       if (!propertyConfirmed) {
                         setErrors({property: 'Please complete property search and confirm property details before proceeding'});
@@ -564,11 +564,11 @@ export default function CreateDeed() {
                       setCurrentStep(2);
                     }}
                     disabled={!propertyConfirmed}
-                    style={{
+                        style={{
                       padding: '20px 36px',
                       backgroundColor: propertyConfirmed ? '#F57C00' : '#d1d5db',
                       color: 'white',
-                      border: 'none',
+                          border: 'none',
                       borderRadius: '16px',
                       fontSize: '16px',
                       fontWeight: '600',
@@ -593,8 +593,8 @@ export default function CreateDeed() {
                     }}
                   >
                     Next: Select Document Type →
-                  </button>
-                </div>
+                      </button>
+                    </div>
               </div>
             )}
 
@@ -602,8 +602,8 @@ export default function CreateDeed() {
             {currentStep === 2 && (
               <div
                 style={{
-                  backgroundColor: 'white',
-                  borderRadius: '12px',
+                        backgroundColor: 'white',
+                        borderRadius: '12px',
                   padding: '2rem',
                   boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
                   marginBottom: '2rem'
@@ -639,11 +639,11 @@ export default function CreateDeed() {
                       <div
                         key={key}
                         onClick={() => handleDocTypeChange(key)}
-                                            style={{
+                            style={{
                           padding: '1.5rem',
                           border: docType === key ? '2px solid #F57C00' : '2px solid #e5e7eb',
                           borderRadius: '12px',
-                          cursor: 'pointer',
+                              cursor: 'pointer',
                           backgroundColor: docType === key ? '#fff8f0' : 'white',
                           transition: 'all 0.2s ease',
                           boxShadow: docType === key ? '0 4px 12px rgba(245, 124, 0, 0.15)' : '0 1px 3px rgba(0, 0, 0, 0.1)',
@@ -651,42 +651,42 @@ export default function CreateDeed() {
                           display: 'flex',
                           flexDirection: 'column',
                           justifyContent: 'space-between'
-                        }}
-                        onMouseEnter={(e) => {
+                            }}
+                            onMouseEnter={(e) => {
                           if (docType !== key) {
                             e.currentTarget.style.borderColor = '#F57C00';
                             e.currentTarget.style.boxShadow = '0 2px 8px rgba(245, 124, 0, 0.1)';
                           }
-                        }}
-                        onMouseLeave={(e) => {
+                            }}
+                            onMouseLeave={(e) => {
                           if (docType !== key) {
                             e.currentTarget.style.borderColor = '#e5e7eb';
                             e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
                           }
-                        }}
-                                            >
+                            }}
+                          >
                         <div>
-                          <div style={{ 
+                            <div style={{ 
                             fontSize: '1.125rem', 
                             fontWeight: 'bold', 
                             marginBottom: '0.5rem',
                             color: docType === key ? '#F57C00' : '#111827'
                           }}>
                             {config.label}
-                          </div>
-                          <div style={{ 
+                            </div>
+                            <div style={{ 
                             fontSize: '0.875rem', 
                             color: '#6b7280',
                             marginBottom: '0.75rem'
-                          }}>
+                            }}>
                             {getDocumentDescription(key)}
-                          </div>
+                            </div>
                           <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
                             Required: {config.required.length > 0 ? config.required.join(', ') : 'Basic property info'}
                           </div>
                         </div>
                         {docType === key && (
-                          <div style={{ 
+                              <div style={{ 
                             marginTop: '0.75rem',
                             padding: '0.5rem',
                             backgroundColor: '#F57C00',
@@ -697,13 +697,13 @@ export default function CreateDeed() {
                             textAlign: 'center'
                           }}>
                             Selected ✓
+                              </div>
+                            )}
                           </div>
-                        )}
+                        ))}
                       </div>
-                    ))}
                   </div>
-                </div>
-
+                  
                 {/* Button Prompts */}
                 {docType && (
                   <div style={{ marginBottom: '1.5rem' }}>
@@ -746,8 +746,8 @@ export default function CreateDeed() {
                       Custom Request
                     </label>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <input
-                        type="text"
+                    <input
+                      type="text"
                         value={customPrompt}
                         onChange={(e) => setCustomPrompt(e.target.value)}
                         placeholder="e.g., 'pull chain of title'"
@@ -775,7 +775,7 @@ export default function CreateDeed() {
                       >
                         Pull
                       </button>
-                    </div>
+                  </div>
                     {errors.custom && (
                       <p style={{ color: '#dc2626', fontSize: '0.875rem', marginTop: '0.5rem' }}>
                         {errors.custom}
@@ -794,7 +794,7 @@ export default function CreateDeed() {
                     borderRadius: '0.5rem'
                   }}>
                     <p style={{ color: '#dc2626', fontSize: '0.875rem' }}>{errors.prompt}</p>
-                  </div>
+                    </div>
                 )}
 
                 {/* Continue Button */}
@@ -826,7 +826,7 @@ export default function CreateDeed() {
                 }}>
                   <button
                     onClick={() => setCurrentStep(1)}
-                    style={{
+                      style={{
                       padding: '20px 36px',
                       backgroundColor: 'white',
                       color: '#6b7280',
@@ -893,7 +893,7 @@ export default function CreateDeed() {
                   >
                     Next: Review & Generate →
                   </button>
-                </div>
+                  </div>
               </div>
             )}
 
@@ -929,7 +929,7 @@ export default function CreateDeed() {
                     <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem', textTransform: 'capitalize' }}>
                       {field.replace('_', ' ')}
                     </label>
-                    <input
+                    <input 
                       type="text"
                       name={field}
                       value={formData[field as keyof typeof formData] || ''}
@@ -961,7 +961,7 @@ export default function CreateDeed() {
                             <li key={index}>{issue}</li>
                           ))}
                         </ul>
-                      </div>
+                  </div>
                     )}
                     
                     {/* Chain of Title Timeline */}
@@ -988,7 +988,7 @@ export default function CreateDeed() {
                             }}>
                               {transfer.deed_type || 'Unknown Deed Type'}
                             </span>
-                          </div>
+                  </div>
                           <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
                             <div><strong>From:</strong> {transfer.grantor || 'Unknown'}</div>
                             <div><strong>To:</strong> {transfer.grantee || 'Unknown'}</div>
@@ -998,10 +998,10 @@ export default function CreateDeed() {
                             {transfer.document_number && (
                               <div><strong>Doc #:</strong> {transfer.document_number}</div>
                             )}
-                          </div>
-                        </div>
+                  </div>
+                  </div>
                       ))}
-                    </div>
+                  </div>
                     
                     {/* Ownership Duration Summary */}
                     {formData.ownershipDuration && formData.ownershipDuration.length > 0 && (
@@ -1010,11 +1010,11 @@ export default function CreateDeed() {
                         {formData.ownershipDuration.slice(-3).map((duration, index) => (
                           <div key={index} style={{ marginLeft: '1rem' }}>
                             • {duration.owner}: {duration.duration_years ? `${duration.duration_years} years` : 'Current owner'}
-                          </div>
+                </div>
                         ))}
-                      </div>
+              </div>
                     )}
-                  </div>
+            </div>
                 )}
 
                 {/* Standard fields that all deeds need */}
@@ -1022,11 +1022,11 @@ export default function CreateDeed() {
                   <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>
                     Grantor (Seller)
                   </label>
-                  <input
-                    type="text"
+                    <input
+                      type="text"
                     name="grantorName"
                     value={formData.grantorName || ''}
-                    onChange={handleInputChange}
+                      onChange={handleInputChange}
                     style={{
                       width: '100%',
                       padding: '0.75rem',
@@ -1034,13 +1034,13 @@ export default function CreateDeed() {
                       borderRadius: '0.5rem',
                       fontSize: '1rem'
                     }}
-                  />
-                </div>
+                    />
+                  </div>
 
                 <div style={{ marginBottom: '1rem' }}>
                   <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>
                     Grantee (Buyer)
-                  </label>
+                      </label>
                   <input
                     type="text"
                     name="granteeName"
@@ -1054,7 +1054,7 @@ export default function CreateDeed() {
                       fontSize: '1rem'
                     }}
                   />
-                </div>
+                  </div>
 
                 {errors.generate && (
                   <div style={{
@@ -1065,17 +1065,17 @@ export default function CreateDeed() {
                     borderRadius: '0.5rem'
                   }}>
                     <p style={{ color: '#dc2626', fontSize: '0.875rem' }}>{errors.generate}</p>
-                  </div>
-                )}
+                      </div>
+                    )}
 
                 {/* Step 3 Navigation */}
-                <div style={{ 
+                    <div style={{
                   marginBottom: '1.5rem',
                   display: 'flex', 
                   justifyContent: 'space-between',
                   alignItems: 'center'
                 }}>
-                  <button
+                      <button
                     onClick={() => setCurrentStep(2)}
                     style={{
                       padding: '20px 36px',
@@ -1104,11 +1104,11 @@ export default function CreateDeed() {
                     }}
                   >
                     ← Back to Document Type
-                  </button>
-                </div>
+                      </button>
+          </div>
 
                 {/* Generate Button - Big Bubbly Style */}
-                <button
+            <button
                   onClick={handleGenerate}
                   disabled={loading}
                   style={{
@@ -1162,31 +1162,31 @@ export default function CreateDeed() {
                       <span>Generate {DOC_TYPES[docType as keyof typeof DOC_TYPES]?.label}</span>
                     </>
                   )}
-                </button>
-              </div>
+            </button>
+            </div>
             )}
 
 
           {/* Loading Overlay */}
           {loading && (
-            <div style={{
+                  <div style={{
               position: 'fixed',
               top: 0,
               left: 0,
               right: 0,
               bottom: 0,
               backgroundColor: 'rgba(0, 0, 0, 0.5)',
-              display: 'flex',
-              alignItems: 'center',
+                    display: 'flex',
+                    alignItems: 'center',
               justifyContent: 'center',
               zIndex: 1000
             }}>
-              <div style={{
+                  <div style={{
                 backgroundColor: 'white',
                 borderRadius: '0.5rem',
                 padding: '1.5rem',
-                textAlign: 'center'
-              }}>
+                    textAlign: 'center'
+                  }}>
                 <div style={{
                   width: '2rem',
                   height: '2rem',
@@ -1197,11 +1197,11 @@ export default function CreateDeed() {
                   margin: '0 auto 1rem'
                 }}></div>
                 <p style={{ color: '#6b7280' }}>Processing...</p>
+                  </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
     </div>
   );
-}
+} 
