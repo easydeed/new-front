@@ -271,40 +271,15 @@ export default function PropertySearchWithTitlePoint({
     });
   };
 
-  // Look up property details from TitlePoint after address validation
+  // Look up property details from TitlePoint after Google Places validation
   const lookupPropertyDetails = async (addressData: PropertyData) => {
     setIsTitlePointLoading(true);
     setErrorMessage(null);
     
     try {
-      console.log('Looking up property details for:', addressData);
+      console.log('Looking up TitlePoint property details for:', addressData);
       
-      // First validate the address
-      const validateResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://deedpro-backend-new.onrender.com'}/api/property/validate`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          fullAddress: addressData.fullAddress,
-          street: addressData.street,
-          city: addressData.city,
-          state: addressData.state,
-          zip: addressData.zip,
-          county: addressData.county || ''
-        })
-      });
-
-      if (!validateResponse.ok) {
-        console.error(`Validation API response error: ${validateResponse.status} ${validateResponse.statusText}`);
-        throw new Error(`Validation API error: ${validateResponse.status}`);
-      }
-
-      const validateResult = await validateResponse.json();
-      console.log('Address validation result:', validateResult);
-
-      // Then enrich with TitlePoint data
+      // Google Places already validated the address, now get TitlePoint data
       const enrichResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://deedpro-backend-new.onrender.com'}/api/property/enrich`, {
         method: 'POST',
         headers: { 
@@ -312,18 +287,17 @@ export default function PropertySearchWithTitlePoint({
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify({
-          fullAddress: addressData.fullAddress,
-          street: addressData.street,
+          address: addressData.fullAddress,
           city: addressData.city,
           state: addressData.state,
-          zip: addressData.zip,
+          zip: addressData.zip || '',
           county: addressData.county || ''
         })
       });
 
       if (!enrichResponse.ok) {
-        console.error(`Enrich API response error: ${enrichResponse.status} ${enrichResponse.statusText}`);
-        throw new Error(`Enrich API error: ${enrichResponse.status}`);
+        console.error(`TitlePoint API response error: ${enrichResponse.status} ${enrichResponse.statusText}`);
+        throw new Error(`TitlePoint API error: ${enrichResponse.status}`);
       }
 
       const result = await enrichResponse.json();
