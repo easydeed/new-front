@@ -186,24 +186,24 @@ async def enrich_property(
                 print(f"SiteX enrichment failed: {e}")
                 await log_api_usage(user_id, "sitex", "validate_address", request.dict(), None, str(e))
         
-        # Step 2: TitlePoint enrichment (if we have APN or address)
+        # Step 2: TitlePoint enrichment (Tax via APN, else LV via address/FIPS)
         if titlepoint_service:
             try:
-                apn = enriched_data.get('apn') or request.apn
-                county = enriched_data.get('county') or request.county
-                
-                if county:  # TitlePoint requires county
-                    titlepoint_data = await titlepoint_service.enrich_property(
-                        state=request.state,
-                        county=county,
-                        apn=apn,
-                        address=request.address if not apn else None
-                    )
+                # consolidate payload for service as dict per fail‑proof guide
+                payload = {
+                    "fullAddress": request.address,
+                    "city": request.city,
+                    "state": request.state,
+                    "county": enriched_data.get('county') or request.county or '',
+                    "zip": enriched_data.get('zip') or '',
+                    "apn": enriched_data.get('apn') or request.apn or '',
+                    "fips": enriched_data.get('fips') or request.fips or ''
+                }
+                # Only proceed if we have county (required) and either APN or address
+                if payload["county"] and (payload["apn"] or payload["fullAddress"]):
+                    titlepoint_data = await titlepoint_service.enrich_property(payload)
                     enriched_data.update(titlepoint_data)
-                    
-                    # Log TitlePoint usage
-                    await log_api_usage(user_id, "titlepoint", "enrich_property", request.dict(), titlepoint_data)
-                    
+                    await log_api_usage(user_id, "titlepoint", "enrich_property", payload, titlepoint_data)
             except Exception as e:
                 print(f"TitlePoint enrichment failed: {e}")
                 await log_api_usage(user_id, "titlepoint", "enrich_property", request.dict(), None, str(e))

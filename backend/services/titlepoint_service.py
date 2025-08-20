@@ -1,6 +1,10 @@
 """
 TitlePoint API Service for property enrichment with vesting, tax, and deed data
-Following Pacific Coast Title's proven methodology using HTTP requests
+Following Pacific Coast Title's fail‑proof methodology using HTTP requests:
+
+- CreateService3 (GET) with correct serviceType and parameters
+- GetRequestSummaries (GET) with userID/password/requestId/maxWaitSeconds
+- GetResultByID3 for Tax (method 3) and GetResultByID for LV (method 4)
 """
 import os
 import time
@@ -19,18 +23,35 @@ class TitlePointService:
     def __init__(self):
         self.user_id = os.getenv("TITLEPOINT_USER_ID", "PCTXML01")
         self.password = os.getenv("TITLEPOINT_PASSWORD", "AlphaOmega637#")
-        
-        # HTTP endpoints (Pacific Coast Title method)
-        self.request_summary_endpoint = "https://www.titlepoint.com/TitlePointServices/TpsServiceWS.asmx/GetRequestSummaries"
-        self.create_service_endpoint = "https://www.titlepoint.com/TitlePointServices/TpsService.asmx/CreateService3"
-        self.get_result_endpoint = "https://www.titlepoint.com/TitlePointServices/TpsService.asmx/GetResultByRequestID"
-        
-        # Service configurations (matching Pacific Coast Title)
-        self.max_wait_seconds = 20  # 20 seconds max wait (matches working implementation)
-        self.poll_interval = 2  # Poll every 2 seconds for faster response
-        
+
+        # Endpoints (env override supported) per fail‑proof guide
+        self.create_service_endpoint = os.getenv(
+            "TP_CREATE_SERVICE_ENDPOINT",
+            "https://www.titlepoint.com/TitlePointServices/TpsService.asmx/CreateService3",
+        )
+        self.tax_create_service_endpoint = os.getenv(
+            "TP_TAX_INSTRUMENT_CREATE_SERVICE_ENDPOINT",
+            self.create_service_endpoint,
+        )
+        self.request_summary_endpoint = os.getenv(
+            "TP_REQUEST_SUMMARY_ENDPOINT",
+            "https://www.titlepoint.com/TitlePointServices/TpsService.asmx/GetRequestSummaries?",
+        )
+        self.get_result_by_id = os.getenv(
+            "TP_GET_RESULT_BY_ID",
+            "https://www.titlepoint.com/TitlePointServices/TpsService.asmx/GetResultByID?",
+        )
+        self.get_result_by_id_3 = os.getenv(
+            "TP_GET_RESULT_BY_ID_3",
+            "https://www.titlepoint.com/TitlePointServices/TpsService.asmx/GetResultByID3?",
+        )
+
+        # Service configurations
+        self.max_wait_seconds = 20
+        self.poll_interval = 2
+
         # HTTP client configuration
-        self.timeout = httpx.Timeout(30.0)  # 30 second timeout for HTTP requests
+        self.timeout = httpx.Timeout(30.0)
     
     async def enrich_property(self, data: Dict) -> Dict:
         """
@@ -68,8 +89,12 @@ class TitlePointService:
         """
         try:
             state = data.get('state', 'CA')
-            county = data.get('county', '')
-            full_address = data.get('fullAddress', '')
+            county = (data.get('county') or '').strip()
+            full_address = (data.get('fullAddress') or '').strip()
+            city = (data.get('city') or '').strip()
+            zip_code = (data.get('zip') or '').strip()
+            apn = (data.get('apn') or '').strip()
+            fips = (data.get('fips') or '').strip()
             
             if not county:
                 return {
@@ -84,7 +109,7 @@ class TitlePointService:
                 }
             
             print(f"🔍 Starting TitlePoint HTTP enrichment for: {full_address}")
-            print(f"🗺️ County: {county}, State: {state}")
+            print(f"🗺️ County: {county}, State: {state}, APN: {apn}, FIPS: {fips}")
             
             # Initialize results
             combined_results = {
@@ -103,26 +128,57 @@ class TitlePointService:
                 'property_type': ''
             }
             
-            # Use Pacific Coast Title's proven parameter format
-            parameters = (
-                f"Address.FullAddress={full_address};"
-                f"General.AutoSearchTaxes=False;"
-                f"Tax.CurrentYearTaxesOnly=False;"
-                f"General.AutoSearchProperty=True;"
-                f"General.AutoSearchOwnerNames=False;"
-                f"General.AutoSearchStarters=False;"
-                f"Property.IntelligentPropertyGrouping=true;"
-            )
-            
-            print(f"🔧 Parameters: {parameters}")
-            
-            # Create HTTP service request using Pacific Coast Title's approach
-            request_id = await self._create_http_service_request(state, county, parameters)
+            # Decide flow: Tax (APN) vs LV (Address/FIPS)
+            if apn:
+                # Tax flow (MethodId 3)
+                service_type = os.getenv("TAX_SEARCH_SERVICE_TYPE", "TitlePoint.Geo.Tax")
+                parameters = f"Tax.APN={apn};General.AutoSearchTaxes=true;General.AutoSearchProperty=false"
+                print(f"🔧 TAX Parameters: {parameters}")
+                request_id = await self._create_service_get(
+                    endpoint=self.tax_create_service_endpoint,
+                    query={
+                        "userID": self.user_id,
+                        "password": self.password,
+                        "serviceType": service_type,
+                        "parameters": parameters,
+                        "state": state,
+                        "county": county,
+                    },
+                )
+                method = 3
+            else:
+                # Legal/Vesting flow (MethodId 4)
+                service_type = os.getenv("SERVICE_TYPE", "TitlePoint.Geo.LegalVesting")
+                parameters = (
+                    f"Address1={full_address};City={city};"
+                    f"Pin={apn};LvLookup=Address;LvLookupValue={full_address}, {city};"
+                    f"LvReportFormat=LV;IncludeTaxAssessor=true"
+                )
+                print(f"🔧 LV Parameters: {parameters}")
+                query = {
+                    "userID": self.user_id,
+                    "password": self.password,
+                    "serviceType": service_type,
+                    "parameters": parameters,
+                }
+                if fips:
+                    query["fipsCode"] = fips
+                request_id = await self._create_service_get(
+                    endpoint=self.create_service_endpoint,
+                    query=query,
+                )
+                method = 4
             print(f"📋 Request ID: {request_id}")
             
             # Wait for completion and get results
-            result_xml = await self._wait_for_http_completion(request_id)
-            print(f"📄 Result XML length: {len(result_xml) if result_xml else 0}")
+            summary_xml, result_id = await self._wait_for_http_completion(request_id)
+            print(f"📄 Summary XML length: {len(summary_xml) if summary_xml else 0}, ResultID: {result_id}")
+            result_xml = summary_xml
+            
+            # Fetch full result if ResultID available
+            if result_id:
+                fetch_url = self.get_result_by_id_3 if method == 3 else self.get_result_by_id
+                result_xml = await self._fetch_result_by_id(fetch_url, result_id, method)
             
             # Parse results using Pacific Coast Title's XML parsing method
             parsed_data = await self._parse_pacific_coast_result(result_xml)
@@ -163,119 +219,55 @@ class TitlePointService:
                 }
             }
     
-    async def _create_http_service_request(self, state: str, county: str, parameters: str) -> str:
-        """Create a TitlePoint service request using Pacific Coast Title's HTTP method"""
+    async def _create_service_get(self, endpoint: str, query: Dict) -> str:
+        """Create a TitlePoint service using GET and return RequestID"""
         try:
-            # Generate order reference numbers (Pacific Coast Title method)
             import random
-            order_no = str(random.randint(100000, 999999))  # Integer format as required by TitlePoint
-            customer_ref = str(random.randint(100000, 999999))
-            
-            # Prepare HTTP POST data following Pacific Coast Title's EXACT format
-            post_data = {
-                'userID': self.user_id,
-                'password': self.password,
-                'orderNo': order_no,
-                'customerRef': customer_ref,
-                'company': 'DeedPro',
-                'department': '',
-                'titleOfficer': '',
-                'orderComment': f'DeedPro Property Search for {order_no}',
-                'starterRemarks': '',  # This was the final missing parameter!
-                'state': state,
-                'county': county,
-                'serviceType': 'TitlePoint.Geo.Property',  # Pacific Coast Title uses this for property searches
-                'parameters': parameters
-            }
-            
-            print(f"🌐 POST Data: {post_data}")
-            
-            # Make HTTP POST request to CreateService3 endpoint
+            q = {**query}
+            q.setdefault("orderNo", str(random.randint(100000, 999999)))
+            q.setdefault("customerRef", str(random.randint(100000, 999999)))
+            q.setdefault("company", "DeedPro")
+            q.setdefault("department", "")
+            q.setdefault("titleOfficer", "")
+            q.setdefault("orderComment", f"DeedPro Request {q['orderNo']}")
+            q.setdefault("starterRemarks", "")
+
+            url = f"{endpoint}?{urlencode(q)}"
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(
-                    self.create_service_endpoint,
-                    data=post_data,
-                    headers={
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'Accept': 'text/xml, application/xml'
-                    }
-                )
-                
-                print(f"📡 HTTP Status: {response.status_code}")
-                print(f"📡 Response Length: {len(response.text)}")
-                print(f"📄 Response Content: {response.text[:500]}...")
-                
-                if response.status_code != 200:
-                    raise HTTPException(
-                        status_code=response.status_code,
-                        detail=f"TitlePoint service creation failed: HTTP {response.status_code}. Response: {response.text[:200]}"
-                    )
-                
-                # Parse XML response to get request ID
-                response_xml = response.text
-                print(f"📄 Raw Response: {response_xml[:500]}...")  # First 500 chars for debugging
-                
-                # Parse XML using Pacific Coast Title's method
-                try:
-                    import xml.etree.ElementTree as ET
-                    root = ET.fromstring(response_xml)
-                    
-                    # Look for RequestID in the response
-                    request_id = None
-                    for elem in root.iter():
-                        if 'RequestID' in elem.tag or 'requestId' in elem.tag:
-                            request_id = elem.text
-                            break
-                        if elem.text and elem.text.isdigit():
-                            request_id = elem.text
-                            break
-                    
-                    if not request_id:
-                        raise HTTPException(
-                            status_code=500,
-                            detail=f"TitlePoint service did not return a request ID. Response: {response_xml[:200]}"
-                        )
-                    
-                    return str(request_id)
-                    
-                except ET.ParseError as e:
-                    raise HTTPException(
-                        status_code=500,
-                        detail=f"Failed to parse TitlePoint response XML: {str(e)}"
-                    )
-            
-        except httpx.RequestError as e:
-            raise HTTPException(
-                status_code=500,
-                detail=f"TitlePoint HTTP request failed: {str(e)}"
-            )
+                response = await client.get(url, headers={"Accept": "text/xml, application/xml"})
+            if response.status_code != 200:
+                raise HTTPException(status_code=response.status_code, detail=f"CreateService failed: HTTP {response.status_code}")
+
+            root = ET.fromstring(response.text)
+            request_id: Optional[str] = None
+            for elem in root.iter():
+                tag = elem.tag.lower()
+                if "requestid" in tag and elem.text and elem.text.strip():
+                    request_id = elem.text.strip()
+                    break
+            if not request_id:
+                raise HTTPException(status_code=500, detail="CreateService did not return a RequestID")
+            return request_id
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"CreateService error: {str(e)}")
     
-    async def _wait_for_http_completion(self, request_id: str) -> str:
-        """Wait for TitlePoint service to complete and return results using Pacific Coast Title's HTTP method"""
+    async def _wait_for_http_completion(self, request_id: str) -> (str, Optional[str]):
+        """Poll summaries until Complete. Return (summary_xml, result_id)"""
         start_time = time.time()
         
         print(f"⏳ Waiting for TitlePoint request {request_id} to complete...")
         
         while time.time() - start_time < self.max_wait_seconds:
-            # Use Pacific Coast Title's RequestSummary endpoint
             try:
-                # GetRequestSummaries expects a list of requestIds (Pacific Coast Title method)
-                request_params = {
-                    'requestIDs': request_id  # Note: requestIDs not requestId
+                params = {
+                    "userID": self.user_id,
+                    "password": self.password,
+                    "requestId": request_id,
+                    "maxWaitSeconds": str(self.max_wait_seconds),
                 }
-                
-                # Use POST to GetRequestSummaries endpoint (Pacific Coast Title method)
-                print(f"📡 Request Summary Data: {request_params}")
-                
+                url = f"{self.request_summary_endpoint}{urlencode(params)}"
                 async with httpx.AsyncClient(timeout=self.timeout) as client:
-                    response = await client.post(
-                        self.request_summary_endpoint,
-                        data=request_params,
-                        headers={
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                            'Accept': 'text/xml, application/xml'
-                        }
-                    )
+                    response = await client.get(url, headers={"Accept": "text/xml, application/xml"})
                     
                     print(f"📡 Summary Response Status: {response.status_code}")
                     
@@ -293,9 +285,18 @@ class TitlePointService:
                             json_data = json.dumps(data)
                             result = json.loads(json_data)
                             
-                            print(f"📊 Parsed Summary: {json.dumps(result, indent=2)[:500]}...")
-                            
-                            return response_xml  # Return the full XML for Pacific Coast Title parsing
+                            # Try to extract a ResultThumbNail/ID
+                            result_id = None
+                            try:
+                                root = ET.fromstring(response_xml)
+                                for elem in root.iter():
+                                    # Heuristic: look for ID elements under thumbnails/services
+                                    if elem.tag.lower().endswith("id") and elem.text and elem.text.strip():
+                                        result_id = elem.text.strip()
+                                        break
+                            except Exception:
+                                result_id = None
+                            return response_xml, result_id
                             
                         except Exception as parse_error:
                             print(f"❌ XML parsing error: {parse_error}")
@@ -304,13 +305,29 @@ class TitlePointService:
             except Exception as e:
                 print(f"⚠️ Request summary failed: {e}")
             
-            # Wait before next poll (Pacific Coast Title uses faster polling)
+            # Wait before next poll
             await asyncio.sleep(self.poll_interval)
         
         raise HTTPException(
             status_code=504,
             detail=f"TitlePoint service timeout for request {request_id} after {self.max_wait_seconds} seconds"
         )
+
+    async def _fetch_result_by_id(self, endpoint: str, result_id: str, method: int) -> str:
+        """Fetch full result payload by ID"""
+        params = {
+            "userID": self.user_id,
+            "password": self.password,
+            "resultID": result_id,
+        }
+        if method == 3:
+            params["requestingTPXML"] = "true"
+        url = f"{endpoint}{urlencode(params)}"
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            resp = await client.get(url, headers={"Accept": "text/xml, application/xml"})
+        if resp.status_code != 200:
+            raise HTTPException(status_code=resp.status_code, detail=f"GetResultByID failed: HTTP {resp.status_code}")
+        return resp.text
     
     async def _parse_pacific_coast_result(self, result_xml: str) -> Dict:
         """Parse TitlePoint XML result using Pacific Coast Title's proven method"""
