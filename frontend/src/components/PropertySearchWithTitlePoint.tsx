@@ -109,9 +109,10 @@ export default function PropertySearchWithTitlePoint({
       return;
     }
 
+    // Increased debounce time to reduce lag and interference
     timeoutRef.current = setTimeout(() => {
       searchPlaces(value);
-    }, 300);
+    }, 500);
   };
 
   // Search for places using Google Places API
@@ -261,7 +262,14 @@ export default function PropertySearchWithTitlePoint({
   };
 
   return (
-    <div className={`relative ${className}`}>
+    <>
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+      <div className={`relative ${className}`}>
       {/* Address Input with Google Places Autocomplete */}
       <div className="space-y-4">
         <div className="relative">
@@ -315,27 +323,48 @@ export default function PropertySearchWithTitlePoint({
           </div>
         )}
 
-        {/* TitlePoint Search Button */}
-        {selectedAddress && (
-          <button
-            onClick={handleTitlePointSearch}
-            disabled={isTitlePointLoading}
-            className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
-          >
-            {isTitlePointLoading ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                <span>Searching Property Data...</span>
-              </>
-            ) : (
-              <>
-                <span>🏠</span>
-                <span>Search Property & Get Title Information</span>
-              </>
-            )}
-          </button>
-        )}
+        {/* TitlePoint Search Button - Always Visible */}
+        <button
+          onClick={handleTitlePointSearch}
+          disabled={!selectedAddress || isTitlePointLoading}
+          style={{
+            width: '100%',
+            padding: '0.75rem 1.5rem',
+            backgroundColor: selectedAddress ? '#F57C00' : '#d1d5db',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            cursor: selectedAddress ? 'pointer' : 'not-allowed',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.5rem'
+          }}
+        >
+          {isTitlePointLoading ? (
+            <>
+              <div style={{
+                width: '16px',
+                height: '16px',
+                border: '2px solid transparent',
+                borderTop: '2px solid white',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }}></div>
+              <span>Searching Property Data...</span>
+            </>
+          ) : (
+            <>
+              <span>🏠</span>
+              <span>Search Property & Get Title Information</span>
+            </>
+          )}
+        </button>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

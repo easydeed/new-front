@@ -166,7 +166,7 @@ export default function CreateDeed() {
       ...propertyData,
       propertySearch: propertyData.fullAddress || propertyData.address
     }));
-    setCurrentStep(2);
+    // Don't auto-advance anymore - let user click Next button
   };
 
   // Handle doc type selection
@@ -404,25 +404,35 @@ export default function CreateDeed() {
                   <div></div> {/* Empty div for spacing */}
                   <button
                     onClick={() => {
-                      if (!verifiedData || Object.keys(verifiedData).length === 0) {
-                        setErrors({property: 'Please complete address search before proceeding'});
+                      const hasTitlePointData = verifiedData && (verifiedData.apn || verifiedData.county || verifiedData.legalDescription);
+                      if (!hasTitlePointData) {
+                        setErrors({property: 'Please complete property search to retrieve title information before proceeding'});
                         return;
                       }
                       setCurrentStep(2);
                     }}
+                    disabled={!verifiedData || !(verifiedData.apn || verifiedData.county || verifiedData.legalDescription)}
                     style={{
                       padding: '0.75rem 1.5rem',
-                      backgroundColor: '#F57C00',
+                      backgroundColor: (verifiedData && (verifiedData.apn || verifiedData.county || verifiedData.legalDescription)) ? '#F57C00' : '#d1d5db',
                       color: 'white',
                       border: 'none',
                       borderRadius: '0.5rem',
                       fontSize: '0.875rem',
                       fontWeight: '500',
-                      cursor: 'pointer',
+                      cursor: (verifiedData && (verifiedData.apn || verifiedData.county || verifiedData.legalDescription)) ? 'pointer' : 'not-allowed',
                       transition: 'background-color 0.2s'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e67100'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#F57C00'}
+                    onMouseEnter={(e) => {
+                      if (verifiedData && (verifiedData.apn || verifiedData.county || verifiedData.legalDescription)) {
+                        e.currentTarget.style.backgroundColor = '#e67100';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (verifiedData && (verifiedData.apn || verifiedData.county || verifiedData.legalDescription)) {
+                        e.currentTarget.style.backgroundColor = '#F57C00';
+                      }
+                    }}
                   >
                     Next: Select Document Type →
                   </button>

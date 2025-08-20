@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
 import '../../styles/dashboard.css';
 
@@ -48,6 +48,13 @@ export default function PastDeeds() {
   const [recipients, setRecipients] = useState('');
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedDeedId, setSelectedDeedId] = useState<number | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+    // Force re-render to ensure styles are applied
+    document.body.style.backgroundColor = 'var(--background)';
+  }, []);
 
   const handleContinue = (deedId: number) => {
     // Navigate to create-deed with pre-filled data
@@ -86,6 +93,31 @@ export default function PastDeeds() {
         return <span className="badge badge-secondary">{status}</span>;
     }
   };
+
+  if (!isClient) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        background: '#F7F9FC', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center' 
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ 
+            width: '32px', 
+            height: '32px', 
+            border: '3px solid #e5e7eb', 
+            borderTop: '3px solid #F57C00', 
+            borderRadius: '50%', 
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 16px auto'
+          }}></div>
+          <p style={{ color: '#6b7280', margin: 0 }}>Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex' }}>
