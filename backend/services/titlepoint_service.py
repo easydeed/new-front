@@ -144,62 +144,42 @@ class TitlePointService:
                 'property_type': ''
             }
             
-            # Decide flow: Tax (APN) vs Property/Address (FIPS/Address)
+            # SIMPLIFIED: Always use Property flow for testing (no Tax flow)
+            service_type = os.getenv("SERVICE_TYPE", "TitlePoint.Geo.Property")
+            
+            # Use Transaction Desk proven parameter format
             if apn:
-                # Tax flow (MethodId 3) - Per official TitlePoint docs
-                service_type = os.getenv("TAX_SEARCH_SERVICE_TYPE", "TitlePoint.Geo.Tax")
-                # Use official parameter format from TitlePoint documentation
-                parameters = f"Tax.APN={apn};General.AutoSearchProperty=True;General.AutoSearchTaxes=True"
-                print(f"🔧 TAX Parameters: {parameters}")
-                request_id = await self._create_service_get(
-                    endpoint=self.tax_create_service_endpoint,
-                    query={
-                        "userID": self.user_id,
-                        "password": self.password,
-                        "serviceType": service_type,
-                        "parameters": parameters,
-                        "state": state,
-                        "county": county,
-                        # Don't specify orderNo for new orders
-                    },
+                # Include APN if we have it
+                parameters = (
+                    f"Address1={full_address};City={city};"
+                    f"Pin={apn};LvLookup=Address;LvLookupValue={full_address}, {city};"
+                    f"LvReportFormat=LV;IncludeTaxAssessor=true"
                 )
-                method = 3
             else:
-                # Property/Address flow - Use official TitlePoint service types
-                service_type = os.getenv("SERVICE_TYPE", "TitlePoint.Geo.Property")
-                
-                # Use official parameter format for address-based property search
-                if fips:
-                    # FIPS-based search (preferred when available)
-                    parameters = (
-                        f"Address1={full_address};City={city};"
-                        f"IncludePlatMap=True;PropertyAutoRun=True;IncludeTax=True;"
-                        f"IncludeReference=True;LvLookup=Address"
-                    )
-                else:
-                    # Address-based search without FIPS
-                    parameters = (
-                        f"Address1={full_address};City={city};"
-                        f"PropertyAutoRun=True;IncludeTax=True;"
-                        f"LvLookup=Address"
-                    )
-                
-                print(f"🔧 PROPERTY Parameters: {parameters}")
-                query = {
-                    "userID": self.user_id,
-                    "password": self.password,
-                    "serviceType": service_type,
-                    "parameters": parameters,
-                    "state": state,
-                    "county": county,
-                }
-                if fips:
-                    query["fipsCode"] = fips
-                request_id = await self._create_service_get(
-                    endpoint=self.create_service_endpoint,
-                    query=query,
+                # Address-only search (from Google Places)
+                parameters = (
+                    f"Address1={full_address};City={city};"
+                    f"LvLookup=Address;LvLookupValue={full_address}, {city};"
+                    f"LvReportFormat=LV;IncludeTaxAssessor=true"
                 )
-                method = 4
+            
+            print(f"🔧 PROPERTY-ONLY Parameters: {parameters}")
+            query = {
+                "userID": self.user_id,
+                "password": self.password,
+                "serviceType": service_type,
+                "parameters": parameters,
+                "state": state,
+                "county": county,
+            }
+            if fips:
+                query["fipsCode"] = fips
+                
+            request_id = await self._create_service_get(
+                endpoint=self.create_service_endpoint,
+                query=query,
+            )
+            method = 4  # Always use Property method
             print(f"📋 Request ID: {request_id}")
             
             # Wait for completion and get results
@@ -207,9 +187,9 @@ class TitlePointService:
             print(f"📄 Summary XML length: {len(summary_xml) if summary_xml else 0}, ResultID: {result_id}")
             result_xml = summary_xml
             
-            # Fetch full result if ResultID available
+            # Fetch full result if ResultID available (always use Property method)
             if result_id:
-                fetch_url = self.get_result_by_id_3 if method == 3 else self.get_result_by_id
+                fetch_url = self.get_result_by_id  # Always use GetResultByID (not GetResultByID3)
                 result_xml = await self._fetch_result_by_id(fetch_url, result_id, method)
             
             # Parse results using Pacific Coast Title's XML parsing method
