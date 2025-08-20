@@ -21,8 +21,9 @@ class TitlePointService:
     """Service for interacting with TitlePoint API using Pacific Coast Title's proven HTTP method"""
     
     def __init__(self):
-        self.user_id = os.getenv("TITLEPOINT_USER_ID", "PCTXML01")
-        self.password = os.getenv("TITLEPOINT_PASSWORD", "AlphaOmega637#")
+        # Prefer TITLEPOINT_*; fall back to TP_* to match ops conventions
+        self.user_id = os.getenv("TITLEPOINT_USER_ID") or os.getenv("TP_USERNAME") or "PCTXML01"
+        self.password = os.getenv("TITLEPOINT_PASSWORD") or os.getenv("TP_PASSWORD") or "AlphaOmega637#"
 
         # Endpoints (env override supported) per fail‑proof guide
         self.create_service_endpoint = os.getenv(
@@ -238,7 +239,9 @@ class TitlePointService:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(url, headers={"Accept": "text/xml, application/xml"})
             if response.status_code != 200:
-                raise HTTPException(status_code=response.status_code, detail=f"CreateService failed: HTTP {response.status_code}")
+                # Include response text (truncated) to surface TitlePoint error details
+                body = response.text[:400] if response.text else ''
+                raise HTTPException(status_code=response.status_code, detail=f"CreateService failed: HTTP {response.status_code}. Body: {body}")
 
             root = ET.fromstring(response.text)
             request_id: Optional[str] = None
