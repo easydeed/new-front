@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import PropertySearchComponent from '../../components/PropertySearchComponent';
+import PropertySearchWithTitlePoint from '../../components/PropertySearchWithTitlePoint';
 
 interface DynamicWizardProps {
   currentStep: number;
@@ -86,7 +86,7 @@ export default function DynamicWizard({
           className="bg-white rounded-lg shadow-md p-6"
         >
           <h2 className="text-2xl font-bold mb-6">Property Address</h2>
-          <PropertySearchComponent onVerified={onPropertyVerified} />
+          <PropertySearchWithTitlePoint onVerified={onPropertyVerified} />
         </motion.div>
       )}
 

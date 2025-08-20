@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 // Removed framer-motion to fix build issues
 import Sidebar from '../../components/Sidebar';
-import PropertySearch from '../../components/PropertySearch';
+import PropertySearchWithTitlePoint from '../../components/PropertySearchWithTitlePoint';
 
 // Document types configuration
 const DOC_TYPES = {
@@ -294,8 +294,8 @@ export default function CreateDeed() {
                   Enter the property address to begin document creation
                 </p>
                 
-                <PropertySearch 
-                  onPopulate={handlePropertyVerified}
+                <PropertySearchWithTitlePoint 
+                  onVerified={handlePropertyVerified}
                 />
                 
                 {errors.property && (
