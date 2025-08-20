@@ -48,6 +48,8 @@ export default function PropertySearchWithTitlePoint({
   const [selectedAddress, setSelectedAddress] = useState<PropertyData | null>(null);
   const [selectedSuggestion, setSelectedSuggestion] = useState<any>(null);
   const [isTitlePointLoading, setIsTitlePointLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [searchAttempted, setSearchAttempted] = useState(false);
   
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteService = useRef<any>(null);
@@ -95,12 +97,15 @@ export default function PropertySearchWithTitlePoint({
     initializeGoogle();
   }, [onError]);
 
-  // Handle input change with address suggestions
+  // Handle input change with address suggestions - improved debouncing
   const handleInputChange = (value: string) => {
     setInputValue(value);
     setSelectedAddress(null); // Clear selection when typing
     setSelectedSuggestion(null); // Clear suggestion when typing
+    setErrorMessage(null); // Clear any previous errors
+    setSearchAttempted(false); // Reset search attempted flag
 
+    // Clear existing timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
@@ -111,22 +116,34 @@ export default function PropertySearchWithTitlePoint({
       return;
     }
 
-    // Show suggestions after a brief delay
+    // Debounce suggestions with longer delay to prevent rapid API calls
     timeoutRef.current = setTimeout(() => {
       searchPlaces(value);
-    }, 300);
+    }, 500);
   };
+
+  // Preserve focus after state updates
+  useEffect(() => {
+    if (inputRef.current && document.activeElement !== inputRef.current) {
+      // Only focus if user was interacting with the input
+      if (searchAttempted || showSuggestions) {
+        inputRef.current.focus();
+      }
+    }
+  }, [suggestions, searchAttempted, showSuggestions]);
 
   // Combined search - does Google Places AND TitlePoint in one click
   const handleCombinedSearch = async () => {
     if (!inputValue.trim() || inputValue.length < 3) {
-      onError?.('Please enter at least 3 characters to search for addresses');
+      setErrorMessage('Please enter at least 3 characters to search for addresses');
       return;
     }
 
     setIsLoading(true);
+    setSearchAttempted(true);
     setSuggestions([]);
     setShowSuggestions(false);
+    setErrorMessage(null);
     
     try {
       // If user has selected a suggestion, use it
@@ -137,8 +154,9 @@ export default function PropertySearchWithTitlePoint({
         await searchPlacesAndSelectFirst(inputValue);
       }
     } catch (error) {
+      console.error('Search error:', error);
       setIsLoading(false);
-      onError?.('Address search failed. Please try again.');
+      setErrorMessage('Address search failed. Please try again or select from suggestions.');
     }
   };
 
@@ -235,27 +253,40 @@ export default function PropertySearchWithTitlePoint({
     });
   };
 
-  // Perform TitlePoint search automatically
+  // Perform TitlePoint search automatically with better error handling
   const performTitlePointSearch = async (addressData: any) => {
     setIsTitlePointLoading(true);
+    setErrorMessage(null);
     
     try {
+      console.log('Searching TitlePoint for:', addressData);
+      
       const response = await fetch('/api/property/search', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify(addressData)
+        body: JSON.stringify({
+          fullAddress: addressData.fullAddress,
+          street: addressData.street,
+          city: addressData.city,
+          state: addressData.state,
+          zip: addressData.zip,
+          county: addressData.county || ''
+        })
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        console.error(`API response error: ${response.status} ${response.statusText}`);
+        throw new Error(`API error: ${response.status}`);
       }
 
       const result = await response.json();
+      console.log('TitlePoint API result:', result);
 
-      if (result.success) {
+      if (result.success && (result.apn || result.county || result.brief_legal)) {
+        // We have meaningful property data
         const enrichedData = {
           ...addressData,
           apn: result.apn || '',
@@ -266,17 +297,19 @@ export default function PropertySearchWithTitlePoint({
           currentOwnerSecondary: result.current_owner_secondary || ''
         };
 
-        // Show success message
-        alert('✅ Address found and property data retrieved successfully!');
+        setSelectedAddress(enrichedData);
         onVerified(enrichedData);
       } else {
-        // Still proceed with Google Places data if TitlePoint fails
-        alert('⚠️ Address found but property data unavailable. You can proceed with manual entry.');
+        // TitlePoint didn't return property data - proceed with address validation only
+        console.log('TitlePoint returned no property data, proceeding with address only');
+        setErrorMessage('⚠️ Address found but property data unavailable. You can proceed with manual entry.');
+        setSelectedAddress(addressData);
         onVerified(addressData);
       }
     } catch (error) {
       console.error('TitlePoint search failed:', error);
-      alert('⚠️ Address found but property data unavailable. You can proceed with manual entry.');
+      setErrorMessage('⚠️ Address found but property data unavailable. You can proceed with manual entry.');
+      setSelectedAddress(addressData);
       onVerified(addressData);
     } finally {
       setIsTitlePointLoading(false);
@@ -320,12 +353,18 @@ export default function PropertySearchWithTitlePoint({
     setInputValue(suggestion.description);
     setShowSuggestions(false);
     setSuggestions([]);
+    setErrorMessage(null); // Clear any errors
     
     // Store the suggestion for later use but DON'T auto-validate
     setSelectedSuggestion(suggestion);
     
     // Clear any previous validated data since user selected a new address
     setSelectedAddress(null);
+    
+    // Keep focus on input after selection
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
   };
 
 
@@ -468,8 +507,26 @@ export default function PropertySearchWithTitlePoint({
           </div>
         )}
 
+        {/* Error Message Display */}
+        {errorMessage && (
+          <div style={{
+            padding: '16px',
+            backgroundColor: '#fef3c7',
+            border: '2px solid #f59e0b',
+            borderRadius: '12px',
+            marginTop: '12px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ fontSize: '18px', color: '#d97706' }}>⚠️</div>
+              <div style={{ fontSize: '14px', color: '#92400e', lineHeight: '1.5' }}>
+                {errorMessage}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Selected Address Display */}
-        {selectedAddress && (
+        {selectedAddress && !errorMessage && (
           <div style={{
             padding: '16px',
             backgroundColor: '#f0fdf4',
@@ -485,8 +542,39 @@ export default function PropertySearchWithTitlePoint({
                 <div style={{ fontSize: '14px', color: '#166534' }}>
                   {selectedAddress.fullAddress}
                 </div>
+                {selectedAddress.apn && (
+                  <div style={{ fontSize: '12px', color: '#166534', marginTop: '4px' }}>
+                    APN: {selectedAddress.apn}
+                  </div>
+                )}
               </div>
               <div style={{ fontSize: '24px', color: '#22c55e' }}>✓</div>
+            </div>
+          </div>
+        )}
+
+        {/* Address Found but No Property Data */}
+        {selectedAddress && errorMessage && (
+          <div style={{
+            padding: '16px',
+            backgroundColor: '#fef3c7',
+            border: '2px solid #f59e0b',
+            borderRadius: '12px',
+            marginTop: '12px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: '#92400e', marginBottom: '4px' }}>
+                  📍 Address Verified
+                </div>
+                <div style={{ fontSize: '14px', color: '#92400e' }}>
+                  {selectedAddress.fullAddress}
+                </div>
+                <div style={{ fontSize: '12px', color: '#a16207', marginTop: '4px' }}>
+                  Property data will be entered manually
+                </div>
+              </div>
+              <div style={{ fontSize: '24px', color: '#f59e0b' }}>⚠️</div>
             </div>
           </div>
         )}
