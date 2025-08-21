@@ -34,11 +34,12 @@ class SiteXService:
                 'LastLine': locale,
                 'ClientReference': '<CustCompFilter><CompNum>8</CompNum><MonthsBack>12</MonthsBack></CustCompFilter>',
                 'OwnerName': '',
+                'reportType': '187'  # Key missing parameter from working JS code
             }
             
             # Add API key if available
             if self.api_key:
-                params['ApiKey'] = self.api_key
+                params['Key'] = self.api_key
             
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(

@@ -747,6 +747,37 @@ async def test_titlepoint_property_flow(
             "county": request.county
         }
 
+@router.get("/test/sitex")
+async def test_sitex_api():
+    """
+    Test SiteX API connectivity (no auth required)
+    """
+    try:
+        _, sitex_service, _ = get_services()
+        
+        if not sitex_service:
+            return {"success": False, "error": "SiteX service not available"}
+        
+        # Test with La Verne address
+        result = await sitex_service.validate_address(
+            "1358 5th St", 
+            "La Verne, CA"
+        )
+        
+        return {
+            "success": True,
+            "data": result,
+            "message": "SiteX API test successful"
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "SiteX API test failed"
+        }
+
+
 @router.post("/test/titlepoint-credentials")
 async def test_titlepoint_credentials(user_id: str = Depends(get_current_user_id)):
     """
