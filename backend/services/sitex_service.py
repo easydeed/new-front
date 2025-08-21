@@ -13,7 +13,7 @@ class SiteXService:
     
     def __init__(self):
         self.api_key = os.getenv("SITEX_API_KEY")  # Optional - check SiteX docs
-        self.base_url = "http://api.sitexdata.com/sitexapi/sitexapi.asmx"
+        self.base_url = "https://api.sitexdata.com/sitexapi/sitexapi.asmx"
         self.timeout = 30.0
     
     async def validate_address(self, address: str, locale: str, neighborhood: str = '') -> Dict:
@@ -41,7 +41,7 @@ class SiteXService:
             if self.api_key:
                 params['Key'] = self.api_key
             
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
+            async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
                 response = await client.get(
                     f"{self.base_url}/AddressSearch",
                     params=params
