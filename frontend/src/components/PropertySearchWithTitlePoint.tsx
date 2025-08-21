@@ -69,7 +69,7 @@ export default function PropertySearchWithTitlePoint({
         return;
       }
 
-      // Load Google Maps API if not already loaded with modern loading approach
+      // Load Google Maps API with modern loading approach
       const script = document.createElement('script');
       script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_API_KEY}&libraries=places&loading=async&callback=initGoogleMaps`;
       script.async = true;
@@ -77,6 +77,7 @@ export default function PropertySearchWithTitlePoint({
       
       // Define global callback
       (window as any).initGoogleMaps = () => {
+        console.log('✅ Google Maps API loaded successfully');
         setIsGoogleLoaded(true);
         initializeServices();
       };
