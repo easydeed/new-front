@@ -890,3 +890,99 @@ async def log_search_history(user_id: str, query: str, results: Dict):
         
     except Exception as e:
         print(f"Search history logging failed: {e}")
+
+
+# Production endpoints for exact SiteX two-step flow
+class SiteXAddressSearchRequest(BaseModel):
+    """Request for SiteX AddressSearch (Step 1)"""
+    address: str
+    city: str
+    state: str = "CA"
+
+class SiteXApnSearchRequest(BaseModel):
+    """Request for SiteX ApnSearch (Step 2)"""
+    apn: str
+    fips: str
+
+@router.post("/sitex/address-search")
+async def sitex_address_search(
+    request: SiteXAddressSearchRequest,
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    Step 1: SiteX AddressSearch - Returns multiple property matches for user selection
+    Exactly matches the working JavaScript multipleResults() function
+    """
+    try:
+        _, sitex_service, _ = get_services()
+        
+        if not sitex_service:
+            raise HTTPException(
+                status_code=503,
+                detail="SiteX service not available"
+            )
+        
+        # Format locale like working JavaScript
+        locale = f"{request.city}, {request.state}"
+        
+        # Call SiteX AddressSearch (Step 1)
+        matches = await sitex_service.search_addresses(request.address, locale)
+        
+        # Log the API call
+        await log_api_usage(user_id, "sitex", "address_search", request.dict(), {"matches": matches})
+        
+        return {
+            "success": True,
+            "matches": matches,
+            "count": len(matches),
+            "step": "address_search",
+            "message": f"Found {len(matches)} property matches. Please select one to continue."
+        }
+        
+    except Exception as e:
+        await log_api_usage(user_id, "sitex", "address_search", request.dict(), None, str(e))
+        raise HTTPException(
+            status_code=500,
+            detail=f"SiteX AddressSearch failed: {str(e)}"
+        )
+
+
+@router.post("/sitex/apn-search")
+async def sitex_apn_search(
+    request: SiteXApnSearchRequest,
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    Step 2: SiteX ApnSearch - Gets detailed property data using selected APN/FIPS
+    Exactly matches the working JavaScript apnData() and parse187() functions
+    """
+    try:
+        _, sitex_service, _ = get_services()
+        
+        if not sitex_service:
+            raise HTTPException(
+                status_code=503,
+                detail="SiteX service not available"
+            )
+        
+        # Call SiteX ApnSearch (Step 2) with different ClientReference
+        property_details = await sitex_service.apn_search(request.apn, request.fips)
+        
+        # Log the API call
+        await log_api_usage(user_id, "sitex", "apn_search", request.dict(), property_details)
+        
+        return {
+            "success": True,
+            "property_details": property_details,
+            "step": "apn_search",
+            "apn": request.apn,
+            "fips": request.fips,
+            "message": "Property details retrieved successfully"
+        }
+        
+    except Exception as e:
+        await log_api_usage(user_id, "sitex", "apn_search", request.dict(), None, str(e))
+        raise HTTPException(
+            status_code=500,
+            detail=f"SiteX ApnSearch failed: {str(e)}"
+        )
