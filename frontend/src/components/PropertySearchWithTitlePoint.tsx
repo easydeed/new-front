@@ -287,12 +287,18 @@ export default function PropertySearchWithTitlePoint({
     try {
       console.log('🔍 Step 1: SiteX AddressSearch for:', addressData);
       
+      // Check authentication token first
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        throw new Error('Authentication required. Please log in again.');
+      }
+      
       // Call SiteX AddressSearch (Step 1) - exactly like working JavaScript
       const addressSearchResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://deedpro-main-api.onrender.com'}/api/property/sitex/address-search`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           address: addressData.street,
@@ -303,6 +309,11 @@ export default function PropertySearchWithTitlePoint({
 
       if (!addressSearchResponse.ok) {
         console.error(`SiteX AddressSearch error: ${addressSearchResponse.status} ${addressSearchResponse.statusText}`);
+        
+        if (addressSearchResponse.status === 401) {
+          throw new Error('Authentication expired. Please refresh the page and log in again.');
+        }
+        
         throw new Error(`SiteX AddressSearch error: ${addressSearchResponse.status}`);
       }
 
@@ -338,12 +349,18 @@ export default function PropertySearchWithTitlePoint({
     try {
       console.log('🏠 Step 2: SiteX ApnSearch for selected property:', match);
       
+      // Check authentication token first
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        throw new Error('Authentication required. Please log in again.');
+      }
+      
       // Call SiteX ApnSearch (Step 2) - exactly like working JavaScript apnData()
       const apnSearchResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://deedpro-main-api.onrender.com'}/api/property/sitex/apn-search`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           apn: match.apn,
@@ -353,6 +370,11 @@ export default function PropertySearchWithTitlePoint({
 
       if (!apnSearchResponse.ok) {
         console.error(`SiteX ApnSearch error: ${apnSearchResponse.status} ${apnSearchResponse.statusText}`);
+        
+        if (apnSearchResponse.status === 401) {
+          throw new Error('Authentication expired. Please refresh the page and log in again.');
+        }
+        
         throw new Error(`SiteX ApnSearch error: ${apnSearchResponse.status}`);
       }
 

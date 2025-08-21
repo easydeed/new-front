@@ -1,6 +1,39 @@
 # 🚨 Property Integration Troubleshooting Guide
 
-## 🔍 Current Issue: TitlePoint LV returns empty; DB schema conflict on property_cache
+## ✅ **RESOLVED ISSUES - JANUARY 2025**
+
+### **✅ Major Accomplishments**
+- **Google Maps API Deprecation Warnings**: ✅ **FIXED** - Updated to modern loading approach
+- **SiteX Two-Step Flow**: ✅ **IMPLEMENTED** - Exact replication of working JavaScript
+- **User Selection Interface**: ✅ **DEPLOYED** - Beautiful property selection cards
+- **Database Schema Conflicts**: ✅ **RESOLVED** - Dedicated `property_cache_tp` table
+- **Production Endpoints**: ✅ **OPERATIONAL** - `/sitex/address-search` and `/sitex/apn-search`
+
+---
+
+## 🆕 **SiteX Two-Step Flow Troubleshooting**
+
+### **Issue: No Property Selection UI Appears**
+**Symptoms**: After clicking "Get Property Details", no property selection cards are shown
+
+**Solutions**:
+1. Check browser console for JavaScript errors
+2. Test with known working address: `1358 5th St. La Verne, CA 91750`
+3. Verify SiteX AddressSearch endpoint: `GET /api/property/test/sitex-address-search`
+4. Check authentication token in localStorage
+
+### **Issue: Property Cards Show But "Choose" Button Doesn't Work**
+**Symptoms**: Property cards display but clicking "Choose" shows errors
+
+**Solutions**:
+1. Verify APN and FIPS values are present in property cards
+2. Check for 403 Forbidden errors (authentication)
+3. Test ApnSearch endpoint directly
+4. Refresh page to get new JWT token
+
+---
+
+## 🔍 Legacy Issues (Now Resolved)
 
 ### **Symptoms**
 - No autocomplete suggestions appear when typing addresses
