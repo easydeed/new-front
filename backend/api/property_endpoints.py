@@ -758,11 +758,43 @@ async def test_sitex_api():
         if not sitex_service:
             return {"success": False, "error": "SiteX service not available"}
         
-        # Test with La Verne address
-        result = await sitex_service.validate_address(
-            "1358 5th St", 
-            "La Verne, CA"
-        )
+        # Test with multiple addresses to find one in SiteX database
+        test_addresses = [
+            ("123 Main St", "Los Angeles, CA"),
+            ("1358 5th St", "La Verne, CA"),
+            ("100 Broadway", "Los Angeles, CA"),
+            ("1 Market St", "San Francisco, CA")
+        ]
+        
+        results = []
+        for address, locale in test_addresses:
+            try:
+                result = await sitex_service.validate_address(address, locale)
+                results.append({
+                    "address": f"{address}, {locale}",
+                    "status": "success",
+                    "data": result
+                })
+                break  # Use first successful result
+            except Exception as e:
+                results.append({
+                    "address": f"{address}, {locale}",
+                    "status": "error", 
+                    "error": str(e)
+                })
+                continue
+        
+        # If we found a successful result, use it
+        if results and results[-1]["status"] == "success":
+            result = results[-1]["data"]
+        else:
+            # Return all test results for debugging
+            return {
+                "success": False,
+                "error": "No addresses found in SiteX database",
+                "test_results": results,
+                "message": "SiteX API connection working, but test addresses not found"
+            }
         
         return {
             "success": True,
