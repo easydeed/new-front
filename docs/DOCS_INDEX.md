@@ -67,6 +67,7 @@ Comprehensive AI assistance providing a "walking on a cloud" user experience:
 | Document | Purpose | Audience |
 |----------|---------|----------|
 | [DEVELOPMENT_GUIDE.md](./DEVELOPMENT_GUIDE.md) | Development workflow, coding standards, and best practices | All Developers |
+| [PROPERTY_INTEGRATION_COMPLETE_GUIDE.md](./PROPERTY_INTEGRATION_COMPLETE_GUIDE.md) | **🆕 COMPLETE** - Google Places → SiteX → TitlePoint integration flow | All Developers |
 | [INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md) | Widget integration guide for external clients | Integration Partners |
 | [TEMPLATES_GUIDE.md](./TEMPLATES_GUIDE.md) | Deed template development and customization | Template Developers |
 | [DEED_GENERATION_GUIDE.md](./DEED_GENERATION_GUIDE.md) | Document generation system overview | Backend Developers |
@@ -162,6 +163,7 @@ Comprehensive AI assistance providing a "walking on a cloud" user experience:
 |------------|----------------|
 | Set up development environment | [SETUP_GUIDE.md](./SETUP_GUIDE.md) |
 | Understand project structure | [QUICK_START_FOR_NEW_AGENTS.md](./QUICK_START_FOR_NEW_AGENTS.md) |
+| Work with property integration | [PROPERTY_INTEGRATION_COMPLETE_GUIDE.md](./PROPERTY_INTEGRATION_COMPLETE_GUIDE.md) |
 | Add new API endpoint | [BACKEND_ARCHITECTURE.md](./BACKEND_ARCHITECTURE.md) + [API_REFERENCE.md](./API_REFERENCE.md) |
 | Create new React component | [FRONTEND_ARCHITECTURE.md](./FRONTEND_ARCHITECTURE.md) |
 | Modify database schema | [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md) |
