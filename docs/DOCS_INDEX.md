@@ -68,6 +68,7 @@ Comprehensive AI assistance providing a "walking on a cloud" user experience:
 |----------|---------|----------|
 | [DEVELOPMENT_GUIDE.md](./DEVELOPMENT_GUIDE.md) | Development workflow, coding standards, and best practices | All Developers |
 | [INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md) | Widget integration guide for external clients | Integration Partners |
+| [JWT_AUTHENTICATION_GUIDE.md](./JWT_AUTHENTICATION_GUIDE.md) | **NEW** - JWT token management, renewal, and troubleshooting | All Developers |
 | [TEMPLATES_GUIDE.md](./TEMPLATES_GUIDE.md) | Deed template development and customization | Template Developers |
 | [DEED_GENERATION_GUIDE.md](./DEED_GENERATION_GUIDE.md) | Document generation system overview | Backend Developers |
 | [DEED_WIZARD_FLOW.md](./DEED_WIZARD_FLOW.md) | **NEW** - Address-first deed flow documentation | Frontend Developers |

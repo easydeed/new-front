@@ -31,6 +31,54 @@
 3. Test ApnSearch endpoint directly
 4. Refresh page to get new JWT token
 
+### **Issue: JWT Token Expired or Invalid**
+**Symptoms**: 
+- 401 Unauthorized errors on API calls
+- "Authentication expired" error messages
+- Property search works initially but fails after some time
+
+**Root Causes**:
+- JWT token has expired (typically after 24 hours)
+- Token corrupted in localStorage
+- Using wrong token key ('token' instead of 'access_token')
+
+**Solutions**:
+1. **Immediate Fix**: Refresh the page and log in again
+2. **Check Token**: Open browser console and run:
+   ```javascript
+   console.log('Token:', localStorage.getItem('access_token'));
+   ```
+3. **Clear Token**: If corrupted, clear it:
+   ```javascript
+   localStorage.removeItem('access_token');
+   ```
+4. **Re-authenticate**: Navigate to `/login` page
+
+**Prevention**:
+- Implement automatic token renewal (see JWT Authentication Guide)
+- Monitor token expiration time
+- Add token validation before API calls
+
+### **Issue: Authentication Token Key Mismatch**
+**Symptoms**: 
+- API calls return 401 even after fresh login
+- Token appears to exist but doesn't work
+
+**Root Cause**: Using incorrect localStorage key name
+
+**Solutions**:
+1. **Verify Key Usage**: Ensure all components use `access_token`:
+   ```javascript
+   // ✅ CORRECT
+   const token = localStorage.getItem('access_token');
+   
+   // ❌ WRONG
+   const token = localStorage.getItem('token');
+   ```
+
+2. **Check All Components**: Search codebase for localStorage.getItem usage
+3. **Update Components**: Replace incorrect key names with 'access_token'
+
 ---
 
 ## 🔍 Legacy Issues (Now Resolved)

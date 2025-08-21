@@ -504,11 +504,19 @@ STRIPE_SECRET_KEY=sk_test_your_stripe_key
 ```
 
 ### **API Security Measures**
-1. **JWT Authentication**: All property endpoints require valid JWT tokens
-2. **Rate Limiting**: Debounced requests prevent API abuse
-3. **Input Validation**: Pydantic models validate all inputs
-4. **Error Handling**: Graceful failure with informative messages
-5. **Audit Logging**: All API calls logged for monitoring
+1. **JWT Authentication**: All property endpoints require valid JWT tokens (see [JWT Authentication Guide](JWT_AUTHENTICATION_GUIDE.md))
+2. **Token Management**: Proper token validation and renewal processes
+3. **Rate Limiting**: Debounced requests prevent API abuse
+4. **Input Validation**: Pydantic models validate all inputs
+5. **Error Handling**: Graceful failure with informative messages
+6. **Audit Logging**: All API calls logged for monitoring
+
+### **Authentication Requirements** 🔐
+- **Token Key**: Must use `localStorage.getItem('access_token')` (not 'token')
+- **Token Validation**: Always check token exists before API calls
+- **Error Handling**: Handle 401 errors with clear user messages
+- **Token Renewal**: Implement automatic renewal for seamless experience
+- **Documentation**: See [JWT Authentication Guide](JWT_AUTHENTICATION_GUIDE.md) for complete details
 
 ---
 
