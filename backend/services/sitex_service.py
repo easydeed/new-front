@@ -13,20 +13,19 @@ class SiteXService:
     
     def __init__(self):
         self.api_key = os.getenv("SITEX_API_KEY")  # Optional - check SiteX docs
-        self.base_url = "http://api.sitexdata.com/sitexapi/sitexapi.asmx"
+        self.base_url = "https://api.sitexdata.com/sitexapi/sitexapi.asmx"
         self.timeout = 30.0
     
-    async def validate_address(self, address: str, locale: str, neighborhood: str = '') -> Dict:
+    async def search_addresses(self, address: str, locale: str) -> List[Dict]:
         """
-        Validate address and retrieve APN/FIPS data from SiteX
+        Step 1: Search for addresses and return multiple matches (like multipleResults() in JS)
         
         Args:
             address: Street address
             locale: City, State format (e.g., "Los Angeles, CA")
-            neighborhood: Optional neighborhood name
             
         Returns:
-            Dictionary containing APN, FIPS, and validated address data
+            List of matching properties with APN, address, city, FIPS
         """
         try:
             params = {
@@ -43,7 +42,7 @@ class SiteXService:
             # Add reportType=187 as per working JavaScript code
             params['reportType'] = '187'
             
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
+            async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
                 response = await client.get(
                     f"{self.base_url}/AddressSearch",
                     params=params
@@ -53,24 +52,49 @@ class SiteXService:
                 # Parse XML response
                 data = xmltodict.parse(response.text)
                 
+                # Debug: Log the raw response for troubleshooting
+                print(f"SiteX Raw Response: {response.text}")
+                print(f"SiteX Parsed Data: {data}")
+                
+                # Check for API errors first
+                status = data.get('SitexApiResult', {}).get('Status')
+                status_code = data.get('SitexApiResult', {}).get('StatusCode')
+                
+                if status_code and status_code != 'OK':
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"SiteX API error: {status} (Code: {status_code})"
+                    )
+                
                 # Extract locations from response
-                locations_data = data.get('Locations', {})
+                sitex_result = data.get('SitexApiResult', {})
+                locations_data = sitex_result.get('Locations', {})
                 locations = locations_data.get('Location', [])
                 
                 if not locations:
                     raise HTTPException(
                         status_code=404,
-                        detail="No property found in SiteX database"
+                        detail=f"No property found in SiteX database. Status: {status}, Code: {status_code}"
                     )
                 
                 # Handle single location vs multiple locations
                 if isinstance(locations, dict):
                     locations = [locations]
                 
-                # Use the first (most relevant) match
-                best_match = locations[0]
+                # Return all matches (like multipleResults() in working JS)
+                matches = []
+                for location in locations:
+                    match = {
+                        'apn': location.get('APN', ''),
+                        'address': location.get('Address', ''),
+                        'city': location.get('City', ''),
+                        'fips': location.get('FIPS', ''),
+                        'state': location.get('State', ''),
+                        'zip': location.get('Zip', '')
+                    }
+                    matches.append(match)
                 
-                return self._parse_sitex_result(best_match, address, locale)
+                return matches
                 
         except httpx.TimeoutException:
             raise HTTPException(
@@ -82,6 +106,144 @@ class SiteXService:
                 status_code=500,
                 detail=f"SiteX validation error: {str(e)}"
             )
+    
+    async def apn_search(self, apn: str, fips: str) -> Dict:
+        """
+        Step 2: Get detailed property data using APN (like apnData() and parse187() in JS)
+        
+        Args:
+            apn: Assessor's Parcel Number
+            fips: FIPS code from AddressSearch
+            
+        Returns:
+            Dictionary containing detailed property data (owner, legal description, etc.)
+        """
+        try:
+            params = {
+                'apn': apn,
+                'FIPS': fips,
+                'ClientReference': '<CustCompFilter><SQFT>0.20</SQFT><Radius>0.75</Radius></CustCompFilter>',
+            }
+            
+            # Add API key if available
+            if self.api_key:
+                params['Key'] = self.api_key
+            
+            # Add reportType=187 as per working JavaScript code
+            params['reportType'] = '187'
+            
+            async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+                response = await client.get(
+                    f"{self.base_url}/ApnSearch",
+                    params=params
+                )
+                response.raise_for_status()
+                
+                # Parse XML response
+                data = xmltodict.parse(response.text)
+                
+                # Debug: Log the raw response for troubleshooting
+                print(f"SiteX ApnSearch Raw Response: {response.text}")
+                print(f"SiteX ApnSearch Parsed Data: {data}")
+                
+                # Check for API errors first
+                status = data.get('SitexApiResult', {}).get('Status')
+                status_code = data.get('SitexApiResult', {}).get('StatusCode')
+                
+                if status_code and status_code != 'OK':
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"SiteX ApnSearch error: {status} (Code: {status_code})"
+                    )
+                
+                # Extract property details (like parse187() in working JS)
+                return self._parse_property_details(data)
+                
+        except httpx.TimeoutException:
+            raise HTTPException(
+                status_code=504,
+                detail="SiteX ApnSearch timeout - please try again"
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"SiteX ApnSearch error: {str(e)}"
+            )
+    
+    def _parse_property_details(self, data: Dict) -> Dict:
+        """
+        Parse detailed property data from ApnSearch response (like parse187() in working JS)
+        """
+        try:
+            # Navigate to PropertyProfile like in working JS
+            sitex_result = data.get('SitexApiResult', {})
+            
+            # Check if we have a ReportURL (indicates we need to fetch the actual report)
+            report_url = sitex_result.get('ReportURL')
+            if report_url:
+                # This means we need to make another call to get the actual XML data
+                # For now, return what we have and note that we need the report URL
+                return {
+                    'report_url': report_url,
+                    'status': 'report_url_provided',
+                    'message': 'Need to fetch report from URL'
+                }
+            
+            # If we have direct XML data, parse it like parse187()
+            # This structure will be determined by actual API response
+            property_profile = sitex_result.get('PropertyProfile', {})
+            subject_value_info = sitex_result.get('SubjectValueInfo', {})
+            
+            # Extract data exactly like parse187() function
+            owner_name_primary = property_profile.get('PrimaryOwnerName', '')
+            owner_name_secondary = property_profile.get('SecondaryOwnerName', '')
+            
+            # Handle owner name parsing like in working JS
+            if ';' in owner_name_primary:
+                parts = owner_name_primary.split(';')
+                owner_name_primary = parts[0].strip()
+                if len(parts) > 1:
+                    owner_name_secondary = parts[1].strip()
+            
+            # Build full address like in working JS
+            full_address_parts = []
+            if property_profile.get('SiteUnit'):
+                full_address_parts.append(property_profile.get('SiteUnit'))
+            if property_profile.get('SiteAddress'):
+                full_address_parts.append(property_profile.get('SiteAddress'))
+            if property_profile.get('SiteCity'):
+                full_address_parts.append(property_profile.get('SiteCity'))
+            if property_profile.get('SiteState'):
+                full_address_parts.append(property_profile.get('SiteState'))
+            if property_profile.get('SiteZip'):
+                full_address_parts.append(property_profile.get('SiteZip'))
+            
+            return {
+                'owner_name_primary': self._to_title_case(owner_name_primary.replace(',', '').strip()),
+                'owner_name_secondary': self._to_title_case(owner_name_secondary.replace(',', '').strip()),
+                'full_address': ', '.join(full_address_parts),
+                'apn': property_profile.get('APN', ''),
+                'county': subject_value_info.get('CountyName', ''),
+                'legal_description': property_profile.get('LegalBriefDescription', '').replace('  ', ' ').strip(),
+                'site_unit': property_profile.get('SiteUnit', ''),
+                'site_address': property_profile.get('SiteAddress', ''),
+                'site_city': property_profile.get('SiteCity', ''),
+                'site_state': property_profile.get('SiteState', ''),
+                'site_zip': property_profile.get('SiteZip', '')
+            }
+            
+        except Exception as e:
+            print(f"Error parsing property details: {e}")
+            return {
+                'error': f"Failed to parse property details: {str(e)}",
+                'raw_data': data
+            }
+    
+    def _to_title_case(self, text: str) -> str:
+        """Convert text to title case like toTitleCase() in working JS"""
+        if not text:
+            return ''
+        return ' '.join(word.capitalize() for word in text.split())
     
     def _parse_sitex_result(self, location_data: Dict, original_address: str, original_locale: str) -> Dict:
         """Parse SiteX API response into standardized format"""

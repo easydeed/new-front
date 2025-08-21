@@ -747,10 +747,10 @@ async def test_titlepoint_property_flow(
             "county": request.county
         }
 
-@router.get("/test/sitex")
-async def test_sitex_api():
+@router.get("/test/sitex-address-search")
+async def test_sitex_address_search():
     """
-    Test SiteX API connectivity (no auth required)
+    Test SiteX AddressSearch (Step 1 - returns multiple matches)
     """
     try:
         _, sitex_service, _ = get_services()
@@ -758,55 +758,62 @@ async def test_sitex_api():
         if not sitex_service:
             return {"success": False, "error": "SiteX service not available"}
         
-        # Test with multiple addresses to find one in SiteX database
-        test_addresses = [
-            ("123 Main St", "Los Angeles, CA"),
-            ("1358 5th St", "La Verne, CA"),
-            ("100 Broadway", "Los Angeles, CA"),
-            ("1 Market St", "San Francisco, CA")
-        ]
-        
-        results = []
-        for address, locale in test_addresses:
-            try:
-                result = await sitex_service.validate_address(address, locale)
-                results.append({
-                    "address": f"{address}, {locale}",
-                    "status": "success",
-                    "data": result
-                })
-                break  # Use first successful result
-            except Exception as e:
-                results.append({
-                    "address": f"{address}, {locale}",
-                    "status": "error", 
-                    "error": str(e)
-                })
-                continue
-        
-        # If we found a successful result, use it
-        if results and results[-1]["status"] == "success":
-            result = results[-1]["data"]
-        else:
-            # Return all test results for debugging
-            return {
-                "success": False,
-                "error": "No addresses found in SiteX database",
-                "test_results": results,
-                "message": "SiteX API connection working, but test addresses not found"
-            }
+        # Test with La Verne address (like working JS)
+        matches = await sitex_service.search_addresses(
+            "1358 5th St", 
+            "La Verne, CA"
+        )
         
         return {
             "success": True,
-            "data": result,
-            "message": "SiteX API test successful"
+            "matches": matches,
+            "count": len(matches),
+            "message": f"SiteX AddressSearch successful - found {len(matches)} matches"
         }
         
     except Exception as e:
         return {
             "success": False,
             "error": str(e),
-            "message": "SiteX API test failed"
+            "message": "SiteX AddressSearch test failed"
+        }
+
+
+@router.post("/test/sitex-apn-search")
+async def test_sitex_apn_search(request: dict):
+    """
+    Test SiteX ApnSearch (Step 2 - gets detailed property data)
+    Expects: {"apn": "123-456-789", "fips": "06037"}
+    """
+    try:
+        _, sitex_service, _ = get_services()
+        
+        if not sitex_service:
+            return {"success": False, "error": "SiteX service not available"}
+        
+        apn = request.get('apn')
+        fips = request.get('fips')
+        
+        if not apn or not fips:
+            return {
+                "success": False,
+                "error": "Missing required parameters: apn and fips"
+            }
+        
+        # Test ApnSearch with provided APN/FIPS
+        property_details = await sitex_service.apn_search(apn, fips)
+        
+        return {
+            "success": True,
+            "property_details": property_details,
+            "message": "SiteX ApnSearch successful"
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "SiteX ApnSearch test failed"
         }
 
 
