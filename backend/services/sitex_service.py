@@ -13,7 +13,7 @@ class SiteXService:
     
     def __init__(self):
         self.api_key = os.getenv("SITEX_API_KEY")  # Optional - check SiteX docs
-        self.base_url = "https://api.sitexdata.com/sitexapi/sitexapi.asmx"
+        self.base_url = "http://api.sitexdata.com/sitexapi/sitexapi.asmx"
         self.timeout = 30.0
     
     async def validate_address(self, address: str, locale: str, neighborhood: str = '') -> Dict:
@@ -33,15 +33,17 @@ class SiteXService:
                 'Address': address,
                 'LastLine': locale,
                 'ClientReference': '<CustCompFilter><CompNum>8</CompNum><MonthsBack>12</MonthsBack></CustCompFilter>',
-                'OwnerName': '',
-                'reportType': '187'  # Key missing parameter from working JS code
+                'OwnerName': ''
             }
             
             # Add API key if available
             if self.api_key:
                 params['Key'] = self.api_key
             
-            async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+            # Add reportType=187 as per working JavaScript code
+            params['reportType'] = '187'
+            
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(
                     f"{self.base_url}/AddressSearch",
                     params=params
