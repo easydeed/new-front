@@ -1,4 +1,11 @@
 # API Integration Guide
+## ⚙️ DeedPro API Enhancements (August 2025)
+
+- **Recorder Profiles & Margins**: Deed preview and PDF rendering now support recorder-specific margins via template variables (`page_margin_top|left|right|bottom`). Server applies county defaults when the client does not provide them.
+- **Transfer Tax Auto-Compute**: If the client omits transfer tax, the server computes CA documentary transfer tax from `sales_price|salesPrice|consideration` and injects `transfer_tax` with `{ county_amount, city_amount, total, computed_on }`.
+- **Auto Exhibit A**: Long `legal_description|legalDescription` automatically moves to `Exhibit A`, included as `templates/grant_deed/exhibit_a.html`. Clients can override by sending `attach_exhibit_a=false` or a custom `exhibit_label`.
+- **Backward Compatible**: Any client-sent values for tax, margins, and exhibit flags take precedence over server defaults.
+
 
 ## 🔌 Overview of External Integrations
 

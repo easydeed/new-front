@@ -1,0 +1,23 @@
+<div class="section">
+  <p class="bold">THE UNDERSIGNED GRANTOR(S) DECLARE(S):</p>
+  <p>DOCUMENTARY TRANSFER TAX IS ${{ transfer_tax.total if transfer_tax else (documentary_tax or "_____") }}</p>
+  {% if transfer_tax %}
+  <p><span class="bold">County Tax:</span> ${{ transfer_tax.county_amount }} {% if transfer_tax.city_amount and transfer_tax.city_amount > 0 %} | <span class="bold">City Tax:</span> ${{ transfer_tax.city_amount }}{% endif %}</p>
+  {% endif %}
+  <p><span class="checkbox">{{ "✓" if tax_computed_full_value else "" }}</span> Computed on full value of property conveyed, or</p>
+  <p><span class="checkbox">{{ "✓" if tax_computed_less_liens else "" }}</span> Computed on full value less liens and encumbrances remaining at time of sale.</p>
+  <p><span class="checkbox">{{ "✓" if is_unincorporated else "" }}</span> Unincorporated area <span class="checkbox">{{ "✓" if not is_unincorporated else "" }}</span> City of {{ city or "_____________________" }}</p>
+</div>
+
+<div class="section">
+  <p>For valuable consideration, receipt of which is hereby acknowledged,</p>
+  <p>{{ grantor or "_____________________" }}</p>
+  <p>hereby GRANT(S) to</p>
+  <p>{{ grantee or "_____________________" }}</p>
+  <p>the real property situated in the County of {{ county or "_____________________" }}, State of California, more particularly described as follows:</p>
+</div>
+
+<div class="section">
+  <p>{{ property_description or "_____________________" }}</p>
+</div>
+

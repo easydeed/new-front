@@ -11,7 +11,13 @@ import '../../styles/dashboard.css';
 const DOC_TYPES = {
   grant_deed: {
     label: 'Grant Deed',
-    fields: ['consideration'],
+    // Group fields into 3 parts for a clearer review experience
+    // (Backward compatible handling in Step 3 will render arrays or grouped objects)
+    fields: {
+      header_return: ['grantorName', 'granteeName', 'vesting'],
+      body_deed: ['apn', 'legalDescription', 'consideration'],
+      footer_execution: ['date']
+    },
     buttons: ['vesting', 'grant_deed', 'tax_roll', 'chain_of_title'],
     required: ['granteeName', 'consideration'],
     dataNeeds: ['current_owner', 'legal_description', 'consideration_amount', 'vesting_type', 'tax_assessments']
@@ -924,26 +930,61 @@ export default function CreateDeed() {
                 </div>
                 
                 {/* Dynamic Fields based on doc type */}
-                {docType && DOC_TYPES[docType as keyof typeof DOC_TYPES].fields.map((field) => (
-                  <div key={field} style={{ marginBottom: '1rem' }}>
-                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem', textTransform: 'capitalize' }}>
-                      {field.replace('_', ' ')}
-                    </label>
-                    <input 
-                      type="text"
-                      name={field}
-                      value={formData[field as keyof typeof formData] || ''}
-                      onChange={handleInputChange}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '0.5rem',
-                        fontSize: '1rem'
-                      }}
-                    />
-                  </div>
-                ))}
+                {docType && (() => {
+                  const config = DOC_TYPES[docType as keyof typeof DOC_TYPES];
+                  const fieldsConfig = (config as any).fields;
+                  // Backward compatibility: if fields is an array, render flat
+                  if (Array.isArray(fieldsConfig)) {
+                    return fieldsConfig.map((field: string) => (
+                      <div key={field} style={{ marginBottom: '1rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem', textTransform: 'capitalize' }}>
+                          {field.replace('_', ' ')}
+                        </label>
+                        <input 
+                          type="text"
+                          name={field}
+                          value={(formData as any)[field] || ''}
+                          onChange={handleInputChange}
+                          style={{
+                            width: '100%',
+                            padding: '0.75rem',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '0.5rem',
+                            fontSize: '1rem'
+                          }}
+                        />
+                      </div>
+                    ));
+                  }
+                  // Grouped rendering for objects { part: string[] }
+                  return Object.entries(fieldsConfig).map(([part, fields]: [string, string[]]) => (
+                    <div key={part} style={{ marginBottom: '1.5rem', padding: '1rem', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '0.75rem' }}>
+                      <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.75rem', textTransform: 'capitalize', color: '#374151' }}>
+                        {part.replace('_', ' ')}
+                      </h3>
+                      {fields.map((field) => (
+                        <div key={field} style={{ marginBottom: '1rem' }}>
+                          <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem', textTransform: 'capitalize' }}>
+                            {field.replace('.', ' ').replace('_', ' ')}
+                          </label>
+                          <input 
+                            type="text"
+                            name={field}
+                            value={(formData as any)[field] || ''}
+                            onChange={handleInputChange}
+                            style={{
+                              width: '100%',
+                              padding: '0.75rem',
+                              border: '1px solid #d1d5db',
+                              borderRadius: '0.5rem',
+                              fontSize: '1rem'
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ));
+                })()}
 
                 {/* Chain of Title Display */}
                 {formData.chainOfTitle && formData.chainOfTitle.length > 0 && (

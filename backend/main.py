@@ -109,6 +109,60 @@ if not os.path.exists(template_dir):
 
 env = Environment(loader=FileSystemLoader(template_dir))
 
+# -----------------------
+# Recorder/tax profiles
+# -----------------------
+RECORDER_PROFILES = {
+    "Los Angeles": {
+        "top_margin_in": 2.0,
+        "left_margin_in": 0.5,
+        "right_margin_in": 0.5,
+        "bottom_margin_in": 0.5,
+        # CA Documentary Transfer Tax guideline (commonly $1.10 per $1,000);
+        # fall back to $0.55 per $500 if provided as sales price string.
+        "doc_tax_per_1000": 1.10,
+        "city_rates": {
+            # Optional city-specific add-ons
+        },
+    }
+}
+
+def compute_doc_transfer_tax(sales_price: str | float | None, county: str | None, city: str | None) -> dict:
+    """Compute CA-style documentary transfer tax with simple county/city profile.
+    Returns dict with county_amount, city_amount, total, computed_on.
+    """
+    try:
+        if sales_price is None or sales_price == "":
+            return {"county_amount": 0.0, "city_amount": 0.0, "total": 0.0, "computed_on": "none"}
+        if isinstance(sales_price, str):
+            clean = sales_price.replace("$", "").replace(",", "").strip()
+            amount = float(clean) if clean else 0.0
+        else:
+            amount = float(sales_price)
+    except Exception:
+        return {"county_amount": 0.0, "city_amount": 0.0, "total": 0.0, "computed_on": "invalid"}
+
+    profile = RECORDER_PROFILES.get((county or "").strip(), RECORDER_PROFILES.get("Los Angeles"))
+    county_rate = (profile or {}).get("doc_tax_per_1000", 1.10)
+    city_rates = (profile or {}).get("city_rates", {})
+    city_rate = city_rates.get((city or "").strip(), 0.0)
+
+    county_amount = (amount / 1000.0) * county_rate
+    city_amount = (amount / 1000.0) * city_rate
+    total = round(county_amount + city_amount, 2)
+    return {
+        "county_amount": round(county_amount, 2),
+        "city_amount": round(city_amount, 2),
+        "total": total,
+        "computed_on": "full_value",
+    }
+
+def needs_exhibit_a(legal_description: str | None, threshold_chars: int = 600) -> bool:
+    """Simple heuristic to move long legal descriptions to Exhibit A."""
+    if not legal_description:
+        return False
+    return len(legal_description.strip()) >= threshold_chars
+
 # Pydantic models
 class UserCreate(BaseModel):
     email: str
@@ -1612,6 +1666,35 @@ async def generate_deed_preview(deed: DeedData, user_id: int = Depends(get_curre
                 pass
             raise HTTPException(status_code=500, detail=f"Template not found: {deed_type}.html")
         
+        # Recorder profile + tax computations
+        county = enhanced_data.get("county") or enhanced_data.get("County")
+        city = enhanced_data.get("city") or enhanced_data.get("City")
+        sales_price = enhanced_data.get("sales_price") or enhanced_data.get("salesPrice") or enhanced_data.get("consideration")
+        tax = compute_doc_transfer_tax(sales_price, county, city)
+
+        # Auto Exhibit A if legal is long
+        legal = enhanced_data.get("legal_description") or enhanced_data.get("legalDescription")
+        attach_exhibit = needs_exhibit_a(legal)
+
+        if "transfer_tax" not in enhanced_data:
+            enhanced_data["transfer_tax"] = tax
+        if "attach_exhibit_a" not in enhanced_data:
+            enhanced_data["attach_exhibit_a"] = attach_exhibit
+        if "exhibit_label" not in enhanced_data:
+            enhanced_data["exhibit_label"] = "Exhibit A - Legal Description"
+
+        # Apply page margins from recorder profile if available
+        profile = RECORDER_PROFILES.get((county or "").strip()) or RECORDER_PROFILES.get("Los Angeles")
+        if profile:
+            if "page_margin_top" not in enhanced_data:
+                enhanced_data["page_margin_top"] = f"{profile.get('top_margin_in', 1.0)}in"
+            if "page_margin_left" not in enhanced_data:
+                enhanced_data["page_margin_left"] = f"{profile.get('left_margin_in', 1.0)}in"
+            if "page_margin_right" not in enhanced_data:
+                enhanced_data["page_margin_right"] = f"{profile.get('right_margin_in', 1.0)}in"
+            if "page_margin_bottom" not in enhanced_data:
+                enhanced_data["page_margin_bottom"] = f"{profile.get('bottom_margin_in', 1.0)}in"
+
         # Render HTML with enhanced data
         html_content = template.render(enhanced_data)
         
@@ -1639,8 +1722,35 @@ async def generate_deed(deed: DeedData):
         # Get the template for the specified deed type
         template = env.get_template(f"{deed.deed_type}.html")
         
+        # Recorder profile + tax computations
+        data = dict(deed.data)
+        county = data.get("county") or data.get("County")
+        city = data.get("city") or data.get("City")
+        sales_price = data.get("sales_price") or data.get("salesPrice") or data.get("consideration")
+        tax = compute_doc_transfer_tax(sales_price, county, city)
+        legal = data.get("legal_description") or data.get("legalDescription")
+        attach_exhibit = needs_exhibit_a(legal)
+        if "transfer_tax" not in data:
+            data["transfer_tax"] = tax
+        if "attach_exhibit_a" not in data:
+            data["attach_exhibit_a"] = attach_exhibit
+        if "exhibit_label" not in data:
+            data["exhibit_label"] = "Exhibit A - Legal Description"
+
+        # Apply page margins from recorder profile if available
+        profile = RECORDER_PROFILES.get((county or "").strip()) or RECORDER_PROFILES.get("Los Angeles")
+        if profile:
+            if "page_margin_top" not in data:
+                data["page_margin_top"] = f"{profile.get('top_margin_in', 1.0)}in"
+            if "page_margin_left" not in data:
+                data["page_margin_left"] = f"{profile.get('left_margin_in', 1.0)}in"
+            if "page_margin_right" not in data:
+                data["page_margin_right"] = f"{profile.get('right_margin_in', 1.0)}in"
+            if "page_margin_bottom" not in data:
+                data["page_margin_bottom"] = f"{profile.get('bottom_margin_in', 1.0)}in"
+
         # Render HTML with data injection
-        html_content = template.render(deed.data)
+        html_content = template.render(data)
         
         # Generate PDF using WeasyPrint
         with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:

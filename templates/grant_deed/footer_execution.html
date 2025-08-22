@@ -1,0 +1,25 @@
+<div class="section">
+  <p>Dated: {{ date or "_____________________" }}</p>
+</div>
+
+<div class="signature">
+  <p>{{ grantor_signature or "_____________________" }}</p>
+  <p>Signature of Grantor</p>
+</div>
+
+<div class="notary-section">
+  <p class="bold">STATE OF CALIFORNIA )</p>
+  <p class="bold">                     ) SS.</p>
+  <p class="bold">COUNTY OF {{ county_notary or "_____________________" }} )</p>
+  
+  <p>On {{ notary_date or "_____________________" }} before me, {{ notary_name or "_____________________" }}, Notary Public, personally appeared {{ appeared_before_notary or "_____________________" }}, who proved to me on the basis of satisfactory evidence to be the person(s) whose name(s) is/are subscribed to the within instrument and acknowledged to me that he/she/they executed the same in his/her/their authorized capacity, and that by his/her/their signature(s) on the instrument the person(s), or the entity upon behalf of which the person(s) acted, executed the instrument.</p>
+  
+  <p>I certify under PENALTY OF PERJURY under the laws of the State of California that the foregoing paragraph is true and correct.</p>
+  
+  <p>WITNESS my hand and official seal.</p>
+  
+  <div style="margin-top: 0.5in;">
+    <p>Signature: {{ notary_signature or "_____________________" }}</p>
+  </div>
+</div>
+

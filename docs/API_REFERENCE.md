@@ -218,6 +218,13 @@ Content-Type: application/json
 }
 ```
 
+### API Enhancements (August 2025)
+
+- **Recorder Profiles & Margins**: Preview and PDF now accept dynamic recorder page margins via template variables `page_margin_top|left|right|bottom`. Defaults are applied from county profiles when not provided by the client.
+- **Transfer Tax Computation**: If not provided by the client, the server computes California-style Documentary Transfer Tax from `sales_price|salesPrice|consideration` using a county profile. Result is injected as `transfer_tax` with keys: `county_amount`, `city_amount`, `total`, `computed_on`.
+- **Auto Exhibit A**: If `legal_description|legalDescription` exceeds a length threshold, `attach_exhibit_a` is set and `grant_deed/exhibit_a.html` is included automatically. Clients can override by sending `attach_exhibit_a` and/or a custom `exhibit_label`.
+- **Backward Compatible**: Any client-sent values for `transfer_tax`, margin variables, and `attach_exhibit_a` take precedence over computed defaults.
+
 **Key Features:**
 - 🎯 **Smart Data Mapping**: Uses `deedDataMapper.ts` for comprehensive field validation
 - ✅ **Dynamic Checkboxes**: Templates show ✓ marks based on user selections
