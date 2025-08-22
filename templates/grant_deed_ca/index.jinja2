@@ -1,0 +1,96 @@
+{# Grant Deed (CA) — composed from three blocks matching Steps 2–5 #}
+{# Page setup (US Letter, margins via context) #}
+{% set page = page or {} %}
+{% set m = page.margins or {'top':'1in','right':'1in','bottom':'1in','left':'1in'} %}
+{% set exhibit_threshold = exhibit_threshold | default(600) %}
+
+<style>
+  @page {
+    size: 8.5in 11in;
+    margin: {{ m.top }} {{ m.right }} {{ m.bottom }} {{ m.left }};
+  }
+  /* Print-safe defaults */
+  html, body { 
+    font-family: 'Times New Roman', serif; 
+    font-size: 12pt;
+    line-height: 1.4;
+    margin: 0;
+    padding: 0;
+  }
+  .recording-box {
+    border: 2px solid #000;
+    padding: 12pt;
+    width: 4in;
+    margin-bottom: 24pt;
+    font-size: 10pt;
+    line-height: 1.3;
+  }
+  .order-info {
+    float: right;
+    width: 3in;
+    font-size: 9pt;
+    margin-top: 0;
+  }
+  .deed-title {
+    text-align: center;
+    font-size: 16pt;
+    font-weight: bold;
+    margin: 36pt 0 24pt 0;
+    clear: both;
+  }
+  .declarations {
+    font-size: 10pt;
+    margin-bottom: 18pt;
+    background: #f8f8f8;
+    padding: 8pt;
+    border: 1px solid #ccc;
+  }
+  .legal-box {
+    border: 2px solid #000;
+    padding: 12pt;
+    margin: 18pt 0;
+    white-space: pre-wrap;
+    font-size: 11pt;
+  }
+  .signature-section {
+    margin-top: 36pt;
+    page-break-inside: avoid;
+  }
+  .signature-line {
+    margin-top: 24pt;
+    border-bottom: 1px solid #000;
+    width: 3.5in;
+    padding-bottom: 2pt;
+    margin-bottom: 4pt;
+  }
+  .notary-box {
+    border: 2px solid #000;
+    padding: 12pt;
+    margin-top: 36pt;
+    font-size: 10pt;
+    page-break-inside: avoid;
+  }
+  .exhibit-page {
+    page-break-before: always;
+    margin-top: 0;
+  }
+  .exhibit-title {
+    text-align: center;
+    font-size: 14pt;
+    font-weight: bold;
+    margin-bottom: 18pt;
+  }
+</style>
+
+{% include "grant_deed_ca/header_return_block.jinja2" %}
+{% include "grant_deed_ca/body_deed.jinja2" %}
+{% include "grant_deed_ca/footer_execution_notary.jinja2" %}
+
+{# Auto Exhibit "A" when legal is long #}
+{% if legal_description and legal_description|length > exhibit_threshold %}
+<div class="exhibit-page">
+  <div class="exhibit-title">EXHIBIT "A"</div>
+  <div class="legal-box">{{ legal_description }}</div>
+  {% if apn %}<div style="font-size:9pt; margin-top:12pt;">APN: {{ apn }}</div>{% endif %}
+</div>
+{% endif %}

@@ -71,6 +71,16 @@ except ImportError as e:
 except Exception as e:
     print(f"❌ Error loading document generation endpoints: {e}")
 
+# Include new Grant Deed CA router
+try:
+    from routers.deeds import router as deeds_router
+    app.include_router(deeds_router, prefix="/api")
+    print("✅ Grant Deed CA endpoints loaded successfully")
+except ImportError as e:
+    print(f"⚠️ Grant Deed CA endpoints not available: {e}")
+except Exception as e:
+    print(f"❌ Error loading Grant Deed CA endpoints: {e}")
+
 # Allow CORS for local dev and frontend
 app.add_middleware(
     CORSMiddleware,
