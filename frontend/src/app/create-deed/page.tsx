@@ -206,6 +206,17 @@ export default function CreateDeed() {
     }
   }, []);
 
+  // Light auto-vesting suggestion for Grant Deed based on simple heuristics
+  useEffect(() => {
+    if (docType !== 'grant_deed') return;
+    if (!formData.granteeName || formData.vesting) return;
+    const name = (formData.granteeName || '').toLowerCase();
+    // If two names joined by ' and ' or '&', suggest joint tenancy style
+    if (name.includes(' and ') || name.includes(' & ')) {
+      setFormData(prev => ({ ...prev, vesting: 'joint tenancy with right of survivorship' }));
+    }
+  }, [docType, formData.granteeName, formData.vesting]);
+
   // Cancel wizard function
   const handleCancelWizard = () => {
     if (window.confirm('Are you sure you want to cancel? All progress will be lost.')) {

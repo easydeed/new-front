@@ -1678,6 +1678,11 @@ async def generate_deed_preview(deed: DeedData, user_id: int = Depends(get_curre
 
         if "transfer_tax" not in enhanced_data:
             enhanced_data["transfer_tax"] = tax
+        else:
+            # Merge exemption/code fields through for template usage
+            existing = enhanced_data.get("transfer_tax") or {}
+            merged = {**tax, **existing}
+            enhanced_data["transfer_tax"] = merged
         if "attach_exhibit_a" not in enhanced_data:
             enhanced_data["attach_exhibit_a"] = attach_exhibit
         if "exhibit_label" not in enhanced_data:
@@ -1732,6 +1737,10 @@ async def generate_deed(deed: DeedData):
         attach_exhibit = needs_exhibit_a(legal)
         if "transfer_tax" not in data:
             data["transfer_tax"] = tax
+        else:
+            existing = data.get("transfer_tax") or {}
+            merged = {**tax, **existing}
+            data["transfer_tax"] = merged
         if "attach_exhibit_a" not in data:
             data["attach_exhibit_a"] = attach_exhibit
         if "exhibit_label" not in data:
