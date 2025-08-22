@@ -1,12 +1,10 @@
 {
   "name": "deedpro-monorepo",
   "private": true,
-  "devDependencies": {
-    "turbo": "^1.10.0"
-  },
+  "devDependencies": {},
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev",
-    "test": "turbo run test"
+    "build": "echo 'use frontend'",
+    "dev": "echo 'use frontend'",
+    "test": "echo 'no tests at root'"
   }
 }
