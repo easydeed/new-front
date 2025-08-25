@@ -1,0 +1,26 @@
+{% macro render_notary_ack(version, signers) -%}
+{% if version == "CA_All_Purpose" %}
+<div style="border:1px solid #000; padding:.25in; font-size:10pt;">
+  <div><strong>California All-Purpose Acknowledgment</strong></div>
+  <p>State of California</p>
+  <p>County of __________________________</p>
+  <p>
+    On __________________ before me, ______________________________________, Notary Public, personally appeared
+    {% if signers and signers|length > 0 %}
+      {% for s in signers %}{{ (s|string).strip() }}{% if not loop.last %}, {% endif %}{% endfor %}
+    {% else %}
+      ________________________________
+    {% endif %}
+    , who proved to me on the basis of satisfactory evidence to be the person(s) whose name(s)
+    is/are subscribed to the within instrument and acknowledged to me that he/she/they executed the same
+    in his/her/their authorized capacity(ies), and that by his/her/their signature(s) on the instrument
+    the person(s), or the entity upon behalf of which the person(s) acted, executed the instrument.
+  </p>
+  <p>I certify under PENALTY OF PERJURY under the laws of the State of California that the foregoing paragraph is true and correct.</p>
+  <p>WITNESS my hand and official seal.</p>
+  <p>Signature __________________________________ (Seal)</p>
+</div>
+{% else %}
+<div>Unsupported acknowledgment type: {{ version }}</div>
+{% endif %}
+{%- endmacro %}
