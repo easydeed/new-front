@@ -4,19 +4,16 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node scripts/check-missing-deps.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
-    "clsx": "^2.1.1",
     "framer-motion": "^12.23.12",
     "next": "15.4.2",
     "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "zod": "^3.25.76"
+    "react-dom": "19.1.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

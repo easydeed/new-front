@@ -55,8 +55,7 @@ Comprehensive AI assistance providing a "walking on a cloud" user experience:
 
 | Document | Purpose | Audience |
 |----------|---------|----------|
-| [WIZARD_V2_GRANT_DEED_IMPLEMENTATION.md](./WIZARD_V2_GRANT_DEED_IMPLEMENTATION.md) | **🆕 LATEST** - Grant Deed Wizard v2 with 5-step flow and pixel-perfect PDFs | All Developers |
-| [DYNAMIC_WIZARD_GUIDE.md](./DYNAMIC_WIZARD_GUIDE.md) | **LEGACY** - Original 3-step dynamic wizard with AI prompts | All Developers |
+| [DYNAMIC_WIZARD_GUIDE.md](./DYNAMIC_WIZARD_GUIDE.md) | **LATEST** - Revolutionary 3-step dynamic wizard with AI prompts | All Developers |
 | [CHAIN_OF_TITLE_GUIDE.md](./CHAIN_OF_TITLE_GUIDE.md) | **🆕 NEW** - Professional-grade title intelligence with ownership history | All Users |
 | [DYNAMIC_WIZARD_DEPLOYMENT.md](./DYNAMIC_WIZARD_DEPLOYMENT.md) | **LATEST** - Deployment guide for dynamic wizard system | DevOps Engineers |
 | [AI_FEATURES_GUIDE.md](./AI_FEATURES_GUIDE.md) | Comprehensive guide to AI-enhanced deed generation | All Developers |

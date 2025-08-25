@@ -2,27 +2,19 @@
 
 ## ⚠️ IMPORTANT: Templates in Monorepo
 
-**Templates are located in the ROOT `/templates` directory and accessed by backend via relative path.**
-
-**WIZARD V2 UPDATE**: Grant Deed now uses NEW dedicated wizard at `/create-deed/grant-deed` with pixel-perfect PDF templates.
+**Templates are now located in the `/templates` directory of the monorepo and accessed by the backend via relative path.**
 
 ---
 
-## 🏗️ **Template Architecture Overview**
+## 🏗️ **Enhanced Template Architecture Overview**
 
-### **Legacy System (3-Step Wizard)**
-DeedPro's original system uses:
-1. **Dynamic Wizard** (`/frontend/src/app/create-deed/page.tsx`) - 3-step wizard
-2. **Data Mapper** (`/frontend/src/utils/deedDataMapper.ts`) - Field mapping
-3. **Backend API** (`/backend/main.py` → `/generate-deed`) - Template rendering
-4. **Templates** (`/templates/grant_deed.html`, `/templates/quitclaim_deed.html`)
+DeedPro's **AI-enhanced deed generation system** uses a **five-layer intelligent architecture**:
 
-### **NEW Wizard V2 System (Grant Deed)**
-5-step specialized Grant Deed wizard:
-1. **Grant Deed Wizard** (`/frontend/src/app/create-deed/grant-deed/page.tsx`) - 5-step wizard
-2. **Step Components** (`/frontend/src/features/wizard/steps/`) - Modular step components
-3. **Backend API** (`/backend/routers/deeds.py` → `/api/generate/grant-deed-ca`) - Dedicated endpoint
-4. **Jinja Templates** (`/templates/grant_deed_ca/`) - Pixel-perfect US Letter templates
+1. **AI-Enhanced Wizard** (`/frontend/src/app/create-deed/page.tsx`) - Intelligent data collection with real-time validation
+2. **Smart Data Mapper** (`/frontend/src/utils/deedDataMapper.ts`) - Comprehensive field mapping and validation
+3. **Enhanced Components** (`/frontend/src/components/`) - Professional preview and wizard flow management
+4. **Backend API Endpoint** (`/backend/main.py` → `/generate-deed-preview`) - Template rendering with AI integration
+5. **Dynamic Templates** (`/templates/`) - Intelligent templates with dynamic features and calculations
 
 ### **Technology Stack**
 - **Jinja2**: Template engine for data injection into HTML
@@ -43,15 +35,8 @@ new-front/                          # MONOREPO ROOT
 │   ├── main.py                     # Contains /generate-deed endpoint
 │   └── [other backend files]
 ├── templates/                      # SHARED TEMPLATES DIRECTORY
-│   ├── grant_deed.html            # Legacy Grant Deed template (3-step wizard)
+│   ├── grant_deed.html            # Grant Deed template
 │   ├── quitclaim_deed.html        # Quitclaim Deed template
-│   ├── grant_deed_ca/             # NEW: Grant Deed Wizard v2 templates
-│   │   ├── index.jinja2           # Main template with @page setup
-│   │   ├── header_return_block.jinja2  # Recording & Mail-To section
-│   │   ├── body_deed.jinja2       # DTT declarations & granting language
-│   │   └── footer_execution_notary.jinja2  # Signatures & notary
-│   ├── _macros/                   # Reusable template macros
-│   │   └── notary_ack.jinja2      # California notary acknowledgment
 │   ├── warranty_deed.html         # Warranty Deed template (future)
 │   └── deed_of_trust.html         # Deed of Trust template (future)
 ├── scripts/
