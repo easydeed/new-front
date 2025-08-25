@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from ..models.grant_deed import GrantDeedRenderContext
-from ..utils.pdf import html_to_pdf
+from models.grant_deed import GrantDeedRenderContext
+from utils.pdf import html_to_pdf
 import io, os
 
 router = APIRouter(prefix="/generate", tags=["generate"])
