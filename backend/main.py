@@ -71,6 +71,15 @@ except ImportError as e:
 except Exception as e:
     print(f"❌ Error loading document generation endpoints: {e}")
 
+try:
+    from routers.deeds import router as deeds_router
+    app.include_router(deeds_router)
+    print("✅ Grant Deed generation endpoints loaded successfully")
+except ImportError as e:
+    print(f"⚠️ Grant Deed generation endpoints not available: {e}")
+except Exception as e:
+    print(f"❌ Error loading Grant Deed generation endpoints: {e}")
+
 # Allow CORS for local dev and frontend
 app.add_middleware(
     CORSMiddleware,
