@@ -65,7 +65,8 @@ new-front/
 - **Progressive Enhancement**: Works without external APIs
 
 ### **User Experience**
-- **3-Step Wizard**: Address → Doc Type & Data → Review
+- **🆕 Grant Deed Wizard v2**: Specialized 5-step flow with pixel-perfect PDFs (Property → Request Details → Transfer Tax → Parties & Property → Preview & Generate)
+- **Legacy 3-Step Wizard**: Address → Doc Type & Data → Review (other document types)
 - **🆕 Visual Chain of Title**: Beautiful timeline showing ownership transfers
 - **🆕 Title Issue Alerts**: Automatic warnings for potential title problems
 - **Real-time Validation**: Instant feedback and error handling
@@ -79,9 +80,10 @@ new-front/
 
 ### **🚀 For New AI Agents - START HERE**
 1. **[QUICK_START_FOR_NEW_AGENTS.md](QUICK_START_FOR_NEW_AGENTS.md)** - Essential overview
-2. **[DYNAMIC_WIZARD_GUIDE.md](DYNAMIC_WIZARD_GUIDE.md)** - Core system architecture  
-3. **[SETUP_GUIDE.md](SETUP_GUIDE.md)** - Development environment
-4. **[DEVELOPMENT_GUIDE.md](DEVELOPMENT_GUIDE.md)** - Coding workflow
+2. **[WIZARD_V2_GRANT_DEED_IMPLEMENTATION.md](WIZARD_V2_GRANT_DEED_IMPLEMENTATION.md)** - NEW 5-step Grant Deed wizard  
+3. **[DYNAMIC_WIZARD_GUIDE.md](DYNAMIC_WIZARD_GUIDE.md)** - Original 3-step wizard system  
+4. **[SETUP_GUIDE.md](SETUP_GUIDE.md)** - Development environment
+5. **[DEVELOPMENT_GUIDE.md](DEVELOPMENT_GUIDE.md)** - Coding workflow
 
 ### **🏗️ Architecture & Implementation**
 5. **[FRONTEND_ARCHITECTURE.md](FRONTEND_ARCHITECTURE.md)** - Next.js structure
