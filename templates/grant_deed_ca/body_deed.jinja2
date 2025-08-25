@@ -3,17 +3,17 @@
 
   <div style="font-size:10pt; margin-bottom:.2in; line-height:1.35;">
     <div><strong>THE UNDERSIGNED GRANTOR(S) DECLARE(S):</strong></div>
-    <div>DOCUMENTARY TRANSFER TAX IS ${{ (dtt.amount if dtt and dtt.amount is not None else '0.00') }}</div>
+    <div>DOCUMENTARY TRANSFER TAX IS ${{ (dtt.get('amount') if dtt and dtt.get('amount') is not none else '0.00') }}</div>
     <div>
-      {% if dtt and dtt.basis == 'less_liens' %}
+      {% if dtt and dtt.get('basis') == 'less_liens' %}
         ☐ Computed on full value less liens and encumbrances remaining at time of sale.
       {% else %}
         ☑ Computed on full value of property conveyed.
       {% endif %}
     </div>
     <div>
-      {% if dtt and dtt.area_type == 'city' %}
-        ☑ City of {{ dtt.city_name or '________________' }}
+      {% if dtt and dtt.get('area_type') == 'city' %}
+        ☑ City of {{ dtt.get('city_name') or '________________' }}
       {% else %}
         ☑ Unincorporated area
       {% endif %}

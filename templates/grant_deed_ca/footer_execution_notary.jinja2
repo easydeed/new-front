@@ -1,7 +1,7 @@
 {% from "_macros/notary_ack.jinja2" import render_notary_ack %}
 
 <div style="margin-top:.45in; font-size:11pt;">
-  <p>Dated: {{ execution_date or (now().strftime("%B %d, %Y") if now else "") }}</p>
+  <p>Dated: {{ execution_date or (now().strftime("%B %d, %Y")) }}</p>
 
   {% set _signers = grantors_text.split(';') if grantors_text else [] %}
   {% if _signers and _signers|length > 0 %}
