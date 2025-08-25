@@ -73,7 +73,7 @@ except Exception as e:
 
 # Include new Grant Deed CA router
 try:
-    from routers.deeds import router as deeds_router
+    from .routers.deeds import router as deeds_router
     app.include_router(deeds_router, prefix="/api")
     print("✅ Grant Deed CA endpoints loaded successfully")
 except ImportError as e:
