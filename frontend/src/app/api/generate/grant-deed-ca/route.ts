@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 export async function POST(req: Request) {
   const payload = await req.json();
   const url = process.env.BACKEND_BASE_URL
-    ? `${process.env.BACKEND_BASE_URL}/generate/grant-deed-ca`
-    : "http://localhost:8000/generate/grant-deed-ca";
+    ? `${process.env.BACKEND_BASE_URL}/api/generate/grant-deed-ca`
+    : "http://localhost:8000/api/generate/grant-deed-ca";
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
