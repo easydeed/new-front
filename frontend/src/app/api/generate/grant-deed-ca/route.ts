@@ -1,24 +1,35 @@
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  const payload = await req.json();
-  const url = process.env.BACKEND_BASE_URL
-    ? `${process.env.BACKEND_BASE_URL}/api/generate/grant-deed-ca`
-    : "http://localhost:8000/api/generate/grant-deed-ca";
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    return new NextResponse(text, { status: res.status });
-  }
-  const buf = await res.arrayBuffer();
-  return new NextResponse(buf, {
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": 'attachment; filename="Grant_Deed_CA.pdf"'
+  try {
+    const payload = await req.json();
+
+    // Fail loud in production if BACKEND_BASE_URL missing
+    const base = process.env.BACKEND_BASE_URL || "http://localhost:8000";
+    if (process.env.VERCEL && !process.env.BACKEND_BASE_URL) {
+      return new NextResponse("BACKEND_BASE_URL not set", { status: 500 });
     }
-  });
+
+    const url = `${base}/api/generate/grant-deed-ca`;
+    const upstream = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!upstream.ok) {
+      const text = await upstream.text();
+      return new NextResponse(`Upstream ${upstream.status}: ${text}`, { status: upstream.status });
+    }
+
+    const buf = await upstream.arrayBuffer();
+    return new NextResponse(buf, {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": 'attachment; filename="Grant_Deed_CA.pdf"',
+      },
+    });
+  } catch (e: any) {
+    return new NextResponse(`Proxy error: ${e?.message || e}`, { status: 500 });
+  }
 }
