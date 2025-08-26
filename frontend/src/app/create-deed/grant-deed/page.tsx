@@ -219,7 +219,7 @@ export default function GrantDeedWizard() {
               
               <PropertySearchWithTitlePoint onPropertyVerified={handlePropertyVerified} />
               
-              {/* ✅ Always render the Next button; disable until propertyConfirmed */}
+              {/* Always render the Next button; disable until propertyConfirmed */}
               <div style={{ marginTop: '2rem', textAlign: 'right' }}>
                 <button
                   onClick={handleNext}
