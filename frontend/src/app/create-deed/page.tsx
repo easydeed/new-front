@@ -239,6 +239,12 @@ export default function CreateDeed() {
 
   // Handle doc type selection
   const handleDocTypeChange = (type: string) => {
+    // Redirect Grant Deed to dedicated 5-step wizard
+    if (type === 'grant_deed') {
+      router.push('/create-deed/grant-deed');
+      return;
+    }
+    
     setDocType(type);
     setFormData(prev => ({ ...prev, deedType: type }));
     setErrors({});
@@ -371,60 +377,7 @@ export default function CreateDeed() {
     }
   };
 
-  // Generate Grant Deed PDF using new 5-step flow
-  const generateGrantDeedPDF = async () => {
-    try {
-      // Build payload matching the backend model keys
-      const payload = {
-        requested_by: formData.grantorName || formData.recordingRequestedBy,
-        title_company: formData.titleCompany,
-        escrow_no: formData.escrowNo,
-        title_order_no: formData.titleOrderNo,
-        return_to: {
-          name: formData.returnToName,
-          company: formData.returnToCompany,
-          address1: formData.returnToAddress1,
-          address2: formData.returnToAddress2,
-          city: formData.returnToCity,
-          state: formData.returnToState,
-          zip: formData.returnToZip
-        },
-        apn: formData.apn,
-        dtt: {
-          amount: formData.documentaryTax || "0.00",
-          basis: formData.taxBasis || "full_value",
-          area_type: formData.areaType || "city",
-          city_name: formData.cityName
-        },
-        grantors_text: formData.grantorName,
-        grantees_text: formData.granteeName,
-        county: formData.county,
-        legal_description: formData.legalDescription,
-        execution_date: formData.date || formData.executionDate
-      };
 
-      const res = await fetch("/api/generate/grant-deed-ca", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      
-      if (!res.ok) {
-        alert("PDF Error: " + (await res.text()));
-        return;
-      }
-      
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "Grant_Deed_CA.pdf";
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      alert("Failed to generate PDF: " + error);
-    }
-  };
 
     return (
       <div style={{ display: 'flex' }}>
@@ -1271,43 +1224,7 @@ export default function CreateDeed() {
                   )}
             </button>
 
-            {/* Grant Deed PDF Button - New 5-step flow */}
-            {docType === 'grant_deed' && (
-              <button
-                onClick={generateGrantDeedPDF}
-                style={{
-                  width: '100%',
-                  padding: '16px 32px',
-                  backgroundColor: '#3b82f6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '16px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 4px 16px rgba(59, 130, 246, 0.3)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  marginTop: '16px'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#2563eb';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(59, 130, 246, 0.4)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#3b82f6';
-                  e.currentTarget.style.transform = 'translateY(0px)';
-                  e.currentTarget.style.boxShadow = '0 4px 16px rgba(59, 130, 246, 0.3)';
-                }}
-              >
-                <span style={{ fontSize: '18px' }}>📄</span>
-                <span>Generate PDF (New Flow)</span>
-              </button>
-            )}
+
             </div>
             )}
 
