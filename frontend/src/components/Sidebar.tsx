@@ -59,7 +59,7 @@ export default function Sidebar() {
             </Link>
           </li>
           <li>
-            <Link href="/create-deed" data-tooltip="Create Deed">
+            <Link href="/create-deed/grant-deed" data-tooltip="Create Deed">
               <svg style={iconStyle()} viewBox="0 0 24 24" fill="currentColor">
                 <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
                 <path d="M11,15H13V17H11V15M11,7H13V13H11V7Z"/>

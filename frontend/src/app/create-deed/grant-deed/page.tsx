@@ -219,27 +219,27 @@ export default function GrantDeedWizard() {
               
               <PropertySearchWithTitlePoint onPropertyVerified={handlePropertyVerified} />
               
-              {propertyConfirmed && (
-                <div style={{ marginTop: '2rem', textAlign: 'right' }}>
-                  <button
-                    onClick={handleNext}
-                    style={{
-                      padding: '12px 24px',
-                      backgroundColor: '#F57C00',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      boxShadow: '0 2px 8px rgba(245, 124, 0, 0.2)'
-                    }}
-                  >
-                    Continue to Request Details
-                  </button>
-                </div>
-              )}
+              <div style={{ marginTop: '2rem', textAlign: 'right' }}>
+                <button
+                  onClick={handleNext}
+                  disabled={!propertyConfirmed}
+                  style={{
+                    padding: '12px 24px',
+                    backgroundColor: propertyConfirmed ? '#F57C00' : '#d1d5db',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    cursor: propertyConfirmed ? 'pointer' : 'not-allowed',
+                    transition: 'all 0.2s ease',
+                    boxShadow: propertyConfirmed ? '0 2px 8px rgba(245, 124, 0, 0.2)' : '0 2px 8px rgba(0, 0, 0, 0.1)',
+                    opacity: propertyConfirmed ? 1 : 0.6
+                  }}
+                >
+                  Continue to Request Details
+                </button>
+              </div>
             </div>
           )}
 
