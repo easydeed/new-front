@@ -1,48 +1,38 @@
-{# Step 3 + Step 4 output #}
+<div style="margin-top:.45in; font-size:11pt;">
+  <h2 style="text-align:center; margin:0 0 .18in 0;">GRANT DEED</h2>
 
-<div class="deed-title">GRANT DEED</div>
-
-{# Declarations + Documentary Transfer Tax (Step 3) #}
-<div class="declarations">
-  <div><strong>THE UNDERSIGNED GRANTOR(S) DECLARE(S):</strong></div>
-  <div style="margin-top: 6pt;">
-    DOCUMENTARY TRANSFER TAX IS ${{ (dtt.amount if dtt and dtt.amount is not none else '0.00') }}
+  <div style="font-size:10pt; margin-bottom:.2in; line-height:1.35;">
+    <div><strong>THE UNDERSIGNED GRANTOR(S) DECLARE(S):</strong></div>
+    <div>DOCUMENTARY TRANSFER TAX IS ${{ (dtt.get('amount') if dtt and dtt.get('amount') is not none else '0.00') }}</div>
+    <div>
+      {% if dtt and dtt.get('basis') == 'less_liens' %}
+        ☐ Computed on full value less liens and encumbrances remaining at time of sale.
+      {% else %}
+        ☑ Computed on full value of property conveyed.
+      {% endif %}
+    </div>
+    <div>
+      {% if dtt and dtt.get('area_type') == 'city' %}
+        ☑ City of {{ dtt.get('city_name') or '________________' }}
+      {% else %}
+        ☑ Unincorporated area
+      {% endif %}
+    </div>
   </div>
-  <div style="margin-top: 3pt;">
-    {% if dtt and dtt.basis == 'less_liens' -%}
-      ☐ Computed on full value of property conveyed<br/>
-      ☑ Computed on full value less liens and encumbrances remaining at time of sale
-    {%- else -%}
-      ☑ Computed on full value of property conveyed<br/>
-      ☐ Computed on full value less liens and encumbrances remaining at time of sale
-    {%- endif %}
-  </div>
-  <div style="margin-top: 3pt;">
-    {% if dtt and dtt.area_type == 'city' -%}
-      ☐ Unincorporated area<br/>
-      ☑ City of {{ dtt.city_name or '________________' }}
-    {%- else -%}
-      ☑ Unincorporated area<br/>
-      ☐ City
-    {%- endif %}
-  </div>
-</div>
 
-{# Granting language + County + Legal (Step 4) #}
-<p style="text-align: justify; margin: 0 0 12pt 0;">
-  For valuable consideration, receipt of which is hereby acknowledged,
-  <strong>{{ grantors_text or '________________' }}</strong>
-  ("Grantor{% if grantors_text and ';' in grantors_text %}s{% endif %}") hereby GRANT(s) to
-  <strong>{{ grantees_text or '________________' }}</strong>
-  ("Grantee{% if grantees_text and ';' in grantees_text %}s{% endif %}")
-  the real property situated in the County of <strong>{{ county or '________________' }}</strong>, State of California,
-  more particularly described as follows:
-</p>
-
-{% if legal_description and legal_description|length > exhibit_threshold %}
-  <p style="text-align: center; font-weight: bold; margin: 18pt 0;">
-    See Exhibit "A" attached hereto and made a part hereof.
+  <p style="margin:0 0 .15in 0;">
+    For valuable consideration, receipt of which is hereby acknowledged,
+    {{ grantors_text or '________________' }}
+    ("Grantor{% if grantors_text and ';' in grantors_text %}s{% endif %}") hereby GRANT(s) to
+    {{ grantees_text or '________________' }}
+    ("Grantee{% if grantees_text and ';' in grantees_text %}s{% endif %}")
+    the real property situated in the County of {{ county or '________________' }}, State of California,
+    more particularly described as follows:
   </p>
-{% else %}
-  <div class="legal-box">{{ legal_description or 'Legal description to be inserted here.' }}</div>
-{% endif %}
+
+  {% if legal_description and legal_description|length > exhibit_threshold %}
+    <p>See Exhibit "A" attached hereto and made a part hereof.</p>
+  {% else %}
+    <div style="border:1px solid #000; padding:.18in; white-space:pre-wrap;">{{ legal_description or '' }}</div>
+  {% endif %}
+</div>

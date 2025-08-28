@@ -1,30 +1,28 @@
 {% from "_macros/notary_ack.jinja2" import render_notary_ack %}
 
-<div class="signature-section">
-  <p>Dated: {{ execution_date or "_________________" }}</p>
+<div style="margin-top:.45in; font-size:11pt;">
+  <p>Dated: {{ execution_date or (now().strftime("%B %d, %Y")) }}</p>
 
-  {# Signature lines – user edits happen in Steps 2–4; here we render final text #}
-  {# Simple heuristic: split grantors_text by semicolon into individual signature lines #}
   {% set _signers = grantors_text.split(';') if grantors_text else [] %}
   {% if _signers and _signers|length > 0 %}
     {% for s in _signers %}
-      {% set s_trim = s.strip() %}
+      {% set s_trim = (s|string).strip() %}
       {% if s_trim %}
-      <div style="margin-top: 36pt;">
-        <div class="signature-line"></div>
-        <div style="margin-top: 3pt;">{{ s_trim }}</div>
-      </div>
+        <div style="margin-top:.35in;">
+          <div>____________________________________</div>
+          <div>{{ s_trim }}</div>
+        </div>
       {% endif %}
     {% endfor %}
   {% else %}
-    <div style="margin-top: 36pt;">
-      <div class="signature-line"></div>
-      <div style="margin-top: 3pt;">Grantor</div>
+    <div style="margin-top:.35in;">
+      <div>____________________________________</div>
+      <div>Grantor</div>
     </div>
   {% endif %}
 
-  <div class="notary-box">
-    <div style="text-align: center; font-weight: bold; margin-bottom: 12pt;">ACKNOWLEDGMENT</div>
+  <div style="page-break-inside:avoid; margin-top:.5in; font-size:10pt;">
+    <h3 style="text-align:center; margin:0 0 .12in 0;">ACKNOWLEDGMENT</h3>
     {{ render_notary_ack("CA_All_Purpose", _signers) }}
   </div>
 </div>
