@@ -1,48 +1,52 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from models.grant_deed import GrantDeedRenderContext
-from utils.pdf import html_to_pdf
-import io, os
-from datetime import datetime
+from ..models.grant_deed import GrantDeedRenderContext
+import tempfile
+import io
+import os
 
 router = APIRouter(prefix="/generate", tags=["generate"])
 
+# Get the template root path relative to this file
 TEMPLATE_ROOT = os.path.join(os.path.dirname(os.path.dirname(__file__)), "..", "templates")
-env = Environment(loader=FileSystemLoader(TEMPLATE_ROOT), autoescape=select_autoescape(["html","xml","jinja2"]))
-# Expose a safe 'now' to templates
-env.globals["now"] = datetime.now
+env = Environment(
+    loader=FileSystemLoader(TEMPLATE_ROOT),
+    autoescape=select_autoescape(["html", "xml", "jinja2"])
+)
 
 @router.post("/grant-deed-ca", response_class=StreamingResponse)
 def generate_grant_deed_ca(ctx: GrantDeedRenderContext):
+    """
+    Render Grant Deed (CA) to PDF using Jinja template and stream the file.
+    Ensures US Letter page geometry and repo-aligned margins.
+    """
     try:
-        tpl = env.get_template("grant_deed_ca/index.jinja2")
-        data = ctx.dict()
-        # Normalize nested dicts to avoid attribute errors in Jinja
-        dtt = data.get("dtt") or {}
-        if not isinstance(dtt, dict):
-            dtt = {}
-        data["dtt"] = dtt
-        ret = data.get("return_to") or {}
-        if not isinstance(ret, dict):
-            ret = {}
-        data["return_to"] = ret
-        # Guarantee strings for fields that may be None
-        for k in ["requested_by", "title_company", "escrow_no", "title_order_no", "apn",
-                  "grantors_text", "grantees_text", "county", "legal_description", "execution_date"]:
-            if data.get(k) is None:
-                data[k] = ""
-        html = tpl.render(**data)
-        pdf = html_to_pdf(html, options={
-            "page-size": ctx.page.size,
-            "margin-top": ctx.page.margins.top,
-            "margin-right": ctx.page.margins.right,
-            "margin-bottom": ctx.page.margins.bottom,
-            "margin-left": ctx.page.margins.left,
-            "print-media-type": True,
-            "encoding": "UTF-8",
-        }, recorder_profile=ctx.recorder_profile)
-        return StreamingResponse(io.BytesIO(pdf), media_type="application/pdf",
-            headers={"Content-Disposition": 'attachment; filename="Grant_Deed_CA.pdf"'})
+        template = env.get_template("grant_deed_ca/index.jinja2")
+
+        # Build the Jinja context
+        jinja_ctx = ctx.dict()
+
+        # Render the HTML
+        html_content = template.render(**jinja_ctx)
+        
+        # Generate PDF using WeasyPrint (matching existing pattern)
+        from weasyprint import HTML  # Lazy import to avoid test env failures
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:
+            HTML(string=html_content, encoding='utf-8').write_pdf(tmp_file.name)
+            
+            # Read the PDF content
+            with open(tmp_file.name, 'rb') as pdf_file:
+                pdf_bytes = pdf_file.read()
+            
+            # Clean up temp file
+            os.unlink(tmp_file.name)
+
+        return StreamingResponse(
+            io.BytesIO(pdf_bytes),
+            media_type="application/pdf",
+            headers={"Content-Disposition": 'attachment; filename="Grant_Deed_CA.pdf"'}
+        )
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Grant Deed render failed: {e}")

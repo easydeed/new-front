@@ -168,7 +168,7 @@ export function createPropertyDescription(formData: WizardFormData): string {
  */
 export function mapWizardDataToTemplate(
   formData: WizardFormData, 
-  aiSuggestions: any = {}
+  aiSuggestions: Partial<Record<string, unknown>> = {}
 ): TemplateData {
   
   // Calculate documentary tax if not provided
@@ -185,22 +185,22 @@ export function mapWizardDataToTemplate(
   
   return {
     // Core deed information with AI fallbacks
-    recording_requested_by: aiSuggestions.recordingRequestedBy || formData.recordingRequestedBy || '_____________________',
-    mail_to: aiSuggestions.mailTo || formData.mailTo || formData.fullAddress || formData.propertySearch || '_____________________',
+    recording_requested_by: (aiSuggestions.recordingRequestedBy as string) || formData.recordingRequestedBy || '_____________________',
+    mail_to: (aiSuggestions.mailTo as string) || formData.mailTo || formData.fullAddress || formData.propertySearch || '_____________________',
     order_no: formData.orderNo || '_____________________',
     escrow_no: formData.escrowNo || '_____________________',
-    apn: aiSuggestions.apn || formData.apn || '_____________________',
+    apn: (aiSuggestions.apn as string) || formData.apn || '_____________________',
     documentary_tax: calculatedTax,
-    city: aiSuggestions.city || formData.taxCityName || formData.city || '_____________________',
+    city: (aiSuggestions.city as string) || formData.taxCityName || formData.city || '_____________________',
     grantor: formData.grantorName || '_____________________',
     grantee: formData.granteeName || '_____________________',
-    county: aiSuggestions.county || formData.county || '_____________________',
-    property_description: aiSuggestions.legalDescription || propertyDescription,
+    county: (aiSuggestions.county as string) || formData.county || '_____________________',
+    property_description: (aiSuggestions.legalDescription as string) || propertyDescription,
     date: formattedDate,
     grantor_signature: formData.grantorSignature || formData.grantorName || '_____________________',
     
     // Notary section with AI fallbacks
-    county_notary: aiSuggestions.notaryCounty || formData.notaryCounty || formData.county || '_____________________',
+    county_notary: (aiSuggestions.notaryCounty as string) || formData.notaryCounty || formData.county || '_____________________',
     notary_date: formattedNotaryDate,
     notary_name: formData.notaryName || '_____________________',
     appeared_before_notary: formData.appearedBeforeNotary || formData.grantorName || '_____________________',
