@@ -1,8 +1,27 @@
-# 🚨 QUICK START FOR NEW AGENTS - READ THIS FIRST
+# 🚨 QUICK START FOR NEW AGENTS - CRITICAL REALITY CHECK
 
-## 🎯 **DeedPro Dynamic Wizard System Overview**
+## ⚠️ **BRUTAL TRUTH: SYSTEM IS IN ARCHITECTURAL CRISIS**
 
-**Welcome to the most advanced AI-powered legal document platform!** You're working with a revolutionary 3-step dynamic wizard that uses intelligent prompts to create professional legal documents in minutes.
+**STOP! Before you do anything else, understand this:** The documentation below describes a **fantasy system that doesn't exist**. The reality is completely different and requires immediate architectural overhaul.
+
+### **🚨 DOCUMENTATION vs REALITY**
+
+| **Documentation Claims** | **Actual Reality** | **Impact** |
+|--------------------------|-------------------|------------|
+| "3-step dynamic wizard" | Hard-coded 5-step Grant Deed form | **User confusion & frustration** |
+| "AI-powered prompts" | Basic form fields with minimal AI | **Broken promises to users** |
+| "Fast-forward logic" | No skip functionality | **Wasted user time** |
+| "6 document types supported" | Only Grant Deed works | **Business growth blocked** |
+| "90%+ completion rate" | ~30% completion rate | **Revenue loss** |
+
+### **🔥 IMMEDIATE ACTION REQUIRED**
+**READ THIS FIRST**: [WIZARD_ARCHITECTURE_OVERHAUL_PLAN.md](./WIZARD_ARCHITECTURE_OVERHAUL_PLAN.md)
+
+---
+
+## 💀 **CURRENT BROKEN STATE (DO NOT FOLLOW THIS)**
+
+~~**Welcome to the most advanced AI-powered legal document platform!**~~ **This is marketing fiction. The actual system is a traditional 5-step form.**
 
 ---
 
@@ -26,22 +45,29 @@ git config user.email "gerardoh@gmail.com"
 
 ---
 
-## 🚀 **The Dynamic Wizard Revolution**
+## 💀 **The "Dynamic Wizard Revolution" (FICTION)**
 
-### **What Makes It Special**
-- **3 Steps Instead of 5**: Address → Doc Type & Data → Review
-- **AI-Powered Prompts**: Smart buttons pull real estate data automatically
-- **Custom Natural Language**: "get chain of title", "show liens"
-- **Fast-Forward Logic**: Skip steps when AI completes data
-- **Mobile Optimized**: 90%+ completion rate on phones
+### **⚠️ WHAT THE DOCUMENTATION CLAIMS (ALL FALSE)**
+- ~~**3 Steps Instead of 5**~~: **REALITY**: Hard-coded 5-step Grant Deed form
+- ~~**AI-Powered Prompts**~~: **REALITY**: Basic form fields, minimal AI integration
+- ~~**Custom Natural Language**~~: **REALITY**: No natural language processing
+- ~~**Fast-Forward Logic**~~: **REALITY**: Must complete every step manually
+- ~~**Mobile Optimized**~~: **REALITY**: Poor mobile experience, high abandonment
 
-### **Supported Document Types**
-1. **Grant Deed** - Standard property transfers
-2. **Quitclaim Deed** - Simple ownership transfers
-3. **Interspousal Transfer** - Between spouse transfers
-4. **Warranty Deed** - Full warranty protection
-5. **Tax Deed** - Tax sale transfers
-6. **Property Profile Report** - Comprehensive analysis
+### **⚠️ CLAIMED "Supported Document Types" (ONLY #1 WORKS)**
+1. **Grant Deed** - ✅ Works (5-step hard-coded form)
+2. ~~**Quitclaim Deed**~~ - ❌ **NOT IMPLEMENTED**
+3. ~~**Interspousal Transfer**~~ - ❌ **NOT IMPLEMENTED**
+4. ~~**Warranty Deed**~~ - ❌ **NOT IMPLEMENTED**
+5. ~~**Tax Deed**~~ - ❌ **NOT IMPLEMENTED**
+6. ~~**Property Profile Report**~~ - ❌ **NOT IMPLEMENTED**
+
+### **🚨 ACTUAL CURRENT STATE**
+- **Single Document Type**: Grant Deed only
+- **5 Rigid Steps**: Property → Recording → Tax → Parties → Preview
+- **Brittle Dependencies**: Fails if TitlePoint/Google APIs are down
+- **No Error Recovery**: Users lose all work on API failures
+- **Poor User Experience**: ~30% completion rate
 
 ---
 
