@@ -324,7 +324,7 @@ export default function GrantDeedWizard() {
                   padding: '12px 24px',
                   backgroundColor: 'white',
                   color: '#6b7280',
-                  border: '1px solid '#d1d5db',
+                  border: '1px solid #d1d5db',
                   borderRadius: '8px',
                   fontSize: '16px',
                   fontWeight: '500',
