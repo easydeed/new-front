@@ -42,8 +42,8 @@ export type GrantDeedState = {
 export type ExtendedWizardState = {
   currentStep: number;
   docType: string;
-  verifiedData: {[key: string]: any};
-  formData: {[key: string]: any};
+  verifiedData: Record<string, unknown>;
+  formData: Record<string, unknown>;
   
   // Step 1 data (existing)
   step1?: {

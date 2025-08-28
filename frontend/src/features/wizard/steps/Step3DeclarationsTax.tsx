@@ -6,16 +6,26 @@ import RadioGroupRow from "@/components/ui/RadioGroupRow";
 import { Step3Schema } from "../validation/grantDeed";
 import { getGrantDeedData } from "../state";
 
+type DttBasis = "full_value" | "less_liens";
+type AreaType = "unincorporated" | "city";
+
+interface Step3Data {
+  dttAmount?: string;
+  dttBasis: DttBasis;
+  areaType: AreaType;
+  cityName?: string;
+}
+
 interface Step3Props {
   onNext: () => void;
-  onDataChange: (data: any) => void;
+  onDataChange: (data: { step3: Step3Data }) => void;
 }
 
 export default function Step3DeclarationsTax({ onNext, onDataChange }: Step3Props) {
   const grantDeedData = getGrantDeedData();
   const step3Data = grantDeedData.step3;
 
-  const [local, setLocal] = useState({
+  const [local, setLocal] = useState<Step3Data>({
     dttAmount: step3Data?.dttAmount ?? "",
     dttBasis: step3Data?.dttBasis ?? "full_value",
     areaType: step3Data?.areaType ?? "unincorporated",

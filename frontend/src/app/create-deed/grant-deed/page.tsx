@@ -12,10 +12,19 @@ import '../../../styles/dashboard.css';
 
 export default function GrantDeedWizard() {
   const [currentStep, setCurrentStep] = useState(1);
-  const [verifiedData, setVerifiedData] = useState<{[key: string]: any}>({});
+  type Owner = { fullName?: string; name?: string };
+  type PiqAddress = { name?: string; address1?: string; address2?: string; city?: string; state?: string; zip?: string };
+  interface VerifiedData {
+    apn?: string;
+    county?: string;
+    piqAddress?: PiqAddress;
+    titlePoint?: { owners?: Owner[] };
+    [key: string]: unknown;
+  }
+  const [verifiedData, setVerifiedData] = useState<VerifiedData>({});
   const [autoSaveStatus, setAutoSaveStatus] = useState('');
   const [propertyConfirmed, setPropertyConfirmed] = useState(false);
-  const [wizardData, setWizardData] = useState({
+  const [wizardData, setWizardData] = useState<Record<string, unknown>>({
     step1: {},
     step2: {},
     step3: {},
@@ -63,7 +72,7 @@ export default function GrantDeedWizard() {
     }
   }, []);
 
-  const handlePropertyVerified = (data: any) => {
+  const handlePropertyVerified = (data: VerifiedData) => {
     setVerifiedData(data);
     setPropertyConfirmed(true); // ✅ enable Next after successful validation
     setWizardData(prev => ({
@@ -77,8 +86,32 @@ export default function GrantDeedWizard() {
     }));
   };
 
-  const handleStepDataChange = (stepData: any) => {
-    setWizardData(prev => ({ ...prev, ...stepData }));
+  type StepPayload = Partial<{
+    step2: {
+      requestedBy?: string;
+      titleCompany?: string;
+      escrowNo?: string;
+      titleOrderNo?: string;
+      apn?: string;
+      usePIQForMailTo?: boolean;
+      mailTo?: PiqAddress & { company?: string };
+    };
+    step3: {
+      dttAmount?: string;
+      dttBasis?: 'full_value' | 'less_liens';
+      areaType?: 'unincorporated' | 'city';
+      cityName?: string;
+    };
+    step4: {
+      grantorsText?: string;
+      granteesText?: string;
+      county?: string;
+      legalDescription?: string;
+    };
+  }>;
+
+  const handleStepDataChange = (stepData: StepPayload) => {
+    setWizardData(prev => ({ ...(prev as Record<string, unknown>), ...stepData }));
   };
 
   const handleNext = () => {

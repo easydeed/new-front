@@ -5,9 +5,16 @@ import InputUnderline from "@/components/ui/InputUnderline";
 import { Step4Schema } from "../validation/grantDeed";
 import { getStep1Data, getGrantDeedData } from "../state";
 
+interface Step4Data {
+  grantorsText: string;
+  granteesText: string;
+  county: string;
+  legalDescription: string;
+}
+
 interface Step4Props {
   onNext: () => void;
-  onDataChange: (data: any) => void;
+  onDataChange: (data: { step4: Step4Data }) => void;
 }
 
 export default function Step4PartiesProperty({ onNext, onDataChange }: Step4Props) {
@@ -15,7 +22,7 @@ export default function Step4PartiesProperty({ onNext, onDataChange }: Step4Prop
   const grantDeedData = getGrantDeedData();
   const step4Data = grantDeedData.step4;
 
-  const [local, setLocal] = useState({
+  const [local, setLocal] = useState<Step4Data>({
     grantorsText: step4Data?.grantorsText ?? "",
     granteesText: step4Data?.granteesText ?? "",
     county: step4Data?.county ?? step1Data?.county ?? "",
@@ -25,8 +32,8 @@ export default function Step4PartiesProperty({ onNext, onDataChange }: Step4Prop
   // Prefill grantors from TitlePoint (human‑readable string)
   useEffect(() => {
     if (!local.grantorsText && step1Data?.titlePoint?.owners) {
-      const owners = step1Data.titlePoint.owners
-        .map((o: any) => o.fullName || o.name)
+      const owners = (step1Data.titlePoint.owners as Array<{ fullName?: string; name?: string }> | undefined)
+        ?.map((o) => o.fullName || o.name)
         .filter(Boolean);
       if (owners.length) {
         setLocal((p) => ({ ...p, grantorsText: owners.join("; ") }));

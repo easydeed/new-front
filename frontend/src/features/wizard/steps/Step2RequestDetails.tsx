@@ -4,9 +4,29 @@ import InputUnderline from "@/components/ui/InputUnderline";
 import { Step2Schema } from "../validation/grantDeed";
 import { getStep1Data, getGrantDeedData } from "../state";
 
+interface MailTo {
+  name?: string;
+  company?: string;
+  address1?: string;
+  address2?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+}
+
+interface Step2Data {
+  requestedBy?: string;
+  titleCompany?: string;
+  escrowNo?: string;
+  titleOrderNo?: string;
+  apn?: string;
+  usePIQForMailTo?: boolean;
+  mailTo: MailTo;
+}
+
 interface Step2Props {
   onNext: () => void;
-  onDataChange: (data: any) => void;
+  onDataChange: (data: { step2: Step2Data }) => void;
 }
 
 export default function Step2RequestDetails({ onNext, onDataChange }: Step2Props) {
@@ -127,7 +147,7 @@ export default function Step2RequestDetails({ onNext, onDataChange }: Step2Props
           className="accent-neutral-900"
           id="usePIQ"
         />
-        <label htmlFor="usePIQ">Use property address for "Mail To" (AI suggested)</label>
+        <label htmlFor="usePIQ">Use property address for &quot;Mail To&quot; (AI suggested)</label>
       </div>
 
       <div>
