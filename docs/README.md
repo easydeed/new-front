@@ -4,18 +4,22 @@
 
 ---
 
-## 🚀 **LATEST: GRANT DEED GENERATION SYSTEM (August 2025)**
+## 🚨 **CRITICAL: WIZARD ARCHITECTURE OVERHAUL REQUIRED (December 2024)**
 
-**✅ FULLY OPERATIONAL Grant Deed PDF generation with hardened backend and pixel-perfect templates:**
+**⚠️ CURRENT STATE: ARCHITECTURAL CRISIS IDENTIFIED**
 
-- ✨ **Complete 5-Step Flow**: Property → Request Details → Transfer Tax → Parties & Property → Preview & Generate
-- 🎯 **Production-Ready Backend**: `/api/generate/grant-deed-ca` endpoint with robust error handling
-- 🤖 **Hardened Templates**: Null-safe Jinja2 templates with US Letter page setup
-- 📜 **PDF Generation**: WeasyPrint producing 14KB+ professional Grant Deeds
-- ⚡ **Frontend Proxy**: Next.js API route for seamless integration
-- 🔒 **Template Safety**: Normalized context handling and injected datetime functions
+Our wizard system has **fundamental architectural flaws** that require immediate reconstruction:
 
-**🎉 Result**: Complete Grant Deed generation from frontend to PDF download
+- 🚨 **Hard-Coded Grant Deed Only**: Cannot support other document types
+- 🚨 **Brittle Dependencies**: Entire system fails if TitlePoint/Google APIs are down  
+- 🚨 **State Management Chaos**: 4 competing state systems causing data loss
+- 🚨 **Marketing vs Reality Gap**: Documentation promises 3-step AI wizard, reality is 5-step traditional form
+- 🚨 **No Error Recovery**: Users lose all work when APIs fail
+- 🚨 **Impossible to Scale**: Adding new document types requires complete rewrite
+
+**📋 REQUIRED ACTION**: Complete architectural reconstruction detailed in [WIZARD_ARCHITECTURE_OVERHAUL_PLAN.md](./WIZARD_ARCHITECTURE_OVERHAUL_PLAN.md)
+
+**🎯 TARGET STATE**: Dynamic wizard system that adapts to legal requirements of each document type with intelligent AI assistance
 
 ---
 

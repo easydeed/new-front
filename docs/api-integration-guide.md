@@ -1,10 +1,30 @@
 # API Integration Guide
-## ⚙️ DeedPro API Enhancements (August 2025)
 
-- **Recorder Profiles & Margins**: Deed preview and PDF rendering now support recorder-specific margins via template variables (`page_margin_top|left|right|bottom`). Server applies county defaults when the client does not provide them.
-- **Transfer Tax Auto-Compute**: If the client omits transfer tax, the server computes CA documentary transfer tax from `sales_price|salesPrice|consideration` and injects `transfer_tax` with `{ county_amount, city_amount, total, computed_on }`.
-- **Auto Exhibit A**: Long `legal_description|legalDescription` automatically moves to `Exhibit A`, included as `templates/grant_deed/exhibit_a.html`. Clients can override by sending `attach_exhibit_a=false` or a custom `exhibit_label`.
-- **Backward Compatible**: Any client-sent values for tax, margins, and exhibit flags take precedence over server defaults.
+## 🚨 **CRITICAL WARNING: DOCUMENTATION ACCURACY CRISIS**
+
+**⚠️ REALITY CHECK**: This documentation describes API integrations that may not match the current system implementation. Based on our architectural analysis, many described features may be **non-functional** or **partially implemented**.
+
+### **🔍 KNOWN ISSUES WITH CURRENT API SYSTEM**
+- **Brittle Dependencies**: System fails completely when external APIs are unavailable
+- **No Error Recovery**: API failures cause complete user data loss
+- **Hard-Coded Grant Deed**: Only Grant Deed generation works, other document types fail
+- **State Management Chaos**: Multiple competing state systems cause data inconsistency
+- **Authentication Issues**: JWT token handling is unreliable
+
+### **📋 BEFORE USING ANY API**
+1. **Read**: [WIZARD_ARCHITECTURE_OVERHAUL_PLAN.md](./WIZARD_ARCHITECTURE_OVERHAUL_PLAN.md)
+2. **Test**: Verify each endpoint actually works in current system
+3. **Validate**: Check error handling and recovery mechanisms
+4. **Document**: Report any discrepancies between docs and reality
+
+---
+
+## ⚙️ DeedPro API Enhancements (August 2025) - **VERIFY THESE WORK**
+
+- **Recorder Profiles & Margins**: ⚠️ **NEEDS VERIFICATION** - Deed preview and PDF rendering claims to support recorder-specific margins
+- **Transfer Tax Auto-Compute**: ⚠️ **NEEDS VERIFICATION** - Server claims to compute CA documentary transfer tax automatically
+- **Auto Exhibit A**: ⚠️ **NEEDS VERIFICATION** - Long legal descriptions supposedly move to Exhibit A automatically
+- **Backward Compatible**: ⚠️ **NEEDS VERIFICATION** - Claims of backward compatibility need testing
 
 
 ## 🔌 Overview of External Integrations

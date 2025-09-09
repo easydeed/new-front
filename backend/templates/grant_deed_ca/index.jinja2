@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grant Deed - {{ county }} County, California</title>
+    <style>
+        body {
+            font-family: 'Times New Roman', serif;
+            font-size: 12pt;
+            line-height: 1.4;
+            margin: 0;
+            padding: 0;
+        }
+        .document-container {
+            max-width: 8.5in;
+            margin: 0 auto;
+            padding: 0.75in;
+        }
+        .header-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .document-title {
+            font-size: 16pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+        .recording-info {
+            border: 2px solid #000;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 10pt;
+        }
+        .recording-grid {
+            display: table;
+            width: 100%;
+        }
+        .recording-row {
+            display: table-row;
+        }
+        .recording-cell {
+            display: table-cell;
+            padding: 5px;
+            border-bottom: 1px solid #ccc;
+        }
+        .recording-label {
+            font-weight: bold;
+            width: 30%;
+        }
+        .dtt-section {
+            border: 1px solid #000;
+            padding: 15px;
+            margin: 20px 0;
+            background-color: #f9f9f9;
+        }
+        .dtt-title {
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        .dtt-grid {
+            display: table;
+            width: 100%;
+        }
+        .dtt-row {
+            display: table-row;
+        }
+        .dtt-cell {
+            display: table-cell;
+            padding: 5px;
+            vertical-align: top;
+        }
+        .parties-section {
+            margin: 30px 0;
+        }
+        .parties-title {
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .legal-description {
+            margin: 25px 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            border-left: 4px solid #333;
+        }
+        .legal-description-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        .granting-clause {
+            margin: 20px 0;
+            text-align: justify;
+            font-weight: bold;
+        }
+        .execution-section {
+            margin-top: 50px;
+        }
+        .signature-block {
+            margin: 40px 0;
+            page-break-inside: avoid;
+        }
+        .signature-line {
+            border-bottom: 1px solid #000;
+            width: 300px;
+            height: 40px;
+            display: inline-block;
+            margin: 10px 20px 10px 0;
+        }
+        .signature-label {
+            font-size: 10pt;
+            margin-top: 5px;
+        }
+        .notary-section {
+            margin-top: 60px;
+            border: 2px solid #000;
+            padding: 20px;
+            page-break-inside: avoid;
+        }
+        .notary-title {
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+        .notary-text {
+            line-height: 1.6;
+            margin: 10px 0;
+        }
+        .notary-signature-block {
+            margin-top: 30px;
+        }
+        .exhibit-notice {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px dashed #666;
+            text-align: center;
+            font-style: italic;
+        }
+        .compliance-indicators {
+            margin-top: 30px;
+            font-size: 8pt;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="document-container">
+        <!-- Recording Information Block -->
+        <div class="recording-info">
+            <div class="recording-grid">
+                <div class="recording-row">
+                    <div class="recording-cell recording-label">Requested by:</div>
+                    <div class="recording-cell">{{ requested_by }}</div>
+                </div>
+                {% if title_company %}
+                <div class="recording-row">
+                    <div class="recording-cell recording-label">Title Company:</div>
+                    <div class="recording-cell">{{ title_company }}</div>
+                </div>
+                {% endif %}
+                {% if escrow_no %}
+                <div class="recording-row">
+                    <div class="recording-cell recording-label">Escrow No:</div>
+                    <div class="recording-cell">{{ escrow_no }}</div>
+                </div>
+                {% endif %}
+                {% if title_order_no %}
+                <div class="recording-row">
+                    <div class="recording-cell recording-label">Title Order No:</div>
+                    <div class="recording-cell">{{ title_order_no }}</div>
+                </div>
+                {% endif %}
+                {% if apn %}
+                <div class="recording-row">
+                    <div class="recording-cell recording-label">APN:</div>
+                    <div class="recording-cell">{{ apn }}</div>
+                </div>
+                {% endif %}
+                <div class="recording-row">
+                    <div class="recording-cell recording-label">Mail to:</div>
+                    <div class="recording-cell">
+                        {% if return_to.name %}{{ return_to.name }}<br>{% endif %}
+                        {% if return_to.address %}{{ return_to.address | replace('\n', '<br>') | safe }}{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Title -->
+        <div class="header-section">
+            <div class="document-title">Grant Deed</div>
+            <div>{{ county }} County, California</div>
+        </div>
+
+        <!-- Documentary Transfer Tax Section -->
+        <div class="dtt-section">
+            <div class="dtt-title">Documentary Transfer Tax</div>
+            <div class="dtt-grid">
+                <div class="dtt-row">
+                    <div class="dtt-cell">
+                        <strong>Tax Amount:</strong> ${{ dtt.amount }}
+                    </div>
+                    <div class="dtt-cell">
+                        <strong>Basis:</strong> {{ dtt.basis | replace('_', ' ') | title }}
+                    </div>
+                </div>
+                <div class="dtt-row">
+                    <div class="dtt-cell">
+                        <strong>Area Type:</strong> {{ dtt.area_type | replace('_', ' ') | title }}
+                    </div>
+                    {% if dtt.city_name %}
+                    <div class="dtt-cell">
+                        <strong>City:</strong> {{ dtt.city_name }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% if dtt.computed %}
+                <div class="dtt-row">
+                    <div class="dtt-cell" colspan="2">
+                        <em>Tax amount computed automatically based on consideration</em>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Parties Section -->
+        <div class="parties-section">
+            <div class="parties-title">Parties to this Conveyance</div>
+            
+            <p><strong>GRANTOR{{ 's' if grantor_count > 1 else '' }}:</strong></p>
+            <p>{{ grantors_text }}</p>
+            
+            <p><strong>GRANTEE{{ 's' if grantee_count > 1 else '' }}:</strong></p>
+            <p>{{ grantees_text }}</p>
+        </div>
+
+        <!-- Granting Clause -->
+        <div class="granting-clause">
+            <p>The above-named Grantor{{ 's' if grantor_count > 1 else '' }} 
+            GRANT{{ 's' if grantor_count == 1 else '' }} to the above-named Grantee{{ 's' if grantee_count > 1 else '' }}, 
+            the following described real property situated in {{ county }} County, California:</p>
+        </div>
+
+        <!-- Legal Description -->
+        <div class="legal-description">
+            <div class="legal-description-title">Legal Description</div>
+            <p>{{ legal_description }}</p>
+            
+            {% if apn %}
+            <p><strong>Assessor's Parcel Number:</strong> {{ apn }}</p>
+            {% endif %}
+        </div>
+
+        {% if needs_exhibit %}
+        <div class="exhibit-notice">
+            <strong>EXHIBIT "A" ATTACHED HERETO AND INCORPORATED HEREIN BY REFERENCE</strong><br>
+            <em>(Legal description continues on attached exhibit due to length)</em>
+        </div>
+        {% endif %}
+
+        <!-- Execution Section -->
+        <div class="execution-section">
+            <p><strong>Dated:</strong> {{ execution_date }}</p>
+            
+            <div class="signature-block">
+                {% for i in range(grantor_count) %}
+                <div style="margin: 30px 0;">
+                    <div class="signature-line"></div>
+                    <div class="signature-label">Grantor {{ loop.index if grantor_count > 1 else '' }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Notary Section -->
+        <div class="notary-section">
+            <div class="notary-title">Notary Acknowledgment</div>
+            
+            <div class="notary-text">
+                <p>State of California</p>
+                <p>County of {{ county }}</p>
+                
+                <p>On ________________, before me, ________________________________,
+                personally appeared ________________________________,
+                who proved to me on the basis of satisfactory evidence to be the person(s) whose name(s) is/are 
+                subscribed to the within instrument and acknowledged to me that he/she/they executed the same in 
+                his/her/their authorized capacity, and that by his/her/their signature(s) on the instrument the 
+                person(s), or the entity upon behalf of which the person(s) acted, executed the instrument.</p>
+                
+                <p>I certify under PENALTY OF PERJURY under the laws of the State of California that the foregoing 
+                paragraph is true and correct.</p>
+                
+                <p>WITNESS my hand and official seal.</p>
+            </div>
+            
+            <div class="notary-signature-block">
+                <div style="margin: 30px 0;">
+                    <div class="signature-line"></div>
+                    <div class="signature-label">Signature of Notary Public</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Legal Compliance Indicators (for internal use) -->
+        {% if legal_compliance %}
+        <div class="compliance-indicators">
+            <strong>Legal Compliance Check:</strong>
+            {% for code, compliant in legal_compliance.items() %}
+                {{ code | replace('_', ' ') | title }}: {{ '✓' if compliant else '✗' }}{% if not loop.last %} | {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Document Metadata -->
+        <div style="margin-top: 40px; font-size: 8pt; color: #999; text-align: center;">
+            Generated: {{ generated_at }} | Document Type: {{ document_type }} | Version: {{ generator_version }}
+        </div>
+    </div>
+</body>
+</html>
+
+

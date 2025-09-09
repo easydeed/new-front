@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quitclaim Deed - {{ county }} County, California</title>
+    <style>
+        body {
+            font-family: 'Times New Roman', serif;
+            font-size: 12pt;
+            line-height: 1.4;
+            margin: 0;
+            padding: 0;
+        }
+        .document-container {
+            max-width: 8.5in;
+            margin: 0 auto;
+            padding: 0.75in;
+        }
+        .header-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .document-title {
+            font-size: 16pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+        .recording-info {
+            border: 2px solid #000;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 10pt;
+        }
+        .recording-grid {
+            display: table;
+            width: 100%;
+        }
+        .recording-row {
+            display: table-row;
+        }
+        .recording-cell {
+            display: table-cell;
+            padding: 5px;
+            border-bottom: 1px solid #ccc;
+        }
+        .recording-label {
+            font-weight: bold;
+            width: 30%;
+        }
+        .risk-warning {
+            border: 3px solid #ff0000;
+            background-color: #fff5f5;
+            padding: 20px;
+            margin: 25px 0;
+            text-align: center;
+        }
+        .risk-warning-title {
+            font-size: 14pt;
+            font-weight: bold;
+            color: #cc0000;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+        .risk-warning-text {
+            font-weight: bold;
+            color: #cc0000;
+            line-height: 1.6;
+        }
+        .parties-section {
+            margin: 30px 0;
+        }
+        .parties-title {
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .legal-description {
+            margin: 25px 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            border-left: 4px solid #333;
+        }
+        .legal-description-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        .quitclaim-clause {
+            margin: 20px 0;
+            text-align: justify;
+            font-weight: bold;
+            background-color: #fffacd;
+            padding: 15px;
+            border: 1px solid #ddd;
+        }
+        .no-warranty-section {
+            margin: 25px 0;
+            padding: 20px;
+            background-color: #f0f8ff;
+            border: 2px solid #4169e1;
+        }
+        .no-warranty-title {
+            font-weight: bold;
+            color: #4169e1;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+        .no-warranty-list {
+            list-style-type: disc;
+            margin-left: 20px;
+            line-height: 1.6;
+        }
+        .execution-section {
+            margin-top: 50px;
+        }
+        .signature-block {
+            margin: 40px 0;
+            page-break-inside: avoid;
+        }
+        .signature-line {
+            border-bottom: 1px solid #000;
+            width: 300px;
+            height: 40px;
+            display: inline-block;
+            margin: 10px 20px 10px 0;
+        }
+        .signature-label {
+            font-size: 10pt;
+            margin-top: 5px;
+        }
+        .notary-section {
+            margin-top: 60px;
+            border: 2px solid #000;
+            padding: 20px;
+            page-break-inside: avoid;
+        }
+        .notary-title {
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+        .notary-text {
+            line-height: 1.6;
+            margin: 10px 0;
+        }
+        .notary-signature-block {
+            margin-top: 30px;
+        }
+        .tax-exemption {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border: 1px solid #999;
+        }
+        .validation-warnings {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-left: 4px solid #f39c12;
+        }
+        .warning-title {
+            font-weight: bold;
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        .warning-list {
+            list-style-type: disc;
+            margin-left: 20px;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="document-container">
+        <!-- Recording Information Block -->
+        <div class="recording-info">
+            <div class="recording-grid">
+                <div class="recording-row">
+                    <div class="recording-cell recording-label">Requested by:</div>
+                    <div class="recording-cell">{{ requested_by }}</div>
+                </div>
+                {% if apn %}
+                <div class="recording-row">
+                    <div class="recording-cell recording-label">APN:</div>
+                    <div class="recording-cell">{{ apn }}</div>
+                </div>
+                {% endif %}
+                <div class="recording-row">
+                    <div class="recording-cell recording-label">Mail to:</div>
+                    <div class="recording-cell">
+                        {% if return_to.name %}{{ return_to.name }}<br>{% endif %}
+                        {% if return_to.address %}{{ return_to.address | replace('\n', '<br>') | safe }}{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Title -->
+        <div class="header-section">
+            <div class="document-title">Quitclaim Deed</div>
+            <div>{{ county }} County, California</div>
+        </div>
+
+        <!-- Risk Warning Section -->
+        <div class="risk-warning">
+            <div class="risk-warning-title">⚠️ Important Notice ⚠️</div>
+            <div class="risk-warning-text">
+                THIS IS A QUITCLAIM DEED<br>
+                NO WARRANTIES OR GUARANTEES OF TITLE ARE PROVIDED<br>
+                BUYER ASSUMES ALL RISKS
+            </div>
+        </div>
+
+        <!-- Tax Exemption Section -->
+        {% if dtt_exempt %}
+        <div class="tax-exemption">
+            <strong>Documentary Transfer Tax:</strong> EXEMPT<br>
+            <strong>Reason:</strong> {{ exemption_reason }}
+        </div>
+        {% endif %}
+
+        <!-- Validation Warnings -->
+        {% if validation_warnings %}
+        <div class="validation-warnings">
+            <div class="warning-title">⚠️ Important Considerations:</div>
+            <ul class="warning-list">
+                {% for warning in validation_warnings %}
+                <li>{{ warning }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Parties Section -->
+        <div class="parties-section">
+            <div class="parties-title">Parties to this Conveyance</div>
+            
+            <p><strong>GRANTOR(S):</strong></p>
+            <p>{{ grantors_text }}</p>
+            
+            <p><strong>GRANTEE(S):</strong></p>
+            <p>{{ grantees_text }}</p>
+        </div>
+
+        <!-- Quitclaim Clause -->
+        <div class="quitclaim-clause">
+            <p>The above-named Grantor(s) hereby REMISE, RELEASE, and forever QUITCLAIM to the above-named Grantee(s), 
+            all right, title, and interest which the Grantor(s) now have or may hereafter acquire in and to the following 
+            described real property situated in {{ county }} County, California:</p>
+        </div>
+
+        <!-- Legal Description -->
+        <div class="legal-description">
+            <div class="legal-description-title">Legal Description</div>
+            <p>{{ legal_description }}</p>
+            
+            {% if apn %}
+            <p><strong>Assessor's Parcel Number:</strong> {{ apn }}</p>
+            {% endif %}
+        </div>
+
+        <!-- No Warranty Section -->
+        <div class="no-warranty-section">
+            <div class="no-warranty-title">No Warranties Provided</div>
+            <p><strong>By accepting this quitclaim deed, the Grantee(s) acknowledge that:</strong></p>
+            <ul class="no-warranty-list">
+                {% for disclosure in risk_disclosures %}
+                <li>{{ disclosure }}</li>
+                {% endfor %}
+            </ul>
+            <p><strong>The Grantor(s) make no representations regarding:</strong></p>
+            <ul class="no-warranty-list">
+                <li>The validity or extent of title to the property</li>
+                <li>The existence or absence of liens, encumbrances, or other title defects</li>
+                <li>The legal description accuracy or completeness</li>
+                <li>Compliance with zoning, building codes, or other regulations</li>
+                <li>The condition or habitability of any improvements on the property</li>
+            </ul>
+        </div>
+
+        <!-- Execution Section -->
+        <div class="execution-section">
+            <p><strong>TO HAVE AND TO HOLD</strong> the above described property unto the said Grantee(s), 
+            and to the heirs and assigns of said Grantee(s) forever.</p>
+            
+            <p><strong>Dated:</strong> {{ execution_date }}</p>
+            
+            <div class="signature-block">
+                <div style="margin: 30px 0;">
+                    <div class="signature-line"></div>
+                    <div class="signature-label">Grantor</div>
+                </div>
+                
+                <div style="margin: 30px 0;">
+                    <div class="signature-line"></div>
+                    <div class="signature-label">Grantor (if applicable)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notary Section -->
+        <div class="notary-section">
+            <div class="notary-title">Notary Acknowledgment</div>
+            
+            <div class="notary-text">
+                <p>State of California</p>
+                <p>County of {{ county }}</p>
+                
+                <p>On ________________, before me, ________________________________,
+                personally appeared ________________________________,
+                who proved to me on the basis of satisfactory evidence to be the person(s) whose name(s) is/are 
+                subscribed to the within instrument and acknowledged to me that he/she/they executed the same in 
+                his/her/their authorized capacity, and that by his/her/their signature(s) on the instrument the 
+                person(s), or the entity upon behalf of which the person(s) acted, executed the instrument.</p>
+                
+                <p>I certify under PENALTY OF PERJURY under the laws of the State of California that the foregoing 
+                paragraph is true and correct.</p>
+                
+                <p>WITNESS my hand and official seal.</p>
+            </div>
+            
+            <div class="notary-signature-block">
+                <div style="margin: 30px 0;">
+                    <div class="signature-line"></div>
+                    <div class="signature-label">Signature of Notary Public</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Final Risk Notice -->
+        <div class="risk-warning" style="margin-top: 40px;">
+            <div class="risk-warning-title">Final Notice to Grantee(s)</div>
+            <div class="risk-warning-text">
+                YOU ARE STRONGLY ADVISED TO OBTAIN TITLE INSURANCE<br>
+                AND CONSULT WITH A QUALIFIED ATTORNEY<br>
+                BEFORE ACCEPTING THIS QUITCLAIM DEED
+            </div>
+        </div>
+
+        <!-- Document Metadata -->
+        <div style="margin-top: 40px; font-size: 8pt; color: #999; text-align: center;">
+            Generated: {{ generated_at }} | Document Type: {{ document_type }} | Version: {{ generator_version }}
+        </div>
+    </div>
+</body>
+</html>
+
+
