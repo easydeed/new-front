@@ -11,7 +11,7 @@ git add .
 
 echo.
 echo Step 3: Committing cleanup...
-git commit -m "fix(repo): remove corrupted git command files and duplicate vercel.json"
+git commit -m "fix(vercel): resolve monorepo auto-detection - update vercel.json for proper build paths and remove corrupted files"
 
 echo.
 echo Step 4: Checking current branch...

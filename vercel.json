@@ -1,11 +1,8 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "frontend/package.json",
-      "use": "@vercel/next"
-    }
-  ],
+  "buildCommand": "cd frontend && npm run build",
+  "outputDirectory": "frontend/.next",
+  "installCommand": "cd frontend && npm install",
   "routes": [
     {
       "src": "/api/health",
@@ -21,7 +18,7 @@
     }
   ],
   "functions": {
-    "frontend/app/api/**/*.js": {
+    "frontend/src/app/api/**/*.js": {
       "maxDuration": 30
     }
   },
