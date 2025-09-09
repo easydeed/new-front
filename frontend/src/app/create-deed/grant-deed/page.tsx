@@ -26,11 +26,11 @@ export default function GrantDeedWizard() {
       <Sidebar />
       <div className="main-content">
         <div className="wizard-container">
-          {/* Header */}
+        {/* Header */}
           <div className="wizard-header">
             <h1>Grant Deed Generator</h1>
             <p>Create a professional Grant Deed with AI assistance</p>
-          </div>
+        </div>
 
           {/* Dynamic Wizard */}
           <DynamicWizard
