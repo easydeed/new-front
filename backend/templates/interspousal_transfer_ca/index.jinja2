@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interspousal Transfer Deed - {{ county }} County, California</title>
+    <style>
+        body {
+            font-family: 'Times New Roman', serif;
+            font-size: 12pt;
+            line-height: 1.4;
+            margin: 0;
+            padding: 0;
+        }
+        .document-container {
+            max-width: 8.5in;
+            margin: 0 auto;
+            padding: 0.75in;
+        }
+        .header-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .document-title {
+            font-size: 16pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+        .recording-info {
+            border: 2px solid #000;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 10pt;
+        }
+        .recording-grid {
+            display: table;
+            width: 100%;
+        }
+        .recording-row {
+            display: table-row;
+        }
+        .recording-cell {
+            display: table-cell;
+            padding: 5px;
+            border-bottom: 1px solid #ccc;
+        }
+        .recording-label {
+            font-weight: bold;
+            width: 30%;
+        }
+        .interspousal-notice {
+            border: 2px solid #4169e1;
+            background-color: #f0f8ff;
+            padding: 20px;
+            margin: 25px 0;
+            text-align: center;
+        }
+        .interspousal-notice-title {
+            font-size: 14pt;
+            font-weight: bold;
+            color: #4169e1;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+        .interspousal-notice-text {
+            font-weight: bold;
+            color: #4169e1;
+            line-height: 1.6;
+        }
+        .parties-section {
+            margin: 30px 0;
+        }
+        .parties-title {
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .legal-description {
+            margin: 25px 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            border-left: 4px solid #333;
+        }
+        .legal-description-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        .transfer-clause {
+            margin: 20px 0;
+            text-align: justify;
+            font-weight: bold;
+            background-color: #fff8dc;
+            padding: 15px;
+            border: 1px solid #ddd;
+        }
+        .property-characterization {
+            margin: 25px 0;
+            padding: 20px;
+            background-color: #f0fff0;
+            border: 2px solid #32cd32;
+        }
+        .characterization-title {
+            font-weight: bold;
+            color: #228b22;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+        .tax-exemption {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border: 1px solid #999;
+        }
+        .execution-section {
+            margin-top: 50px;
+        }
+        .signature-block {
+            margin: 40px 0;
+            page-break-inside: avoid;
+        }
+        .signature-line {
+            border-bottom: 1px solid #000;
+            width: 300px;
+            height: 40px;
+            display: inline-block;
+            margin: 10px 20px 10px 0;
+        }
+        .signature-label {
+            font-size: 10pt;
+            margin-top: 5px;
+        }
+        .notary-section {
+            margin-top: 60px;
+            border: 2px solid #000;
+            padding: 20px;
+            page-break-inside: avoid;
+        }
+        .notary-title {
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+        .notary-text {
+            line-height: 1.6;
+            margin: 10px 0;
+        }
+        .notary-signature-block {
+            margin-top: 30px;
+        }
+        .legal-considerations {
+            margin: 25px 0;
+            padding: 15px;
+            background-color: #fffacd;
+            border: 1px solid #daa520;
+            border-left: 4px solid #daa520;
+        }
+        .considerations-title {
+            font-weight: bold;
+            color: #b8860b;
+            margin-bottom: 10px;
+        }
+        .considerations-list {
+            list-style-type: disc;
+            margin-left: 20px;
+            color: #b8860b;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="document-container">
+        <!-- Recording Information Block -->
+        <div class="recording-info">
+            <div class="recording-grid">
+                <div class="recording-row">
+                    <div class="recording-cell recording-label">Requested by:</div>
+                    <div class="recording-cell">{{ requested_by }}</div>
+                </div>
+                {% if apn %}
+                <div class="recording-row">
+                    <div class="recording-cell recording-label">APN:</div>
+                    <div class="recording-cell">{{ apn }}</div>
+                </div>
+                {% endif %}
+                <div class="recording-row">
+                    <div class="recording-cell recording-label">Mail to:</div>
+                    <div class="recording-cell">
+                        {% if return_to.name %}{{ return_to.name }}<br>{% endif %}
+                        {% if return_to.address %}{{ return_to.address | replace('\n', '<br>') | safe }}{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Title -->
+        <div class="header-section">
+            <div class="document-title">Interspousal Transfer Deed</div>
+            <div>{{ county }} County, California</div>
+        </div>
+
+        <!-- Interspousal Transfer Notice -->
+        <div class="interspousal-notice">
+            <div class="interspousal-notice-title">💍 Interspousal Transfer 💍</div>
+            <div class="interspousal-notice-text">
+                TRANSFER BETWEEN MARRIED SPOUSES<br>
+                PURSUANT TO CALIFORNIA FAMILY CODE
+            </div>
+        </div>
+
+        <!-- Tax Exemption Section -->
+        {% if tax_exempt %}
+        <div class="tax-exemption">
+            <strong>Documentary Transfer Tax:</strong> EXEMPT<br>
+            <strong>Reason:</strong> {{ exemption_reason }}<br>
+            <strong>Legal Basis:</strong> Revenue & Taxation Code §11927 - Interspousal transfers are exempt from documentary transfer tax
+        </div>
+        {% endif %}
+
+        <!-- Parties Section -->
+        <div class="parties-section">
+            <div class="parties-title">Parties to this Transfer</div>
+            
+            <p><strong>TRANSFEROR SPOUSE:</strong></p>
+            <p>{{ grantors_text }}</p>
+            
+            <p><strong>TRANSFEREE SPOUSE:</strong></p>
+            <p>{{ grantees_text }}</p>
+        </div>
+
+        <!-- Transfer Clause -->
+        <div class="transfer-clause">
+            <p>The above-named Transferor Spouse hereby GRANTS, TRANSFERS, and CONVEYS to the above-named Transferee Spouse, 
+            as his/her separate property, all right, title, and interest in and to the following described real property 
+            situated in {{ county }} County, California:</p>
+        </div>
+
+        <!-- Legal Description -->
+        <div class="legal-description">
+            <div class="legal-description-title">Legal Description</div>
+            <p>{{ legal_description }}</p>
+            
+            {% if apn %}
+            <p><strong>Assessor's Parcel Number:</strong> {{ apn }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Property Characterization -->
+        <div class="property-characterization">
+            <div class="characterization-title">Property Characterization</div>
+            <p><strong>The above-described property is hereby characterized as:</strong></p>
+            <p style="font-size: 14pt; font-weight: bold; text-transform: uppercase; color: #228b22;">
+                {{ property_characterization | upper }}
+            </p>
+            <p><em>This characterization is made pursuant to California Family Code §§ 1100 et seq. and affects the legal 
+            ownership and rights of the spouses with respect to this property.</em></p>
+        </div>
+
+        <!-- Legal Considerations -->
+        <div class="legal-considerations">
+            <div class="considerations-title">Important Legal Considerations</div>
+            <ul class="considerations-list">
+                <li><strong>Tax Implications:</strong> This transfer may have income tax, gift tax, or property tax consequences. Consult a tax professional.</li>
+                <li><strong>Creditor Protection:</strong> Changing property characterization may affect protection from creditors of either spouse.</li>
+                <li><strong>Estate Planning:</strong> This transfer may affect estate planning strategies and should be coordinated with existing wills or trusts.</li>
+                <li><strong>Divorce Considerations:</strong> In the event of divorce, separate property is generally not subject to equal division.</li>
+                <li><strong>Mortgage Implications:</strong> If the property is encumbered by a mortgage, lender consent may be required.</li>
+            </ul>
+        </div>
+
+        <!-- Execution Section -->
+        <div class="execution-section">
+            <p><strong>TO HAVE AND TO HOLD</strong> the above described property unto the said Transferee Spouse, 
+            as his/her separate property, and to the heirs and assigns of said Transferee Spouse forever.</p>
+            
+            <p><strong>This transfer is made without consideration</strong> and is intended to change the character of the property 
+            from community property (or the separate property of Transferor) to the separate property of Transferee Spouse.</p>
+            
+            <p><strong>Dated:</strong> {{ execution_date }}</p>
+            
+            <div class="signature-block">
+                <div style="margin: 30px 0;">
+                    <div class="signature-line"></div>
+                    <div class="signature-label">Transferor Spouse</div>
+                </div>
+                
+                <div style="margin: 30px 0;">
+                    <div class="signature-line"></div>
+                    <div class="signature-label">Transferee Spouse (Acknowledgment of Receipt)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notary Section -->
+        <div class="notary-section">
+            <div class="notary-title">Notary Acknowledgment</div>
+            
+            <div class="notary-text">
+                <p>State of California</p>
+                <p>County of {{ county }}</p>
+                
+                <p>On ________________, before me, ________________________________,
+                personally appeared ________________________________,
+                who proved to me on the basis of satisfactory evidence to be the person(s) whose name(s) is/are 
+                subscribed to the within instrument and acknowledged to me that he/she/they executed the same in 
+                his/her/their authorized capacity, and that by his/her/their signature(s) on the instrument the 
+                person(s), or the entity upon behalf of which the person(s) acted, executed the instrument.</p>
+                
+                <p>I certify under PENALTY OF PERJURY under the laws of the State of California that the foregoing 
+                paragraph is true and correct.</p>
+                
+                <p>WITNESS my hand and official seal.</p>
+            </div>
+            
+            <div class="notary-signature-block">
+                <div style="margin: 30px 0;">
+                    <div class="signature-line"></div>
+                    <div class="signature-label">Signature of Notary Public</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Spousal Consent Notice -->
+        <div class="interspousal-notice" style="margin-top: 40px;">
+            <div class="interspousal-notice-title">Spousal Consent Confirmation</div>
+            <div class="interspousal-notice-text">
+                BOTH SPOUSES HAVE CONSENTED TO THIS TRANSFER<br>
+                AS EVIDENCED BY THEIR SIGNATURES ABOVE<br>
+                PURSUANT TO FAMILY CODE § 1100
+            </div>
+        </div>
+
+        <!-- Document Metadata -->
+        <div style="margin-top: 40px; font-size: 8pt; color: #999; text-align: center;">
+            Generated: {{ generated_at }} | Document Type: {{ document_type }} | Version: {{ generator_version }}
+        </div>
+    </div>
+</body>
+</html>
+
+
