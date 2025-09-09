@@ -70,7 +70,8 @@ export function EnhancedPropertySearch({
       }
 
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
+      const googleKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY || '';
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${googleKey}&libraries=places`;
       script.async = true;
       script.defer = true;
       script.onload = () => {

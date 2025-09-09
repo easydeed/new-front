@@ -132,7 +132,11 @@ export interface TitlePointServiceRequest {
 }
 
 export class ChainOfTitleService {
-  private static apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+  private static apiBaseUrl =
+    process.env.NEXT_PUBLIC_API_URL ||
+    process.env.NEXT_PUBLIC_EXTERNAL_API_URL ||
+    (typeof window !== 'undefined' ? (window as any).BACKEND_BASE_URL : '') ||
+    '';
   private static requestCache = new Map<string, ChainOfTitleAnalysis>();
   private static pendingRequests = new Map<string, Promise<ChainOfTitleAnalysis>>();
 
