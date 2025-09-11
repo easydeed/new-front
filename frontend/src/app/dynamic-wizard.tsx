@@ -14,6 +14,7 @@ export default function DynamicWizard() {
   const [registry, setRegistry] = useState<Registry>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiNote, setAiNote] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -45,6 +46,21 @@ export default function DynamicWizard() {
 
   const goNext = () => setCurrentStep(Math.min(currentStep + 1, totalSteps));
   const goBack = () => setCurrentStep(Math.max(currentStep - 1, 1));
+
+  const requestAISuggestions = async () => {
+    try {
+      const base = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://deedpro-main-api.onrender.com';
+      const res = await fetch(`${base}/api/ai/profile-request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ docType, data }),
+      });
+      const json = await res.json();
+      setAiNote(typeof json?.suggestions === 'string' ? json.suggestions : JSON.stringify(json?.suggestions));
+    } catch (e: any) {
+      setAiNote(`AI unavailable: ${e.message || String(e)}`);
+    }
+  };
 
   if (loading) return <div style={{ padding: 24 }}>Loading...</div>;
   if (error) return <div style={{ padding: 24, color: '#b91c1c' }}>Error: {error}</div>;
@@ -83,8 +99,14 @@ export default function DynamicWizard() {
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
             <button onClick={goBack} style={{ padding: '8px 14px', border: '1px solid #d1d5db', borderRadius: 8, background: '#fff' }}>Back</button>
-            <button onClick={goNext} style={{ padding: '8px 14px', border: 'none', borderRadius: 8, background: '#F57C00', color: '#fff' }}>Next</button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={requestAISuggestions} style={{ padding: '8px 14px', border: '1px solid #d1d5db', borderRadius: 8, background: '#fff' }}>AI Suggest</button>
+              <button onClick={goNext} style={{ padding: '8px 14px', border: 'none', borderRadius: 8, background: '#F57C00', color: '#fff' }}>Next</button>
+            </div>
           </div>
+          {aiNote && (
+            <pre style={{ marginTop: 12, whiteSpace: 'pre-wrap', background: '#f9fafb', padding: 12, borderRadius: 8, border: '1px solid #e5e7eb' }}>{aiNote}</pre>
+          )}
         </div>
       )}
     </div>

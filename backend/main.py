@@ -91,6 +91,15 @@ except ImportError as e:
 except Exception as e:
     print(f"❌ Error loading document types endpoints: {e}")
 
+try:
+    from routers.ai import router as ai_router_v3
+    app.include_router(ai_router_v3, prefix="/api/ai", tags=["AI Services"])
+    print("✅ AI services endpoints loaded successfully")
+except ImportError as e:
+    print(f"⚠️ AI services endpoints not available: {e}")
+except Exception as e:
+    print(f"❌ Error loading AI services endpoints: {e}")
+
 # Allow CORS for local dev and frontend
 app.add_middleware(
     CORSMiddleware,
