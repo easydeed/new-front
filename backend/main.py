@@ -81,6 +81,16 @@ except ImportError as e:
 except Exception as e:
     print(f"❌ Error loading Grant Deed CA endpoints: {e}")
 
+# Document types API for dynamic wizard
+try:
+    from api.doc_types import router as doc_types_router
+    app.include_router(doc_types_router, prefix="/api", tags=["Doc Types"])
+    print("✅ Document types endpoints loaded successfully")
+except ImportError as e:
+    print(f"⚠️ Document types endpoints not available: {e}")
+except Exception as e:
+    print(f"❌ Error loading document types endpoints: {e}")
+
 # Allow CORS for local dev and frontend
 app.add_middleware(
     CORSMiddleware,
