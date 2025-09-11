@@ -8,6 +8,7 @@ from services.titlepoint_service import TitlePointService
 import requests
 import xml.etree.ElementTree as ET
 from zeep import Client  # noqa: F401
+import logging
 
 try:
     # OpenAI SDK v1 style
@@ -22,6 +23,7 @@ except Exception:  # pragma: no cover
 
 
 router = APIRouter()
+logging.basicConfig(level=logging.DEBUG)
 
 
 class ChainRequest(BaseModel):
@@ -91,10 +93,13 @@ async def chain_of_title(req: ChainRequest):
                 headers={"Content-Type": "text/xml; charset=utf-8"},
                 timeout=10,
             )
+            logging.debug("TitlePoint status: %s", resp.status_code)
             if resp.status_code == 200:
+                logging.debug("TitlePoint body (first 500): %s", resp.text[:500])
                 _ = ET.fromstring(resp.content)
                 chain = "Parsed vesting data from TitlePoint"
-        except Exception:
+        except Exception as e:
+            logging.debug("TitlePoint call failed: %s", e)
             chain = ""
         return {"chain": chain or "Parsed vesting data from TitlePoint"}
     except Exception:

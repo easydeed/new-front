@@ -15,6 +15,7 @@ export default function DynamicWizard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aiNote, setAiNote] = useState<string | null>(null);
+  const [aiChain, setAiChain] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -42,6 +43,23 @@ export default function DynamicWizard() {
   const handlePropertyVerified = (payload: any) => {
     setData('step1', payload);
     setCurrentStep(2);
+    // Optional AI: request chain-of-title (non-blocking)
+    try {
+      const address = payload?.fullAddress || '';
+      if (address) {
+        const base = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://deedpro-main-api.onrender.com';
+        fetch(`${base}/api/ai/chain-of-title`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address }),
+        })
+          .then((r) => r.json())
+          .then((j) => setAiChain(typeof j?.chain === 'string' ? j.chain : JSON.stringify(j)))
+          .catch(() => setAiChain(null));
+      }
+    } catch (_) {
+      setAiChain(null);
+    }
   };
 
   const goNext = () => setCurrentStep(Math.min(currentStep + 1, totalSteps));
@@ -106,6 +124,12 @@ export default function DynamicWizard() {
           </div>
           {aiNote && (
             <pre style={{ marginTop: 12, whiteSpace: 'pre-wrap', background: '#f9fafb', padding: 12, borderRadius: 8, border: '1px solid #e5e7eb' }}>{aiNote}</pre>
+          )}
+          {aiChain && (
+            <div style={{ marginTop: 12, padding: 12, background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 8 }}>
+              <strong>Chain of Title:</strong>
+              <div style={{ marginTop: 6 }}>{aiChain}</div>
+            </div>
           )}
         </div>
       )}
