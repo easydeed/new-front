@@ -1,0 +1,26 @@
+name: DeedPro CI
+on:
+push:
+branches: [ main ]
+jobs:
+test-frontend:
+runs-on: ubuntu-latest
+steps:
+
+uses: actions/checkout@v4
+name: Install Node
+uses: actions/setup-node@v3
+with:
+node-version: 18
+run: cd frontend && npm install && npm run test
+
+test-backend:
+runs-on: ubuntu-latest
+steps:
+
+uses: actions/checkout@v4
+name: Install Python
+uses: actions/setup-python@v4
+with:
+python-version: '3.8'
+run: cd backend && pip install -r requirements.txt && pytest

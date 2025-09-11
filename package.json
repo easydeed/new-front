@@ -1,16 +1,5 @@
 {
   "name": "deedpro-monorepo",
   "private": true,
-  "packageManager": "npm@10.9.2",
-  "workspaces": [
-    "frontend"
-  ],
-  "devDependencies": {
-    "turbo": "^1.10.0"
-  },
-  "scripts": {
-    "build": "turbo run build --filter=frontend...",
-    "dev": "turbo run dev --filter=frontend...",
-    "test": "turbo run test --filter=frontend..."
-  }
+  "packageManager": "npm@10.9.2"
 }

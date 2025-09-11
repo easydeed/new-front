@@ -9,9 +9,10 @@ import Step3DeclarationsTax from '../../../features/wizard/steps/Step3Declaratio
 import Step4PartiesProperty from '../../../features/wizard/steps/Step4PartiesProperty';
 import Step5Preview from '../../../features/wizard/steps/Step5Preview';
 import '../../../styles/dashboard.css';
+import { useWizardStore } from '../../../store';
 
 export default function GrantDeedWizard() {
-  const [currentStep, setCurrentStep] = useState(1);
+  const { currentStep, setCurrentStep } = useWizardStore();
   type Owner = { fullName?: string; name?: string };
   type PiqAddress = { name?: string; address1?: string; address2?: string; city?: string; state?: string; zip?: string };
   interface VerifiedData {
@@ -250,7 +251,7 @@ export default function GrantDeedWizard() {
                 <p style={{ color: '#6b7280' }}>Search and verify the property for your Grant Deed</p>
               </div>
               
-              <PropertySearchWithTitlePoint onPropertyVerified={handlePropertyVerified} />
+              <PropertySearchWithTitlePoint onVerified={handlePropertyVerified} />
               
               {/* ✅ Always render the Next button; disable until propertyConfirmed */}
               <div style={{ marginTop: '2rem', textAlign: 'right' }}>
