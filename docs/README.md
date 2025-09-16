@@ -97,10 +97,11 @@ new-front/
 6. **[BACKEND_ARCHITECTURE.md](BACKEND_ARCHITECTURE.md)** - FastAPI services
 7. **[DATABASE_SCHEMA.md](DATABASE_SCHEMA.md)** - PostgreSQL schema
 8. **[API_REFERENCE.md](API_REFERENCE.md)** - Complete API docs
+9. **[BACKEND/ROUTES.md](backend/ROUTES.md)** - Router coverage, auth dependencies, and fallbacks
 
-### **🚀 Deployment & Operations**  
-9. **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - Production deployment
-10. **[DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)** - Verification steps
+### **🚀 Deployment & Operations**
+10. **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - Production deployment
+11. **[DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)** - Verification steps
 
 ---
 
