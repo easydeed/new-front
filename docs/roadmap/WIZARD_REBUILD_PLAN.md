@@ -1,6 +1,6 @@
 # Wizard Rebuild Plan
 
-This plan replaces the previous 9-week outline with actionable delivery phases that map directly to the dynamic wizard architecture and recently documented backend route updates. For architectural touchpoints reference the [Dynamic Wizard System Guide](../DYNAMIC_WIZARD_GUIDE.md) and for API wiring details see the [Grant Deed Route Implementation](../GRANT_DEED_IMPLEMENTATION_SUCCESS.md).
+This plan replaces the previous 9-week outline with actionable delivery phases that map directly to the dynamic wizard architecture and recently documented backend route updates. For architectural touchpoints reference the [Dynamic Wizard Architecture](../wizard/ARCHITECTURE.md) and for API wiring details see the [Grant Deed Route Implementation](../archive/legacy-2025/GRANT_DEED_IMPLEMENTATION_SUCCESS.md).
 
 ## Phase 1 – Foundation
 **Objectives**
@@ -153,6 +153,6 @@ This plan replaces the previous 9-week outline with actionable delivery phases t
 - **Vercel**: Promote release, enable feature flags incrementally (e.g., 10% → 50% → 100%) while watching real-time analytics. Monitor user funnels, API error overlays, and business KPIs. If metrics regress, toggle flags off and redeploy prior build.
 
 ## Ongoing Governance
-- Maintain linkage between roadmap items and supporting docs (`DYNAMIC_WIZARD_GUIDE.md`, `GRANT_DEED_IMPLEMENTATION_SUCCESS.md`) to ensure code and documentation evolve together.
+- Maintain linkage between roadmap items and supporting docs (`wizard/ARCHITECTURE.md`, `archive/legacy-2025/GRANT_DEED_IMPLEMENTATION_SUCCESS.md`) to ensure code and documentation evolve together.
 - Update Render `render.yaml` and Vercel project settings as configuration changes are introduced in later iterations.
 - Schedule quarterly reviews of feature flags and monitoring coverage to retire unused toggles and refine alerts.

@@ -36,7 +36,7 @@ For accurate, up-to-date information about the Grant Deed implementation:
 
 1. **[GRANT_DEED_IMPLEMENTATION_SUCCESS.md](./GRANT_DEED_IMPLEMENTATION_SUCCESS.md)** - Complete implementation guide
 2. **[DEED_GENERATION_GUIDE.md](./DEED_GENERATION_GUIDE.md)** - Operational system documentation  
-3. **[README.md](./README.md)** - Updated platform overview with Grant Deed success
+3. **[README.md](../../README.md)** - Updated platform overview with Grant Deed success
 
 ---
 

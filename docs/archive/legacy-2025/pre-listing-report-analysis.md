@@ -752,9 +752,9 @@ ALTER TABLE pct_order_documents ADD COLUMN is_pre_listing_report_doc TINYINT(1);
 - **AWS S3 Storage**: Verify bucket permissions and access keys
 
 ### Documentation Links
-- [TitlePoint API Documentation](docs/api-integration-guide.md)
-- [Order Management Workflow](docs/order-management-workflow.md)
-- [AWS S3 Configuration](docs/launch-setup-guide.md)
+- [TitlePoint API Documentation](./api-integration-guide.md)
+- Order Management Workflow (internal runbook)
+- AWS S3 Configuration checklist (internal)
 
 ### Development Resources
 - **Template Files**: `application/modules/frontend/views/report/`
