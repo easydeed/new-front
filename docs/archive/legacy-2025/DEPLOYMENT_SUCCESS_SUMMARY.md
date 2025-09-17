@@ -207,9 +207,9 @@ Property Cache Storage → AI-Enhanced Suggestions → Deed Generation
 
 ### **Contact Information**
 - **Technical Lead**: Claude AI Assistant
-- **Documentation**: `/docs/PROPERTY_INTEGRATION_GUIDE.md`
-- **Troubleshooting**: `/docs/TROUBLESHOOTING_PROPERTY_INTEGRATION.md`
-- **Deployment Guide**: `/docs/PRODUCTION_DEPLOYMENT_GUIDE.md`
+- **Documentation**: `./PROPERTY_INTEGRATION_GUIDE.md`
+- **Troubleshooting**: `./TROUBLESHOOTING_PROPERTY_INTEGRATION.md`
+- **Deployment Guide**: `./PRODUCTION_DEPLOYMENT_GUIDE.md`
 
 ---
 
