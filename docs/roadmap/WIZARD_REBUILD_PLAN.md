@@ -1,10 +1,10 @@
 # Wizard Rebuild Plan
 
-This plan replaces the previous 9-week outline with actionable delivery phases that map directly to the dynamic wizard architecture and recently documented backend route updates. For architectural touchpoints reference the [Dynamic Wizard System Guide](../DYNAMIC_WIZARD_GUIDE.md) and for API wiring details see the [Grant Deed Route Implementation](../GRANT_DEED_IMPLEMENTATION_SUCCESS.md).
+This plan replaces the previous 9-week outline with actionable delivery phases that map directly to the dynamic wizard architecture and recently documented backend route updates. For architectural touchpoints reference the [Dynamic Wizard Architecture](../wizard/ARCHITECTURE.md) and for API wiring details see the [Backend Route Reference](../backend/ROUTES.md) alongside the [TitlePoint Integration: Fail-Proof Implementation Guide](../titlepoint-failproof-guide.md).
 
 ## Phase 1 – Foundation
 **Objectives**
-- Confirm baseline wizard flow in `frontend/src/app/create-deed/` aligns with the architecture in the dynamic wizard guide.
+- Confirm baseline wizard flow in `frontend/src/app/create-deed/` aligns with the architecture in the [Dynamic Wizard Architecture](../wizard/ARCHITECTURE.md) reference.
 - Stabilize shared UI primitives and loading states used across wizard steps.
 - Document configuration deltas between local, staging, and production environments.
 
@@ -34,12 +34,12 @@ This plan replaces the previous 9-week outline with actionable delivery phases t
 
 ## Phase 2 – Integrations Enablement
 **Objectives**
-- Wire Google Places and TitlePoint connectors per the dynamic wizard guide.
+- Wire Google Places and TitlePoint connectors per the updated integration plans in the [Dynamic Wizard Architecture](../wizard/ARCHITECTURE.md), [Backend Route Reference](../backend/ROUTES.md), and [TitlePoint Integration: Fail-Proof Implementation Guide](../titlepoint-failproof-guide.md).
 - Establish adapter interfaces for external data ingestion and caching.
 - Update feature flag plan for staged rollout of integrations.
 
 ### Exit Criteria
-- `PropertySearchWithTitlePoint.tsx` integrated with backend proxy endpoints defined in the dynamic wizard guide.
+- `PropertySearchWithTitlePoint.tsx` integrated with backend proxy endpoints documented in the [Backend Route Reference](../backend/ROUTES.md) and [TitlePoint Integration: Fail-Proof Implementation Guide](../titlepoint-failproof-guide.md).
 - Caching strategy documented with TTL and eviction rules.
 - Feature flags (`NEXT_PUBLIC_TITLEPOINT_ENABLED`, `TITLEPOINT_API_KEY`) configurable per environment.
 
@@ -153,6 +153,6 @@ This plan replaces the previous 9-week outline with actionable delivery phases t
 - **Vercel**: Promote release, enable feature flags incrementally (e.g., 10% → 50% → 100%) while watching real-time analytics. Monitor user funnels, API error overlays, and business KPIs. If metrics regress, toggle flags off and redeploy prior build.
 
 ## Ongoing Governance
-- Maintain linkage between roadmap items and supporting docs (`DYNAMIC_WIZARD_GUIDE.md`, `GRANT_DEED_IMPLEMENTATION_SUCCESS.md`) to ensure code and documentation evolve together.
+- Maintain linkage between roadmap items and supporting docs ([Dynamic Wizard Architecture](../wizard/ARCHITECTURE.md), [Backend Route Reference](../backend/ROUTES.md), [TitlePoint Integration: Fail-Proof Implementation Guide](../titlepoint-failproof-guide.md)) to ensure code and documentation evolve together, drawing on the archived [2025 overhaul guides](../archive/2025-overhaul/) for historical context when needed.
 - Update Render `render.yaml` and Vercel project settings as configuration changes are introduced in later iterations.
 - Schedule quarterly reviews of feature flags and monitoring coverage to retire unused toggles and refine alerts.
