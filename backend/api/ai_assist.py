@@ -54,12 +54,12 @@ class MultiDocumentResponse(BaseModel):
     total_duration: Optional[float] = None
 
 @router.post("/assist", response_model=PromptResponse)
-async def handle_prompt(request: PromptRequest, current_user: dict = Depends(get_current_user)):
+async def handle_prompt(request: PromptRequest, user_id: str = Depends(get_current_user_id)):
     """
     Handle dynamic prompts for data pulling with timeout protection and orchestration
     """
     start_time = time.time()
-    request_id = f"ai_assist_{current_user.get('id', 'unknown')}_{int(start_time)}"
+    request_id = f"ai_assist_{user_id}_{int(start_time)}"
     timeout = request.timeout or AI_ASSIST_TIMEOUT
     
     logger.info(f"[{request_id}] AI assist request started: type={request.type}, docType={request.docType}, timeout={timeout}s")
@@ -69,13 +69,13 @@ async def handle_prompt(request: PromptRequest, current_user: dict = Depends(get
         if request.type:
             # Handle button prompts
             result = await asyncio.wait_for(
-                handle_button_prompt(request, current_user, request_id),
+                handle_button_prompt(request, user_id, request_id),
                 timeout=timeout
             )
         elif request.prompt:
             # Handle custom prompts
             result = await asyncio.wait_for(
-                handle_custom_prompt(request, current_user, request_id),
+                handle_custom_prompt(request, user_id, request_id),
                 timeout=timeout
             )
         else:
@@ -111,7 +111,7 @@ async def handle_prompt(request: PromptRequest, current_user: dict = Depends(get
             request_id=request_id
         )
 
-async def handle_button_prompt(request: PromptRequest, current_user: dict, request_id: str) -> PromptResponse:
+async def handle_button_prompt(request: PromptRequest, user_id: str, request_id: str) -> PromptResponse:
     """Handle predefined button prompts with timeout protection"""
     try:
         async with titlepoint_semaphore:  # Limit concurrent TitlePoint requests
@@ -189,7 +189,7 @@ async def handle_button_prompt(request: PromptRequest, current_user: dict, reque
         logger.error(f"[{request_id}] Button prompt error: {str(e)}")
         return PromptResponse(success=False, error=f"Failed to fetch {request.type} data")
 
-async def handle_custom_prompt(request: PromptRequest, current_user: dict, request_id: str) -> PromptResponse:
+async def handle_custom_prompt(request: PromptRequest, user_id: str, request_id: str) -> PromptResponse:
     """Handle custom AI prompts with enhanced orchestration"""
     try:
         logger.debug(f"[{request_id}] Processing custom prompt: {request.prompt[:100]}...")
@@ -246,14 +246,14 @@ async def handle_custom_prompt(request: PromptRequest, current_user: dict, reque
 @router.post("/multi-document", response_model=MultiDocumentResponse)
 async def handle_multi_document_generation(
     request: MultiDocumentRequest, 
-    current_user: dict = Depends(get_current_user)
+    user_id: str = Depends(get_current_user_id)
 ):
     """
     Handle multi-document generation with shared data orchestration
     Phase 3 Enhancement: Support for generating multiple document types in a single request
     """
     start_time = time.time()
-    request_id = f"multi_doc_{current_user.get('id', 'unknown')}_{int(start_time)}"
+    request_id = f"multi_doc_{user_id}_{int(start_time)}"
     
     logger.info(f"[{request_id}] Multi-document generation started: {len(request.documents)} documents")
     
@@ -282,9 +282,9 @@ async def handle_multi_document_generation(
                 
                 # Process the document request
                 if doc_request.type:
-                    result = await handle_button_prompt(doc_request, current_user, doc_id)
+                    result = await handle_button_prompt(doc_request, user_id, doc_id)
                 elif doc_request.prompt:
-                    result = await handle_custom_prompt(doc_request, current_user, doc_id)
+                    result = await handle_custom_prompt(doc_request, user_id, doc_id)
                 else:
                     result = PromptResponse(
                         success=False,
