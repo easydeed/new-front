@@ -10,7 +10,7 @@ import asyncio
 import time
 import os
 from auth import get_current_user_id
-from title_point_integration import TitlePointService
+from services.titlepoint_service import TitlePointService
 import logging
 
 logger = logging.getLogger(__name__)
