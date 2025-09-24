@@ -183,7 +183,7 @@ async def handle_button_prompt(request: PromptRequest, user_id: str, request_id:
         # Check if fast-forward is possible
         result_data['fastForward'] = check_fast_forward(request.docType, result_data)
         
-            return PromptResponse(success=True, data=result_data)
+        return PromptResponse(success=True, data=result_data)
         
     except Exception as e:
         logger.error(f"[{request_id}] Button prompt error: {str(e)}")
