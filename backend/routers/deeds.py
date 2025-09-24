@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from jinja2 import Environment, FileSystemLoader, select_autoescape, TemplateError
-from ..models.grant_deed import GrantDeedRenderContext
-from ..auth import get_current_user_id
+from models.grant_deed import GrantDeedRenderContext
+from auth import get_current_user_id
 import tempfile
 import io
 import os
