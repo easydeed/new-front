@@ -3,7 +3,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, LoadingSpinner, Eye } from "../../components/Icons";
-import { ParticlesMinimal } from "../../components/Particles";
+// import { ParticlesMinimal } from "../../components/Particles";
 import { AuthManager } from "../../utils/auth";
 
 function LoginContent() {
@@ -15,13 +15,10 @@ function LoginContent() {
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    setIsVisible(true);
-    
     // Check if user is already authenticated
     if (AuthManager.isAuthenticated()) {
       router.push('/dashboard');
@@ -37,20 +34,21 @@ function LoginContent() {
           : "Account created successfully! Please log in with your credentials"
       );
       if (email) {
-        setFormData((prev: any) => ({ ...prev, email: decodeURIComponent(email) }));
+        const decodedEmail = decodeURIComponent(email);
+        setFormData(prev => ({ ...prev, email: decodedEmail }));
       }
     }
   }, [searchParams, router]);
 
-  const handleChange = (e: any) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData(prev => ({ ...prev, [name]: value }));
     
     // Clear error when user starts typing
     if (error) setError("");
   };
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     if (!formData.email || !formData.password) {
@@ -241,7 +239,7 @@ function LoginContent() {
               </Link>
               
               <p className="text-dark-slate/70">
-                Don't have an account?{" "}
+                Don&#39;t have an account?{" "}
                 <Link 
                   href="/register" 
                   className="text-gentle-indigo hover:text-deep-teal font-semibold transition-all duration-200 hover:scale-105 transform inline-block"
@@ -270,7 +268,7 @@ function LoginContent() {
 
         {/* Enhanced Features Preview */}
         <div className="mt-8 text-center animate-fade-in-up" style={{ animationDelay: '0.8s' }}>
-          <p className="text-aqua-mint/60 text-sm mb-4">What you'll get access to:</p>
+          <p className="text-aqua-mint/60 text-sm mb-4">What you&#39;ll get access to:</p>
           <div className="flex justify-center space-x-6 text-sm text-aqua-mint/80">
             {[
               { icon: "✨", text: "AI-Enhanced Deed Wizard" },

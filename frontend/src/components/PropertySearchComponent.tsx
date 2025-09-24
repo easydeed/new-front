@@ -1,7 +1,19 @@
 import { useState } from 'react';
 
+interface PropertyResult {
+  fullAddress?: string;
+  street?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  neighborhood?: string;
+  county?: string;
+  placeId?: string;
+  [key: string]: unknown;
+}
+
 interface PropertySearchProps {
-  onVerified: (data: any) => void;
+  onVerified: (data: PropertyResult) => void;
 }
 
 export default function PropertySearchComponent({ onVerified }: PropertySearchProps) {
@@ -20,7 +32,7 @@ export default function PropertySearchComponent({ onVerified }: PropertySearchPr
       });
 
       const result = await response.json();
-      onVerified(result);
+      onVerified(result as PropertyResult);
     } catch (error) {
       console.error('Property search failed:', error);
     } finally {

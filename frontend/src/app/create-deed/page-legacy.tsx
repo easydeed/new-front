@@ -2,13 +2,11 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../../components/Sidebar';
 import PreviewDataDebugger from '../../components/PreviewDataDebugger';
 import DeedPreviewPanel from '../../components/DeedPreviewPanel';
 import WizardFlowManager from '../../components/WizardFlowManager';
 import PropertySearch from '../../components/PropertySearch';
-import DynamicWizard from './dynamic-wizard';
 import '../../styles/dashboard.css';
 
 // Document types configuration
@@ -264,7 +262,7 @@ export default function CreateDeed() {
   const [docType, setDocType] = useState('');
   const [verifiedData, setVerifiedData] = useState({});
   const [customPrompt, setCustomPrompt] = useState('');
-  const [errors, setErrors] = useState({});
+const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     deedType: '',
     propertySearch: '',
@@ -315,15 +313,15 @@ export default function CreateDeed() {
   const [addressError, setAddressError] = useState('');
 
   // AI Enhancement State
-  const [aiSuggestions, setAiSuggestions] = useState<any>({});
+  const [aiSuggestions, setAiSuggestions] = useState<Record<string, unknown>>({});
   const [aiTips, setAiTips] = useState<string[]>([]);
-  const [validation, setValidation] = useState<any>({});
-  const [enhancedProfile, setEnhancedProfile] = useState<any>(null);
+  const [validation, setValidation] = useState<Record<string, unknown>>({});
+  const [enhancedProfile, setEnhancedProfile] = useState<Record<string, unknown> | null>(null);
   
   // Debug state for preview data mapper
   const [debugData, setDebugData] = useState<{
-    templateData: any;
-    validation: any;
+    templateData: Record<string, unknown>;
+    validation: Record<string, unknown>;
   } | null>(null);
   
   // Wizard flow state
@@ -337,7 +335,7 @@ export default function CreateDeed() {
   const [autoPreviewEnabled, setAutoPreviewEnabled] = useState(true);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [showAITips, setShowAITips] = useState(true);
-  const [propertySuggestions, setPropertySuggestions] = useState<any[]>([]);
+  const [propertySuggestions, setPropertySuggestions] = useState<Record<string, unknown>[]>([]);
 
   // Helpers for Review section
   const formatCurrency = (val?: string) => {
@@ -348,17 +346,17 @@ export default function CreateDeed() {
   const display = (val?: string) => (val && String(val).trim().length ? val : '—');
 
   // Fast-forward logic
-  const checkFastForward = (data: any) => {
+  const checkFastForward = (data: Record<string, unknown>) => {
     if (!docType || !DOC_TYPES[docType as keyof typeof DOC_TYPES]) return false;
     
     const required = DOC_TYPES[docType as keyof typeof DOC_TYPES].required;
-    const filled = required.every(field => data[field] && data[field].trim());
+    const filled = required.every(field => typeof data[field] === 'string' && (data[field] as string).trim());
     
-    return filled && data.fastForward;
+    return filled && Boolean(data.fastForward);
   };
 
   // Handle property search completion
-  const handlePropertyVerified = (data: any) => {
+  const handlePropertyVerified = (data: VerifiedData) => {
     setVerifiedData(data);
     setFormData(prev => ({ ...prev, ...data }));
     setCurrentStep(2);
@@ -1063,7 +1061,7 @@ export default function CreateDeed() {
   };
 
   // Handle TitlePoint property data population
-  const handlePropertyDataPopulate = (tpData: any) => {
+  const handlePropertyDataPopulate = (tpData: Record<string, unknown>) => {
     if (tpData.success) {
       // Update form data with TitlePoint results
       setFormData(prev => ({
@@ -1110,7 +1108,7 @@ export default function CreateDeed() {
   };
 
   // Handle Google Places selection with full integration
-  const handleGooglePlacesSelect = async (propertyData: any) => {
+  const handleGooglePlacesSelect = async (propertyData: Record<string, unknown>) => {
     try {
       setIsSearchingAddress(true);
       setAddressError('');

@@ -41,7 +41,7 @@ export default function Pricing({ pricing = [] }: PricingProps) {
 
   const plans = pricing.length > 0 ? pricing : fallbackPlans;
 
-  const apiFeatures = [
+  /* const apiFeatures = [
     {
       feature: "REST API Endpoints",
       starter: "❌",
@@ -72,7 +72,7 @@ export default function Pricing({ pricing = [] }: PricingProps) {
       professional: "✅",
       enterprise: "✅ + Support"
     }
-  ];
+  ]; */
 
   return (
     <section className="py-16 px-6 bg-pale-slate">
@@ -161,7 +161,7 @@ export default function Pricing({ pricing = [] }: PricingProps) {
         <div className="mt-12 text-center">
           <h3 className="text-xl font-semibold text-dark-slate mb-3">Ready to Transform Your Workflow?</h3>
           <p className="text-dark-slate/70 mb-5 max-w-2xl mx-auto">
-            Join over 1,200 escrow officers who have streamlined their deed creation process with DeedPro's AI-enhanced platform.
+            Join over 1,200 escrow officers who have streamlined their deed creation process with DeedPro&#39;s AI-enhanced platform.
           </p>
           <div className="flex gap-3 justify-center flex-wrap">
             <button 

@@ -31,8 +31,8 @@ export default function SecurityDashboard() {
   const [sessionTimeout, setSessionTimeout] = useState(30);
   const [ipWhitelist, setIpWhitelist] = useState<string[]>([]);
   const [auditLogEnabled, setAuditLogEnabled] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
-  const router = useRouter();
+  // const [activeTab, setActiveTab] = useState('overview');
+  // const router = useRouter();
 
   useEffect(() => {
     // Mock security data

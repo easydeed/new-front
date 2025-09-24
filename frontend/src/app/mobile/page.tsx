@@ -12,10 +12,33 @@ interface QuickAction {
   color: string;
 }
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{outcome: 'accepted' | 'dismissed'}>;
+}
+
+interface RecentDeed {
+  id: number;
+  type: string;
+  address: string;
+  status: string;
+  lastModified: string;
+}
+
+interface SpeechRecognitionEvent {
+  results: {
+    [index: number]: {
+      [index: number]: {
+        transcript: string;
+      };
+    };
+  }[];
+}
+
 export default function MobileApp() {
   const [isInstalled, setIsInstalled] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [recentDeeds, setRecentDeeds] = useState<any[]>([]);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [recentDeeds, setRecentDeeds] = useState<RecentDeed[]>([]);
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const router = useRouter();
 
@@ -110,7 +133,7 @@ export default function MobileApp() {
   const startVoiceInput = () => {
     // Check if speech recognition is available
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const SpeechRecognition = window.SpeechRecognition || (window as unknown as {webkitSpeechRecognition: typeof SpeechRecognition}).webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
       
       recognition.continuous = false;
@@ -121,7 +144,7 @@ export default function MobileApp() {
         alert('🎤 Listening... Say something like "Create a grant deed for 123 Main Street"');
       };
 
-      recognition.onresult = (event: any) => {
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
         const transcript = event.results[0][0].transcript;
         alert(`🤖 AI Processing: "${transcript}"\n\nThis would create a deed with AI-extracted information!`);
         // In production: parse speech and create deed

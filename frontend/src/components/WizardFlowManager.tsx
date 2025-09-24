@@ -2,12 +2,26 @@
 
 import React, { useState, useEffect } from 'react';
 
+interface WizardFormData {
+  deedType?: string;
+  propertySearch?: string;
+  county?: string;
+  apn?: string;
+  grantorName?: string;
+  granteeName?: string;
+  recordingRequestedBy?: string;
+  salesPrice?: string;
+  documentaryTax?: string;
+  notaryName?: string;
+  notaryCounty?: string;
+  [key: string]: string | undefined;
+}
+
 interface WizardFlowManagerProps {
   currentStep: number;
   totalSteps: number;
   onStepChange: (step: number) => void;
-  formData: any;
-  validation: any;
+  formData: WizardFormData;
   onAutoSave: () => void;
   onCancel?: () => void;
   lastSaved?: string | null;
@@ -18,7 +32,6 @@ export default function WizardFlowManager({
   totalSteps,
   onStepChange,
   formData,
-  validation,
   onAutoSave,
   onCancel,
   lastSaved

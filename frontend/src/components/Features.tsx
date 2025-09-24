@@ -10,8 +10,45 @@ import {
   ChartBarIcon,
   LockClosedIcon,
   BoltIcon,
-  BuildingOfficeIcon
 } from '@heroicons/react/24/outline';
+
+// interface FeatureConfig {
+//   name: string;
+//   description: string;
+//   highlight?: string;
+//   icon: React.ReactNode;
+// }
+
+/* const features: FeatureConfig[] = [
+  {
+    name: "AI Document Assistant",
+    description: "Let the AI do the heavy lifting. Generate deed drafts, add riders, and auto-fill recorder-approved data in seconds.",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="currentColor" className="h-10 w-10 text-primary">
+        <path d="M12 2C9.243 2 7 4.243 7 7v2H5c-1.654 0-3 1.346-3 3v7c0 1.654 1.346 3 3 3h14c1.654 0 3-1.346 3-3v-7c0-1.654-1.346-3-3-3h-2V7c0-2.757-2.243-5-5-5zm-3 7V7c0-1.654 1.346-3 3-3s3 1.346 3 3v2H9zm3 5c-.736 0-1.333-.597-1.333-1.333 0-.736.597-1.334 1.333-1.334s1.333.598 1.333 1.334c0 .736-.597 1.333-1.333 1.333zm0 3.333c-1.84 0-3.666-.857-3.666-2.111v-.556c0-.368.299-.667.666-.667H18a.667.667 0 01.667.667v.556c0 1.254-1.826 2.111-3.667 2.111h-3z" />
+      </svg>
+    )
+  },
+  {
+    name: "Recorder-Ready PDFs",
+    description: "Generate recorder-ready documents with one click. Avoid rejections with pre-validated deed templates reviewed by California real estate counsel.",
+    highlight: "Recorder-approved output"
+  },
+  {
+    name: "Smart Field Assistance",
+    description: "Context-aware AI suggestions for property addresses, legal descriptions, and complex legal formatting.",
+    icon: SparklesIcon,
+    badge: "New",
+    highlight: true
+  },
+  {
+    name: "iPhone-Style Interface",
+    description: "Large, bubbly, touch-friendly design that makes complex legal processes feel effortless.",
+    icon: DevicePhoneMobileIcon,
+    badge: "UX",
+    highlight: false
+  }
+]; */
 
 export default function Features() {
   const aiFeatures = [
@@ -72,7 +109,7 @@ export default function Features() {
     },
     {
       title: "Client-Level Security",
-      description: "API key authentication with scope-based permissions and comprehensive audit logging.",
+      description: "Bring your legal team&#39;s requirements into the flow without new engineering work. Use role-based permissions and audit-ready logging for every interaction.",
       icon: LockClosedIcon,
       badge: "Security",
       highlight: false
@@ -87,7 +124,7 @@ export default function Features() {
   ];
 
   const FeatureCard = ({ feature, borderColor }: { 
-    feature: { title: string; description: string; icon: any; badge: string; highlight: boolean }, 
+    feature: { title: string; description: string; icon: React.ComponentType<{className?: string}>; badge: string; highlight: boolean }, 
     borderColor: string,
     key?: number
   }) => (

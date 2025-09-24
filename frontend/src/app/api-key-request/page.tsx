@@ -57,7 +57,7 @@ export default function ApiKeyRequest() {
               Request Submitted Successfully!
             </h1>
             <p className="text-dark-slate/80 text-lg mb-8">
-              Thank you for your interest in DeedPro's API. Our team will review your request and get back to you within 24 hours.
+              Thank you for your interest in DeedPro&#39;s API. Our team will review your request and get back to you within 24 hours.
             </p>
             
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-8">
@@ -117,7 +117,7 @@ export default function ApiKeyRequest() {
             🔑 Request API Access
           </h1>
           <p className="text-xl text-dark-slate/80 max-w-3xl mx-auto">
-            Get started with DeedPro's enterprise API platform. We'll set you up with everything you need for seamless integration.
+            Get started with DeedPro&#39;s enterprise API platform. We&#39;ll set you up with everything you need for seamless integration.
           </p>
         </div>
 

@@ -27,8 +27,9 @@ export default function DynamicWizard() {
         const json = await res.json();
         setRegistry(json);
         if (!docType && json.grant_deed) setDocType('grant_deed');
-      } catch (e: any) {
-        setError(e.message || 'Failed to load document registry');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to load document registry';
+        setError(message);
       } finally {
         setLoading(false);
       }
@@ -37,10 +38,11 @@ export default function DynamicWizard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+
   const steps = registry[docType]?.steps || [];
   const totalSteps = steps.length + 1; // +1 for initial property search
 
-  const handlePropertyVerified = (payload: any) => {
+  const handlePropertyVerified = (payload: Record<string, unknown>) => {
     setData('step1', payload);
     setCurrentStep(2);
     // Optional AI: request chain-of-title (non-blocking)
@@ -57,7 +59,7 @@ export default function DynamicWizard() {
           .then((j) => setAiChain(typeof j?.chain === 'string' ? j.chain : JSON.stringify(j)))
           .catch(() => setAiChain(null));
       }
-    } catch (_) {
+    } catch {
       setAiChain(null);
     }
   };
@@ -75,8 +77,9 @@ export default function DynamicWizard() {
       });
       const json = await res.json();
       setAiNote(typeof json?.suggestions === 'string' ? json.suggestions : JSON.stringify(json?.suggestions));
-    } catch (e: any) {
-      setAiNote(`AI unavailable: ${e.message || String(e)}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setAiNote(`AI unavailable: ${message}`);
     }
   };
 
@@ -108,7 +111,7 @@ export default function DynamicWizard() {
                 <textarea
                   style={{ width: '100%', minHeight: 120, border: '1px solid #e5e7eb', borderRadius: 8, padding: 8 }}
                   placeholder={`Enter data for ${s.title}`}
-                  value={String((data as any)[s.key] || '')}
+                  value={String((data as Record<string, unknown>)[s.key] || '')}
                   onChange={(e) => setData(s.key, e.target.value)}
                 />
               </div>

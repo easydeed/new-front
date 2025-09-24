@@ -1,20 +1,31 @@
 import { motion } from 'framer-motion';
 import PropertySearchWithTitlePoint from '../../components/PropertySearchWithTitlePoint';
 
+interface WizardErrors {
+  custom?: string;
+  prompt?: string;
+}
+
+interface WizardFormData {
+  [key: string]: string | undefined;
+  grantorName?: string;
+  granteeName?: string;
+}
+
 interface DynamicWizardProps {
   currentStep: number;
   docType: string;
-  formData: any;
+  formData: WizardFormData;
   customPrompt: string;
   loading: boolean;
-  errors: any;
-  onPropertyVerified: (data: any) => void;
+  errors: WizardErrors;
+  onPropertyVerified: (data: WizardFormData) => void;
   onDocTypeChange: (type: string) => void;
   onButtonPrompt: (type: string) => void;
   onCustomPrompt: () => void;
   onCustomPromptChange: (value: string) => void;
   onStepChange: (step: number) => void;
-  onInputChange: (e: any) => void;
+  onInputChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onGenerate: () => void;
 }
 

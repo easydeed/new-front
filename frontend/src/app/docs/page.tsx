@@ -88,7 +88,7 @@ export default function DocsIndex() {
             📚 DeedPro Documentation
           </h1>
           <p className="text-xl lg:text-2xl text-blue-100 max-w-4xl mx-auto mb-8">
-            Everything you need to integrate, develop, and master DeedPro's AI-enhanced deed creation platform
+            Everything you need to integrate, develop, and master DeedPro&#39;s AI-enhanced deed creation platform
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <button

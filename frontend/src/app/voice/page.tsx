@@ -9,8 +9,25 @@ interface VoiceCommand {
   confidence: number;
   timestamp: string;
   intent: string;
-  extracted_data: any;
+  extracted_data: Record<string, unknown>;
   response: string;
+}
+
+interface SpeechRecognitionEvent {
+  resultIndex: number;
+  results: {
+    [index: number]: {
+      [index: number]: {
+        transcript: string;
+      };
+      isFinal: boolean;
+    };
+    length: number;
+  };
+}
+
+interface SpeechRecognitionErrorEvent {
+  error: string;
 }
 
 export default function VoiceInterface() {
@@ -22,13 +39,13 @@ export default function VoiceInterface() {
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     // Check for speech recognition support
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const SpeechRecognition = window.SpeechRecognition || (window as unknown as {webkitSpeechRecognition: typeof SpeechRecognition}).webkitSpeechRecognition;
       recognitionRef.current = new SpeechRecognition();
       
       recognitionRef.current.continuous = true;
@@ -61,9 +78,9 @@ export default function VoiceInterface() {
     if (savedCommands) {
       setCommands(JSON.parse(savedCommands));
     }
-  }, []);
+  }, [handleSpeechResult]);
 
-  const handleSpeechResult = (event: any) => {
+  const handleSpeechResult = (event: SpeechRecognitionEvent) => {
     let interimTranscript = '';
     let finalTranscriptResult = '';
 
@@ -87,7 +104,7 @@ export default function VoiceInterface() {
     setIsListening(false);
   };
 
-  const handleSpeechError = (event: any) => {
+  const handleSpeechError = (event: SpeechRecognitionErrorEvent) => {
     console.error('Speech recognition error:', event.error);
     setIsListening(false);
   };
@@ -549,7 +566,7 @@ export default function VoiceInterface() {
                       fontWeight: '600',
                       color: 'var(--gray-900)'
                     }}>
-                      "{command.transcript}"
+                      &quot;{command.transcript}&quot;
                     </div>
                     <div style={{
                       fontSize: '0.75rem',

@@ -3,14 +3,10 @@
 import React, { useState } from 'react';
 
 interface PreviewDataDebuggerProps {
-  formData: any;
-  aiSuggestions: any;
-  templateData: any;
-  validation: {
-    isValid: boolean;
-    missingFields: string[];
-    warnings: string[];
-  };
+  formData: Record<string, unknown>;
+  aiSuggestions: Record<string, unknown>;
+  templateData: Record<string, unknown>;
+  validation: Record<string, unknown>;
 }
 
 export default function PreviewDataDebugger({ 

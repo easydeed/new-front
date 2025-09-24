@@ -20,6 +20,18 @@ interface PropertyData {
   currentOwnerSecondary?: string;
 }
 
+interface PropertyDetailsResponse {
+  success?: boolean;
+  property_details?: {
+    county?: string;
+    legal_description?: string;
+    owner_name_primary?: string;
+    owner_name_secondary?: string;
+    full_address?: string;
+    [key: string]: string | undefined;
+  };
+}
+
 interface PropertySearchProps {
   onVerified: (data: PropertyData) => void;
   onError?: (error: string) => void;
@@ -28,9 +40,82 @@ interface PropertySearchProps {
   onPropertyFound?: (data: PropertyData) => void; // New callback for property details
 }
 
+interface GoogleAddressComponent {
+  long_name?: string;
+  short_name?: string;
+  types: string[];
+}
+
+interface GooglePlaceResult {
+  address_components?: GoogleAddressComponent[];
+  formatted_address?: string;
+  name?: string;
+  place_id?: string;
+}
+
+interface GoogleAutocompletePrediction {
+  description: string;
+  place_id: string;
+  structured_formatting?: {
+    main_text?: string;
+    secondary_text?: string;
+  };
+}
+
+interface GoogleAutocompleteRequest {
+  input: string;
+  componentRestrictions?: { country: string };
+  types?: string[];
+}
+
+type GooglePlacesServiceStatus = string;
+
+interface GoogleAutocompleteService {
+  getPlacePredictions: (
+    request: GoogleAutocompleteRequest,
+    callback: (predictions: GoogleAutocompletePrediction[] | null, status: GooglePlacesServiceStatus) => void
+  ) => void;
+}
+
+interface GooglePlacesService {
+  getDetails: (
+    request: { placeId: string; fields: string[] },
+    callback: (place: GooglePlaceResult | null, status: GooglePlacesServiceStatus) => void
+  ) => void;
+}
+
+interface GooglePlacesNamespace {
+  AutocompleteService: new () => GoogleAutocompleteService;
+  PlacesService: new (element: HTMLElement) => GooglePlacesService;
+  PlacesServiceStatus: Record<string, GooglePlacesServiceStatus>;
+}
+
+interface GoogleMapsNamespace {
+  places?: GooglePlacesNamespace;
+  Map: new (element: HTMLElement) => unknown;
+}
+
+interface GoogleNamespace {
+  maps?: GoogleMapsNamespace;
+}
+
+interface SiteXMatch {
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  apn: string;
+  fips: string;
+}
+
+interface PropertyDetails extends PropertyData {
+  propertyType?: string;
+}
+
 declare global {
   interface Window {
-    google: any;
+    google: GoogleNamespace | undefined;
+    initGoogleMaps?: () => void;
   }
 }
 
@@ -43,31 +128,44 @@ export default function PropertySearchWithTitlePoint({
 }: PropertySearchProps) {
   
   const [inputValue, setInputValue] = useState('');
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<GoogleAutocompletePrediction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoaded, setIsGoogleLoaded] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<PropertyData | null>(null);
-  const [selectedSuggestion, setSelectedSuggestion] = useState<any>(null);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<GoogleAutocompletePrediction | null>(null);
   const [isTitlePointLoading, setIsTitlePointLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [searchAttempted, setSearchAttempted] = useState(false);
-  const [propertyDetails, setPropertyDetails] = useState<any>(null);
+  const [propertyDetails, setPropertyDetails] = useState<PropertyDetails | null>(null);
   const [showPropertyDetails, setShowPropertyDetails] = useState(false);
   
   // New state for exact SiteX two-step flow
-  const [sitexMatches, setSitexMatches] = useState<any[]>([]);
+  const [sitexMatches, setSitexMatches] = useState<SiteXMatch[]>([]);
   const [showSitexMatches, setShowSitexMatches] = useState(false);
-  const [selectedMatch, setSelectedMatch] = useState<any>(null);
   
   const inputRef = useRef<HTMLInputElement>(null);
-  const autocompleteService = useRef<any>(null);
-  const placesService = useRef<any>(null);
+  const autocompleteService = useRef<GoogleAutocompleteService | null>(null);
+  const placesService = useRef<GooglePlacesService | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
 
   // Initialize Google Maps API
   useEffect(() => {
-    const initializeGoogle = async () => {
+  const initializeGoogle = async () => {
+      // Check if Google Places is enabled via feature flag
+      const googlePlacesEnabled = process.env.NEXT_PUBLIC_GOOGLE_PLACES_ENABLED === 'true';
+      if (!googlePlacesEnabled) {
+        console.log('Google Places API disabled via feature flag');
+        return;
+      }
+
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+      if (!apiKey) {
+        console.warn('Google Places API key not configured');
+        onError?.('Address search not available. Please enter address manually.');
+        return;
+      }
+
       if (window.google && window.google.maps) {
         setIsGoogleLoaded(true);
         initializeServices();
@@ -76,12 +174,12 @@ export default function PropertySearchWithTitlePoint({
 
       // Load Google Maps API with modern loading approach
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_API_KEY}&libraries=places&loading=async&callback=initGoogleMaps`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&loading=async&callback=initGoogleMaps`;
       script.async = true;
       script.defer = true;
       
       // Define global callback
-      (window as any).initGoogleMaps = () => {
+      window.initGoogleMaps = () => {
         console.log('✅ Google Maps API loaded successfully');
         setIsGoogleLoaded(true);
         initializeServices();
@@ -174,16 +272,16 @@ export default function PropertySearchWithTitlePoint({
   };
 
   // Process a selected suggestion for address validation only
-  const processSelectedSuggestionForAddress = async (suggestion: any) => {
+  const processSelectedSuggestionForAddress = async (suggestion: GoogleAutocompletePrediction) => {
     const request = {
       placeId: suggestion.place_id,
       fields: ['address_components', 'formatted_address', 'name', 'place_id']
     };
 
     return new Promise((resolve, reject) => {
-      placesService.current.getDetails(request, async (place: any, status: any) => {
-        if (status === window.google.maps.places.PlacesServiceStatus.OK && place) {
-          const components = place.address_components || [];
+      placesService.current?.getDetails(request, (place, status) => {
+        if (status === window.google?.maps?.places?.PlacesServiceStatus?.OK && place && place.address_components) {
+          const components = place.address_components;
           
           const city = getComponent(components, 'locality') || '';
           const state = getComponent(components, 'administrative_area_level_1', 'short_name') || 'CA';
@@ -203,7 +301,7 @@ export default function PropertySearchWithTitlePoint({
           setSelectedAddress(propertyData);
           setIsLoading(false);
           
-          // Don't automatically call TitlePoint - let user confirm first
+          // Don&#39;t automatically call TitlePoint - let user confirm first
           // await lookupPropertyDetails(propertyData);
           resolve(true);
         } else {
@@ -228,8 +326,8 @@ export default function PropertySearchWithTitlePoint({
     return new Promise((resolve, reject) => {
       autocompleteService.current.getPlacePredictions(
         request,
-        async (predictions: any[], status: any) => {
-          if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions && predictions.length > 0) {
+        (predictions, status) => {
+          if (status === window.google?.maps?.places?.PlacesServiceStatus?.OK && predictions && predictions.length > 0) {
             // Auto-select the first suggestion
             const firstSuggestion = predictions[0];
             setInputValue(firstSuggestion.description);
@@ -240,9 +338,9 @@ export default function PropertySearchWithTitlePoint({
               fields: ['address_components', 'formatted_address', 'name', 'place_id']
             };
 
-            placesService.current.getDetails(placeRequest, async (place: any, placeStatus: any) => {
-              if (placeStatus === window.google.maps.places.PlacesServiceStatus.OK && place) {
-                const components = place.address_components || [];
+            placesService.current?.getDetails(placeRequest, (place, placeStatus) => {
+              if (placeStatus === window.google?.maps?.places?.PlacesServiceStatus?.OK && place && place.address_components) {
+                const components = place.address_components;
                 
                 const city = getComponent(components, 'locality') || '';
                 const state = getComponent(components, 'administrative_area_level_1', 'short_name') || 'CA';
@@ -262,7 +360,7 @@ export default function PropertySearchWithTitlePoint({
                 setSelectedAddress(propertyData);
                 setIsLoading(false);
                 
-                // Don't automatically call TitlePoint - let user confirm first
+                // Don&#39;t automatically call TitlePoint - let user confirm first
                 // await lookupPropertyDetails(propertyData);
                 resolve(true);
               } else {
@@ -341,7 +439,7 @@ export default function PropertySearchWithTitlePoint({
   };
 
   // Step 2: SiteX ApnSearch - Get detailed property data (like apnData() and parse187() in working JS)
-  const selectSitexProperty = async (match: any) => {
+  const selectSitexProperty = async (match: SiteXMatch) => {
     setIsTitlePointLoading(true);
     setErrorMessage(null);
     setSelectedMatch(match);
@@ -378,22 +476,22 @@ export default function PropertySearchWithTitlePoint({
         throw new Error(`SiteX ApnSearch error: ${apnSearchResponse.status}`);
       }
 
-      const result = await apnSearchResponse.json();
+      const result: PropertyDetailsResponse = await apnSearchResponse.json();
       console.log('✅ Step 2 Complete - SiteX ApnSearch result:', result);
 
       if (result.success && result.property_details) {
         // Parse property details (like parse187() in working JS)
-        const propertyInfo = {
+          const propertyInfo: PropertyDetails = {
           ...selectedAddress,
           apn: match.apn || 'Not available',
-          county: result.property_details.county || 'Not available',
-          legalDescription: result.property_details.legal_description || 'Not available',
-          currentOwnerPrimary: result.property_details.owner_name_primary || 'Not available',
-          currentOwnerSecondary: result.property_details.owner_name_secondary || '',
-          grantorName: result.property_details.owner_name_primary || '',
+          county: result.property_details?.county || 'Not available',
+          legalDescription: result.property_details?.legal_description || 'Not available',
+          currentOwnerPrimary: result.property_details?.owner_name_primary || 'Not available',
+          currentOwnerSecondary: result.property_details?.owner_name_secondary || '',
+          grantorName: result.property_details?.owner_name_primary || '',
           // Additional details for display
           propertyType: 'Single Family Residence',
-          fullAddress: result.property_details.full_address || selectedAddress?.fullAddress
+          fullAddress: result.property_details?.full_address || selectedAddress?.fullAddress
         };
 
         setPropertyDetails(propertyInfo);
@@ -417,6 +515,14 @@ export default function PropertySearchWithTitlePoint({
 
   // Legacy method for backward compatibility
   const lookupPropertyDetails = async (addressData: PropertyData) => {
+    // Check if TitlePoint integration is enabled
+    const titlePointEnabled = process.env.NEXT_PUBLIC_TITLEPOINT_ENABLED === 'true';
+    if (!titlePointEnabled) {
+      console.log('TitlePoint integration disabled via feature flag');
+      setErrorMessage('Property enrichment not available. Please enter details manually.');
+      return;
+    }
+
     // Use the new two-step SiteX flow instead of the old combined endpoint
     await searchSitexProperties(addressData);
   };
@@ -436,7 +542,7 @@ export default function PropertySearchWithTitlePoint({
 
     setIsLoading(true);
 
-    const request = {
+    const request: GoogleAutocompleteRequest = {
       input,
       componentRestrictions: { country: 'us' },
       types: ['address']
@@ -444,10 +550,10 @@ export default function PropertySearchWithTitlePoint({
 
     autocompleteService.current.getPlacePredictions(
       request,
-      (predictions: any[], status: any) => {
+      (predictions, status) => {
         setIsLoading(false);
         
-        if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+        if (status === window.google?.maps?.places?.PlacesServiceStatus?.OK && predictions) {
           setSuggestions(predictions);
           setShowSuggestions(true);
         } else {
@@ -460,7 +566,7 @@ export default function PropertySearchWithTitlePoint({
   };
 
   // Handle suggestion selection (Google Places) - NO auto-validation
-  const handleSuggestionSelect = (suggestion: any) => {
+  const handleSuggestionSelect = (suggestion: GoogleAutocompletePrediction) => {
     setInputValue(suggestion.description);
     setShowSuggestions(false);
     setSuggestions([]);
@@ -481,7 +587,7 @@ export default function PropertySearchWithTitlePoint({
 
 
   // Helper function to extract street address
-  const extractStreetAddress = (components: any[], placeName?: string) => {
+  const extractStreetAddress = (components: GoogleAddressComponent[], placeName?: string) => {
     const streetNumber = getComponent(components, 'street_number');
     const route = getComponent(components, 'route');
     
@@ -496,8 +602,8 @@ export default function PropertySearchWithTitlePoint({
   };
 
   // Helper function to get component by type
-  const getComponent = (components: any[], type: string, nameType: string = 'long_name') => {
-    const component = components.find((comp: any) => comp.types.includes(type));
+  const getComponent = (components: GoogleAddressComponent[], type: string, nameType: 'long_name' | 'short_name' = 'long_name') => {
+    const component = components.find((comp) => comp.types.includes(type));
     return component ? component[nameType] : null;
   };
 
@@ -849,7 +955,7 @@ export default function PropertySearchWithTitlePoint({
               marginTop: '16px'
             }}>
               <div style={{ fontSize: '14px', color: '#1e40af', fontWeight: '500' }}>
-                💡 Select the property that matches your deed. The APN (Assessor's Parcel Number) should match your property records.
+                💡 Select the property that matches your deed. The APN (Assessor&#39;s Parcel Number) should match your property records.
               </div>
             </div>
           </div>

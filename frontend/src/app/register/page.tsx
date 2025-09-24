@@ -61,23 +61,24 @@ export default function RegisterPage() {
     "Other"
   ];
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    const checked = (e.target as HTMLInputElement).checked;
-    
-    setFormData({ 
-      ...formData, 
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value, type, checked } = e.target as HTMLInputElement;
+
+    setFormData((prev) => ({ 
+      ...prev, 
       [name]: type === "checkbox" ? checked : value 
-    });
+    }));
     
     // Clear specific validation error when user starts typing
     if (validationErrors[name]) {
-      setValidationErrors({ ...validationErrors, [name]: "" });
+      setValidationErrors(prev => ({ ...prev, [name]: "" }));
     }
   };
 
   const validateForm = () => {
-    const errors: any = {};
+    const errors: Record<string, string> = {};
 
     // Email validation
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -119,7 +120,7 @@ export default function RegisterPage() {
     return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     if (!validateForm()) {

@@ -112,7 +112,7 @@ export default function GrantDeedWizard() {
   }>;
 
   const handleStepDataChange = (stepData: StepPayload) => {
-    setWizardData(prev => ({ ...(prev as Record<string, unknown>), ...stepData }));
+    setWizardData(prev => ({ ...prev, ...stepData }));
   };
 
   const handleNext = () => {

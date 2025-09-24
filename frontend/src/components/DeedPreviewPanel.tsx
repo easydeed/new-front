@@ -44,25 +44,35 @@ export default function DeedPreviewPanel({
 
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
+    if (!printWindow) {
+      alert('Please allow popups to print your deed.');
+      return;
+    }
+
+    printWindow.document.write(`<!DOCTYPE html>
+      <html>
         <head>
-          <title>${deedType} - Preview Print</title>
+          <title>${deedType} Preview</title>
           <style>
-            body { margin: 0; padding: 20px; font-family: 'Times New Roman', serif; }
-            @media print { body { margin: 0; padding: 0; } }
+            body { margin: 0; padding: 20px; font-family: "Times New Roman", serif; }
+            .preview-container {
+              max-width: 8.5in;
+              margin: 0 auto;
+              border: 1px solid #ccc;
+              padding: 1in;
+              min-height: 11in;
+            }
+            h1, h2, h3 { text-align: center; }
           </style>
         </head>
         <body>
-          ${previewHtml}
+          <div class="preview-container">
+            ${previewHtml}
+          </div>
         </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.print();
-    }
+      </html>`);
+    printWindow.document.close();
+    printWindow.print();
   };
 
   if (isLoading) {
@@ -79,7 +89,7 @@ export default function DeedPreviewPanel({
             Generating Preview...
           </h3>
           <p className="text-gray-600 text-center max-w-md">
-            Our AI is crafting your perfect deed with all the details you've provided.
+            Our AI is crafting your perfect deed with all the details you&#39;ve provided.
           </p>
           <div className="mt-4 flex items-center gap-2 text-sm text-gray-500">
             <div className="w-2 h-2 bg-tertiary rounded-full animate-pulse"></div>
@@ -99,7 +109,7 @@ export default function DeedPreviewPanel({
             Ready to Preview Your Deed
           </h3>
           <p className="text-gray-600 text-center max-w-md mb-6">
-            Complete the form above and click "Preview Deed" to see how your document will look.
+            Complete the form above and click &quot;Preview Deed&quot; to see how your document will look.
           </p>
           <button
             onClick={onRegeneratePreview}

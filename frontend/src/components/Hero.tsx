@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React from 'react';
 import { RocketLaunchIcon, SparklesIcon, BuildingOfficeIcon, DevicePhoneMobileIcon } from '@heroicons/react/24/outline';
-import { ArrowRight, Sparkles, Zap, Star } from './Icons';
+import { ArrowRight, Sparkles, Zap } from './Icons';
 
 export default function Hero() {
 

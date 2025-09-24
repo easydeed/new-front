@@ -29,7 +29,8 @@ export async function POST(req: Request) {
         "Content-Disposition": 'attachment; filename="Grant_Deed_CA.pdf"',
       },
     });
-  } catch (e: any) {
-    return new NextResponse(`Proxy error: ${e?.message || e}`, { status: 500 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return new NextResponse(`Proxy error: ${message}`, { status: 500 });
   }
 }

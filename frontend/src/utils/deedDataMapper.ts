@@ -224,7 +224,7 @@ export function mapWizardDataToTemplate(
  */
 export function createPreviewPayload(
   formData: WizardFormData,
-  aiSuggestions: any = {}
+  aiSuggestions: Record<string, unknown> = {}
 ): PreviewPayload {
   
   // Normalize deed type to template filename format

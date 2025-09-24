@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/Sidebar';
-import { AuthManager } from '../../utils/auth';
 import '../../styles/dashboard.css';
 
 export default function Dashboard() {
@@ -123,7 +122,7 @@ export default function Dashboard() {
     );
   }
 
-  // Don't render dashboard content if not authenticated (user will be redirected)
+  // Don&#39;t render dashboard content if not authenticated (user will be redirected)
   if (!isAuthenticated) {
     return null;
   }
@@ -230,7 +229,7 @@ export default function Dashboard() {
 
 function ResumeDraftBanner() {
   const [hasDraft, setHasDraft] = useState(false);
-  const [draftInfo, setDraftInfo] = useState<any>(null);
+  const [draftInfo, setDraftInfo] = useState<{formData?: {deedType?: string}, currentStep?: number, savedAt?: string} | null>(null);
 
   useEffect(() => {
     const checkForDraft = () => {

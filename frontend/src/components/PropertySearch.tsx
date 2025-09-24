@@ -13,6 +13,34 @@ interface PropertyData {
   placeId: string;
 }
 
+interface GoogleAddressComponent {
+  long_name?: string;
+  short_name?: string;
+  types: string[];
+}
+
+interface GoogleAutocompletePrediction {
+  description: string;
+  place_id: string;
+  structured_formatting?: {
+    main_text?: string;
+    secondary_text?: string;
+  };
+}
+
+interface GooglePlaceResult {
+  address_components?: GoogleAddressComponent[];
+  formatted_address?: string;
+  name?: string;
+  place_id?: string;
+}
+
+interface GoogleAutocompleteRequest {
+  input: string;
+  componentRestrictions?: { country: string };
+  types?: string[];
+}
+
 interface PropertySearchProps {
   onSelect: (data: PropertyData) => void;
   onError?: (error: string) => void;
@@ -21,9 +49,38 @@ interface PropertySearchProps {
   className?: string;
 }
 
+interface GoogleAutocompleteService {
+  getPlacePredictions: (
+    request: GoogleAutocompleteRequest,
+    callback: (predictions: GoogleAutocompletePrediction[] | null, status: string) => void
+  ) => void;
+}
+
+interface GooglePlacesService {
+  getDetails: (
+    request: { placeId: string; fields: string[] },
+    callback: (place: GooglePlaceResult | null, status: string) => void
+  ) => void;
+}
+
+interface GooglePlacesNamespace {
+  AutocompleteService: new () => GoogleAutocompleteService;
+  PlacesService: new (element: HTMLElement) => GooglePlacesService;
+  PlacesServiceStatus: Record<string, string>;
+}
+
+interface GoogleMapsNamespace {
+  places?: GooglePlacesNamespace;
+}
+
+interface GoogleNamespace {
+  maps?: GoogleMapsNamespace;
+}
+
 declare global {
   interface Window {
-    google: any;
+    google: GoogleNamespace | undefined;
+    initMap?: () => void;
   }
 }
 
@@ -35,14 +92,14 @@ export default function PropertySearch({
   className = ""
 }: PropertySearchProps) {
   const [inputValue, setInputValue] = useState(value);
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<GoogleAutocompletePrediction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoaded, setIsGoogleLoaded] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   
   const inputRef = useRef<HTMLInputElement>(null);
-  const autocompleteService = useRef<any>(null);
-  const placesService = useRef<any>(null);
+  const autocompleteService = useRef<GoogleAutocompleteService | null>(null);
+  const placesService = useRef<GooglePlacesService | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
 
   // Initialize Google Maps API with modern approach
@@ -64,7 +121,7 @@ export default function PropertySearch({
           script.defer = true;
           
           // Define callback function
-          (window as any).initMap = () => {
+          window.initMap = () => {
             if (window.google?.maps?.places) {
               // Initialize services with fallback support
               try {
@@ -136,18 +193,18 @@ export default function PropertySearch({
   const searchPlaces = (query: string) => {
     setIsLoading(true);
     
-    const request = {
+    const request: GoogleAutocompleteRequest = {
       input: query,
       componentRestrictions: { country: 'us' },
       types: ['address'],
     };
 
-    autocompleteService.current.getPlacePredictions(
+    autocompleteService.current?.getPlacePredictions(
       request,
-      (predictions: any[], status: any) => {
+      (predictions, status) => {
         setIsLoading(false);
         
-        if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+        if (status === window.google?.maps?.places?.PlacesServiceStatus?.OK && predictions) {
           setSuggestions(predictions);
           setShowSuggestions(true);
         } else {
@@ -159,7 +216,7 @@ export default function PropertySearch({
   };
 
   // Handle suggestion selection
-  const handleSuggestionSelect = (suggestion: any) => {
+  const handleSuggestionSelect = (suggestion: GoogleAutocompletePrediction) => {
     setInputValue(suggestion.description);
     setShowSuggestions(false);
     setSuggestions([]);
@@ -170,9 +227,9 @@ export default function PropertySearch({
       fields: ['address_components', 'formatted_address', 'name', 'place_id']
     };
 
-    placesService.current.getDetails(request, (place: any, status: any) => {
-      if (status === window.google.maps.places.PlacesServiceStatus.OK && place) {
-        const components = place.address_components || [];
+    placesService.current?.getDetails(request, (place, status) => {
+      if (status === window.google?.maps?.places?.PlacesServiceStatus?.OK && place && place.address_components) {
+        const components = place.address_components;
         
         // Extract address components
         const extractedData: PropertyData = {
@@ -181,8 +238,8 @@ export default function PropertySearch({
           city: getComponent(components, 'locality') || '',
           state: getComponent(components, 'administrative_area_level_1', 'short_name') || 'CA',
           zip: getComponent(components, 'postal_code') || '',
-          neighborhood: getComponent(components, 'neighborhood'),
-          placeId: place.place_id
+          neighborhood: getComponent(components, 'neighborhood') || undefined,
+          placeId: place.place_id ?? suggestion.place_id,
         };
 
         onSelect(extractedData);
@@ -193,7 +250,7 @@ export default function PropertySearch({
   };
 
   // Helper function to extract street address
-  const extractStreetAddress = (components: any[], placeName?: string) => {
+  const extractStreetAddress = (components: GoogleAddressComponent[], placeName?: string) => {
     const streetNumber = getComponent(components, 'street_number');
     const route = getComponent(components, 'route');
     
@@ -208,9 +265,9 @@ export default function PropertySearch({
   };
 
   // Helper function to get component by type
-  const getComponent = (components: any[], type: string, nameType: 'long_name' | 'short_name' = 'long_name') => {
-    const component = components.find((comp: any) => comp.types.includes(type));
-    return component ? component[nameType] : null;
+  const getComponent = (components: GoogleAddressComponent[], type: string, nameType: 'long_name' | 'short_name' = 'long_name') => {
+    const component = components.find((comp) => comp.types.includes(type));
+    return component ? component[nameType] ?? null : null;
   };
 
   // Handle clicks outside to close suggestions
