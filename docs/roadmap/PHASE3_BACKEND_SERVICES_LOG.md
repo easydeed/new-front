@@ -21,6 +21,7 @@ This log documents every change made during Phase 3 of the Wizard Rebuild Plan -
 | 2025-09-24 | Grant Deed Route Enhancement | Hardened `/generate/grant-deed-ca` route | Added schema validation, comprehensive logging, performance monitoring, user authentication, audit trail, error instrumentation | ✅ Complete | Route now includes request IDs, timing metrics, validation, and sanitization |
 | 2025-09-24 | AI Assist Orchestration | Enhanced AI assist services with timeout handling and multi-document support | Added timeout protection, concurrent request limiting, multi-document endpoint, comprehensive logging, request tracking | ✅ Complete | AI assist now supports orchestrated multi-document generation with performance monitoring |
 | 2025-09-24 | Backend Testing Suite | Implemented comprehensive test suite for Phase 3 enhancements | Created pytest-based tests for grant deed generation, AI assist orchestration, performance monitoring, error handling | ✅ Complete | Test suite covers validation, sanitization, timeout handling, multi-document generation, and resilience |
+| 2025-09-24 | Import Path Fixes | Fixed import paths in Phase 3 enhanced routers | Corrected relative imports in `backend/routers/deeds.py` and `backend/api/ai_assist.py` to resolve deployment issues | 🔧 In Progress | Fixed auth imports to use relative paths for proper module resolution |
 
 ## Backend Architecture
 

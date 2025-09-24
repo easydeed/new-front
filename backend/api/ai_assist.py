@@ -9,8 +9,8 @@ import httpx
 import asyncio
 import time
 import os
-from database import get_current_user
-from title_point_integration import TitlePointService
+from ..auth import get_current_user_id
+from ..title_point_integration import TitlePointService
 import logging
 
 logger = logging.getLogger(__name__)
