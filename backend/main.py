@@ -22,11 +22,19 @@ from auth import (
     get_password_hash, verify_password, create_access_token, 
     get_current_user_id, get_current_user_email, AuthUtils, get_current_admin
 )
+from middleware.qa_instrumentation import QAInstrumentationMiddleware, get_qa_health_status
 
 load_dotenv()
 
 app = FastAPI(title="DeedPro API", version="2.0.0-dynamic-wizard")
 # Updated for new-front monorepo with pricing management
+
+# Add QA instrumentation middleware for staging environment
+if os.getenv("ENVIRONMENT") == "staging":
+    app.add_middleware(
+        QAInstrumentationMiddleware,
+        enable_detailed_logging=True
+    )
 
 # Include AI assistance router
 app.include_router(ai_router)
@@ -294,6 +302,14 @@ def verify_admin():
 @app.get("/health")
 def health():
     return {"status": "ok", "message": "DeedPro API is running"}
+
+@app.get("/health/qa")
+async def qa_health_check():
+    """QA-specific health check with instrumentation metrics"""
+    if os.getenv("ENVIRONMENT") != "staging":
+        raise HTTPException(status_code=404, detail="QA health endpoint only available in staging")
+    
+    return get_qa_health_status()
 
 # ============================================================================
 # AUTHENTICATION & REGISTRATION ENDPOINTS

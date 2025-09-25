@@ -29,4 +29,13 @@ services:
   - key: MAX_CONCURRENT_REQUESTS
     value: "5"
   - key: BACKEND_LOGGING_LEVEL
-    value: "INFO" 
+    value: "INFO"
+  # Phase 4 QA Instrumentation for Staging
+  - key: ENVIRONMENT
+    value: "staging"
+  - key: QA_INSTRUMENTATION_ENABLED
+    value: "true"
+  - key: QA_DETAILED_LOGGING
+    value: "true"
+  - key: PERFORMANCE_MONITORING
+    value: "true" 
