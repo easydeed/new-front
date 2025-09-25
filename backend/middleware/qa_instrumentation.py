@@ -13,7 +13,7 @@ import uuid
 import logging
 from typing import Dict, Any, Optional
 from fastapi import Request, Response
-from fastapi.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 import json
 import os
 
