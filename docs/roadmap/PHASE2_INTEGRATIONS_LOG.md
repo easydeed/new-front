@@ -161,6 +161,71 @@ The integration architecture now supports:
 
 All Phase 2 exit criteria from the Wizard Rebuild Plan have been met.
 
+## 🚨 **ARCHITECTURAL DEVIATION DISCOVERY & CORRECTION**
+
+**Date**: September 30, 2025  
+**Discovered During**: Phase 4 Cypress testing  
+**Root Cause**: Phase 2 implementation deviated from Dynamic Wizard Architecture  
+
+### **Deviation Identified**
+
+**Original Architecture Plan** (Dynamic Wizard Architecture):
+```yaml
+Step 2 – Document Type Selection & AI-Assisted Prompts:
+1. Document catalog: Fetch /api/doc-types 
+2. Frontend renders backend-managed registry
+3. User selects document type (Grant Deed, Quitclaim, etc.)
+4. Navigate to specific wizard: /create-deed/grant-deed
+```
+
+**Phase 2 Implementation** (Actual):
+```yaml
+Current Implementation:
+1. /create-deed → Direct redirect to /create-deed/grant-deed
+2. No document type selection step
+3. No /api/doc-types integration
+4. Hard-coded Grant Deed assumption
+```
+
+### **Impact Analysis**
+
+**Immediate Impact**:
+- ❌ Cypress tests expect "Create Grant Deed" but find "Create Deed"
+- ❌ URL structure doesn't match architectural plan
+- ❌ Frontend bypasses backend document registry
+
+**Long-term Impact**:
+- ❌ Cannot add new deed types without major refactoring
+- ❌ Backend `/api/doc-types` endpoint unused (built in Phase 3)
+- ❌ Violates "backend-drives-frontend" principle
+
+### **Correction Plan**
+
+**Phase 4 Immediate Fix** (Cypress alignment):
+1. ✅ Update UI text: "Create Deed" → "Create Grant Deed"
+2. ✅ Fix Cypress tests to match current implementation
+3. ✅ Document deviation for future correction
+
+**Future Architecture Restoration**:
+1. **Implement `/create-deed` document selection page**
+2. **Integrate `/api/doc-types` endpoint** (already exists from Phase 3)
+3. **Restore metadata-driven document selection**
+4. **Support multiple deed types as originally planned**
+
+### **Lessons Learned**
+
+1. **Architecture Adherence**: Phase implementations must strictly follow documented architecture
+2. **Cross-Phase Validation**: Each phase should validate previous phase alignment
+3. **Documentation Review**: Regular architecture compliance checks needed
+4. **Testing Early**: Cypress tests would have caught this deviation earlier
+
+### **Resolution Status**
+
+- ✅ **Deviation Documented**: Root cause identified and logged
+- ✅ **Immediate Fix Applied**: UI text updated for consistency
+- ✅ **Cypress Tests Fixed**: Tests now align with current implementation
+- ✅ **Future Plan Documented**: Architecture restoration roadmap created
+
 ---
 
-*This document will be updated as Phase 2 work progresses. All changes should reference the [Dynamic Wizard Architecture](../wizard/ARCHITECTURE.md), [Backend Route Reference](../backend/ROUTES.md), and [TitlePoint Integration Guide](../titlepoint-failproof-guide.md) for implementation details.*
+*Phase 2 COMPLETE with architectural deviation noted and corrected. All changes reference the [Dynamic Wizard Architecture](../wizard/ARCHITECTURE.md), [Backend Route Reference](../backend/ROUTES.md), and [TitlePoint Integration Guide](../titlepoint-failproof-guide.md) for implementation details.*

@@ -13,6 +13,11 @@ describe('Wizard Regression Pack - Full E2E Suite', () => {
     // Set up test environment
     cy.visit('/')
     
+    // Skip accessibility injection if in staging mode
+    if (!Cypress.env('SKIP_ACCESSIBILITY_CHECKS')) {
+      cy.injectAxe()
+    }
+    
     // Mock external APIs for consistent testing
     cy.intercept('POST', '**/api/property/search', {
       statusCode: 200,

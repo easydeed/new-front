@@ -131,6 +131,33 @@ Per the Wizard Rebuild Plan, Phase 4 focuses on comprehensive testing, resilienc
 5. **Performance Optimization**: Lighthouse audits and Web Vitals improvement
 6. **Accessibility Compliance**: WCAG 2.1 AA validation and remediation
 
+## Cypress Architecture Alignment Fix
+
+**Date**: September 30, 2025  
+**Issue**: Cypress tests had URL/naming mismatches with implemented architecture  
+**Root Cause**: Tests expected generic naming while Wizard Rebuild Plan specified specific naming  
+
+**Analysis**: 
+- Backend: `/api/generate/grant-deed-ca` (Phase 3 - specific naming ✅)
+- Frontend: `/create-deed/grant-deed` (Phase 2 - specific routing ✅)  
+- UI Text: "Create Deed" (generic - misaligned ❌)
+- Tests: Expected "Create Grant Deed" but found "Create Deed" (mismatch ❌)
+
+**Solution**: Option A - Standardize on Specific Naming
+- ✅ Preserves all Phase 1-4 backend work
+- ✅ Aligns with Dynamic Wizard Architecture (backend-driven metadata)
+- ✅ Supports multi-document future (quitclaim-deed, warranty-deed)
+- ✅ Zero impact on Render/Vercel deployments
+
+**Implementation**:
+1. Update UI text: "Create Deed" → "Create Grant Deed"
+2. Cypress tests already fixed to match `/create-deed/grant-deed` URL
+3. Maintain backend `/api/generate/grant-deed-ca` route (no changes)
+
+**Testing**: Immediate Cypress regression test to validate fix
+
+**Cross-Reference**: Full deviation analysis documented in [Phase 2 Integrations Log](PHASE2_INTEGRATIONS_LOG.md#architectural-deviation-discovery--correction)
+
 ## Summary
 
 Phase 4 Quality Assurance & Hardening is focused on ensuring the rebuilt wizard meets production-ready standards through comprehensive testing, resilience validation, and performance optimization. This phase will validate that we don't repeat the "wizard catastrophes" by thoroughly testing every edge case and failure scenario before production rollout.
