@@ -14,7 +14,7 @@ module.exports = defineConfig({
     responseTimeout: 10000,
     env: {
       // Test environment variables
-      API_URL: 'http://localhost:8000',
+      API_URL: 'https://deedpro-main-api.onrender.com',
       GOOGLE_PLACES_ENABLED: 'true',
       TITLEPOINT_ENABLED: 'true'
     },

@@ -9,7 +9,19 @@
  */
 
 describe('Wizard Regression Pack - Full E2E Suite', () => {
+  // Login once before all tests using cy.session (Cypress 12+ way)
+  before(() => {
+    cy.session('user-session', () => {
+      cy.login('test@deedpro-check.com', 'TestPassword123!')
+    })
+  })
+  
   beforeEach(() => {
+    // Restore session before each test
+    cy.session('user-session', () => {
+      cy.login('test@deedpro-check.com', 'TestPassword123!')
+    })
+    
     // Set up test environment
     cy.visit('/')
     

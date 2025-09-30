@@ -8,13 +8,51 @@
 // https://on.cypress.io/custom-commands
 // ***********************************************
 
-// Custom command for login
-Cypress.Commands.add('login', (email = 'test@example.com', password = 'password123') => {
-  cy.visit('/login')
-  cy.get('input[type="email"]').type(email)
-  cy.get('input[type="password"]').type(password)
-  cy.get('button[type="submit"]').click()
-  cy.url().should('not.include', '/login')
+// Custom command for API-based login (faster and more reliable)
+Cypress.Commands.add('login', (email = 'test@deedpro-check.com', password = 'TestPassword123!') => {
+  // Use API login for speed and reliability
+  const apiUrl = Cypress.env('API_URL') || 'https://deedpro-main-api.onrender.com'
+  
+  cy.request({
+    method: 'POST',
+    url: `${apiUrl}/users/login`,
+    body: {
+      email: email,
+      password: password
+    },
+    failOnStatusCode: false
+  }).then((response) => {
+    if (response.status === 200 && response.body.access_token) {
+      // Store token in cookie (matches middleware expectation)
+      cy.setCookie('access_token', response.body.access_token)
+      cy.log('✅ Logged in successfully via API')
+    } else {
+      // Fallback to UI login if API fails
+      cy.log('⚠️ API login failed, using UI login fallback')
+      cy.visit('/login')
+      cy.get('input[type="email"]').type(email)
+      cy.get('input[type="password"]').type(password)
+      cy.get('button[type="submit"]').click()
+      cy.url().should('not.include', '/login')
+    }
+  })
+})
+
+// Custom command for programmatic login (bypasses UI completely)
+Cypress.Commands.add('loginProgrammatic', (email = 'test@deedpro-check.com', password = 'TestPassword123!') => {
+  const apiUrl = Cypress.env('API_URL') || 'https://deedpro-main-api.onrender.com'
+  
+  return cy.request({
+    method: 'POST',
+    url: `${apiUrl}/users/login`,
+    body: { email, password }
+  }).then((response) => {
+    // Store token in cookie
+    cy.setCookie('access_token', response.body.access_token)
+    // Also store in localStorage for any frontend code that checks it
+    window.localStorage.setItem('access_token', response.body.access_token)
+    return response.body
+  })
 })
 
 // Custom command for navigating to wizard
