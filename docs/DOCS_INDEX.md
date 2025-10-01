@@ -1,21 +1,118 @@
 # 📚 DeedPro Documentation Index
+**Last Updated**: October 1, 2025
 
-## Core Canon (2025 Reset)
-| Focus | Document | Summary |
-|-------|----------|---------|
-| Crisis report | [wizard-catastrophes.md](./wizard-catastrophes.md) | Non-negotiable legal and UX failures that shape every rebuild decision. |
-| Backend routes | [backend/ROUTES.md](./backend/ROUTES.md) | Authoritative FastAPI routing map, dependencies, and known fallbacks. |
-| Wizard architecture | [wizard/ARCHITECTURE.md](./wizard/ARCHITECTURE.md) | Target design for the dynamic wizard experience and shared state. |
-| Rebuild plan | [roadmap/WIZARD_REBUILD_PLAN.md](./roadmap/WIZARD_REBUILD_PLAN.md) | Workstream sequencing and ownership for the compliant relaunch. |
-| TitlePoint integration | [titlepoint-failproof-guide.md](./titlepoint-failproof-guide.md) | Tested recipe for talking to the upstream data provider without outages. |
+---
 
-## Getting Started
-- Start with the catastrophe report to internalize the compliance guardrails.
-- Cross-check backend routes against the architecture plan before modifying the wizard.
-- Keep the rebuild plan open while planning sprints; update it whenever scope changes.
+## 🚀 **START HERE - New Agents**
 
-## Historical Material
-- Legacy implementation guides, marketing collateral, and one-off runbooks now live in [`archive/legacy-2025/`](./archive/legacy-2025/). Use them only when you need background on a deprecated flow.
-- The original teardown that initiated the reset remains in [`archive/2025-overhaul/`](./archive/2025-overhaul/).
+👉 **[ONBOARDING_NEW_AGENTS.md](./ONBOARDING_NEW_AGENTS.md)** - Complete 30-minute onboarding guide
 
-All other documents in this repository are archival; if you require a new reference, create it alongside the canon above rather than reviving legacy files.
+**Quick Start Reading Order**:
+1. [Project README](../README.md) - Overview (3 min)
+2. [wizard-catastrophes.md](./wizard-catastrophes.md) - Why we rebuilt (5 min)
+3. [wizard/ARCHITECTURE.md](./wizard/ARCHITECTURE.md) - System design (10 min)
+4. [roadmap/WIZARD_REBUILD_PLAN.md](./roadmap/WIZARD_REBUILD_PLAN.md) - 5-phase plan (10 min)
+5. [roadmap/PROJECT_STATUS.md](./roadmap/PROJECT_STATUS.md) - Current status (2 min)
+
+---
+
+## ⭐ **MOST IMPORTANT DOCS**
+
+### **Always Check First**
+- **[roadmap/PROJECT_STATUS.md](./roadmap/PROJECT_STATUS.md)** - Current phase, blockers, next steps (updated daily)
+
+### **Never Deviate**
+- **[roadmap/WIZARD_REBUILD_PLAN.md](./roadmap/WIZARD_REBUILD_PLAN.md)** - Master 5-phase plan with exit criteria
+
+### **System Design**
+- **[wizard/ARCHITECTURE.md](./wizard/ARCHITECTURE.md)** - Dynamic Wizard Architecture (metadata-driven)
+- **[backend/ROUTES.md](./backend/ROUTES.md)** - All FastAPI endpoints documented
+
+### **Critical Context**
+- **[wizard-catastrophes.md](./wizard-catastrophes.md)** - Legal/UX failures that drove rebuild
+
+---
+
+## 🛠️ **DEVELOPMENT GUIDES**
+
+- **[roadmap/TESTING_GUIDE.md](./roadmap/TESTING_GUIDE.md)** - Jest, Pytest, Cypress, manual testing
+- **[roadmap/DEPLOYMENT_GUIDE.md](./roadmap/DEPLOYMENT_GUIDE.md)** - Vercel/Render deployment procedures
+- **[ONBOARDING_NEW_AGENTS.md](./ONBOARDING_NEW_AGENTS.md)** - Role-specific guides (Dev, QA, DevOps, PM)
+
+---
+
+## 📊 **PROJECT PROGRESS**
+
+### **Current Status**
+- [roadmap/PROJECT_STATUS.md](./roadmap/PROJECT_STATUS.md) ⭐
+
+### **Phase Completion**
+- [roadmap/PHASE1_LINT_SOLUTIONS.md](./roadmap/PHASE1_LINT_SOLUTIONS.md) ✅
+- [roadmap/PHASE2_INTEGRATIONS_LOG.md](./roadmap/PHASE2_INTEGRATIONS_LOG.md) ✅
+- [roadmap/PHASE3_BACKEND_SERVICES_LOG.md](./roadmap/PHASE3_BACKEND_SERVICES_LOG.md) ✅
+- [roadmap/PHASE4_COMPLETION_REPORT.md](./roadmap/PHASE4_COMPLETION_REPORT.md) ✅
+- [roadmap/PHASE5_PRODUCTION_READINESS_REPORT.md](./roadmap/PHASE5_PRODUCTION_READINESS_REPORT.md) 🔄
+
+### **Architecture Verification**
+- [roadmap/PHASE4_ARCHITECTURE_VERIFICATION.md](./roadmap/PHASE4_ARCHITECTURE_VERIFICATION.md)
+- [roadmap/PHASE_DEBUG_AGENT_REPORT.md](./roadmap/PHASE_DEBUG_AGENT_REPORT.md)
+
+### **Deployment Docs**
+- [roadmap/PHASE5_DEPLOYMENT_ROLLOUT_PLAN.md](./roadmap/PHASE5_DEPLOYMENT_ROLLOUT_PLAN.md)
+- [roadmap/DEPLOYMENT_MONITORING.md](./roadmap/DEPLOYMENT_MONITORING.md)
+
+### **Testing Docs**
+- [roadmap/CYPRESS_AUTH_SOLUTION.md](./roadmap/CYPRESS_AUTH_SOLUTION.md)
+- [roadmap/PHASE5_CYPRESS_SIGNOFF_EVIDENCE.md](./roadmap/PHASE5_CYPRESS_SIGNOFF_EVIDENCE.md)
+
+---
+
+## 🔧 **TECHNICAL REFERENCES**
+
+- **[titlepoint-failproof-guide.md](./titlepoint-failproof-guide.md)** - TitlePoint integration patterns
+- **[resilience/DEGRADED_SERVICES_PLAYBOOK.md](./resilience/DEGRADED_SERVICES_PLAYBOOK.md)** - Error handling & recovery
+
+---
+
+## 📦 **BY ROLE**
+
+### **Developers** 👨‍💻
+Start: [ONBOARDING_NEW_AGENTS.md](./ONBOARDING_NEW_AGENTS.md) → Developer section  
+Key: [wizard/ARCHITECTURE.md](./wizard/ARCHITECTURE.md), [backend/ROUTES.md](./backend/ROUTES.md)
+
+### **QA/Testing** 🧪
+Start: [roadmap/TESTING_GUIDE.md](./roadmap/TESTING_GUIDE.md)  
+Key: [roadmap/CYPRESS_AUTH_SOLUTION.md](./roadmap/CYPRESS_AUTH_SOLUTION.md)
+
+### **DevOps** 🚀
+Start: [roadmap/DEPLOYMENT_GUIDE.md](./roadmap/DEPLOYMENT_GUIDE.md)  
+Key: [roadmap/DEPLOYMENT_MONITORING.md](./roadmap/DEPLOYMENT_MONITORING.md)
+
+### **PM/Architects** 📋
+Start: [roadmap/PROJECT_STATUS.md](./roadmap/PROJECT_STATUS.md)  
+Key: [roadmap/WIZARD_REBUILD_PLAN.md](./roadmap/WIZARD_REBUILD_PLAN.md)
+
+---
+
+## 🔍 **QUICK FIND**
+
+| Need | Document |
+|------|----------|
+| Current status | [PROJECT_STATUS.md](./roadmap/PROJECT_STATUS.md) |
+| How to test | [TESTING_GUIDE.md](./roadmap/TESTING_GUIDE.md) |
+| How to deploy | [DEPLOYMENT_GUIDE.md](./roadmap/DEPLOYMENT_GUIDE.md) |
+| System architecture | [wizard/ARCHITECTURE.md](./wizard/ARCHITECTURE.md) |
+| API reference | [backend/ROUTES.md](./backend/ROUTES.md) |
+| Master plan | [WIZARD_REBUILD_PLAN.md](./roadmap/WIZARD_REBUILD_PLAN.md) |
+
+---
+
+## 📁 **ARCHIVE**
+
+Historical docs in `archive/legacy-2025/` and `archive/2025-overhaul/` - for context only, don't follow for current development.
+
+---
+
+**Questions?** See [ONBOARDING_NEW_AGENTS.md](./ONBOARDING_NEW_AGENTS.md)
+
+**Last Updated**: October 1, 2025 | **By**: Architecture Team
