@@ -1,12 +1,63 @@
 # 📊 Project Status - DeedPro Wizard Rebuild
-**Last Updated**: October 1, 2025 at 14:30 PT
+**Last Updated**: October 1, 2025 at 21:00 PT
+
+---
+
+## 🚨 **TOMORROW'S ACTION ITEMS (Oct 2, 2025)**
+
+### **BEFORE DEPLOYMENT (09:00 AM) - 15 Minutes** 🔴
+
+**Critical Fixes Required**:
+
+1. **Fix Route Collision** (5 min)
+   ```bash
+   # File: backend/main.py lines 64-71
+   # Action: Comment out duplicate property_search router
+   ```
+   - [ ] Open `backend/main.py`
+   - [ ] Comment out lines 64-71 (property_search router mounting)
+   - [ ] Test: `cd backend && pytest`
+
+2. **Update Architecture Documentation** (5 min)
+   ```bash
+   # File: docs/wizard/ARCHITECTURE.md lines 38, 46
+   # Action: Change /api/generate-deed → /api/generate/grant-deed-ca
+   ```
+   - [ ] Open `docs/wizard/ARCHITECTURE.md`
+   - [ ] Line 38: Update to `/api/generate/grant-deed-ca`
+   - [ ] Line 46: Update to `/api/generate/grant-deed-ca` (add note: "Phase 5: Grant Deed only")
+
+3. **Run All Tests** (5 min)
+   - [ ] Frontend: `cd frontend && npm run test` (expect 45 passing)
+   - [ ] Backend: `cd backend && pytest` (expect 28 passing)
+   - [ ] All must pass before deployment
+
+### **DEPLOYMENT SEQUENCE (09:30 AM - 17:00 PM)**
+
+**09:30 - 10:00**: Deploy to Production
+- [ ] Deploy backend to Render
+- [ ] Deploy frontend to Vercel
+- [ ] Verify health checks
+- [ ] Manual test: Complete Grant Deed end-to-end
+
+**10:00 - 11:00**: Initial Monitoring
+- [ ] Monitor error rates (<0.5% target)
+- [ ] Check performance (API <2s, PDF <3s)
+- [ ] Verify no critical issues
+
+**11:00 - 17:00**: Feature Flag Rollout
+- [ ] 11:00 AM: Enable 10% rollout (monitor 2h)
+- [ ] 13:00 PM: Enable 50% rollout (monitor 4h)
+- [ ] 17:00 PM: Enable 100% rollout
+
+**Oct 3**: 24-hour production burn-in monitoring
 
 ---
 
 ## 🎯 **CURRENT PHASE: Phase 5 - Production Deployment**
 
-**Status**: ⏳ **IN PROGRESS** - 24-hour backend burn-in active  
-**Target Completion**: October 1-2, 2025  
+**Status**: ⏳ **READY FOR DEPLOYMENT** - Burn-in complete, 2 critical fixes needed  
+**Target Deployment**: October 2, 2025 at 09:30 AM  
 **Confidence**: 🟢 **HIGH**
 
 ---
@@ -257,6 +308,7 @@ Track Phase 5 deployment progress:
 ## 📚 **REFERENCE DOCUMENTS**
 
 ### **Essential Reading**
+- **[PHASE5_FINAL_ARCHITECTURAL_ASSESSMENT.md](../../PHASE5_FINAL_ARCHITECTURAL_ASSESSMENT.md)** ⭐ **READ THIS FOR DEPLOYMENT**
 - **[WIZARD_REBUILD_PLAN.md](WIZARD_REBUILD_PLAN.md)** - Master plan (never deviate)
 - **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - Production deployment procedures
 - **[TESTING_GUIDE.md](TESTING_GUIDE.md)** - All testing procedures
