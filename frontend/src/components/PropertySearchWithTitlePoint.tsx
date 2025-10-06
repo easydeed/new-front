@@ -99,15 +99,6 @@ interface GoogleNamespace {
   maps?: GoogleMapsNamespace;
 }
 
-interface SiteXMatch {
-  address: string;
-  city: string;
-  state: string;
-  zip: string;
-  apn: string;
-  fips: string;
-}
-
 interface PropertyDetails extends PropertyData {
   propertyType?: string;
 }
@@ -139,10 +130,6 @@ export default function PropertySearchWithTitlePoint({
   const [searchAttempted, setSearchAttempted] = useState(false);
   const [propertyDetails, setPropertyDetails] = useState<PropertyDetails | null>(null);
   const [showPropertyDetails, setShowPropertyDetails] = useState(false);
-  
-  // New state for exact SiteX two-step flow
-  const [sitexMatches, setSitexMatches] = useState<SiteXMatch[]>([]);
-  const [showSitexMatches, setShowSitexMatches] = useState(false);
   
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteService = useRef<GoogleAutocompleteService | null>(null);
@@ -375,15 +362,26 @@ export default function PropertySearchWithTitlePoint({
     });
   };
 
-  // Step 1: SiteX AddressSearch - Get multiple property matches (like multipleResults() in working JS)
-  const searchSitexProperties = async (addressData: PropertyData) => {
+  // Unified property search using /api/property/search (Per Dynamic Wizard Architecture)
+  const lookupPropertyDetails = async (addressData: PropertyData) => {
+    // PHASE 5-PREQUAL: Check if TitlePoint OR SiteX integration is enabled
+    const enrichmentEnabled =
+      process.env.NEXT_PUBLIC_TITLEPOINT_ENABLED === 'true' ||
+      process.env.NEXT_PUBLIC_SITEX_ENABLED === 'true';
+    
+    if (!enrichmentEnabled) {
+      console.log('Property enrichment disabled via feature flags');
+      setErrorMessage('Property enrichment not available. Please enter details manually.');
+      return;
+    }
+
     setIsTitlePointLoading(true);
     setErrorMessage(null);
     setSitexMatches([]);
     setShowSitexMatches(false);
     
     try {
-      console.log('🔍 Step 1: SiteX AddressSearch for:', addressData);
+      console.log('🔍 Unified Property Search for:', addressData);
       
       // Check authentication token first
       const token = localStorage.getItem('access_token');
@@ -391,140 +389,68 @@ export default function PropertySearchWithTitlePoint({
         throw new Error('Authentication required. Please log in again.');
       }
       
-      // Call SiteX AddressSearch (Step 1) - exactly like working JavaScript
-      const addressSearchResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://deedpro-main-api.onrender.com'}/api/property/sitex/address-search`, {
+      // Call unified /api/property/search endpoint (Per Architecture: Step 1 – Property Verification)
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com';
+      const searchResponse = await fetch(`${apiUrl}/api/property/search`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          address: addressData.street,
-          city: addressData.city,
-          state: addressData.state
+          address: addressData.fullAddress
         })
       });
 
-      if (!addressSearchResponse.ok) {
-        console.error(`SiteX AddressSearch error: ${addressSearchResponse.status} ${addressSearchResponse.statusText}`);
+      if (!searchResponse.ok) {
+        console.error(`Property search error: ${searchResponse.status} ${searchResponse.statusText}`);
         
-        if (addressSearchResponse.status === 401) {
+        if (searchResponse.status === 401) {
           throw new Error('Authentication expired. Please refresh the page and log in again.');
         }
         
-        throw new Error(`SiteX AddressSearch error: ${addressSearchResponse.status}`);
+        throw new Error(`Property search error: ${searchResponse.status}`);
       }
 
-      const result = await addressSearchResponse.json();
-      console.log('✅ Step 1 Complete - SiteX AddressSearch result:', result);
+      const result = await searchResponse.json();
+      console.log('✅ Unified Property Search result:', result);
 
-      if (result.success && result.matches && result.matches.length > 0) {
-        // Show multiple matches for user selection (like multipleResults() in working JS)
-        setSitexMatches(result.matches);
-        setShowSitexMatches(true);
-        setErrorMessage(null);
-      } else {
-        // No matches found
-        console.log('No SiteX matches found');
-        setErrorMessage('⚠️ No property matches found in SiteX database. You can proceed with manual entry.');
-        setShowSitexMatches(false);
-      }
-    } catch (error) {
-      console.error('SiteX AddressSearch failed:', error);
-      setErrorMessage('⚠️ Unable to search property database. You can proceed with manual entry.');
-      setShowSitexMatches(false);
-    } finally {
-      setIsTitlePointLoading(false);
-    }
-  };
-
-  // Step 2: SiteX ApnSearch - Get detailed property data (like apnData() and parse187() in working JS)
-  const selectSitexProperty = async (match: SiteXMatch) => {
-    setIsTitlePointLoading(true);
-    setErrorMessage(null);
-    setSelectedMatch(match);
-    
-    try {
-      console.log('🏠 Step 2: SiteX ApnSearch for selected property:', match);
-      
-      // Check authentication token first
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        throw new Error('Authentication required. Please log in again.');
-      }
-      
-      // Call SiteX ApnSearch (Step 2) - exactly like working JavaScript apnData()
-      const apnSearchResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://deedpro-main-api.onrender.com'}/api/property/sitex/apn-search`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          apn: match.apn,
-          fips: match.fips
-        })
-      });
-
-      if (!apnSearchResponse.ok) {
-        console.error(`SiteX ApnSearch error: ${apnSearchResponse.status} ${apnSearchResponse.statusText}`);
-        
-        if (apnSearchResponse.status === 401) {
-          throw new Error('Authentication expired. Please refresh the page and log in again.');
-        }
-        
-        throw new Error(`SiteX ApnSearch error: ${apnSearchResponse.status}`);
-      }
-
-      const result: PropertyDetailsResponse = await apnSearchResponse.json();
-      console.log('✅ Step 2 Complete - SiteX ApnSearch result:', result);
-
-      if (result.success && result.property_details) {
-        // Parse property details (like parse187() in working JS)
-          const propertyInfo: PropertyDetails = {
+      if (result.success) {
+        // Map backend response to frontend PropertyDetails format
+        const propertyInfo: PropertyDetails = {
           ...selectedAddress,
-          apn: match.apn || 'Not available',
-          county: result.property_details?.county || 'Not available',
-          legalDescription: result.property_details?.legal_description || 'Not available',
-          currentOwnerPrimary: result.property_details?.owner_name_primary || 'Not available',
-          currentOwnerSecondary: result.property_details?.owner_name_secondary || '',
-          grantorName: result.property_details?.owner_name_primary || '',
-          // Additional details for display
+          fullAddress: result.fullAddress || addressData.fullAddress,
+          street: addressData.street,
+          city: result.city || addressData.city,
+          state: result.state || addressData.state,
+          zip: result.zip || addressData.zip,
+          county: result.county || addressData.county || 'Not available',
+          apn: result.apn || 'Not available',
+          legalDescription: result.legalDescription || 'Not available',
+          grantorName: result.grantorName || '',
+          currentOwnerPrimary: result.grantorName || 'Not available',
+          currentOwnerSecondary: '',
           propertyType: 'Single Family Residence',
-          fullAddress: result.property_details?.full_address || selectedAddress?.fullAddress
+          placeId: addressData.placeId
         };
 
         setPropertyDetails(propertyInfo);
         setShowPropertyDetails(true);
-        setShowSitexMatches(false); // Hide the selection UI
+        setErrorMessage(null);
         onPropertyFound?.(propertyInfo);
       } else {
-        // ApnSearch didn't return property data
-        console.log('SiteX ApnSearch returned no property data');
-        setErrorMessage('⚠️ Property details not available. You can proceed with manual entry.');
+        // No property data found - allow manual entry
+        console.log('Property search returned no data');
+        setErrorMessage(result.error || '⚠️ Property details not available. You can proceed with manual entry.');
         setShowPropertyDetails(false);
       }
     } catch (error) {
-      console.error('SiteX ApnSearch failed:', error);
+      console.error('Property search failed:', error);
       setErrorMessage('⚠️ Unable to retrieve property details. You can proceed with manual entry.');
       setShowPropertyDetails(false);
     } finally {
       setIsTitlePointLoading(false);
     }
-  };
-
-  // Legacy method for backward compatibility
-  const lookupPropertyDetails = async (addressData: PropertyData) => {
-    // Check if TitlePoint integration is enabled
-    const titlePointEnabled = process.env.NEXT_PUBLIC_TITLEPOINT_ENABLED === 'true';
-    if (!titlePointEnabled) {
-      console.log('TitlePoint integration disabled via feature flag');
-      setErrorMessage('Property enrichment not available. Please enter details manually.');
-      return;
-    }
-
-    // Use the new two-step SiteX flow instead of the old combined endpoint
-    await searchSitexProperties(addressData);
   };
 
   // User confirms property details and proceeds
@@ -853,111 +779,6 @@ export default function PropertySearchWithTitlePoint({
                 </>
               )}
             </button>
-          </div>
-        )}
-
-        {/* SiteX Property Matches Selection (Step 1 Results) */}
-        {showSitexMatches && sitexMatches.length > 0 && (
-          <div style={{
-            padding: '20px',
-            backgroundColor: '#f8fafc',
-            border: '2px solid #e2e8f0',
-            borderRadius: '16px',
-            marginTop: '16px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1e293b', margin: 0 }}>
-                🏠 Select Your Property
-              </h3>
-              <div style={{ fontSize: '14px', color: '#64748b' }}>
-                Found {sitexMatches.length} match{sitexMatches.length !== 1 ? 'es' : ''}
-              </div>
-            </div>
-            
-            <div style={{ marginBottom: '16px', fontSize: '14px', color: '#64748b' }}>
-              Multiple properties found for this address. Please select the correct one:
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {sitexMatches.map((match, index) => (
-                <div
-                  key={index}
-                  style={{
-                    padding: '16px',
-                    backgroundColor: 'white',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '12px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = '#F57C00';
-                    e.currentTarget.style.backgroundColor = '#fef7ed';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = '#e2e8f0';
-                    e.currentTarget.style.backgroundColor = 'white';
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '16px', fontWeight: '600', color: '#1e293b', marginBottom: '4px' }}>
-                      {match.address}
-                    </div>
-                    <div style={{ fontSize: '14px', color: '#64748b', marginBottom: '8px' }}>
-                      {match.city}, {match.state} {match.zip}
-                    </div>
-                    <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: '#64748b' }}>
-                      <span><strong>APN:</strong> {match.apn}</span>
-                      <span><strong>FIPS:</strong> {match.fips}</span>
-                    </div>
-                  </div>
-                  
-                  <button
-                    onClick={() => selectSitexProperty(match)}
-                    disabled={isTitlePointLoading}
-                    style={{
-                      padding: '10px 20px',
-                      backgroundColor: isTitlePointLoading ? '#d1d5db' : '#F57C00',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      cursor: isTitlePointLoading ? 'not-allowed' : 'pointer',
-                      transition: 'all 0.2s ease',
-                      minWidth: '100px'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isTitlePointLoading) {
-                        e.currentTarget.style.backgroundColor = '#e67100';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isTitlePointLoading) {
-                        e.currentTarget.style.backgroundColor = '#F57C00';
-                      }
-                    }}
-                  >
-                    {isTitlePointLoading ? 'Loading...' : 'Choose'}
-                  </button>
-                </div>
-              ))}
-            </div>
-            
-            <div style={{ 
-              padding: '12px 16px', 
-              backgroundColor: '#dbeafe', 
-              border: '1px solid #93c5fd',
-              borderRadius: '8px',
-              marginTop: '16px'
-            }}>
-              <div style={{ fontSize: '14px', color: '#1e40af', fontWeight: '500' }}>
-                💡 Select the property that matches your deed. The APN (Assessor&#39;s Parcel Number) should match your property records.
-              </div>
-            </div>
           </div>
         )}
 

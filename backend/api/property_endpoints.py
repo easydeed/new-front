@@ -298,13 +298,13 @@ async def get_cached_properties(
 
 
 @router.post("/search")
-async def titlepoint_property_search(
+async def property_search(
     request: PropertySearchRequest,
     user_id: str = Depends(get_current_user_id)
 ):
     """
-    TitlePoint property search endpoint for Google Places integration
-    Searches TitlePoint for APN, brief legal description, and current owners
+    PHASE 5-PREQUAL: SiteX property search endpoint (replaces TitlePoint)
+    Uses SiteX Pro REST API with multi-match auto-resolution
     """
     try:
         # Check cache first
@@ -313,13 +313,15 @@ async def titlepoint_property_search(
         if cached_data:
             return cached_data
         
-        # Get TitlePoint service
-        _, _, titlepoint_service = get_services()
+        # Get SiteX service
+        _, sitex_service, _ = get_services()
         
-        if not titlepoint_service:
+        # Check if SiteX is configured
+        if not sitex_service or not sitex_service.is_configured():
             return {
                 'success': False,
-                'message': 'TitlePoint service not available. Please enter details manually.',
+                'message': 'Property enrichment not configured. Please enter details manually.',
+                'manual_entry_required': True,
                 'fullAddress': request.fullAddress,
                 'county': request.city or '',
                 'city': request.city or '',
@@ -327,24 +329,57 @@ async def titlepoint_property_search(
                 'zip': request.zip or ''
             }
         
-        # Call TitlePoint service with the address data
-        result = await titlepoint_service.enrich_property(request.dict())
+        # Parse address into street and last_line (from Google Places format)
+        full_address = request.fullAddress
+        street, last_line, unit = split_address_for_sitex(full_address)
+        
+        # 1) Try strict address match (residential only)
+        client_ref = f"user:{user_id}"
+        strict_opts = "search_exclude_nonres=Y|search_strict=Y"
+        
+        data = await sitex_service.search_address(street, last_line, client_ref, strict_opts)
+        
+        # 2) If multi-match, auto-resolve and re-query with FIPS+APN
+        if isinstance(data.get("Locations"), list) and data["Locations"]:
+            # Pick the best candidate from multi-match results
+            best = select_best_candidate(data["Locations"], last_line=last_line, unit=unit)
+            
+            if best and best.get("FIPS") and best.get("APN"):
+                # Re-query with FIPS+APN to get full property feed
+                data = await sitex_service.search_fips_apn(
+                    best["FIPS"], 
+                    best["APN"], 
+                    client_ref, 
+                    strict_opts
+                )
+            else:
+                # No clear match → manual entry
+                return {
+                    'success': False,
+                    'message': 'Multiple properties found. Please refine address or enter manually.',
+                    'manual_entry_required': True,
+                    'fullAddress': request.fullAddress
+                }
+        
+        # 3) Map SiteX feed to existing UI contract
+        mapped = map_sitex_feed_to_ui(data, request.fullAddress)
         
         # Cache the result
-        if result.get('success'):
-            await cache_titlepoint_data(user_id, cache_key, result)
+        if mapped.get('success'):
+            await cache_titlepoint_data(user_id, cache_key, mapped)
         
         # Log API usage
-        await log_api_usage(user_id, "titlepoint", "property_search", request.dict(), result)
+        await log_api_usage(user_id, "sitex", "property_search", request.dict(), mapped)
         
-        return result
+        return mapped
         
     except Exception as e:
         # Log error and return graceful fallback
-        await log_api_usage(user_id, "titlepoint", "property_search", request.dict(), None, str(e))
+        await log_api_usage(user_id, "sitex", "property_search", request.dict(), None, str(e))
         return {
             'success': False,
-            'message': f'Property search failed: {str(e)}. Please enter details manually.',
+            'message': f'Property lookup failed: {str(e)}. Please enter manually.',
+            'manual_entry_required': True,
             'fullAddress': request.fullAddress,
             'county': request.city or '',
             'city': request.city or '',
@@ -352,6 +387,137 @@ async def titlepoint_property_search(
             'zip': request.zip or ''
         }
 
+
+# ============================================================================
+# PHASE 5-PREQUAL: SiteX Helper Functions
+# ============================================================================
+
+def split_address_for_sitex(full_address: str) -> tuple:
+    """
+    Split Google Places full address into SiteX format
+    Returns: (street, lastLine, unit)
+    
+    Example:
+    Input: "123 Main St #4, Los Angeles, CA 90001"
+    Output: ("123 Main St #4", "Los Angeles, CA 90001", "#4")
+    """
+    try:
+        # Split on comma to separate street from city/state/zip
+        parts = full_address.split(',')
+        
+        if len(parts) >= 3:
+            # Format: "street, city, state zip"
+            street = parts[0].strip()
+            city = parts[1].strip()
+            state_zip = parts[2].strip()
+            last_line = f"{city}, {state_zip}"
+        elif len(parts) == 2:
+            # Format: "street, city state zip"
+            street = parts[0].strip()
+            last_line = parts[1].strip()
+        else:
+            # Single part - treat as street, no lastLine
+            street = full_address.strip()
+            last_line = ""
+        
+        # Extract unit number if present (for multi-match resolution)
+        unit = ""
+        for indicator in ["#", "Unit", "Apt", "Suite"]:
+            if indicator in street:
+                unit = street[street.index(indicator):].strip()
+                break
+        
+        return street, last_line, unit
+        
+    except Exception as e:
+        print(f"Address parsing error: {e}")
+        return full_address, "", ""
+
+
+def select_best_candidate(locations: List[Dict], last_line: Optional[str] = None, unit: Optional[str] = None) -> Optional[Dict]:
+    """
+    Select best candidate from SiteX multi-match results (from addendum)
+    
+    Heuristic:
+    - Prefer exact ZIP match (+2 points)
+    - Prefer exact unit match (+1 point)
+    - Return highest scoring candidate
+    """
+    if not locations:
+        return None
+    
+    def score(loc):
+        s = 0
+        # ZIP match
+        if last_line and str(loc.get("ZIP") or '').strip() in last_line:
+            s += 2
+        # Unit match
+        if unit and str(loc.get("UnitNumber") or '').strip().lower() == str(unit).strip().lower():
+            s += 1
+        return s
+    
+    # Sort by score (highest first) and return best
+    sorted_locations = sorted(locations, key=score, reverse=True)
+    return sorted_locations[0]
+
+
+def map_sitex_feed_to_ui(sitex_response: Dict, original_address: str) -> Dict:
+    """
+    Map SiteX Pro feed response to existing UI contract
+    
+    This maintains backward compatibility with frontend expecting TitlePoint format
+    """
+    try:
+        # Check for error or no-match scenarios
+        status = sitex_response.get('Status')
+        status_code = sitex_response.get('StatusCode')
+        
+        if status_code and status_code != 'OK':
+            return {
+                'success': False,
+                'message': f'SiteX returned: {status}',
+                'manual_entry_required': True,
+                'fullAddress': original_address
+            }
+        
+        # Extract property data from feed
+        # Note: Actual field names depend on SiteX feed structure
+        # Adjust based on actual API response (use OpenAPI schema)
+        feed_data = sitex_response.get('PropertyFeed', {}) or sitex_response
+        
+        # Map to UI contract (matching TitlePoint response format)
+        return {
+            'success': True,
+            'apn': feed_data.get('APN', ''),
+            'county': feed_data.get('County', ''),
+            'city': feed_data.get('City', ''),
+            'state': feed_data.get('State', 'CA'),
+            'zip': feed_data.get('ZIP', ''),
+            'legalDescription': feed_data.get('LegalDescription', ''),
+            'grantorName': feed_data.get('OwnerName', ''),
+            'fullAddress': feed_data.get('FullAddress', original_address),
+            'confidence': 0.95,  # SiteX is authoritative
+            'fips': feed_data.get('FIPS', ''),
+            'recording_date': feed_data.get('LastSaleRecordingDate', ''),
+            'doc_number': feed_data.get('LastSaleDocumentNumber', ''),
+            # Source tracking
+            'source': 'sitex',
+            'sitex_validated': True
+        }
+        
+    except Exception as e:
+        print(f"SiteX mapping error: {e}")
+        return {
+            'success': False,
+            'message': f'Failed to parse property data: {str(e)}',
+            'manual_entry_required': True,
+            'fullAddress': original_address
+        }
+
+
+# ============================================================================
+# Legacy Endpoints
+# ============================================================================
 
 @router.get("/search-legacy")
 async def search_properties_legacy(

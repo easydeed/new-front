@@ -61,14 +61,16 @@ except ImportError as e:
 except Exception as e:
     print(f"❌ Error loading AI assist endpoints: {e}")
 
-try:
-    from api.property_search import router as property_search_router
-    app.include_router(property_search_router, prefix="/api/property", tags=["Property Search"])
-    print("✅ Property search endpoints loaded successfully")
-except ImportError as e:
-    print(f"⚠️ Property search endpoints not available: {e}")
-except Exception as e:
-    print(f"❌ Error loading property search endpoints: {e}")
+# PHASE 5-PREQUAL: Commenting out duplicate property_search router (route collision fix)
+# The richer implementation in property_endpoints.py will handle /api/property/search
+# try:
+#     from api.property_search import router as property_search_router
+#     app.include_router(property_search_router, prefix="/api/property", tags=["Property Search"])
+#     print("✅ Property search endpoints loaded successfully")
+# except ImportError as e:
+#     print(f"⚠️ Property search endpoints not available: {e}")
+# except Exception as e:
+#     print(f"❌ Error loading property search endpoints: {e}")
 
 try:
     from api.generate_deed import router as generate_deed_router

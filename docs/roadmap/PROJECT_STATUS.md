@@ -1,64 +1,24 @@
 # 📊 Project Status - DeedPro Wizard Rebuild
-**Last Updated**: October 1, 2025 at 21:00 PT
+**Last Updated**: October 6, 2025 at 11:45 PT
 
 ---
 
-## 🚨 **TOMORROW'S ACTION ITEMS (Oct 2, 2025)**
+## 🚨 **CRITICAL: PHASE 5 DEPLOYMENT BLOCKED**
 
-### **BEFORE DEPLOYMENT (09:00 AM) - 15 Minutes** 🔴
+### **NEW PRIORITY: Phase 5-Prequal (SiteX Property Search Migration)** 🔴
 
-**Critical Fixes Required**:
-
-1. **Fix Route Collision** (5 min)
-   ```bash
-   # File: backend/main.py lines 64-71
-   # Action: Comment out duplicate property_search router
-   ```
-   - [ ] Open `backend/main.py`
-   - [ ] Comment out lines 64-71 (property_search router mounting)
-   - [ ] Test: `cd backend && pytest`
-
-2. **Update Architecture Documentation** (5 min)
-   ```bash
-   # File: docs/wizard/ARCHITECTURE.md lines 38, 46
-   # Action: Change /api/generate-deed → /api/generate/grant-deed-ca
-   ```
-   - [ ] Open `docs/wizard/ARCHITECTURE.md`
-   - [ ] Line 38: Update to `/api/generate/grant-deed-ca`
-   - [ ] Line 46: Update to `/api/generate/grant-deed-ca` (add note: "Phase 5: Grant Deed only")
-
-3. **Run All Tests** (5 min)
-   - [ ] Frontend: `cd frontend && npm run test` (expect 45 passing)
-   - [ ] Backend: `cd backend && pytest` (expect 28 passing)
-   - [ ] All must pass before deployment
-
-### **DEPLOYMENT SEQUENCE (09:30 AM - 17:00 PM)**
-
-**09:30 - 10:00**: Deploy to Production
-- [ ] Deploy backend to Render
-- [ ] Deploy frontend to Vercel
-- [ ] Verify health checks
-- [ ] Manual test: Complete Grant Deed end-to-end
-
-**10:00 - 11:00**: Initial Monitoring
-- [ ] Monitor error rates (<0.5% target)
-- [ ] Check performance (API <2s, PDF <3s)
-- [ ] Verify no critical issues
-
-**11:00 - 17:00**: Feature Flag Rollout
-- [ ] 11:00 AM: Enable 10% rollout (monitor 2h)
-- [ ] 13:00 PM: Enable 50% rollout (monitor 4h)
-- [ ] 17:00 PM: Enable 100% rollout
-
-**Oct 3**: 24-hour production burn-in monitoring
+**Status**: ⏳ **IN PROGRESS** - Blocking Phase 5 deployment  
+**Target Completion**: October 8-9, 2025  
+**Reason**: **Step 1 (Property Search) is broken** - Cannot test wizard end-to-end without functional property verification
 
 ---
 
-## 🎯 **CURRENT PHASE: Phase 5 - Production Deployment**
+## 🎯 **CURRENT PHASE: Phase 5-Prequal - SiteX Property Search Migration**
 
-**Status**: ⏳ **READY FOR DEPLOYMENT** - Burn-in complete, 2 critical fixes needed  
-**Target Deployment**: October 2, 2025 at 09:30 AM  
-**Confidence**: 🟢 **HIGH**
+**Status**: ⏳ **CRITICAL PATH** - Must complete before Phase 5 deployment  
+**Estimated Duration**: 2-3 days  
+**New Phase 5 Deployment Target**: October 10, 2025 (after SiteX complete)  
+**Confidence**: 🟢 **HIGH** (with SiteX fix)
 
 ---
 
@@ -69,10 +29,11 @@ Phase 1: Lint & Typecheck              ✅ COMPLETE (100%)
 Phase 2: Google/TitlePoint Integration ✅ COMPLETE (100%)
 Phase 3: Backend Services              ✅ COMPLETE (100%)
 Phase 4: QA & Hardening                ✅ COMPLETE (100%)
-Phase 5: Production Deployment         🔄 IN PROGRESS (85%)
+Phase 5-Prequal: SiteX Migration       🔄 IN PROGRESS (0%)  ← BLOCKING
+Phase 5: Production Deployment         ⏸️ ON HOLD (85%)
 ```
 
-**Overall Project Status**: **85% Complete**
+**Overall Project Status**: **80% Complete** (revised due to Step 1 discovery)
 
 ---
 
@@ -109,68 +70,112 @@ Phase 5: Production Deployment         🔄 IN PROGRESS (85%)
 - Rollback procedures defined
 - **Exit Criteria**: All met ✓
 
-### **Phase 5: Production Deployment** 🔄
+### **Phase 5-Prequal: SiteX Property Search Migration** 🔄 **← CRITICAL PATH**
+- ⏳ SiteX service implementation
+- ⏳ Fix route collision (backend/main.py)
+- ⏳ Replace TitlePoint with SiteX REST API
+- ⏳ Frontend feature flag support (`NEXT_PUBLIC_SITEX_ENABLED`)
+- ⏳ Field mapping (SiteX feed → UI contract)
+- ⏳ Multi-match auto-resolution logic
+- ⏳ Manual fallback preservation
+- ⏳ Comprehensive testing (unit + integration + E2E)
+- ⏳ UAT deployment and validation
+- ⏳ Production deployment (feature-flagged)
+
+**Why This Phase**: Step 1 property search is currently broken (route collision + brittle TitlePoint SOAP). Cannot perform end-to-end wizard testing without functional property verification. SiteX provides modern REST API + deed image retrieval.
+
+### **Phase 5: Production Deployment** ⏸️ **ON HOLD**
 - ✅ Documentation complete
 - ✅ Cypress authentication implemented
 - ✅ Feature flags configured
 - ✅ Architecture verified
-- ⏳ 24-hour backend burn-in (in progress)
-- ⏳ Final Cypress sign-off (pending)
-- ⏳ Production deployment (pending)
+- ⏸️ 24-hour backend burn-in (paused pending SiteX)
+- ⏸️ Final Cypress sign-off (blocked by Step 1)
+- ⏸️ Production deployment (waiting for SiteX completion)
 
 ---
 
 ## 🔄 **WHAT'S IN PROGRESS**
 
-### **Current Work** (October 1, 2025)
+### **Current Work - Phase 5-Prequal** (October 6, 2025)
 
 | Task | Owner | Status | ETA |
 |------|-------|--------|-----|
-| 24-hour backend burn-in | DevOps | 🔄 In Progress | Oct 1, 18:00 PT |
-| Vercel deployment verification | QA | ✅ Complete | - |
-| Cypress test execution | QA | ⏳ Ready | After burn-in |
-| Production go/no-go decision | PM | ⏳ Pending | Oct 2, 09:00 PT |
+| SiteX service implementation | Backend | ⏳ Starting | Oct 6-7 |
+| Fix route collision (main.py) | Backend | ⏳ Ready | Oct 6 (1h) |
+| Update property_endpoints.py | Backend | ⏳ Ready | Oct 6-7 (4h) |
+| Field mapping implementation | Backend | ⏳ Ready | Oct 7 (2h) |
+| Frontend feature flag support | Frontend | ⏳ Ready | Oct 7 (1h) |
+| Integration testing | QA | ⏳ Pending | Oct 8 |
+| UAT deployment | DevOps | ⏳ Pending | Oct 8 |
+| Production deployment (flagged) | DevOps | ⏳ Pending | Oct 9 |
 
-### **Recent Achievements** (Last 24 hours)
-- ✅ Architectural audit completed (Phase 2 deviation RESOLVED)
-- ✅ Cypress authentication implemented (API-based login)
-- ✅ All documentation pushed to GitHub
-- ✅ Vercel deployments verified
-- ✅ Document selection page confirmed working on production
+### **Recent Discovery** (October 6, 2025)
+- 🔴 **CRITICAL**: Step 1 property search is broken
+  - Route collision: Two `/api/property/search` routes mounted
+  - TitlePoint SOAP integration brittle and unreliable
+  - **Impact**: Cannot perform end-to-end wizard testing
+  - **Decision**: Prioritize SiteX swap before Phase 5 deployment
+- ✅ SiteX proposal reviewed and approved
+- ✅ Migration plan documented (SiteX proposal + addendum)
 
 ---
 
 ## ⏳ **WHAT'S NEXT**
 
-### **Immediate** (Next 6 hours)
-1. ⏳ **Complete 24-hour backend burn-in** - Monitoring for stability
-2. ⏳ **Monitor Vercel deployments** - Ensure no issues
-3. ⏳ **Prepare Cypress test environment** - Ready for final sign-off
+### **Immediate - Phase 5-Prequal** (Next 24 hours - Oct 6-7)
+1. 🔴 **Fix route collision** - Comment out duplicate property_search router (backend/main.py lines 64-71)
+2. 🔴 **Implement SiteXService** - Create services/sitex_service.py with OAuth2 token management
+3. 🔴 **Update property_endpoints.py** - Replace TitlePoint with SiteX REST API calls
+4. 🔴 **Add frontend feature flag** - Support NEXT_PUBLIC_SITEX_ENABLED in PropertySearchWithTitlePoint
+5. 🔴 **Implement field mapping** - Map SiteX feed to existing UI contract
 
-### **Short-term** (Next 24 hours)
-4. ⏳ **Execute final Cypress tests** - Capture sign-off evidence
-5. ⏳ **Manual staging test** - Optional but recommended
-6. ⏳ **Production go/no-go decision** - Based on burn-in + tests
+### **Short-term - Phase 5-Prequal** (Next 48 hours - Oct 7-8)
+6. 🟡 **Write comprehensive tests** - Unit tests for SiteXService, integration tests for property search
+7. 🟡 **Deploy to UAT** - Test with SITEX_BASE_URL=https://api.uat.bkitest.com
+8. 🟡 **Validate end-to-end flow** - Verify wizard can complete full property search → deed generation
+9. 🟡 **Deploy to production (flagged)** - Enable SITEX_ENABLED=true, monitor for 24h
 
-### **Phase 5 Completion** (Next 48 hours)
-7. ⏳ **Production deployment** - Following deployment checklist
-8. ⏳ **Enable feature flags incrementally** - Start with 10% rollout
-9. ⏳ **First-hour monitoring** - Watch metrics closely
-10. ⏳ **24-hour production burn-in** - Ensure stability
+### **Phase 5 Deployment** (After SiteX complete - Oct 10+)
+10. ⏳ **Resume 24-hour backend burn-in** - With functional Step 1
+11. ⏳ **Execute final Cypress tests** - Full E2E regression with SiteX
+12. ⏳ **Production go/no-go decision** - Based on burn-in + tests
+13. ⏳ **Production deployment** - Following deployment checklist
+14. ⏳ **Enable feature flags incrementally** - Start with 10% rollout
+15. ⏳ **24-hour production burn-in** - Ensure stability
 
 ---
 
 ## 🚫 **CURRENT BLOCKERS**
 
-### **None! 🎉**
+### **🔴 CRITICAL BLOCKER: Step 1 Property Search Broken**
 
-All previous blockers resolved:
+**Issue**: Phase 5 deployment cannot proceed without functional property verification.
+
+**Symptoms**:
+- Route collision: Two `/api/property/search` routes mounted (property_endpoints + property_search)
+- TitlePoint SOAP integration unreliable and brittle
+- Cannot perform end-to-end wizard testing (property search → deed generation)
+- Cypress E2E tests blocked
+
+**Root Cause**:
+```python
+# backend/main.py has TWO conflicting routers:
+Line 43-46: property_endpoints.router (richer implementation)
+Line 64-67: property_search.router (simpler, overrides the first)
+```
+
+**Resolution**: Phase 5-Prequal (SiteX Migration)
+- Replace TitlePoint SOAP with SiteX REST API
+- Fix route collision (remove duplicate router)
+- Enable end-to-end testing with functional Step 1
+- **ETA**: October 8-9, 2025
+
+**Previous blockers** (now resolved):
 - ~~Architecture deviation~~ → ✅ RESOLVED (document selection correct)
 - ~~Cypress authentication~~ → ✅ RESOLVED (API-based login)
 - ~~Test credentials~~ → ✅ RESOLVED (working credentials configured)
 - ~~Missing documentation~~ → ✅ RESOLVED (all docs updated)
-
-**Current Status**: Waiting for time-based burn-in to complete (non-blocking)
 
 ---
 
@@ -212,15 +217,29 @@ Rollback Plan:           ✅ Documented & Ready
 | Phase 2 Complete | Sep 20, 2025 | ✅ Done |
 | Phase 3 Complete | Sep 25, 2025 | ✅ Done |
 | Phase 4 Complete | Sep 30, 2025 | ✅ Done |
-| **Phase 5 Start** | **Oct 1, 2025** | **✅ Started** |
-| 24h Backend Burn-in | Oct 1, 2025 18:00 PT | ⏳ In Progress |
-| Final Cypress Sign-off | Oct 1, 2025 20:00 PT | ⏳ Scheduled |
-| **Production Deployment** | **Oct 2, 2025 09:00 PT** | **⏳ Scheduled** |
-| Phase 5 Complete | Oct 3, 2025 | ⏳ Target |
+| Phase 5 Start | Oct 1, 2025 | ✅ Started (paused) |
+| **Phase 5-Prequal Start** | **Oct 6, 2025** | **🔄 In Progress** |
+| Step 1 broken discovered | Oct 6, 2025 | 🔴 Critical issue |
+| SiteX service implementation | Oct 6-7, 2025 | ⏳ In Progress |
+| UAT deployment (SiteX) | Oct 8, 2025 | ⏳ Scheduled |
+| Production deployment (SiteX) | Oct 9, 2025 | ⏳ Scheduled |
+| **Phase 5-Prequal Complete** | **Oct 9, 2025** | **⏳ Target** |
+| Resume Phase 5 burn-in | Oct 9, 2025 | ⏳ Scheduled |
+| Final Cypress Sign-off | Oct 10, 2025 | ⏳ Scheduled |
+| **Production Deployment** | **Oct 10-11, 2025** | **⏳ Revised Target** |
+| Phase 5 Complete | Oct 12, 2025 | ⏳ Revised Target |
 
 ---
 
 ## 🔍 **RECENT CHANGES**
+
+### **October 6, 2025** 🔴 **CRITICAL DISCOVERY**
+- 🔴 **Step 1 Broken**: Discovered route collision + brittle TitlePoint integration
+- ✅ **SiteX Proposal Reviewed**: Modern REST API replacement approved
+- ✅ **Phase 5-Prequal Created**: New phase to fix Step 1 before Phase 5 deployment
+- ✅ **Documentation Updated**: PROJECT_STATUS.md + WIZARD_REBUILD_PLAN.md revised
+- 🔄 **Phase 5 Paused**: Cannot deploy without functional property verification
+- 📋 **Timeline Revised**: Phase 5 deployment pushed to Oct 10-11 (after SiteX)
 
 ### **October 1, 2025**
 - ✅ **Cypress Authentication**: Implemented API-based login for E2E tests
@@ -275,16 +294,25 @@ Track Phase 5 deployment progress:
 
 ## 🚨 **RISK ASSESSMENT**
 
-### **Current Risks**: 🟢 **LOW**
+### **Current Risks**: 🔴 **MEDIUM-HIGH** (due to Step 1 blocker)
 
 | Risk | Probability | Impact | Mitigation |
 |------|-------------|--------|------------|
-| Backend instability | 🟢 Low | High | 24h burn-in + monitoring |
-| Cypress test failures | 🟡 Medium | Low | Non-blocking, can fix post-deploy |
+| **Step 1 broken blocks deployment** | 🔴 **High** | **Critical** | **Phase 5-Prequal: SiteX migration** |
+| SiteX integration complexity | 🟡 Medium | Medium | Comprehensive testing + UAT validation |
+| Timeline delay (Phase 5) | 🔴 High | Medium | Accept 1 week delay for proper fix |
+| End-to-end testing blocked | 🔴 High | High | Prioritize SiteX to unblock Cypress tests |
+| Backend instability | 🟢 Low | High | 24h burn-in + monitoring (after SiteX) |
 | User-facing bugs | 🟢 Low | High | Feature flags + gradual rollout |
 | Performance degradation | 🟢 Low | Medium | Load testing + monitoring |
 
-**Overall Risk Level**: 🟢 **LOW** - Ready for production
+**Overall Risk Level**: 🔴 **MEDIUM-HIGH** - Blocked by Step 1, but clear resolution path
+
+**Risk Mitigation Plan**:
+1. Complete Phase 5-Prequal (SiteX) to unblock testing
+2. Validate SiteX in UAT before production
+3. Feature-flag rollout to minimize impact
+4. Accept 1-week timeline delay to ensure quality
 
 ---
 
@@ -324,11 +352,28 @@ Track Phase 5 deployment progress:
 
 ## 🎯 **SUCCESS CRITERIA**
 
-Phase 5 will be considered **COMPLETE** when:
+### **Phase 5-Prequal Success Criteria** (Must complete first)
+
+✅ All exit criteria met:
+- [ ] Route collision fixed (single /api/property/search route)
+- [ ] SiteXService implemented with OAuth2 token management
+- [ ] Property search endpoint updated to use SiteX
+- [ ] Field mapping complete (SiteX feed → UI contract)
+- [ ] Multi-match auto-resolution logic implemented
+- [ ] Manual fallback preserved (graceful degradation)
+- [ ] Frontend feature flag support added (NEXT_PUBLIC_SITEX_ENABLED)
+- [ ] Comprehensive tests passing (unit + integration + E2E)
+- [ ] UAT validation successful
+- [ ] Production deployment (feature-flagged) successful
+- [ ] End-to-end wizard flow functional (property search → deed generation)
+
+**Target Date**: October 9, 2025
+
+### **Phase 5 Success Criteria** (After Phase 5-Prequal complete)
 
 ✅ All exit criteria met:
 - [ ] 24-hour backend burn-in successful (0 critical errors)
-- [ ] Cypress E2E tests passed (all 15 tests)
+- [ ] Cypress E2E tests passed (all 15 tests) with functional Step 1
 - [ ] Production deployment successful
 - [ ] Feature flags enabled incrementally
 - [ ] No rollback required
@@ -336,18 +381,28 @@ Phase 5 will be considered **COMPLETE** when:
 - [ ] Performance within SLAs
 - [ ] 24-hour production burn-in successful
 
-**Target Date**: October 3, 2025
+**Revised Target Date**: October 12, 2025
 
 ---
 
 ## 💡 **QUICK STATUS CHECK**
 
-**Current Phase**: Phase 5 - Production Deployment  
-**Status**: ⏳ In Progress (85% complete)  
-**Blocker**: None (burn-in in progress)  
-**Next Action**: Wait for 24h burn-in → Run Cypress tests → Production deploy  
-**ETA**: October 2, 2025 (09:00 PT)  
-**Confidence**: 🟢 HIGH
+**Current Phase**: Phase 5-Prequal - SiteX Property Search Migration  
+**Status**: 🔴 **CRITICAL PATH** - Blocking Phase 5 deployment  
+**Blocker**: Step 1 (property search) is broken - route collision + brittle TitlePoint  
+**Next Action**: Implement SiteX service → Fix route collision → Test end-to-end  
+**ETA**: October 9, 2025 (Phase 5-Prequal complete)  
+**Phase 5 ETA**: October 10-12, 2025 (after SiteX complete)  
+**Confidence**: 🟢 HIGH (with clear resolution path)
+
+### **Why This Matters**
+Without functional Step 1, we cannot:
+- Perform end-to-end wizard testing
+- Validate Cypress E2E tests
+- Confidently deploy Phase 5 to production
+- Verify complete user flow (property search → deed generation)
+
+**SiteX migration unblocks all of the above.** ✅
 
 ---
 
@@ -355,6 +410,6 @@ Phase 5 will be considered **COMPLETE** when:
 
 ---
 
-**Last Updated**: October 1, 2025 at 14:30 PT  
-**Next Update**: October 1, 2025 at 20:00 PT (after burn-in)
+**Last Updated**: October 6, 2025 at 11:45 PT  
+**Next Update**: October 7, 2025 at 18:00 PT (after SiteX implementation)
 
