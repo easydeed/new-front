@@ -483,32 +483,33 @@ def map_sitex_feed_to_ui(sitex_response: Dict, original_address: str) -> Dict:
             }
         
         # Extract property data from SiteX nested feed structure
-        # SiteX returns: { "Property": { "Parcel": {...}, "Ownership": {...}, "Sales": {...} } }
+        # ACTUAL SiteX structure: { "Feed": { "PropertyProfile": {...} } }
         print(f"🔍 DEBUG: Mapping - sitex_response keys: {list(sitex_response.keys())}")
-        prop = sitex_response.get('Property', {})
-        print(f"🔍 DEBUG: Mapping - Property keys: {list(prop.keys()) if prop else 'None'}")
-        parcel = prop.get('Parcel', {})
-        print(f"🔍 DEBUG: Mapping - Parcel keys: {list(parcel.keys()) if parcel else 'None'}")
-        ownership = prop.get('Ownership', {})
-        print(f"🔍 DEBUG: Mapping - Ownership keys: {list(ownership.keys()) if ownership else 'None'}")
-        sales = prop.get('Sales', {})
+        feed = sitex_response.get('Feed', {})
+        profile = feed.get('PropertyProfile', {})
+        print(f"🔍 DEBUG: PropertyProfile keys: {list(profile.keys()) if profile else 'None'}")
+        
+        # For debugging: print key fields
+        print(f"🔍 DEBUG: APN from profile: {profile.get('APN', 'MISSING')}")
+        print(f"🔍 DEBUG: PrimaryOwnerName from profile: {profile.get('PrimaryOwnerName', 'MISSING')}")
         
         # Map to UI contract (matching TitlePoint response format)
+        # SiteX Feed.PropertyProfile contains all the data we need
         return {
             'success': True,
-            'apn': parcel.get('APN', ''),
-            'county': parcel.get('SitusCounty', ''),
-            'city': parcel.get('SitusCity', ''),
-            'state': parcel.get('SitusState', 'CA'),
-            'zip': parcel.get('SitusZIP', ''),
-            'legalDescription': parcel.get('LegalDescription', ''),
-            'grantorName': ownership.get('OwnerName', ''),  # Current owner
-            'propertyType': parcel.get('PropertyType', '') or parcel.get('PropertyUse', 'Single Family Residence'),
+            'apn': profile.get('APN', ''),
+            'county': profile.get('SiteCountyName', ''),  # County name field
+            'city': profile.get('SiteCity', ''),
+            'state': profile.get('SiteState', 'CA'),
+            'zip': profile.get('SiteZip', ''),
+            'legalDescription': profile.get('LegalDescription', ''),
+            'grantorName': profile.get('PrimaryOwnerName', ''),  # Current owner
+            'propertyType': profile.get('PropertyType', '') or profile.get('UseCodeDescription', 'Single Family Residence'),
             'fullAddress': original_address,  # Use original address for consistency
             'confidence': 0.95,  # SiteX is authoritative
-            'fips': parcel.get('FIPS', ''),
-            'recording_date': sales.get('LastSaleRecordingDate', ''),
-            'doc_number': sales.get('LastSaleDocumentNumber', ''),
+            'fips': profile.get('FIPS', ''),
+            'recording_date': profile.get('LastSaleRecordingDate', ''),
+            'doc_number': profile.get('LastSaleDocumentNumber', ''),
             # Source tracking
             'source': 'sitex',
             'sitex_validated': True
