@@ -307,8 +307,9 @@ async def property_search(
     Uses SiteX Pro REST API with multi-match auto-resolution
     """
     try:
-        # Check cache first
-        cache_key = request.fullAddress
+        # Check cache first (with version to invalidate old broken data)
+        cache_version = "v2"  # Increment when field mapping changes
+        cache_key = f"{cache_version}:{request.fullAddress}"
         cached_data = await get_cached_titlepoint_data(user_id, cache_key)
         if cached_data:
             return cached_data
