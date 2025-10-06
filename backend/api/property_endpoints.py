@@ -503,6 +503,7 @@ def map_sitex_feed_to_ui(sitex_response: Dict, original_address: str) -> Dict:
             'zip': parcel.get('SitusZIP', ''),
             'legalDescription': parcel.get('LegalDescription', ''),
             'grantorName': ownership.get('OwnerName', ''),  # Current owner
+            'propertyType': parcel.get('PropertyType', '') or parcel.get('PropertyUse', 'Single Family Residence'),
             'fullAddress': original_address,  # Use original address for consistency
             'confidence': 0.95,  # SiteX is authoritative
             'fips': parcel.get('FIPS', ''),

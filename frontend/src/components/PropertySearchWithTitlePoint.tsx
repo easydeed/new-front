@@ -435,7 +435,7 @@ export default function PropertySearchWithTitlePoint({
           grantorName: result.grantorName || '',
           currentOwnerPrimary: result.grantorName || 'Not available',
           currentOwnerSecondary: '',
-          propertyType: 'Single Family Residence',
+          propertyType: result.propertyType || 'Single Family Residence',  // Use backend data
           placeId: addressData.placeId
         };
 
