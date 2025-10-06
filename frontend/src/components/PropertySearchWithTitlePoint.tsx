@@ -780,7 +780,7 @@ export default function PropertySearchWithTitlePoint({
                 </>
               ) : (
                 <>
-                  🏠 Get Property Details from TitlePoint
+                  🏠 Get Property Details
                 </>
               )}
             </button>

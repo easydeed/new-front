@@ -480,26 +480,28 @@ def map_sitex_feed_to_ui(sitex_response: Dict, original_address: str) -> Dict:
                 'fullAddress': original_address
             }
         
-        # Extract property data from feed
-        # Note: Actual field names depend on SiteX feed structure
-        # Adjust based on actual API response (use OpenAPI schema)
-        feed_data = sitex_response.get('PropertyFeed', {}) or sitex_response
+        # Extract property data from SiteX nested feed structure
+        # SiteX returns: { "Property": { "Parcel": {...}, "Ownership": {...}, "Sales": {...} } }
+        prop = sitex_response.get('Property', {})
+        parcel = prop.get('Parcel', {})
+        ownership = prop.get('Ownership', {})
+        sales = prop.get('Sales', {})
         
         # Map to UI contract (matching TitlePoint response format)
         return {
             'success': True,
-            'apn': feed_data.get('APN', ''),
-            'county': feed_data.get('County', ''),
-            'city': feed_data.get('City', ''),
-            'state': feed_data.get('State', 'CA'),
-            'zip': feed_data.get('ZIP', ''),
-            'legalDescription': feed_data.get('LegalDescription', ''),
-            'grantorName': feed_data.get('OwnerName', ''),
-            'fullAddress': feed_data.get('FullAddress', original_address),
+            'apn': parcel.get('APN', ''),
+            'county': parcel.get('SitusCounty', ''),
+            'city': parcel.get('SitusCity', ''),
+            'state': parcel.get('SitusState', 'CA'),
+            'zip': parcel.get('SitusZIP', ''),
+            'legalDescription': parcel.get('LegalDescription', ''),
+            'grantorName': ownership.get('OwnerName', ''),  # Current owner
+            'fullAddress': original_address,  # Use original address for consistency
             'confidence': 0.95,  # SiteX is authoritative
-            'fips': feed_data.get('FIPS', ''),
-            'recording_date': feed_data.get('LastSaleRecordingDate', ''),
-            'doc_number': feed_data.get('LastSaleDocumentNumber', ''),
+            'fips': parcel.get('FIPS', ''),
+            'recording_date': sales.get('LastSaleRecordingDate', ''),
+            'doc_number': sales.get('LastSaleDocumentNumber', ''),
             # Source tracking
             'source': 'sitex',
             'sitex_validated': True
