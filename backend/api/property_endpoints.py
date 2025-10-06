@@ -362,6 +362,8 @@ async def property_search(
                 }
         
         # 3) Map SiteX feed to existing UI contract
+        print(f"🔍 DEBUG: Raw SiteX response keys: {list(data.keys())}")
+        print(f"🔍 DEBUG: Full SiteX response: {data}")
         mapped = map_sitex_feed_to_ui(data, request.fullAddress)
         
         # Cache the result
@@ -482,9 +484,13 @@ def map_sitex_feed_to_ui(sitex_response: Dict, original_address: str) -> Dict:
         
         # Extract property data from SiteX nested feed structure
         # SiteX returns: { "Property": { "Parcel": {...}, "Ownership": {...}, "Sales": {...} } }
+        print(f"🔍 DEBUG: Mapping - sitex_response keys: {list(sitex_response.keys())}")
         prop = sitex_response.get('Property', {})
+        print(f"🔍 DEBUG: Mapping - Property keys: {list(prop.keys()) if prop else 'None'}")
         parcel = prop.get('Parcel', {})
+        print(f"🔍 DEBUG: Mapping - Parcel keys: {list(parcel.keys()) if parcel else 'None'}")
         ownership = prop.get('Ownership', {})
+        print(f"🔍 DEBUG: Mapping - Ownership keys: {list(ownership.keys()) if ownership else 'None'}")
         sales = prop.get('Sales', {})
         
         # Map to UI contract (matching TitlePoint response format)
