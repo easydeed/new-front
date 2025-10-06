@@ -397,7 +397,13 @@ export default function PropertySearchWithTitlePoint({
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          address: addressData.fullAddress
+          fullAddress: addressData.fullAddress,  // PHASE 5-PREQUAL: Fixed field name to match backend schema
+          street: addressData.street,
+          city: addressData.city,
+          state: addressData.state,
+          zip: addressData.zip,
+          neighborhood: addressData.neighborhood,
+          placeId: addressData.placeId
         })
       });
 
