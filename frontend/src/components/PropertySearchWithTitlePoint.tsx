@@ -377,8 +377,7 @@ export default function PropertySearchWithTitlePoint({
 
     setIsTitlePointLoading(true);
     setErrorMessage(null);
-    setSitexMatches([]);
-    setShowSitexMatches(false);
+    // PHASE 5-PREQUAL: Removed setSitexMatches/setShowSitexMatches - multi-match auto-resolved on backend
     
     try {
       console.log('🔍 Unified Property Search for:', addressData);
