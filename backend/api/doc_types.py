@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from ..models.doc_types import get_document_types_registry
+from models.doc_types import get_document_types_registry
 
 
 router = APIRouter()
