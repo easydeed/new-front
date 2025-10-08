@@ -1,0 +1,43 @@
+{
+  "los_angeles": {
+    "name": "Los Angeles County",
+    "margins": {
+      "top": "0.75in",
+      "right": "0.5in",
+      "bottom": "0.5in",
+      "left": "0.5in"
+    },
+    "notes": "Standard California recording margins"
+  },
+  "orange": {
+    "name": "Orange County",
+    "margins": {
+      "top": "1.00in",
+      "right": "0.5in",
+      "bottom": "0.5in",
+      "left": "0.5in"
+    },
+    "notes": "Orange County requires 1 inch top margin for recorder stamp"
+  },
+  "san_diego": {
+    "name": "San Diego County",
+    "margins": {
+      "top": "0.75in",
+      "right": "0.5in",
+      "bottom": "0.5in",
+      "left": "0.5in"
+    },
+    "notes": "Standard California recording margins"
+  },
+  "default": {
+    "name": "Default (California Standard)",
+    "margins": {
+      "top": "0.75in",
+      "right": "0.5in",
+      "bottom": "0.5in",
+      "left": "0.5in"
+    },
+    "notes": "Use when specific county profile not available"
+  }
+}
+

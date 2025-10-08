@@ -1,0 +1,64 @@
+/* Grant Deed Pixel-Perfect Stylesheet */
+
+:root {
+  --page-width: 8.5in;
+  --page-height: 11in;
+}
+
+/* Reset and base styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11pt;
+  color: #000;
+}
+
+/* Print-specific styles */
+@media print {
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* Page container */
+.page {
+  position: relative;
+  width: var(--page-width);
+  height: var(--page-height);
+  background: white;
+  overflow: hidden;
+}
+
+/* Layer for text content */
+.layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Text layer spans (absolutely positioned) */
+.layer-text span {
+  position: absolute;
+  white-space: pre;
+  color: #000;
+  line-height: 1;
+}
+
+/* Horizontal rules */
+.rule {
+  position: absolute;
+  height: 0;
+  border-top: 1pt solid #000;
+}
+
+/* Ensure crisp borders for boxes */
+div[style*="border"] {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+

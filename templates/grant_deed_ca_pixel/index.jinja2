@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Grant Deed — Pixel Perfect</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="./grant-deed.css" />
+  <style>
+    /* Page setup with configurable margins */
+    @page { 
+      size: 8.5in 11in; 
+      margin: {{ page.margins.top }} {{ page.margins.right }} {{ page.margins.bottom }} {{ page.margins.left }}; 
+    }
+    
+    /* Absolute positioning for pixel-perfect layout */
+    .layer-text span { 
+      position: absolute; 
+      white-space: pre; 
+      color: #000; 
+      line-height: 1; 
+    }
+    
+    /* Horizontal rules */
+    .rule { 
+      position: absolute; 
+      height: 0; 
+      border-top: 1pt solid #000; 
+    }
+  </style>
+</head>
+<body>
+  <main class="page" data-page="1">
+    <section class="layer layer-text" id="text-layer-1">
+      
+      <!-- RECORDING HEADER -->
+      <span style="top:0.60in; left:0.75in; font-weight:700; font-size:10pt;">RECORDING REQUESTED BY:</span>
+      <span style="top:0.85in; left:0.75in; font-size:10pt;">{{ requested_by or title_company or '' }}</span>
+      
+      <span style="top:1.25in; left:0.75in; font-weight:700; font-size:10pt;">WHEN RECORDED MAIL TO:</span>
+      {% if return_to %}
+      <span style="top:1.50in; left:0.75in; font-size:10pt;">{{ return_to.get('name') or '' }}</span>
+      <span style="top:1.70in; left:0.75in; font-size:10pt;">{{ return_to.get('company') or '' }}</span>
+      <span style="top:1.90in; left:0.75in; font-size:10pt;">{{ return_to.get('address1') or '' }}</span>
+      <span style="top:2.10in; left:0.75in; font-size:10pt;">{{ return_to.get('city') or '' }}{% if return_to.get('city') and (return_to.get('state') or return_to.get('zip')) %}, {% endif %}{{ return_to.get('state') or '' }} {{ return_to.get('zip') or '' }}</span>
+      {% endif %}
+      
+      <!-- METADATA (RIGHT SIDE) -->
+      {% if escrow_no %}
+      <span style="top:0.60in; right:0.75in; font-size:9pt; position:absolute;">Escrow/Order No: {{ escrow_no }}</span>
+      {% endif %}
+      {% if title_order_no %}
+      <span style="top:0.85in; right:0.75in; font-size:9pt; position:absolute;">Title Order #: {{ title_order_no }}</span>
+      {% endif %}
+      {% if apn %}
+      <span style="top:1.10in; right:0.75in; font-size:9pt; position:absolute;">APN: {{ apn }}</span>
+      {% endif %}
+      
+      <!-- HORIZONTAL RULE -->
+      <span class="rule" style="top:2.80in; left:0.5in; width:7.5in;"></span>
+      
+      <!-- TITLE -->
+      <span style="top:3.00in; left:3.30in; font-size:18pt; font-weight:800;">GRANT DEED</span>
+      
+      <!-- DOCUMENT TRANSFER TAX DECLARATION -->
+      <div style="position:absolute; top:3.55in; left:0.75in; width:7.0in; font-size:10pt; line-height:1.35;">
+        <div><strong>THE UNDERSIGNED GRANTOR(S) DECLARE(S):</strong></div>
+        <div>DOCUMENTARY TRANSFER TAX IS ${{ (dtt.get('amount') if dtt and dtt.get('amount') is not none else '0.00') }}</div>
+        <div>
+          {% if dtt and dtt.get('basis') == 'less_liens' %}
+            ☐ Computed on full value less liens and encumbrances remaining at time of sale.
+          {% else %}
+            ☑ Computed on full value of property conveyed.
+          {% endif %}
+        </div>
+        <div>
+          {% if dtt and dtt.get('area_type') == 'city' %}
+            ☑ City of {{ dtt.get('city_name') or '________________' }}
+          {% else %}
+            ☑ Unincorporated area
+          {% endif %}
+        </div>
+      </div>
+      
+      <!-- DEED BODY -->
+      <div style="position:absolute; top:4.85in; left:0.75in; width:7.0in; font-size:11pt; line-height:1.35;">
+        <p style="margin:0 0 .12in 0;">
+          For valuable consideration, receipt of which is hereby acknowledged,
+          {{ grantors_text or '________________' }}
+          ("Grantor{% if grantors_text and ';' in grantors_text %}s{% endif %}") hereby GRANT(s) to
+          {{ grantees_text or '________________' }}
+          ("Grantee{% if grantees_text and ';' in grantees_text %}s{% endif %}")
+          the real property situated in the County of {{ county or '________________' }}, State of California,
+          more particularly described as follows:
+        </p>
+        
+        {% if legal_description and legal_description|length > exhibit_threshold %}
+          <p style="margin:.12in 0;">See Exhibit "A" attached hereto and made a part hereof.</p>
+        {% else %}
+          <div style="border:1px solid #000; padding:.18in; white-space:pre-wrap; margin-top:.12in;">{{ (legal_description or '')|hyphenate_soft }}</div>
+        {% endif %}
+        
+        {% if apn and (not legal_description or legal_description|length <= exhibit_threshold) %}
+          <div style="font-size:9pt; margin-top:.15in;">APN: {{ apn }}</div>
+        {% endif %}
+      </div>
+      
+      <!-- EXECUTION / SIGNATURES -->
+      <div style="position:absolute; top:7.80in; left:0.75in; width:7.0in; font-size:11pt;">
+        <div>Dated: {{ execution_date or '' }}</div>
+        
+        {% set _signers = grantors_text.split(';') if grantors_text else [] %}
+        {% if _signers and _signers|length > 0 %}
+          {% for s in _signers %}
+            {% set s_trim = (s|string).strip() %}
+            {% if s_trim %}
+              <div style="margin-top:.35in;">
+                <div>____________________________________</div>
+                <div style="margin-top:.05in;">{{ s_trim }}</div>
+              </div>
+            {% endif %}
+          {% endfor %}
+        {% else %}
+          <div style="margin-top:.35in;">
+            <div>____________________________________</div>
+            <div style="margin-top:.05in;">Grantor</div>
+          </div>
+        {% endif %}
+      </div>
+      
+      <!-- NOTARY ACKNOWLEDGMENT -->
+      <div style="position:absolute; top:9.50in; left:0.75in; width:7.0in; font-size:10pt;">
+        <h3 style="text-align:center; margin:0 0 .12in 0; font-size:11pt;">ACKNOWLEDGMENT</h3>
+        {% from "_macros/notary_ack.jinja2" import render_notary_ack %}
+        {{ render_notary_ack("CA_All_Purpose", _signers) }}
+      </div>
+      
+    </section>
+  </main>
+  
+  <!-- EXHIBIT A (if legal description is long) -->
+  {% if legal_description and legal_description|length > exhibit_threshold %}
+  <div style="page-break-before:always; padding:0.75in; font-size:11pt;">
+    <h3 style="text-align:center; margin:0 0 .3in 0;">EXHIBIT "A"</h3>
+    <div style="border:1px solid #000; padding:.18in; white-space:pre-wrap;">{{ legal_description|hyphenate_soft }}</div>
+    {% if apn %}
+      <div style="font-size:9pt; margin-top:.15in;">APN: {{ apn }}</div>
+    {% endif %}
+  </div>
+  {% endif %}
+</body>
+</html>
+
