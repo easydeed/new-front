@@ -23,7 +23,10 @@ export default function Page() {
   async function generate(){
     try {
       setBusy(true); setErr(null);
-      const res = await fetch('/api/generate/warranty-deed-ca', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
+      const token = localStorage.getItem('token');
+      const headers: any = {'Content-Type':'application/json'};
+      if(token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetch('/api/generate/warranty-deed-ca', { method:'POST', headers, body: JSON.stringify(data) });
       if(!res.ok) throw new Error((await res.json()).detail || 'Failed');
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
