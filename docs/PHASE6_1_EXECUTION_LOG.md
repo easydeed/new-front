@@ -100,3 +100,20 @@
 
 **All frontend patches applied successfully!**
 
+---
+
+## 🔧 **BACKEND PATCHES**
+
+### **Patch 1001: Deeds Summary Endpoint** ✅
+- **File**: `backend/main.py`
+- **Changes**: Added `GET /deeds/summary` endpoint for dashboard stats, real DB queries
+- **Result**: ✅ Returns total, completed, in_progress, month counts
+
+### **Patches 1002-1004: Admin Features** ⏭️ DEFERRED
+- **Reason**: These are placeholder implementations requiring full DB schema design
+- **Files**: Admin user details, system metrics, draft persistence
+- **Status**: Out of scope for Phase 6-1 (wizard-first integration)
+- **Note**: Will be addressed in Phase 6-2 (Admin Dashboard Rebuild)
+
+**Backend integration for wizard-first flow complete!**
+

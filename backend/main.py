@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException, Depends, Query, Request, Body
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict
 import stripe
 import psycopg2
 from datetime import datetime, timedelta
@@ -1285,6 +1285,54 @@ def list_deeds_endpoint(user_id: int = Depends(get_current_user_id)):
     except Exception as e:
         print(f"Error fetching deeds: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch deeds: {str(e)}")
+
+# --- Phase 6-1: Deeds summary endpoint (for dashboard) ---
+@app.get("/deeds/summary")
+def deeds_summary(user_id: int = Depends(get_current_user_id)) -> Dict[str, int]:
+    """Return aggregated deed counts for the current user."""
+    try:
+        if not conn:
+            raise HTTPException(status_code=500, detail="Database connection not available")
+        
+        with conn.cursor() as cur:
+            # Query for status counts
+            cur.execute("""
+                SELECT 
+                    COUNT(*) as total,
+                    COUNT(*) FILTER (WHERE deed_type IS NOT NULL) as completed,
+                    0 as in_progress
+                FROM deeds 
+                WHERE user_id = %s
+            """, (user_id,))
+            
+            row = cur.fetchone()
+            total = row[0] if row else 0
+            completed = row[1] if row else 0
+            in_progress = row[2] if row else 0
+            
+            # Query for deeds created this month
+            cur.execute("""
+                SELECT COUNT(*) 
+                FROM deeds 
+                WHERE user_id = %s 
+                AND created_at >= date_trunc('month', CURRENT_DATE)
+            """, (user_id,))
+            
+            month_row = cur.fetchone()
+            month = month_row[0] if month_row else 0
+            
+            return {
+                "total": total,
+                "completed": completed,
+                "in_progress": in_progress,
+                "month": month
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching deed summary: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch summary: {str(e)}")
 
 @app.get("/deeds/available")
 def list_available_deeds_for_sharing(user_id: int = Depends(get_current_user_id)):
