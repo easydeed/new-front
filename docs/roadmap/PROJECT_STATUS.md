@@ -65,7 +65,31 @@ Frontend (8/8) ✅
 
 ---
 
-## 🎯 **WHAT'S NEXT - PHASE 7 OPTIONS**
+## 🎯 **WHAT'S NEXT - ROADMAP**
+
+**Current State**: Phase 8 complete. 5 deed types live in production. Platform is wizard-first, fully integrated, and scaling.
+
+### **IMMEDIATE NEXT: PHASE 9** 🎨 (FUN PHASE!)
+Taking a break from heavy lifting to focus on polish and user experience.
+- Details: `docs/roadmap/PHASE9_PLAN.md` (coming soon)
+- Focus: UI/UX improvements, small quality-of-life features
+- Duration: 1-2 days
+
+### **THEN: PHASE 7** 🔧 (FOUNDATION)
+Return to core infrastructure improvements.
+- Details: `docs/roadmap/QUICK_START_PHASE7.md`
+- Focus: Email/Notifications, Database migrations, Admin UI
+- Duration: 1-2 weeks
+
+### **FUTURE: PHASE 10** 🚀 (EXPANSION)
+Scale the platform with more deed types and production hardening.
+- Details: `docs/roadmap/PHASE10_EXPANSION_PLAN.md`
+- Focus: 5 more deed types, caching, rate limiting, analytics
+- Duration: 2-3 weeks
+
+---
+
+## 🎯 **ARCHIVED: PHASE 7 OPTIONS (Reference Only)**
 
 **Current State**: All Phase 6 objectives complete. Platform is wizard-first, dashboard integrated, admin tools functional.
 

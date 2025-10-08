@@ -1,0 +1,25 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "DocTypes: Apply Backend Patches",
+      "type": "shell",
+      "command": "bash scripts/doc_types_apply.sh backend"
+    },
+    {
+      "label": "DocTypes: Apply Frontend Patches",
+      "type": "shell",
+      "command": "bash scripts/doc_types_apply.sh frontend"
+    },
+    {
+      "label": "DocTypes: Dev (FE+BE)",
+      "type": "shell",
+      "command": "bash scripts/dev_all.sh"
+    },
+    {
+      "label": "DocTypes: Smoke (Playwright)",
+      "type": "shell",
+      "command": "bash scripts/smoke.sh http://localhost:3000 http://localhost:8000"
+    }
+  ]
+}

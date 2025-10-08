@@ -1,0 +1,103 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Warranty Deed</title>
+  <style>
+    @page { size: 8.5in 11in; margin: 0.75in 0.5in 0.5in 0.5in; }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; font-size: 11pt; }
+    .meta { font-size: 10pt; line-height: 1.2; }
+    .box { border:1px solid #000; padding:.18in; }
+  </style>
+</head>
+<body>
+  <div class="meta" style="margin-top:1.8in; position:relative;">
+    <div class="box" style="width:3.25in;">
+      <div><strong>RECORDING REQUESTED BY:</strong> {{ (requested_by or title_company) or "" }}</div>
+      <div style="margin-top:.18in;"><strong>AND WHEN RECORDED MAIL TO:</strong></div>
+      {% if return_to %}
+        {% if return_to.get('name') %}<div>{{ return_to.get('name') }}</div>{% endif %}
+        {% if return_to.get('company') %}<div>{{ return_to.get('company') }}</div>{% endif %}
+        {% if return_to.get('address1') %}<div>{{ return_to.get('address1') }}</div>{% endif %}
+        {% set _city = return_to.get('city') %}
+        {% set _state = return_to.get('state') %}
+        {% set _zip = return_to.get('zip') %}
+        <div>{{ _city or "" }}{% if _city and (_state or _zip) %}, {% endif %}{{ _state or "" }} {{ _zip or "" }}</div>
+      {% endif %}
+    </div>
+    <div style="position:absolute; right:.5in; top:0; width:2.8in; font-size:9pt;">
+      {% if escrow_no %}<div><strong>Escrow / Order No.:</strong> {{ escrow_no }}</div>{% endif %}
+      {% if title_order_no %}<div><strong>Title Order #:</strong> {{ title_order_no }}</div>{% endif %}
+      {% if title_company %}<div><strong>Title Company:</strong> {{ title_company }}</div>{% endif %}
+      {% if apn %}<div><strong>APN:</strong> {{ apn }}</div>{% endif %}
+    </div>
+  </div>
+
+  <div style="margin-top:.45in;">
+    <h2 style="text-align:center; margin:0 0 .18in 0;">WARRANTY DEED</h2>
+
+    <p style="margin:0 0 .15in 0;">
+      For valuable consideration, receipt of which is hereby acknowledged,
+{{ grantors_text or '________________' }} ("Grantor{% if grantors_text and ';' in grantors_text %}s{% endif %}") hereby GRANT(S) AND CONVEY(S) WITH WARRANTY
+to {{ grantees_text or '________________' }} ("Grantee{% if grantees_text and ';' in grantees_text %}s{% endif %}") the real property situated in the County of
+{{ county or '________________' }}, State of California, described as follows. Grantor covenants that Grantor is lawfully seized in fee simple
+of the premises, has good right to convey the same, and will warrant and defend the title against all lawful claims.
+    </p>
+
+    <div style="margin:0.2in 0;">
+      <strong>Legal Description (County of {{ county or '________________' }}, State of California)</strong>
+      {% if legal_description and legal_description|length > exhibit_threshold %}
+        <p>See Exhibit "A" attached hereto and made a part hereof.</p>
+      {% else %}
+        <div style="border:1px solid #000; padding:.18in; white-space:pre-wrap;">{{ legal_description or '' }}</div>
+      {% endif %}
+      <div style="margin-top:.1in;"><strong>Commonly known as:</strong> {{ property_address or '' }}</div>
+    </div>
+
+    
+
+    <div style="margin-top:.45in;">
+      <p>Dated: {{ execution_date or (now().strftime("%B %d, %Y")) }}</p>
+      {% set _signers = grantors_text.split(';') if grantors_text else [] %}
+      {% if _signers and _signers|length > 0 %}
+        {% for s in _signers %}
+          {% set s_trim = (s|string).strip() %}
+          {% if s_trim %}
+            <div style="margin-top:.35in;"><div>____________________________________</div><div>{{ s_trim }}</div></div>
+          {% endif %}
+        {% endfor %}
+      {% else %}
+        <div style="margin-top:.35in;"><div>____________________________________</div><div>Grantor</div></div>
+      {% endif %}
+
+      <div style="page-break-inside:avoid; margin-top:.5in; font-size:10pt;">
+        <h3 style="text-align:center; margin:0 0 .12in 0;">ACKNOWLEDGMENT</h3>
+        <div class="box">
+          <div><strong>California All-Purpose Acknowledgment</strong></div>
+          <p>State of California</p>
+          <p>County of __________________________</p>
+          <p>On __________________ before me, ______________________, Notary Public, personally appeared
+          {% if _signers and _signers|length > 0 %}
+            {% for s in _signers %}{{ (s|string).strip() }}{% if not loop.last %}, {% endif %}{% endfor %}
+          {% else %}
+            ________________________________
+          {% endif %}
+          , who proved to me on the basis of satisfactory evidence to be the person(s) whose name(s) is/are subscribed to the within instrument and acknowledged to me that he/she/they executed the same in his/her/their authorized capacity(ies), and that by his/her/their signature(s) on the instrument the person(s), or the entity upon behalf of which the person(s) acted, executed the instrument.</p>
+          <p>I certify under PENALTY OF PERJURY under the laws of the State of California that the foregoing paragraph is true and correct.</p>
+          <p>WITNESS my hand and official seal.</p>
+          <p>Signature __________________________________ (Seal)</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if legal_description and legal_description|length > exhibit_threshold %}
+    <div style="page-break-before:always; font-size:11pt;">
+      <h3 style="text-align:center;">EXHIBIT "A"</h3>
+      <div style="border:1px solid #000; padding:.3in; white-space:pre-wrap;">{{ legal_description }}</div>
+      {% if apn %}<div style="font-size:9pt; margin-top:.15in;">APN: {{ apn }}</div>{% endif %}
+    </div>
+  {% endif %}
+</body>
+</html>

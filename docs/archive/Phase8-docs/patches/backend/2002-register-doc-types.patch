@@ -1,0 +1,12 @@
+*** Begin Patch
+*** Update File: backend/api/doc_types.py
+@@
+-REGISTRY = [
++REGISTRY = [
+     { "id": "grant_deed_ca", "label": "Grant Deed (CA)", "path": "/create-deed/grant-deed" },
++    { "id": "quitclaim_deed_ca", "label": "Quitclaim Deed (CA)", "path": "/create-deed/quitclaim" },
++    { "id": "interspousal_transfer_ca", "label": "Interspousal Transfer (CA)", "path": "/create-deed/interspousal-transfer" },
++    { "id": "warranty_deed_ca", "label": "Warranty Deed (CA)", "path": "/create-deed/warranty-deed" },
++    { "id": "tax_deed_ca", "label": "Tax Deed (CA)", "path": "/create-deed/tax-deed" },
+ ]
+*** End Patch
