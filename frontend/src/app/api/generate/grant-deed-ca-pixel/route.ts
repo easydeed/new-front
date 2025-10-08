@@ -22,11 +22,21 @@ export async function POST(req: Request) {
     const engine = searchParams.get('engine') || 'weasyprint';
     const urlWithParams = `${url}?engine=${engine}`;
 
+    // CRITICAL FIX: Forward Authorization header from client to backend
+    const authHeader = req.headers.get("authorization");
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json"
+    };
+    if (authHeader) {
+      headers["Authorization"] = authHeader;
+    }
+
     console.log(`[Phase 5-Prequal B] Proxying to: ${urlWithParams}`);
+    console.log(`[Phase 5-Prequal B] Auth header present: ${!!authHeader}`);
 
     const upstream = await fetch(urlWithParams, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(payload),
     });
 

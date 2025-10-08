@@ -10,10 +10,19 @@ export async function POST(req: Request) {
       return new NextResponse("BACKEND_BASE_URL not set", { status: 500 });
     }
 
+    // CRITICAL FIX: Forward Authorization header from client to backend
+    const authHeader = req.headers.get("authorization");
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json"
+    };
+    if (authHeader) {
+      headers["Authorization"] = authHeader;
+    }
+
     const url = `${base}/api/generate/grant-deed-ca`;
     const upstream = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(payload),
     });
 
