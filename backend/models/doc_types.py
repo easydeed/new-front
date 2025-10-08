@@ -1,4 +1,5 @@
 from typing import Dict, Any
+import os
 
 
 def get_document_types_registry() -> Dict[str, Any]:
@@ -10,8 +11,14 @@ def get_document_types_registry() -> Dict[str, Any]:
     3) parties/property
     4) review
     5) generate
+    
+    Phase 8 Extra Deed Types (feature-flagged):
+    - Quitclaim Deed
+    - Interspousal Transfer Deed
+    - Warranty Deed
+    - Tax Deed
     """
-    return {
+    registry = {
         "grant_deed": {
             "label": "Grant Deed",
             "steps": [
@@ -51,5 +58,47 @@ def get_document_types_registry() -> Dict[str, Any]:
             },
         }
     }
+    
+    # Phase 8: Add extra deed types if feature flag is enabled
+    ENABLE_EXTRA_DEEDS = os.getenv("ENABLE_DEED_TYPES_EXTRA", "false").lower() == "true"
+    
+    if ENABLE_EXTRA_DEEDS:
+        registry["quitclaim"] = {
+            "label": "Quitclaim Deed",
+            "steps": [
+                {"key": "generate", "title": "Generate PDF"},
+            ],
+            "fields": {},
+            "schemas": {},
+        }
+        
+        registry["interspousal_transfer"] = {
+            "label": "Interspousal Transfer Deed",
+            "steps": [
+                {"key": "generate", "title": "Generate PDF"},
+            ],
+            "fields": {},
+            "schemas": {},
+        }
+        
+        registry["warranty_deed"] = {
+            "label": "Warranty Deed",
+            "steps": [
+                {"key": "generate", "title": "Generate PDF"},
+            ],
+            "fields": {},
+            "schemas": {},
+        }
+        
+        registry["tax_deed"] = {
+            "label": "Tax Deed",
+            "steps": [
+                {"key": "generate", "title": "Generate PDF"},
+            ],
+            "fields": {},
+            "schemas": {},
+        }
+    
+    return registry
 
 
