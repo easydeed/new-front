@@ -8,6 +8,12 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // Escrow-First Palette (Phase 9)
+        'escrow-bg': '#F8F7F4',       // Paper background (warm beige)
+        'escrow-ink': '#0F2A3D',      // Navy blue text
+        'escrow-teal': '#0F766E',     // Seal teal CTA
+        'escrow-slate': '#334155',    // Secondary text
+        
         // Flatter, softer palette for improved readability and low visual noise
         'light-seafoam': '#F7F9FC',   // Very light, neutral page background
         'pale-slate': '#FFFFFF',      // Card/surface background

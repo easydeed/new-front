@@ -2,6 +2,59 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Escrow Skin (Phase 9 - Theme) */
+.escrow {
+  --bg: #F8F7F4;
+  --ink: #0F2A3D;
+  --teal: #0F766E;
+  --slate: #334155;
+}
+
+.escrow body {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.escrow .btn-primary {
+  background: var(--teal);
+  color: #fff;
+}
+
+.escrow .section {
+  padding-block: 56px;
+}
+
+.escrow .h1 {
+  font: 700 32px/1.15 Inter, system-ui;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.escrow .text-slate {
+  color: var(--slate);
+}
+
+.escrow .text-ink {
+  color: var(--ink);
+}
+
+.escrow .text-teal {
+  color: var(--teal);
+}
+
+.escrow .proofline {
+  color: var(--slate);
+  opacity: 0.9;
+}
+
+.escrow .card {
+  @apply rounded-lg bg-white ring-1 ring-slate-200 p-4;
+}
+
+.escrow .font-heading {
+  font-weight: 600;
+}
+
 /* Unified landing-page color scheme (matches tailwind.config.js) */
 :root {
   /* Core palette */
