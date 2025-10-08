@@ -95,14 +95,18 @@ ${s4?.legalDescription || ""}
         grantees_text: grantDeed?.step4?.granteesText,
         county: grantDeed?.step4?.county,
         legal_description: grantDeed?.step4?.legalDescription,
-        execution_date: new Date().toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
-        })
+        execution_date: new Date().toISOString().split('T')[0] // YYYY-MM-DD format
       };
 
-      const res = await fetch("/api/generate/grant-deed-ca", {
+      // Phase 5-Prequal B: Feature flag for pixel-perfect PDF generation
+      const usePixelPerfectPDF = process.env.NEXT_PUBLIC_PDF_PIXEL_PERFECT === 'true';
+      const endpoint = usePixelPerfectPDF 
+        ? "/api/generate/grant-deed-ca-pixel"
+        : "/api/generate/grant-deed-ca";
+
+      console.log(`[Phase 5-Prequal B] Using endpoint: ${endpoint} (pixel-perfect: ${usePixelPerfectPDF})`);
+
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
