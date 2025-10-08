@@ -7,6 +7,8 @@ from typing import Optional, List, Dict
 import stripe
 import psycopg2
 from datetime import datetime, timedelta
+from time import time
+from collections import defaultdict
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
 import base64
@@ -124,6 +126,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Phase 6-2: Metrics tracking middleware
+@app.middleware("http")
+async def metrics_middleware(request: Request, call_next):
+    """Track request metrics for admin monitoring"""
+    global LAST_REQUEST_TS
+    t0 = time()
+    METRICS['requests_total'] += 1
+    try:
+        response = await call_next(request)
+        METRICS[f"status_{response.status_code}"] += 1
+        return response
+    finally:
+        dur = time() - t0
+        METRICS['latency_ms_sum'] += int(dur * 1000)
+        LAST_REQUEST_TS = time()
+
 # Stripe configuration
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
@@ -135,6 +153,13 @@ if DB_URL:
 else:
     conn = None
     print("Warning: No database connection URL found")
+
+# Phase 6-2: System Metrics Tracking
+METRICS = defaultdict(int)
+LAST_REQUEST_TS = 0.0
+
+# Phase 6-2: Draft persistence (in-memory, replace with DB in Phase 6-3)
+_DRAFTS = {}
 
 # Jinja2 environment for deed templates
 # Use absolute path that works both locally and on Render
@@ -278,6 +303,11 @@ class UserRegister(BaseModel):
     subscribe: bool = False
 
 class DeedData(BaseModel):
+    deed_type: str
+    data: dict
+
+# Phase 6-2: Draft persistence model
+class DraftPayload(BaseModel):
     deed_type: str
     data: dict
 
@@ -893,45 +923,83 @@ def admin_list_all_users(
 
 @app.get("/admin/users/{user_id}")
 def admin_get_user_details(user_id: int):
-    """Get detailed information about a specific user"""
+    """Get detailed information about a specific user - Phase 6-2: Real data"""
     if not verify_admin():
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    # Mock user detail data
-    user_details = {
-        "id": user_id,
-        "email": "john@example.com",
-        "first_name": "John",
-        "last_name": "Doe",
-        "username": "johndoe",
-        "city": "Los Angeles",
-        "country": "USA",
-        "created_at": "2024-01-01T00:00:00Z",
-        "last_login": "2024-01-15T09:30:00Z",
-        "is_active": True,
-        "subscription_plan": "pro",
-        "subscription_status": "active",
-        "subscription_start": "2024-01-01T00:00:00Z",
-        "next_billing_date": "2024-02-01T00:00:00Z",
-        "total_revenue": 89.97,
-        "payment_methods": [
-            {"id": "pm_123", "brand": "visa", "last4": "1234", "is_default": True}
-        ],
-        "deed_statistics": {
-            "total_deeds": 12,
-            "completed_deeds": 10,
-            "draft_deeds": 2,
-            "shared_deeds": 8,
-            "approved_deeds": 6
-        },
-        "activity_log": [
-            {"action": "login", "timestamp": "2024-01-15T09:30:00Z", "ip": "192.168.1.1"},
-            {"action": "deed_created", "timestamp": "2024-01-14T14:20:00Z", "deed_id": 1234},
-            {"action": "deed_shared", "timestamp": "2024-01-13T11:15:00Z", "deed_id": 1233}
-        ]
-    }
+    if not conn:
+        raise HTTPException(status_code=500, detail="Database connection not available")
     
-    return user_details
+    try:
+        with conn.cursor() as cur:
+            # Get user basic info
+            cur.execute("""
+                SELECT id, email, full_name, role, company_name, phone, 
+                       state, plan, is_active, stripe_customer_id,
+                       created_at, last_login, updated_at
+                FROM users 
+                WHERE id = %s
+            """, (user_id,))
+            
+            user_row = cur.fetchone()
+            if not user_row:
+                raise HTTPException(status_code=404, detail=f"User {user_id} not found")
+            
+            # Parse user data
+            user_id, email, full_name, role, company_name, phone, state, plan, is_active, stripe_customer_id, created_at, last_login, updated_at = user_row
+            
+            # Get deed statistics
+            cur.execute("""
+                SELECT 
+                    COUNT(*) as total_deeds,
+                    COUNT(*) FILTER (WHERE deed_type IS NOT NULL) as completed_deeds,
+                    0 as draft_deeds
+                FROM deeds 
+                WHERE user_id = %s
+            """, (user_id,))
+            
+            deed_stats = cur.fetchone()
+            total_deeds, completed_deeds, draft_deeds = deed_stats if deed_stats else (0, 0, 0)
+            
+            # Parse name (split full_name if available)
+            name_parts = full_name.split(' ', 1) if full_name else ['', '']
+            first_name = name_parts[0] if len(name_parts) > 0 else ''
+            last_name = name_parts[1] if len(name_parts) > 1 else ''
+            
+            # Build response with real data
+            user_details = {
+                "id": user_id,
+                "email": email or "",
+                "first_name": first_name,
+                "last_name": last_name,
+                "username": email.split('@')[0] if email else "",
+                "city": "",  # Not in current schema
+                "country": "USA",  # Default
+                "state": state or "",
+                "company_name": company_name or "",
+                "phone": phone or "",
+                "created_at": created_at.isoformat() if created_at else "",
+                "last_login": last_login.isoformat() if last_login else "",
+                "is_active": bool(is_active),
+                "role": role or "user",
+                "subscription_plan": plan or "free",
+                "subscription_status": "active" if is_active else "inactive",
+                "stripe_customer_id": stripe_customer_id or "",
+                "deed_statistics": {
+                    "total_deeds": total_deeds,
+                    "completed_deeds": completed_deeds,
+                    "draft_deeds": draft_deeds,
+                    "shared_deeds": 0,  # TODO: Implement when shared_deeds table exists
+                    "approved_deeds": completed_deeds
+                },
+                "activity_log": []  # TODO: Implement activity tracking table
+            }
+            
+            return user_details
+            
+    except Exception as e:
+        print(f"Error fetching user details: {e}")
+        raise HTTPException(status_code=500, detail=f"Error fetching user details: {str(e)}")
 
 @app.put("/admin/users/{user_id}")
 def admin_update_user(user_id: int, user_update: AdminUserUpdate):
@@ -1153,6 +1221,24 @@ def admin_system_health():
     
     return health_data
 
+@app.get("/admin/system-metrics")
+def admin_system_metrics():
+    """Get real-time system metrics - Phase 6-2: Real monitoring data"""
+    if not verify_admin():
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    reqs = METRICS.get('requests_total', 0)
+    lat_sum = METRICS.get('latency_ms_sum', 0)
+    avg_ms = int(lat_sum / reqs) if reqs else 0
+    
+    return {
+        "requests_total": reqs,
+        "avg_latency_ms": avg_ms,
+        "status": {k: v for k, v in METRICS.items() if str(k).startswith('status_')},
+        "last_request_unix": LAST_REQUEST_TS,
+        "last_request_iso": datetime.fromtimestamp(LAST_REQUEST_TS).isoformat() if LAST_REQUEST_TS > 0 else None
+    }
+
 # ============================================================================
 # USER ENDPOINTS - Regular User Operations
 # ============================================================================
@@ -1334,6 +1420,29 @@ def deeds_summary(user_id: int = Depends(get_current_user_id)) -> Dict[str, int]
     except Exception as e:
         print(f"Error fetching deed summary: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch summary: {str(e)}")
+
+# --- Phase 6-2: Wizard draft persistence (minimal in-memory) ---
+@app.post("/deeds/drafts")
+def save_draft(payload: DraftPayload, user_id: int = Depends(get_current_user_id)):
+    """Save a draft deed for the current user"""
+    draft_id = f"{user_id}:{int(time())}"
+    if user_id not in _DRAFTS:
+        _DRAFTS[user_id] = {}
+    _DRAFTS[user_id][draft_id] = {
+        "deed_type": payload.deed_type,
+        "data": payload.data,
+        "updated_at": int(time())
+    }
+    return {"draft_id": draft_id, "message": "Draft saved successfully"}
+
+@app.get("/deeds/drafts")
+def list_drafts(user_id: int = Depends(get_current_user_id)):
+    """List all draft deeds for the current user"""
+    user_drafts = _DRAFTS.get(user_id, {})
+    return [
+        {"id": draft_id, **draft_data}
+        for draft_id, draft_data in user_drafts.items()
+    ]
 
 @app.get("/deeds/available")
 def list_available_deeds_for_sharing(user_id: int = Depends(get_current_user_id)):
