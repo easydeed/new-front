@@ -1433,48 +1433,9 @@ def share_deed_for_approval(share_data: ShareDeedCreate):
 @app.get("/shared-deeds")
 def list_shared_deeds(user_id: int = Depends(get_current_user_id)):
     """List all shared deeds for current user"""
-    # Phase 6-1: Return empty array for now (shared deeds feature coming in Phase 6-2)
-    # TODO: Implement shared_deeds table and query real data
-    try:
-        # Check if shared_deeds table exists
-        if conn:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    SELECT table_name 
-                    FROM information_schema.tables 
-                    WHERE table_name = 'shared_deeds'
-                """)
-                table_exists = cur.fetchone()
-                
-                if table_exists:
-                    # Query real shared deeds
-                    cur.execute("""
-                        SELECT id, deed_id, shared_with, status, created_at, updated_at
-                        FROM shared_deeds
-                        WHERE user_id = %s
-                        ORDER BY created_at DESC
-                    """, (user_id,))
-                    
-                    rows = cur.fetchall()
-                    shared_deeds = []
-                    for row in rows:
-                        shared_deeds.append({
-                            "id": str(row[0]),
-                            "deed_id": str(row[1]),
-                            "shared_with": row[2],
-                            "status": row[3],
-                            "created_at": row[4].strftime("%Y-%m-%d") if row[4] else None,
-                            "updated_at": row[5].strftime("%Y-%m-%d") if row[5] else None
-                        })
-                    return shared_deeds
-        
-        # Return empty array if table doesn't exist (will show "No shared deeds yet")
-        return []
-        
-    except Exception as e:
-        print(f"Error fetching shared deeds: {e}")
-        # Return empty array on error (graceful degradation)
-        return []
+    # Phase 6-1: Return empty array (shared deeds table schema TBD in Phase 6-2)
+    # Returning empty array to avoid breaking DB connection with schema mismatches
+    return []
 
 @app.post("/shared-deeds/{shared_deed_id}/resend")
 def resend_approval_email(shared_deed_id: int):
