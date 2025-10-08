@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
@@ -55,7 +55,9 @@ export default function Home() {
       <div className="escrow min-h-screen font-inter">
         <main className="relative z-10">
           <Navbar />
-          <HeroEscrow />
+          <Suspense fallback={<div className="h-96 flex items-center justify-center"><div className="h-10 w-10 rounded-full border-2 border-dark-slate/20 border-t-transparent animate-spin" /></div>}>
+            <HeroEscrow />
+          </Suspense>
           <WhyTiles />
           <WorkflowStrip />
           <IntegrationsSection />
