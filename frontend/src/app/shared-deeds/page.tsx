@@ -1,67 +1,52 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
 import '../../styles/dashboard.css';
 
+// Phase 6-1: Shared Deeds API Integration
+type SharedRow = { 
+  id: string; 
+  deed_id: string; 
+  property?: string; 
+  deed_type?: string; 
+  shared_with: string; 
+  status: 'sent'|'opened'|'downloaded'|'revoked'|'viewed'|'approved'|'rejected'|'expired'; 
+  created_at?: string; 
+  shared_date?: string;
+  expires_at?: string;
+  viewed_at?: string | null;
+  response_date?: string | null;
+};
+
 export default function SharedDeeds() {
-  const [sharedDeeds, setSharedDeeds] = useState([
-    {
-      id: 1,
-      property: '123 Main St, Los Angeles, CA 90210',
-      deed_type: 'Grant Deed',
-      shared_with: 'john@titlecompany.com',
-      status: 'sent',
-      shared_date: '2024-01-15',
-      expires_at: '2024-02-15',
-      viewed_at: null,
-      response_date: null
-    },
-    {
-      id: 2,
-      property: '456 Oak Ave, Beverly Hills, CA 90212',
-      deed_type: 'Quitclaim Deed',
-      shared_with: 'sarah@lenderbank.com',
-      status: 'viewed',
-      shared_date: '2024-01-12',
-      expires_at: '2024-02-12',
-      viewed_at: '2024-01-13',
-      response_date: null
-    },
-    {
-      id: 3,
-      property: '789 Pine Rd, Santa Monica, CA 90401',
-      deed_type: 'Warranty Deed',
-      shared_with: 'mike@escrowpro.com',
-      status: 'approved',
-      shared_date: '2024-01-10',
-      expires_at: '2024-02-10',
-      viewed_at: '2024-01-11',
-      response_date: '2024-01-11'
-    },
-    {
-      id: 4,
-      property: '321 Elm St, Pasadena, CA 91101',
-      deed_type: 'Trust Transfer Deed',
-      shared_with: 'lisa@notaryservices.com',
-      status: 'rejected',
-      shared_date: '2024-01-08',
-      expires_at: '2024-02-08',
-      viewed_at: '2024-01-09',
-      response_date: '2024-01-09'
-    },
-    {
-      id: 5,
-      property: '555 Valley Blvd, Alhambra, CA 91801',
-      deed_type: 'Grant Deed',
-      shared_with: 'tom@realtycorp.com',
-      status: 'expired',
-      shared_date: '2023-12-15',
-      expires_at: '2024-01-15',
-      viewed_at: null,
-      response_date: null
+  const [sharedDeeds, setSharedDeeds] = useState<SharedRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Phase 6-1: Fetch and refresh shared deeds
+  async function refresh() {
+    const api = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_BASE_URL || 'https://deedpro-main-api.onrender.com';
+    const token = (typeof window !== 'undefined') ? localStorage.getItem('access_token') : null;
+    try {
+      setLoading(true);
+      const res = await fetch(`${api}/shared-deeds`, { 
+        headers: token ? { Authorization: `Bearer ${token}` } : {} 
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setSharedDeeds(Array.isArray(data) ? data : data.shared_deeds || []);
+    } catch (e: any) {
+      console.error('Failed to load shared deeds:', e);
+      setError(e.message || 'Failed to load shared deeds');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  }
+
+  useEffect(() => { 
+    refresh(); 
+  }, []);
 
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [shareFormData, setShareFormData] = useState({
@@ -177,9 +162,32 @@ export default function SharedDeeds() {
                     </tr>
                   </thead>
                   <tbody>
-                    {sharedDeeds.map((sharedDeed) => {
-                      const expired = isExpired(sharedDeed.expires_at);
-                      const daysRemaining = getDaysRemaining(sharedDeed.expires_at);
+                    {/* Phase 6-1: Loading and error states */}
+                    {loading && (
+                      <tr>
+                        <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-600)' }}>
+                          Loading shared deeds...
+                        </td>
+                      </tr>
+                    )}
+                    {error && !loading && (
+                      <tr>
+                        <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--error)' }}>
+                          Error: {error}
+                        </td>
+                      </tr>
+                    )}
+                    {!loading && !error && sharedDeeds.length === 0 && (
+                      <tr>
+                        <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-600)' }}>
+                          No shared deeds yet. Share a deed from <a href="/past-deeds" style={{color: 'var(--primary)', textDecoration: 'underline'}}>Past Deeds</a>
+                        </td>
+                      </tr>
+                    )}
+                    {/* Phase 6-1: Real shared deed data */}
+                    {!loading && !error && sharedDeeds.map((sharedDeed) => {
+                      const expired = sharedDeed.expires_at ? isExpired(sharedDeed.expires_at) : false;
+                      const daysRemaining = sharedDeed.expires_at ? getDaysRemaining(sharedDeed.expires_at) : 0;
                       
                       return (
                         <tr key={sharedDeed.id}>
@@ -229,39 +237,66 @@ export default function SharedDeeds() {
                           </td>
                           <td>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                              {!expired && sharedDeed.status !== 'approved' && sharedDeed.status !== 'rejected' && (
+                              {/* Phase 6-1: Real API calls for Resend/Revoke */}
+                              {!expired && sharedDeed.status !== 'approved' && sharedDeed.status !== 'rejected' && sharedDeed.status !== 'revoked' && (
                                 <button
                                   className="btn-secondary"
                                   style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
-                                  onClick={() => handleResend(sharedDeed.id)}
+                                  onClick={async () => {
+                                    const api = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_BASE_URL || 'https://deedpro-main-api.onrender.com';
+                                    const token = (typeof window !== 'undefined') ? localStorage.getItem('access_token') : null;
+                                    try {
+                                      await fetch(`${api}/shared-deeds/${sharedDeed.id}/resend`, { 
+                                        method: 'POST', 
+                                        headers: token ? { Authorization: `Bearer ${token}` } : {} 
+                                      });
+                                      refresh();
+                                    } catch (e) {
+                                      console.error('Failed to resend:', e);
+                                    }
+                                  }}
                                   title="Send reminder"
                                 >
                                   Remind
                                 </button>
                               )}
-                              <button
-                                style={{
-                                  background: 'var(--background)',
-                                  color: '#ef4444',
-                                  border: '2px solid #fee2e2',
-                                  padding: '0.5rem 1rem',
-                                  borderRadius: '8px',
-                                  fontSize: '0.9rem',
-                                  fontWeight: '600',
-                                  cursor: 'pointer',
-                                  transition: 'all 0.3s ease'
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.background = '#fee2e2';
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.background = 'var(--background)';
-                                }}
-                                onClick={() => handleRevoke(sharedDeed.id)}
-                                title="Revoke access"
-                              >
-                                Revoke
-                              </button>
+                              {sharedDeed.status !== 'revoked' && (
+                                <button
+                                  style={{
+                                    background: 'var(--background)',
+                                    color: '#ef4444',
+                                    border: '2px solid #fee2e2',
+                                    padding: '0.5rem 1rem',
+                                    borderRadius: '8px',
+                                    fontSize: '0.9rem',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s ease'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = '#fee2e2';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = 'var(--background)';
+                                  }}
+                                  onClick={async () => {
+                                    const api = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_BASE_URL || 'https://deedpro-main-api.onrender.com';
+                                    const token = (typeof window !== 'undefined') ? localStorage.getItem('access_token') : null;
+                                    try {
+                                      await fetch(`${api}/shared-deeds/${sharedDeed.id}/revoke`, { 
+                                        method: 'POST', 
+                                        headers: token ? { Authorization: `Bearer ${token}` } : {} 
+                                      });
+                                      refresh();
+                                    } catch (e) {
+                                      console.error('Failed to revoke:', e);
+                                    }
+                                  }}
+                                  title="Revoke access"
+                                >
+                                  Revoke
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>

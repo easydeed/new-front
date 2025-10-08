@@ -91,30 +91,37 @@ export default function Sidebar() {
               <span>Settings</span>
             </Link>
           </li>
-          <li>
-            <Link href="/team" data-tooltip="Team Dashboard">
-              <svg style={iconStyle()} viewBox="0 0 24 24" fill="currentColor">
-                <path d="M16,4C18.21,4 20,5.79 20,8C20,10.21 18.21,12 16,12C13.79,12 12,10.21 12,8C12,5.79 13.79,4 16,4M16,5.5A2.5,2.5 0 0,0 13.5,8A2.5,2.5 0 0,0 16,10.5A2.5,2.5 0 0,0 18.5,8A2.5,2.5 0 0,0 16,5.5M16,13C18.67,13 22,14.33 22,17V20H10V17C10,14.33 13.33,13 16,13M8,4C10.21,4 12,5.79 12,8C12,10.21 10.21,12 8,12C5.79,12 4,10.21 4,8C4,5.79 5.79,4 8,4M8,13C10.67,13 14,14.33 14,17V20H2V17C2,14.33 5.33,13 8,13Z"/>
-              </svg>
-              <span>Team</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/voice" data-tooltip="Voice Commands">
-              <svg style={iconStyle()} viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z"/>
-              </svg>
-              <span>Voice</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/security" data-tooltip="Security Center">
-              <svg style={iconStyle()} viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z"/>
-              </svg>
-              <span>Security</span>
-            </Link>
-          </li>
+          {/* Phase 6-1: Feature flags for incomplete sections */}
+          {process.env.NEXT_PUBLIC_ENABLE_TEAM === 'true' && (
+            <li>
+              <Link href="/team" data-tooltip="Team Dashboard">
+                <svg style={iconStyle()} viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M16,4C18.21,4 20,5.79 20,8C20,10.21 18.21,12 16,12C13.79,12 12,10.21 12,8C12,5.79 13.79,4 16,4M16,5.5A2.5,2.5 0 0,0 13.5,8A2.5,2.5 0 0,0 16,10.5A2.5,2.5 0 0,0 18.5,8A2.5,2.5 0 0,0 16,5.5M16,13C18.67,13 22,14.33 22,17V20H10V17C10,14.33 13.33,13 16,13M8,4C10.21,4 12,5.79 12,8C12,10.21 10.21,12 8,12C5.79,12 4,10.21 4,8C4,5.79 5.79,4 8,4M8,13C10.67,13 14,14.33 14,17V20H2V17C2,14.33 5.33,13 8,13Z"/>
+                </svg>
+                <span>Team</span>
+              </Link>
+            </li>
+          )}
+          {process.env.NEXT_PUBLIC_ENABLE_VOICE === 'true' && (
+            <li>
+              <Link href="/voice" data-tooltip="Voice Commands">
+                <svg style={iconStyle()} viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z"/>
+                </svg>
+                <span>Voice</span>
+              </Link>
+            </li>
+          )}
+          {process.env.NEXT_PUBLIC_ENABLE_SECURITY === 'true' && (
+            <li>
+              <Link href="/security" data-tooltip="Security Center">
+                <svg style={iconStyle()} viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z"/>
+                </svg>
+                <span>Security</span>
+              </Link>
+            </li>
+          )}
           <li>
             <Link href="/mobile" data-tooltip="Mobile App">
               <svg style={iconStyle()} viewBox="0 0 24 24" fill="currentColor">

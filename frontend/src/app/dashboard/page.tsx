@@ -10,6 +10,8 @@ export default function Dashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [recentDeeds, setRecentDeeds] = useState([]);
+  // Phase 6-1: Real dashboard stats from API
+  const [summary, setSummary] = useState<{total: number; completed: number; in_progress: number; month: number} | null>(null);
   const router = useRouter();
 
   // Authentication check useEffect
@@ -50,6 +52,42 @@ export default function Dashboard() {
 
     checkAuth();
   }, [router]);
+
+  // Phase 6-1: Fetch dashboard summary stats
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    const api = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_BASE_URL || 'https://deedpro-main-api.onrender.com';
+    const token = (typeof window !== 'undefined') ? localStorage.getItem('access_token') : null;
+    
+    (async () => {
+      try {
+        // Try summary endpoint first
+        const res = await fetch(`${api}/deeds/summary`, { 
+          headers: token ? { Authorization: `Bearer ${token}` } : {} 
+        });
+        
+        if (res.ok) {
+          setSummary(await res.json());
+        } else {
+          // Fallback: calculate from deeds list
+          const list = await fetch(`${api}/deeds`, { 
+            headers: token ? { Authorization: `Bearer ${token}` } : {} 
+          });
+          if (list.ok) {
+            const data = await list.json();
+            const deeds = Array.isArray(data.deeds) ? data.deeds : Array.isArray(data) ? data : [];
+            const total = deeds.length;
+            const completed = deeds.filter((d: any) => d.status === 'completed').length;
+            const in_progress = deeds.filter((d: any) => d.status !== 'completed').length;
+            setSummary({ total, completed, in_progress, month: completed });
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load dashboard summary:', e);
+      }
+    })();
+  }, [isAuthenticated]);
 
   const fetchRecentDeeds = async () => {
     try {
@@ -145,7 +183,8 @@ export default function Dashboard() {
                   <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
                 </svg>
               </div>
-              <div className="stat-number">12</div>
+              {/* Phase 6-1: Real data from API */}
+              <div className="stat-number">{summary?.total ?? '—'}</div>
               <div className="stat-label">Total Deeds</div>
             </div>
             <div className="stat-card progress">
@@ -154,7 +193,8 @@ export default function Dashboard() {
                   <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
                 </svg>
               </div>
-              <div className="stat-number">3</div>
+              {/* Phase 6-1: Real data from API */}
+              <div className="stat-number">{summary?.in_progress ?? '—'}</div>
               <div className="stat-label">In Progress</div>
             </div>
             <div className="stat-card completed">
