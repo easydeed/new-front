@@ -1,0 +1,10 @@
+*** Begin Patch
+*** Update File: frontend/src/components/Sidebar.tsx
+@@
+-<NavItem href="/team" icon="users">Team</NavItem>
+-<NavItem href="/voice" icon="mic">Voice</NavItem>
+-<NavItem href="/security" icon="shield">Security</NavItem>
++{process.env.NEXT_PUBLIC_ENABLE_TEAM === 'true' && <NavItem href="/team" icon="users">Team</NavItem>}
++{process.env.NEXT_PUBLIC_ENABLE_VOICE === 'true' && <NavItem href="/voice" icon="mic">Voice</NavItem>}
++{process.env.NEXT_PUBLIC_ENABLE_SECURITY === 'true' && <NavItem href="/security" icon="shield">Security</NavItem>}
+*** End Patch

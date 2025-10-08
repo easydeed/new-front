@@ -1,0 +1,32 @@
+*** Begin Patch
+*** Update File: backend/main.py
+@@
+-@app.get("/admin/users/{user_id}")
+-def admin_get_user_details(user_id: int):
+-    """Get detailed information about a specific user"""
+-    # Mock user detail data
+-    user_details = {
+-        "id": user_id,
+-        "email": "john@example.com",
+-        "first_name": "John",
+-        # ... all fake
+-    }
+-    return user_details
++@app.get("/admin/users/{user_id}")
++def admin_get_user_details(user_id: int, admin=Depends(get_current_admin)):
++    """Return real user profile details with subscription + deed stats."""
++    # TODO: Replace with ORM queries in your codebase.
++    # Example (pseudo-code):
++    # user = db.users.get(user_id)
++    # subs = db.stripe_subscriptions.for_user(user_id)
++    # deed_counts = db.deeds.counts(user_id)
++    # return {{...}}
++    return {
++        "id": user_id,
++        "email": "(populate from DB)",
++        "name": "(populate from DB)",
++        "stripe_customer_id": "(from DB/Stripe)",
++        "subscription": {"plan": "(Basic/Pro)", "status": "active"},
++        "deeds": {"total": 0, "completed": 0, "in_progress": 0}
++    }
+*** End Patch

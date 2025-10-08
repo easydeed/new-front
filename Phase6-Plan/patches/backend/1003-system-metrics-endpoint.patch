@@ -1,0 +1,36 @@
+*** Begin Patch
+*** Update File: backend/main.py
+@@
++from time import time
++from collections import defaultdict
++
++# Simple in-memory counters (restart-safe via logs)
++METRICS = defaultdict(int)
++LAST_REQUEST_TS = 0.0
++
++@app.middleware("http")
++async def metrics_middleware(request, call_next):
++    global LAST_REQUEST_TS
++    t0 = time()
++    METRICS['requests_total'] += 1
++    try:
++        response = await call_next(request)
++        METRICS[f"status_{response.status_code}"] += 1
++        return response
++    finally:
++        dur = time() - t0
++        METRICS['latency_ms_sum'] += int(dur * 1000)
++        LAST_REQUEST_TS = time()
++
++@app.get("/admin/system-metrics")
++def system_metrics(admin=Depends(get_current_admin)):
++    reqs = METRICS.get('requests_total', 0)
++    lat_sum = METRICS.get('latency_ms_sum', 0)
++    avg_ms = int(lat_sum / reqs) if reqs else 0
++    return {
++        "requests_total": reqs,
++        "avg_latency_ms": avg_ms,
++        "status": {k: v for k, v in METRICS.items() if str(k).startswith('status_')},
++        "last_request_unix": LAST_REQUEST_TS,
++    }
+*** End Patch

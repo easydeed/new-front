@@ -1,0 +1,22 @@
+*** Begin Patch
+*** Update File: backend/main.py
+@@
+-# TODO: drafts persistence
++# --- Phase 6-1: Wizard draft persistence (minimal) ---
++from pydantic import BaseModel
++class DraftPayload(BaseModel):
++    deed_type: str
++    data: dict
++
++_DRAFTS = {}  # Replace with DB persistence
++
++@app.post("/deeds/drafts")
++def save_draft(payload: DraftPayload, user_id: int = Depends(get_current_user_id)):
++    draft_id = f"{user_id}:{int(time())}"
++    _DRAFTS.setdefault(user_id, {})[draft_id] = {"deed_type": payload.deed_type, "data": payload.data, "updated_at": int(time())}
++    return {"draft_id": draft_id}
++
++@app.get("/deeds/drafts")
++def list_drafts(user_id: int = Depends(get_current_user_id)):
++    return list((_DRAFTS.get(user_id) or {}).items())
+*** End Patch

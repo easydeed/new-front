@@ -1,0 +1,8 @@
+{
+  "name": "deedpro-phase6-smoke",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "playwright": "^1.46.0"
+  }
+}

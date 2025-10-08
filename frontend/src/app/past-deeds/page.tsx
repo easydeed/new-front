@@ -4,45 +4,46 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
 import '../../styles/dashboard.css';
 
+// Phase 6-1: Past Deeds API Integration
+type DeedSummary = {
+  id: number;
+  property?: string;
+  deed_type?: string;
+  status?: 'draft'|'completed'|'in_progress';
+  created_at?: string;
+  updated_at?: string;
+  pdf_url?: string;
+};
+
 export default function PastDeeds() {
-  const [deeds, setDeeds] = useState([
-    {
-      id: 1,
-      property: '123 Main St, Los Angeles, CA 90210',
-      deedType: 'Grant Deed',
-      status: 'completed',
-      createdDate: '2024-01-15',
-      lastUpdated: '2024-01-16',
-      progress: 100
-    },
-    {
-      id: 2,
-      property: '456 Oak Ave, Beverly Hills, CA 90212',
-      deedType: 'Quitclaim Deed',
-      status: 'draft',
-      createdDate: '2024-01-14',
-      lastUpdated: '2024-01-14',
-      progress: 75
-    },
-    {
-      id: 3,
-      property: '789 Pine Rd, Santa Monica, CA 90401',
-      deedType: 'Warranty Deed',
-      status: 'completed',
-      createdDate: '2024-01-10',
-      lastUpdated: '2024-01-12',
-      progress: 100
-    },
-    {
-      id: 4,
-      property: '321 Elm St, Pasadena, CA 91101',
-      deedType: 'Trust Transfer Deed',
-      status: 'draft',
-      createdDate: '2024-01-08',
-      lastUpdated: '2024-01-09',
-      progress: 40
-    }
-  ]);
+  const [deeds, setDeeds] = useState<DeedSummary[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Phase 6-1: Fetch real deeds from backend
+  useEffect(() => {
+    const api = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_BASE_URL || 'https://deedpro-main-api.onrender.com';
+    const token = (typeof window !== 'undefined') ? localStorage.getItem('access_token') : null;
+    
+    (async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`${api}/deeds`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        
+        const data = await res.json();
+        setDeeds(Array.isArray(data.deeds) ? data.deeds : Array.isArray(data) ? data : []);
+      } catch (e: any) {
+        console.error('Failed to load deeds:', e);
+        setError(e.message || 'Failed to load deeds');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [recipients, setRecipients] = useState('');
@@ -160,67 +161,105 @@ export default function PastDeeds() {
                     </tr>
                   </thead>
                   <tbody>
-                    {deeds.map((deed) => (
-                      <tr key={deed.id}>
-                        <td style={{ fontWeight: '500' }}>{deed.property}</td>
-                        <td>{deed.deedType}</td>
-                        <td>{getStatusBadge(deed.status)}</td>
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div style={{
-                              width: '80px',
-                              height: '8px',
-                              background: 'var(--gray-200)',
-                              borderRadius: '4px',
-                              overflow: 'hidden'
-                            }}>
-                              <div style={{
-                                width: `${deed.progress}%`,
-                                height: '100%',
-                                background: deed.progress === 100 ? 'var(--accent)' : 'var(--primary-dark)',
-                                borderRadius: '4px',
-                                transition: 'width 0.3s ease'
-                              }} />
-                            </div>
-                            <span style={{ fontSize: '0.9rem', color: 'var(--gray-600)', minWidth: '35px' }}>
-                              {deed.progress}%
-                            </span>
-                          </div>
+                    {/* Phase 6-1: Loading and error states */}
+                    {loading && (
+                      <tr>
+                        <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-600)' }}>
+                          Loading deeds...
                         </td>
-                        <td>{new Date(deed.createdDate).toLocaleDateString()}</td>
-                        <td>{new Date(deed.lastUpdated).toLocaleDateString()}</td>
-                        <td>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                            {deed.status === 'draft' && (
-                              <button
-                                className="btn-primary"
-                                style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
-                                onClick={() => handleContinue(deed.id)}
-                                title="Continue editing this deed"
-                              >
-                                Continue
-                              </button>
-                            )}
-                            {deed.status === 'completed' && (
-                              <>
+                      </tr>
+                    )}
+                    {error && !loading && (
+                      <tr>
+                        <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--error)' }}>
+                          Error: {error}
+                        </td>
+                      </tr>
+                    )}
+                    {!loading && !error && deeds.length === 0 && (
+                      <tr>
+                        <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-600)' }}>
+                          No deeds yet. <a href="/create-deed" style={{color: 'var(--primary)', textDecoration: 'underline'}}>Create your first deed</a>
+                        </td>
+                      </tr>
+                    )}
+                    {/* Phase 6-1: Real deed data */}
+                    {!loading && !error && deeds.map((deed) => {
+                      const progress = deed.status === 'completed' ? 100 : deed.status === 'in_progress' ? 50 : deed.status === 'draft' ? 25 : 0;
+                      return (
+                        <tr key={deed.id}>
+                          <td style={{ fontWeight: '500' }}>{deed.property || '—'}</td>
+                          <td>{deed.deed_type || 'Grant Deed'}</td>
+                          <td>{getStatusBadge(deed.status || 'draft')}</td>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              <div style={{
+                                width: '80px',
+                                height: '8px',
+                                background: 'var(--gray-200)',
+                                borderRadius: '4px',
+                                overflow: 'hidden'
+                              }}>
+                                <div style={{
+                                  width: `${progress}%`,
+                                  height: '100%',
+                                  background: progress === 100 ? 'var(--accent)' : 'var(--primary-dark)',
+                                  borderRadius: '4px',
+                                  transition: 'width 0.3s ease'
+                                }} />
+                              </div>
+                              <span style={{ fontSize: '0.9rem', color: 'var(--gray-600)', minWidth: '35px' }}>
+                                {progress}%
+                              </span>
+                            </div>
+                          </td>
+                          <td>{deed.created_at ? new Date(deed.created_at).toLocaleDateString() : '—'}</td>
+                          <td>{deed.updated_at ? new Date(deed.updated_at).toLocaleDateString() : '—'}</td>
+                          <td>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                              {deed.status === 'draft' && (
                                 <button
                                   className="btn-primary"
                                   style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
-                                  onClick={() => handleDownload(deed.id)}
-                                  title="Download deed document"
+                                  onClick={() => handleContinue(deed.id)}
+                                  title="Continue editing this deed"
                                 >
-                                  Download
+                                  Continue
                                 </button>
-                                <button
-                                  className="btn-secondary"
-                                  style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
-                                  onClick={() => handleShare(deed.id)}
-                                  title="Share with recipients"
-                                >
-                                  Share
-                                </button>
-                              </>
-                            )}
+                              )}
+                              {(deed.status === 'completed' || deed.pdf_url) && (
+                                <>
+                                  {deed.pdf_url ? (
+                                    <a
+                                      href={deed.pdf_url}
+                                      className="btn-primary"
+                                      style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', textDecoration: 'none', display: 'inline-block' }}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      title="Download deed document"
+                                    >
+                                      Download
+                                    </a>
+                                  ) : (
+                                    <button
+                                      className="btn-primary"
+                                      style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
+                                      onClick={() => handleDownload(deed.id)}
+                                      title="Download deed document"
+                                    >
+                                      Download
+                                    </button>
+                                  )}
+                                  <button
+                                    className="btn-secondary"
+                                    style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
+                                    onClick={() => handleShare(deed.id)}
+                                    title="Share with recipients"
+                                  >
+                                    Share
+                                  </button>
+                                </>
+                              )}
                             <button
                               style={{
                                 background: 'var(--background)',

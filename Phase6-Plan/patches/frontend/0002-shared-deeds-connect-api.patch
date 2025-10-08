@@ -1,0 +1,55 @@
+*** Begin Patch
+*** Update File: frontend/src/app/shared-deeds/page.tsx
+@@
+-const [sharedDeeds, setSharedDeeds] = useState([
+-  { id: 1, property: '123 Main St, Los Angeles, CA 90210', deed_type: 'Grant Deed', shared_with: 'john@titlecompany.com', status: 'sent' }
+-]);
++type SharedRow = { id: string; deed_id: string; property?: string; deed_type?: string; shared_with: string; status: 'sent'|'opened'|'downloaded'|'revoked'; created_at?: string; };
++const [sharedDeeds, setSharedDeeds] = useState<SharedRow[]>([]);
++const [loading, setLoading] = useState(true);
++const [error, setError] = useState<string|null>(null);
++
++async function refresh() {
++  const api = process.env.NEXT_PUBLIC_API_URL || '/api';
++  const token = (typeof window !== 'undefined') ? localStorage.getItem('token') : null;
++  try {
++    setLoading(true);
++    const res = await fetch(`${api}/shared-deeds`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
++    if (!res.ok) throw new Error(`HTTP ${res.status}`);
++    const data = await res.json();
++    setSharedDeeds(Array.isArray(data) ? data : data.shared_deeds || []);
++  } catch (e:any) {
++    setError(e.message || 'Failed to load shared deeds');
++  } finally {
++    setLoading(false);
++  }
++}
++useEffect(() => { refresh(); }, []);
+@@
+-  {sharedDeeds.map(r => (
++  {loading && <div className="text-slate">Loading shared deeds…</div>}
++  {error && <div className="text-red-600">Error: {error}</div>}
++  {!loading && !error && sharedDeeds.map(r => (
+     <tr key={r.id}>
+       <td>{r.property || '—'}</td>
+       <td>{r.deed_type || 'Grant Deed'}</td>
+       <td>{r.shared_with}</td>
+       <td>{r.status}</td>
+       <td>
+-        <button>Resend</button>
++        <button onClick={async () => {
++          const api = process.env.NEXT_PUBLIC_API_URL || '/api';
++          const token = (typeof window !== 'undefined') ? localStorage.getItem('token') : null;
++          await fetch(`${api}/shared-deeds/${r.id}/resend`, { method:'POST', headers: token ? { Authorization: `Bearer ${token}` } : {} });
++          refresh();
++        }} className="text-teal underline">Resend</button>
++        <button onClick={async () => {
++          const api = process.env.NEXT_PUBLIC_API_URL || '/api';
++          const token = (typeof window !== 'undefined') ? localStorage.getItem('token') : null;
++          await fetch(`${api}/shared-deeds/${r.id}/revoke`, { method:'POST', headers: token ? { Authorization: `Bearer ${token}` } : {} });
++          refresh();
++        }} className="ml-3 text-warn underline">Revoke</button>
+       </td>
+     </tr>
+   ))}
+*** End Patch
