@@ -260,37 +260,38 @@ export default function PastDeeds() {
                                   </button>
                                 </>
                               )}
-                            <button
-                              style={{
-                                background: 'var(--background)',
-                                color: '#ef4444',
-                                border: '2px solid #fee2e2',
-                                padding: '0.5rem 1rem',
-                                borderRadius: '8px',
-                                fontSize: '0.9rem',
-                                fontWeight: '600',
-                                cursor: 'pointer',
-                                transition: 'all 0.3s ease'
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background = '#fee2e2';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.background = 'var(--background)';
-                              }}
-                              onClick={() => {
-                                if (window.confirm('Are you sure you want to delete this deed?')) {
-                                  setDeeds(deeds.filter(d => d.id !== deed.id));
-                                }
-                              }}
-                              title="Delete this deed"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                              <button
+                                style={{
+                                  background: 'var(--background)',
+                                  color: '#ef4444',
+                                  border: '2px solid #fee2e2',
+                                  padding: '0.5rem 1rem',
+                                  borderRadius: '8px',
+                                  fontSize: '0.9rem',
+                                  fontWeight: '600',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.3s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = '#fee2e2';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = 'var(--background)';
+                                }}
+                                onClick={() => {
+                                  if (window.confirm('Are you sure you want to delete this deed?')) {
+                                    setDeeds(deeds.filter(d => d.id !== deed.id));
+                                  }
+                                }}
+                                title="Delete this deed"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
