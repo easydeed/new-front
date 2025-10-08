@@ -1264,16 +1264,17 @@ def list_deeds_endpoint(user_id: int = Depends(get_current_user_id)):
             
             deeds = cur.fetchall()
             
-            # Format deeds for frontend
+            # Format deeds for frontend (Phase 6-1: Fixed field names to match frontend)
             formatted_deeds = []
             for deed in deeds:
                 formatted_deeds.append({
                     "id": deed[0],
                     "deed_type": deed[1],
-                    "address": deed[2],
+                    "property": deed[2],  # Frontend expects 'property' not 'address'
                     "grantor": deed[3],
                     "grantee": deed[4],
-                    "date": deed[5].strftime("%Y-%m-%d") if deed[5] else None,
+                    "created_at": deed[5].strftime("%Y-%m-%d") if deed[5] else None,  # Frontend expects 'created_at' not 'date'
+                    "updated_at": deed[6].strftime("%Y-%m-%d") if deed[6] else None,  # Add updated_at
                     "status": "completed",  # Default status - you can add a status column later
                     "recorded": False  # Default - you can add a recorded column later
                 })
@@ -1430,69 +1431,50 @@ def share_deed_for_approval(share_data: ShareDeedCreate):
     }
 
 @app.get("/shared-deeds")
-def list_shared_deeds():
+def list_shared_deeds(user_id: int = Depends(get_current_user_id)):
     """List all shared deeds for current user"""
-    # Sample data showing various approval statuses
-    shared_deeds = [
-        {
-            "id": 1,
-            "date_shared": "2024-01-15",
-            "deed_id": 101,
-            "apn": "123-456-789",
-            "address": "123 Main St, Los Angeles, CA",
-            "deed_type": "Quitclaim Deed",
-            "shared_with": "John Smith",
-            "recipient_email": "john@titleco.com",
-            "recipient_role": "Title Officer",
-            "status": "approved",
-            "response_date": "2024-01-16",
-            "comments": "Looks good to proceed",
-            "expires_at": "2024-01-22"
-        },
-        {
-            "id": 2,
-            "date_shared": "2024-01-14",
-            "deed_id": 102,
-            "apn": "987-654-321",
-            "address": "456 Oak Ave, Beverly Hills, CA",
-            "deed_type": "Grant Deed",
-            "shared_with": "Jane Doe",
-            "recipient_email": "jane@lender.com",
-            "recipient_role": "Lender",
-            "status": "viewed",
-            "expires_at": "2024-01-21"
-        },
-        {
-            "id": 3,
-            "date_shared": "2024-01-13",
-            "deed_id": 103,
-            "apn": "555-777-999",
-            "address": "789 Pine Rd, Santa Monica, CA",
-            "deed_type": "Warranty Deed",
-            "shared_with": "Bob Wilson",
-            "recipient_email": "bob@escrow.com",
-            "recipient_role": "Escrow Officer",
-            "status": "sent",
-            "expires_at": "2024-01-20"
-        },
-        {
-            "id": 4,
-            "date_shared": "2024-01-10",
-            "deed_id": 104,
-            "apn": "111-222-333",
-            "address": "321 Cedar St, Pasadena, CA",
-            "deed_type": "Trust Deed",
-            "shared_with": "Sarah Johnson",
-            "recipient_email": "sarah@notary.com",
-            "recipient_role": "Notary",
-            "status": "rejected",
-            "response_date": "2024-01-11",
-            "comments": "Please revise the legal description section",
-            "expires_at": "2024-01-17"
-        }
-    ]
-    
-    return {"shared_deeds": shared_deeds}
+    # Phase 6-1: Return empty array for now (shared deeds feature coming in Phase 6-2)
+    # TODO: Implement shared_deeds table and query real data
+    try:
+        # Check if shared_deeds table exists
+        if conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT table_name 
+                    FROM information_schema.tables 
+                    WHERE table_name = 'shared_deeds'
+                """)
+                table_exists = cur.fetchone()
+                
+                if table_exists:
+                    # Query real shared deeds
+                    cur.execute("""
+                        SELECT id, deed_id, shared_with, status, created_at, updated_at
+                        FROM shared_deeds
+                        WHERE user_id = %s
+                        ORDER BY created_at DESC
+                    """, (user_id,))
+                    
+                    rows = cur.fetchall()
+                    shared_deeds = []
+                    for row in rows:
+                        shared_deeds.append({
+                            "id": str(row[0]),
+                            "deed_id": str(row[1]),
+                            "shared_with": row[2],
+                            "status": row[3],
+                            "created_at": row[4].strftime("%Y-%m-%d") if row[4] else None,
+                            "updated_at": row[5].strftime("%Y-%m-%d") if row[5] else None
+                        })
+                    return shared_deeds
+        
+        # Return empty array if table doesn't exist (will show "No shared deeds yet")
+        return []
+        
+    except Exception as e:
+        print(f"Error fetching shared deeds: {e}")
+        # Return empty array on error (graceful degradation)
+        return []
 
 @app.post("/shared-deeds/{shared_deed_id}/resend")
 def resend_approval_email(shared_deed_id: int):
