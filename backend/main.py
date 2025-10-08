@@ -93,6 +93,20 @@ except ImportError as e:
 except Exception as e:
     print(f"❌ Error loading Grant Deed CA endpoints: {e}")
 
+# Include PHASE 8 extra deed types router
+try:
+    from routers.deeds_extra import router as deeds_extra_router
+    ENABLE_EXTRA_DEEDS = os.getenv("ENABLE_DEED_TYPES_EXTRA", "false").lower() == "true"
+    if ENABLE_EXTRA_DEEDS:
+        app.include_router(deeds_extra_router)
+        print("✅ Extra Deed Types endpoints loaded successfully (Quitclaim, Interspousal, Warranty, Tax)")
+    else:
+        print("⚠️ Extra Deed Types endpoints disabled via ENABLE_DEED_TYPES_EXTRA flag")
+except ImportError as e:
+    print(f"⚠️ Extra Deed Types endpoints not available: {e}")
+except Exception as e:
+    print(f"❌ Error loading Extra Deed Types endpoints: {e}")
+
 # Document types API for dynamic wizard
 try:
     from api.doc_types import router as doc_types_router
