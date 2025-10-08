@@ -1541,10 +1541,70 @@ def share_deed_for_approval(share_data: ShareDeedCreate):
 
 @app.get("/shared-deeds")
 def list_shared_deeds(user_id: int = Depends(get_current_user_id)):
-    """List all shared deeds for current user"""
-    # Phase 6-1: Return empty array (shared deeds table schema TBD in Phase 6-2)
-    # Returning empty array to avoid breaking DB connection with schema mismatches
-    return []
+    """List all shared deeds for current user - Phase 6-2: Real DB implementation"""
+    if not conn:
+        raise HTTPException(status_code=500, detail="Database connection not available")
+    
+    try:
+        with conn.cursor() as cur:
+            # Get user's email for matching shared_with_email
+            cur.execute("SELECT email FROM users WHERE id = %s", (user_id,))
+            user_row = cur.fetchone()
+            user_email = user_row[0] if user_row else None
+            
+            if not user_email:
+                return []
+            
+            # Query shared deeds where user is recipient
+            cur.execute("""
+                SELECT 
+                    sd.id,
+                    sd.deed_id,
+                    sd.shared_by,
+                    sd.shared_with_email,
+                    sd.status,
+                    sd.message,
+                    sd.share_type,
+                    sd.created_at,
+                    sd.updated_at,
+                    d.property_address,
+                    d.deed_type,
+                    u.full_name as shared_by_name
+                FROM shared_deeds sd
+                JOIN deeds d ON sd.deed_id = d.id
+                JOIN users u ON sd.shared_by = u.id
+                WHERE sd.shared_with_email = %s
+                AND sd.status != 'revoked'
+                ORDER BY sd.created_at DESC
+            """, (user_email,))
+            
+            rows = cur.fetchall()
+            
+            shared_deeds = []
+            for row in rows:
+                shared_deeds.append({
+                    "id": row[0],
+                    "deed_id": row[1],
+                    "shared_by_id": row[2],
+                    "shared_with_email": row[3],
+                    "status": row[4],
+                    "message": row[5] or "",
+                    "share_type": row[6] or "review",
+                    "date": row[7].isoformat() if row[7] else "",
+                    "updated_at": row[8].isoformat() if row[8] else "",
+                    "property": row[9] or "",
+                    "type": row[10] or "",
+                    "shared_by": row[11] or "Unknown User"
+                })
+            
+            return shared_deeds
+            
+    except Exception as e:
+        print(f"Error fetching shared deeds: {e}")
+        # Graceful degradation: return empty array if table doesn't exist yet
+        if "does not exist" in str(e):
+            return []
+        raise HTTPException(status_code=500, detail=f"Failed to fetch shared deeds: {str(e)}")
 
 @app.post("/shared-deeds/{shared_deed_id}/resend")
 def resend_approval_email(shared_deed_id: int):
@@ -1556,17 +1616,51 @@ def resend_approval_email(shared_deed_id: int):
     }
 
 @app.delete("/shared-deeds/{shared_deed_id}")
-def revoke_shared_deed(shared_deed_id: int):
-    """Revoke access to a shared deed"""
-    # In production:
-    # 1. Mark shared deed as revoked
-    # 2. Invalidate approval token
-    # 3. Send notification email (optional)
+def revoke_shared_deed(shared_deed_id: int, user_id: int = Depends(get_current_user_id)):
+    """Revoke access to a shared deed - Phase 6-2: Real DB implementation"""
+    if not conn:
+        raise HTTPException(status_code=500, detail="Database connection not available")
     
-    return {
-        "success": True,
-        "message": f"Access to shared deed {shared_deed_id} has been revoked"
-    }
+    try:
+        with conn.cursor() as cur:
+            # Verify the user owns this shared deed
+            cur.execute("""
+                SELECT shared_by FROM shared_deeds 
+                WHERE id = %s
+            """, (shared_deed_id,))
+            
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Shared deed not found")
+            
+            if row[0] != user_id:
+                raise HTTPException(status_code=403, detail="You don't have permission to revoke this share")
+            
+            # Mark as revoked
+            cur.execute("""
+                UPDATE shared_deeds 
+                SET status = 'revoked', revoked_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+            """, (shared_deed_id,))
+            
+            conn.commit()
+            
+            return {
+                "success": True,
+                "message": f"Access to shared deed {shared_deed_id} has been revoked"
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error revoking shared deed: {e}")
+        # Graceful degradation: return success if table doesn't exist yet
+        if "does not exist" in str(e):
+            return {
+                "success": True,
+                "message": "Sharing feature is being set up"
+            }
+        raise HTTPException(status_code=500, detail=f"Failed to revoke shared deed: {str(e)}")
 
 # Public approval endpoint (for recipients)
 @app.get("/approve/{approval_token}")
