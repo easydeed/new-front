@@ -23,7 +23,9 @@ export default function Page() {
   async function generate(){
     try {
       setBusy(true); setErr(null);
-      const token = localStorage.getItem('token');
+      // Get token from cookies (access_token) or localStorage (token)
+      const getCookie = (name: string) => document.cookie.split('; ').find(row => row.startsWith(name + '='))?.split('=')[1];
+      const token = getCookie('access_token') || localStorage.getItem('token');
       const headers: any = {'Content-Type':'application/json'};
       if(token) headers['Authorization'] = `Bearer ${token}`;
       const res = await fetch('/api/generate/quitclaim-deed-ca', { method:'POST', headers, body: JSON.stringify(data) });
