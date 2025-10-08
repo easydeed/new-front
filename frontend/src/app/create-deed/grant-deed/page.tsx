@@ -25,8 +25,8 @@ export default function GrantDeedWizard() {
   const [verifiedData, setVerifiedData] = useState<VerifiedData>({});
   const [autoSaveStatus, setAutoSaveStatus] = useState('');
   const [propertyConfirmed, setPropertyConfirmed] = useState(false);
-  const [wizardData, setWizardData] = useState<Record<string, unknown>>({
-    step1: {},
+  // Phase 5-Prequal C: Renamed wizardData → grantDeed to match Step5 expectations
+  const [grantDeed, setGrantDeed] = useState<Record<string, unknown>>({
     step2: {},
     step3: {},
     step4: {}
@@ -38,7 +38,7 @@ export default function GrantDeedWizard() {
     const saveData = {
       currentStep,
       verifiedData,
-      wizardData,
+      grantDeed,  // Phase 5-Prequal C: Changed from wizardData
       docType: 'grant_deed',
       timestamp: new Date().toISOString()
     };
@@ -51,7 +51,7 @@ export default function GrantDeedWizard() {
     }, 2000);
     
     return () => clearTimeout(timer);
-  }, [currentStep, verifiedData, wizardData]);
+  }, [currentStep, verifiedData, grantDeed]);  // Phase 5-Prequal C: Updated dependency
 
   // Load saved data on component mount
   useEffect(() => {
@@ -62,7 +62,8 @@ export default function GrantDeedWizard() {
         if (parsed.currentStep && parsed.currentStep > 1) {
           setCurrentStep(parsed.currentStep);
           setVerifiedData(parsed.verifiedData || {});
-          setWizardData(parsed.wizardData || {});
+          // Phase 5-Prequal C: Load grantDeed (with fallback to old wizardData for backward compatibility)
+          setGrantDeed(parsed.grantDeed || parsed.wizardData || {});
           if (parsed.currentStep > 1) {
             setPropertyConfirmed(true);
           }
@@ -76,15 +77,7 @@ export default function GrantDeedWizard() {
   const handlePropertyVerified = (data: VerifiedData) => {
     setVerifiedData(data);
     setPropertyConfirmed(true); // ✅ enable Next after successful validation
-    setWizardData(prev => ({
-      ...prev,
-      step1: {
-        apn: data.apn,
-        county: data.county,
-        piqAddress: data.piqAddress,
-        titlePoint: data.titlePoint
-      }
-    }));
+    // Phase 5-Prequal C: Step1 data is in verifiedData (no need to duplicate in grantDeed)
   };
 
   type StepPayload = Partial<{
@@ -112,7 +105,8 @@ export default function GrantDeedWizard() {
   }>;
 
   const handleStepDataChange = (stepData: StepPayload) => {
-    setWizardData(prev => ({ ...prev, ...stepData }));
+    // Phase 5-Prequal C: Updated to use setGrantDeed
+    setGrantDeed(prev => ({ ...prev, ...stepData }));
   };
 
   const handleNext = () => {
