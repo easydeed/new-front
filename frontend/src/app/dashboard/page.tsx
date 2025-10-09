@@ -240,8 +240,8 @@ export default function Dashboard() {
                       recentDeeds.slice(0, 5).map((deed) => (
                         <tr key={deed.id}>
                           <td>Deed Created</td>
-                          <td>{deed.address || deed.property_address || 'No address'}</td>
-                          <td>{deed.date ? new Date(deed.date).toLocaleDateString() : 'No date'}</td>
+                          <td>{deed.property || deed.address || 'No address'}</td>
+                          <td>{deed.created_at ? new Date(deed.created_at).toLocaleDateString() : 'No date'}</td>
                           <td>
                             <span className={`badge ${deed.status === 'completed' ? 'badge-success' : 'badge-info'}`}>
                               {deed.status || 'Completed'}
