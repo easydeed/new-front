@@ -16,7 +16,7 @@
 ```typescript
 // Lines 25-30
 const [local, setLocal] = useState<Step4Data>({
-  grantorsText: step4Data?.grantorsText ?? "",  // ✅ Grantors collected here
+  grantorsText: step4Data?.grantorsText ?? "",  // ✅ Grantors collected here (from SiteX or manual)
   granteesText: step4Data?.granteesText ?? "",
   county: step4Data?.county ?? step1Data?.county ?? "",
   legalDescription: step4Data?.legalDescription ?? ""
@@ -24,6 +24,7 @@ const [local, setLocal] = useState<Step4Data>({
 ```
 
 **Status**: ✅ Wizard correctly collects grantor names in Step 4
+**Note**: Grantors auto-fill from SiteX property search (current owner data)
 
 ---
 

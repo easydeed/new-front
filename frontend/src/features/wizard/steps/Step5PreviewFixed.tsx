@@ -120,7 +120,10 @@ export default function Step5PreviewFixed({
       a.remove();
 
       // 2. Save to database (use context adapter output for consistency)
+      console.log('[Phase 11 DEBUG] wizardData:', JSON.stringify(wizardData, null, 2));
+      
       const contextData = contextBuilder(wizardData);
+      console.log('[Phase 11 DEBUG] contextData after adapter:', JSON.stringify(contextData, null, 2));
       
       const payload = {
         deed_type: docType,
