@@ -284,6 +284,7 @@ class DeedCreate(BaseModel):
     legal_description: Optional[str] = None
     owner_type: Optional[str] = None
     sales_price: Optional[float] = None
+    grantor_name: Optional[str] = None  # Phase 11 Fix: Add grantor field
     grantee_name: Optional[str] = None
     vesting: Optional[str] = None
 
