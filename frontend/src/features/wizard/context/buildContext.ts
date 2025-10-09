@@ -145,7 +145,8 @@ function getLegalDescription(s: WizardStore): string {
  * Helper: Extract property address
  */
 function getPropertyAddress(s: WizardStore): string {
-  return s.verifiedData?.property_address || formatAddress(s.step1?.piqAddress) || '';
+  // Phase 11 Fix: verifiedData uses 'fullAddress' from SiteX, not 'property_address'
+  return s.verifiedData?.fullAddress || s.verifiedData?.property_address || formatAddress(s.step1?.piqAddress) || '';
 }
 
 /**
