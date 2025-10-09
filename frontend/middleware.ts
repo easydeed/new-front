@@ -29,6 +29,7 @@ const protectedRoutes = [
   '/shared-deeds',
   '/account-settings',
   '/admin',
+  '/admin-honest',  // AdminFix: explicit route for admin honesty pass
   '/team',
   '/voice',
   '/mobile',
