@@ -126,6 +126,16 @@ except ImportError as e:
 except Exception as e:
     print(f"❌ Error loading AI services endpoints: {e}")
 
+# AUTH HARDENING: Password reset, email verification, refresh tokens
+try:
+    from routers.auth_extra import router as auth_extra_router
+    app.include_router(auth_extra_router, prefix="", tags=["Auth Extra"])
+    print("✅ Auth hardening endpoints loaded successfully (password reset, email verification)")
+except ImportError as e:
+    print(f"⚠️ Auth hardening endpoints not available: {e}")
+except Exception as e:
+    print(f"❌ Error loading auth hardening endpoints: {e}")
+
 # Allow CORS for local dev and frontend
 app.add_middleware(
     CORSMiddleware,
@@ -1333,15 +1343,12 @@ def get_current_user(user_id: int = Depends(get_current_user_id)):
 
 # Deed endpoints
 @app.post("/deeds")
-def create_deed_endpoint(deed: DeedCreate):
-    """Create a new deed - Phase 11 Prequal"""
-    # In production, get user_id from JWT token
-    user_id = 1  # Placeholder
-    
+def create_deed_endpoint(deed: DeedCreate, user_id: int = Depends(get_current_user_id)):
+    """Create a new deed - Auth hardening: remove hardcoded user id"""
     deed_data = deed.dict()
     
     # Debug logging for Phase 11
-    print(f"[Phase 11] Creating deed: {deed_data}")
+    print(f"[Phase 11] Creating deed for user_id={user_id}: {deed_data}")
     
     new_deed = create_deed(user_id, deed_data)
     
