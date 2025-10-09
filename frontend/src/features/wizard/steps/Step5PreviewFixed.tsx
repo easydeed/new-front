@@ -128,6 +128,7 @@ export default function Step5PreviewFixed({
         apn: contextData.apn || '',
         county: contextData.county || '',
         legal_description: contextData.legal_description || '',
+        grantor_name: contextData.grantors_text || '',  // Phase 11 Fix: Add grantor data
         grantee_name: contextData.grantees_text || '',
         vesting: '', // Could be extracted from wizard if needed
         owner_type: '', // Could be extracted from wizard if needed

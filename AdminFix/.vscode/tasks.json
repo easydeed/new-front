@@ -1,0 +1,43 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "ADMIN: Apply Backend Additive Router",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "\nset -e\nmkdir -p backend/routers\ncp -f deedpro-admin-honesty-pass-bundle/snippets/backend/routers/admin_api_v2.py backend/routers/admin_api_v2.py\necho '\u2705 Copied admin_api_v2.py to backend/routers/'\necho '\ud83d\udc49 OPEN backend/main.py and add:'\necho 'from routers import admin_api_v2\\napp.include_router(admin_api_v2.router, prefix=\"\")'\n"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "ADMIN: Apply Frontend Honest Page",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "\nset -e\nmkdir -p frontend/src/app\ncp -r deedpro-admin-honesty-pass-bundle/snippets/frontend/src/app/admin-honest frontend/src/app/\nmkdir -p frontend/src/lib frontend/src/types\ncp -f deedpro-admin-honesty-pass-bundle/snippets/frontend/src/lib/adminApi.ts frontend/src/lib/adminApi.ts\ncp -f deedpro-admin-honesty-pass-bundle/snippets/frontend/src/types/admin.ts frontend/src/types/admin.ts\necho '\u2705 Frontend /admin-honest page installed.'\n"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "ADMIN: Dev (FE+BE)",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "\necho 'Starting backend & frontend\u2026'\n# Adjust these to your project\u2019s commands\n(cd backend && uvicorn main:app --reload --port 8000) &\n(cd frontend && npm run dev) &\nwait\n"
+      ]
+    },
+    {
+      "label": "ADMIN: Smoke",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "\nset -e\necho '\ud83d\udd0e Curling endpoints (token required):'\necho 'curl -H \"Authorization: Bearer $ADMIN_TOKEN\" http://localhost:8000/admin/users/search?limit=1'\n"
+      ]
+    }
+  ]
+}

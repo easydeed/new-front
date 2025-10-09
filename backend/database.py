@@ -209,8 +209,9 @@ def create_deed(user_id, deed_data):
         
         cursor.execute("""
             INSERT INTO deeds (user_id, deed_type, property_address, apn, county, 
-                             legal_description, owner_type, sales_price, grantee_name, vesting)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                             legal_description, owner_type, sales_price, 
+                             grantor_name, grantee_name, vesting)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING *
         """, (
             user_id, 
@@ -221,6 +222,7 @@ def create_deed(user_id, deed_data):
             deed_data.get('legal_description'),
             deed_data.get('owner_type'),
             deed_data.get('sales_price'),
+            deed_data.get('grantor_name'),  # Phase 11 Fix: Add grantor field
             deed_data.get('grantee_name'),
             deed_data.get('vesting')
         ))

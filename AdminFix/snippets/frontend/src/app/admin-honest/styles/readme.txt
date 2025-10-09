@@ -1,0 +1,1 @@
+Styles are inlined in page.tsx for simplicity.

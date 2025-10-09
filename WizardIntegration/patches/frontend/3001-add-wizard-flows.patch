@@ -1,0 +1,33 @@
+*** Begin Patch
+*** Add File: frontend/src/features/wizard/flows.ts
++// Added by wizard integration bundle
++export type DocType =
++  | 'grant_deed_ca'
++  | 'quitclaim_deed_ca'
++  | 'interspousal_transfer_ca'
++  | 'warranty_deed_ca'
++  | 'tax_deed_ca';
++
++export type StepId =
++  | 'Address'
++  | 'Parties'
++  | 'Vesting'
++  | 'DTT'
++  | 'DTTExemption'
++  | 'Covenants'
++  | 'TaxSaleRef'
++  | 'Notary'
++  | 'Review';
++
++export const flows: Record<DocType, StepId[]> = {
++  grant_deed_ca: ['Address','Parties','Vesting','DTT','Notary','Review'],
++  quitclaim_deed_ca: ['Address','Parties','Vesting','Notary','Review'],
++  interspousal_transfer_ca: ['Address','Parties','Vesting','DTTExemption','Notary','Review'],
++  warranty_deed_ca: ['Address','Parties','Covenants','Vesting','Notary','Review'],
++  tax_deed_ca: ['Address','TaxSaleRef','Parties','Vesting','Notary','Review'],
++};
++
++export function getFlowForDocType(docType: DocType): StepId[] {
++  return flows[docType] ?? flows.grant_deed_ca;
++}
+*** End Patch

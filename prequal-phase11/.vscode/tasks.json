@@ -1,0 +1,25 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "P11: Apply Frontend Patches",
+      "type": "shell",
+      "command": "bash scripts/p11_apply_frontend.sh"
+    },
+    {
+      "label": "P11: Apply Backend Patches (optional)",
+      "type": "shell",
+      "command": "bash scripts/p11_apply_backend.sh"
+    },
+    {
+      "label": "P11: Dev (FE+BE)",
+      "type": "shell",
+      "command": "bash scripts/dev_all.sh"
+    },
+    {
+      "label": "P11: Smoke (Prequal)",
+      "type": "shell",
+      "command": "bash scripts/smoke_prequal.sh http://localhost:3000"
+    }
+  ]
+}
