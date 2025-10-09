@@ -7,11 +7,13 @@ import PropertySearchWithTitlePoint from '../../../components/PropertySearchWith
 import Step2RequestDetails from '../../../features/wizard/steps/Step2RequestDetails';
 import Step3DeclarationsTax from '../../../features/wizard/steps/Step3DeclarationsTax';
 import Step4PartiesProperty from '../../../features/wizard/steps/Step4PartiesProperty';
-import Step5Preview from '../../../features/wizard/steps/Step5Preview';
+import Step5PreviewFixed from '../../../features/wizard/steps/Step5PreviewFixed';
 import DTTExemption from '../../../features/wizard/steps/DTTExemption';
 import Covenants from '../../../features/wizard/steps/Covenants';
 import TaxSaleRef from '../../../features/wizard/steps/TaxSaleRef';
 import { flows, getFlowForDocType, type DocType, type StepId } from '../../../features/wizard/flows';
+import { getContextAdapter } from '../../../features/wizard/context/buildContext';
+import { prefillFromEnrichment } from '../../../features/wizard/services/propertyPrefill';
 import '../../../styles/dashboard.css';
 import { useWizardStore } from '../../../store';
 
@@ -129,6 +131,9 @@ export default function UnifiedWizard() {
   const handlePropertyVerified = (data: VerifiedData) => {
     setVerifiedData(data);
     setPropertyConfirmed(true);
+    
+    // Phase 11 Prequal: Prefill enriched data from SiteX/TitlePoint
+    prefillFromEnrichment(data as any, setGrantDeed);
   };
 
   type StepPayload = Partial<{
@@ -206,7 +211,25 @@ export default function UnifiedWizard() {
         return <Step4PartiesProperty onNext={handleNext} onDataChange={handleStepDataChange} />;
       
       case 'Preview':
-        return <Step5Preview onStepChange={setCurrentStep} />;
+        // Phase 11 Prequal: Use new Step5PreviewFixed with context adapter
+        const contextAdapter = getContextAdapter(docType);
+        const wizardData = {
+          step1: verifiedData,
+          grantDeed,
+          verifiedData,
+          dttExemption: grantDeed.dttExemption,
+          warranty: grantDeed.warranty,
+          taxSale: grantDeed.taxSale,
+        };
+        
+        return (
+          <Step5PreviewFixed
+            docType={docType}
+            onStepChange={setCurrentStep}
+            wizardData={wizardData}
+            contextBuilder={contextAdapter}
+          />
+        );
       
       default:
         return <div>Unknown step: {currentStepId}</div>;
