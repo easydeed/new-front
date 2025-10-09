@@ -136,6 +136,16 @@ except ImportError as e:
 except Exception as e:
     print(f"❌ Error loading auth hardening endpoints: {e}")
 
+# ADMIN HONESTY PASS: Real admin endpoints with pagination, search, exports
+try:
+    from routers.admin_api_v2 import router as admin_api_v2_router
+    app.include_router(admin_api_v2_router, prefix="", tags=["Admin v2"])
+    print("✅ Admin v2 endpoints loaded successfully (users/deeds search, detail, exports)")
+except ImportError as e:
+    print(f"⚠️ Admin v2 endpoints not available: {e}")
+except Exception as e:
+    print(f"❌ Error loading Admin v2 endpoints: {e}")
+
 # Allow CORS for local dev and frontend
 app.add_middleware(
     CORSMiddleware,
