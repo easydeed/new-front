@@ -446,7 +446,7 @@ async def login_user(credentials: UserLogin = Body(...)):
         
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT id, password_hash, full_name, plan, is_active 
+                SELECT id, password_hash, full_name, plan, is_active, role 
                 FROM users WHERE email = %s
             """, (credentials.email.lower(),))
             user = cur.fetchone()
@@ -454,7 +454,7 @@ async def login_user(credentials: UserLogin = Body(...)):
         if not user:
             raise HTTPException(status_code=401, detail="Invalid email or password")
         
-        user_id, password_hash, full_name, plan, is_active = user
+        user_id, password_hash, full_name, plan, is_active, role = user
         
         if not is_active:
             raise HTTPException(status_code=401, detail="Account is deactivated")
@@ -467,9 +467,13 @@ async def login_user(credentials: UserLogin = Body(...)):
             cur.execute("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = %s", (user_id,))
             conn.commit()
         
-        # Create access token
+        # Create access token (AdminFix: include role for admin access)
         access_token = create_access_token(
-            data={"sub": str(user_id), "email": credentials.email.lower()}
+            data={
+                "sub": str(user_id), 
+                "email": credentials.email.lower(),
+                "role": role or "user"  # Default to "user" if role is None
+            }
         )
         
         return {
