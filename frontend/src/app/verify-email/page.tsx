@@ -1,8 +1,8 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const sp = useSearchParams();
   const router = useRouter();
   const [msg, setMsg] = useState('Verifying…');
@@ -23,12 +23,20 @@ export default function VerifyEmailPage() {
         setMsg(e?.message || 'Verification failed');
       }
     })();
-  }, [token]);
+  }, [token, router]);
 
   return (
     <main style={{ maxWidth:480, margin:'48px auto', padding:'24px', border:'1px solid #eee', borderRadius:8 }}>
       <h1>Email Verification</h1>
       <p>{msg}</p>
     </main>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<div style={{ maxWidth:480, margin:'48px auto', padding:'24px' }}>Loading...</div>}>
+      <VerifyEmailContent />
+    </Suspense>
   );
 }
