@@ -55,7 +55,14 @@ Day 3: QA & Polish
   - ✅ TaxSaleRef.tsx - Tax Deed step
   - ✅ types.ts updated with new deed-specific fields
   - ✅ Deployed to production (commit bfbf517)
-- 🔄 **Day 2 Integration (NEXT):** Refactor wizard to use dynamic routing...
+- ✅ **Day 2 Integration (COMPLETE):**
+  - ✅ Created unified wizard at [docType]/page.tsx (368 lines)
+  - ✅ Dynamic step router (StepId → Component mapping)
+  - ✅ Flow-based navigation (supports all 5 deed types)
+  - ✅ Dynamic progress indicator (adapts to flow length)
+  - ✅ Document selector already routes correctly
+  - ✅ Deployed to production (commit abdf7b4)
+- 🔄 **Day 3 Testing (NEXT):** End-to-end validation of all 5 deed flows...
 
 ### **What's Being Built**
 ```
