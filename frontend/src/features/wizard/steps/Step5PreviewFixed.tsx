@@ -119,16 +119,19 @@ export default function Step5PreviewFixed({
       a.click();
       a.remove();
 
-      // 2. Save to database
+      // 2. Save to database (use context adapter output for consistency)
+      const contextData = contextBuilder(wizardData);
+      
       const payload = {
         deed_type: docType,
-        status: 'completed',
-        property_address: wizardData?.verifiedData?.property_address || 
-                         wizardData?.property?.addressLine || 
-                         '',
-        grantor: wizardData?.grantDeed?.step4?.grantorsText || '',
-        grantee: wizardData?.grantDeed?.step4?.granteesText || '',
-        metadata: wizardData || {},
+        property_address: contextData.property_address || '',
+        apn: contextData.apn || '',
+        county: contextData.county || '',
+        legal_description: contextData.legal_description || '',
+        grantee_name: contextData.grantees_text || '',
+        vesting: '', // Could be extracted from wizard if needed
+        owner_type: '', // Could be extracted from wizard if needed
+        sales_price: null, // Could be extracted from DTT data if needed
       };
 
       console.log('[Phase 11] Saving deed metadata:', payload);
