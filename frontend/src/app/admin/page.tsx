@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import AdminSidebar from '@/components/AdminSidebar';
 import '../../styles/dashboard.css';
 
@@ -116,6 +117,13 @@ interface NewPlanForm {
 }
 
 export default function AdminDashboard() {
+  const router = useRouter();
+  
+  // AdminFix: Redirect to new admin-honest page
+  useEffect(() => {
+    router.replace('/admin-honest');
+  }, [router]);
+  
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState<AdminStats>({
     total_users: 0,
