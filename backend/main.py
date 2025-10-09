@@ -1334,15 +1334,19 @@ def get_current_user(user_id: int = Depends(get_current_user_id)):
 # Deed endpoints
 @app.post("/deeds")
 def create_deed_endpoint(deed: DeedCreate):
-    """Create a new deed"""
+    """Create a new deed - Phase 11 Prequal"""
     # In production, get user_id from JWT token
     user_id = 1  # Placeholder
     
     deed_data = deed.dict()
+    
+    # Debug logging for Phase 11
+    print(f"[Phase 11] Creating deed: {deed_data}")
+    
     new_deed = create_deed(user_id, deed_data)
     
     if not new_deed:
-        raise HTTPException(status_code=500, detail="Failed to create deed")
+        raise HTTPException(status_code=500, detail="Failed to create deed - check backend logs")
     
     return new_deed
 

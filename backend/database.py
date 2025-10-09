@@ -198,10 +198,15 @@ def get_user_by_email(email):
 def create_deed(user_id, deed_data):
     conn = get_db_connection()
     if not conn:
+        print(f"[Phase 11] No database connection!")
         return None
     
     try:
         cursor = conn.cursor()
+        
+        # Phase 11: Debug logging
+        print(f"[Phase 11] Inserting deed with data: user_id={user_id}, deed_type={deed_data.get('deed_type')}, property_address={deed_data.get('property_address')}, apn={deed_data.get('apn')}")
+        
         cursor.execute("""
             INSERT INTO deeds (user_id, deed_type, property_address, apn, county, 
                              legal_description, owner_type, sales_price, grantee_name, vesting)
@@ -210,7 +215,7 @@ def create_deed(user_id, deed_data):
         """, (
             user_id, 
             deed_data.get('deed_type'),
-            deed_data.get('property_address'),
+            deed_data.get('property_address') or 'Unknown',  # Fallback for empty string
             deed_data.get('apn'),
             deed_data.get('county'),
             deed_data.get('legal_description'),
@@ -224,10 +229,14 @@ def create_deed(user_id, deed_data):
         conn.commit()
         cursor.close()
         conn.close()
+        
+        print(f"[Phase 11] Deed created successfully: {deed[0] if deed else 'None'}")
         return dict(deed) if deed else None
         
     except Exception as e:
-        print(f"Error creating deed: {e}")
+        print(f"[Phase 11] Error creating deed: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
         if conn:
             conn.close()
         return None
