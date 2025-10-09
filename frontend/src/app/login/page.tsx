@@ -252,15 +252,32 @@ function LoginContent() {
         </div>
         {/* Demo Account (for testing purposes) */}
         <div className="mt-8 rounded-2xl p-6 border border-dark-slate/10 shadow-elevated bg-surface">
-          <h3 className="font-semibold text-dark-slate mb-4">Demo Account</h3>
+          <h3 className="font-semibold text-dark-slate mb-2">Demo Account</h3>
+          <p className="text-xs text-dark-slate/60 mb-4">👆 Click to auto-fill credentials</p>
           <div className="space-y-3 text-sm">
             <div 
-              className="rounded-xl p-4 border border-dark-slate/10 hover:border-gentle-indigo/40 transition-all duration-300 hover:scale-[1.02] group cursor-pointer"
-              onClick={() => setFormData({ email: "test@deedpro-check.com", password: "TestPassword123!" })}
+              className="rounded-xl p-4 border-2 border-gentle-indigo/30 bg-gentle-indigo/5 hover:border-gentle-indigo hover:bg-gentle-indigo/10 transition-all duration-300 hover:scale-[1.02] group cursor-pointer"
+              onClick={() => {
+                setFormData({ email: "test@deedpro-check.com", password: "TestPassword123!" });
+                setError(""); // Clear any errors
+                setSuccessMessage("Demo credentials loaded! Click 'Sign In' to continue.");
+              }}
             >
-              <div className="font-medium text-gentle-indigo group-hover:text-deep-teal transition-colors">Demo User Account</div>
-              <div className="text-dark-slate/70 text-xs mt-1">
-                test@deedpro-check.com • TestPassword123!
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium text-gentle-indigo group-hover:text-deep-teal transition-colors flex items-center gap-2">
+                    <span className="text-lg">👤</span>
+                    Demo User Account
+                  </div>
+                  <div className="text-dark-slate/70 text-xs mt-1">
+                    test@deedpro-check.com • TestPassword123!
+                  </div>
+                </div>
+                <div className="text-gentle-indigo group-hover:text-deep-teal">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
               </div>
             </div>
           </div>
