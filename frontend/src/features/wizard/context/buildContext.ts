@@ -167,13 +167,15 @@ export function toBaseContext(s: WizardStore) {
     title_company: step2?.titleCompany || '',
     escrow_no: step2?.escrowNo || '',
     title_order_no: step2?.titleOrderNo || '',
-    return_to: mailTo ? [
-      mailTo.name,
-      mailTo.company,
-      mailTo.address1,
-      mailTo.address2,
-      `${mailTo.city || ''}, ${mailTo.state || 'CA'} ${mailTo.zip || ''}`
-    ].filter(Boolean).join('\n') : '',
+    return_to: mailTo ? {
+      name: mailTo.name || '',
+      company: mailTo.company || '',
+      address1: mailTo.address1 || '',
+      address2: mailTo.address2 || '',
+      city: mailTo.city || '',
+      state: mailTo.state || 'CA',
+      zip: mailTo.zip || '',
+    } : null,
     apn: getAPN(s),
     county: getCounty(s),
     legal_description: getLegalDescription(s),
