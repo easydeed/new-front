@@ -232,7 +232,7 @@ def create_deed(user_id, deed_data):
         cursor.close()
         conn.close()
         
-        print(f"[Phase 11] Deed created successfully: {deed[0] if deed else 'None'}")
+        print(f"[Phase 11] Deed created successfully: {deed.get('id') if deed else 'None'}")
         return dict(deed) if deed else None
         
     except Exception as e:
