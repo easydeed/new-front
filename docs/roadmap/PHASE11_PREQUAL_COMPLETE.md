@@ -113,20 +113,22 @@ frontend/src/app/create-deed/[docType]/page.tsx
 
 ## 🎚️ **FEATURE FLAGS**
 
-### **Default Settings** (Safe Rollout)
+### **Phase 11 Prequal Flags** ✅ CONFIGURED
 ```bash
-# In featureFlags.ts (defaults to TRUE)
+# Vercel Environment Variables (ACTIVE)
 NEXT_PUBLIC_WIZARD_EMBED_PDF_PREVIEW=true   # Use iframe PDF preview
 NEXT_PUBLIC_WIZARD_REQUIRE_FINALIZE=true    # Two-stage finalize flow
 ```
 
-### **Optional Settings** (Already configured)
+### **Existing Flags** (Already configured)
 ```bash
 # Vercel Environment Variables
 NEXT_PUBLIC_SITEX_ENABLED=true              # SiteX enrichment
 NEXT_PUBLIC_TITLEPOINT_ENABLED=true         # TitlePoint enrichment
 ENABLE_DEED_TYPES_EXTRA=true                # Phase 8 deed types
 ```
+
+**Status**: ✅ All flags set in Vercel, redeployed and live
 
 ---
 
