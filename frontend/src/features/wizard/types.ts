@@ -38,6 +38,19 @@ export type GrantDeedState = {
   step4?: Step4PartiesProperty;
 };
 
+// Phase 11: Deed-specific step types
+export type DTTExemptionData = {
+  reason?: string;
+};
+
+export type WarrantyData = {
+  covenants?: string;
+};
+
+export type TaxSaleData = {
+  reference?: string;
+};
+
 // Extended wizard state to include grant deed steps
 export type ExtendedWizardState = {
   currentStep: number;
@@ -65,6 +78,11 @@ export type ExtendedWizardState = {
     };
   };
   
-  // New grant deed steps
+  // Grant deed steps
   grantDeed?: GrantDeedState;
+  
+  // Phase 11: Deed-specific steps
+  dttExemption?: DTTExemptionData;
+  warranty?: WarrantyData;
+  taxSale?: TaxSaleData;
 };
