@@ -255,12 +255,21 @@ function LoginContent() {
           <h3 className="font-semibold text-dark-slate mb-2">Demo Account</h3>
           <p className="text-xs text-dark-slate/60 mb-4">👆 Click to auto-fill credentials</p>
           <div className="space-y-3 text-sm">
-            <div 
-              className="rounded-xl p-4 border-2 border-gentle-indigo/30 bg-gentle-indigo/5 hover:border-gentle-indigo hover:bg-gentle-indigo/10 transition-all duration-300 hover:scale-[1.02] group cursor-pointer"
-              onClick={() => {
+            <button 
+              type="button"
+              className="w-full rounded-xl p-4 border-2 border-gentle-indigo/30 bg-gentle-indigo/5 hover:border-gentle-indigo hover:bg-gentle-indigo/10 transition-all duration-300 hover:scale-[1.02] group cursor-pointer text-left"
+              onClick={(e) => {
+                e.preventDefault();
+                console.log('🔵 Demo credentials clicked!');
                 setFormData({ email: "test@deedpro-check.com", password: "TestPassword123!" });
-                setError(""); // Clear any errors
-                setSuccessMessage("Demo credentials loaded! Click 'Sign In' to continue.");
+                setError("");
+                setSuccessMessage("✅ Demo credentials loaded! Click 'Sign In' to continue.");
+                
+                // Focus the email field to show it worked
+                setTimeout(() => {
+                  const emailInput = document.getElementById('email');
+                  if (emailInput) emailInput.focus();
+                }, 100);
               }}
             >
               <div className="flex items-center justify-between">
@@ -279,7 +288,7 @@ function LoginContent() {
                   </svg>
                 </div>
               </div>
-            </div>
+            </button>
           </div>
         </div>
 
