@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import OverviewTab from './components/Overview';
 import UsersTab from './components/UsersTab';
 import DeedsTab from './components/DeedsTab';
@@ -19,13 +20,24 @@ const TABS = [
 
 export default function AdminHonestV2Page(){
   const [tab, setTab] = useState(TABS[0].id);
+  const router = useRouter();
   const Active = TABS.find(t=> t.id===tab)!.render;
+  
+  const handleLogout = () => {
+    // Clear auth tokens
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('token');
+    // Redirect to login
+    router.push('/login');
+  };
+  
   return (
     <div className="admin-shell">
       <div className="hstack" style={{justifyContent:'space-between', marginBottom:12}}>
         <div className="hstack">
           <div style={{fontWeight:700, fontSize:20, letterSpacing:.25}}>Admin — Honest (v2)</div>
         </div>
+        <button className="button ghost" onClick={handleLogout}>Logout</button>
       </div>
       <div role="tablist" className="tabs">
         {TABS.map(t => (

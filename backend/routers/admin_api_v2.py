@@ -74,11 +74,9 @@ def admin_user_detail_real(user_id: int, admin=Depends(get_current_admin)):
                    phone, state, verified, stripe_customer_id, last_login, created_at, is_active
             FROM users WHERE id = %s
         """, (user_id,))
-        row = cur.fetchone()
-        if not row:
+        user = cur.fetchone()  # Already returns dict (RealDictCursor)
+        if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        cols = [c[0] for c in cur.description]
-        user = dict(zip(cols, row))
 
         cur.execute("""
             SELECT COUNT(*) as total,
@@ -86,8 +84,12 @@ def admin_user_detail_real(user_id: int, admin=Depends(get_current_admin)):
                    SUM(CASE WHEN status='draft' THEN 1 ELSE 0 END) as drafts
             FROM deeds WHERE user_id = %s
         """, (user_id,))
-        stats_row = cur.fetchone()
-        user["deed_stats"] = {"total": stats_row[0] or 0, "completed": stats_row[1] or 0, "drafts": stats_row[2] or 0}
+        stats = cur.fetchone()  # Already returns dict (RealDictCursor)
+        user["deed_stats"] = {
+            "total": stats['total'] or 0, 
+            "completed": stats['completed'] or 0, 
+            "drafts": stats['drafts'] or 0
+        }
 
     return {"user": user}
 
