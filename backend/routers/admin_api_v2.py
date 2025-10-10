@@ -113,8 +113,8 @@ def admin_deeds_search(
             where.append("""(
                 LOWER(d.deed_type) LIKE %s OR
                 LOWER(d.property_address) LIKE %s OR
-                LOWER(d.grantors) LIKE %s OR
-                LOWER(d.grantees) LIKE %s
+                LOWER(d.grantor_name) LIKE %s OR
+                LOWER(d.grantee_name) LIKE %s
             )""")
             s = f"%{search.lower()}%"
             params.extend([s, s, s, s])
