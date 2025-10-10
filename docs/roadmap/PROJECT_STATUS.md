@@ -32,26 +32,44 @@
 
 ---
 
-### **Phase 12-3: Admin Panel Enhancements** 🟡 **IN PROGRESS**
+### **Phase 12-3: Admin Panel Enhancements** 🔨 **IN PROGRESS - User Edit Page**
 **Status**: ⏳ **IMPLEMENTING - SLOW AND STEADY**
 
 **Goal**: Complete admin panel with missing features based on user feedback
 
-**3 Enhancements**:
-1. 🔍 **Investigate Missing Deeds** - Shows 6-9 but stats say 10 (diagnostic query needed)
-2. 🚪 **Add Logout Button** - To admin header (5 min)
-3. 👤 **User Detail/Edit Page** - Full CRUD with subscription management (30 min)
+**Progress**:
+1. ✅ **Missing Deeds Investigation** - Confirmed all 4 deeds present (no bug)
+2. ✅ **Logout Button** - Added to admin header, working perfectly
+3. ✅ **User Detail Modal** - View button shows full user info
+4. ✅ **CSV Exports** - Working perfectly for Users & Deeds
+5. 🔨 **User Edit Page** - Full CRUD (IN PROGRESS)
 
-**Implementation Order**:
+**Current Task**: User Detail/Edit Page (30-40 min)
 ```
-Step 1: Investigate missing deeds (debug query) ⏳
-Step 2: Add logout button to header ⏳
-Step 3: Create user detail page with edit mode ⏳
-Step 4: Add backend endpoints (PUT/DELETE) ⏳
-Step 5: Test all CRUD operations ⏳
+Step 1: Backend endpoints (PUT/DELETE/POST) ⏳
+Step 2: Frontend API client updates ⏳
+Step 3: Create user detail page component ⏳
+Step 4: Deploy & test end-to-end ⏳
 ```
 
-**Documentation**: See `docs/roadmap/PHASE12_3_ADMIN_ENHANCEMENTS.md`
+**Documentation**: See `docs/roadmap/PHASE12_3_USER_EDIT_IMPLEMENTATION.md`
+
+---
+
+### **Phase 12-4: Polish & Optimize** 📋 **PLANNED**
+**Status**: 📋 **DOCUMENTED - Ready for Later**
+
+**Goal**: Enhance admin panel with additional features and optimizations
+
+**Features**:
+1. Enhanced dashboard stats & charts
+2. Revenue tab (Stripe integration)
+3. System metrics tab (real-time monitoring)
+4. Mobile optimization
+5. Performance tuning (indexes, caching)
+6. UX polish (animations, toasts, better error handling)
+
+**Documentation**: See `docs/roadmap/PHASE12_4_POLISH_OPTIMIZE.md`
 
 ---
 
