@@ -90,6 +90,7 @@ def admin_user_detail_real(user_id: int, admin=Depends(get_current_admin)):
             "completed": stats['completed'] or 0, 
             "drafts": stats['drafts'] or 0
         }
+        user["deed_count"] = stats['total'] or 0  # Phase 12-3: Add top-level deed_count for modal
 
     return user  # Phase 12-3 Fix: Return user directly, not wrapped
 

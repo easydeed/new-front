@@ -76,6 +76,27 @@ export default function UserDetailPage() {
     }
   }
   
+  // Handle suspend/unsuspend
+  async function handleSuspend() {
+    if (!user) return;
+    
+    const action = user.is_active ? 'suspend' : 'unsuspend';
+    const confirmMsg = user.is_active 
+      ? 'Are you sure you want to suspend this user? They will not be able to login.'
+      : 'Are you sure you want to unsuspend this user? They will be able to login again.';
+    
+    if (!confirm(confirmMsg)) return;
+    
+    setError('');
+    try {
+      await AdminApi.updateUser(userId, { is_active: !user.is_active });
+      await loadUser(); // Refresh data
+      alert(`✅ User ${action}ed successfully`);
+    } catch (err: any) {
+      setError(err.message || `Failed to ${action} user`);
+    }
+  }
+  
   if (loading) {
     return (
       <div className="admin-shell">
@@ -120,6 +141,16 @@ export default function UserDetailPage() {
             <>
               <button className="button" onClick={() => setIsEditing(true)}>Edit</button>
               <button className="button ghost" onClick={handleResetPassword}>Reset Password</button>
+              <button 
+                className="button" 
+                style={{
+                  background: user.is_active ? 'var(--dp-warning, #f59e0b)' : 'var(--dp-success, #10b981)', 
+                  color: 'white'
+                }} 
+                onClick={handleSuspend}
+              >
+                {user.is_active ? '⏸ Suspend' : '▶ Unsuspend'}
+              </button>
               <button 
                 className="button" 
                 style={{background: 'var(--dp-error, #ef4444)', color: 'white'}} 
@@ -190,14 +221,32 @@ export default function UserDetailPage() {
                 <div style={{opacity: 0.6, fontSize: 12, marginBottom: 4}}>State</div>
                 <div style={{fontWeight: 500}}>{user.state || '—'}</div>
               </div>
-              <div className="hstack" style={{gap: 24}}>
+              <div className="vstack" style={{gap: 12}}>
                 <div>
-                  <div style={{opacity: 0.6, fontSize: 12, marginBottom: 4}}>Active</div>
-                  <div>{user.is_active ? '✅ Yes' : '❌ No'}</div>
+                  <div style={{opacity: 0.6, fontSize: 12, marginBottom: 4}}>
+                    Account Status
+                    <span style={{opacity: 0.5, marginLeft: 4}}>(can login?)</span>
+                  </div>
+                  <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+                    {user.is_active ? (
+                      <><span style={{color: 'var(--dp-success, #10b981)'}}>✅ Active</span> <span style={{opacity: 0.6, fontSize: 12}}>- Can login</span></>
+                    ) : (
+                      <><span style={{color: 'var(--dp-error, #ef4444)'}}>❌ Suspended</span> <span style={{opacity: 0.6, fontSize: 12}}>- Cannot login</span></>
+                    )}
+                  </div>
                 </div>
                 <div>
-                  <div style={{opacity: 0.6, fontSize: 12, marginBottom: 4}}>Verified</div>
-                  <div>{user.verified ? '✅ Yes' : '❌ No'}</div>
+                  <div style={{opacity: 0.6, fontSize: 12, marginBottom: 4}}>
+                    Email Verification
+                    <span style={{opacity: 0.5, marginLeft: 4}}>(verified email?)</span>
+                  </div>
+                  <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+                    {user.verified ? (
+                      <><span style={{color: 'var(--dp-success, #10b981)'}}>✅ Verified</span></>
+                    ) : (
+                      <><span style={{color: 'var(--dp-warning, #f59e0b)'}}>⚠️ Not Verified</span></>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
