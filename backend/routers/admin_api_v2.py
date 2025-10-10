@@ -62,7 +62,7 @@ def admin_users_search(
         rows = cur.fetchall()
         data = _dictify(cur, rows)
 
-    return {"page": page, "limit": limit, "total": total, "users": data}
+    return {"page": page, "limit": limit, "total": total, "items": data}
 
 @router.get("/users/{user_id}/real")
 def admin_user_detail_real(user_id: int, admin=Depends(get_current_admin)):
@@ -139,7 +139,7 @@ def admin_deeds_search(
         cols = [c[0] for c in cur.description]
         deeds = [dict(zip(cols, r)) for r in rows]
 
-    return {"page": page, "limit": limit, "total": total, "deeds": deeds}
+    return {"page": page, "limit": limit, "total": total, "items": deeds}
 
 @router.get("/deeds/{deed_id}")
 def admin_deed_detail(deed_id: int, admin=Depends(get_current_admin)):
