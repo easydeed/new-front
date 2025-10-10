@@ -1370,6 +1370,37 @@ def create_deed_endpoint(deed: DeedCreate, user_id: int = Depends(get_current_us
     if not new_deed:
         raise HTTPException(status_code=500, detail="Failed to create deed - check backend logs")
     
+    # Phase 7: Send deed completion notification
+    try:
+        from utils.notifications import send_deed_completion_notification
+        
+        # Get user details for notification
+        with conn.cursor() as cur:
+            cur.execute("SELECT email, full_name FROM users WHERE id = %s", (user_id,))
+            user_row = cur.fetchone()
+            
+            if user_row:
+                user_email = user_row[0]
+                user_name = user_row[1] or "Valued Customer"
+                deed_type = deed_data.get('deed_type', 'deed')
+                deed_id = new_deed.get('id', 0)
+                
+                # Send notification (non-blocking)
+                notification_sent = send_deed_completion_notification(
+                    user_email=user_email,
+                    user_name=user_name,
+                    deed_type=deed_type,
+                    deed_id=deed_id
+                )
+                
+                if notification_sent:
+                    print(f"[Phase 7] ✅ Deed completion email sent to {user_email}")
+                else:
+                    print(f"[Phase 7] ⚠️ Failed to send deed completion email")
+    except Exception as notif_error:
+        # Don't fail the request if notification fails
+        print(f"[Phase 7] ⚠️ Notification error (non-blocking): {notif_error}")
+    
     return new_deed
 
 @app.get("/deeds")
