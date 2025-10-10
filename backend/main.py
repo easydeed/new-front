@@ -410,18 +410,44 @@ async def register_user(user: UserRegister = Body(...)):
         hashed_password = get_password_hash(user.password)
         
         # Insert user into database
+        new_user_id = None
         if conn:
             with conn.cursor() as cur:
                 cur.execute("""
                     INSERT INTO users (email, password_hash, full_name, role, company_name, 
                                      company_type, phone, state, subscribe, plan)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
                 """, (
                     user.email.lower(), hashed_password, user.full_name, user.role,
                     user.company_name, user.company_type, user.phone, user.state.upper(),
                     user.subscribe, 'free'
                 ))
+                result = cur.fetchone()
+                if result:
+                    new_user_id = result[0]
                 conn.commit()
+        
+        # Phase 7: Send admin notification for new user registration
+        try:
+            from utils.notifications import notify_new_user_registration
+            
+            admin_email = os.getenv('ADMIN_EMAIL', 'admin@deedpro.com')
+            
+            notification_sent = notify_new_user_registration(
+                admin_email=admin_email,
+                user_email=user.email.lower(),
+                user_name=user.full_name,
+                user_id=new_user_id or 0
+            )
+            
+            if notification_sent:
+                print(f"[Phase 7] ✅ Admin notification sent for new user: {user.email}")
+            else:
+                print(f"[Phase 7] ⚠️ Failed to send admin notification for new user")
+        except Exception as notif_error:
+            # Don't fail registration if notification fails
+            print(f"[Phase 7] ⚠️ Admin notification error (non-blocking): {notif_error}")
         
         return {
             "message": "User registered successfully", 
@@ -1572,21 +1598,39 @@ def update_deed_status(deed_id: int, status: str):
 
 # Shared Deeds endpoints
 @app.post("/shared-deeds")
-def share_deed_for_approval(share_data: ShareDeedCreate):
-    """Share a deed with someone for approval"""
-    # In production:
-    # 1. Create shared deed record in database
-    # 2. Generate unique approval link
-    # 3. Send email to recipient
-    # 4. Return shared deed details
-    
+def share_deed_for_approval(share_data: ShareDeedCreate, user_id: int = Depends(get_current_user_id)):
+    """Share a deed with someone for approval - Phase 7: Real notification integration"""
     expires_at = datetime.now() + timedelta(days=share_data.expires_in_days)
     approval_token = f"token_{share_data.deed_id}_{share_data.recipient_email.replace('@', '_at_')}"
     
+    # Get the owner's name and deed details from database
+    owner_name = "DeedPro User"  # Default
+    deed_type = "deed"  # Default
+    
+    try:
+        with conn.cursor() as cur:
+            # Get owner's name
+            cur.execute("SELECT full_name FROM users WHERE id = %s", (user_id,))
+            owner_row = cur.fetchone()
+            if owner_row:
+                owner_name = owner_row[0] or owner_name
+            
+            # Get deed type
+            cur.execute("SELECT deed_type FROM deeds WHERE id = %s", (share_data.deed_id,))
+            deed_row = cur.fetchone()
+            if deed_row:
+                deed_type = deed_row[0] or deed_type
+    except Exception as db_error:
+        print(f"[Phase 7] Warning: Could not fetch owner/deed details: {db_error}")
+    
+    # Generate approval URL
+    app_url = os.getenv('FRONTEND_URL', 'https://deedpro-frontend-new.vercel.app')
+    approval_url = f"{app_url}/approve/{approval_token}"
+    
     shared_deed = {
-        "id": 101,  # Would be auto-generated
+        "id": 101,  # Would be auto-generated from DB
         "deed_id": share_data.deed_id,
-        "shared_by_user_id": 1,  # From JWT token
+        "shared_by_user_id": user_id,
         "recipient_name": share_data.recipient_name,
         "recipient_email": share_data.recipient_email,
         "recipient_role": share_data.recipient_role,
@@ -1595,19 +1639,39 @@ def share_deed_for_approval(share_data: ShareDeedCreate):
         "approval_token": approval_token,
         "expires_at": expires_at.isoformat(),
         "created_at": datetime.now().isoformat(),
-        "approval_url": f"https://deedpro.com/approve/{approval_token}"
+        "approval_url": approval_url
     }
     
-    # Simulate email sending
-    email_sent = True  # Would use actual email service
+    # Phase 7: Send sharing notification email
+    email_sent = False
+    try:
+        from utils.notifications import send_share_notification
+        
+        email_sent = send_share_notification(
+            recipient_email=share_data.recipient_email,
+            recipient_name=share_data.recipient_name,
+            owner_name=owner_name,
+            deed_type=deed_type,
+            share_link=approval_url
+        )
+        
+        if email_sent:
+            print(f"[Phase 7] ✅ Sharing notification sent to {share_data.recipient_email}")
+        else:
+            print(f"[Phase 7] ⚠️ Failed to send sharing notification")
+    except Exception as notif_error:
+        # Don't fail the request if notification fails
+        print(f"[Phase 7] ⚠️ Sharing notification error (non-blocking): {notif_error}")
     
     if not email_sent:
-        raise HTTPException(status_code=500, detail="Failed to send approval email")
+        # Still return success but indicate email issue
+        print("[Phase 7] Warning: Deed shared but email notification failed")
     
     return {
         "success": True,
-        "message": "Deed shared successfully! Approval email sent.",
-        "shared_deed": shared_deed
+        "message": "Deed shared successfully! Approval email sent." if email_sent else "Deed shared, but email notification failed.",
+        "shared_deed": shared_deed,
+        "email_sent": email_sent
     }
 
 @app.get("/shared-deeds")
