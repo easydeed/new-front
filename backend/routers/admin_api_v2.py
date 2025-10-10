@@ -47,8 +47,8 @@ def admin_users_search(
             params.append(role.lower())
 
         where_sql = f"WHERE {' AND '.join(where)}" if where else ""
-        cur.execute(f"SELECT COUNT(*) FROM users u {where_sql}", params)
-        total = cur.fetchone()[0]
+        cur.execute(f"SELECT COUNT(*) as count FROM users u {where_sql}", params)
+        total = cur.fetchone()['count']
 
         cur.execute(f"""
             SELECT u.id, u.email, u.full_name, COALESCE(u.role,'') as role, u.plan,
@@ -123,8 +123,8 @@ def admin_deeds_search(
             params.append(status.lower())
 
         where_sql = f"WHERE {' AND '.join(where)}" if where else ""
-        cur.execute(f"SELECT COUNT(*) FROM deeds d {where_sql}", params)
-        total = cur.fetchone()[0]
+        cur.execute(f"SELECT COUNT(*) as count FROM deeds d {where_sql}", params)
+        total = cur.fetchone()['count']
 
         cur.execute(f"""
             SELECT d.id, d.deed_type, d.status, d.property_address, d.apn, d.county,
