@@ -144,7 +144,24 @@ export const AdminApi = {
     });
     if (!res.ok) throw new Error('Export deeds CSV failed');
     return res.blob();
-  }
+  },
+
+  // Phase 12-3: User CRUD Operations
+  updateUser: (id: number, updates: Partial<UserDetail>) =>
+    http<{success: boolean; message: string}>(`/admin/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates)
+    }),
+  
+  deleteUser: (id: number) =>
+    http<{success: boolean; message: string}>(`/admin/users/${id}`, {
+      method: 'DELETE'
+    }),
+  
+  resetUserPassword: (id: number) =>
+    http<{success: boolean; message: string; email: string}>(`/admin/users/${id}/reset-password`, {
+      method: 'POST'
+    }),
 };
 
 /**
