@@ -91,7 +91,7 @@ def admin_user_detail_real(user_id: int, admin=Depends(get_current_admin)):
             "drafts": stats['drafts'] or 0
         }
 
-    return {"user": user}
+    return user  # Phase 12-3 Fix: Return user directly, not wrapped
 
 @router.get("/deeds/search")
 def admin_deeds_search(
@@ -152,7 +152,7 @@ def admin_deed_detail(deed_id: int, admin=Depends(get_current_admin)):
         row = cur.fetchone()  # Already returns dict (RealDictCursor)
         if not row:
             raise HTTPException(status_code=404, detail="Deed not found")
-    return {"deed": row}
+    return row  # Phase 12-3 Fix: Return deed directly, not wrapped
 
 @router.get("/export/users.csv")
 def export_users_csv(admin=Depends(get_current_admin)):
