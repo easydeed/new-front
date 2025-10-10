@@ -1,1 +1,0 @@
-Optional: add patches here if you prefer editing existing /admin page instead of using /admin-honest.

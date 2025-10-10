@@ -1,6 +1,0 @@
-*** Begin Patch
-*** Add File: frontend/src/config/featureFlags.ts
-+export const featureFlags = {
-+  COGNITIVE_WIZARD_UI: false, // Do not enable until Part 1 is fully tested
-+};
-*** End Patch
