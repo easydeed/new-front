@@ -35,7 +35,7 @@ export default function Footer() {
               <li><a href="/past-deeds" className="hover:text-white transition-colors">Document History</a></li>
               <li><a href="/shared-deeds" className="hover:text-white transition-colors">Collaboration</a></li>
               <li><a href="/account-settings" className="hover:text-white transition-colors">Account Settings</a></li>
-              <li><a href="/admin" className="hover:text-white transition-colors">Admin Portal</a></li>
+              <li><a href="/admin-honest-v2" className="hover:text-white transition-colors">Admin Portal</a></li>
             </ul>
           </div>
           
