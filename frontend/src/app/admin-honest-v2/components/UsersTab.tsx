@@ -1,8 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AdminApi, UserRow, UserDetail } from '@/lib/adminApi';
 
 export default function UsersTab(){
+  const router = useRouter();
   const [rows, setRows] = useState<UserRow[]>([]);
   const [page, setPage] = useState(1);
   const [limit] = useState(25);
@@ -89,7 +91,7 @@ export default function UsersTab(){
               <div style={{fontWeight:700, fontSize:16}}>User #{modal.id}</div>
               <button className="button ghost" onClick={()=>setModal(null)}>Close</button>
             </div>
-            <div style={{display:'grid', gap:8, fontSize:13}}>
+            <div style={{display:'grid', gap:8, fontSize:13, marginBottom:16}}>
               <div><strong>Email:</strong> {modal.email}</div>
               <div><strong>Full Name:</strong> {modal.full_name || '—'}</div>
               <div><strong>Role:</strong> {modal.role || '—'}</div>
@@ -98,7 +100,18 @@ export default function UsersTab(){
               <div><strong>Created:</strong> {modal.created_at ? new Date(modal.created_at).toLocaleString() : '—'}</div>
               <div><strong>Last Login:</strong> {modal.last_login ? new Date(modal.last_login).toLocaleString() : 'Never'}</div>
               <div><strong>Stripe Customer:</strong> {modal.stripe_customer_id || '—'}</div>
-              <div><strong>Deeds Created:</strong> {modal.deed_count ?? modal.deeds?.length ?? '—'}</div>
+              <div><strong>Deeds Created:</strong> {modal.deed_count ?? modal.deed_stats?.total ?? '—'}</div>
+            </div>
+            <div className="hstack" style={{justifyContent:'flex-end', gap:8, paddingTop:12, borderTop:'1px solid var(--dp-border, #333)'}}>
+              <button 
+                className="button" 
+                onClick={()=>{
+                  setModal(null);
+                  router.push(`/admin-honest-v2/users/${modal.id}`);
+                }}
+              >
+                Edit User →
+              </button>
             </div>
           </div>
         </div>
