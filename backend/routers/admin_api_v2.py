@@ -17,9 +17,8 @@ except Exception:
 
 router = APIRouter(prefix="/admin", tags=["Admin v2"])
 
-def _dictify(cursor, rows):
-    cols = [c[0] for c in cursor.description]
-    return [dict(zip(cols, r)) for r in rows]
+# Note: get_db_connection() uses RealDictCursor, so fetchall() already returns dicts
+# No need for a _dictify helper function
 
 @router.get("/users/search")
 def admin_users_search(
@@ -59,10 +58,9 @@ def admin_users_search(
             ORDER BY u.created_at DESC
             LIMIT %s OFFSET %s
         """, params + [limit, offset])
-        rows = cur.fetchall()
-        data = _dictify(cur, rows)
+        rows = cur.fetchall()  # Already returns list of dicts (RealDictCursor)
 
-    return {"page": page, "limit": limit, "total": total, "items": data}
+    return {"page": page, "limit": limit, "total": total, "items": rows}
 
 @router.get("/users/{user_id}/real")
 def admin_user_detail_real(user_id: int, admin=Depends(get_current_admin)):
@@ -135,11 +133,9 @@ def admin_deeds_search(
             ORDER BY d.created_at DESC
             LIMIT %s OFFSET %s
         """, params + [limit, offset])
-        rows = cur.fetchall()
-        cols = [c[0] for c in cur.description]
-        deeds = [dict(zip(cols, r)) for r in rows]
+        rows = cur.fetchall()  # Already returns list of dicts (RealDictCursor)
 
-    return {"page": page, "limit": limit, "total": total, "items": deeds}
+    return {"page": page, "limit": limit, "total": total, "items": rows}
 
 @router.get("/deeds/{deed_id}")
 def admin_deed_detail(deed_id: int, admin=Depends(get_current_admin)):
@@ -151,12 +147,10 @@ def admin_deed_detail(deed_id: int, admin=Depends(get_current_admin)):
             LEFT JOIN users u ON u.id = d.user_id
             WHERE d.id = %s
         """, (deed_id,))
-        row = cur.fetchone()
+        row = cur.fetchone()  # Already returns dict (RealDictCursor)
         if not row:
             raise HTTPException(status_code=404, detail="Deed not found")
-        cols = [c[0] for c in cur.description]
-        deed = dict(zip(cols, row))
-    return {"deed": deed}
+    return {"deed": row}
 
 @router.get("/export/users.csv")
 def export_users_csv(admin=Depends(get_current_admin)):
@@ -169,8 +163,8 @@ def export_users_csv(admin=Depends(get_current_admin)):
             FROM users ORDER BY created_at DESC
         """)
         writer.writerow(["id","email","full_name","role","plan","created_at","last_login","is_active"])
-        for row in cur.fetchall():
-            writer.writerow(row)
+        for row in cur.fetchall():  # RealDictCursor returns dicts
+            writer.writerow(row.values())  # Extract values in column order
     return Response(content=output.getvalue(), media_type="text/csv",
                     headers={"Content-Disposition": "attachment; filename=users.csv"})
 
@@ -186,7 +180,7 @@ def export_deeds_csv(admin=Depends(get_current_admin)):
             ORDER BY d.created_at DESC
         """)
         writer.writerow(["id","deed_type","status","property_address","apn","county","created_at","updated_at","user_email"])
-        for row in cur.fetchall():
-            writer.writerow(row)
+        for row in cur.fetchall():  # RealDictCursor returns dicts
+            writer.writerow(row.values())  # Extract values in column order
     return Response(content=output.getvalue(), media_type="text/csv",
                     headers={"Content-Disposition": "attachment; filename=deeds.csv"})
