@@ -1,0 +1,19 @@
+:root{
+  --dp-bg: #0b1020;
+  --dp-panel: #0f172a;
+  --dp-panel-alt: #0b1220;
+  --dp-border: #1f2a44;
+  --dp-text: #e5e7eb;
+  --dp-text-dim: #9ca3af;
+  --dp-primary: #0f7cff; /* brand-ish */
+  --dp-primary-600:#0b64cc;
+  --dp-success: #10b981;
+  --dp-warning: #f59e0b;
+  --dp-danger: #ef4444;
+  --dp-card-grad: linear-gradient(135deg, #0f7cff 0%, #7c3aed 100%);
+  --dp-shadow: 0 10px 25px rgba(0,0,0,.25);
+  --dp-radius: 14px;
+  --dp-radius-sm: 10px;
+  --dp-radius-xs: 8px;
+}
+
