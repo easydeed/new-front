@@ -146,6 +146,26 @@ except ImportError as e:
 except Exception as e:
     print(f"❌ Error loading Admin v2 endpoints: {e}")
 
+# PHASE 7.5: Notifications System (gap-plan)
+try:
+    from routers.notifications import router as notifications_router
+    app.include_router(notifications_router, prefix="/notifications", tags=["Notifications"])
+    print("✅ Phase 7.5: Notifications system loaded (feature flag: NOTIFICATIONS_ENABLED)")
+except ImportError as e:
+    print(f"⚠️ Phase 7.5: Notifications not available: {e}")
+except Exception as e:
+    print(f"❌ Phase 7.5: Error loading Notifications: {e}")
+
+# PHASE 7.5: Enhanced Deed Sharing (gap-plan)
+try:
+    from routers.shares_enhanced import router as shares_enhanced_router
+    app.include_router(shares_enhanced_router, prefix="/deeds", tags=["Deed Sharing"])
+    print("✅ Phase 7.5: Enhanced sharing system loaded (feature flag: SHARING_ENABLED)")
+except ImportError as e:
+    print(f"⚠️ Phase 7.5: Enhanced sharing not available: {e}")
+except Exception as e:
+    print(f"❌ Phase 7.5: Error loading Enhanced sharing: {e}")
+
 # Allow CORS for local dev and frontend
 app.add_middleware(
     CORSMiddleware,
