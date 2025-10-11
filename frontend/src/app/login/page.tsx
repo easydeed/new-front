@@ -289,6 +289,42 @@ function LoginContent() {
                 </div>
               </div>
             </button>
+
+            {/* Phase 7: Real User Account Auto-fill */}
+            <button 
+              type="button"
+              className="w-full rounded-xl p-4 border-2 border-tropical-teal/30 bg-tropical-teal/5 hover:border-tropical-teal hover:bg-tropical-teal/10 transition-all duration-300 hover:scale-[1.02] group cursor-pointer text-left"
+              onClick={(e) => {
+                e.preventDefault();
+                console.log('🟢 Real user credentials clicked!');
+                setFormData({ email: "gerardoh@gmail.com", password: "Test123!" });
+                setError("");
+                setSuccessMessage("✅ Your credentials loaded! Click 'Sign In' to continue.");
+                
+                // Focus the email field to show it worked
+                setTimeout(() => {
+                  const emailInput = document.getElementById('email');
+                  if (emailInput) emailInput.focus();
+                }, 100);
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium text-tropical-teal group-hover:text-deep-teal transition-colors flex items-center gap-2">
+                    <span className="text-lg">🔑</span>
+                    User Account (Real Email)
+                  </div>
+                  <div className="text-dark-slate/70 text-xs mt-1">
+                    gerardoh@gmail.com • Test123!
+                  </div>
+                </div>
+                <div className="text-tropical-teal group-hover:text-deep-teal">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </div>
+            </button>
           </div>
         </div>
 

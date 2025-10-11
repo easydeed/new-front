@@ -46,9 +46,16 @@ export default function PastDeeds() {
   }, []);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [recipients, setRecipients] = useState('');
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedDeedId, setSelectedDeedId] = useState<number | null>(null);
+  const [shareFormData, setShareFormData] = useState({
+    recipientName: '',
+    recipientEmail: '',
+    recipientRole: 'title_officer',
+    message: '',
+    expiresInDays: 30
+  });
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareError, setShareError] = useState('');
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -69,18 +76,76 @@ export default function PastDeeds() {
 
   const handleShare = (deedId: number) => {
     setSelectedDeedId(deedId);
+    setShareFormData({
+      recipientName: '',
+      recipientEmail: '',
+      recipientRole: 'title_officer',
+      message: '',
+      expiresInDays: 30
+    });
+    setShareError('');
     setIsModalOpen(true);
   };
 
-  const handleRecipientChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setRecipients(e.target.value);
+  const handleShareInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setShareFormData({
+      ...shareFormData,
+      [e.target.name]: e.target.value
+    });
   };
 
-  const handleAddRecipients = () => {
-    if (recipients.trim()) {
-      alert(`Sharing deed with: ${recipients}`);
-      setRecipients('');
+  const handleAddRecipients = async () => {
+    // Phase 7: Real API integration for sharing
+    if (!shareFormData.recipientEmail.trim() || !shareFormData.recipientName.trim()) {
+      setShareError('Please enter recipient name and email');
+      return;
+    }
+
+    setShareLoading(true);
+    setShareError('');
+
+    try {
+      const api = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_BASE_URL || 'https://deedpro-main-api.onrender.com';
+      const token = localStorage.getItem('access_token');
+
+      const response = await fetch(`${api}/shared-deeds`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          deed_id: selectedDeedId,
+          recipient_name: shareFormData.recipientName,
+          recipient_email: shareFormData.recipientEmail,
+          recipient_role: shareFormData.recipientRole,
+          message: shareFormData.message,
+          expires_in_days: shareFormData.expiresInDays
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to share deed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('[Phase 7] Share response:', result);
+
+      // Success!
+      alert(`✅ Deed shared successfully! ${result.email_sent ? 'Email sent to ' + shareFormData.recipientEmail : 'Email notification pending.'}`);
       setIsModalOpen(false);
+      setShareFormData({
+        recipientName: '',
+        recipientEmail: '',
+        recipientRole: 'title_officer',
+        message: '',
+        expiresInDays: 30
+      });
+    } catch (err: any) {
+      console.error('[Phase 7] Share error:', err);
+      setShareError(err.message || 'Failed to share deed');
+    } finally {
+      setShareLoading(false);
     }
   };
 
@@ -298,7 +363,7 @@ export default function PastDeeds() {
             </div>
           </div>
 
-          {/* Share Modal */}
+          {/* Share Modal - Phase 7: Full form integration */}
           {isModalOpen && (
             <div style={{
               position: 'fixed',
@@ -317,9 +382,9 @@ export default function PastDeeds() {
                 background: 'var(--background)',
                 borderRadius: '12px',
                 padding: '2.5rem',
-                maxWidth: '500px',
+                maxWidth: '550px',
                 width: '90%',
-                maxHeight: '80vh',
+                maxHeight: '85vh',
                 overflow: 'auto',
                 boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
                 border: '1px solid var(--secondary-light)'
@@ -358,34 +423,95 @@ export default function PastDeeds() {
                       e.currentTarget.style.background = 'none';
                     }}
                     onClick={() => setIsModalOpen(false)}
+                    disabled={shareLoading}
                   >
                     ×
                   </button>
                 </div>
                 
-                <div className="form-group">
-                  <label className="form-label">Email Recipients</label>
-                  <textarea
+                {shareError && (
+                  <div style={{
+                    background: '#fee2e2',
+                    color: '#ef4444',
+                    padding: '1rem',
+                    borderRadius: '8px',
+                    marginBottom: '1.5rem',
+                    fontSize: '0.95rem'
+                  }}>
+                    {shareError}
+                  </div>
+                )}
+
+                <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                  <label className="form-label">Recipient Name *</label>
+                  <input
+                    type="text"
+                    name="recipientName"
                     className="form-control"
-                    rows={4}
-                    placeholder="Enter email addresses separated by commas..."
-                    value={recipients}
-                    onChange={handleRecipientChange}
+                    placeholder="e.g., John Smith"
+                    value={shareFormData.recipientName}
+                    onChange={handleShareInputChange}
+                    disabled={shareLoading}
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                  <label className="form-label">Recipient Email *</label>
+                  <input
+                    type="email"
+                    name="recipientEmail"
+                    className="form-control"
+                    placeholder="e.g., john@example.com"
+                    value={shareFormData.recipientEmail}
+                    onChange={handleShareInputChange}
+                    disabled={shareLoading}
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                  <label className="form-label">Recipient Role</label>
+                  <select
+                    name="recipientRole"
+                    className="form-control"
+                    value={shareFormData.recipientRole}
+                    onChange={handleShareInputChange}
+                    disabled={shareLoading}
+                  >
+                    <option value="title_officer">Title Officer</option>
+                    <option value="lender">Lender</option>
+                    <option value="escrow_officer">Escrow Officer</option>
+                    <option value="attorney">Attorney</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                  <label className="form-label">Message (Optional)</label>
+                  <textarea
+                    name="message"
+                    className="form-control"
+                    rows={3}
+                    placeholder="Add a personal message..."
+                    value={shareFormData.message}
+                    onChange={handleShareInputChange}
+                    disabled={shareLoading}
                   />
                 </div>
                 
-                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '2rem' }}>
                   <button 
                     className="btn-secondary"
                     onClick={() => setIsModalOpen(false)}
+                    disabled={shareLoading}
                   >
                     Cancel
                   </button>
                   <button 
                     className="btn-primary"
                     onClick={handleAddRecipients}
+                    disabled={shareLoading}
                   >
-                    Send Invitations
+                    {shareLoading ? 'Sending...' : 'Share Deed'}
                   </button>
                 </div>
               </div>
