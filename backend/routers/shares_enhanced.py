@@ -3,9 +3,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 import os, json
-from ..auth import get_current_user_id
-from ..database import get_db_connection
-from ..services.email_service import send_email  # optional
+from auth import get_current_user_id  # Phase 7.5: Absolute import for Render compatibility
+from database import get_db_connection  # Phase 7.5: Absolute import for Render compatibility
+from services.email_service import send_email  # Phase 7.5: Absolute import for Render compatibility
 
 router = APIRouter()
 

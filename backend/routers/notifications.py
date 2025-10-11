@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import os, json
-from ..auth import get_current_user_id  # adjust import if needed
-from ..database import get_db_connection  # adjust import if needed
+from auth import get_current_user_id  # Phase 7.5: Absolute import for Render compatibility
+from database import get_db_connection  # Phase 7.5: Absolute import for Render compatibility
 
 router = APIRouter()
 
