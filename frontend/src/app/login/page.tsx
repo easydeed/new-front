@@ -261,15 +261,23 @@ function LoginContent() {
               onClick={(e) => {
                 e.preventDefault();
                 console.log('🔵 Demo credentials clicked!');
-                setFormData({ email: "test@deedpro-check.com", password: "TestPassword123!" });
+                const newData = { email: "test@deedpro-check.com", password: "TestPassword123!" };
+                setFormData(newData);
                 setError("");
                 setSuccessMessage("✅ Demo credentials loaded! Click 'Sign In' to continue.");
                 
-                // Focus the email field to show it worked
+                // Force update input values and focus
                 setTimeout(() => {
-                  const emailInput = document.getElementById('email');
-                  if (emailInput) emailInput.focus();
-                }, 100);
+                  const emailInput = document.getElementById('email') as HTMLInputElement;
+                  const passwordInput = document.getElementById('password') as HTMLInputElement;
+                  if (emailInput) {
+                    emailInput.value = newData.email;
+                    emailInput.focus();
+                  }
+                  if (passwordInput) {
+                    passwordInput.value = newData.password;
+                  }
+                }, 50);
               }}
             >
               <div className="flex items-center justify-between">
@@ -297,15 +305,23 @@ function LoginContent() {
               onClick={(e) => {
                 e.preventDefault();
                 console.log('🟢 Real user credentials clicked!');
-                setFormData({ email: "gerardoh@gmail.com", password: "Test123!" });
+                const newData = { email: "gerardoh@gmail.com", password: "Test123!" };
+                setFormData(newData);
                 setError("");
                 setSuccessMessage("✅ Your credentials loaded! Click 'Sign In' to continue.");
                 
-                // Focus the email field to show it worked
+                // Force update input values and focus
                 setTimeout(() => {
-                  const emailInput = document.getElementById('email');
-                  if (emailInput) emailInput.focus();
-                }, 100);
+                  const emailInput = document.getElementById('email') as HTMLInputElement;
+                  const passwordInput = document.getElementById('password') as HTMLInputElement;
+                  if (emailInput) {
+                    emailInput.value = newData.email;
+                    emailInput.focus();
+                  }
+                  if (passwordInput) {
+                    passwordInput.value = newData.password;
+                  }
+                }, 50);
               }}
             >
               <div className="flex items-center justify-between">
