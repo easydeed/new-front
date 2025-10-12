@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import React, { useState } from 'react';
 import { AuthManager } from '../utils/auth';
+import { NotificationsBell } from './notifications/NotificationsBell';
 
 export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false); // Default expanded
@@ -139,8 +140,19 @@ export default function Sidebar() {
             </Link>
           </li>
           
-          {/* Logout Button */}
+          {/* Phase 7.5: Notification Bell */}
           <li style={{ marginTop: 'auto', paddingTop: '1rem' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              padding: '0.75rem 1rem',
+            }}>
+              <NotificationsBell />
+            </div>
+          </li>
+          
+          {/* Logout Button */}
+          <li style={{ paddingTop: '0.5rem' }}>
             <button 
               onClick={() => AuthManager.logout()} 
               data-tooltip="Logout"
