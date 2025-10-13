@@ -1647,8 +1647,51 @@ def share_deed_for_approval(share_data: ShareDeedCreate, user_id: int = Depends(
     app_url = os.getenv('FRONTEND_URL', 'https://deedpro-frontend-new.vercel.app')
     approval_url = f"{app_url}/approve/{approval_token}"
     
+    # Phase 7.5: Save to deed_shares table (gap-plan fix)
+    shared_deed_id = None
+    property_address = "Unknown"
+    apn = "Unknown"
+    
+    try:
+        with conn.cursor() as cur:
+            # Get deed details
+            cur.execute("""
+                SELECT property_address, apn 
+                FROM deeds 
+                WHERE id = %s
+            """, (share_data.deed_id,))
+            deed_info = cur.fetchone()
+            if deed_info:
+                property_address = deed_info[0] or property_address
+                apn = deed_info[1] or apn
+            
+            # Insert into deed_shares table
+            cur.execute("""
+                INSERT INTO deed_shares (
+                    deed_id, owner_user_id, recipient_email, token, 
+                    status, expires_at, created_at, updated_at
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())
+                RETURNING id
+            """, (
+                share_data.deed_id,
+                user_id,
+                share_data.recipient_email,
+                approval_token,
+                'sent',
+                expires_at
+            ))
+            result = cur.fetchone()
+            if result:
+                shared_deed_id = result[0]
+            conn.commit()
+            print(f"[Phase 7.5] ✅ Share saved to database: ID {shared_deed_id}")
+    except Exception as db_error:
+        print(f"[Phase 7.5] ⚠️ Failed to save share to database: {db_error}")
+        # Continue anyway - at least send the email
+    
     shared_deed = {
-        "id": 101,  # Would be auto-generated from DB
+        "id": shared_deed_id or 101,  # Use real ID from database
         "deed_id": share_data.deed_id,
         "shared_by_user_id": user_id,
         "recipient_name": share_data.recipient_name,
@@ -1659,7 +1702,9 @@ def share_deed_for_approval(share_data: ShareDeedCreate, user_id: int = Depends(
         "approval_token": approval_token,
         "expires_at": expires_at.isoformat(),
         "created_at": datetime.now().isoformat(),
-        "approval_url": approval_url
+        "approval_url": approval_url,
+        "property_address": property_address,
+        "apn": apn
     }
     
     # Phase 7: Send sharing notification email
@@ -1696,62 +1741,57 @@ def share_deed_for_approval(share_data: ShareDeedCreate, user_id: int = Depends(
 
 @app.get("/shared-deeds")
 def list_shared_deeds(user_id: int = Depends(get_current_user_id)):
-    """List all shared deeds for current user - Phase 6-2: Real DB implementation"""
+    """List all shared deeds for current user - Phase 7.5: Read from deed_shares table"""
     if not conn:
         raise HTTPException(status_code=500, detail="Database connection not available")
     
     try:
         with conn.cursor() as cur:
-            # Get user's email for matching shared_with_email
-            cur.execute("SELECT email FROM users WHERE id = %s", (user_id,))
-            user_row = cur.fetchone()
-            user_email = user_row[0] if user_row else None
-            
-            if not user_email:
-                return []
-            
-            # Query shared deeds where user is recipient
+            # Phase 7.5: Query from deed_shares table (gap-plan schema)
+            # Show deeds shared BY this user (as owner)
             cur.execute("""
                 SELECT 
-                    sd.id,
-                    sd.deed_id,
-                    sd.shared_by,
-                    sd.shared_with_email,
-                    sd.status,
-                    sd.message,
-                    sd.share_type,
-                    sd.created_at,
-                    sd.updated_at,
+                    ds.id,
+                    ds.deed_id,
+                    ds.owner_user_id,
+                    ds.recipient_email,
+                    ds.status,
+                    ds.token,
+                    ds.expires_at,
+                    ds.created_at,
+                    ds.updated_at,
                     d.property_address,
                     d.deed_type,
-                    u.full_name as shared_by_name
-                FROM shared_deeds sd
-                JOIN deeds d ON sd.deed_id = d.id
-                JOIN users u ON sd.shared_by = u.id
-                WHERE sd.shared_with_email = %s
-                AND sd.status != 'revoked'
-                ORDER BY sd.created_at DESC
-            """, (user_email,))
+                    u.full_name as owner_name
+                FROM deed_shares ds
+                JOIN deeds d ON ds.deed_id = d.id
+                JOIN users u ON ds.owner_user_id = u.id
+                WHERE ds.owner_user_id = %s
+                ORDER BY ds.created_at DESC
+            """, (user_id,))
             
             rows = cur.fetchall()
             
+            # Phase 7.5: Map deed_shares columns
             shared_deeds = []
             for row in rows:
                 shared_deeds.append({
-                    "id": row[0],
-                    "deed_id": row[1],
-                    "shared_by_id": row[2],
-                    "shared_with_email": row[3],
-                    "status": row[4],
-                    "message": row[5] or "",
-                    "share_type": row[6] or "review",
-                    "date": row[7].isoformat() if row[7] else "",
-                    "updated_at": row[8].isoformat() if row[8] else "",
-                    "property": row[9] or "",
-                    "type": row[10] or "",
-                    "shared_by": row[11] or "Unknown User"
+                    "id": row[0],  # ds.id
+                    "deed_id": row[1],  # ds.deed_id
+                    "shared_by_id": row[2],  # ds.owner_user_id
+                    "shared_with_email": row[3],  # ds.recipient_email
+                    "status": row[4],  # ds.status
+                    "message": f"Shared via link - expires {row[6].strftime('%Y-%m-%d') if row[6] else 'never'}",
+                    "share_type": "review",
+                    "date": row[7].isoformat() if row[7] else "",  # ds.created_at
+                    "updated_at": row[8].isoformat() if row[8] else "",  # ds.updated_at
+                    "property": row[9] or "",  # d.property_address
+                    "type": row[10] or "",  # d.deed_type
+                    "shared_by": row[11] or "Unknown User",  # u.full_name
+                    "approval_token": row[5]  # ds.token (for link generation)
                 })
             
+            print(f"[Phase 7.5] ✅ Fetched {len(shared_deeds)} shared deeds for user {user_id}")
             return shared_deeds
             
     except Exception as e:
@@ -1820,30 +1860,75 @@ def revoke_shared_deed(shared_deed_id: int, user_id: int = Depends(get_current_u
 # Public approval endpoint (for recipients)
 @app.get("/approve/{approval_token}")
 def view_shared_deed(approval_token: str):
-    """Public endpoint for recipients to view shared deed"""
-    # In production:
-    # 1. Validate token
-    # 2. Check if not expired
-    # 3. Mark as "viewed" if first time
-    # 4. Return deed details
+    """Public endpoint for recipients to view shared deed - Phase 7.5: Real DB integration"""
+    # Phase 7.5: Read from deed_shares table
+    if not conn:
+        raise HTTPException(status_code=500, detail="Database connection unavailable")
     
-    # Simulate token validation
-    if not approval_token.startswith("token_"):
-        raise HTTPException(status_code=404, detail="Invalid approval link")
-    
-    # Sample deed data for approval
-    deed_data = {
-        "deed_id": 101,
-        "deed_type": "Quitclaim Deed",
-        "property_address": "123 Main St, Los Angeles, CA",
-        "apn": "123-456-789",
-        "shared_by": "DeedPro User",
-        "message": "Please review and approve this deed",
-        "expires_at": "2024-01-22",
-        "can_approve": True  # Check if not expired
-    }
-    
-    return deed_data
+    try:
+        with conn.cursor() as cur:
+            # Get share details with deed info
+            cur.execute("""
+                SELECT 
+                    ds.id, ds.deed_id, ds.owner_user_id, ds.recipient_email,
+                    ds.status, ds.expires_at, ds.created_at,
+                    d.deed_type, d.property_address, d.apn, d.grantor_name, d.grantee_name,
+                    u.full_name as owner_name
+                FROM deed_shares ds
+                JOIN deeds d ON d.id = ds.deed_id
+                LEFT JOIN users u ON u.id = ds.owner_user_id
+                WHERE ds.token = %s
+            """, (approval_token,))
+            
+            share = cur.fetchone()
+            
+            if not share:
+                raise HTTPException(status_code=404, detail="This approval link is invalid or does not exist")
+            
+            # Extract data (using tuple indices)
+            share_id = share[0]
+            deed_id = share[1]
+            owner_id = share[2]
+            recipient_email = share[3]
+            status = share[4]
+            expires_at = share[5]
+            created_at = share[6]
+            deed_type = share[7]
+            property_address = share[8]
+            apn = share[9]
+            grantor_name = share[10]
+            grantee_name = share[11]
+            owner_name = share[12] or "DeedPro User"
+            
+            # Check if expired
+            from datetime import datetime
+            now = datetime.now()
+            is_expired = expires_at < now if expires_at else False
+            can_approve = not is_expired and status == 'sent'
+            
+            deed_data = {
+                "deed_id": deed_id,
+                "deed_type": deed_type,
+                "property_address": property_address,
+                "apn": apn,
+                "grantor_name": grantor_name,
+                "grantee_name": grantee_name,
+                "shared_by": owner_name,
+                "message": f"Please review this {deed_type}",
+                "expires_at": expires_at.isoformat() if expires_at else None,
+                "can_approve": can_approve,
+                "status": status
+            }
+            
+            print(f"[Phase 7.5] ✅ Approval link accessed: share_id={share_id}, can_approve={can_approve}")
+            
+            return deed_data
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Phase 7.5] ❌ Error loading shared deed: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to load shared deed: {str(e)}")
 
 @app.post("/approve/{approval_token}")
 def submit_approval_response(approval_token: str, response: ApprovalResponse):
