@@ -87,13 +87,14 @@ def unread_count(user_id: int = Depends(get_current_user_id)):
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT COUNT(*)
+            SELECT COUNT(*) as count
               FROM user_notifications
              WHERE user_id = %s AND read = FALSE
             """,
             (user_id,),
         )
-        c = cur.fetchone()[0]
+        result = cur.fetchone()  # Phase 7.5: RealDictCursor fix
+        c = result['count'] if result else 0
     return {"count": int(c)}
 
 def create_notification(conn, title: str, message: str, severity: str, user_ids: List[int], ntype: str = "info", payload: Optional[Dict[str, Any]] = None, created_by: Optional[int] = None):
@@ -106,7 +107,8 @@ def create_notification(conn, title: str, message: str, severity: str, user_ids:
             """,
             (ntype, title, message, severity, json.dumps(payload) if payload is not None else None, created_by),
         )
-        nid = cur.fetchone()[0]
+        result = cur.fetchone()  # Phase 7.5: RealDictCursor fix
+        nid = result['id'] if result else None
         for uid in user_ids:
             cur.execute(
                 "INSERT INTO user_notifications (notification_id, user_id) VALUES (%s, %s)",

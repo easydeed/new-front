@@ -1885,20 +1885,20 @@ def view_shared_deed(approval_token: str):
             if not share:
                 raise HTTPException(status_code=404, detail="This approval link is invalid or does not exist")
             
-            # Extract data (using tuple indices)
-            share_id = share[0]
-            deed_id = share[1]
-            owner_id = share[2]
-            recipient_email = share[3]
-            status = share[4]
-            expires_at = share[5]
-            created_at = share[6]
-            deed_type = share[7]
-            property_address = share[8]
-            apn = share[9]
-            grantor_name = share[10]
-            grantee_name = share[11]
-            owner_name = share[12] or "DeedPro User"
+            # Extract data (Phase 7.5 FIX: RealDictCursor returns dict, not tuple)
+            share_id = share.get('id') or share.get(0)
+            deed_id = share.get('deed_id') or share.get(1)
+            owner_id = share.get('owner_user_id') or share.get(2)
+            recipient_email = share.get('recipient_email') or share.get(3)
+            status = share.get('status') or share.get(4)
+            expires_at = share.get('expires_at') or share.get(5)
+            created_at = share.get('created_at') or share.get(6)
+            deed_type = share.get('deed_type') or share.get(7)
+            property_address = share.get('property_address') or share.get(8)
+            apn = share.get('apn') or share.get(9)
+            grantor_name = share.get('grantor_name') or share.get(10)
+            grantee_name = share.get('grantee_name') or share.get(11)
+            owner_name = share.get('owner_name') or share.get(12) or "DeedPro User"
             
             # Check if expired
             from datetime import datetime
