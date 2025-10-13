@@ -12,12 +12,12 @@ try:
     # Project-local utilities
     from database import get_db_connection
     from auth import create_access_token, get_password_hash, AuthUtils, ALGORITHM, SECRET_KEY
+    from utils.email import send_email  # Phase 7.5: Relative import first
 except Exception as e:
     # Fallback names if modules are under different paths; adjust as needed in your repo
     from backend.database import get_db_connection  # type: ignore
     from backend.auth import create_access_token, get_password_hash, AuthUtils, ALGORITHM, SECRET_KEY  # type: ignore
-
-from backend.utils.email import send_email  # ensure relative path correct for your project
+    from backend.utils.email import send_email  # Phase 7.5: Absolute fallback
 
 router = APIRouter()
 
