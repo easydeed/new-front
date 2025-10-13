@@ -2102,6 +2102,8 @@ def submit_approval_response(approval_token: str, response: ApprovalResponse):
                 )
                 print(f"[REJECTION BUNDLE] ✅ Notification created: ID {notification_id}")
             except Exception as notif_error:
+                # Rollback to prevent transaction cascade failure
+                conn.rollback()
                 # Notifications table may not exist or be incompatible
                 print(f"[REJECTION BUNDLE] ⚠️ Notification error (non-blocking): {notif_error}")
             
