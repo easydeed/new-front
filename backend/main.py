@@ -1621,7 +1621,9 @@ def update_deed_status(deed_id: int, status: str):
 def share_deed_for_approval(share_data: ShareDeedCreate, user_id: int = Depends(get_current_user_id)):
     """Share a deed with someone for approval - Phase 7.5: Real DB with UUID tokens"""
     import uuid
-    expires_at = datetime.now() + timedelta(days=share_data.expires_in_days)
+    from datetime import timezone
+    # Phase 7.5 FIX: Use timezone-aware datetime + 24 hours expiration
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
     approval_token = str(uuid.uuid4())  # Phase 7.5 FIX: Use UUID instead of string
     
     # Get the owner's name and deed details from database
@@ -1924,9 +1926,9 @@ def view_shared_deed(approval_token: str):
                 grantee_name = share[11]
                 owner_name = share[12] or "DeedPro User"
             
-            # Check if expired
-            from datetime import datetime
-            now = datetime.now()
+            # Check if expired (Phase 7.5 FIX: Use timezone-aware datetime)
+            from datetime import datetime, timezone
+            now = datetime.now(timezone.utc)
             is_expired = expires_at < now if expires_at else False
             can_approve = not is_expired and status == 'sent'
             

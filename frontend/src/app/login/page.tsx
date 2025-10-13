@@ -255,40 +255,19 @@ function LoginContent() {
           <h3 className="font-semibold text-dark-slate mb-2">Quick Login</h3>
           <p className="text-xs text-dark-slate/60 mb-4">👆 Click to auto-fill credentials</p>
           <div className="space-y-3 text-sm">
-            {/* Phase 7.5: Simplified - only real user account */}
+            {/* Phase 7.5 FIX: SIMPLE auto-fill - just update React state */}
             <button 
               type="button"
               className="w-full rounded-xl p-4 border-2 border-tropical-teal/30 bg-tropical-teal/5 hover:border-tropical-teal hover:bg-tropical-teal/10 transition-all duration-300 hover:scale-[1.02] group cursor-pointer text-left"
-              onClick={(e) => {
-                e.preventDefault();
-                console.log('🟢 Auto-fill credentials clicked!');
-                const email = "gerardoh@gmail.com";
-                const password = "Test123!";
-                
-                // Update React state
-                setFormData({ email, password });
+              onClick={() => {
+                console.log('🔵 [AUTO-FILL] Button clicked');
+                setFormData({ 
+                  email: "gerardoh@gmail.com", 
+                  password: "Test123!" 
+                });
                 setError("");
                 setSuccessMessage("✅ Credentials loaded! Now click 'Sign In' above.");
-                
-                // FORCE DOM update as backup (for controlled inputs)
-                setTimeout(() => {
-                  const emailInput = document.getElementById('email') as HTMLInputElement;
-                  const passwordInput = document.getElementById('password') as HTMLInputElement;
-                  
-                  if (emailInput) {
-                    emailInput.value = email;
-                    // Trigger React's onChange
-                    const emailEvent = new Event('input', { bubbles: true });
-                    emailInput.dispatchEvent(emailEvent);
-                  }
-                  
-                  if (passwordInput) {
-                    passwordInput.value = password;
-                    // Trigger React's onChange
-                    const passwordEvent = new Event('input', { bubbles: true });
-                    passwordInput.dispatchEvent(passwordEvent);
-                  }
-                }, 100);
+                console.log('🔵 [AUTO-FILL] State updated');
               }}
             >
               <div className="flex items-center justify-between">
