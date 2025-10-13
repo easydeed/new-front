@@ -16,7 +16,8 @@ except Exception:
 def send_email(to: str, subject: str, html: str) -> bool:
     """Send email via SendGrid. If not configured, log and noop."""
     api_key = os.getenv("SENDGRID_API_KEY")
-    from_email = os.getenv("FROM_EMAIL", "noreply@deedpro.com")
+    # Check both variable names for backward compatibility
+    from_email = os.getenv("SENDGRID_FROM_EMAIL") or os.getenv("FROM_EMAIL", "noreply@deedpro.com")
 
     if not api_key or not SendGridAPIClient or not Mail:
         logger.info("[email] No provider configured; noop send to %s", to)
