@@ -500,7 +500,16 @@ async def login_user(credentials: UserLogin = Body(...)):
         if not user:
             raise HTTPException(status_code=401, detail="Invalid email or password")
         
-        user_id, password_hash, full_name, plan, is_active, role = user
+        # Phase 7.5 FIX: Handle both RealDictCursor (dict) and regular cursor (tuple)
+        if isinstance(user, dict):
+            user_id = user.get('id')
+            password_hash = user.get('password_hash')
+            full_name = user.get('full_name')
+            plan = user.get('plan')
+            is_active = user.get('is_active')
+            role = user.get('role')
+        else:
+            user_id, password_hash, full_name, plan, is_active, role = user
         
         if not is_active:
             raise HTTPException(status_code=401, detail="Account is deactivated")
@@ -536,6 +545,7 @@ async def login_user(credentials: UserLogin = Body(...)):
     except HTTPException:
         raise
     except Exception as e:
+        print(f"[LOGIN ERROR] {e}")
         raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
 
 @app.get("/users/profile")
@@ -2362,16 +2372,30 @@ async def get_pricing():
                 ORDER BY price ASC
             """)
             rows = cur.fetchall()
-            return [
-                {
-                    "name": row[0],
-                    "price": float(row[1]),
-                    "features": row[2] if row[2] else [],
-                    "popular": row[0] == "professional"  # Mark professional as popular
-                }
-                for row in rows
-            ]
+            
+            # Phase 7.5 FIX: Handle both RealDictCursor (dict) and regular cursor (tuple)
+            result = []
+            for row in rows:
+                if isinstance(row, dict):
+                    # RealDictCursor
+                    result.append({
+                        "name": row.get('plan_name'),
+                        "price": float(row.get('price', 0)),
+                        "features": row.get('features') if row.get('features') else [],
+                        "popular": row.get('plan_name') == "professional"
+                    })
+                else:
+                    # Regular cursor (tuple)
+                    result.append({
+                        "name": row[0],
+                        "price": float(row[1]),
+                        "features": row[2] if row[2] else [],
+                        "popular": row[0] == "professional"
+                    })
+            
+            return result
     except Exception as e:
+        print(f"[PRICING ERROR] {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch pricing: {str(e)}")
 
 @app.get("/pricing/plans")

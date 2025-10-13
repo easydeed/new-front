@@ -45,13 +45,10 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
     """Verify and decode a JWT token"""
     try:
-        print(f"🔍 DEBUG: Verifying token (first 20 chars): {credentials.credentials[:20]}...")
-        print(f"🔍 DEBUG: SECRET_KEY (first 10 chars): {SECRET_KEY[:10]}...")
         payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
-        print(f"🔍 DEBUG: Token decoded successfully, user_id: {payload.get('sub')}")
         user_id: str = payload.get("sub")
         if user_id is None:
-            print("🔍 DEBUG: Token payload missing 'sub' field")
+            print("⚠️ [AUTH] Token payload missing 'sub' field")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Could not validate credentials",
@@ -59,7 +56,9 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) 
             )
         return payload
     except JWTError as e:
-        print(f"🔍 DEBUG: JWT decode error: {str(e)}")
+        # Only log non-expiration errors (expiration is expected and normal)
+        if "expired" not in str(e).lower():
+            print(f"⚠️ [AUTH] JWT decode error: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
