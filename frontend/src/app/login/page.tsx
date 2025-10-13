@@ -259,12 +259,36 @@ function LoginContent() {
             <button 
               type="button"
               className="w-full rounded-xl p-4 border-2 border-tropical-teal/30 bg-tropical-teal/5 hover:border-tropical-teal hover:bg-tropical-teal/10 transition-all duration-300 hover:scale-[1.02] group cursor-pointer text-left"
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
                 console.log('🟢 Auto-fill credentials clicked!');
-                const newData = { email: "gerardoh@gmail.com", password: "Test123!" };
-                setFormData(newData);
+                const email = "gerardoh@gmail.com";
+                const password = "Test123!";
+                
+                // Update React state
+                setFormData({ email, password });
                 setError("");
                 setSuccessMessage("✅ Credentials loaded! Now click 'Sign In' above.");
+                
+                // FORCE DOM update as backup (for controlled inputs)
+                setTimeout(() => {
+                  const emailInput = document.getElementById('email') as HTMLInputElement;
+                  const passwordInput = document.getElementById('password') as HTMLInputElement;
+                  
+                  if (emailInput) {
+                    emailInput.value = email;
+                    // Trigger React's onChange
+                    const emailEvent = new Event('input', { bubbles: true });
+                    emailInput.dispatchEvent(emailEvent);
+                  }
+                  
+                  if (passwordInput) {
+                    passwordInput.value = password;
+                    // Trigger React's onChange
+                    const passwordEvent = new Event('input', { bubbles: true });
+                    passwordInput.dispatchEvent(passwordEvent);
+                  }
+                }, 100);
               }}
             >
               <div className="flex items-center justify-between">
