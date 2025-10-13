@@ -4,7 +4,7 @@ Enhanced property search API with TitlePoint integration
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
-from database import get_current_user
+from auth import get_current_user_id
 from title_point_integration import TitlePointService
 import logging
 
@@ -30,7 +30,7 @@ class PropertySearchResponse(BaseModel):
     error: Optional[str] = None
 
 @router.post("/search", response_model=PropertySearchResponse)
-async def search_property(request: PropertySearchRequest, current_user: dict = Depends(get_current_user)):
+async def search_property(request: PropertySearchRequest, user_id: int = Depends(get_current_user_id)):
     """
     Enhanced property search with TitlePoint integration
     """
@@ -76,7 +76,7 @@ async def search_property(request: PropertySearchRequest, current_user: dict = D
         )
 
 @router.get("/suggestions")
-async def get_property_suggestions(address: str, current_user: dict = Depends(get_current_user)):
+async def get_property_suggestions(address: str, user_id: int = Depends(get_current_user_id)):
     """
     Get property suggestions based on partial address
     """

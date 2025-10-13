@@ -4,7 +4,8 @@ Enhanced deed generation API for dynamic wizard
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
-from database import get_current_user, create_deed
+from auth import get_current_user_id
+from database import create_deed
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
 import base64
@@ -48,7 +49,7 @@ class GenerateDeedResponse(BaseModel):
     error: Optional[str] = None
 
 @router.post("/generate-deed", response_model=GenerateDeedResponse)
-async def generate_deed(request: GenerateDeedRequest, current_user: dict = Depends(get_current_user)):
+async def generate_deed(request: GenerateDeedRequest, user_id: int = Depends(get_current_user_id)):
     """
     Generate final deed document based on dynamic wizard data
     """
@@ -91,7 +92,7 @@ async def generate_deed(request: GenerateDeedRequest, current_user: dict = Depen
             )
         
         # Save to database
-        deed_id = await save_deed_to_database(current_user['user_id'], request, template_data)
+        deed_id = await save_deed_to_database(user_id, request, template_data)
         
         return GenerateDeedResponse(
             success=True,
