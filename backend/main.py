@@ -1958,27 +1958,74 @@ def view_shared_deed(approval_token: str):
 
 @app.post("/approve/{approval_token}")
 def submit_approval_response(approval_token: str, response: ApprovalResponse):
-    """Submit approval or rejection response"""
-    # In production:
-    # 1. Validate token
-    # 2. Check if not expired
-    # 3. Update shared deed status
-    # 4. Notify deed owner via email
+    """Submit approval or rejection response - Phase 7.5: Real DB integration"""
+    if not conn:
+        raise HTTPException(status_code=500, detail="Database connection unavailable")
     
-    if not approval_token.startswith("token_"):
-        raise HTTPException(status_code=404, detail="Invalid approval link")
-    
-    status = "approved" if response.approved else "rejected"
-    
-    # Update shared deed status (would update database)
-    result = {
-        "success": True,
-        "message": f"Thank you! Your response has been recorded.",
-        "status": status,
-        "comments": response.comments
-    }
-    
-    return result
+    try:
+        from datetime import datetime, timezone
+        
+        with conn.cursor() as cur:
+            # Get share details
+            cur.execute("""
+                SELECT id, status, expires_at, owner_user_id, deed_id
+                FROM deed_shares
+                WHERE token = %s
+            """, (approval_token,))
+            
+            share = cur.fetchone()
+            
+            if not share:
+                raise HTTPException(status_code=404, detail="Invalid approval link")
+            
+            # Extract data (handle both dict and tuple)
+            if isinstance(share, dict):
+                share_id = share.get('id')
+                current_status = share.get('status')
+                expires_at = share.get('expires_at')
+                owner_id = share.get('owner_user_id')
+                deed_id = share.get('deed_id')
+            else:
+                share_id = share[0]
+                current_status = share[1]
+                expires_at = share[2]
+                owner_id = share[3]
+                deed_id = share[4]
+            
+            # Check if expired
+            now = datetime.now(timezone.utc)
+            is_expired = expires_at < now if expires_at else False
+            
+            if is_expired:
+                raise HTTPException(status_code=410, detail="This approval link has expired")
+            
+            if current_status != 'sent':
+                raise HTTPException(status_code=409, detail=f"This deed has already been {current_status}")
+            
+            # Update status
+            new_status = "approved" if response.approved else "rejected"
+            cur.execute("""
+                UPDATE deed_shares
+                SET status = %s, updated_at = NOW()
+                WHERE id = %s
+            """, (new_status, share_id))
+            
+            conn.commit()
+            
+            print(f"[Phase 7.5] ✅ Approval response recorded: share_id={share_id}, status={new_status}")
+            
+            return {
+                "success": True,
+                "message": f"Thank you! Your {new_status} response has been recorded.",
+                "status": new_status,
+                "comments": response.comments
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Phase 7.5] ❌ Error submitting approval: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to submit approval: {str(e)}")
 
 # Recipients endpoints (from previous implementation)
 @app.post("/deeds/{deed_id}/recipients")
