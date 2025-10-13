@@ -166,6 +166,16 @@ except ImportError as e:
 except Exception as e:
     print(f"❌ Phase 7.5: Error loading Enhanced sharing: {e}")
 
+# REJECTION BUNDLE: Feedback API for rejected shares
+try:
+    from routers.deed_share_feedback import router as feedback_router
+    app.include_router(feedback_router, prefix="/deed-shares", tags=["Deed Sharing Feedback"])
+    print("✅ Rejection Bundle: Feedback API loaded (view comments on rejected deeds)")
+except ImportError as e:
+    print(f"⚠️ Rejection Bundle: Feedback API not available: {e}")
+except Exception as e:
+    print(f"❌ Rejection Bundle: Error loading Feedback API: {e}")
+
 # Allow CORS for local dev and frontend
 app.add_middleware(
     CORSMiddleware,
@@ -1968,7 +1978,7 @@ def view_shared_deed(approval_token: str):
 
 @app.post("/approve/{approval_token}")
 def submit_approval_response(approval_token: str, response: ApprovalResponse):
-    """Submit approval or rejection response - Phase 7.5: Real DB integration"""
+    """Submit approval or rejection response - REJECTION BUNDLE: Enhanced with feedback, email, and notifications"""
     if not conn:
         raise HTTPException(status_code=500, detail="Database connection unavailable")
     
@@ -1976,11 +1986,14 @@ def submit_approval_response(approval_token: str, response: ApprovalResponse):
         from datetime import datetime, timezone
         
         with conn.cursor() as cur:
-            # Get share details
+            # Get share details WITH property address and owner info
             cur.execute("""
-                SELECT id, status, expires_at, owner_user_id, deed_id
-                FROM deed_shares
-                WHERE token = %s
+                SELECT ds.id, ds.status, ds.expires_at, ds.owner_user_id, ds.deed_id, 
+                       ds.recipient_email, d.property_address, u.email as owner_email
+                FROM deed_shares ds
+                JOIN deeds d ON d.id = ds.deed_id
+                LEFT JOIN users u ON u.id = ds.owner_user_id
+                WHERE ds.token = %s
             """, (approval_token,))
             
             share = cur.fetchone()
@@ -1995,12 +2008,18 @@ def submit_approval_response(approval_token: str, response: ApprovalResponse):
                 expires_at = share.get('expires_at')
                 owner_id = share.get('owner_user_id')
                 deed_id = share.get('deed_id')
+                recipient_email = share.get('recipient_email')
+                property_address = share.get('property_address')
+                owner_email = share.get('owner_email')
             else:
                 share_id = share[0]
                 current_status = share[1]
                 expires_at = share[2]
                 owner_id = share[3]
                 deed_id = share[4]
+                recipient_email = share[5]
+                property_address = share[6]
+                owner_email = share[7]
             
             # Check if expired
             now = datetime.now(timezone.utc)
@@ -2012,29 +2031,93 @@ def submit_approval_response(approval_token: str, response: ApprovalResponse):
             if current_status != 'sent':
                 raise HTTPException(status_code=409, detail=f"This deed has already been {current_status}")
             
-            # Update status
-            new_status = "approved" if response.approved else "rejected"
+            # APPROVAL PATH (existing logic)
+            if response.approved:
+                cur.execute("""
+                    UPDATE deed_shares
+                    SET status = 'approved', updated_at = NOW()
+                    WHERE id = %s
+                """, (share_id,))
+                conn.commit()
+                
+                print(f"[REJECTION BUNDLE] ✅ Deed approved: share_id={share_id}")
+                
+                return {
+                    "success": True,
+                    "message": "Thank you! Your approval has been recorded.",
+                    "status": "approved"
+                }
+            
+            # REJECTION PATH (NEW: save feedback, email owner, create notification)
+            comments = (response.comments or "").strip()
+            
+            # 1. Save feedback to database
             cur.execute("""
                 UPDATE deed_shares
-                SET status = %s, updated_at = NOW()
+                SET status = 'rejected',
+                    feedback = %s,
+                    feedback_at = NOW(),
+                    feedback_by = %s,
+                    updated_at = NOW()
                 WHERE id = %s
-            """, (new_status, share_id))
-            
+            """, (comments, recipient_email, share_id))
             conn.commit()
             
-            print(f"[Phase 7.5] ✅ Approval response recorded: share_id={share_id}, status={new_status}")
+            print(f"[REJECTION BUNDLE] ✅ Feedback saved: share_id={share_id}, length={len(comments)}")
+            
+            # 2. Send email notification to owner
+            try:
+                from utils.notifications import send_email, render_rejection_email
+                
+                if owner_email:
+                    link = f"{os.getenv('FRONTEND_URL', 'https://deedpro-frontend-new.vercel.app')}/shared-deeds?focus={share_id}"
+                    subject = "🔄 Deed Changes Requested - DeedPro"
+                    html = render_rejection_email(
+                        property_address or "your property",
+                        recipient_email or "Reviewer",
+                        comments,
+                        link
+                    )
+                    email_sent = send_email(owner_email, subject, html)
+                    
+                    if email_sent:
+                        print(f"[REJECTION BUNDLE] ✅ Email sent to owner: {owner_email}")
+                    else:
+                        print(f"[REJECTION BUNDLE] ⚠️ Email send failed (non-blocking)")
+            except Exception as email_error:
+                # Don't fail the request if email fails
+                print(f"[REJECTION BUNDLE] ⚠️ Email error (non-blocking): {email_error}")
+            
+            # 3. Create in-app notification (best-effort)
+            try:
+                from utils.notifications import create_notification
+                
+                notification_id = create_notification(
+                    conn,
+                    user_id=owner_id,
+                    ntype="share_rejected",
+                    title="📝 Changes Requested",
+                    message=f"{recipient_email or 'A reviewer'} requested changes for {property_address or 'your deed'}",
+                    link=f"/shared-deeds?focus={share_id}"
+                )
+                print(f"[REJECTION BUNDLE] ✅ Notification created: ID {notification_id}")
+            except Exception as notif_error:
+                # Notifications table may not exist or be incompatible
+                print(f"[REJECTION BUNDLE] ⚠️ Notification error (non-blocking): {notif_error}")
             
             return {
                 "success": True,
-                "message": f"Thank you! Your {new_status} response has been recorded.",
-                "status": new_status,
-                "comments": response.comments
+                "message": "Thank you! Your feedback has been submitted. The owner has been notified.",
+                "status": "rejected",
+                "comments": comments
             }
             
     except HTTPException:
         raise
     except Exception as e:
-        print(f"[Phase 7.5] ❌ Error submitting approval: {e}")
+        print(f"[REJECTION BUNDLE] ❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Failed to submit approval: {str(e)}")
 
 # Recipients endpoints (from previous implementation)

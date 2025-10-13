@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
+import FeedbackModal from '../../components/FeedbackModal';
+import { getShareFeedback } from '../../lib/api/deedShares';
 import '../../styles/dashboard.css';
 
 // Phase 6-1: Shared Deeds API Integration
@@ -23,6 +25,12 @@ export default function SharedDeeds() {
   const [sharedDeeds, setSharedDeeds] = useState<SharedRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // REJECTION BUNDLE: Feedback modal state
+  const [feedbackModal, setFeedbackModal] = useState<{ open: boolean; text: string }>({
+    open: false,
+    text: ''
+  });
 
   // Phase 6-1: Fetch and refresh shared deeds
   async function refresh() {
@@ -47,6 +55,18 @@ export default function SharedDeeds() {
   useEffect(() => { 
     refresh(); 
   }, []);
+
+  // REJECTION BUNDLE: View feedback handler
+  const onViewFeedback = async (shareId: string) => {
+    try {
+      const token = (typeof window !== 'undefined') ? (localStorage.getItem('access_token') || localStorage.getItem('token') || '') : '';
+      const data = await getShareFeedback(parseInt(shareId), token);
+      setFeedbackModal({ open: true, text: data.feedback || '(No comments provided)' });
+    } catch (e: any) {
+      console.error('Failed to load feedback:', e);
+      setFeedbackModal({ open: true, text: '(Feedback not available)' });
+    }
+  };
 
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [shareFormData, setShareFormData] = useState({
@@ -195,10 +215,28 @@ export default function SharedDeeds() {
                           <td>{sharedDeed.deed_type}</td>
                           <td>{sharedDeed.shared_with}</td>
                           <td>
-                            {expired && sharedDeed.status !== 'approved' && sharedDeed.status !== 'rejected' 
-                              ? getStatusBadge('expired') 
-                              : getStatusBadge(sharedDeed.status)
-                            }
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              {expired && sharedDeed.status !== 'approved' && sharedDeed.status !== 'rejected' 
+                                ? getStatusBadge('expired') 
+                                : getStatusBadge(sharedDeed.status)
+                              }
+                              {/* REJECTION BUNDLE: View Feedback button for rejected deeds */}
+                              {sharedDeed.status === 'rejected' && (
+                                <button
+                                  onClick={() => onViewFeedback(sharedDeed.id)}
+                                  className="text-sm text-red-600 hover:text-red-800 underline"
+                                  style={{ 
+                                    background: 'none', 
+                                    border: 'none', 
+                                    cursor: 'pointer',
+                                    padding: '2px 4px',
+                                    fontSize: '0.875rem'
+                                  }}
+                                >
+                                  View Feedback
+                                </button>
+                              )}
+                            </div>
                           </td>
                           <td>{new Date(sharedDeed.shared_date).toLocaleDateString()}</td>
                           <td>
@@ -447,6 +485,15 @@ export default function SharedDeeds() {
                 </div>
               </div>
             </div>
+          )}
+          
+          {/* REJECTION BUNDLE: Feedback Modal */}
+          {feedbackModal.open && (
+            <FeedbackModal
+              title="Reviewer Feedback"
+              comments={feedbackModal.text}
+              onClose={() => setFeedbackModal({ open: false, text: '' })}
+            />
           )}
         </div>
       </div>

@@ -1,0 +1,107 @@
+*** a/backend/main.py
+--- b/backend/main.py
+***************
+*** 0 ****
+--- 1,180 ----
++ # --- Patch: Enhance /approve/{token} to store feedback, notify owner, and respond with comments ---
++ # Notes:
++ # - This patch assumes you already have /approve/{token} handling approval tokens and updating deed_shares.status
++ # - We augment it to accept JSON body: {"approved": false, "comments": "text"}
++ # - On rejection (approved == false) we persist comments to deed_shares.feedback/feedback_at/feedback_by,
++ #   send an email to the owner, and create an in-app notification if tables exist.
++ 
++ from pydantic import BaseModel
++ from typing import Optional
++ from fastapi import Body
++ import psycopg2
++ from datetime import datetime, timezone
++ 
++ try:
++     from backend.utils.notifications import send_email, create_notification, render_rejection_email
++ except Exception:
++     # Fallback: local import path if running relative
++     from utils.notifications import send_email, create_notification, render_rejection_email
++ 
++ class ApprovalDecision(BaseModel):
++     approved: bool
++     comments: Optional[str] = None
++ 
++ @app.post("/approve/{token}")
++ def approve_shared_deed(token: str, decision: ApprovalDecision = Body(...)):
++     \"\"\"Recipient approves or requests changes for a shared deed.
++ 
++     Request body:
++       - approved: boolean
++       - comments: optional string (stored only when approved == False)
++     \"\"\"
++     try:
++         conn = get_db_connection()
++         with conn.cursor() as cur:
++             # 1) Look up the share record by token
++             cur.execute(\"\"\"
++                 SELECT ds.id, ds.deed_id, ds.shared_with_email, ds.status, d.user_id, d.property_address
++                 FROM deed_shares ds
++                 JOIN deeds d ON d.id = ds.deed_id
++                 WHERE ds.token = %s
++             \"\"\", (token,))
++             row = cur.fetchone()
++             if not row:
++                 raise HTTPException(status_code=404, detail="Invalid or expired token")
++ 
++             share_id, deed_id, reviewer_email, current_status, owner_user_id, property_addr = row
++ 
++             if decision.approved:
++                 # Existing happy-path (kept as-is): mark approved
++                 cur.execute(
++                     "UPDATE deed_shares SET status = 'approved', updated_at = now() WHERE id = %s",
++                     (share_id,)
++                 )
++                 conn.commit()
++                 return {"success": True, "status": "approved"}
++ 
++             # 2) Rejection flow
++             comments = (decision.comments or "").strip()
++             cur.execute(
++                 \"\"\"UPDATE deed_shares
++                        SET status='rejected',
++                            feedback=%s,
++                            feedback_at=now(),
++                            feedback_by=%s,
++                            updated_at=now()
++                      WHERE id=%s
++                 \"\"\",
++                 (comments, reviewer_email, share_id)
++             )
++             conn.commit()
++ 
++             # 3) Notify owner (email)
++             # Look up owner email
++             cur.execute("SELECT email FROM users WHERE id = %s", (owner_user_id,))
++             owner_row = cur.fetchone()
++             owner_email = owner_row[0] if owner_row else None
++ 
++             link = f"{os.getenv('FRONTEND_URL','https://deedpro-frontend-new.vercel.app')}/shared-deeds?focus={share_id}"
++             subject = "DeedPro: Request Changes received"
++             html = render_rejection_email(property_addr or "the property", reviewer_email, comments, link)
++             if owner_email:
++                 send_email(owner_email, subject, html)
++ 
++             # 4) In-app notification (best-effort)
++             try:
++                 create_notification(
++                     conn,
++                     user_id=owner_user_id,
++                     ntype="share_rejected",
++                     title="Deed request changes",
++                     message=f"{reviewer_email} requested changes for {property_addr or 'a shared deed'}.",
++                     link=link
++                 )
++             except Exception as e:
++                 # Table may not exist; do not fail the API
++                 pass
++ 
++             return {"success": True, "status": "rejected", "comments": comments}
++     except HTTPException:
++         raise
++     except Exception as e:
++         raise HTTPException(status_code=500, detail=f"Approval processing failed: {e}")

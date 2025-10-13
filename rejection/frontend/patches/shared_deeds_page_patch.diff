@@ -1,0 +1,48 @@
+*** a/frontend/src/app/shared-deeds/page.tsx
+--- b/frontend/src/app/shared-deeds/page.tsx
+***************
+*** 1,60 ****
+--- 1,190 ----
++ // Patch: show "View Feedback" for rejected shares and render modal
++ 
++ 'use client';
++ import React, { useEffect, useState } from 'react';
++ import FeedbackModal from '@/src/components/FeedbackModal';
++ import { getShareFeedback } from '@/src/lib/api/deedShares';
++ 
++ // ... existing imports remain
++ 
++ export default function SharedDeedsPage() {
++   // existing state ...
++   const [feedbackModal, setFeedbackModal] = useState<{ open: boolean, text: string }>({
++     open: false,
++     text: ''
++   });
++ 
++   const onViewFeedback = async (shareId: number) => {
++     try {
++       const token = localStorage.getItem('access_token') || localStorage.getItem('token') || '';
++       const data = await getShareFeedback(shareId, token);
++       setFeedbackModal({ open: true, text: data.feedback || '' });
++     } catch (e) {
++       setFeedbackModal({ open: true, text: '(Feedback not available)' });
++     }
++   };
++ 
++   // ... existing JSX list/table rendering ...
++   // Within each row where status badge is shown, add:
++   // {item.status === 'rejected' && <button onClick={() => onViewFeedback(item.id)} className="text-red-700 underline">View Feedback</button>}
++ 
++   return (
++     <div className="px-6 py-4">
++       {/* ...existing header & table... */}
++ 
++       {feedbackModal.open && (
++         <FeedbackModal
++           comments={feedbackModal.text}
++           onClose={() => setFeedbackModal({ open: false, text: '' })}
++         />
++       )}
++     </div>
++   );
++ }
