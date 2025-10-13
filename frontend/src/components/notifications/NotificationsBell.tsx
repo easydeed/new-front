@@ -10,6 +10,7 @@ export function NotificationsBell() {
   const [count, setCount] = useState<number>(0);
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<any[]>([]);
+  const [showTooltip, setShowTooltip] = useState(false);
   const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
 
   async function loadCount() {
@@ -66,6 +67,8 @@ export function NotificationsBell() {
       <button
         aria-label="Notifications"
         onClick={async () => { setOpen(!open); if (!open) { await loadItems(); await markAllRead(); } }}
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
         style={{ position: 'relative', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18 }}
       >
         🔔
@@ -76,6 +79,27 @@ export function NotificationsBell() {
           }}>{count}</span>
         )}
       </button>
+      
+      {/* Tooltip positioned to the right */}
+      {showTooltip && !open && (
+        <div style={{
+          position: 'absolute',
+          left: '100%',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          marginLeft: '8px',
+          background: '#1f2937',
+          color: 'white',
+          padding: '4px 8px',
+          borderRadius: '4px',
+          fontSize: '12px',
+          whiteSpace: 'nowrap',
+          zIndex: 100,
+          pointerEvents: 'none'
+        }}>
+          Notifications {count > 0 && `(${count})`}
+        </div>
+      )}
       {open && (
         <div style={{
           position: 'absolute', right: 0, top: 28, width: 360, maxHeight: 420, overflow: 'auto',
