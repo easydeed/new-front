@@ -255,19 +255,23 @@ function LoginContent() {
           <h3 className="font-semibold text-dark-slate mb-2">Quick Login</h3>
           <p className="text-xs text-dark-slate/60 mb-4">👆 Click to auto-fill credentials</p>
           <div className="space-y-3 text-sm">
-            {/* Phase 7.5 FIX: SIMPLE auto-fill - just update React state */}
+            {/* Phase 7.5 FIX v2: Force rebuild - auto-fill credentials */}
             <button 
               type="button"
+              data-testid="login-autofill-button"
               className="w-full rounded-xl p-4 border-2 border-tropical-teal/30 bg-tropical-teal/5 hover:border-tropical-teal hover:bg-tropical-teal/10 transition-all duration-300 hover:scale-[1.02] group cursor-pointer text-left"
-              onClick={() => {
-                console.log('🔵 [AUTO-FILL] Button clicked');
-                setFormData({ 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🔵 [AUTO-FILL v2] Button clicked!');
+                const credentials = { 
                   email: "gerardoh@gmail.com", 
                   password: "Test123!" 
-                });
+                };
+                setFormData(credentials);
                 setError("");
                 setSuccessMessage("✅ Credentials loaded! Now click 'Sign In' above.");
-                console.log('🔵 [AUTO-FILL] State updated');
+                console.log('🔵 [AUTO-FILL v2] State updated:', credentials.email);
               }}
             >
               <div className="flex items-center justify-between">
