@@ -1,7 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional
-from backend.auth import get_current_user_id
-from backend.database import get_db_connection
+
+# Use absolute imports for Render compatibility
+try:
+    from backend.auth import get_current_user_id
+    from backend.database import get_db_connection
+except ModuleNotFoundError:
+    from auth import get_current_user_id
+    from database import get_db_connection
 
 router = APIRouter()
 
