@@ -1619,9 +1619,10 @@ def update_deed_status(deed_id: int, status: str):
 # Shared Deeds endpoints
 @app.post("/shared-deeds")
 def share_deed_for_approval(share_data: ShareDeedCreate, user_id: int = Depends(get_current_user_id)):
-    """Share a deed with someone for approval - Phase 7: Real notification integration"""
+    """Share a deed with someone for approval - Phase 7.5: Real DB with UUID tokens"""
+    import uuid
     expires_at = datetime.now() + timedelta(days=share_data.expires_in_days)
-    approval_token = f"token_{share_data.deed_id}_{share_data.recipient_email.replace('@', '_at_')}"
+    approval_token = str(uuid.uuid4())  # Phase 7.5 FIX: Use UUID instead of string
     
     # Get the owner's name and deed details from database
     owner_name = "DeedPro User"  # Default
@@ -1683,10 +1684,11 @@ def share_deed_for_approval(share_data: ShareDeedCreate, user_id: int = Depends(
             ))
             result = cur.fetchone()
             if result:
-                shared_deed_id = result[0]
+                shared_deed_id = result.get('id') if isinstance(result, dict) else result[0]
             conn.commit()
             print(f"[Phase 7.5] ✅ Share saved to database: ID {shared_deed_id}")
     except Exception as db_error:
+        conn.rollback()  # Phase 7.5 FIX: Rollback transaction on error
         print(f"[Phase 7.5] ⚠️ Failed to save share to database: {db_error}")
         # Continue anyway - at least send the email
     
@@ -1772,23 +1774,28 @@ def list_shared_deeds(user_id: int = Depends(get_current_user_id)):
             
             rows = cur.fetchall()
             
-            # Phase 7.5: Map deed_shares columns
+            # Phase 7.5 FIX: Map deed_shares columns (RealDictCursor returns dicts)
             shared_deeds = []
             for row in rows:
+                # RealDictCursor returns dictionaries, not tuples
+                expires_at = row.get('expires_at') if isinstance(row, dict) else row[6]
+                created_at = row.get('created_at') if isinstance(row, dict) else row[7]
+                updated_at = row.get('updated_at') if isinstance(row, dict) else row[8]
+                
                 shared_deeds.append({
-                    "id": row[0],  # ds.id
-                    "deed_id": row[1],  # ds.deed_id
-                    "shared_by_id": row[2],  # ds.owner_user_id
-                    "shared_with_email": row[3],  # ds.recipient_email
-                    "status": row[4],  # ds.status
-                    "message": f"Shared via link - expires {row[6].strftime('%Y-%m-%d') if row[6] else 'never'}",
+                    "id": row.get('id') if isinstance(row, dict) else row[0],
+                    "deed_id": row.get('deed_id') if isinstance(row, dict) else row[1],
+                    "shared_by_id": row.get('owner_user_id') if isinstance(row, dict) else row[2],
+                    "shared_with_email": row.get('recipient_email') if isinstance(row, dict) else row[3],
+                    "status": row.get('status') if isinstance(row, dict) else row[4],
+                    "message": f"Shared via link - expires {expires_at.strftime('%Y-%m-%d') if expires_at else 'never'}",
                     "share_type": "review",
-                    "date": row[7].isoformat() if row[7] else "",  # ds.created_at
-                    "updated_at": row[8].isoformat() if row[8] else "",  # ds.updated_at
-                    "property": row[9] or "",  # d.property_address
-                    "type": row[10] or "",  # d.deed_type
-                    "shared_by": row[11] or "Unknown User",  # u.full_name
-                    "approval_token": row[5]  # ds.token (for link generation)
+                    "date": created_at.isoformat() if created_at else "",
+                    "updated_at": updated_at.isoformat() if updated_at else "",
+                    "property": (row.get('property_address') if isinstance(row, dict) else row[9]) or "",
+                    "type": (row.get('deed_type') if isinstance(row, dict) else row[10]) or "",
+                    "shared_by": (row.get('owner_name') if isinstance(row, dict) else row[11]) or "Unknown User",
+                    "approval_token": row.get('token') if isinstance(row, dict) else row[5]
                 })
             
             print(f"[Phase 7.5] ✅ Fetched {len(shared_deeds)} shared deeds for user {user_id}")

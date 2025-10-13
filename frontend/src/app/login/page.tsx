@@ -252,83 +252,26 @@ function LoginContent() {
         </div>
         {/* Demo Account (for testing purposes) */}
         <div className="mt-8 rounded-2xl p-6 border border-dark-slate/10 shadow-elevated bg-surface">
-          <h3 className="font-semibold text-dark-slate mb-2">Demo Account</h3>
+          <h3 className="font-semibold text-dark-slate mb-2">Quick Login</h3>
           <p className="text-xs text-dark-slate/60 mb-4">👆 Click to auto-fill credentials</p>
           <div className="space-y-3 text-sm">
-            <button 
-              type="button"
-              className="w-full rounded-xl p-4 border-2 border-gentle-indigo/30 bg-gentle-indigo/5 hover:border-gentle-indigo hover:bg-gentle-indigo/10 transition-all duration-300 hover:scale-[1.02] group cursor-pointer text-left"
-              onClick={(e) => {
-                e.preventDefault();
-                console.log('🔵 Demo credentials clicked!');
-                const newData = { email: "test@deedpro-check.com", password: "TestPassword123!" };
-                setFormData(newData);
-                setError("");
-                setSuccessMessage("✅ Demo credentials loaded! Click 'Sign In' to continue.");
-                
-                // Force update input values and focus
-                setTimeout(() => {
-                  const emailInput = document.getElementById('email') as HTMLInputElement;
-                  const passwordInput = document.getElementById('password') as HTMLInputElement;
-                  if (emailInput) {
-                    emailInput.value = newData.email;
-                    emailInput.focus();
-                  }
-                  if (passwordInput) {
-                    passwordInput.value = newData.password;
-                  }
-                }, 50);
-              }}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium text-gentle-indigo group-hover:text-deep-teal transition-colors flex items-center gap-2">
-                    <span className="text-lg">👤</span>
-                    Demo User Account
-                  </div>
-                  <div className="text-dark-slate/70 text-xs mt-1">
-                    test@deedpro-check.com • TestPassword123!
-                  </div>
-                </div>
-                <div className="text-gentle-indigo group-hover:text-deep-teal">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </div>
-            </button>
-
-            {/* Phase 7: Real User Account Auto-fill */}
+            {/* Phase 7.5: Simplified - only real user account */}
             <button 
               type="button"
               className="w-full rounded-xl p-4 border-2 border-tropical-teal/30 bg-tropical-teal/5 hover:border-tropical-teal hover:bg-tropical-teal/10 transition-all duration-300 hover:scale-[1.02] group cursor-pointer text-left"
-              onClick={(e) => {
-                e.preventDefault();
-                console.log('🟢 Real user credentials clicked!');
+              onClick={() => {
+                console.log('🟢 Auto-fill credentials clicked!');
                 const newData = { email: "gerardoh@gmail.com", password: "Test123!" };
                 setFormData(newData);
                 setError("");
-                setSuccessMessage("✅ Your credentials loaded! Click 'Sign In' to continue.");
-                
-                // Force update input values and focus
-                setTimeout(() => {
-                  const emailInput = document.getElementById('email') as HTMLInputElement;
-                  const passwordInput = document.getElementById('password') as HTMLInputElement;
-                  if (emailInput) {
-                    emailInput.value = newData.email;
-                    emailInput.focus();
-                  }
-                  if (passwordInput) {
-                    passwordInput.value = newData.password;
-                  }
-                }, 50);
+                setSuccessMessage("✅ Credentials loaded! Now click 'Sign In' above.");
               }}
             >
               <div className="flex items-center justify-between">
                 <div>
                   <div className="font-medium text-tropical-teal group-hover:text-deep-teal transition-colors flex items-center gap-2">
                     <span className="text-lg">🔑</span>
-                    User Account (Real Email)
+                    User Account
                   </div>
                   <div className="text-dark-slate/70 text-xs mt-1">
                     gerardoh@gmail.com • Test123!
