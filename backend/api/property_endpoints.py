@@ -4,12 +4,22 @@ Property integration API endpoints for Google Places, SiteX Data, and TitlePoint
 import json
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from pydantic import BaseModel, Field
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
 from auth import get_current_user_id
+
+# PHASE 14-C: Performance optimizations
+try:
+    from api.services_cache import get_cache, make_address_key
+    from api.services_token_guard import ProactiveTokenGuard
+    CACHE_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️  Phase 14-C cache/guard not available: {e}")
+    CACHE_AVAILABLE = False
+
 try:
     from services.google_places_service import GooglePlacesService
     from services.sitex_service import SiteXService
@@ -56,6 +66,23 @@ class PropertyEnrichmentRequest(BaseModel):
 
 # Initialize router
 router = APIRouter(prefix="/api/property", tags=["Property Integration"])
+
+# PHASE 14-C: Token guard for proactive refresh
+_token_guard = None
+
+async def _ensure_token_guard():
+    """Initialize token guard for SiteX service"""
+    global _token_guard
+    if _token_guard is None and CACHE_AVAILABLE:
+        async def _refresh_sitex_token():
+            """Refresh SiteX OAuth token"""
+            _, sitex_service, _ = get_services()
+            if sitex_service:
+                # Force token refresh by calling _get_token
+                await sitex_service._get_token()
+        # 10-minute tokens, refresh 120s before expiry
+        _token_guard = ProactiveTokenGuard(_refresh_sitex_token, lifetime_sec=600, skew_sec=120)
+    return _token_guard
 
 # Database connection helper
 def get_db_connection():
@@ -300,19 +327,36 @@ async def get_cached_properties(
 @router.post("/search")
 async def property_search(
     request: PropertySearchRequest,
+    background_tasks: BackgroundTasks,
     user_id: str = Depends(get_current_user_id)
 ):
     """
     PHASE 5-PREQUAL: SiteX property search endpoint (replaces TitlePoint)
     Uses SiteX Pro REST API with multi-match auto-resolution
+    PHASE 14-C: Added Redis cache, non-blocking logging, proactive token refresh
     """
+    import time
+    start_time = time.time()
+    
     try:
-        # Check cache first (with version to invalidate old broken data)
-        cache_version = "v2"  # Increment when field mapping changes
-        cache_key = f"{cache_version}:{request.fullAddress}"
-        cached_data = await get_cached_titlepoint_data(user_id, cache_key)
-        if cached_data:
-            return cached_data
+        # PHASE 14-C: Check Redis-backed cache first
+        if CACHE_AVAILABLE:
+            cache = await get_cache()
+            cache_key = make_address_key(request.fullAddress)
+            cached_data = await cache.get_json(cache_key)
+            if cached_data:
+                elapsed = time.time() - start_time
+                print(f"⏱️  PERF [Phase 14-C]: Cache HIT for {request.fullAddress} ({elapsed:.2f}s)")
+                # Non-blocking logging
+                background_tasks.add_task(log_api_usage, user_id, "sitex", "property_search_cached", request.dict(), cached_data)
+                return cached_data
+        else:
+            # Fallback to old cache
+            cache_version = "v2"
+            cache_key = f"{cache_version}:{request.fullAddress}"
+            cached_data = await get_cached_titlepoint_data(user_id, cache_key)
+            if cached_data:
+                return cached_data
         
         # Get SiteX service
         _, sitex_service, _ = get_services()
@@ -330,6 +374,13 @@ async def property_search(
                 'zip': request.zip or ''
             }
         
+        # PHASE 14-C: Proactive token refresh (prevents "first user pays" penalty)
+        if CACHE_AVAILABLE:
+            guard = await _ensure_token_guard()
+            if guard:
+                await guard.ensure_fresh()
+                print(f"✅ PERF [Phase 14-C]: Token guard ensured fresh token")
+        
         # Parse address into street and last_line (from Google Places format)
         full_address = request.fullAddress
         street, last_line, unit = split_address_for_sitex(full_address)
@@ -338,7 +389,10 @@ async def property_search(
         client_ref = f"user:{user_id}"
         strict_opts = "search_exclude_nonres=Y|search_strict=Y"
         
+        sitex_start = time.time()
         data = await sitex_service.search_address(street, last_line, client_ref, strict_opts)
+        sitex_elapsed = time.time() - sitex_start
+        print(f"⏱️  PERF [Phase 14-C]: SiteX AddressSearch took {sitex_elapsed:.2f}s")
         
         # 2) If multi-match, auto-resolve and re-query with FIPS+APN
         if isinstance(data.get("Locations"), list) and data["Locations"]:
@@ -347,12 +401,15 @@ async def property_search(
             
             if best and best.get("FIPS") and best.get("APN"):
                 # Re-query with FIPS+APN to get full property feed
+                sitex_apn_start = time.time()
                 data = await sitex_service.search_fips_apn(
                     best["FIPS"], 
                     best["APN"], 
                     client_ref, 
                     strict_opts
                 )
+                sitex_apn_elapsed = time.time() - sitex_apn_start
+                print(f"⏱️  PERF [Phase 14-C]: SiteX FIPS+APN search took {sitex_apn_elapsed:.2f}s")
             else:
                 # No clear match → manual entry
                 return {
@@ -367,18 +424,30 @@ async def property_search(
         print(f"🔍 DEBUG: Full SiteX response: {data}")
         mapped = map_sitex_feed_to_ui(data, request.fullAddress)
         
-        # Cache the result
-        if mapped.get('success'):
-            await cache_titlepoint_data(user_id, cache_key, mapped)
+        # PHASE 14-C: Non-blocking cache and logging
+        total_elapsed = time.time() - start_time
+        print(f"⏱️  PERF [Phase 14-C]: Total property search took {total_elapsed:.2f}s (Cache MISS)")
         
-        # Log API usage
-        await log_api_usage(user_id, "sitex", "property_search", request.dict(), mapped)
+        if mapped.get('success'):
+            # Cache to new Redis-backed cache (non-blocking)
+            if CACHE_AVAILABLE:
+                async def _cache_result():
+                    cache = await get_cache()
+                    cache_key = make_address_key(request.fullAddress)
+                    await cache.set_json(cache_key, mapped, ttl_sec=86400)  # 24 hours
+                background_tasks.add_task(_cache_result)
+            else:
+                # Fallback to old cache (blocking for backward compat)
+                await cache_titlepoint_data(user_id, cache_key, mapped)
+        
+        # Non-blocking logging
+        background_tasks.add_task(log_api_usage, user_id, "sitex", "property_search", request.dict(), mapped)
         
         return mapped
         
     except Exception as e:
-        # Log error and return graceful fallback
-        await log_api_usage(user_id, "sitex", "property_search", request.dict(), None, str(e))
+        # PHASE 14-C: Non-blocking error logging
+        background_tasks.add_task(log_api_usage, user_id, "sitex", "property_search", request.dict(), None, str(e))
         return {
             'success': False,
             'message': f'Property lookup failed: {str(e)}. Please enter manually.',
