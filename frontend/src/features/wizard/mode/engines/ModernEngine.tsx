@@ -10,6 +10,21 @@ import { toCanonicalFor } from '@/features/wizard/adapters';
 import { promptFlows, Prompt } from '../prompts/promptFlows';
 import { usePromptValidation } from '../validation/usePromptValidation';
 
+// DEBUG: Log all imports to verify they loaded correctly
+if (typeof window !== 'undefined') {
+  console.log('[ModernEngine] Import check:', {
+    StepShell: typeof StepShell,
+    MicroSummary: typeof MicroSummary,
+    SmartReview: typeof SmartReview,
+    DeedTypeBadge: typeof DeedTypeBadge,
+    useWizardStoreBridge: typeof useWizardStoreBridge,
+    finalizeDeed: typeof finalizeDeed,
+    toCanonicalFor: typeof toCanonicalFor,
+    promptFlows: typeof promptFlows,
+    usePromptValidation: typeof usePromptValidation,
+  });
+}
+
 type AnyState = Record<string, any>;
 
 export default function ModernEngine({ docType }: { docType: string }) {
@@ -58,6 +73,13 @@ export default function ModernEngine({ docType }: { docType: string }) {
     const issues: string[] = [];
     if (!state.grantorName) issues.push('Grantor is missing');
     if (!state.granteeName) issues.push('Grantee is missing');
+    
+    console.log('[ModernEngine] Rendering final review, components:', {
+      DeedTypeBadge: typeof DeedTypeBadge,
+      MicroSummary: typeof MicroSummary,
+      SmartReview: typeof SmartReview,
+    });
+    
     return (
       <div className="p-4 space-y-2">
         <div className="flex items-center justify-between">
@@ -86,6 +108,12 @@ export default function ModernEngine({ docType }: { docType: string }) {
 
   const p: Prompt = prompts[i];
   const { error, run, setError } = usePromptValidation();
+  
+  console.log('[ModernEngine] Rendering step', i, 'components:', {
+    StepShell: typeof StepShell,
+    DeedTypeBadge: typeof DeedTypeBadge,
+    MicroSummary: typeof MicroSummary,
+  });
 
   const onChange = (v: string) => setState((s:any)=> ({ ...s, [p.field]: v }));
   const renderField = () => (
