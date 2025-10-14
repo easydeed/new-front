@@ -187,5 +187,74 @@ Consider using a connection pool that automatically rolls back on error:
 
 ---
 
-**Status**: 🔍 INVESTIGATING - Finding `/pricing` endpoint now...
+**Status**: ✅ HOTFIX DEPLOYED - Awaiting Render deployment
+
+---
+
+## ✅ HOTFIX APPLIED
+
+### **What Was Fixed**
+
+**Fix #1: `/pricing` Endpoint** (Line 2483 in `backend/main.py`)
+```python
+# BEFORE:
+except Exception as e:
+    print(f"[PRICING ERROR] {e}")
+    raise HTTPException(...)
+
+# AFTER:
+except Exception as e:
+    conn.rollback()  # ✅ ADDED
+    print(f"[PRICING ERROR] {e}")
+    raise HTTPException(...)
+```
+
+**Fix #2: `/users/login` Endpoint** (Line 558 in `backend/main.py`)
+```python
+# BEFORE:
+except Exception as e:
+    print(f"[LOGIN ERROR] {e}")
+    raise HTTPException(...)
+
+# AFTER:
+except Exception as e:
+    conn.rollback()  # ✅ ADDED
+    print(f"[LOGIN ERROR] {e}")
+    raise HTTPException(...)
+```
+
+### **Deployment Status**
+
+- ✅ Code changes committed: `14c151f`
+- ✅ Pushed to GitHub: `main` branch
+- 🔄 Render auto-deploy: IN PROGRESS (should complete in ~3 minutes)
+- ⏳ May need manual restart if poisoned connections persist
+
+### **Next Steps**
+
+1. ⏳ Wait for Render deployment (~3 minutes)
+2. ⏳ Test `/pricing` endpoint
+3. ⏳ Test `/users/login` endpoint
+4. ⚠️ **If still failing**: Restart Render service manually to clear poisoned connections
+5. ✅ Conduct full audit of all database endpoints (see below)
+
+---
+
+## 🔍 FULL AUDIT REQUIRED
+
+Found **88 exception handlers** in `backend/main.py`. Need to systematically review all endpoints that:
+1. Use database connections (`conn`, `cursor`)
+2. Have exception handlers
+3. Might be missing `conn.rollback()`
+
+**High Priority Endpoints to Audit**:
+- ❌ `/deeds` endpoints
+- ❌ `/admin/*` endpoints
+- ❌ `/users/*` endpoints (other than login)
+- ❌ `/shared-deeds` endpoints
+- ✅ `/approve/{token}` - Fixed yesterday
+- ✅ `/pricing` - Fixed now
+- ✅ `/users/login` - Fixed now
+
+**Recommendation**: Schedule a 30-minute audit session to review all database-using endpoints.
 
