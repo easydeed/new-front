@@ -15,10 +15,17 @@ import { useWizardStoreBridge } from './bridge/useWizardStoreBridge';
 function Inner({ docType, classic }: { docType: string; classic: React.ReactNode }){
   const { mode } = useWizardMode();
   const { isPropertyVerified } = useWizardStoreBridge();
+  
+  // DEBUG: Log mode and verification status
+  console.log('[WizardHost] Mode:', mode, 'PropertyVerified:', isPropertyVerified());
 
   if (mode === 'modern') {
     // Hybrid: run Step 1 first if needed
-    if (!isPropertyVerified()) return <PropertyStepBridge />;
+    if (!isPropertyVerified()) {
+      console.log('[WizardHost] Rendering PropertyStepBridge (property not verified)');
+      return <PropertyStepBridge />;
+    }
+    console.log('[WizardHost] Rendering ModernEngine (property verified)');
     return (
       <WizardModeBoundary fallback={<ClassicEngine>{classic}</ClassicEngine>}>
         <ModernEngine docType={docType} />
@@ -27,6 +34,7 @@ function Inner({ docType, classic }: { docType: string; classic: React.ReactNode
   }
 
   // Classic (your existing tree)
+  console.log('[WizardHost] Rendering ClassicEngine (mode:', mode, ')');
   return <ClassicEngine>{classic}</ClassicEngine>;
 }
 

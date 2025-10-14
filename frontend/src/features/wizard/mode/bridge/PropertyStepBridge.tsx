@@ -12,8 +12,10 @@ export default function PropertyStepBridge() {
 
   // Handle property verification callback
   const handlePropertyVerified = useCallback((data: any) => {
+    console.log('[PropertyStepBridge] Property verified! Data:', data);
+    
     // Update the store with verified property data
-    set({
+    const storeUpdate = {
       verifiedData: data,
       propertyVerified: true,
       apn: data.apn,
@@ -28,7 +30,11 @@ export default function PropertyStepBridge() {
       grantorName: data.titlePoint?.owners?.[0]?.fullName || 
                    data.titlePoint?.owners?.[0]?.name || 
                    '',
-    });
+    };
+    
+    console.log('[PropertyStepBridge] Updating store with:', storeUpdate);
+    set(storeUpdate);
+    console.log('[PropertyStepBridge] Store updated, should trigger re-render');
   }, [set]);
 
   // If property is already verified, don't render Step 1

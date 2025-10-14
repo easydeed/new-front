@@ -55,14 +55,24 @@ export function useWizardStoreBridge(){
     const formData = wizardData.formData || {};
     const verifiedData = wizardData.verifiedData || {};
     
+    console.log('[useWizardStoreBridge] Checking property verification:');
+    console.log('  - wizardData:', wizardData);
+    console.log('  - formData:', formData);
+    console.log('  - verifiedData:', verifiedData);
+    console.log('  - formData.apn:', formData.apn);
+    console.log('  - formData.propertyVerified:', formData.propertyVerified);
+    
     // Check multiple possible property verification indicators
-    return !!(
+    const isVerified = !!(
       verifiedData?.apn || 
       formData?.property?.apn || 
       formData?.apn ||
       verifiedData?.propertyVerified ||
       formData?.propertyVerified
     );
+    
+    console.log('  - RESULT:', isVerified);
+    return isVerified;
   }, [getWizardData]);
 
   return useMemo(() => ({
