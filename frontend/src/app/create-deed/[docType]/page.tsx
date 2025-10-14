@@ -16,6 +16,7 @@ import { getContextAdapter } from '../../../features/wizard/context/buildContext
 import { prefillFromEnrichment } from '../../../features/wizard/services/propertyPrefill';
 import '../../../styles/dashboard.css';
 import { useWizardStore } from '../../../store';
+import WizardHost from '../../../features/wizard/mode/WizardHost';
 
 /**
  * Phase 11: Unified Wizard for All Deed Types
@@ -236,7 +237,8 @@ export default function UnifiedWizard() {
     }
   };
 
-  return (
+  // Classic wizard content (wrapped by WizardHost)
+  const classicWizard = (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
       <Sidebar />
       
@@ -387,5 +389,9 @@ export default function UnifiedWizard() {
       </div>
     </div>
   );
+
+  // Phase 15: Dual-Mode Wizard Integration
+  // WizardHost determines which mode to render (Modern vs. Classic)
+  return <WizardHost docType={docType} classic={classicWizard} />;
 }
 
