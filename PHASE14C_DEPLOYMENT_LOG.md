@@ -102,38 +102,44 @@
 ---
 
 ### **Phase 2.1: Copy fetchWithTimeout.ts**
-**Timestamp**: [PENDING]  
-**Status**: ⏳ PENDING  
-**Action**: Copy timeout wrapper to `frontend/src/lib/`  
-**Expected Outcome**: TypeScript compiles without errors  
+**Timestamp**: October 14, 2025 - 1:15 PM  
+**Status**: ✅ COMPLETE  
+**Action**: Copied timeout wrapper to `frontend/src/lib/fetchWithTimeout.ts` (425 bytes)  
+**Outcome**: TypeScript utility for 15-second fetch timeout available  
 **Rollback**: Delete file
 
 ---
 
 ### **Phase 2.2: Copy ProgressOverlay.tsx**
-**Timestamp**: [PENDING]  
-**Status**: ⏳ PENDING  
-**Action**: Copy progress component to `frontend/src/components/`  
-**Expected Outcome**: TypeScript compiles without errors  
+**Timestamp**: October 14, 2025 - 1:16 PM  
+**Status**: ✅ COMPLETE  
+**Action**: Copied progress component to `frontend/src/components/ProgressOverlay.tsx` (1422 bytes)  
+**Outcome**: Multi-stage progress overlay component available  
 **Rollback**: Delete file
 
 ---
 
 ### **Phase 2.3: Patch PropertySearchWithTitlePoint.tsx**
-**Timestamp**: [PENDING]  
-**Status**: ⏳ PENDING  
-**Action**: Wire progress overlay and timeout wrapper  
-**Expected Outcome**: Local dev shows progress overlay during search  
-**Rollback**: Revert changes (git reset)
+**Timestamp**: October 14, 2025 - 1:17-1:25 PM  
+**Status**: ✅ COMPLETE  
+**Changes Applied**:
+- Added imports for ProgressOverlay and fetchWithTimeout
+- Added stage state variable (idle/connecting/searching/resolving/done/error)
+- Replaced native fetch with fetchWithTimeout (15s timeout)
+- Added stage updates: connecting → searching → resolving → done/error
+- Integrated ProgressOverlay component in JSX
+- Error stage resets to idle after 3 seconds
+**Outcome**: Property search now shows progress overlay with multi-stage feedback  
+**Rollback**: `git revert 11cf43d`
 
 ---
 
 ### **Phase 2.4: Deploy Frontend**
-**Timestamp**: [PENDING]  
-**Status**: ⏳ PENDING  
-**Action**: Commit and push to trigger Vercel deployment  
-**Expected Outcome**: Frontend builds successfully, no errors  
-**Rollback**: Revert commit via Vercel dashboard
+**Timestamp**: October 14, 2025 - 1:26 PM  
+**Status**: 🔄 IN PROGRESS  
+**Action**: Committed (11cf43d) and pushed to GitHub  
+**Expected Outcome**: Vercel auto-deploys, TypeScript compiles, progress overlay works  
+**Rollback**: Revert via Vercel dashboard or `git revert 11cf43d && git push origin main`
 
 ---
 
