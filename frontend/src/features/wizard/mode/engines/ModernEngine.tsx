@@ -33,11 +33,11 @@ export default function ModernEngine({ docType }: { docType: string }) {
   const [i, setI] = useState(0);
   const total = prompts.length + 1;
 
-  // Sync to canonical in the shared store
+  // Sync to canonical in the shared store (only on step changes to prevent infinite loop)
   useEffect(()=>{
     const canonical = toCanonicalFor(docType, state);
     set(canonical);
-  }, [state, docType, set]);
+  }, [i, docType]); // Only sync when step index changes, not on every state change
 
   const summary = useMemo(()=> ({
     docType: flow.docType,
