@@ -610,6 +610,7 @@ async def get_user_profile(user_id: int = Depends(get_current_user_id)):
     except HTTPException:
         raise
     except Exception as e:
+        conn.rollback()  # Phase 14-B: Prevent transaction cascade failures
         raise HTTPException(status_code=500, detail=f"Failed to get profile: {str(e)}")
 
 @app.post("/users/upgrade")
@@ -919,6 +920,7 @@ def admin_dashboard():
     except HTTPException:
         raise
     except Exception as e:
+        conn.rollback()  # Phase 14-B: Prevent transaction cascade failures
         print(f"Error fetching admin dashboard: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch dashboard data: {str(e)}")
 
@@ -1024,6 +1026,7 @@ def admin_list_all_users(
     except HTTPException:
         raise
     except Exception as e:
+        conn.rollback()  # Phase 14-B: Prevent transaction cascade failures
         print(f"Error fetching admin users: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch users: {str(e)}")
 
@@ -1104,6 +1107,7 @@ def admin_get_user_details(user_id: int):
             return user_details
             
     except Exception as e:
+        conn.rollback()  # Phase 14-B: Prevent transaction cascade failures
         print(f"Error fetching user details: {e}")
         raise HTTPException(status_code=500, detail=f"Error fetching user details: {str(e)}")
 
@@ -1213,6 +1217,7 @@ def admin_list_all_deeds(
     except HTTPException:
         raise
     except Exception as e:
+        conn.rollback()  # Phase 14-B: Prevent transaction cascade failures
         print(f"Error fetching admin deeds: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch deeds: {str(e)}")
 
@@ -1420,6 +1425,7 @@ def get_current_user(user_id: int = Depends(get_current_user_id)):
     except HTTPException:
         raise
     except Exception as e:
+        conn.rollback()  # Phase 14-B: Prevent transaction cascade failures
         print(f"Error fetching current user: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch user: {str(e)}")
 
@@ -1508,6 +1514,7 @@ def list_deeds_endpoint(user_id: int = Depends(get_current_user_id)):
     except HTTPException:
         raise
     except Exception as e:
+        conn.rollback()  # Phase 14-B: Prevent transaction cascade failures
         print(f"Error fetching deeds: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch deeds: {str(e)}")
 
@@ -1556,6 +1563,7 @@ def deeds_summary(user_id: int = Depends(get_current_user_id)) -> Dict[str, int]
     except HTTPException:
         raise
     except Exception as e:
+        conn.rollback()  # Phase 14-B: Prevent transaction cascade failures
         print(f"Error fetching deed summary: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch summary: {str(e)}")
 
@@ -1613,6 +1621,7 @@ def list_available_deeds_for_sharing(user_id: int = Depends(get_current_user_id)
     except HTTPException:
         raise
     except Exception as e:
+        conn.rollback()  # Phase 14-B: Prevent transaction cascade failures
         print(f"Error fetching available deeds: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch available deeds: {str(e)}")
 
@@ -1825,6 +1834,7 @@ def list_shared_deeds(user_id: int = Depends(get_current_user_id)):
             return shared_deeds
             
     except Exception as e:
+        conn.rollback()  # Phase 14-B: Prevent transaction cascade failures
         print(f"Error fetching shared deeds: {e}")
         # Graceful degradation: return empty array if table doesn't exist yet
         if "does not exist" in str(e):
@@ -1878,6 +1888,7 @@ def revoke_shared_deed(shared_deed_id: int, user_id: int = Depends(get_current_u
     except HTTPException:
         raise
     except Exception as e:
+        conn.rollback()  # Phase 14-B: Prevent transaction cascade failures
         print(f"Error revoking shared deed: {e}")
         # Graceful degradation: return success if table doesn't exist yet
         if "does not exist" in str(e):
@@ -1974,6 +1985,7 @@ def view_shared_deed(approval_token: str):
     except HTTPException:
         raise
     except Exception as e:
+        conn.rollback()  # Phase 14-B: Prevent transaction cascade failures
         print(f"[Phase 7.5] ❌ Error loading shared deed: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to load shared deed: {str(e)}")
 
