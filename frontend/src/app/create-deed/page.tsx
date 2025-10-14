@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Sidebar from '../../components/Sidebar';
+import '../../styles/dashboard.css';
 
 interface DocumentType {
   label: string;
@@ -65,10 +67,15 @@ export default function CreateDeedPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gentle-indigo mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading document types...</p>
+      <div style={{ display: 'flex' }}>
+        <Sidebar />
+        <div className="main-content">
+          <div className="contact-wrapper" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gentle-indigo mx-auto mb-4"></div>
+              <p className="text-slate-600">Loading document types...</p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -76,26 +83,32 @@ export default function CreateDeedPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6">
-          <div className="text-red-500 text-5xl mb-4">⚠️</div>
-          <h2 className="text-xl font-semibold text-slate-800 mb-2">Unable to Load Document Types</h2>
-          <p className="text-slate-600 mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="bg-gentle-indigo text-white px-4 py-2 rounded-lg hover:bg-gentle-indigo/90 transition-colors"
-          >
-            Try Again
-          </button>
+      <div style={{ display: 'flex' }}>
+        <Sidebar />
+        <div className="main-content">
+          <div className="contact-wrapper" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+            <div className="text-center max-w-md mx-auto p-6">
+              <div className="text-red-500 text-5xl mb-4">⚠️</div>
+              <h2 className="text-xl font-semibold text-slate-800 mb-2">Unable to Load Document Types</h2>
+              <p className="text-slate-600 mb-4">{error}</p>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="bg-gentle-indigo text-white px-4 py-2 rounded-lg hover:bg-gentle-indigo/90 transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto">
+    <div style={{ display: 'flex' }}>
+      <Sidebar />
+      <div className="main-content">
+        <div className="contact-wrapper">
           {/* Header */}
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold text-slate-800 mb-4">
@@ -107,7 +120,7 @@ export default function CreateDeedPage() {
           </div>
 
           {/* Document Type Selection */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3" style={{ maxWidth: '1200px', margin: '0 auto' }}>
             {Object.entries(documentTypes).map(([key, docType]) => (
               <div
                 key={key}
