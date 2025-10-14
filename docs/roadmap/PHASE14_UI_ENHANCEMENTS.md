@@ -59,7 +59,56 @@ git push origin main
 
 ---
 
-### **Enhancement #2: [TBD - User will suggest]** ⏳ PENDING
+### **Enhancement #2: Audit Database Endpoints for Transaction Safety** ⏳ PENDING
+
+**Issue**: Multiple endpoints missing `conn.rollback()` in exception handlers, causing transaction cascade failures  
+**Impact**: CRITICAL - Server crashes when any database query fails  
+**Risk**: HIGH - Affects stability  
+**Implementation Time**: 30 minutes
+
+**Background**:
+- October 13: Fixed `/approve/{token}` endpoint (Rejection Bundle)
+- October 14: Server crashed due to `/pricing` and `/users/login` missing rollback
+- Found 88 exception handlers in `backend/main.py` - need systematic audit
+
+**Audit Strategy**:
+1. ✅ Identify all endpoints that use database connections
+2. ✅ Check each exception handler for `conn.rollback()`
+3. ✅ Add rollback where missing
+4. ✅ Test each fixed endpoint
+5. ✅ Deploy incrementally (one commit per group)
+
+**Endpoints Already Fixed**:
+- ✅ `/approve/{token}` (Oct 13)
+- ✅ `/pricing` (Oct 14)
+- ✅ `/users/login` (Oct 14)
+- ✅ `/users/register` (has rollback)
+
+**Endpoints to Audit** (Priority order):
+1. 🔴 `/deeds/*` - High traffic, critical functionality
+2. 🔴 `/admin/*` - Admin operations
+3. 🟡 `/users/*` - User management (except login/register)
+4. 🟡 `/shared-deeds` - Sharing functionality
+5. 🟢 `/pricing/plans` - Secondary pricing endpoint
+6. 🟢 Other miscellaneous endpoints
+
+**Success Criteria**:
+- ✅ All database-using endpoints have rollback in exception handlers
+- ✅ No more "current transaction is aborted" errors
+- ✅ Server remains stable under error conditions
+- ✅ Documentation updated with findings
+
+**Testing Checklist**:
+- [ ] Simulate database errors for each fixed endpoint
+- [ ] Verify rollback prevents cascade failures
+- [ ] Confirm endpoints return proper error responses
+- [ ] Monitor Render logs for transaction errors
+
+**Rollback Plan**:
+```bash
+git revert <commit-hash>
+git push origin main
+```
 
 ---
 
@@ -100,18 +149,43 @@ git push origin main
 
 ---
 
+### **HOTFIX: Server Crash (Transaction Cascade Failure)**
+
+**Oct 14, 2025 - 2:31 PM PT**: Server crash detected
+- User reported server crash with transaction errors
+- Logs showed: `[PRICING ERROR] current transaction is aborted`
+- Logs showed: `[LOGIN ERROR] current transaction is aborted`
+- Root cause: Missing `conn.rollback()` in exception handlers
+
+**Oct 14, 2025 - 2:45 PM PT**: Hotfix deployed ✅
+- Fixed `/pricing` endpoint (line 2483)
+- Fixed `/users/login` endpoint (line 558)
+- Committed: `14c151f`
+- Deployed to Render
+- User validated: ✅ "The login worked"
+
+**Oct 14, 2025 - 3:00 PM PT**: Enhancement #2 created
+- User requested: "Please incorporate this into Phase 14-B - Audit endpoints"
+- Created Enhancement #2: Audit Database Endpoints for Transaction Safety
+- 88 exception handlers identified in `backend/main.py`
+- Systematic audit plan documented
+
+---
+
 ## 🎯 SUCCESS METRICS
 
 ### **Before Phase 14**
 - ❌ Create Deed page feels disconnected
 - ❌ No navigation context on document selection
 - ❌ Inconsistent UX pattern across authenticated pages
+- ❌ Server crashes due to missing transaction rollbacks
 
 ### **After Phase 14**
 - ✅ Consistent sidebar navigation across ALL authenticated pages
 - ✅ Users maintain context throughout deed creation flow
 - ✅ Professional, enterprise-ready UX
-- ✅ [Additional enhancements TBD]
+- ✅ Server stability improved (transaction rollbacks added)
+- ⏳ Full endpoint audit in progress (Enhancement #2)
 
 ---
 
@@ -161,7 +235,7 @@ None yet. This section will track any issues discovered during implementation.
 
 **Status**: Deployed to production  
 **Deployed**: October 14, 2025 at 8:30 AM PT (Commit `8b7b53e`)  
-**Validated**: Awaiting user testing
+**Validated**: ⏳ Awaiting user testing
 
 **Changes**:
 - ✅ Sidebar component integrated
@@ -181,5 +255,23 @@ None yet. This section will track any issues discovered during implementation.
 
 ---
 
-**Last Updated**: October 14, 2025 at 8:30 AM PT
+### **HOTFIX: Transaction Cascade Failure** ✅ DEPLOYED & VALIDATED
+
+**Status**: Deployed and validated ✅  
+**Deployed**: October 14, 2025 at 2:45 PM PT (Commit `14c151f`)  
+**Validated**: ✅ User confirmed "The login worked"
+
+**Issue**: Server crash due to missing `conn.rollback()` in exception handlers
+
+**Changes**:
+- ✅ Added rollback to `/pricing` endpoint (line 2483)
+- ✅ Added rollback to `/users/login` endpoint (line 558)
+- ✅ Prevents transaction cascade failures
+- ✅ Server stability improved
+
+**Led to Enhancement #2**: Full endpoint audit now scheduled
+
+---
+
+**Last Updated**: October 14, 2025 at 3:00 PM PT
 
