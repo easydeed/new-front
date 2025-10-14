@@ -1,1 +1,0 @@
-Provided as scaffolding. Review and adapt for your project structure before deploying.
