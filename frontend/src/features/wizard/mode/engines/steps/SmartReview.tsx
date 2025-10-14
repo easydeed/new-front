@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import { buildReviewLines } from '../../review/smartReviewTemplates';
 
-export default function SmartReview({ data, issues, onEdit, onConfirm }:{ data:any; issues?: string[]; onEdit:(section:string)=>void; onConfirm:()=>void; }){
+export default function SmartReview({ data, issues, finalizing, onEdit, onConfirm }:{ data:any; issues?: string[]; finalizing?: boolean; onEdit:(section:string)=>void; onConfirm:()=>void; }){
   const lines = buildReviewLines(data);
   const score = useMemo(()=>{
     const required = ['grantor','grantee']; // extend per docType
@@ -38,13 +38,15 @@ export default function SmartReview({ data, issues, onEdit, onConfirm }:{ data:a
         <div className="mt-2">
           <button
             onClick={()=>{
+              if (finalizing) return;
               const box = document.getElementById('confirmChk') as HTMLInputElement | null;
               if (!box?.checked) { alert('Please confirm.'); return; }
               onConfirm();
             }}
-            className="px-3 py-1.5 bg-emerald-600 text-white rounded"
+            disabled={finalizing}
+            className="px-3 py-1.5 bg-emerald-600 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Confirm & Generate
+            {finalizing ? 'Generating...' : 'Confirm & Generate'}
           </button>
         </div>
       </div>

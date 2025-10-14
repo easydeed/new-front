@@ -31,6 +31,7 @@ export default function ModernEngine({ docType }: { docType: string }) {
     taxSaleRef: existing?.taxSale?.reference || '',
   });
   const [i, setI] = useState(0);
+  const [finalizing, setFinalizing] = useState(false);
   const total = prompts.length + 1;
 
   // Sync to canonical in the shared store (only on step changes to prevent infinite loop)
@@ -66,10 +67,17 @@ export default function ModernEngine({ docType }: { docType: string }) {
         <SmartReview
           data={summary}
           issues={issues}
+          finalizing={finalizing}
           onEdit={() => setI(0)}
-          onConfirm={async () => {
+          onConfirm={() => {
+            if (finalizing) return; // Prevent double-click
+            setFinalizing(true);
             const canonical = toCanonicalFor(docType, state);
-            await finalizeDeed(canonical);
+            finalizeDeed(canonical).catch((err) => {
+              console.error('[ModernEngine] Finalize error:', err);
+              alert('Failed to generate deed. Please try again.');
+              setFinalizing(false);
+            });
           }}
         />
       </div>
