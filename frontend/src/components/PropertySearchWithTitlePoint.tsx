@@ -392,6 +392,8 @@ export default function PropertySearchWithTitlePoint({
         throw new Error('Authentication required. Please log in again.');
       }
       
+      // PHASE 14-C: Small delay to show "Connecting" stage
+      await new Promise(resolve => setTimeout(resolve, 400));
       setStage('searching');  // PHASE 14-C: Update stage
       
       // PHASE 14-C: Call unified endpoint with 15-second timeout
@@ -427,6 +429,9 @@ export default function PropertySearchWithTitlePoint({
       setStage('resolving');  // PHASE 14-C: Processing response
       const result = await searchResponse.json();
       console.log('✅ Unified Property Search result:', result);
+
+      // PHASE 14-C: Small delay to show "Resolving" stage
+      await new Promise(resolve => setTimeout(resolve, 300));
 
       if (result.success) {
         // Map backend response to frontend PropertyDetails format
