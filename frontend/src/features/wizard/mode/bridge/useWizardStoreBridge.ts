@@ -3,13 +3,24 @@
  * Bridge that connects Modern Wizard to the existing Zustand store + localStorage.
  * This ensures single source of truth and state persistence.
  */
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState, useEffect } from 'react';
 import { useWizardStore } from '@/store';
 
 export function useWizardStoreBridge(){
   const { data, setData } = useWizardStore();
+  const [hydrated, setHydrated] = useState(false);
+  
+  // Only access localStorage after hydration to prevent SSR mismatch
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
   
   const getWizardData = useCallback(() => {
+    // During SSR or before hydration, return empty state
+    if (!hydrated) {
+      return { formData: {}, verifiedData: {}, docType: 'grant_deed' };
+    }
+    
     // Try localStorage first (for persistence)
     try {
       const stored = localStorage.getItem('deedWizardDraft');
@@ -27,7 +38,7 @@ export function useWizardStoreBridge(){
     
     // Fallback to Zustand store
     return { formData: data || {} };
-  }, [data]);
+  }, [data, hydrated]);
   
   const updateFormData = useCallback((patch: any) => {
     // Update Zustand store
@@ -35,20 +46,22 @@ export function useWizardStoreBridge(){
       setData(key, patch[key]);
     });
     
-    // Update localStorage for persistence
-    try {
-      const current = getWizardData();
-      const updated = {
-        ...current,
-        formData: { ...current.formData, ...patch },
-        grantDeed: { ...current.formData, ...patch },
-        timestamp: new Date().toISOString()
-      };
-      localStorage.setItem('deedWizardDraft', JSON.stringify(updated));
-    } catch (error) {
-      console.error('Error saving wizard data:', error);
+    // Update localStorage for persistence (only after hydration)
+    if (hydrated) {
+      try {
+        const current = getWizardData();
+        const updated = {
+          ...current,
+          formData: { ...current.formData, ...patch },
+          grantDeed: { ...current.formData, ...patch },
+          timestamp: new Date().toISOString()
+        };
+        localStorage.setItem('deedWizardDraft', JSON.stringify(updated));
+      } catch (error) {
+        console.error('Error saving wizard data:', error);
+      }
     }
-  }, [setData, getWizardData]);
+  }, [setData, getWizardData, hydrated]);
   
   const isPropertyVerified = useCallback(() => {
     const wizardData = getWizardData();
