@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import ProgressOverlay from '@/components/ProgressOverlay';
+import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
 
 // Types for property data
 interface PropertyData {
@@ -121,6 +123,7 @@ export default function PropertySearchWithTitlePoint({
   const [inputValue, setInputValue] = useState('');
   const [suggestions, setSuggestions] = useState<GoogleAutocompletePrediction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [stage, setStage] = useState<'idle'|'connecting'|'searching'|'resolving'|'done'|'error'>('idle');
   const [isGoogleLoaded, setIsGoogleLoaded] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<PropertyData | null>(null);
@@ -377,6 +380,7 @@ export default function PropertySearchWithTitlePoint({
 
     setIsTitlePointLoading(true);
     setErrorMessage(null);
+    setStage('connecting');  // PHASE 14-C: Start progress feedback
     // PHASE 5-PREQUAL: Removed setSitexMatches/setShowSitexMatches - multi-match auto-resolved on backend
     
     try {
@@ -388,9 +392,11 @@ export default function PropertySearchWithTitlePoint({
         throw new Error('Authentication required. Please log in again.');
       }
       
-      // Call unified /api/property/search endpoint (Per Architecture: Step 1 – Property Verification)
+      setStage('searching');  // PHASE 14-C: Update stage
+      
+      // PHASE 14-C: Call unified endpoint with 15-second timeout
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com';
-      const searchResponse = await fetch(`${apiUrl}/api/property/search`, {
+      const searchResponse = await fetchWithTimeout(`${apiUrl}/api/property/search`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -404,7 +410,8 @@ export default function PropertySearchWithTitlePoint({
           zip: addressData.zip,
           neighborhood: addressData.neighborhood,
           placeId: addressData.placeId
-        })
+        }),
+        timeoutMs: 15000  // PHASE 14-C: 15-second timeout
       });
 
       if (!searchResponse.ok) {
@@ -417,6 +424,7 @@ export default function PropertySearchWithTitlePoint({
         throw new Error(`Property search error: ${searchResponse.status}`);
       }
 
+      setStage('resolving');  // PHASE 14-C: Processing response
       const result = await searchResponse.json();
       console.log('✅ Unified Property Search result:', result);
 
@@ -442,6 +450,7 @@ export default function PropertySearchWithTitlePoint({
         setPropertyDetails(propertyInfo);
         setShowPropertyDetails(true);
         setErrorMessage(null);
+        setStage('done');  // PHASE 14-C: Success
         onPropertyFound?.(propertyInfo);
       } else {
         // No property data found - allow manual entry
@@ -451,10 +460,13 @@ export default function PropertySearchWithTitlePoint({
       }
     } catch (error) {
       console.error('Property search failed:', error);
+      setStage('error');  // PHASE 14-C: Error state
       setErrorMessage('⚠️ Unable to retrieve property details. You can proceed with manual entry.');
       setShowPropertyDetails(false);
     } finally {
       setIsTitlePointLoading(false);
+      // Reset stage after a brief delay to allow error message to show
+      setTimeout(() => setStage('idle'), 3000);
     }
   };
 
@@ -578,6 +590,7 @@ export default function PropertySearchWithTitlePoint({
 
   return (
     <>
+      <ProgressOverlay stage={stage} />
       <style jsx>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
