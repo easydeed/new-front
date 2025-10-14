@@ -555,6 +555,7 @@ async def login_user(credentials: UserLogin = Body(...)):
     except HTTPException:
         raise
     except Exception as e:
+        conn.rollback()  # CRITICAL: Rollback to prevent transaction cascade failures
         print(f"[LOGIN ERROR] {e}")
         raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
 
@@ -2480,6 +2481,7 @@ async def get_pricing():
             
             return result
     except Exception as e:
+        conn.rollback()  # CRITICAL: Rollback to prevent transaction cascade failures
         print(f"[PRICING ERROR] {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch pricing: {str(e)}")
 
