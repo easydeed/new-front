@@ -6,7 +6,7 @@ import SmartReview from './steps/SmartReview';
 import DeedTypeBadge from '../components/DeedTypeBadge';
 import { useWizardStoreBridge } from '../bridge/useWizardStoreBridge';
 import { finalizeDeed } from '../finalize/finalizeBridge';
-import { toCanonicalFor } from '../../../adapters';
+import { toCanonicalFor } from '@/features/wizard/adapters';
 import { promptFlows, Prompt } from '../prompts/promptFlows';
 import { usePromptValidation } from '../validation/usePromptValidation';
 
