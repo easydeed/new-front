@@ -64,6 +64,13 @@ export function useWizardStoreBridge(){
   }, [setData, getWizardData, hydrated]);
   
   const isPropertyVerified = useCallback(() => {
+    // CRITICAL FIX: Don't check localStorage before hydration!
+    // This prevents hydration mismatch when switching from false → true
+    if (!hydrated) {
+      console.log('[useWizardStoreBridge] NOT HYDRATED - property verification: false');
+      return false; // Always return false before hydration
+    }
+    
     const wizardData = getWizardData();
     const formData = wizardData.formData || {};
     const verifiedData = wizardData.verifiedData || {};
@@ -86,7 +93,7 @@ export function useWizardStoreBridge(){
     
     console.log('  - RESULT:', isVerified);
     return isVerified;
-  }, [getWizardData]);
+  }, [hydrated, getWizardData]);
 
   return useMemo(() => ({
     get: getWizardData,
