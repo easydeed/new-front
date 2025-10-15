@@ -1,7 +1,4 @@
 'use client';
-/**
- * Phase 15 v4.1: Finalize bridge with mode context preservation
- */
 export type CanonicalDeed = { deedType: string; [k:string]: any };
 
 function withMode(url: string, mode: 'modern'|'classic'='modern'){
