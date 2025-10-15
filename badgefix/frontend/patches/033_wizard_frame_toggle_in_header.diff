@@ -1,0 +1,19 @@
+*** Begin Patch
+*** Update File: frontend/src/features/wizard/mode/layout/WizardFrame.tsx
+@@
+-import ModeSwitcher from '../ModeSwitcher';
++import ModeSwitcher from '../ModeSwitcher';
+@@
+-      <div className="wizard-frame__header">
++      <div className="wizard-frame__header">
+         <div className="wizard-frame__title">
+           <DeedTypeBadge docType={docType} />
+           <span>{heading || 'Create Deed'}</span>
+-          <span className="wizard-muted">Modern</span>
++          <span className="wizard-muted">Modern</span>
+         </div>
+-        <ModeSwitcher />
++        {/* [v4.2] Keep switcher visible on all wizard pages */}
++        <ModeSwitcher />
+       </div>
+*** End Patch

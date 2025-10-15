@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import StepShell from './steps/StepShell';
 import MicroSummary from './steps/MicroSummary';
 import SmartReview from './steps/SmartReview';
-import DeedTypeBadge from '../components/DeedTypeBadge';
+// [v4.2] Badge is rendered in WizardFrame header only
 import { useWizardStoreBridge } from '../bridge/useWizardStoreBridge';
 import { finalizeDeed } from '../finalize/finalizeBridge';
 import { toCanonicalFor } from '@/features/wizard/adapters';
@@ -16,7 +16,6 @@ if (typeof window !== 'undefined') {
     StepShell: typeof StepShell,
     MicroSummary: typeof MicroSummary,
     SmartReview: typeof SmartReview,
-    DeedTypeBadge: typeof DeedTypeBadge,
     useWizardStoreBridge: typeof useWizardStoreBridge,
     finalizeDeed: typeof finalizeDeed,
     toCanonicalFor: typeof toCanonicalFor,
@@ -28,8 +27,13 @@ if (typeof window !== 'undefined') {
 type AnyState = Record<string, any>;
 
 export default function ModernEngine({ docType }: { docType: string }) {
+  // [v4.2] Normalize to hyphenated slug and use that to pick the flow
   const slug = (docType || '').toLowerCase().replace(/_/g,'-').replace(/\s+/g,'-');
-  const flow = promptFlows[slug] || promptFlows['grant-deed'];
+  const flow = promptFlows[slug];
+  if (!flow) {
+    console.error('[ModernEngine] Unknown docType slug:', slug, '— check URL→DocType mapping / promptFlows keys.');
+    throw new Error('Unsupported deed type: ' + slug);
+  }
   const prompts = flow.steps;
 
   const { get, set } = useWizardStoreBridge();
@@ -75,16 +79,12 @@ export default function ModernEngine({ docType }: { docType: string }) {
     if (!state.granteeName) issues.push('Grantee is missing');
     
     console.log('[ModernEngine] Rendering final review, components:', {
-      DeedTypeBadge: typeof DeedTypeBadge,
       MicroSummary: typeof MicroSummary,
       SmartReview: typeof SmartReview,
     });
     
     return (
-      <div className="p-4 space-y-2">
-        <div className="flex items-center justify-between">
-          <DeedTypeBadge docType={flow.docType} />
-        </div>
+      <div className="space-y-3">
         <MicroSummary data={summary} />
         <SmartReview
           data={summary}
@@ -111,7 +111,6 @@ export default function ModernEngine({ docType }: { docType: string }) {
   
   console.log('[ModernEngine] Rendering step', i, 'components:', {
     StepShell: typeof StepShell,
-    DeedTypeBadge: typeof DeedTypeBadge,
     MicroSummary: typeof MicroSummary,
   });
 
@@ -135,10 +134,7 @@ export default function ModernEngine({ docType }: { docType: string }) {
   const stepTitle = p.title || 'Question';
 
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-between mb-2">
-        <DeedTypeBadge docType={flow.docType} />
-      </div>
+    <div className="space-y-2">
       <MicroSummary data={summary} />
       {visible ? (
         <StepShell
