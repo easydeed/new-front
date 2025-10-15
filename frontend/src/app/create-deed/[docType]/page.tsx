@@ -20,6 +20,8 @@ import WizardHost from '../../../features/wizard/mode/WizardHost';
 // Phase15: Isolated storage keys + safe wrapper
 import { safeStorage } from '../../../shared/safe-storage/safeStorage';
 import { WIZARD_DRAFT_KEY_CLASSIC } from '../../../features/wizard/mode/bridge/persistenceKeys';
+// [v4.2] Consistent docType mapping
+import { canonicalFromUrlParam } from '../../../features/wizard/mode/utils/docType';
 
 /**
  * Phase 11 + Phase 15 Hydration Fix: Unified Wizard for All Deed Types
@@ -407,13 +409,12 @@ function ClassicWizard({ docType }: { docType: DocType }) {
 export default function UnifiedWizard() {
   const params = useParams();
   
-  // Get docType from URL params (e.g., /create-deed/grant-deed → 'grant_deed')
-  const rawDocType = params?.docType as string || 'grant_deed';
-  const docType = rawDocType.replace(/-/g, '_') as DocType;
+  // [v4.2] URL param → canonical docType (e.g., 'quitclaim-deed' → 'quitclaim')
+  const docType = canonicalFromUrlParam(params?.docType as string);
 
   // Phase 15: Dual-Mode Wizard Integration
   // WizardHost determines which mode to render (Modern vs. Classic)
   // ClassicWizard component is passed, not JSX, so hooks only run when it's rendered
-  return <WizardHost docType={docType} classic={<ClassicWizard docType={docType} />} />;
+  return <WizardHost docType={docType} classic={<ClassicWizard docType={docType as DocType} />} />;
 }
 

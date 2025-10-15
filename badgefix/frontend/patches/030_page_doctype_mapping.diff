@@ -1,0 +1,23 @@
+*** Begin Patch
+*** Update File: frontend/src/app/create-deed/[docType]/page.tsx
+@@
+-import React from 'react';
++import React from 'react';
++// [v4.2] Consistent docType mapping
++import { canonicalFromUrlParam } from '@/features/wizard/mode/utils/docType';
+@@
+-export default function WizardEntryPage({ params }:{ params: { docType: string } }){
+-  const { docType } = params;
+-  // Keep your existing classic wizard tree in this variable:
++export default function WizardEntryPage({ params }:{ params: { docType: string } }){
++  // URL param → canonical docType (e.g., 'quitclaim-deed' → 'quitclaim')
++  const docType = canonicalFromUrlParam(params?.docType);
++  // Keep your existing classic wizard tree in this variable:
+   const classic = (
+     <div>
+       {/* existing wizard JSX stays here */}
+     </div>
+   );
+   return <WizardHost docType={docType} classic={classic} />;
+ }
+*** End Patch
