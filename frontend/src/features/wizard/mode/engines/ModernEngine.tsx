@@ -92,15 +92,19 @@ export default function ModernEngine({ docType }: { docType: string }) {
           issues={issues}
           finalizing={finalizing}
           onEdit={() => setI(0)}
-          onConfirm={() => {
+          onConfirm={async () => {
             if (finalizing) return; // Prevent double-click
             setFinalizing(true);
-            const canonical = toCanonicalFor(docType, state);
-            finalizeDeed(canonical).catch((err) => {
+            try {
+              const canonical = toCanonicalFor(docType, state);
+              console.log('[ModernEngine] Finalizing deed:', { docType, canonical });
+              await finalizeDeed(canonical);
+              // If we reach here, finalize succeeded and we're redirecting
+            } catch (err) {
               console.error('[ModernEngine] Finalize error:', err);
               alert('Failed to generate deed. Please try again.');
-              setFinalizing(false);
-            });
+              setFinalizing(false); // Reset on error so user can retry
+            }
           }}
         />
       </div>

@@ -263,15 +263,39 @@ function LoginContent() {
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('🔵 [AUTO-FILL v2] Button clicked!');
+                console.log('🔵 [AUTO-FILL v3 - FINAL FIX] Button clicked!');
+                
                 const credentials = { 
                   email: "gerardoh@gmail.com", 
                   password: "Test123!" 
                 };
+                
+                // Method 1: Update React state
                 setFormData(credentials);
                 setError("");
-                setSuccessMessage("✅ Credentials loaded! Now click 'Sign In' above.");
-                console.log('🔵 [AUTO-FILL v2] State updated:', credentials.email);
+                setSuccessMessage("✅ Credentials loaded! Click 'Sign In' above.");
+                
+                // Method 2: Also directly set input values (for browser compatibility)
+                setTimeout(() => {
+                  const emailInput = document.getElementById('email') as HTMLInputElement;
+                  const passwordInput = document.getElementById('password') as HTMLInputElement;
+                  
+                  if (emailInput && passwordInput) {
+                    emailInput.value = credentials.email;
+                    passwordInput.value = credentials.password;
+                    
+                    // Trigger input events to ensure React sees the change
+                    emailInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    
+                    console.log('🔵 [AUTO-FILL v3] Input values set directly:', {
+                      email: emailInput.value,
+                      password: passwordInput.value
+                    });
+                  }
+                }, 10);
+                
+                console.log('🔵 [AUTO-FILL v3] State updated:', credentials.email);
               }}
             >
               <div className="flex items-center justify-between">
