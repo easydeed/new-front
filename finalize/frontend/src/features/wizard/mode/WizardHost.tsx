@@ -6,34 +6,25 @@ import ModernEngine from './engines/ModernEngine';
 import ClassicEngine from './engines/ClassicEngine';
 import PropertyStepBridge from './bridge/PropertyStepBridge';
 import { useWizardStoreBridge } from './bridge/useWizardStoreBridge';
-// [Phase15] hydration gate
 import HydrationGate from './HydrationGate';
-// [v4.1] layout unification
 import WizardFrame from './layout/WizardFrame';
 
 /**
  * Orchestrates:
- *   Step 1 (Property search via PropertyStepBridge) → Modern Q&A or Classic
- *   - We never modify your Step 1; we render it intact first if property isn't verified.
+ *   Step 1 (Property) → Modern Q&A or Classic
  */
 function Inner({ docType, classic }: { docType: string; classic: React.ReactNode }){
   const { mode } = useWizardMode();
   const { isPropertyVerified } = useWizardStoreBridge();
-  
-  // DEBUG: Log mode and verification status
-  console.log('[WizardHost] Mode:', mode, 'PropertyVerified:', isPropertyVerified());
 
   if (mode === 'modern') {
-    // Hybrid: run Step 1 first if needed
     if (!isPropertyVerified()) {
-      console.log('[WizardHost] Rendering PropertyStepBridge (property not verified)');
       return (
         <WizardFrame docType={docType} heading="Create Deed">
           <PropertyStepBridge />
         </WizardFrame>
       );
     }
-    console.log('[WizardHost] Rendering ModernEngine (property verified)');
     return (
       <WizardModeBoundary fallback={<ClassicEngine>{classic}</ClassicEngine>}>
         <WizardFrame docType={docType} heading="Create Deed">
@@ -42,9 +33,7 @@ function Inner({ docType, classic }: { docType: string; classic: React.ReactNode
       </WizardModeBoundary>
     );
   }
-
-  // Classic (your existing tree) - also wrapped for consistent header/toggle
-  console.log('[WizardHost] Rendering ClassicEngine (mode:', mode, ')');
+  // Classic (unchanged), but keep consistent header/switcher
   return (
     <WizardFrame docType={docType} heading="Create Deed">
       <ClassicEngine>{classic}</ClassicEngine>

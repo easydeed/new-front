@@ -1,0 +1,7 @@
+.wizard-frame{max-width:960px;margin:0 auto;padding:16px}
+.wizard-frame__header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.wizard-frame__title{display:flex;align-items:center;gap:8px;font-weight:600}
+.wizard-frame__body{display:block}
+/* Match classic spacing rhythm */
+.wizard-card{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin:8px 0}
+.wizard-muted{font-size:12px;color:#6b7280}

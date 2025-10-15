@@ -41,7 +41,13 @@ export default function SmartReview({ data, issues, finalizing, onEdit, onConfir
               if (finalizing) return;
               const box = document.getElementById('confirmChk') as HTMLInputElement | null;
               if (!box?.checked) { alert('Please confirm.'); return; }
-              onConfirm();
+              // [v4.1] Robust finalize invocation
+              Promise.resolve()
+                .then(() => onConfirm())
+                .catch((e) => {
+                  console.error('[SmartReview] finalize failed:', e);
+                  alert('Failed to create deed. Please try again.');
+                });
             }}
             disabled={finalizing}
             className="px-3 py-1.5 bg-emerald-600 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
