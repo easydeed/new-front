@@ -1,8 +1,101 @@
-.wizard-frame{max-width:960px;margin:0 auto;padding:16px}
-.wizard-frame__header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.wizard-frame__title{display:flex;align-items:center;gap:8px;font-weight:600}
-.wizard-frame__body{display:block}
-/* Match classic spacing rhythm */
-.wizard-card{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin:8px 0}
-.wizard-muted{font-size:12px;color:#6b7280}
+/* Phase 15 v4.2: Full platform integration with beautiful aesthetics */
+
+/* Main layout with sidebar */
+.wizard-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f8f9fa;
+}
+
+/* Main content area (to the right of sidebar) */
+.wizard-main-content {
+  flex: 1;
+  padding: 2rem;
+  margin-left: 280px; /* Sidebar width */
+}
+
+/* Header with toggle */
+.wizard-frame__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+
+.wizard-frame__title {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.wizard-heading {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin: 0;
+}
+
+.wizard-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #3b82f6;
+  background-color: #eff6ff;
+  border-radius: 12px;
+}
+
+/* Body content - full width with beautiful spacing */
+.wizard-frame__body {
+  display: block;
+  width: 100%;
+}
+
+/* Beautiful cards with generous spacing */
+.wizard-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  margin-bottom: 2rem;
+  transition: box-shadow 0.2s ease;
+}
+
+.wizard-card:hover {
+  box-shadow: 0 6px 32px rgba(0, 0, 0, 0.08);
+}
+
+/* Ensure buttons are big and beautiful */
+.wizard-frame__body button:not(.toggle-switch *) {
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.wizard-frame__body button.btn-primary,
+.wizard-frame__body button[style*="background"] {
+  box-shadow: 0 2px 8px rgba(245, 124, 0, 0.2);
+}
+
+.wizard-frame__body button.btn-primary:hover,
+.wizard-frame__body button[style*="background"]:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 124, 0, 0.3);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .wizard-main-content {
+    margin-left: 0;
+    padding: 1rem;
+  }
+  
+  .wizard-heading {
+    font-size: 1.75rem;
+  }
+}
 
