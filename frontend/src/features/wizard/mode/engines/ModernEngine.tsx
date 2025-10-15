@@ -9,6 +9,7 @@ import { finalizeDeed } from '../finalize/finalizeBridge';
 import { toCanonicalFor } from '@/features/wizard/adapters';
 import { promptFlows, Prompt } from '../prompts/promptFlows';
 import { usePromptValidation } from '../validation/usePromptValidation';
+import { toUrlSlug } from '../utils/docType';
 
 // DEBUG: Log all imports to verify they loaded correctly
 if (typeof window !== 'undefined') {
@@ -27,11 +28,11 @@ if (typeof window !== 'undefined') {
 type AnyState = Record<string, any>;
 
 export default function ModernEngine({ docType }: { docType: string }) {
-  // [v4.2] Normalize to hyphenated slug and use that to pick the flow
-  const slug = (docType || '').toLowerCase().replace(/_/g,'-').replace(/\s+/g,'-');
+  // [v4.2 HOTFIX] Use toUrlSlug to convert canonical → hyphenated (e.g., 'quitclaim' → 'quitclaim-deed')
+  const slug = toUrlSlug(docType as any);
   const flow = promptFlows[slug];
   if (!flow) {
-    console.error('[ModernEngine] Unknown docType slug:', slug, '— check URL→DocType mapping / promptFlows keys.');
+    console.error('[ModernEngine] Unknown docType slug:', slug, 'from docType:', docType, '— check promptFlows keys.');
     throw new Error('Unsupported deed type: ' + slug);
   }
   const prompts = flow.steps;
