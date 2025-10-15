@@ -250,72 +250,76 @@ function LoginContent() {
             </div>
           </div>
         </div>
-        {/* Demo Account (for testing purposes) */}
+        {/* Demo Account - FINAL FIX v4: Copyable credentials + Simple button */}
         <div className="mt-8 rounded-2xl p-6 border border-dark-slate/10 shadow-elevated bg-surface">
-          <h3 className="font-semibold text-dark-slate mb-2">Quick Login</h3>
-          <p className="text-xs text-dark-slate/60 mb-4">👆 Click to auto-fill credentials</p>
-          <div className="space-y-3 text-sm">
-            {/* Phase 7.5 FIX v2: Force rebuild - auto-fill credentials */}
-            <button 
-              type="button"
-              data-testid="login-autofill-button"
-              className="w-full rounded-xl p-4 border-2 border-tropical-teal/30 bg-tropical-teal/5 hover:border-tropical-teal hover:bg-tropical-teal/10 transition-all duration-300 hover:scale-[1.02] group cursor-pointer text-left"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('🔵 [AUTO-FILL v3 - FINAL FIX] Button clicked!');
-                
-                const credentials = { 
-                  email: "gerardoh@gmail.com", 
-                  password: "Test123!" 
-                };
-                
-                // Method 1: Update React state
-                setFormData(credentials);
-                setError("");
-                setSuccessMessage("✅ Credentials loaded! Click 'Sign In' above.");
-                
-                // Method 2: Also directly set input values (for browser compatibility)
-                setTimeout(() => {
-                  const emailInput = document.getElementById('email') as HTMLInputElement;
-                  const passwordInput = document.getElementById('password') as HTMLInputElement;
-                  
-                  if (emailInput && passwordInput) {
-                    emailInput.value = credentials.email;
-                    passwordInput.value = credentials.password;
-                    
-                    // Trigger input events to ensure React sees the change
-                    emailInput.dispatchEvent(new Event('input', { bubbles: true }));
-                    passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
-                    
-                    console.log('🔵 [AUTO-FILL v3] Input values set directly:', {
-                      email: emailInput.value,
-                      password: passwordInput.value
-                    });
-                  }
-                }, 10);
-                
-                console.log('🔵 [AUTO-FILL v3] State updated:', credentials.email);
-              }}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium text-tropical-teal group-hover:text-deep-teal transition-colors flex items-center gap-2">
-                    <span className="text-lg">🔑</span>
-                    User Account
-                  </div>
-                  <div className="text-dark-slate/70 text-xs mt-1">
-                    gerardoh@gmail.com • Test123!
-                  </div>
-                </div>
-                <div className="text-tropical-teal group-hover:text-deep-teal">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </div>
-            </button>
+          <h3 className="font-semibold text-dark-slate mb-3 flex items-center gap-2">
+            <span className="text-lg">🔑</span>
+            Demo Credentials
+          </h3>
+          
+          {/* Copyable Email */}
+          <div className="mb-3">
+            <label className="text-xs text-dark-slate/60 block mb-1">Email:</label>
+            <input
+              type="text"
+              value="gerardoh@gmail.com"
+              readOnly
+              className="w-full px-3 py-2 bg-tropical-teal/5 border border-tropical-teal/30 rounded-lg text-sm text-dark-slate font-mono select-all"
+              onClick={(e) => (e.target as HTMLInputElement).select()}
+            />
           </div>
+          
+          {/* Copyable Password */}
+          <div className="mb-4">
+            <label className="text-xs text-dark-slate/60 block mb-1">Password:</label>
+            <input
+              type="text"
+              value="Test123!"
+              readOnly
+              className="w-full px-3 py-2 bg-tropical-teal/5 border border-tropical-teal/30 rounded-lg text-sm text-dark-slate font-mono select-all"
+              onClick={(e) => (e.target as HTMLInputElement).select()}
+            />
+          </div>
+          
+          {/* Simple Fill Button */}
+          <button
+            type="button"
+            className="w-full py-3 px-4 bg-tropical-teal hover:bg-deep-teal text-white font-semibold rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95"
+            onClick={() => {
+              console.log('🟢 [AUTO-FILL v4] Simple button clicked!');
+              
+              // Direct, simple approach
+              const email = "gerardoh@gmail.com";
+              const password = "Test123!";
+              
+              // Update state
+              setFormData({ email, password });
+              
+              // Force update the actual input fields
+              const emailEl = document.getElementById('email') as HTMLInputElement;
+              const passEl = document.getElementById('password') as HTMLInputElement;
+              
+              if (emailEl) {
+                emailEl.value = email;
+                emailEl.dispatchEvent(new Event('change', { bubbles: true }));
+              }
+              if (passEl) {
+                passEl.value = password;
+                passEl.dispatchEvent(new Event('change', { bubbles: true }));
+              }
+              
+              setSuccessMessage("✅ Credentials filled! Click 'Sign In' above.");
+              setError("");
+              
+              console.log('🟢 [AUTO-FILL v4] Done!', { email, password });
+            }}
+          >
+            ⚡ Fill Login Form
+          </button>
+          
+          <p className="text-xs text-dark-slate/50 text-center mt-2">
+            Click boxes above to copy • Click button to auto-fill
+          </p>
         </div>
 
         {/* Enhanced Features Preview */}
