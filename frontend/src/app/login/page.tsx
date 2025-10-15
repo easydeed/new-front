@@ -139,8 +139,7 @@ function LoginContent() {
         {/* Login Form */}
         <div className="bg-surface rounded-xl shadow-elevated p-6 border border-dark-slate/10">
           
-          {/* Glow effect */}
-          <div className="absolute -inset-0.5 bg-gradient-teal rounded-3xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+          {/* Glow effect removed - was blocking clicks! */}
           
           <div className="relative">
             {successMessage && (
@@ -281,12 +280,14 @@ function LoginContent() {
             />
           </div>
           
-          {/* Simple Fill Button */}
+          {/* Simple Fill Button - v4.1: Enhanced with direct handler */}
           <button
             type="button"
+            data-testid="fill-form-button"
             className="w-full py-3 px-4 bg-tropical-teal hover:bg-deep-teal text-white font-semibold rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-95"
-            onClick={() => {
-              console.log('🟢 [AUTO-FILL v4] Simple button clicked!');
+            onClick={(e) => {
+              e.preventDefault();
+              console.log('🟢 [AUTO-FILL v4.1] Button clicked!', new Date().toISOString());
               
               // Direct, simple approach
               const email = "gerardoh@gmail.com";
@@ -295,23 +296,36 @@ function LoginContent() {
               // Update state
               setFormData({ email, password });
               
-              // Force update the actual input fields
+              // Force update the actual input fields with multiple methods
               const emailEl = document.getElementById('email') as HTMLInputElement;
               const passEl = document.getElementById('password') as HTMLInputElement;
               
               if (emailEl) {
+                console.log('🟢 Setting email:', email);
                 emailEl.value = email;
                 emailEl.dispatchEvent(new Event('change', { bubbles: true }));
+                emailEl.dispatchEvent(new Event('input', { bubbles: true }));
+              } else {
+                console.error('❌ Email input not found!');
               }
+              
               if (passEl) {
+                console.log('🟢 Setting password');
                 passEl.value = password;
                 passEl.dispatchEvent(new Event('change', { bubbles: true }));
+                passEl.dispatchEvent(new Event('input', { bubbles: true }));
+              } else {
+                console.error('❌ Password input not found!');
               }
               
               setSuccessMessage("✅ Credentials filled! Click 'Sign In' above.");
               setError("");
               
-              console.log('🟢 [AUTO-FILL v4] Done!', { email, password });
+              console.log('🟢 [AUTO-FILL v4.1] Complete!', { 
+                email, 
+                emailValue: emailEl?.value, 
+                passValue: passEl?.value?.length 
+              });
             }}
           >
             ⚡ Fill Login Form
