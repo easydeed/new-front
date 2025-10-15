@@ -1,0 +1,34 @@
+*** Begin Patch
+*** Update File: frontend/src/features/wizard/mode/ModeContext.tsx
+@@
+-function resolveInitial(): WizardMode {
+-  if (typeof window === 'undefined') return (process.env.NEXT_PUBLIC_WIZARD_MODE_DEFAULT as WizardMode) || 'classic';
+-  const urlMode = new URLSearchParams(window.location.search).get('mode') as WizardMode | null;
+-  const stored = localStorage.getItem('wizard_mode') as WizardMode | null;
+-  return urlMode || stored || (process.env.NEXT_PUBLIC_WIZARD_MODE_DEFAULT as WizardMode) || 'classic';
+-}
++function resolveInitial(): WizardMode {
++  // [Phase15] SSR-safe: do not touch localStorage here
++  if (typeof window === 'undefined') return (process.env.NEXT_PUBLIC_WIZARD_MODE_DEFAULT as WizardMode) || 'classic';
++  const urlMode = new URLSearchParams(window.location.search).get('mode') as WizardMode | null;
++  return urlMode || (process.env.NEXT_PUBLIC_WIZARD_MODE_DEFAULT as WizardMode) || 'classic';
++}
+@@
+-export function WizardModeProvider({ children }: { children: React.ReactNode }) {
+-  const [mode, setMode] = useState<WizardMode>(resolveInitial());
+-  useEffect(() => {
+-    localStorage.setItem('wizard_mode', mode);
+-  }, [mode]);
+-  const value = useMemo(() => ({ mode, setMode }), [mode]);
+-  return <WizardModeContext.Provider value={value}>{children}</WizardModeContext.Provider>;
+-}
++export function WizardModeProvider({ children }: { children: React.ReactNode }) {
++  const [mode, setMode] = useState<WizardMode>(resolveInitial());
++  // [Phase15] defer storage until after hydration
++  useEffect(() => {
++    try { if (typeof window !== 'undefined') localStorage.setItem('wizard_mode', mode); } catch {}
++  }, [mode]);
++  const value = useMemo(() => ({ mode, setMode }), [mode]);
++  return <WizardModeContext.Provider value={value}>{children}</WizardModeContext.Provider>;
++}
+*** End Patch

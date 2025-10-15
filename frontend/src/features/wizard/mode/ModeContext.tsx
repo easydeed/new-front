@@ -1,5 +1,6 @@
 'use client';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { safeStorage } from '@/shared/safe-storage/safeStorage'; // Phase15: safe storage wrapper
 export type WizardMode = 'modern' | 'classic';
 type Ctx = { mode: WizardMode; setMode: (m: WizardMode) => void; };
 const WizardModeContext = createContext<Ctx | null>(null);
@@ -36,7 +37,7 @@ export function WizardModeProvider({ children }: { children: React.ReactNode }) 
     }
     
     // Otherwise, check localStorage
-    const stored = localStorage.getItem('wizard_mode') as WizardMode | null;
+    const stored = safeStorage.get('wizard_mode') as WizardMode | null;
     if (stored) {
       setMode(stored);
     }
@@ -45,7 +46,7 @@ export function WizardModeProvider({ children }: { children: React.ReactNode }) 
   // Save mode to localStorage when it changes (only after hydration)
   useEffect(() => {
     if (hydrated) {
-      localStorage.setItem('wizard_mode', mode);
+      safeStorage.set('wizard_mode', mode);
     }
   }, [mode, hydrated]);
   

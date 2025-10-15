@@ -1,31 +1,34 @@
 'use client';
 /**
- * Bridge that connects Modern Wizard to the existing Zustand store + localStorage.
- * This ensures single source of truth and state persistence.
+ * Phase 15 Hydration Hardening:
+ * Bridge to existing Zustand wizard store + localStorage
+ * - Exposes `hydrated` status for conditional rendering
+ * - Uses isolated storage keys for Modern vs. Classic
+ * - All storage access is gated by hydration status
  */
-import { useMemo, useCallback, useState, useEffect } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useWizardStore } from '@/store';
+import { useHydrated } from '@/shared/hooks/useHydrated';
+import { safeStorage } from '@/shared/safe-storage/safeStorage';
+import { WIZARD_DRAFT_KEY_MODERN } from './persistenceKeys';
 
 export function useWizardStoreBridge(){
   const { data, setData } = useWizardStore();
-  const [hydrated, setHydrated] = useState(false);
-  
-  // Only access localStorage after hydration to prevent SSR mismatch
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
+  const hydrated = useHydrated();
   
   const getWizardData = useCallback(() => {
-    // During SSR or before hydration, return empty state
+    // CRITICAL: Return empty state before hydration
     if (!hydrated) {
+      console.log('[useWizardStoreBridge.getWizardData] NOT HYDRATED - returning empty');
       return { formData: {}, verifiedData: {}, docType: 'grant_deed' };
     }
     
-    // Try localStorage first (for persistence)
+    // After hydration, read from localStorage (Modern mode key)
     try {
-      const stored = localStorage.getItem('deedWizardDraft');
+      const stored = safeStorage.get(WIZARD_DRAFT_KEY_MODERN);
       if (stored) {
         const parsed = JSON.parse(stored);
+        console.log('[useWizardStoreBridge.getWizardData] HYDRATED - loaded from localStorage:', parsed);
         return { 
           formData: parsed.grantDeed || parsed.formData || {} ,
           verifiedData: parsed.verifiedData || {},
@@ -33,54 +36,60 @@ export function useWizardStoreBridge(){
         };
       }
     } catch (error) {
-      console.error('Error loading wizard data:', error);
+      console.error('[useWizardStoreBridge.getWizardData] Error loading from localStorage:', error);
     }
     
     // Fallback to Zustand store
+    console.log('[useWizardStoreBridge.getWizardData] HYDRATED - using Zustand store:', data);
     return { formData: data || {} };
   }, [data, hydrated]);
   
   const updateFormData = useCallback((patch: any) => {
+    // Block writes before hydration
+    if (!hydrated) {
+      console.log('[useWizardStoreBridge.updateFormData] NOT HYDRATED - blocked write');
+      return;
+    }
+    
+    console.log('[useWizardStoreBridge.updateFormData] Updating:', patch);
+    
     // Update Zustand store
     Object.keys(patch).forEach(key => {
       setData(key, patch[key]);
     });
     
-    // Update localStorage for persistence (only after hydration)
-    if (hydrated) {
-      try {
-        const current = getWizardData();
-        const updated = {
-          ...current,
-          formData: { ...current.formData, ...patch },
-          grantDeed: { ...current.formData, ...patch },
-          timestamp: new Date().toISOString()
-        };
-        localStorage.setItem('deedWizardDraft', JSON.stringify(updated));
-      } catch (error) {
-        console.error('Error saving wizard data:', error);
-      }
+    // Update localStorage for persistence (Modern mode key)
+    try {
+      const current = getWizardData();
+      const updated = {
+        ...current,
+        formData: { ...current.formData, ...patch },
+        grantDeed: { ...current.formData, ...patch },
+        timestamp: new Date().toISOString()
+      };
+      safeStorage.set(WIZARD_DRAFT_KEY_MODERN, JSON.stringify(updated));
+      console.log('[useWizardStoreBridge.updateFormData] Saved to localStorage');
+    } catch (error) {
+      console.error('[useWizardStoreBridge.updateFormData] Error saving to localStorage:', error);
     }
   }, [setData, getWizardData, hydrated]);
   
   const isPropertyVerified = useCallback(() => {
-    // CRITICAL FIX: Don't check localStorage before hydration!
-    // This prevents hydration mismatch when switching from false → true
+    // CRITICAL: Always return false before hydration
+    // This prevents PropertyStepBridge → ModernEngine switch during hydration
     if (!hydrated) {
-      console.log('[useWizardStoreBridge] NOT HYDRATED - property verification: false');
-      return false; // Always return false before hydration
+      console.log('[useWizardStoreBridge.isPropertyVerified] NOT HYDRATED - returning false');
+      return false;
     }
     
     const wizardData = getWizardData();
     const formData = wizardData.formData || {};
     const verifiedData = wizardData.verifiedData || {};
     
-    console.log('[useWizardStoreBridge] Checking property verification:');
+    console.log('[useWizardStoreBridge.isPropertyVerified] Checking:');
     console.log('  - wizardData:', wizardData);
     console.log('  - formData:', formData);
     console.log('  - verifiedData:', verifiedData);
-    console.log('  - formData.apn:', formData.apn);
-    console.log('  - formData.propertyVerified:', formData.propertyVerified);
     
     // Check multiple possible property verification indicators
     const isVerified = !!(
@@ -96,8 +105,9 @@ export function useWizardStoreBridge(){
   }, [hydrated, getWizardData]);
 
   return useMemo(() => ({
+    hydrated, // Expose hydration status
     get: getWizardData,
     set: updateFormData,
     isPropertyVerified
-  }), [getWizardData, updateFormData, isPropertyVerified]);
+  }), [hydrated, getWizardData, updateFormData, isPropertyVerified]);
 }

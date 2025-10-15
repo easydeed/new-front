@@ -6,6 +6,8 @@ import ModernEngine from './engines/ModernEngine';
 import ClassicEngine from './engines/ClassicEngine';
 import PropertyStepBridge from './bridge/PropertyStepBridge';
 import { useWizardStoreBridge } from './bridge/useWizardStoreBridge';
+// [Phase15] hydration gate
+import HydrationGate from './HydrationGate';
 
 /**
  * Orchestrates:
@@ -41,7 +43,9 @@ function Inner({ docType, classic }: { docType: string; classic: React.ReactNode
 export default function WizardHost(props: { docType: string; classic: React.ReactNode; }){
   return (
     <WizardModeProvider>
-      <Inner {...props} />
+      <HydrationGate>
+        <Inner {...props} />
+      </HydrationGate>
     </WizardModeProvider>
   );
 }

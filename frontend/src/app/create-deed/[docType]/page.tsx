@@ -17,6 +17,9 @@ import { prefillFromEnrichment } from '../../../features/wizard/services/propert
 import '../../../styles/dashboard.css';
 import { useWizardStore } from '../../../store';
 import WizardHost from '../../../features/wizard/mode/WizardHost';
+// Phase15: Isolated storage keys + safe wrapper
+import { safeStorage } from '../../../shared/safe-storage/safeStorage';
+import { WIZARD_DRAFT_KEY_CLASSIC } from '../../../features/wizard/mode/bridge/persistenceKeys';
 
 /**
  * Phase 11 + Phase 15 Hydration Fix: Unified Wizard for All Deed Types
@@ -89,7 +92,7 @@ function ClassicWizard({ docType }: { docType: DocType }) {
     step4: {}
   });
 
-  // Auto-save functionality
+  // Auto-save functionality (Phase15: uses isolated Classic key)
   useEffect(() => {
     const saveData = {
       currentStep,
@@ -99,7 +102,7 @@ function ClassicWizard({ docType }: { docType: DocType }) {
       timestamp: new Date().toISOString()
     };
     
-    localStorage.setItem('deedWizardDraft', JSON.stringify(saveData));
+    safeStorage.set(WIZARD_DRAFT_KEY_CLASSIC, JSON.stringify(saveData));
     setAutoSaveStatus('Saved');
     
     const timer = setTimeout(() => {
@@ -109,9 +112,9 @@ function ClassicWizard({ docType }: { docType: DocType }) {
     return () => clearTimeout(timer);
   }, [currentStep, verifiedData, grantDeed, docType]);
 
-  // Load saved data on component mount
+  // Load saved data on component mount (Phase15: uses isolated Classic key)
   useEffect(() => {
-    const savedData = localStorage.getItem('deedWizardDraft');
+    const savedData = safeStorage.get(WIZARD_DRAFT_KEY_CLASSIC);
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
@@ -131,7 +134,7 @@ function ClassicWizard({ docType }: { docType: DocType }) {
         console.error('Error loading saved data:', error);
       }
     }
-  }, [docType]);
+  }, [docType, setCurrentStep]);
 
   const handlePropertyVerified = (data: VerifiedData) => {
     setVerifiedData(data);
