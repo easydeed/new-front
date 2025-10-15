@@ -1,12 +1,14 @@
 'use client';
 import React from 'react';
+import Sidebar from '@/components/Sidebar';
 import DeedTypeBadge from '../components/DeedTypeBadge';
-import ModeSwitcher from '../ModeSwitcher';
+import ToggleSwitch from '../components/ToggleSwitch';
+import { useWizardMode } from '../ModeContext';
 import './wizard-frame.css';
 
 /**
- * Phase 15 v4.1: Unifies Modern look & feel with Classic.
- * Wrap your engines in this frame to keep header, spacing, and typography consistent.
+ * Phase 15 v4.2: Full platform integration with Sidebar
+ * Beautiful aesthetics, full-width content, styled toggle switch
  */
 export default function WizardFrame({
   docType,
@@ -17,18 +19,25 @@ export default function WizardFrame({
   heading?: string;
   children: React.ReactNode;
 }){
+  const { mode } = useWizardMode();
+  
   return (
-    <div className="wizard-frame" data-testid="wizard-frame">
-      <div className="wizard-frame__header">
-        <div className="wizard-frame__title">
-          <DeedTypeBadge docType={docType} />
-          <span>{heading || 'Create Deed'}</span>
-          <span className="wizard-muted">Modern</span>
+    <div className="wizard-layout">
+      <Sidebar />
+      
+      <div className="wizard-main-content">
+        <div className="wizard-frame__header">
+          <div className="wizard-frame__title">
+            <DeedTypeBadge docType={docType} />
+            <h1 className="wizard-heading">{heading || 'Create Deed'}</h1>
+            {mode === 'modern' && <span className="wizard-mode-badge">Modern</span>}
+          </div>
+          <ToggleSwitch />
         </div>
-        <ModeSwitcher />
-      </div>
-      <div className="wizard-frame__body">
-        {children}
+        
+        <div className="wizard-frame__body">
+          {children}
+        </div>
       </div>
     </div>
   );
