@@ -21,6 +21,7 @@ def get_document_types_registry() -> Dict[str, Any]:
     registry = {
         "grant_deed": {
             "label": "Grant Deed",
+            "description": "Transfer property ownership with warranties against defects during grantor's ownership. Most commonly used in California real estate transactions and sales.",
             "steps": [
                 {"key": "request_details", "title": "Request Details"},
                 {"key": "tax", "title": "Transfer Tax"},
@@ -65,6 +66,7 @@ def get_document_types_registry() -> Dict[str, Any]:
     if ENABLE_EXTRA_DEEDS:
         registry["quitclaim"] = {
             "label": "Quitclaim Deed",
+            "description": "Release all interest in property without warranties. Ideal for family transfers, clearing title defects, or removing a name from property ownership records.",
             "steps": [
                 {"key": "generate", "title": "Generate PDF"},
             ],
@@ -74,6 +76,7 @@ def get_document_types_registry() -> Dict[str, Any]:
         
         registry["interspousal_transfer"] = {
             "label": "Interspousal Transfer Deed",
+            "description": "Transfer property between spouses without reassessment or documentary transfer tax. Perfect for divorce settlements or changing ownership between married partners.",
             "steps": [
                 {"key": "generate", "title": "Generate PDF"},
             ],
@@ -83,6 +86,7 @@ def get_document_types_registry() -> Dict[str, Any]:
         
         registry["warranty_deed"] = {
             "label": "Warranty Deed",
+            "description": "Provide comprehensive guarantees against all title defects throughout property history. Offers maximum protection for buyers in commercial transactions.",
             "steps": [
                 {"key": "generate", "title": "Generate PDF"},
             ],
@@ -92,6 +96,7 @@ def get_document_types_registry() -> Dict[str, Any]:
         
         registry["tax_deed"] = {
             "label": "Tax Deed",
+            "description": "Document property transfers resulting from tax sales or foreclosures. Used by government entities to convey ownership after unpaid property tax proceedings.",
             "steps": [
                 {"key": "generate", "title": "Generate PDF"},
             ],

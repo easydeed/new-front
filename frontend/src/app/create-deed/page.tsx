@@ -7,6 +7,7 @@ import '../../styles/dashboard.css';
 
 interface DocumentType {
   label: string;
+  description?: string;
   steps: Array<{
     key: string;
     title: string;
@@ -43,6 +44,7 @@ export default function CreateDeedPage() {
         setDocumentTypes({
           grant_deed: {
             label: "Grant Deed",
+            description: "Transfer property ownership with warranties against defects during grantor's ownership. Most commonly used in California real estate transactions and sales.",
             steps: [
               { key: "request_details", title: "Request Details" },
               { key: "tax", title: "Transfer Tax" },
@@ -125,9 +127,9 @@ export default function CreateDeedPage() {
               <div
                 key={key}
                 onClick={() => handleDocumentTypeSelect(key)}
-                className="bg-white rounded-xl shadow-elevated p-6 cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 border border-slate-200"
+                className="bg-white rounded-xl shadow-elevated p-6 cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105 border border-slate-200 flex flex-col"
               >
-                <div className="flex items-center mb-4">
+                <div className="flex items-center mb-3">
                   <div className="w-12 h-12 bg-gentle-indigo/10 rounded-lg flex items-center justify-center mr-4">
                     <svg className="w-6 h-6 text-gentle-indigo" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
@@ -136,8 +138,15 @@ export default function CreateDeedPage() {
                   <h3 className="text-xl font-semibold text-slate-800">{docType.label}</h3>
                 </div>
                 
-                <div className="mb-4">
-                  <p className="text-sm text-slate-600 mb-2">Process Steps:</p>
+                {/* Description */}
+                {docType.description && (
+                  <p className="text-sm text-slate-600 mb-4 leading-relaxed" style={{ minHeight: '60px' }}>
+                    {docType.description}
+                  </p>
+                )}
+                
+                <div className="mb-4 flex-grow">
+                  <p className="text-xs font-medium text-slate-500 mb-2">Process Steps:</p>
                   <div className="flex flex-wrap gap-1">
                     {docType.steps.map((step, index) => (
                       <span
@@ -150,7 +159,7 @@ export default function CreateDeedPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center text-gentle-indigo font-medium">
+                <div className="flex items-center text-gentle-indigo font-medium mt-auto">
                   <span>Start Wizard</span>
                   <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
