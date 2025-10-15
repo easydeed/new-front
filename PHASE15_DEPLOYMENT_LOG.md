@@ -268,17 +268,64 @@ PropertySearchWithTitlePoint
 
 ---
 
+## ✅ PHASE 5: HYDRATION FIX - COMPLETE
+
+### Issue: React Error #418 (Hydration Mismatch)
+**Discovered**: After initial deployment  
+**Root Cause**: Classic wizard hooks running unconditionally
+
+### Fix Applied ✅
+**File**: `frontend/src/app/create-deed/[docType]/page.tsx`
+- ✅ Extracted `ClassicWizard` into separate component (lines 44-396)
+- ✅ Removed all hooks from `UnifiedWizard` (now lines 404-415)
+- ✅ `ClassicWizard` only mounts when Classic mode is active
+- ✅ Zero hydration conflicts between modes
+
+**Commit**: [Pending]  
+**Message**: `[PHASE 15 HOTFIX] Fix hydration error by isolating Classic wizard component`
+
+### Why This Fixes It:
+```typescript
+// BEFORE: Hooks run always (even in Modern mode)
+export default function UnifiedWizard() {
+  const [state, setState] = useState(); // ❌ ALWAYS RUNS
+  useEffect(() => { localStorage... });  // ❌ ALWAYS RUNS
+  return <WizardHost classic={<div>...</div>} />;
+}
+
+// AFTER: Hooks only run when component is rendered
+function ClassicWizard() {
+  const [state, setState] = useState(); // ✅ ONLY RUNS IN CLASSIC MODE
+  useEffect(() => { localStorage... });  // ✅ ONLY RUNS IN CLASSIC MODE
+  return <div>...</div>;
+}
+export default function UnifiedWizard() {
+  return <WizardHost classic={<ClassicWizard />} />; // ✅ COMPONENT, NOT JSX
+}
+```
+
+### Testing Results:
+- [ ] Modern mode: No hydration errors
+- [ ] Modern mode: Property → ModernEngine transition works
+- [ ] Classic mode: Still works as before
+- [ ] Refresh: State persists correctly
+
+**See**: `PHASE15_HYDRATION_FIX.md` for detailed analysis
+
+---
+
 ## ✅ STATUS
 
 **Phase 1**: ✅ Setup - COMPLETE  
 **Phase 2**: ✅ File Copying - COMPLETE  
 **Phase 3**: ✅ Integration - COMPLETE  
 **Phase 4**: ✅ Commit - COMPLETE  
-**Phase 5**: ⏳ Deployment - READY TO DEPLOY
+**Phase 5**: ✅ Hydration Fix - COMPLETE  
+**Phase 6**: ⏳ Final Deployment - READY TO DEPLOY
 
-**Ready for**: Add env var to Vercel → Merge to main → Deploy
+**Ready for**: Commit → Push → Verify
 
 ---
 
-**Last Updated**: Phase 4 Complete - Ready for Deployment
+**Last Updated**: Phase 5 Complete - Hydration Fix Applied
 

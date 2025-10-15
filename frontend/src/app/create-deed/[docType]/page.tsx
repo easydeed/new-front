@@ -19,7 +19,7 @@ import { useWizardStore } from '../../../store';
 import WizardHost from '../../../features/wizard/mode/WizardHost';
 
 /**
- * Phase 11: Unified Wizard for All Deed Types
+ * Phase 11 + Phase 15 Hydration Fix: Unified Wizard for All Deed Types
  * 
  * This wizard dynamically renders steps based on the deed type (docType).
  * Uses the flow registry to determine which steps to show and in what order.
@@ -30,15 +30,19 @@ import WizardHost from '../../../features/wizard/mode/WizardHost';
  * - interspousal_transfer (5 steps: Address → RequestDetails → DTTExemption → Parties → Preview)
  * - warranty_deed (5 steps: Address → RequestDetails → Covenants → Parties → Preview)
  * - tax_deed (5 steps: Address → RequestDetails → TaxSaleRef → Parties → Preview)
+ * 
+ * Phase 15 Fix: Extracted Classic wizard into separate component to prevent
+ * hydration errors caused by unconditional localStorage access.
  */
-export default function UnifiedWizard() {
-  const params = useParams();
-  const router = useRouter();
+
+/**
+ * ClassicWizard: The traditional multi-step wizard (isolated component)
+ * 
+ * This component is ONLY rendered when in Classic mode, preventing hooks from
+ * running unconditionally and causing hydration mismatches.
+ */
+function ClassicWizard({ docType }: { docType: DocType }) {
   const { currentStep, setCurrentStep } = useWizardStore();
-  
-  // Get docType from URL params (e.g., /create-deed/grant-deed → 'grant_deed')
-  const rawDocType = params?.docType as string || 'grant_deed';
-  const docType = rawDocType.replace(/-/g, '_') as DocType;
   
   // Get the flow for this deed type
   const flow = getFlowForDocType(docType);
@@ -237,8 +241,8 @@ export default function UnifiedWizard() {
     }
   };
 
-  // Classic wizard content (wrapped by WizardHost)
-  const classicWizard = (
+  // Return the Classic wizard JSX
+  return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
       <Sidebar />
       
@@ -389,9 +393,24 @@ export default function UnifiedWizard() {
       </div>
     </div>
   );
+}
+
+/**
+ * UnifiedWizard: Main entry point for the wizard
+ * 
+ * Phase 15 Fix: This component now only extracts the docType from URL params
+ * and passes the ClassicWizard component to WizardHost. No hooks run here!
+ */
+export default function UnifiedWizard() {
+  const params = useParams();
+  
+  // Get docType from URL params (e.g., /create-deed/grant-deed → 'grant_deed')
+  const rawDocType = params?.docType as string || 'grant_deed';
+  const docType = rawDocType.replace(/-/g, '_') as DocType;
 
   // Phase 15: Dual-Mode Wizard Integration
   // WizardHost determines which mode to render (Modern vs. Classic)
-  return <WizardHost docType={docType} classic={classicWizard} />;
+  // ClassicWizard component is passed, not JSX, so hooks only run when it's rendered
+  return <WizardHost docType={docType} classic={<ClassicWizard docType={docType} />} />;
 }
 
