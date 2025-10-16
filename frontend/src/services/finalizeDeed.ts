@@ -1,7 +1,7 @@
 
 export default async function finalizeDeed(payload: any): Promise<{ success: boolean; deedId?: string; error?: string; }> {
   try {
-    const res = await fetch('/api/deeds', {
+    const res = await fetch('/api/deeds/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
