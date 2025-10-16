@@ -1,0 +1,29 @@
+// frontend/src/app/create-deed/[docType]/page.tsx: ensure named members present
+- import { WIZARD_DRAFT_KEY_CLASSIC } from '../../../features/wizard/mode/bridge/persistenceKeys';
++ import { WIZARD_DRAFT_KEY_CLASSIC, WIZARD_DRAFT_KEY_MODERN } from '../../../features/wizard/mode/bridge/persistenceKeys';
+
+// frontend/src/app/create-deed/[docType]/page.tsx: ensure named members present
+- import { canonicalFromUrlParam } from '../../../features/wizard/mode/utils/docType';
++ import { canonicalFromUrlParam, toUrlSlug, toLabel } from '../../../features/wizard/mode/utils/docType';
+
+// frontend/src/features/wizard/mode/components/SmartReview.tsx: wrap window.location.href to preview with withMode()
+
+// frontend/src/features/wizard/mode/components/ToggleSwitch.tsx: ensure named members present
+- import { useWizardMode } from '../ModeContext';
++ import { useWizardMode, WizardModeProvider } from '../ModeContext';
+
+// frontend/src/features/wizard/mode/engines/ModernEngine.tsx: default→named (useWizardStoreBridge)
+- import useWizardStoreBridge from '../bridge/useWizardStoreBridge';
++ import { useWizardStoreBridge } from '../bridge/useWizardStoreBridge';
+
+// frontend/src/features/wizard/mode/engines/ModernEngine.tsx: ensure named members present
+- import { useWizardMode } from '../ModeContext';
++ import { useWizardMode, WizardModeProvider } from '../ModeContext';
+
+// frontend/src/features/wizard/mode/layout/WizardFrame.tsx: ensure named members present
+- import { useWizardMode } from '../ModeContext';
++ import { useWizardMode, WizardModeProvider } from '../ModeContext';
+
+// frontend/src/features/wizard/mode/ModeSwitcher.tsx: ensure named members present
+- import { useWizardMode } from './ModeContext';
++ import { useWizardMode, WizardModeProvider } from './ModeContext';

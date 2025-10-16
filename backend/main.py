@@ -1636,15 +1636,31 @@ def list_available_deeds_for_sharing(user_id: int = Depends(get_current_user_id)
         raise HTTPException(status_code=500, detail=f"Failed to fetch available deeds: {str(e)}")
 
 @app.get("/deeds/{deed_id}")
-def get_deed_endpoint(deed_id: int):
-    """Get a specific deed"""
-    # Placeholder - would implement get_deed_by_id in database.py
-    return {
-        "id": deed_id,
-        "deed_type": "Quitclaim Deed",
-        "property_address": "123 Success Ave",
-        "status": "completed"
-    }
+def get_deed_endpoint(deed_id: int, user_id: int = Depends(get_current_user_id)):
+    """Get a specific deed - Phase 15 v5: Preview page integration"""
+    try:
+        with conn.cursor() as cur:
+            # Fetch deed - ensure user owns it or is admin
+            cur.execute("""
+                SELECT d.*, u.role 
+                FROM deeds d
+                LEFT JOIN users u ON u.id = %s
+                WHERE d.id = %s AND (d.user_id = %s OR u.role = 'admin')
+            """, (user_id, deed_id, user_id))
+            
+            deed = cur.fetchone()
+            
+            if not deed:
+                raise HTTPException(status_code=404, detail="Deed not found")
+            
+            return dict(deed)
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching deed {deed_id}: {e}")
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to fetch deed: {str(e)}")
 
 @app.put("/deeds/{deed_id}/status")
 def update_deed_status(deed_id: int, status: str):

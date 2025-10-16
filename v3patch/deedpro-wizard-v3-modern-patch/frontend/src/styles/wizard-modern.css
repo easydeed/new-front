@@ -1,0 +1,17 @@
+.dp-modern-shell{display:flex;justify-content:center;align-items:flex-start;padding:24px}
+.dp-modern-card{width:min(880px,92vw);background:#fff;border-radius:16px;box-shadow:0 8px 28px rgba(0,0,0,.12);padding:24px 28px}
+.dp-modern-card header h1{font-size:28px;margin:0}
+.dp-modern-card header .sub{font-size:14px;color:#6b7280;margin-top:8px}
+.dp-modern-card main{padding:16px 0}
+.dp-modern-card footer{border-top:1px solid #eee;margin-top:16px;padding-top:12px}
+.dp-modern-question{display:flex;flex-direction:column;gap:16px;min-height:220px}
+.dp-modern-input{display:flex;justify-content:center}
+.dp-modern-input .form-control,.dp-modern-input .form-select{width:min(640px,80vw)}
+.dp-deed-badge{display:inline-block;background:#0ea5e9;color:#00324a;border-radius:999px;padding:4px 10px;font-weight:600}
+.dp-progress{position:relative;height:8px;background:#eef2f7;border-radius:999px;overflow:hidden}
+.dp-progress .bar{position:absolute;left:0;top:0;bottom:0;background:#2563eb}
+.dp-progress .label{text-align:center;font-size:12px;color:#6b7280;margin-top:6px}
+.dp-mode-toggle .btn{padding:6px 10px}
+.dp-inline-modal{position:fixed;inset:0;background:rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center}
+.dp-inline-modal .box{background:#fff;border-radius:12px;padding:16px;width:420px;max-width:90vw;box-shadow:0 8px 28px rgba(0,0,0,.2)}
+.dp-inline-modal .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
