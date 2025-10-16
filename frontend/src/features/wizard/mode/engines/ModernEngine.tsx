@@ -7,9 +7,9 @@ import MicroSummary from '../components/MicroSummary';
 import DeedTypeBadge from '../components/DeedTypeBadge';
 import SmartSelectInput from '../components/controls/SmartSelectInput';
 import SmartReview from '../components/SmartReview';
-import useWizardStoreBridge from '../bridge/useWizardStoreBridge';
+import { useWizardStoreBridge } from '../bridge/useWizardStoreBridge';
 import { promptFlows, Prompt, slug } from '../prompts/promptFlows';
-import { useWizardMode } from '../ModeContext';
+import { useWizardMode, WizardModeProvider } from '../ModeContext';
 import PartnersSelect from '../../../partners/PartnersSelect';
 
 export default function ModernEngine({ docType }: { docType: string; }) {

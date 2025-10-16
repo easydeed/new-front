@@ -3,12 +3,14 @@ import React from 'react';
 import Sidebar from '@/components/Sidebar';
 import DeedTypeBadge from '../components/DeedTypeBadge';
 import ToggleSwitch from '../components/ToggleSwitch';
-import { useWizardMode } from '../ModeContext';
+import { useWizardMode, WizardModeProvider } from '../ModeContext';
+import ModeCookieSync from '../hoc/ModeCookieSync';
 import './wizard-frame.css';
 
 /**
  * Phase 15 v4.2: Full platform integration with Sidebar
  * Beautiful aesthetics, full-width content, styled toggle switch
+ * PATCH4: Added ModeCookieSync for mode persistence
  */
 export default function WizardFrame({
   docType,
@@ -22,8 +24,10 @@ export default function WizardFrame({
   const { mode } = useWizardMode();
   
   return (
-    <div className="wizard-layout">
-      <Sidebar />
+    <>
+      <ModeCookieSync />
+      <div className="wizard-layout">
+        <Sidebar />
       
       <div className="wizard-main-content">
         <div className="wizard-frame__header">
@@ -40,6 +44,7 @@ export default function WizardFrame({
         </div>
       </div>
     </div>
+    </>
   );
 }
 

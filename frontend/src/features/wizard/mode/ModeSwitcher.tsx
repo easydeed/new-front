@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { useWizardMode } from './ModeContext';
+import { useWizardMode, WizardModeProvider } from './ModeContext';
 
 export default function ModeSwitcher(){
   const { mode, setMode } = useWizardMode();

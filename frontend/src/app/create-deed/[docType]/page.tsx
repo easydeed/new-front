@@ -19,9 +19,9 @@ import { useWizardStore } from '../../../store';
 import WizardHost from '../../../features/wizard/mode/WizardHost';
 // Phase15: Isolated storage keys + safe wrapper
 import { safeStorage } from '../../../shared/safe-storage/safeStorage';
-import { WIZARD_DRAFT_KEY_CLASSIC } from '../../../features/wizard/mode/bridge/persistenceKeys';
+import { WIZARD_DRAFT_KEY_CLASSIC, WIZARD_DRAFT_KEY_MODERN } from '../../../features/wizard/mode/bridge/persistenceKeys';
 // [v4.2] Consistent docType mapping
-import { canonicalFromUrlParam } from '../../../features/wizard/mode/utils/docType';
+import { canonicalFromUrlParam, toUrlSlug, toLabel } from '../../../features/wizard/mode/utils/docType';
 // Phase 15 v5: Partners provider for industry partners
 import { PartnersProvider } from '../../../features/partners/PartnersContext';
 

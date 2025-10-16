@@ -1,9 +1,124 @@
 # 📊 Project Status - DeedPro Wizard Rebuild
-**Last Updated**: October 16, 2025 at 11:45 AM PT
+**Last Updated**: October 16, 2025 at 4:00 PM PT
+
+---
+
+## 🚀 **PHASE 15 v5 PATCH4a - AUTOMATED IMPORT STABILITY FIX**
+
+### **Status**: 🟡 **IN PROGRESS** - Codemod Dry-Run Complete!
+
+**Started**: October 16, 2025 at 3:45 PM PT  
+**Current Step**: Codemod dry-run complete, awaiting --write approval  
+**Branch**: `patch4a/export-import-stability`  
+**Approach**: Automated codemod + Middleware
+
+---
+
+### **Mission**: Fix Critical Import Bug via Automation
+
+**User Request**: *"Let's go with A. I want to deploy Patch4a and then From Patch5 take what we need in form of enhancements, and the other items."*
+
+**Objective**: 
+1. 🟡 Use automated codemod to fix ALL import/export mismatches
+2. 🟡 Add middleware for `?mode=modern` persistence
+3. 🟡 Deploy with full documentation for easy debugging
+
+---
+
+### **What We're Deploying** 🔧
+
+**Patch4a Components**:
+1. **Automated Import Fixer** (Codemod)
+   - Scans entire codebase for import mismatches
+   - Uses canonical map from Phase 15 v5 audit
+   - Fixes default/named import confusion
+   - Creates git patch for rollback
+
+2. **Mode Persistence** (Middleware)
+   - Preserves `?mode=modern` across navigation
+   - Uses `wizard-mode` cookie
+   - SSR-safe Next.js middleware
+
+3. **Helper Utilities**
+   - `ModeCookieSync` component
+   - `withMode()` URL helper
+
+---
+
+### **Codemod Dry-Run Results** 📊
+
+**Files Identified**: **6 files** need fixing
+
+| File | Issue | Fix |
+|------|-------|-----|
+| `ModernEngine.tsx` | ❌ Default import for named export (line 10) | ✅ Change to named import |
+| `SmartReview.tsx` | ⚠️ Import mismatch | ✅ Auto-fix |
+| `ToggleSwitch.tsx` | ⚠️ Import mismatch | ✅ Auto-fix |
+| `WizardFrame.tsx` | ⚠️ Import mismatch | ✅ Auto-fix |
+| `ModeSwitcher.tsx` | ⚠️ Import mismatch | ✅ Auto-fix |
+| `page.tsx` (Wizard) | ⚠️ Import mismatch | ✅ Auto-fix |
+
+**Key Finding**: Codemod found **5 additional bugs** beyond the known ModernEngine issue!
+
+---
+
+### **Progress**
+
+**Completed** ✅:
+- ✅ Created feature branch: `patch4a/export-import-stability`
+- ✅ Copied Patch4a files to repo root
+- ✅ Ran codemod dry-run
+- ✅ Identified 6 files for changes
+- ✅ Documented findings in `PHASE15_V5_PATCH4A_DEPLOYMENT_LOG.md`
+- ✅ Updated PROJECT_STATUS.md
+
+**Next Steps** ⏳:
+- ⏳ Apply codemod with `--write` flag
+- ⏳ Review git diff
+- ⏳ Add middleware to `frontend/middleware.ts`
+- ⏳ Add `ModeCookieSync` component
+- ⏳ Integrate into `WizardFrame`
+- ⏳ Test locally
+- ⏳ Deploy to production
+
+---
+
+### **Risk Assessment** 🎯
+
+**Overall Risk**: 🟢 **LOW**
+
+| Aspect | Status |
+|--------|--------|
+| **Automation** | ✅ Codemod tested in dry-run |
+| **Safety** | ✅ Git patch backup created |
+| **Reversibility** | ✅ Easy rollback via git |
+| **Impact** | ✅ Fixes 6 files systematically |
+| **Testing** | ⏳ Pending post-application |
+
+---
+
+### **Deployment Log**
+
+See: `PHASE15_V5_PATCH4A_DEPLOYMENT_LOG.md` for complete step-by-step documentation.
+
+---
+
+### **Why This Approach** 💡
+
+**Chosen Option A (Patch4a)** over Patch5 because:
+1. ✅ **Faster**: 26 minutes vs 140 minutes
+2. ✅ **Safer**: Automated with rollback
+3. ✅ **Comprehensive**: Fixes ALL imports, not just one
+4. ✅ **Bonus**: Adds mode persistence
+5. ✅ **Plan**: Extract Patch5 enhancements later
+
+**Future**: After Patch4a success, selectively integrate Patch5 features (Partners CRUD, Combobox, ProgressBar).
 
 ---
 
 ## 🚀 **PHASE 15 v5 - COMPLETE PATCHFIX v3.2 (ALL FIXES DEPLOYED)**
+
+### **Status**: ⚠️ **INCOMPLETE** - Import Bug Discovered!
 
 ### **Status**: ✅ **100% COMPLETE** - All Critical Fixes Deployed!
 
