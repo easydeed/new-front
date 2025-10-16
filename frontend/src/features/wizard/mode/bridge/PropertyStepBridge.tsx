@@ -8,7 +8,7 @@ import PropertySearchWithTitlePoint from '@/components/PropertySearchWithTitlePo
 import { useWizardStoreBridge } from './useWizardStoreBridge';
 
 export default function PropertyStepBridge() {
-  const { isPropertyVerified, set } = useWizardStoreBridge();
+  const { isPropertyVerified, updateFormData } = useWizardStoreBridge();
 
   // Handle property verification callback
   const handlePropertyVerified = useCallback((data: any) => {
@@ -33,9 +33,9 @@ export default function PropertyStepBridge() {
     };
     
     console.log('[PropertyStepBridge] Updating store with:', storeUpdate);
-    set(storeUpdate);
+    updateFormData(storeUpdate);
     console.log('[PropertyStepBridge] Store updated, should trigger re-render');
-  }, [set]);
+  }, [updateFormData]);
 
   // If property is already verified, don't render Step 1
   if (isPropertyVerified()) return null;
