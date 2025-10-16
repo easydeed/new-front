@@ -412,9 +412,27 @@ function ClassicWizard({ docType }: { docType: DocType }) {
  */
 export default function UnifiedWizard() {
   const params = useParams();
+  const router = useRouter();
   
   // [v4.2] URL param → canonical docType (e.g., 'quitclaim-deed' → 'quitclaim')
   const docType = canonicalFromUrlParam(params?.docType as string);
+
+  // PATCH4a-FIX: Clear localStorage if ?fresh=true URL param is present
+  // Usage: /create-deed/grant-deed?mode=modern&fresh=true
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('fresh') === 'true') {
+        console.log('[UnifiedWizard] Fresh start requested - clearing localStorage');
+        safeStorage.remove(WIZARD_DRAFT_KEY_MODERN);
+        safeStorage.remove(WIZARD_DRAFT_KEY_CLASSIC);
+        // Remove ?fresh=true from URL to prevent clearing on refresh
+        urlParams.delete('fresh');
+        const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+        router.replace(newUrl);
+      }
+    }
+  }, [router]);
 
   // Phase 15 v5: Wrap with PartnersProvider for industry partners
   // Phase 15: Dual-Mode Wizard Integration

@@ -91,6 +91,18 @@ export function useWizardStoreBridge(){
     console.log('  - formData:', formData);
     console.log('  - verifiedData:', verifiedData);
     
+    // PATCH4a-FIX: Check if property data is fresh (< 1 hour old)
+    // This prevents using stale property data from previous sessions
+    const timestamp = wizardData.timestamp;
+    if (timestamp) {
+      const age = Date.now() - new Date(timestamp).getTime();
+      const ONE_HOUR = 60 * 60 * 1000;
+      if (age > ONE_HOUR) {
+        console.log('  - Property data is stale (> 1 hour old), forcing re-verification');
+        return false;
+      }
+    }
+    
     // Check multiple possible property verification indicators
     const isVerified = !!(
       verifiedData?.apn || 
