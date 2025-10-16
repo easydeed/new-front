@@ -19,7 +19,13 @@ export default async function finalizeDeed(payload: any): Promise<{ success: boo
       return { success: false, error: txt || String(res.status) };
     }
     const data = await res.json();
-    return { success: Boolean(data?.success), deedId: data?.deedId || data?.id };
+    // Backend returns deed object with 'id' field (not 'success' field)
+    // Success = response is 200 OK and has an id
+    const deedId = data?.id || data?.deedId;
+    return { 
+      success: Boolean(deedId), 
+      deedId: String(deedId) 
+    };
   } catch (e:any) {
     return { success: false, error: e?.message || 'network' };
   }
