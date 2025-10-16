@@ -641,7 +641,69 @@ git mv frontend/src/features/wizard/hoc/ModeCookieSync.tsx \
 
 **END OF LOG**
 
-**Status**: ✅ **DEPLOYED** - Hotfix applied, awaiting Vercel rebuild
+---
+
+## 🚨 CRITICAL BUG FOUND & FIXED
+
+**Issue**: `TypeError: u is not a function` - Modern wizard crashes, no toggle button
+
+**User Report**: "No toggle button appears" + console shows `TypeError: u is not a function`
+
+**Root Cause Analysis**:
+
+1. **Phase 15 v5 Hydration Hardening** changed `useWizardStoreBridge` return object from:
+   ```typescript
+   return { getWizardData, updateFormData, isPropertyVerified };
+   ```
+   to:
+   ```typescript
+   return { hydrated, get, set, isPropertyVerified };
+   ```
+
+2. **ModernEngine.tsx** still expected original property names:
+   ```typescript
+   const { getWizardData, updateFormData, isPropertyVerified } = useWizardStoreBridge();
+   ```
+
+3. **Result**: `getWizardData` and `updateFormData` were `undefined`, causing `TypeError` when called
+
+4. **Error Boundary**: Caught error → fallback to Classic wizard **WITHOUT** `<WizardFrame>` → No toggle button!
+
+**The Deviation**:
+- **PatchFix-v3.2** had correct return: `{ getWizardData, updateFormData, isPropertyVerified }`
+- **Phase 15 v5** changed to: `{ hydrated, get, set, isPropertyVerified }`
+- **Patch4a codemod** fixed imports but didn't catch this property name mismatch
+- **ModernEngine** never updated to match new property names
+
+**Fix Applied** ✅:
+```typescript
+// frontend/src/features/wizard/mode/bridge/useWizardStoreBridge.ts (lines 107-112)
+return useMemo(() => ({
+  hydrated,
+- get: getWizardData,      // ❌ WRONG property name
+- set: updateFormData,      // ❌ WRONG property name
++ getWizardData,            // ✅ CORRECT property name
++ updateFormData,           // ✅ CORRECT property name
+  isPropertyVerified
+}), [hydrated, getWizardData, updateFormData, isPropertyVerified]);
+```
+
+**Commit**: `6d5cef5`
+
+**Impact**:
+- ✅ Fixes `TypeError: u is not a function`
+- ✅ Modern wizard will now render correctly
+- ✅ Toggle button will appear (WizardFrame will render)
+- ✅ No more error boundary fallback
+
+**Lesson Learned**:
+- When renaming properties in a hook's return object, **MUST** update all consumers
+- Codemod only checks import/export shapes, not property names within objects
+- Need integration tests to catch runtime errors like this
+
+---
+
+**Status**: ✅ **CRITICAL FIX DEPLOYED** - Awaiting Vercel rebuild
 
 **Next Action**: Monitor Vercel build, then test Modern wizard at `/create-deed/grant-deed?mode=modern`
 
