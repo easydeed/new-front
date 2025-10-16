@@ -21,12 +21,21 @@ export default function ModernEngine({ docType }: { docType: string; }) {
 
   // Derived option sources
   const ownerOptions = useMemo(() => {
+    const formData = data?.formData || {};
     const verified = data?.formData?.verifiedData || data?.verifiedData || {};
     const names: string[] = [];
+    
+    // PATCH6 FIX: Check formData first (where PropertyStepBridge stores current owners)
+    if (formData?.currentOwnerPrimary) names.push(formData.currentOwnerPrimary);
+    if (formData?.currentOwnerSecondary) names.push(formData.currentOwnerSecondary);
+    
+    // Fallback: Check verifiedData (legacy field names)
     if (verified?.ownerPrimary) names.push(verified.ownerPrimary);
     if (verified?.ownerSecondary) names.push(verified.ownerSecondary);
     if (Array.isArray(verified?.owners)) names.push(...verified.owners);
+    
     const uniq = Array.from(new Set(names.filter(Boolean)));
+    console.log('[ModernEngine] 👥 Owner options built:', uniq);
     return uniq.map(n => ({ value: n, label: n }));
   }, [data]);
 
