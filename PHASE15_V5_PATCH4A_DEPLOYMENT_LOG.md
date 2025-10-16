@@ -604,9 +604,44 @@ import { useWizardStoreBridge } from '../bridge/useWizardStoreBridge';
 
 ---
 
+---
+
+## 🚨 HOTFIX: Path Correction
+
+**Issue**: Vercel build failed - files created in wrong directory
+
+**Error**:
+```
+Module not found: Can't resolve '../utils/withMode'
+Module not found: Can't resolve '../hoc/ModeCookieSync'
+```
+
+**Root Cause**:
+- Created files in `frontend/src/features/wizard/utils/` (wrong)
+- Should be `frontend/src/features/wizard/mode/utils/` (correct)
+- Created files in `frontend/src/features/wizard/hoc/` (wrong)
+- Should be `frontend/src/features/wizard/mode/hoc/` (correct)
+
+**Fix Applied** ✅:
+```bash
+git mv frontend/src/features/wizard/utils/withMode.ts \
+       frontend/src/features/wizard/mode/utils/withMode.ts
+
+git mv frontend/src/features/wizard/hoc/ModeCookieSync.tsx \
+       frontend/src/features/wizard/mode/hoc/ModeCookieSync.tsx
+```
+
+**Commit**: `46ecdba`
+
+**Status**: ✅ Pushed to GitHub, Vercel rebuilding
+
+**Time to Fix**: 2 minutes
+
+---
+
 **END OF LOG**
 
-**Status**: ✅ **DEPLOYED** - Awaiting user testing
+**Status**: ✅ **DEPLOYED** - Hotfix applied, awaiting Vercel rebuild
 
-**Next Action**: User to test Modern wizard at `/create-deed/grant-deed?mode=modern`
+**Next Action**: Monitor Vercel build, then test Modern wizard at `/create-deed/grant-deed?mode=modern`
 
