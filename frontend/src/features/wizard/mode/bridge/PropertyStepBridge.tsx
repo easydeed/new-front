@@ -12,9 +12,9 @@ export default function PropertyStepBridge() {
 
   // Handle property verification callback
   const handlePropertyVerified = useCallback((data: any) => {
-    console.log('[PropertyStepBridge] Property verified! Data:', data);
+    console.log('[PropertyStepBridge] Property verified! Raw data:', data);
     
-    // Update the store with verified property data
+    // Update the store with verified property data + SiteX enrichment
     const storeUpdate = {
       verifiedData: data,
       propertyVerified: true,
@@ -26,13 +26,30 @@ export default function PropertyStepBridge() {
         county: data.county,
         verified: true
       },
-      // Prefill grantor from owner data if available
-      grantorName: data.titlePoint?.owners?.[0]?.fullName || 
+      // ✅ PHASE 15 v5 FIX: Prefill ALL critical fields from SiteX data
+      // Legal description (required for PDF generation)
+      legalDescription: data.legalDescription || '',
+      // Grantor name from primary owner (required for PDF generation)
+      grantorName: data.currentOwnerPrimary || 
+                   data.titlePoint?.owners?.[0]?.fullName || 
                    data.titlePoint?.owners?.[0]?.name || 
                    '',
+      // Vesting details (improves deed accuracy)
+      vesting: data.titlePoint?.vestingDetails || '',
+      // Store additional context for future use
+      currentOwnerPrimary: data.currentOwnerPrimary || '',
+      currentOwnerSecondary: data.currentOwnerSecondary || '',
+      propertyType: data.propertyType || '',
+      lastSaleDate: data.titlePoint?.lastSaleDate || '',
+      lastSalePrice: data.titlePoint?.lastSalePrice || ''
     };
     
-    console.log('[PropertyStepBridge] Updating store with:', storeUpdate);
+    console.log('[PropertyStepBridge] Updating store with enriched SiteX data:', storeUpdate);
+    console.log('[PropertyStepBridge] 📋 Prefilled:', {
+      legalDescription: Boolean(storeUpdate.legalDescription),
+      grantorName: Boolean(storeUpdate.grantorName),
+      vesting: Boolean(storeUpdate.vesting)
+    });
     updateFormData(storeUpdate);
     console.log('[PropertyStepBridge] Store updated, should trigger re-render');
   }, [updateFormData]);

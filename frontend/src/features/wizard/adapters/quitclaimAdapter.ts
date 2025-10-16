@@ -5,6 +5,7 @@ export function toCanonical(state:any){
     property_address: state.propertyAddress || state.property?.address || '',
     apn: state.apn || state.property?.apn || '',
     county: state.county || state.property?.county || '',
+    legal_description: state.legalDescription || null,  // ✅ PHASE 15 v5: SiteX prefill
     grantor_name: state.grantorName || state.parties?.grantor?.name || '',
     grantee_name: state.granteeName || state.parties?.grantee?.name || '',
     vesting: state.vesting || state.vesting?.description || null
