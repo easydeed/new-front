@@ -1,9 +1,13 @@
 export function toCanonical(state:any){
+  // PHASE 15 v5: Flatten structure to match backend DeedCreate model (snake_case)
   return {
-    deedType: 'tax-deed',
-    property: { address: state.propertyAddress, apn: state.apn, county: state.county },
-    parties: { grantor: { name: state.grantorName }, grantee: { name: state.granteeName } },
-    taxSale: { reference: state.taxSaleRef || null }
+    deed_type: 'tax-deed',
+    property_address: state.propertyAddress || state.property?.address || '',
+    apn: state.apn || state.property?.apn || '',
+    county: state.county || state.property?.county || '',
+    grantor_name: state.grantorName || state.parties?.grantor?.name || '',
+    grantee_name: state.granteeName || state.parties?.grantee?.name || '',
+    vesting: null  // Tax deeds typically don't have vesting
   };
 }
 export function fromCanonical(data:any){
