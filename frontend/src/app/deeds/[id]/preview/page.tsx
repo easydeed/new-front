@@ -3,7 +3,14 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
-import { CheckCircle2, Download, Share2, Edit, Home, Loader2 } from 'lucide-react';
+import { 
+  CheckCircleIcon, 
+  ArrowDownTrayIcon, 
+  ShareIcon, 
+  PencilIcon, 
+  HomeIcon, 
+  ArrowPathIcon 
+} from '@heroicons/react/24/solid';
 import './preview.css';
 
 interface DeedData {
@@ -153,7 +160,7 @@ export default function DeedPreviewPage() {
     return (
       <div className="preview-container">
         <div className="preview-loading">
-          <Loader2 className="animate-spin" size={48} />
+          <ArrowPathIcon className="animate-spin" style={{ width: 48, height: 48 }} />
           <p>Loading deed details...</p>
         </div>
       </div>
@@ -169,7 +176,7 @@ export default function DeedPreviewPage() {
           <h2>Unable to Load Deed</h2>
           <p>{error || 'This deed could not be found.'}</p>
           <button onClick={() => router.push('/dashboard')} className="btn-secondary">
-            <Home size={18} />
+            <HomeIcon style={{ width: 18, height: 18 }} />
             Back to Dashboard
           </button>
         </div>
@@ -187,7 +194,7 @@ export default function DeedPreviewPage() {
             className="back-button"
             aria-label="Back to dashboard"
           >
-            <Home size={20} />
+            <HomeIcon style={{ width: 20, height: 20 }} />
           </button>
           {mode === 'modern' && (
             <span className="mode-badge">Modern Wizard</span>
@@ -198,7 +205,7 @@ export default function DeedPreviewPage() {
       {/* Hero Section */}
       <section className="preview-hero">
         <div className="hero-icon">
-          <CheckCircle2 size={64} className="success-icon" />
+          <CheckCircleIcon style={{ width: 64, height: 64 }} className="success-icon" />
         </div>
         <h1 className="hero-title">
           Your {formatDeedType(deed.deed_type)} is Ready
@@ -222,7 +229,7 @@ export default function DeedPreviewPage() {
       <section className="preview-pdf-section">
         {generating ? (
           <div className="pdf-loading">
-            <Loader2 className="animate-spin" size={48} />
+            <ArrowPathIcon className="animate-spin" style={{ width: 48, height: 48 }} />
             <p>Generating your document...</p>
             <small>This may take up to 30 seconds</small>
           </div>
@@ -240,7 +247,7 @@ export default function DeedPreviewPage() {
           <div className="pdf-error">
             <p>Unable to preview PDF in your browser</p>
             <button onClick={handleDownload} className="btn-primary">
-              <Download size={18} />
+              <ArrowDownTrayIcon style={{ width: 18, height: 18 }} />
               Download PDF
             </button>
           </div>
@@ -250,15 +257,15 @@ export default function DeedPreviewPage() {
       {/* Action Bar */}
       <section className="preview-actions">
         <button onClick={handleDownload} className="btn-primary" disabled={!pdfUrl}>
-          <Download size={20} />
+          <ArrowDownTrayIcon style={{ width: 20, height: 20 }} />
           Download PDF
         </button>
         <button onClick={handleShare} className="btn-secondary">
-          <Share2 size={20} />
+          <ShareIcon style={{ width: 20, height: 20 }} />
           Share Deed
         </button>
         <button onClick={handleEdit} className="btn-secondary">
-          <Edit size={20} />
+          <PencilIcon style={{ width: 20, height: 20 }} />
           Edit Deed
         </button>
       </section>
