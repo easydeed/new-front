@@ -6,7 +6,7 @@ import ProgressBar from '../components/ProgressBar';
 import MicroSummary from '../components/MicroSummary';
 import DeedTypeBadge from '../components/DeedTypeBadge';
 import SmartSelectInput from '../components/controls/SmartSelectInput';
-import SmartReview from '../components/SmartReview';
+import SmartReview from '../review/SmartReview';  // PATCH6 FIX: Use validation-gate version
 import { useWizardStoreBridge } from '../bridge/useWizardStoreBridge';
 import { promptFlows, Prompt, slug } from '../prompts/promptFlows';
 import { useWizardMode, WizardModeProvider } from '../ModeContext';
@@ -60,7 +60,7 @@ export default function ModernEngine({ docType }: { docType: string; }) {
         <div className="wiz-center">
           <DeedTypeBadge docType={docType} />
           <ProgressBar current={current} total={total} />
-          <SmartReview docType={docType} state={data?.formData || {}} />
+          <SmartReview docType={docType} />  {/* PATCH6: Gets state via useWizardStoreBridge() */}
         </div>
       </div>
     );
