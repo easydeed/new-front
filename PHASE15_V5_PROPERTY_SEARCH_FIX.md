@@ -2,7 +2,17 @@
 
 **Date**: October 16, 2025  
 **Issue**: Modern wizard bypassing Step 1 (Property Search)  
-**Solution**: Option B - Session Timestamp + Manual Clear
+**Solution**: ✅ **FINAL** - Logout Clears Wizard State (Proper Session Management)  
+**Previous Solutions**: ~~Option B (Timestamp)~~ - Superseded by proper logout
+
+---
+
+## 🎉 **USER IDENTIFIED THE REAL ISSUE!**
+
+**User's Insight**: 
+> "Shouldnt everytime we logout a session should be ended. Why?"
+
+**CORRECT!** This is the proper architectural solution. Logout should clear **ALL** session data, including wizard drafts.
 
 ---
 
@@ -70,7 +80,69 @@ const isVerified = !!(
 
 ---
 
-## ✅ **THE FIX: OPTION B (Session Timestamp)**
+## ✅ **THE FINAL FIX: Logout Clears Wizard State** (Commit: `080bc79`)
+
+### **The Proper Solution**:
+Update `AuthManager.logout()` to clear **ALL** session data, including wizard drafts.
+
+**File**: `frontend/src/utils/auth.ts`
+
+**Lines 88-113 - AFTER** ✅:
+```typescript
+/**
+ * Logout user and clear all auth data
+ * PATCH4a-FIX: Also clears wizard state to ensure fresh session on next login
+ */
+static logout(redirectPath?: string): void {
+  if (typeof window !== 'undefined') {
+    // Clear auth data
+    localStorage.removeItem(this.TOKEN_KEY);
+    localStorage.removeItem(this.USER_KEY);
+    
+    // PATCH4a-FIX: Clear wizard state (both Modern and Classic)
+    // This ensures user gets fresh property search on next login
+    localStorage.removeItem('deedWizardDraft_modern');
+    localStorage.removeItem('deedWizardDraft_classic');
+    
+    // Clear cookies
+    document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = 'wizard-mode=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    
+    // Redirect to login
+    const loginUrl = redirectPath 
+      ? `/login?redirect=${encodeURIComponent(redirectPath)}`
+      : '/login';
+    window.location.href = loginUrl;
+  }
+}
+```
+
+**Impact**:
+- ✅ Logout clears auth tokens
+- ✅ Logout clears wizard state (Modern + Classic)
+- ✅ Logout clears wizard-mode cookie
+- ✅ Fresh session guaranteed on next login
+- ✅ No need for staleness checks
+- ✅ No need for workarounds
+
+---
+
+## 📊 **WHY THIS IS BETTER**
+
+| Aspect | Timestamp Approach (Old) | Logout Clears All (New) |
+|--------|-------------------------|-------------------------|
+| **Complexity** | Medium (staleness check) | Low (standard logout) |
+| **User Experience** | Confusing (data expires) | Expected (logout = fresh start) |
+| **Architecture** | Workaround | Proper session management |
+| **Maintenance** | Requires tuning timeout | No tuning needed |
+| **Edge Cases** | Many (within 1 hour, etc.) | None |
+| **Session Hygiene** | Partial | Complete |
+
+---
+
+## ~~THE OLD FIX: OPTION B (Session Timestamp)~~ ❌ SUPERSEDED
+
+**Note**: This approach is still in the code but is now **unnecessary** because logout properly clears everything.
 
 ### **Approach**:
 Add two safety checks:
@@ -79,7 +151,7 @@ Add two safety checks:
 
 ---
 
-## 🔧 **IMPLEMENTATION**
+## 🔧 **IMPLEMENTATION (OLD - FOR REFERENCE)**
 
 ### **Fix 1: Staleness Check**
 
