@@ -12,6 +12,7 @@ import {
   ArrowPathIcon 
 } from '@heroicons/react/24/solid';
 import Sidebar from '@/components/Sidebar';
+import '@/styles/dashboard.css';
 import './preview.css';
 
 interface DeedData {
