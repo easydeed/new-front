@@ -6,7 +6,7 @@
  * - Uses isolated storage keys for Modern vs. Classic
  * - All storage access is gated by hydration status
  */
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useEffect } from 'react';
 import { useWizardStore } from '@/store';
 import { useHydrated } from '@/shared/hooks/useHydrated';
 import { safeStorage } from '@/shared/safe-storage/safeStorage';
@@ -15,6 +15,33 @@ import { WIZARD_DRAFT_KEY_MODERN } from './persistenceKeys';
 export function useWizardStoreBridge(){
   const { data, setData } = useWizardStore();
   const hydrated = useHydrated();
+  
+  // PATCH6 FIX: Sync localStorage → Zustand after hydration
+  useEffect(() => {
+    if (!hydrated) return;
+    
+    try {
+      const stored = safeStorage.get(WIZARD_DRAFT_KEY_MODERN);
+      if (!stored) return;
+      
+      const parsed = JSON.parse(stored);
+      const formData = parsed.grantDeed || parsed.formData || {};
+      
+      // Only sync if formData has content
+      if (Object.keys(formData).length === 0) return;
+      
+      console.log('[useWizardStoreBridge] 🔄 Syncing localStorage → Zustand:', formData);
+      
+      // Populate Zustand store from localStorage
+      Object.keys(formData).forEach(key => {
+        setData(key, formData[key]);
+      });
+      
+      console.log('[useWizardStoreBridge] ✅ Sync complete');
+    } catch (error) {
+      console.error('[useWizardStoreBridge] ❌ Sync error:', error);
+    }
+  }, [hydrated, setData]);
   
   const getWizardData = useCallback(() => {
     // CRITICAL: Return empty state before hydration
