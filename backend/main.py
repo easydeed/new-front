@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict
 import stripe
 import psycopg2
+from psycopg2.extras import RealDictCursor
 from datetime import datetime, timedelta
 from time import time
 from collections import defaultdict
