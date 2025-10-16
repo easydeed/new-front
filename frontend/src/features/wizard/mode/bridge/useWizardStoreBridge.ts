@@ -106,8 +106,8 @@ export function useWizardStoreBridge(){
 
   return useMemo(() => ({
     hydrated, // Expose hydration status
-    get: getWizardData,
-    set: updateFormData,
+    getWizardData,  // ✅ FIXED: Use correct property name
+    updateFormData, // ✅ FIXED: Use correct property name
     isPropertyVerified
   }), [hydrated, getWizardData, updateFormData, isPropertyVerified]);
 }
