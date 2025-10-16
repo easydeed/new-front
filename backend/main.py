@@ -1639,27 +1639,28 @@ def list_available_deeds_for_sharing(user_id: int = Depends(get_current_user_id)
 def get_deed_endpoint(deed_id: int, user_id: int = Depends(get_current_user_id)):
     """Get a specific deed - Phase 15 v5: Preview page integration"""
     try:
-        with conn.cursor() as cur:
-            # Fetch deed - ensure user owns it or is admin
-            cur.execute("""
-                SELECT d.*, u.role 
-                FROM deeds d
-                LEFT JOIN users u ON u.id = %s
-                WHERE d.id = %s AND (d.user_id = %s OR u.role = 'admin')
-            """, (user_id, deed_id, user_id))
-            
-            deed = cur.fetchone()
-            
-            if not deed:
-                raise HTTPException(status_code=404, detail="Deed not found")
-            
-            return dict(deed)
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Fetch deed - ensure user owns it or is admin
+        cursor.execute("""
+            SELECT d.*, u.role 
+            FROM deeds d
+            LEFT JOIN users u ON u.id = %s
+            WHERE d.id = %s AND (d.user_id = %s OR u.role = 'admin')
+        """, (user_id, deed_id, user_id))
+        
+        deed = cursor.fetchone()
+        cursor.close()
+        
+        if not deed:
+            raise HTTPException(status_code=404, detail="Deed not found")
+        
+        return dict(deed)
     except HTTPException:
         raise
     except Exception as e:
         print(f"Error fetching deed {deed_id}: {e}")
-        if conn:
-            conn.rollback()
+        conn.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to fetch deed: {str(e)}")
 
 @app.put("/deeds/{deed_id}/status")
