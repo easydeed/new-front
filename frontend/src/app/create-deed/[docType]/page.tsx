@@ -22,6 +22,8 @@ import { safeStorage } from '../../../shared/safe-storage/safeStorage';
 import { WIZARD_DRAFT_KEY_CLASSIC } from '../../../features/wizard/mode/bridge/persistenceKeys';
 // [v4.2] Consistent docType mapping
 import { canonicalFromUrlParam } from '../../../features/wizard/mode/utils/docType';
+// Phase 15 v5: Partners provider for industry partners
+import { PartnersProvider } from '../../../features/partners/PartnersContext';
 
 /**
  * Phase 11 + Phase 15 Hydration Fix: Unified Wizard for All Deed Types
@@ -405,6 +407,8 @@ function ClassicWizard({ docType }: { docType: DocType }) {
  * 
  * Phase 15 Fix: This component now only extracts the docType from URL params
  * and passes the ClassicWizard component to WizardHost. No hooks run here!
+ * 
+ * Phase 15 v5: Wrapped with PartnersProvider for industry partners integration
  */
 export default function UnifiedWizard() {
   const params = useParams();
@@ -412,9 +416,14 @@ export default function UnifiedWizard() {
   // [v4.2] URL param → canonical docType (e.g., 'quitclaim-deed' → 'quitclaim')
   const docType = canonicalFromUrlParam(params?.docType as string);
 
+  // Phase 15 v5: Wrap with PartnersProvider for industry partners
   // Phase 15: Dual-Mode Wizard Integration
   // WizardHost determines which mode to render (Modern vs. Classic)
   // ClassicWizard component is passed, not JSX, so hooks only run when it's rendered
-  return <WizardHost docType={docType} classic={<ClassicWizard docType={docType as DocType} />} />;
+  return (
+    <PartnersProvider>
+      <WizardHost docType={docType} classic={<ClassicWizard docType={docType as DocType} />} />
+    </PartnersProvider>
+  );
 }
 
