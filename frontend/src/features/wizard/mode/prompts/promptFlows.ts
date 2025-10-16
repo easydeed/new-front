@@ -1,62 +1,115 @@
-import { validators } from '../validation/validators';
 
 export type Prompt = {
   id: string;
-  title: string;
   question: string;
-  field: string;           // maps to store field
-  placeholder?: string;
+  field: string;
   why?: string;
   required?: boolean;
-  validate?: (value: any, state: any) => string | null;
+  type?: 'text' | 'select';
+  optionsFrom?: 'owners' | 'partners' | 'none';
+  placeholder?: string;
   showIf?: (state: any) => boolean;
 };
 
-export type PromptFlow = { docType: string; steps: Prompt[] };
+export function slug(docType: string) {
+  return (docType || '').toLowerCase().replace(/_/g,'-');
+}
 
-/**
- * v4 — property is handled by your existing Step 1.
- * These flows START after property verification.
- */
-export const promptFlows: Record<string, PromptFlow> = {
+// Reusable base blocks AFTER property verification
+const basePartiesGrant: Prompt[] = [
+  {
+    id: 'grantor',
+    question: 'Who is transferring title (Grantor)?',
+    field: 'grantorName',
+    why: 'Selecting from detected owners reduces errors.',
+    type: 'select',
+    optionsFrom: 'owners',
+    required: true
+  },
+  {
+    id: 'grantee',
+    question: 'Who is receiving title (Grantee)?',
+    field: 'granteeName',
+    type: 'text',
+    placeholder: 'Name of the Grantee...',
+    required: true
+  },
+  {
+    id: 'vesting',
+    question: 'How should title be vested?',
+    field: 'vesting',
+    type: 'text',
+    placeholder: 'e.g., Sole and Separate Property'
+  },
+  {
+    id: 'requestedBy',
+    question: 'Requested by (Industry Partner or type a new one)',
+    field: 'requestedBy',
+    type: 'select',
+    optionsFrom: 'partners',
+    why: 'Partners are scoped to your organization. Selecting here auto-fills the recorders' "Requested by" line.'
+  }
+];
+
+export const promptFlows: Record<string, { docType: string; steps: Prompt[] }> = {
   'grant-deed': {
     docType: 'grant-deed',
     steps: [
-      { id: 'grantor', title: 'Parties', question: 'Who is granting title (current owner)?', field: 'grantorName', placeholder: 'John A. Smith', required: true, validate: validators.name('Grantor') },
-      { id: 'grantee', title: 'Parties', question: 'Who will receive title?', field: 'granteeName', placeholder: 'The Smith Family Trust (dated 03/14/2020)', required: true, validate: validators.name('Grantee') },
-      { id: 'vesting', title: 'Vesting', question: 'What is the vesting for the receiving party?', field: 'vesting', placeholder: 'Sole and Separate Property' },
+      ...basePartiesGrant
     ]
   },
   'quitclaim-deed': {
     docType: 'quitclaim-deed',
     steps: [
-      { id: 'releasor', title: 'Parties', question: 'Who is releasing interest in the property (Quitclaim)?', field: 'grantorName', placeholder: 'Jane Q. Public', required: true, validate: validators.name('Releasor') },
-      { id: 'retaining', title: 'Parties', question: 'Who will retain ownership?', field: 'granteeName', placeholder: 'John Q. Public', required: true, validate: validators.name('Retaining owner') },
-      { id: 'vesting', title: 'Vesting', question: 'What is the vesting for the receiving party?', field: 'vesting', placeholder: 'Community Property with Right of Survivorship' },
+      {
+        id: 'releasor',
+        question: 'Who is releasing their interest (Quitclaim Grantor)?',
+        field: 'grantorName',
+        type: 'select',
+        optionsFrom: 'owners',
+        required: true
+      },
+      {
+        id: 'recipient',
+        question: 'Who is receiving (Grantee)?',
+        field: 'granteeName',
+        type: 'text',
+        required: true
+      },
+      {
+        id: 'requestedBy',
+        question: 'Requested by',
+        field: 'requestedBy',
+        type: 'select',
+        optionsFrom: 'partners'
+      }
     ]
   },
   'interspousal-transfer': {
     docType: 'interspousal-transfer',
     steps: [
-      { id: 'xfer-spouse', title: 'Parties', question: 'Which spouse is transferring ownership?', field: 'grantorName', placeholder: 'Spouse A', required: true, validate: validators.name('Transferring spouse') },
-      { id: 'recv-spouse', title: 'Parties', question: 'Which spouse will own the property after transfer?', field: 'granteeName', placeholder: 'Spouse B', required: true, validate: validators.name('Receiving spouse') },
-      { id: 'dtt-exempt', title: 'Transfer Tax', question: 'Reason for Documentary Transfer Tax exemption (if any)?', field: 'dttExemptReason', placeholder: 'Interspousal transfer (R&T §11927)' },
+      ...basePartiesGrant,
+      {
+        id: 'dtt',
+        question: 'Reason for Documentary Transfer Tax exemption (if any)?',
+        field: 'dttExemptReason',
+        type: 'text',
+        placeholder: 'e.g., Interspousal transfer exemption'
+      }
     ]
   },
   'warranty-deed': {
     docType: 'warranty-deed',
     steps: [
-      { id: 'grantor', title: 'Parties', question: 'Who is granting title?', field: 'grantorName', placeholder: 'John A. Smith', required: true, validate: validators.name('Grantor') },
-      { id: 'grantee', title: 'Parties', question: 'Who will receive title?', field: 'granteeName', placeholder: 'The Smith Family Trust (dated 03/14/2020)', required: true, validate: validators.name('Grantee') },
-      { id: 'covenants', title: 'Covenants (optional)', question: 'Add covenant language (or leave blank).', field: 'covenants', placeholder: 'Grantor covenants that Grantor is lawfully seized...' },
+      ...basePartiesGrant,
+      { id: 'covenants', question: 'Any special covenants or restrictions?', field: 'covenants', type: 'text'}
     ]
   },
   'tax-deed': {
     docType: 'tax-deed',
     steps: [
-      { id: 'grantor-tax', title: 'Parties', question: 'Confirm the Grantor (tax collector or authority).', field: 'grantorName', placeholder: 'County Tax Collector', required: true, validate: validators.name('Grantor') },
-      { id: 'grantee-tax', title: 'Parties', question: 'Who is the Grantee (buyer from the tax sale)?', field: 'granteeName', placeholder: 'Jane Q. Public', required: true, validate: validators.name('Grantee') },
-      { id: 'tax-sale-ref', title: 'Tax Sale', question: 'What is the Tax Sale reference (ID or date)?', field: 'taxSaleRef', placeholder: 'TS-2025-001 / June 15, 2025' },
+      ...basePartiesGrant,
+      { id: 'taxsale', question: 'Tax sale reference number (if known)?', field: 'taxSaleRef', type: 'text'}
     ]
-  },
+  }
 };
