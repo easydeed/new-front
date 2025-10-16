@@ -4,23 +4,39 @@
  */
 
 import finalizeDeedService from '@/services/finalizeDeed';
-import { toCanonicalFor } from '@/features/wizard/adapters';
+import { toCanonicalFromWizardData } from '@/features/wizard/validation/adapters';  // PATCH6 FIX: Use resilient adapter
 
 /**
- * Finalize deed using validation-canonical adapter
+ * Finalize deed using Patch6 canonical adapter
  * @param docType - Deed type (e.g., 'grant-deed')
  * @param wizardData - Raw wizard state from Zustand store
  * @returns Deed ID if successful, null if failed
  */
 export async function finalizeDeed(docType: string, wizardData: any): Promise<string | null> {
   try {
-    // Build canonical payload using our existing adapters
-    const payload = toCanonicalFor(docType, wizardData);
+    console.log('[finalizeDeed Bridge] Raw wizardData:', wizardData);
     
-    console.log('[finalizeDeed Bridge] Calling service with payload:', payload);
+    // PATCH6 FIX: Use toCanonicalFromWizardData (resilient to multiple state shapes)
+    const payload = toCanonicalFromWizardData(wizardData, docType);
     
-    // Call our existing finalizeDeed service
-    const result = await finalizeDeedService(payload);
+    console.log('[finalizeDeed Bridge] Canonical payload:', payload);
+    
+    // Flatten to backend format (snake_case)
+    const backendPayload = {
+      deed_type: payload.docType,
+      property_address: payload.property?.address || '',
+      apn: payload.property?.apn || '',
+      county: payload.property?.county || '',
+      legal_description: payload.property?.legalDescription || null,
+      grantor_name: payload.parties?.grantor?.name || '',
+      grantee_name: payload.parties?.grantee?.name || '',
+      vesting: payload.vesting?.description || null
+    };
+    
+    console.log('[finalizeDeed Bridge] Backend payload:', backendPayload);
+    
+    // Call our existing finalizeDeed service with flattened payload
+    const result = await finalizeDeedService(backendPayload);
     
     if (result.success && result.deedId) {
       console.log('[finalizeDeed Bridge] Success! Deed ID:', result.deedId);
