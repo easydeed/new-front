@@ -40,7 +40,7 @@ class PartnerPersonCreate(BaseModel):
 class PartnerCreate(BaseModel):
     """Create a new partner (title company, real estate, lender)"""
     name: str = Field(..., min_length=2, max_length=200)
-    category: str = Field(..., regex="^(title_company|real_estate|lender)$")
+    category: str = Field(..., pattern="^(title_company|real_estate|lender)$")  # Pydantic v2 syntax
     person: Optional[PartnerPersonCreate] = None
 
 class PartnerSelectItem(BaseModel):

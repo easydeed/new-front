@@ -114,3 +114,62 @@ def send_share_notification(recipient_email: str, recipient_name: str, owner_nam
     subject = f"🤝 {owner_name} shared a deed with you"
     html = render_share_email(recipient_name, owner_name, deed_type, share_link)
     return send_email(recipient_email, subject, html)
+
+def render_deed_completion_email(user_name: str, deed_type: str, property_address: str, deed_id: int, preview_link: str) -> str:
+    """Render HTML email for deed completion notification."""
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }}
+            .container {{ max-width: 600px; margin: 40px auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }}
+            .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; text-align: center; }}
+            .header h1 {{ margin: 0; font-size: 28px; font-weight: 700; }}
+            .content {{ padding: 40px 30px; }}
+            .button {{ display: inline-block; background: #667eea; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 20px 0; }}
+            .button:hover {{ background: #5568d3; }}
+            .footer {{ background: #f8f9fa; padding: 30px; text-align: center; color: #666; font-size: 14px; }}
+            .success-icon {{ font-size: 48px; margin-bottom: 10px; }}
+            .deed-details {{ background: #f8f9fa; padding: 20px; border-radius: 6px; margin: 20px 0; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="success-icon">✅</div>
+                <h1>Your Deed is Ready!</h1>
+            </div>
+            <div class="content">
+                <p>Hi {user_name},</p>
+                <p>Great news! Your deed has been successfully created and is ready for review.</p>
+                
+                <div class="deed-details">
+                    <p><strong>Deed Type:</strong> {deed_type}</p>
+                    <p><strong>Property:</strong> {property_address}</p>
+                    <p><strong>Deed ID:</strong> #{deed_id}</p>
+                </div>
+                
+                <p>You can now view, download, or share your deed with collaborators.</p>
+                
+                <center>
+                    <a href="{preview_link}" class="button">View Your Deed</a>
+                </center>
+                
+                <p style="margin-top: 30px; color: #666; font-size: 14px;">
+                    Your deed is securely stored and ready to download at any time.
+                </p>
+            </div>
+            <div class="footer">
+                <p><strong>DeedPro</strong> - Professional Deed Preparation</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+def send_deed_completion_notification(user_email: str, user_name: str, deed_type: str, property_address: str, deed_id: int, preview_link: str) -> bool:
+    """Send deed completion notification email to user."""
+    subject = f"✅ Your {deed_type} is Ready!"
+    html = render_deed_completion_email(user_name, deed_type, property_address, deed_id, preview_link)
+    return send_email(user_email, subject, html)
