@@ -11,6 +11,7 @@ import {
   HomeIcon, 
   ArrowPathIcon 
 } from '@heroicons/react/24/solid';
+import Sidebar from '@/components/Sidebar';
 import './preview.css';
 
 interface DeedData {
@@ -158,10 +159,15 @@ export default function DeedPreviewPage() {
   // Loading state
   if (loading) {
     return (
-      <div className="preview-container">
-        <div className="preview-loading">
-          <ArrowPathIcon className="animate-spin" style={{ width: 48, height: 48 }} />
-          <p>Loading deed details...</p>
+      <div style={{ display: 'flex' }}>
+        <Sidebar />
+        <div className="main-content">
+          <div className="wizard-container">
+            <div className="preview-loading">
+              <ArrowPathIcon className="animate-spin" style={{ width: 48, height: 48 }} />
+              <p>Loading deed details...</p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -170,22 +176,30 @@ export default function DeedPreviewPage() {
   // Error state
   if (error || !deed) {
     return (
-      <div className="preview-container">
-        <div className="preview-error">
-          <div className="error-icon">⚠️</div>
-          <h2>Unable to Load Deed</h2>
-          <p>{error || 'This deed could not be found.'}</p>
-          <button onClick={() => router.push('/dashboard')} className="btn-secondary">
-            <HomeIcon style={{ width: 18, height: 18 }} />
-            Back to Dashboard
-          </button>
+      <div style={{ display: 'flex' }}>
+        <Sidebar />
+        <div className="main-content">
+          <div className="wizard-container">
+            <div className="preview-error">
+              <div className="error-icon">⚠️</div>
+              <h2>Unable to Load Deed</h2>
+              <p>{error || 'This deed could not be found.'}</p>
+              <button onClick={() => router.push('/dashboard')} className="btn-secondary">
+                <HomeIcon style={{ width: 18, height: 18 }} />
+                Back to Dashboard
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="preview-container">
+    <div style={{ display: 'flex' }}>
+      <Sidebar />
+      <div className="main-content">
+        <div className="wizard-container preview-container">
       {/* Header */}
       <header className="preview-header">
         <div className="header-content">
@@ -345,6 +359,8 @@ export default function DeedPreviewPage() {
           Back to Dashboard
         </button>
       </footer>
+        </div>
+      </div>
     </div>
   );
 }

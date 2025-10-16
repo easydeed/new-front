@@ -1,29 +1,23 @@
 /* DeedPro Preview Page - Matches Modern Wizard Aesthetic */
 
 .preview-container {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  padding-bottom: 4rem;
+  width: 100%;
+  padding-bottom: 2rem;
 }
 
 /* Header */
 .preview-header {
   background: white;
   border-bottom: 1px solid #e2e8f0;
-  padding: 1rem 2rem;
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  backdrop-filter: blur(8px);
-  background: rgba(255, 255, 255, 0.95);
+  padding: 1rem 0;
+  margin-bottom: 2rem;
 }
 
 .header-content {
-  max-width: 1200px;
-  margin: 0 auto;
   display: flex;
   align-items: center;
   gap: 1rem;
+  justify-content: space-between;
 }
 
 .back-button {
@@ -59,9 +53,7 @@
 
 /* Hero Section */
 .preview-hero {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 3rem 2rem 2rem;
+  padding: 2rem 0;
   text-align: center;
   animation: fadeInUp 0.6s ease-out;
 }
@@ -104,9 +96,7 @@
 
 /* PDF Viewer Section */
 .preview-pdf-section {
-  max-width: 900px;
-  margin: 2rem auto;
-  padding: 0 2rem;
+  margin: 2rem 0;
   animation: fadeInUp 0.6s ease-out 0.3s both;
 }
 
@@ -153,9 +143,7 @@
 
 /* Action Bar */
 .preview-actions {
-  max-width: 900px;
-  margin: 2rem auto;
-  padding: 0 2rem;
+  margin: 2rem 0;
   display: flex;
   gap: 1rem;
   justify-content: center;
@@ -212,9 +200,7 @@
 
 /* Info Panels */
 .preview-info {
-  max-width: 1200px;
-  margin: 3rem auto;
-  padding: 0 2rem;
+  margin: 3rem 0;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 2rem;
@@ -294,9 +280,8 @@
 
 /* Footer */
 .preview-footer {
-  max-width: 1200px;
-  margin: 3rem auto 0;
-  padding: 2rem;
+  margin: 3rem 0 0;
+  padding: 2rem 0;
   text-align: center;
   display: flex;
   align-items: center;
@@ -305,6 +290,7 @@
   flex-wrap: wrap;
   color: #64748b;
   font-size: 0.875rem;
+  border-top: 1px solid #e2e8f0;
 }
 
 .btn-link {
