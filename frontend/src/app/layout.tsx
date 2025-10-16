@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import "../styles/wizardModern.css"; // Phase 15 v5: Modern wizard styles
 
 const inter = Inter({ 
   subsets: ["latin"],
