@@ -176,6 +176,16 @@ except ImportError as e:
 except Exception as e:
     print(f"❌ Rejection Bundle: Error loading Feedback API: {e}")
 
+# PHASE 15 v5: Industry Partners API (title companies, real estate, lenders)
+try:
+    from routers.partners import router as partners_router
+    app.include_router(partners_router, prefix="/api", tags=["Partners"])
+    print("✅ Phase 15 v5: Industry Partners API loaded (user-scoped, upgradeable to org-scoped)")
+except ImportError as e:
+    print(f"⚠️ Phase 15 v5: Industry Partners API not available: {e}")
+except Exception as e:
+    print(f"❌ Phase 15 v5: Error loading Industry Partners API: {e}")
+
 # Allow CORS for local dev and frontend
 app.add_middleware(
     CORSMiddleware,
