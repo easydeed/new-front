@@ -87,14 +87,22 @@ export class AuthManager {
 
   /**
    * Logout user and clear all auth data
+   * PATCH4a-FIX: Also clears wizard state to ensure fresh session on next login
    */
   static logout(redirectPath?: string): void {
     if (typeof window !== 'undefined') {
+      // Clear auth data
       localStorage.removeItem(this.TOKEN_KEY);
       localStorage.removeItem(this.USER_KEY);
       
-      // Clear cookie
+      // PATCH4a-FIX: Clear wizard state (both Modern and Classic)
+      // This ensures user gets fresh property search on next login
+      localStorage.removeItem('deedWizardDraft_modern');
+      localStorage.removeItem('deedWizardDraft_classic');
+      
+      // Clear cookies
       document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      document.cookie = 'wizard-mode=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       
       // Redirect to login
       const loginUrl = redirectPath 
