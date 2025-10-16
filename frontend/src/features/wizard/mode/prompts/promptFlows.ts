@@ -47,7 +47,7 @@ const basePartiesGrant: Prompt[] = [
     field: 'requestedBy',
     type: 'select',
     optionsFrom: 'partners',
-    why: 'Partners are scoped to your organization. Selecting here auto-fills the recorders' "Requested by" line.'
+    why: 'Partners are scoped to your organization. Selecting here auto-fills the "Requested by" field.'
   }
 ];
 

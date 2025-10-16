@@ -5,7 +5,7 @@ import StepShell from './StepShell';
 import MicroSummary from './MicroSummary';
 import { buildReviewLines } from '../review/smartReviewTemplates';
 import { toCanonicalFor } from '../../adapters';
-import finalizeDeed from '../../../services/finalizeDeed';
+import finalizeDeed from '../../../../services/finalizeDeed';
 
 export default function SmartReview({ docType, state }: { docType: string; state: any; }) {
   const [busy, setBusy] = useState(false);
