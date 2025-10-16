@@ -40,6 +40,8 @@ export default function DeedPreviewPage() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   // Format deed type for display
   const formatDeedType = (type: string) => {
@@ -47,6 +49,26 @@ export default function DeedPreviewPage() {
       .split('-')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
+  };
+
+  // Validate deed data completeness before PDF generation
+  const validateDeedData = (deedData: DeedData): string[] => {
+    const errors: string[] = [];
+    
+    if (!deedData.grantor_name || deedData.grantor_name.trim() === '') {
+      errors.push('Grantor name is required');
+    }
+    if (!deedData.grantee_name || deedData.grantee_name.trim() === '') {
+      errors.push('Grantee name is required');
+    }
+    if (!deedData.property_address || deedData.property_address.trim() === '') {
+      errors.push('Property address is required');
+    }
+    if (!deedData.apn || deedData.apn.trim() === '') {
+      errors.push('APN is required');
+    }
+    
+    return errors;
   };
 
   // Fetch deed details
@@ -77,13 +99,31 @@ export default function DeedPreviewPage() {
     }
   }, [deedId]);
 
-  // Generate PDF
+  // Generate PDF with validation and retry limiting
   useEffect(() => {
     const generatePDF = async () => {
       if (!deed) return;
 
+      // Step 1: Validate deed data completeness
+      const errors = validateDeedData(deed);
+      if (errors.length > 0) {
+        console.warn('[Preview] Deed data validation failed:', errors);
+        setValidationErrors(errors);
+        setError('Cannot generate PDF: deed data is incomplete');
+        return; // Stop here - don't attempt generation
+      }
+
+      // Step 2: Check retry limit (max 3 attempts)
+      if (retryCount >= 3) {
+        console.error('[Preview] Max retry attempts reached (3)');
+        setError('Failed to generate PDF after 3 attempts. Please try again later.');
+        return;
+      }
+
       try {
         setGenerating(true);
+        setError(null);
+        setValidationErrors([]);
         const token = localStorage.getItem('token') || localStorage.getItem('access_token');
         
         // Map deed type to API endpoint
@@ -97,6 +137,7 @@ export default function DeedPreviewPage() {
 
         const endpoint = deedTypeMap[deed.deed_type] || 'grant-deed-ca';
         
+        console.log(`[Preview] Attempting PDF generation (attempt ${retryCount + 1}/3)`);
         const res = await fetch(`/api/generate/${endpoint}`, {
           method: 'POST',
           headers: {
@@ -114,24 +155,41 @@ export default function DeedPreviewPage() {
         });
 
         if (!res.ok) {
-          throw new Error('Failed to generate PDF');
+          // Only retry on server errors (500+), not client errors (400)
+          if (res.status >= 500) {
+            console.warn(`[Preview] Server error ${res.status}, will retry`);
+            setRetryCount(prev => prev + 1);
+            throw new Error(`Server error (${res.status}). Retrying...`);
+          } else {
+            // Client error (400, 403, etc.) - don't retry
+            const errorText = await res.text();
+            console.error(`[Preview] Client error ${res.status}:`, errorText);
+            throw new Error(`Failed to generate PDF: ${errorText || res.statusText}`);
+          }
         }
 
         const blob = await res.blob();
         const url = window.URL.createObjectURL(blob);
         setPdfUrl(url);
+        setRetryCount(0); // Reset retry count on success
+        console.log('[Preview] PDF generation successful');
       } catch (e: any) {
-        console.error('PDF generation error:', e);
+        console.error('[Preview] PDF generation error:', e);
         setError(e.message || 'Failed to generate PDF');
       } finally {
         setGenerating(false);
       }
     };
 
-    if (deed && !pdfUrl && !generating) {
+    // Only attempt generation if:
+    // 1. Deed is loaded
+    // 2. No PDF URL yet
+    // 3. Not currently generating
+    // 4. Not exceeded retry limit
+    if (deed && !pdfUrl && !generating && retryCount < 3) {
       generatePDF();
     }
-  }, [deed, pdfUrl, generating]);
+  }, [deed, pdfUrl, generating, retryCount]);
 
   // Download handler
   const handleDownload = () => {
@@ -174,8 +232,8 @@ export default function DeedPreviewPage() {
     );
   }
 
-  // Error state
-  if (error || !deed) {
+  // Error state - distinguish between validation errors and other errors
+  if ((error && !deed) || (!deed && !loading)) {
     return (
       <div style={{ display: 'flex' }}>
         <Sidebar />
@@ -189,6 +247,39 @@ export default function DeedPreviewPage() {
                 <HomeIcon style={{ width: 18, height: 18 }} />
                 Back to Dashboard
               </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Validation error state - deed loaded but has incomplete data
+  if (validationErrors.length > 0 && deed) {
+    return (
+      <div style={{ display: 'flex' }}>
+        <Sidebar />
+        <div className="main-content">
+          <div className="wizard-container">
+            <div className="preview-error">
+              <div className="error-icon">📝</div>
+              <h2>Deed Data Incomplete</h2>
+              <p>This deed cannot be generated because some required information is missing:</p>
+              <ul style={{ textAlign: 'left', marginTop: '1rem', marginBottom: '1.5rem' }}>
+                {validationErrors.map((err, i) => (
+                  <li key={i} style={{ color: '#dc2626' }}>{err}</li>
+                ))}
+              </ul>
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                <button onClick={handleEdit} className="btn-primary">
+                  <PencilIcon style={{ width: 18, height: 18 }} />
+                  Edit Deed
+                </button>
+                <button onClick={() => router.push('/dashboard')} className="btn-secondary">
+                  <HomeIcon style={{ width: 18, height: 18 }} />
+                  Back to Dashboard
+                </button>
+              </div>
             </div>
           </div>
         </div>
