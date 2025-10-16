@@ -46,6 +46,20 @@ const publicRoutes = [
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const url = request.nextUrl.clone()
+  
+  // PATCH4: Preserve `?mode=modern` on wizard preview + deed routes
+  const modeCookie = request.cookies.get('wizard-mode')?.value
+  const wantsModern = modeCookie === 'modern'
+  const hasModeParam = url.searchParams.has('mode')
+  const isPreview = /^\/deeds\/[\w-]+\/preview$/.test(pathname)
+  const isWizardRoute = /^\/create-deed\/[\w-]+$/.test(pathname)
+  
+  // If user wants Modern mode and it's a wizard/preview route without mode param, add it
+  if (wantsModern && (isPreview || isWizardRoute) && !hasModeParam) {
+    url.searchParams.set('mode', 'modern')
+    console.log(`🎯 PATCH4: Adding ?mode=modern to ${pathname}`)
+  }
   
   // Check if the current path is protected
   const isProtectedRoute = protectedRoutes.some(route => 
@@ -66,9 +80,9 @@ export function middleware(request: NextRequest) {
   
   // Handle protected routes
   if (isProtectedRoute && !isAuthenticated) {
-    // Save the attempted URL for redirect after login
+    // Save the attempted URL for redirect after login (preserve mode param)
     const loginUrl = new URL('/login', request.url)
-    loginUrl.searchParams.set('redirect', pathname)
+    loginUrl.searchParams.set('redirect', url.pathname + url.search)
     
     console.log(`🔒 Redirecting unauthenticated user from ${pathname} to login`)
     return NextResponse.redirect(loginUrl)
@@ -81,6 +95,11 @@ export function middleware(request: NextRequest) {
     
     console.log(`✅ Redirecting authenticated user from ${pathname} to dashboard`)
     return NextResponse.redirect(dashboardUrl)
+  }
+  
+  // If mode param was added, use rewrite to preserve URL structure
+  if (wantsModern && (isPreview || isWizardRoute) && !hasModeParam) {
+    return NextResponse.rewrite(url)
   }
   
   // Allow access to all other routes
