@@ -76,23 +76,45 @@ export default function PrefillCombo({
                 ) : null}
               </button>
             ))}
-            {/* TEMPORARILY DISABLED: Backend partners API not yet implemented (Patch 5)
-                Will be re-enabled after deploying full partners infrastructure
             {allowNewPartner && draft && (
               <button
                 type="button"
                 className="prefill-combo__item prefill-combo__item--new"
                 onClick={async () => {
                   try {
+                    // Get auth token
+                    const token = typeof window !== 'undefined' 
+                      ? (localStorage.getItem('token') || localStorage.getItem('access_token'))
+                      : null;
+                    
+                    // PATCH 5 FIX: Correct payload format
                     const res = await fetch('/api/partners', {
                       method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ name: draft }),
+                      headers: { 
+                        'Content-Type': 'application/json',
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                      },
+                      body: JSON.stringify({ 
+                        company_name: draft,  // FIXED: was 'name', now 'company_name'
+                        category: 'other',    // Default category
+                        role: 'other'         // Default role
+                      }),
                     });
-                    if (!res.ok) throw new Error('Failed');
+                    
+                    if (!res.ok) {
+                      const errorData = await res.json().catch(() => ({}));
+                      console.error('[PrefillCombo] Failed to create partner:', errorData);
+                      throw new Error('Failed');
+                    }
+                    
+                    const newPartner = await res.json();
+                    console.log('[PrefillCombo] Partner created:', newPartner);
+                    
                     onChange(draft);
                     setOpen(false);
-                  } catch {
+                  } catch (error: any) {
+                    console.error('[PrefillCombo] Error creating partner:', error);
+                    // Graceful fallback: still update the field
                     onChange(draft);
                     setOpen(false);
                   }
@@ -101,7 +123,6 @@ export default function PrefillCombo({
                 + Add "{draft}"
               </button>
             )}
-            */}
           </div>
         )}
       </div>
