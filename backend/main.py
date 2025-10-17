@@ -177,13 +177,15 @@ except ImportError as e:
 except Exception as e:
     print(f"❌ Rejection Bundle: Error loading Feedback API: {e}")
 
-# PHASE 15 v5: Industry Partners API (title companies, real estate, lenders)
+# PATCH 5: Industry Partners API (Full Stack - org-scoped with admin)
 try:
     from routers.partners import router as partners_router
-    app.include_router(partners_router, prefix="/api", tags=["Partners"])
-    print("✅ Phase 15 v5: Industry Partners API loaded (user-scoped, upgradeable to org-scoped)")
+    from routers.admin_partners import router as admin_partners_router
+    app.include_router(partners_router, prefix="/partners", tags=["Partners"])
+    app.include_router(admin_partners_router, prefix="/admin/partners", tags=["Admin Partners"])
+    print("✅ Patch 5: Industry Partners API loaded (org-scoped, user CRUD + admin panel)")
 except ImportError as e:
-    print(f"⚠️ Phase 15 v5: Industry Partners API not available: {e}")
+    print(f"⚠️ Patch 5: Partners API not available: {e}")
 except Exception as e:
     print(f"❌ Phase 15 v5: Error loading Industry Partners API: {e}")
 

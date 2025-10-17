@@ -1,238 +1,187 @@
 """
-Phase 15 v5: Industry Partners API
-Purpose: Manage title companies, real estate partners, and lenders
-Scope: User-scoped (upgradeable to org-scoped when Teams feature added)
+Partners Router
+User-facing CRUD for Industry Partners (org-scoped)
 """
 
-import uuid
-from typing import List, Optional
-from fastapi import APIRouter, HTTPException, Depends, status
-from pydantic import BaseModel, Field
-from database import get_db_connection
+from fastapi import APIRouter, HTTPException, Depends
+from typing import List, Dict, Optional
+from pydantic import BaseModel, EmailStr
 from auth import get_current_user_id
-import logging
+from services.partners import (
+    list_partners,
+    create_partner,
+    get_partner,
+    update_partner,
+    delete_partner
+)
 
-logger = logging.getLogger(__name__)
+router = APIRouter()
 
-router = APIRouter(prefix="/partners", tags=["partners"])
 
-# ========== PYDANTIC SCHEMAS ==========
-
-class PartnerCategory:
-    """Valid partner categories"""
-    TITLE_COMPANY = "title_company"
-    REAL_ESTATE = "real_estate"
-    LENDER = "lender"
-
-class PartnerRole:
-    """Valid roles for partner people"""
-    TITLE_OFFICER = "title_officer"
-    REALTOR = "realtor"
-    LOAN_OFFICER = "loan_officer"
-
-class PartnerPersonCreate(BaseModel):
-    """Create a contact person for a partner"""
-    name: str = Field(..., min_length=1, max_length=200)
-    role: Optional[str] = None
-    email: Optional[str] = None
-    phone: Optional[str] = None
-
+# Pydantic schemas
 class PartnerCreate(BaseModel):
-    """Create a new partner (title company, real estate, lender)"""
-    name: str = Field(..., min_length=2, max_length=200)
-    category: str = Field(..., pattern="^(title_company|real_estate|lender)$")  # Pydantic v2 syntax
-    person: Optional[PartnerPersonCreate] = None
+    company_name: str
+    category: Optional[str] = 'other'
+    role: Optional[str] = 'other'
+    contact_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    address_line1: Optional[str] = None
+    address_line2: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    postal_code: Optional[str] = None
+    notes: Optional[str] = None
+    is_active: Optional[bool] = True
 
-class PartnerSelectItem(BaseModel):
-    """Item for dropdown selection"""
-    display: str  # e.g. "Acme Title — Jane Smith (Title Officer)"
-    partner_id: str
-    person_id: Optional[str] = None
-    category: str
+
+class PartnerUpdate(BaseModel):
+    company_name: Optional[str] = None
+    category: Optional[str] = None
     role: Optional[str] = None
+    contact_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    address_line1: Optional[str] = None
+    address_line2: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    postal_code: Optional[str] = None
+    notes: Optional[str] = None
+    is_active: Optional[bool] = None
 
-class PartnerOut(BaseModel):
-    """Partner response"""
-    id: str
-    user_id: int
-    name: str
-    category: str
-    created_at: str
 
-class PartnerPersonOut(BaseModel):
-    """Partner person response"""
-    id: str
-    partner_id: str
-    name: str
-    role: Optional[str]
-    email: Optional[str]
-    phone: Optional[str]
-    created_at: str
+# Helper function to get user's organization
+def get_user_organization(user_id: int) -> str:
+    """Get organization_id for user (defaults to 'default-org')"""
+    # For now, all users belong to 'default-org'
+    # Later: Query from users table when organization_id column exists
+    return 'default-org'
 
-# ========== ENDPOINTS ==========
 
-@router.get("/selectlist", response_model=List[PartnerSelectItem])
-async def get_partners_selectlist(user_id: int = Depends(get_current_user_id)):
-    """
-    Get all partners for the current user in dropdown-friendly format.
-    
-    Returns items like:
-    - "Acme Title — Jane Smith (Title Officer)"
-    - "First American Title"
-    """
-    conn = get_db_connection()
-    if not conn:
-        raise HTTPException(status_code=500, detail="Database connection failed")
-    
+@router.get("", response_model=List[Dict])
+async def list_my_partners(
+    active_only: bool = True,
+    user_id: int = Depends(get_current_user_id)
+):
+    """List all partners for current user's organization"""
     try:
-        cursor = conn.cursor()
-        
-        # Get partners with optional people (LEFT JOIN)
-        cursor.execute("""
-            SELECT 
-                p.id as partner_id,
-                p.name as partner_name,
-                p.category,
-                pp.id as person_id,
-                pp.name as person_name,
-                pp.role
-            FROM partners p
-            LEFT JOIN partner_people pp ON pp.partner_id = p.id
-            WHERE p.user_id = %s
-            ORDER BY p.name, pp.name
-        """, (user_id,))
-        
-        rows = cursor.fetchall()
-        
-        # Build select items
-        result = []
-        for row in rows:
-            if row['person_id']:
-                # Partner with person: "Acme Title — Jane Smith (Title Officer)"
-                display = f"{row['partner_name']} — {row['person_name']}"
-                if row['role']:
-                    display += f" ({row['role'].replace('_', ' ').title()})"
-                result.append(PartnerSelectItem(
-                    display=display,
-                    partner_id=row['partner_id'],
-                    person_id=row['person_id'],
-                    category=row['category'],
-                    role=row['role']
-                ))
-            else:
-                # Partner without people: "First American Title"
-                result.append(PartnerSelectItem(
-                    display=row['partner_name'],
-                    partner_id=row['partner_id'],
-                    category=row['category']
-                ))
-        
-        logger.info(f"✅ [PARTNERS] User {user_id} fetched {len(result)} partner items")
-        return result
-        
+        organization_id = get_user_organization(user_id)
+        partners = list_partners(organization_id, active_only)
+        return partners
     except Exception as e:
-        logger.error(f"❌ [PARTNERS] Error fetching partners for user {user_id}: {e}")
-        conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to fetch partners: {str(e)}")
-    finally:
-        conn.close()
-
-
-@router.post("", status_code=status.HTTP_201_CREATED)
-async def create_partner(payload: PartnerCreate, user_id: int = Depends(get_current_user_id)):
-    """
-    Create a new partner (title company, real estate, lender) with optional contact person.
-    
-    Example:
-    {
-      "name": "Acme Title Company",
-      "category": "title_company",
-      "person": {
-        "name": "Jane Smith",
-        "role": "title_officer",
-        "email": "jane@acme.com",
-        "phone": "555-1234"
-      }
-    }
-    """
-    conn = get_db_connection()
-    if not conn:
-        raise HTTPException(status_code=500, detail="Database connection failed")
-    
-    try:
-        cursor = conn.cursor()
-        
-        # Check for duplicate partner name (per user)
-        cursor.execute("""
-            SELECT id FROM partners 
-            WHERE user_id = %s AND LOWER(name) = LOWER(%s)
-        """, (user_id, payload.name.strip()))
-        
-        existing = cursor.fetchone()
-        if existing:
-            logger.info(f"⚠️ [PARTNERS] User {user_id} tried to create duplicate partner: {payload.name}")
-            return {"id": existing['id'], "success": True, "message": "Partner already exists"}
-        
-        # Create partner
-        partner_id = str(uuid.uuid4())
-        cursor.execute("""
-            INSERT INTO partners (id, user_id, name, category, created_at)
-            VALUES (%s, %s, %s, %s, NOW())
-        """, (partner_id, user_id, payload.name.strip(), payload.category))
-        
-        # Create person if provided
-        person_id = None
-        if payload.person and payload.person.name.strip():
-            person_id = str(uuid.uuid4())
-            cursor.execute("""
-                INSERT INTO partner_people (id, partner_id, name, role, email, phone, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, NOW())
-            """, (
-                person_id,
-                partner_id,
-                payload.person.name.strip(),
-                payload.person.role,
-                payload.person.email,
-                payload.person.phone
-            ))
-        
-        conn.commit()
-        
-        logger.info(f"✅ [PARTNERS] User {user_id} created partner {partner_id}: {payload.name}" +
-                   (f" with person {person_id}" if person_id else ""))
-        
-        return {"id": partner_id, "person_id": person_id, "success": True}
-        
-    except Exception as e:
-        logger.error(f"❌ [PARTNERS] Error creating partner for user {user_id}: {e}")
-        conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to create partner: {str(e)}")
-    finally:
-        conn.close()
-
-
-@router.get("", response_model=List[PartnerOut])
-async def list_partners(user_id: int = Depends(get_current_user_id)):
-    """List all partners for the current user"""
-    conn = get_db_connection()
-    if not conn:
-        raise HTTPException(status_code=500, detail="Database connection failed")
-    
-    try:
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT id, user_id, name, category, created_at
-            FROM partners
-            WHERE user_id = %s
-            ORDER BY created_at DESC
-        """, (user_id,))
-        
-        rows = cursor.fetchall()
-        return [PartnerOut(**dict(row)) for row in rows]
-        
-    except Exception as e:
-        logger.error(f"❌ [PARTNERS] Error listing partners for user {user_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to list partners: {str(e)}")
-    finally:
-        conn.close()
 
+
+@router.post("", response_model=Dict, status_code=201)
+async def create_my_partner(
+    payload: PartnerCreate,
+    user_id: int = Depends(get_current_user_id)
+):
+    """Create a new partner in current user's organization"""
+    try:
+        organization_id = get_user_organization(user_id)
+        
+        partner = create_partner(
+            organization_id=organization_id,
+            user_id=user_id,
+            data=payload.dict()
+        )
+        
+        if not partner:
+            raise HTTPException(status_code=500, detail="Failed to create partner")
+        
+        return partner
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create partner: {str(e)}")
+
+
+@router.get("/{partner_id}", response_model=Dict)
+async def get_my_partner(
+    partner_id: str,
+    user_id: int = Depends(get_current_user_id)
+):
+    """Get a single partner (must belong to user's organization)"""
+    try:
+        organization_id = get_user_organization(user_id)
+        
+        partner = get_partner(partner_id, organization_id)
+        
+        if not partner:
+            raise HTTPException(status_code=404, detail="Partner not found")
+        
+        return partner
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get partner: {str(e)}")
+
+
+@router.put("/{partner_id}", response_model=Dict)
+async def update_my_partner(
+    partner_id: str,
+    payload: PartnerUpdate,
+    user_id: int = Depends(get_current_user_id)
+):
+    """Update a partner (must belong to user's organization)"""
+    try:
+        organization_id = get_user_organization(user_id)
+        
+        # Filter out None values
+        update_data = {k: v for k, v in payload.dict().items() if v is not None}
+        
+        partner = update_partner(partner_id, organization_id, update_data)
+        
+        if not partner:
+            raise HTTPException(status_code=404, detail="Partner not found or does not belong to your organization")
+        
+        return partner
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update partner: {str(e)}")
+
+
+@router.delete("/{partner_id}", status_code=204)
+async def delete_my_partner(
+    partner_id: str,
+    user_id: int = Depends(get_current_user_id)
+):
+    """Delete a partner (must belong to user's organization)"""
+    try:
+        organization_id = get_user_organization(user_id)
+        
+        success = delete_partner(partner_id, organization_id)
+        
+        if not success:
+            raise HTTPException(status_code=404, detail="Partner not found or does not belong to your organization")
+        
+        return None
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete partner: {str(e)}")
+
+
+@router.get("/selectlist/", response_model=List[Dict])
+async def get_partners_selectlist(
+    user_id: int = Depends(get_current_user_id)
+):
+    """Get simplified partner list for dropdowns (id, name, category)"""
+    try:
+        organization_id = get_user_organization(user_id)
+        partners = list_partners(organization_id, active_only=True)
+        
+        # Simplify for dropdown
+        return [
+            {
+                'id': p['id'],
+                'name': p['company_name'],
+                'category': p.get('category', 'other')
+            }
+            for p in partners
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get partners: {str(e)}")
