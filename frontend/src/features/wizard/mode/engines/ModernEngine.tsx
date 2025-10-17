@@ -5,7 +5,7 @@ import SmartReview from '../review/SmartReview';
 import StepShell from '../components/StepShell';
 import ProgressBar from '../components/ProgressBar';
 import PrefillCombo from '../components/PrefillCombo';
-import { toCanonicalFor } from '../../../utils/canonicalAdapters';
+import { toCanonicalFor } from '@/utils/canonicalAdapters';
 import { useWizardMode } from '../ModeContext';
 
 let finalizeDeed: null | ((payload: any) => Promise<{ success: boolean; deedId?: string }>) = null;
