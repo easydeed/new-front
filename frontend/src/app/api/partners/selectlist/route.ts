@@ -1,45 +1,43 @@
 /**
- * Phase 15 v5: Partners SelectList API Proxy
- * Proxies requests to backend /api/partners/selectlist
+ * Partners SelectList API Proxy - GET /api/partners/selectlist
+ * Returns simplified partner list for dropdowns
+ * Patch 5: Full Partners Infrastructure
  */
 
-import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
-    const backend = process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com';
-    const cookieStore = await cookies();
-    const token = cookieStore.get('access_token');
-
-    const headers: HeadersInit = {
-      'Accept': 'application/json',
-    };
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token.value}`;
-    }
-
-    const response = await fetch(`${backend}/api/partners/selectlist`, {
+    const authHeader = request.headers.get('authorization');
+    
+    // Proxy to backend
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com';
+    const res = await fetch(`${backendUrl}/partners/selectlist/`, {
       method: 'GET',
-      headers,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authHeader ? { 'Authorization': authHeader } : {}),
+      },
     });
-
-    if (!response.ok) {
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('[API Proxy /api/partners/selectlist GET] Backend error:', res.status, errorText);
       return NextResponse.json(
-        { error: `Backend returned ${response.status}` },
-        { status: response.status }
+        { error: errorText || `Backend returned ${res.status}` },
+        { status: res.status }
       );
     }
-
-    const data = await response.json();
+    
+    const data = await res.json();
+    console.log('[API Proxy /api/partners/selectlist GET] Success:', data.length, 'partners');
     return NextResponse.json(data);
-  } catch (error) {
-    console.error('[API Proxy] /api/partners/selectlist error:', error);
+    
+  } catch (error: any) {
+    console.error('[API Proxy /api/partners/selectlist GET] Exception:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch partners' },
+      { error: error.message || 'Internal server error' },
       { status: 500 }
     );
   }
 }
-
