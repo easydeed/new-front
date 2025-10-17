@@ -1,115 +1,101 @@
-
 export type Prompt = {
   id: string;
+  title?: string;
   question: string;
   field: string;
-  why?: string;
-  required?: boolean;
-  type?: 'text' | 'select';
-  optionsFrom?: 'owners' | 'partners' | 'none';
   placeholder?: string;
+  why?: string;
+  type?: 'text' | 'prefill-combo';
+  required?: boolean;
   showIf?: (state: any) => boolean;
+  label?: string;
 };
 
-export function slug(docType: string) {
-  return (docType || '').toLowerCase().replace(/_/g,'-');
-}
+type Flow = {
+  docType: string;
+  steps: Prompt[];
+};
 
-// Reusable base blocks AFTER property verification
 const basePartiesGrant: Prompt[] = [
   {
     id: 'grantor',
     question: 'Who is transferring title (Grantor)?',
     field: 'grantorName',
-    why: 'Selecting from detected owners reduces errors.',
-    type: 'select',
-    optionsFrom: 'owners',
-    required: true
+    type: 'prefill-combo',
+    label: 'Grantor',
+    why: 'We prefixed this from county owner records where available.',
+    required: true,
   },
   {
     id: 'grantee',
     question: 'Who is receiving title (Grantee)?',
     field: 'granteeName',
     type: 'text',
-    placeholder: 'Name of the Grantee...',
-    required: true
-  },
-  {
-    id: 'vesting',
-    question: 'How should title be vested?',
-    field: 'vesting',
-    type: 'text',
-    placeholder: 'e.g., Sole and Separate Property'
+    required: true,
   },
   {
     id: 'requestedBy',
-    question: 'Requested by (Industry Partner or type a new one)',
+    question: 'Who is requesting the recording?',
     field: 'requestedBy',
-    type: 'select',
-    optionsFrom: 'partners',
-    why: 'Partners are scoped to your organization. Selecting here auto-fills the "Requested by" field.'
-  }
+    type: 'prefill-combo',
+    label: 'Requested By',
+    why: 'Select from Industry Partners or type a new one.',
+  },
+  {
+    id: 'vesting',
+    question: 'How will title be vested?',
+    field: 'vesting',
+    type: 'text',
+    placeholder: 'e.g., Sole and Separate Property',
+  },
 ];
 
-export const promptFlows: Record<string, { docType: string; steps: Prompt[] }> = {
+export const promptFlows: Record<string, Flow> = {
   'grant-deed': {
     docType: 'grant-deed',
-    steps: [
-      ...basePartiesGrant
-    ]
+    steps: [...basePartiesGrant],
   },
   'quitclaim-deed': {
     docType: 'quitclaim-deed',
     steps: [
-      {
-        id: 'releasor',
-        question: 'Who is releasing their interest (Quitclaim Grantor)?',
-        field: 'grantorName',
-        type: 'select',
-        optionsFrom: 'owners',
-        required: true
-      },
-      {
-        id: 'recipient',
-        question: 'Who is receiving (Grantee)?',
-        field: 'granteeName',
-        type: 'text',
-        required: true
-      },
-      {
-        id: 'requestedBy',
-        question: 'Requested by',
-        field: 'requestedBy',
-        type: 'select',
-        optionsFrom: 'partners'
-      }
-    ]
+      ...basePartiesGrant.map(s => ({ ...s, why: s.why || 'Quitclaim conveys without warranties.' })),
+    ],
   },
   'interspousal-transfer': {
     docType: 'interspousal-transfer',
     steps: [
       ...basePartiesGrant,
       {
-        id: 'dtt',
+        id: 'dtt-exempt',
         question: 'Reason for Documentary Transfer Tax exemption (if any)?',
         field: 'dttExemptReason',
         type: 'text',
-        placeholder: 'e.g., Interspousal transfer exemption'
-      }
-    ]
+        why: 'Many interspousal transfers are exempt from DTT.',
+      },
+    ],
   },
   'warranty-deed': {
     docType: 'warranty-deed',
     steps: [
       ...basePartiesGrant,
-      { id: 'covenants', question: 'Any special covenants or restrictions?', field: 'covenants', type: 'text'}
-    ]
+      {
+        id: 'covenants',
+        question: 'Any covenant language to include? (optional)',
+        field: 'covenants',
+        type: 'text',
+      },
+    ],
   },
   'tax-deed': {
     docType: 'tax-deed',
     steps: [
       ...basePartiesGrant,
-      { id: 'taxsale', question: 'Tax sale reference number (if known)?', field: 'taxSaleRef', type: 'text'}
-    ]
-  }
+      {
+        id: 'taxSaleRef',
+        question: 'Tax sale reference (book/page or sale ID)?',
+        field: 'taxSaleRef',
+        type: 'text',
+      },
+    ],
+  },
 };
