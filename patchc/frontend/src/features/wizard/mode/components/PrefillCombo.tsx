@@ -1,0 +1,88 @@
+import React, { useMemo, useState } from 'react';
+
+type Partner = { id: string; name: string; category?: string };
+
+export default function PrefillCombo({
+  label,
+  value,
+  onChange,
+  suggestions = [],
+  partners = [],
+  allowNewPartner = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  suggestions?: string[];
+  partners?: Partner[];
+  allowNewPartner?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(value || '');
+
+  const items = useMemo(() => {
+    const s = suggestions.map(v => ({ type: 'suggestion', label: v }));
+    const p = partners.map(p => ({ type: 'partner', label: p.name, partner: p }));
+    return [...s, ...p];
+  }, [suggestions, partners]);
+
+  return (
+    <div className="prefill-combo">
+      <label className="prefill-combo__label">{label}</label>
+      <div className="prefill-combo__box">
+        <input
+          className="modern-input"
+          value={draft}
+          onFocus={() => setOpen(true)}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder={`Type or pick…`}
+        />
+        {open && (
+          <div className="prefill-combo__panel">
+            {items.length === 0 && <div className="prefill-combo__empty">No suggestions</div>}
+            {items.map((it, idx) => (
+              <button
+                key={idx}
+                type="button"
+                className={`prefill-combo__item prefill-combo__item--${it.type}`}
+                onClick={() => {
+                  onChange(it.label);
+                  setDraft(it.label);
+                  setOpen(false);
+                }}
+              >
+                {it.label}
+                {it.type === 'partner' && it.partner?.category ? (
+                  <span className="prefill-combo__meta">{it.partner.category}</span>
+                ) : null}
+              </button>
+            ))}
+            {allowNewPartner && draft && (
+              <button
+                type="button"
+                className="prefill-combo__item prefill-combo__item--new"
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/partners', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ name: draft }),
+                    });
+                    if (!res.ok) throw new Error('Failed');
+                    onChange(draft);
+                    setOpen(false);
+                  } catch {
+                    onChange(draft);
+                    setOpen(false);
+                  }
+                }}
+              >
+                + Add “{draft}”
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

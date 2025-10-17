@@ -1,0 +1,179 @@
+/* Modern Wizard Styles - Patch 6-c */
+
+.modern-container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.modern-qna {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.modern-qna__title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.modern-qna__why {
+  font-size: 1rem;
+  color: #666;
+  margin: 0;
+}
+
+.modern-qna__control {
+  width: 100%;
+}
+
+.modern-input {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  font-size: 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  transition: border-color 0.2s;
+}
+
+.modern-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.modern-qna__nav {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.btn {
+  padding: 0.875rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: #3b82f6;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #2563eb;
+}
+
+.btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.btn-secondary:hover {
+  background: #e5e7eb;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Progress Bar */
+.progress.slim {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+
+.progress__bar {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+  transition: width 0.3s ease;
+  border-radius: 4px;
+}
+
+.progress__text {
+  position: absolute;
+  top: -1.5rem;
+  right: 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* Prefill Combo */
+.prefill-combo {
+  position: relative;
+  width: 100%;
+}
+
+.prefill-combo__label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.prefill-combo__box {
+  position: relative;
+}
+
+.prefill-combo__panel {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 0.5rem;
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 50;
+}
+
+.prefill-combo__item {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border: none;
+  background: white;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.prefill-combo__item:hover {
+  background: #f3f4f6;
+}
+
+.prefill-combo__item--new {
+  color: #3b82f6;
+  font-weight: 600;
+  border-top: 1px solid #e5e7eb;
+}
+
+.prefill-combo__meta {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.prefill-combo__empty {
+  padding: 1rem;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.875rem;
+}
+

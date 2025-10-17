@@ -1,0 +1,110 @@
+*** Begin Patch
+*** Add File: frontend/src/styles/modern-wizard.css
++.modern-container {
++  max-width: 880px;
++  margin: 0 auto;
++  padding: 40px 24px;
++}
++.modern-qna {
++  display: flex;
++  flex-direction: column;
++  gap: 16px;
++  align-items: stretch;
++  justify-content: center;
++  min-height: 60vh;
++}
++.modern-qna__title {
++  font-size: 28px;
++  line-height: 1.2;
++  text-align: center;
++  margin: 12px 0 0;
++}
++.modern-qna__why {
++  color: #6b7280;
++  text-align: center;
++  margin-bottom: 12px;
++  min-height: 1.2rem;
++}
++.modern-qna__control {
++  display: flex;
++  justify-content: center;
++}
++.modern-input {
++  width: 680px;
++  max-width: 100%;
++  font-size: 18px;
++  padding: 16px 14px;
++  border: 1px solid #e5e7eb;
++  border-radius: 10px;
++}
++.modern-qna__nav {
++  display: flex;
++  justify-content: space-between;
++  gap: 12px;
++  margin-top: 8px;
++}
++.btn {
++  padding: 12px 18px;
++  border-radius: 10px;
++  border: 0;
++  cursor: pointer;
++  font-weight: 600;
++}
++.btn-primary { background: #003366; color: white; }
++.btn-secondary { background: #f3f4f6; }
++
++.progress.slim {
++  position: relative;
++  height: 6px;
++  background: #e5e7eb;
++  border-radius: 999px;
++  margin: 8px 0 16px;
++}
++.progress__bar {
++  height: 100%;
++  background: #003366;
++  border-radius: 999px;
++  transition: width .25s ease;
++}
++.progress__text {
++  display: block;
++  text-align: right;
++  font-size: 12px;
++  color: #6b7280;
++  margin-top: 6px;
++}
++
++.mode-toggle {
++  display: flex;
++  align-items: center;
++  gap: 8px;
++}
++.switch { position: relative; display: inline-block; width: 44px; height: 24px; }
++.switch input { display:none; }
++.slider {
++  position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
++  background-color: #e5e7eb; transition: .2s; border-radius: 999px;
++}
++.slider:before {
++  position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
++  background-color: white; transition: .2s; border-radius: 999px;
++}
++input:checked + .slider { background-color: #003366; }
++input:checked + .slider:before { transform: translateX(20px); }
++.mode-toggle__label { font-size: 12px; color: #6b7280; }
++
++.prefill-combo { display: grid; gap: 6px; }
++.prefill-combo__box { position: relative; }
++.prefill-combo__panel {
++  position: absolute; left: 0; right: 0; top: calc(100% + 4px);
++  background: white; border: 1px solid #e5e7eb; border-radius: 10px;
++  box-shadow: 0 10px 30px rgba(0,0,0,.08); padding: 6px;
++  z-index: 20; max-height: 280px; overflow: auto;
++}
++.prefill-combo__item { 
++  width: 100%; text-align: left; padding: 10px 12px; border-radius: 8px; border: 0; background: #fff;
++}
++.prefill-combo__item:hover { background: #f3f4f6; }
++.prefill-combo__item--new { font-weight: 600; }
++.prefill-combo__meta { float: right; font-size: 11px; color: #6b7280; }
+*** End Patch

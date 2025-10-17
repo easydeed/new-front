@@ -1,0 +1,69 @@
+*** Begin Patch
+*** Update File: frontend/src/features/wizard/mode/ModeContext.tsx
+@@
+-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
++import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
++
++/**
++ * Patch 6-c: Hydration gate + separate storage keys per mode.
++ * - Default resolves from URL param only during SSR-safe branch.
++ * - localStorage read is deferred until after hydration.
++ * - Modern mode stores drafts under 'deedWizardDraft_modern' to avoid
++ *   collisions with Classic ('deedWizardDraft_classic' or legacy 'deedWizardDraft').
++ */
+ 
+ export type WizardMode = 'classic' | 'modern';
+ 
+ type ModeContextType = {
+   mode: WizardMode;
+   setMode: (m: WizardMode) => void;
+-  storageKey: string;
++  storageKey: string; // exposes the per-mode localStorage key
+   hydrated: boolean;
+ };
+ 
+ const ModeContext = createContext<ModeContextType | null>(null);
+ 
+ function resolveInitialMode(): WizardMode {
+   if (typeof window === 'undefined') return 'classic';
+   const urlMode = new URLSearchParams(window.location.search).get('mode');
+   if (urlMode === 'modern' || urlMode === 'classic') return urlMode as WizardMode;
+   return (process.env.NEXT_PUBLIC_WIZARD_MODE_DEFAULT as WizardMode) || 'classic';
+ }
+ 
+ export function WizardModeProvider({ children }: { children: React.ReactNode }) {
+-  const [mode, setMode] = useState<WizardMode>(resolveInitialMode());
+-  const [hydrated, setHydrated] = useState(false);
++  const [mode, setMode] = useState<WizardMode>(resolveInitialMode());
++  const [hydrated, setHydrated] = useState(false);
+ 
+   useEffect(() => {
+-    setHydrated(true);
+-    try {
+-      const stored = localStorage.getItem('wizard_mode');
+-      if (stored === 'modern' || stored === 'classic') setMode(stored as WizardMode);
+-    } catch {}
++    setHydrated(true);
++    try {
++      const stored = localStorage.getItem('wizard_mode');
++      if (stored === 'modern' || stored === 'classic') setMode(stored as WizardMode);
++    } catch {}
+   }, []);
+ 
+-  const storageKey = mode === 'modern' ? 'deedWizardDraft_modern' : 'deedWizardDraft_classic';
++  const storageKey = mode === 'modern' ? 'deedWizardDraft_modern' : 'deedWizardDraft_classic';
+ 
+   const value = useMemo(
+     () => ({ mode, setMode, storageKey, hydrated }),
+     [mode, storageKey, hydrated]
+   );
+ 
+   return <ModeContext.Provider value={value}>{children}</ModeContext.Provider>;
+ }
+ 
+ export function useWizardMode() {
+   const ctx = useContext(ModeContext);
+   if (!ctx) throw new Error('useWizardMode must be used within WizardModeProvider');
+   return ctx;
+ }
+*** End Patch
