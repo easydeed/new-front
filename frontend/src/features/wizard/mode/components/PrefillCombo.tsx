@@ -76,6 +76,8 @@ export default function PrefillCombo({
                 ) : null}
               </button>
             ))}
+            {/* TEMPORARILY DISABLED: Backend partners API not yet implemented (Patch 5)
+                Will be re-enabled after deploying full partners infrastructure
             {allowNewPartner && draft && (
               <button
                 type="button"
@@ -99,6 +101,7 @@ export default function PrefillCombo({
                 + Add "{draft}"
               </button>
             )}
+            */}
           </div>
         )}
       </div>
