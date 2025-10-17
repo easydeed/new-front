@@ -37,6 +37,25 @@ export default function PrefillCombo({
           onChange={(e) => setDraft(e.target.value)}
           placeholder={`Type or pick…`}
         />
+        {(suggestions.length > 0 || partners.length > 0) && (
+          <svg 
+            className="prefill-combo__arrow" 
+            width="16" 
+            height="16" 
+            viewBox="0 0 16 16" 
+            fill="currentColor"
+            style={{ 
+              position: 'absolute', 
+              right: '12px', 
+              top: '50%', 
+              transform: 'translateY(-50%)', 
+              pointerEvents: 'none',
+              opacity: 0.5 
+            }}
+          >
+            <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )}
         {open && (
           <div className="prefill-combo__panel">
             {items.length === 0 && <div className="prefill-combo__empty">No suggestions</div>}
