@@ -7,7 +7,7 @@ import React, { useCallback } from 'react';
 import PropertySearchWithTitlePoint from '@/components/PropertySearchWithTitlePoint';
 import { useWizardStoreBridge } from './useWizardStoreBridge';
 
-export default function PropertyStepBridge() {
+export default function PropertyStepBridge({ onVerified }: { onVerified?: () => void } = {}) {
   const { isPropertyVerified, updateFormData } = useWizardStoreBridge();
 
   // Handle property verification callback
@@ -52,7 +52,13 @@ export default function PropertyStepBridge() {
     });
     updateFormData(storeUpdate);
     console.log('[PropertyStepBridge] Store updated, should trigger re-render');
-  }, [updateFormData]);
+    
+    // PATCH 6-C FIX: Call parent callback to trigger WizardHost re-render
+    if (onVerified) {
+      console.log('[PropertyStepBridge] Calling onVerified callback...');
+      onVerified();
+    }
+  }, [updateFormData, onVerified]);
 
   // If property is already verified, don't render Step 1
   if (isPropertyVerified()) return null;

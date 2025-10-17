@@ -4,7 +4,7 @@ import { WizardModeProvider, useWizardMode } from './ModeContext';
 import WizardModeBoundary from './WizardModeBoundary';
 import ModernEngine from './engines/ModernEngine';
 import ClassicEngine from './engines/ClassicEngine';
-import PropertyStepBridge from './bridge/PropertyStepBridge';
+import PropertyStepBridge from './components/PropertyStepBridge';
 import { useWizardStoreBridge } from './bridge/useWizardStoreBridge';
 // [Phase15] hydration gate
 import HydrationGate from './HydrationGate';
