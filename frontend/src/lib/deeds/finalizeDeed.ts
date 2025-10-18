@@ -14,7 +14,7 @@ export async function finalizeDeed(payload: any): Promise<{ success: boolean; de
     
     // Flatten canonical payload to backend format (snake_case)
     const backendPayload = {
-      deed_type: payload.docType,
+      deed_type: payload.deedType,  // FIXED: was payload.docType
       property_address: payload.property?.address || '',
       apn: payload.property?.apn || '',
       county: payload.property?.county || '',

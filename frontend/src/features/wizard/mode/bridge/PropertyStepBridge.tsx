@@ -20,6 +20,8 @@ export default function PropertyStepBridge({ onVerified }: { onVerified?: () => 
       propertyVerified: true,
       apn: data.apn,
       county: data.county,
+      propertyAddress: data.fullAddress || data.address,  // FIXED: Add flat propertyAddress field
+      fullAddress: data.fullAddress || data.address,      // FIXED: Add fullAddress alias
       property: {
         address: data.fullAddress || data.address,
         apn: data.apn,

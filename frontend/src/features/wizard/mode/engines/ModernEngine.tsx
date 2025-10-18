@@ -5,6 +5,7 @@ import SmartReview from '../review/SmartReview';
 import StepShell from '../components/StepShell';
 import ProgressBar from '../components/ProgressBar';
 import PrefillCombo from '../components/PrefillCombo';
+import MicroSummary from './steps/MicroSummary';
 import { toCanonicalFor } from '@/utils/canonicalAdapters';
 import { useWizardMode } from '../ModeContext';
 
@@ -86,9 +87,20 @@ export default function ModernEngine({ docType }: { docType: string }) {
     )
   );
 
+  // Build summary data for MicroSummary
+  const summaryData = {
+    deedType: flow.docType || docType,
+    property: state.propertyAddress || verifiedData?.address,
+    apn: state.apn || verifiedData?.apn,
+    grantor: state.grantorName,
+    grantee: state.granteeName,
+    county: state.county || verifiedData?.county
+  };
+
   return (
     <StepShell>
       <ProgressBar current={i + 1} total={total} />
+      <MicroSummary data={summaryData} />
       {current ? (
         <div className="modern-qna">
           <h1 className="modern-qna__title">{current.title || current.question}</h1>
