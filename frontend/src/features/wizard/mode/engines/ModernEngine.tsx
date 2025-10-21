@@ -27,18 +27,21 @@ export default function ModernEngine({ docType }: { docType: string }) {
   useEffect(() => {
     if (!hydrated) return;
     const data = getWizardData();
-    // FIXED BUG #2: Merge verifiedData fields into initial state
-    // This ensures property fields from PropertyStepBridge are available
+    // FIXED BUG #2 & #3: Merge verifiedData fields + initialize ALL prompt fields
+    // This ensures property fields from PropertyStepBridge AND party fields are available
     const initial = { 
       ...(data.formData || {}),
-      // Fallback to verifiedData if formData fields are missing
-      apn: data.formData?.apn || data.verifiedData?.apn || data.apn,
-      county: data.formData?.county || data.verifiedData?.county || data.county,
-      propertyAddress: data.formData?.propertyAddress || data.verifiedData?.fullAddress || data.propertyAddress,
-      fullAddress: data.formData?.fullAddress || data.verifiedData?.fullAddress || data.fullAddress,
-      legalDescription: data.formData?.legalDescription || data.verifiedData?.legalDescription || data.legalDescription,
-      grantorName: data.formData?.grantorName || data.verifiedData?.currentOwnerPrimary || data.grantorName,
-      vesting: data.formData?.vesting || data.verifiedData?.vestingDetails || data.vesting,
+      // Property fields (fallback to verifiedData if formData fields are missing)
+      apn: data.formData?.apn || data.verifiedData?.apn || data.apn || '',
+      county: data.formData?.county || data.verifiedData?.county || data.county || '',
+      propertyAddress: data.formData?.propertyAddress || data.verifiedData?.fullAddress || data.propertyAddress || '',
+      fullAddress: data.formData?.fullAddress || data.verifiedData?.fullAddress || data.fullAddress || '',
+      legalDescription: data.formData?.legalDescription || data.verifiedData?.legalDescription || data.legalDescription || '',
+      // Party fields (ensure they exist even if empty - CRITICAL FIX)
+      grantorName: data.formData?.grantorName || data.verifiedData?.currentOwnerPrimary || data.grantorName || '',
+      granteeName: data.formData?.granteeName || '',  // NEW: Explicitly initialize
+      vesting: data.formData?.vesting || data.verifiedData?.vestingDetails || data.vesting || '',
+      requestedBy: data.formData?.requestedBy || '',  // NEW: Explicitly initialize
     };
     setState(initial);
   }, [hydrated]);
