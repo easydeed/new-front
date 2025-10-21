@@ -366,7 +366,7 @@ export default function PropertySearchWithTitlePoint({
   };
 
   // Unified property search using /api/property/search (Per Dynamic Wizard Architecture)
-  const lookupPropertyDetails = async (addressData: PropertyData) => {
+  const lookupPropertyDetails = async (addressData: PropertyData, retryCount = 0) => {
     // PHASE 5-PREQUAL: Check if TitlePoint OR SiteX integration is enabled
     const enrichmentEnabled =
       process.env.NEXT_PUBLIC_TITLEPOINT_ENABLED === 'true' ||
@@ -385,6 +385,9 @@ export default function PropertySearchWithTitlePoint({
     
     try {
       console.log('🔍 Unified Property Search for:', addressData);
+      if (retryCount > 0) {
+        console.log(`[PropertySearch] Retry attempt #${retryCount}`);
+      }
       
       // Check authentication token first
       const token = localStorage.getItem('access_token');
@@ -463,7 +466,15 @@ export default function PropertySearchWithTitlePoint({
         setErrorMessage(result.error || '⚠️ Property details not available. You can proceed with manual entry.');
         setShowPropertyDetails(false);
       }
-    } catch (error) {
+    } catch (error: any) {
+      // BUG FIX #1: Auto-retry on AbortError (first attempt only)
+      // This handles the "first search after login fails" issue
+      if (error?.name === 'AbortError' && retryCount === 0) {
+        console.log('[PropertySearch] First attempt aborted, retrying automatically...');
+        // Don't reset loading state, just retry
+        return lookupPropertyDetails(addressData, retryCount + 1);
+      }
+      
       console.error('Property search failed:', error);
       setStage('error');  // PHASE 14-C: Error state
       setErrorMessage('⚠️ Unable to retrieve property details. You can proceed with manual entry.');
