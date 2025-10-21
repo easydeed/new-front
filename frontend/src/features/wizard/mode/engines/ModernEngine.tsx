@@ -8,14 +8,7 @@ import PrefillCombo from '../components/PrefillCombo';
 import MicroSummary from './steps/MicroSummary';
 import { toCanonicalFor } from '@/utils/canonicalAdapters';
 import { useWizardMode } from '../ModeContext';
-
-let finalizeDeed: null | ((payload: any) => Promise<{ success: boolean; deedId?: string }>) = null;
-try {
-  // @ts-ignore
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const mod = require('@/lib/deeds/finalizeDeed');
-  finalizeDeed = mod?.finalizeDeed || null;
-} catch {}
+import { finalizeDeed } from '@/lib/deeds/finalizeDeed';
 
 export default function ModernEngine({ docType }: { docType: string }) {
   const { hydrated, getWizardData, updateFormData } = useWizardStoreBridge();
@@ -61,18 +54,7 @@ export default function ModernEngine({ docType }: { docType: string }) {
     } else {
       const payload = toCanonicalFor(docType, state);
       try {
-        let result: { success: boolean; deedId?: string } = { success: false };
-        if (finalizeDeed) {
-          result = await finalizeDeed(payload);
-        } else {
-          const res = await fetch('/api/deeds', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          });
-          const json = await res.json();
-          result = { success: !!json?.success, deedId: json?.deedId };
-        }
+        const result = await finalizeDeed(payload);
         if (result.success) {
           if (typeof window !== 'undefined') {
             window.location.href = `/deeds/${result.deedId}/preview?mode=${mode}`;
