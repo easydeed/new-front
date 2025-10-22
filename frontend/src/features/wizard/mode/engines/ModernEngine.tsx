@@ -63,21 +63,36 @@ export default function ModernEngine({ docType }: { docType: string }) {
   const total = steps.length;
 
   const onNext = async () => {
+    console.log('[ModernEngine.onNext] Called! Current step:', i + 1, '/', total);
+    console.log('[ModernEngine.onNext] Current state:', state);
+    
     if (i < total - 1) {
+      console.log('[ModernEngine.onNext] Moving to next step');
       setI(i + 1);
     } else {
+      console.log('[ModernEngine.onNext] FINAL STEP - Starting finalization');
+      console.log('[ModernEngine.onNext] docType:', docType);
+      console.log('[ModernEngine.onNext] state before transform:', state);
+      
       const payload = toCanonicalFor(docType, state);
+      console.log('[ModernEngine.onNext] Canonical payload created:', payload);
+      
       try {
+        console.log('[ModernEngine.onNext] Calling finalizeDeed...');
         const result = await finalizeDeed(payload);
+        console.log('[ModernEngine.onNext] finalizeDeed returned:', result);
+        
         if (result.success) {
           if (typeof window !== 'undefined') {
+            console.log('[ModernEngine.onNext] Redirecting to preview page:', `/deeds/${result.deedId}/preview?mode=${mode}`);
             window.location.href = `/deeds/${result.deedId}/preview?mode=${mode}`;
           }
         } else {
+          console.error('[ModernEngine.onNext] Finalize returned success=false');
           alert('We could not finalize the deed. Please review and try again.');
         }
       } catch (e) {
-        console.error('Finalize failed', e);
+        console.error('[ModernEngine.onNext] Finalize exception:', e);
         alert('We could not finalize the deed. Please try again.');
       }
     }
