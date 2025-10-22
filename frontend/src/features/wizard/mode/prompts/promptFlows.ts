@@ -41,7 +41,12 @@ const basePartiesGrant: Prompt[] = [
     placeholder: 'e.g., Lot 1, Block 2, Tract 12345',
     why: 'This describes the exact boundaries of the property being transferred.',
     required: true,
-    showIf: (state: any) => !state.legalDescription || state.legalDescription.trim() === '',
+    showIf: (state: any) => {
+      const legal = state.legalDescription || '';
+      const hasValidLegal = legal && legal !== 'Not available' && legal.trim() !== '';
+      console.log('[Prompt.legalDescription.showIf] 📜 legal:', legal, 'hasValidLegal:', hasValidLegal, 'SHOW:', !hasValidLegal);
+      return !hasValidLegal; // Show question if NO valid legal description
+    },
   },
   {
     id: 'requestedBy',

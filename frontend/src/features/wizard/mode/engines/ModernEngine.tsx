@@ -1,4 +1,4 @@
-import React, { useRef,  useEffect, useMemo, useState } from 'react';
+import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react';
 import { useWizardStoreBridge } from '../bridge/useWizardStoreBridge';
 import { promptFlows } from '../prompts/promptFlows';
 import SmartReview from '../review/SmartReview';
@@ -63,18 +63,32 @@ export default function ModernEngine({ docType }: { docType: string }) {
     setState(initial);
   }, [hydrated]);
 
+  // Update wizard store with current state (with debouncing to prevent infinite loops)
+  const prevStateRef = useRef<string>('');
   useEffect(() => {
     if (!hydrated) return;
-    updateFormData(state);
+    const stateStr = JSON.stringify(state);
+    if (stateStr !== prevStateRef.current) {
+      console.log('[ModernEngine] 🔄 Syncing state to wizard store:', state);
+      updateFormData(state);
+      prevStateRef.current = stateStr;
+    }
   }, [hydrated, state, updateFormData]);
 
   const steps = flow.steps.filter(s => !s.showIf || s.showIf(state));
   const current = steps[i];
   const total = steps.length;
 
-  const onNext = async () => {
-    console.log('[ModernEngine.onNext] Called! Current step:', i + 1, '/', total);
+  const onNext = useCallback(async () => {
+    console.log('[ModernEngine.onNext] ========== START ==========');
+    console.log('[ModernEngine.onNext] Current step:', i + 1, '/', total);
     console.log('[ModernEngine.onNext] Current state:', state);
+    console.log('[ModernEngine.onNext] State keys:', Object.keys(state));
+    console.log('[ModernEngine.onNext] 🔴 grantorName:', state.grantorName);
+    console.log('[ModernEngine.onNext] 🔴 granteeName:', state.granteeName);
+    console.log('[ModernEngine.onNext] 🔴 legalDescription:', state.legalDescription);
+    console.log('[ModernEngine.onNext] 🔴 requestedBy:', state.requestedBy);
+    console.log('[ModernEngine.onNext] 🔴 vesting:', state.vesting);
     
     // FIX: i < total (not total - 1) to show SmartReview before finalizing
     // When i = total - 1 (last Q&A), increment to total to show SmartReview
@@ -83,33 +97,34 @@ export default function ModernEngine({ docType }: { docType: string }) {
       console.log('[ModernEngine.onNext] Moving to next step');
       setI(i + 1);
     } else {
-      console.log('[ModernEngine.onNext] FINAL STEP - Starting finalization');
+      console.log('[ModernEngine.onNext] 🟢 FINAL STEP - Starting finalization');
       console.log('[ModernEngine.onNext] docType:', docType);
       console.log('[ModernEngine.onNext] state before transform:', state);
       
       const payload = toCanonicalFor(docType, state);
-      console.log('[ModernEngine.onNext] Canonical payload created:', payload);
+      console.log('[ModernEngine.onNext] 🟢 Canonical payload created:', JSON.stringify(payload, null, 2));
       
       try {
-        console.log('[ModernEngine.onNext] Calling finalizeDeed...');
+        console.log('[ModernEngine.onNext] 🟢 Calling finalizeDeed...');
         const result = await finalizeDeed(payload);
-        console.log('[ModernEngine.onNext] finalizeDeed returned:', result);
+        console.log('[ModernEngine.onNext] 🟢 finalizeDeed returned:', result);
         
         if (result.success) {
           if (typeof window !== 'undefined') {
-            console.log('[ModernEngine.onNext] Redirecting to preview page:', `/deeds/${result.deedId}/preview?mode=${mode}`);
+            console.log('[ModernEngine.onNext] 🟢 Redirecting to preview page:', `/deeds/${result.deedId}/preview?mode=${mode}`);
             window.location.href = `/deeds/${result.deedId}/preview?mode=${mode}`;
           }
         } else {
-          console.error('[ModernEngine.onNext] Finalize returned success=false');
+          console.error('[ModernEngine.onNext] ❌ Finalize returned success=false');
           alert('We could not finalize the deed. Please review and try again.');
         }
       } catch (e) {
-        console.error('[ModernEngine.onNext] Finalize exception:', e);
+        console.error('[ModernEngine.onNext] ❌ Finalize exception:', e);
         alert('We could not finalize the deed. Please try again.');
       }
     }
-  };
+    console.log('[ModernEngine.onNext] ========== END ==========');
+  }, [state, i, total, docType, mode]); // CRITICAL: All dependencies to prevent stale closures!
   
   // Update ref whenever onNext changes (for ref-safe event bridge)
   // @ts-ignore
@@ -117,7 +132,14 @@ export default function ModernEngine({ docType }: { docType: string }) {
 
   const onBack = () => setI(Math.max(0, i - 1));
 
-  const onChange = (field: string, value: any) => setState(s => ({ ...s, [field]: value }));
+  const onChange = (field: string, value: any) => {
+    console.log(`[ModernEngine.onChange] 🔵 field="${field}" value="${value}"`);
+    setState(s => {
+      const newState = { ...s, [field]: value };
+      console.log('[ModernEngine.onChange] 🔵 Updated state:', newState);
+      return newState;
+    });
+  };
 
   const { verifiedData = {}, partners = [] } = getWizardData();
   const ownerCandidates: string[] = Array.from(
