@@ -34,6 +34,16 @@ const basePartiesGrant: Prompt[] = [
     required: true,
   },
   {
+    id: 'legalDescription',
+    question: 'What is the legal description of the property?',
+    field: 'legalDescription',
+    type: 'text',
+    placeholder: 'e.g., Lot 1, Block 2, Tract 12345',
+    why: 'This describes the exact boundaries of the property being transferred.',
+    required: true,
+    showIf: (state: any) => !state.legalDescription || state.legalDescription.trim() === '',
+  },
+  {
     id: 'requestedBy',
     question: 'Who is requesting the recording?',
     field: 'requestedBy',

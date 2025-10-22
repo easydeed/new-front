@@ -572,7 +572,8 @@ def map_sitex_feed_to_ui(sitex_response: Dict, original_address: str) -> Dict:
             'city': profile.get('SiteCity', ''),
             'state': profile.get('SiteState', 'CA'),
             'zip': profile.get('SiteZip', ''),
-            'legalDescription': profile.get('LegalDescription', ''),
+            # Try multiple legal description field names
+            'legalDescription': profile.get('LegalDescription', '') or profile.get('BriefLegal', '') or profile.get('LegalBriefDescription', '') or profile.get('LegalDescriptionBrief', ''),
             'grantorName': profile.get('PrimaryOwnerName', ''),  # Current owner
             'propertyType': profile.get('PropertyType', '') or profile.get('UseCodeDescription', 'Single Family Residence'),
             'fullAddress': original_address,  # Use original address for consistency
