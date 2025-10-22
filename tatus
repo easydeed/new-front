@@ -1,0 +1,63 @@
+warning: in the working copy of 'frontend/src/features/wizard/mode/review/SmartReview.tsx', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/frontend/src/features/wizard/mode/review/SmartReview.tsx b/frontend/src/features/wizard/mode/review/SmartReview.tsx[m
+[1mindex 8ee00f2..e6ae60c 100644[m
+[1m--- a/frontend/src/features/wizard/mode/review/SmartReview.tsx[m
+[1m+++ b/frontend/src/features/wizard/mode/review/SmartReview.tsx[m
+[36m@@ -1,32 +1,30 @@[m
+[31m-import React from 'react';[m
+[32m+[m[32m'use client';[m
+[32m+[m[32mimport React, { useCallback } from 'react';[m
+[32m+[m
+[32m+[m[32mtype Props = {[m
+[32m+[m[32m  onConfirm?: () => void;[m
+[32m+[m[32m  busy?: boolean;[m
+[32m+[m[32m};[m
+[32m+[m
+[32m+[m[32m/**[m
+[32m+[m[32m * Presentational SmartReview[m
+[32m+[m[32m * - NO direct network calls[m
+[32m+[m[32m * - NO redirects[m
+[32m+[m[32m * - Emits 'smartreview:confirm' if onConfirm is not provided[m
+[32m+[m[32m */[m
+[32m+[m[32mexport default function SmartReview({ onConfirm, busy }: Props) {[m
+[32m+[m[32m  const handleConfirm = useCallback(() => {[m
+[32m+[m[32m    if (typeof onConfirm === 'function') return onConfirm();[m
+[32m+[m[32m    // Fallback: dispatch a DOM event the engine listens for[m
+[32m+[m[32m    window.dispatchEvent(new Event('smartreview:confirm'));[m
+[32m+[m[32m  }, [onConfirm]);[m
+ [m
+[31m-export default function SmartReview({[m
+[31m-  docType,[m
+[31m-  state,[m
+[31m-  onEdit,[m
+[31m-  onConfirm,[m
+[31m-}: {[m
+[31m-  docType: string;[m
+[31m-  state: Record<string, any>;[m
+[31m-  onEdit: (field: string) => void;[m
+[31m-  onConfirm: () => void;[m
+[31m-}) {[m
+   return ([m
+[31m-    <div className="modern-qna">[m
+[31m-      <h1 className="modern-qna__title">Smart Review</h1>[m
+[31m-      <p className="modern-qna__why">Confirm the details below.</p>[m
+[31m-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: 16 }}>[m
+[31m-        {Object.entries(state).map(([k, v]) => ([m
+[31m-          <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>[m
+[31m-            <div><strong>{k}</strong></div>[m
+[31m-            <div>{String(v)}</div>[m
+[31m-            <button className="btn btn-secondary" onClick={() => onEdit(k)}>Edit</button>[m
+[31m-          </div>[m
+[31m-        ))}[m
+[31m-      </div>[m
+[31m-      <div className="modern-qna__nav">[m
+[31m-        <button className="btn btn-primary" onClick={onConfirm}>Confirm & Generate</button>[m
+[31m-      </div>[m
+[32m+[m[32m    <div data-component="SmartReview">[m
+[32m+[m[32m      {/* Keep your existing summary UI here */}[m
+[32m+[m[32m      <button type="button" onClick={handleConfirm} disabled={busy} aria-label="Confirm & Generate">[m
+[32m+[m[32m        Confirm & Generate[m
+[32m+[m[32m      </button>[m
+     </div>[m
+   );[m
+ }[m

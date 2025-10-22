@@ -21,7 +21,7 @@ export default function SmartReview({ onConfirm, busy }: Props) {
 
   return (
     <div data-component="SmartReview">
-      {/* NOTE: keep your existing summary UI here */}
+      {/* Keep your existing summary UI here */}
       <button type="button" onClick={handleConfirm} disabled={busy} aria-label="Confirm & Generate">
         Confirm & Generate
       </button>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useRef,  useEffect, useMemo, useState } from 'react';
 import { useWizardStoreBridge } from '../bridge/useWizardStoreBridge';
 import { promptFlows } from '../prompts/promptFlows';
 import SmartReview from '../review/SmartReview';
@@ -17,14 +17,24 @@ export default function ModernEngine({ docType }: { docType: string }) {
   const [i, setI] = useState(0);
   const [state, setState] = useState<Record<string, any>>({});
 
-  // Ensure ANY SmartReview variant routes through engine finalization.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Keep a ref to the latest onNext to avoid stale-closure issues.
+  const onNextRef = useRef<any>(null);
+
+  // Update ref when onNext changes (defined below)
+  useEffect(() => { 
+    if (onNext) {
+      // @ts-ignore
+      onNextRef.current = onNext; 
+    }
+  }, []);  // Will update after onNext is defined
+
+  // Fallback DOM-event bridge if SmartReview didn't receive onConfirm prop.
   useEffect(() => {
     const handler = () => { 
       try { 
-        onNext(); 
+        onNextRef.current?.(); 
       } catch (e) { 
-        console.error('[ModernEngine] onNext failed from smartreview:confirm', e); 
+        console.error('[ModernEngine] onNext from smartreview:confirm failed', e); 
       } 
     };
     window.addEventListener('smartreview:confirm', handler);
@@ -97,6 +107,10 @@ export default function ModernEngine({ docType }: { docType: string }) {
       }
     }
   };
+  
+  // Update ref whenever onNext changes (for ref-safe event bridge)
+  // @ts-ignore
+  onNextRef.current = onNext;
 
   const onBack = () => setI(Math.max(0, i - 1));
 
