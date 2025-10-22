@@ -1,18 +1,41 @@
-
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import StepShell from './StepShell';
 import MicroSummary from './MicroSummary';
 import { buildReviewLines } from '../review/smartReviewTemplates';
-import { toCanonicalFor } from '../../adapters';
-import finalizeDeed from '../../../../services/finalizeDeed';
-import { useWizardMode } from '../ModeContext';
-import { withMode } from '../utils/withMode';
 
-export default function SmartReview({ docType, state }: { docType: string; state: any; }) {
+type Props = {
+  docType: string;
+  state: any;
+  onConfirm?: () => void;
+};
+
+/**
+ * Presentational SmartReview - PATCH FIX APPLIED
+ * - Shows review summary with Back/Confirm buttons
+ * - NO direct network calls (removed finalizeDeed)
+ * - NO direct redirects
+ * - Emits 'smartreview:confirm' event that ModernEngine listens for
+ */
+export default function SmartReview({ docType, state, onConfirm }: Props) {
   const [busy, setBusy] = useState(false);
-  const { mode } = useWizardMode();
   const lines = buildReviewLines({ docType, state });
+
+  const handleConfirm = useCallback(async () => {
+    setBusy(true);
+    try {
+      if (typeof onConfirm === 'function') {
+        await onConfirm();
+      } else {
+        // Fallback: dispatch a DOM event the engine listens for
+        window.dispatchEvent(new Event('smartreview:confirm'));
+      }
+    } catch (e) {
+      console.error('[SmartReview] Error during confirm:', e);
+      alert('An error occurred while generating the deed.');
+      setBusy(false);
+    }
+  }, [onConfirm]);
 
   return (
     <StepShell title="Smart Review" question="Please confirm the summary below.">
@@ -21,28 +44,13 @@ export default function SmartReview({ docType, state }: { docType: string; state
       </ul>
       <MicroSummary text="Check names, APN, and vesting carefully before generating the deed." />
       <div className="wiz-actions">
-        <button className="wiz-btn" onClick={() => history.back()} disabled={busy}>Back</button>
-        <button className="wiz-btn primary" onClick={async () => {
-          try {
-            setBusy(true);
-            const payload = toCanonicalFor(docType, state);
-            const res = await finalizeDeed(payload);
-            if (res?.success && res?.deedId) {
-              window.location.href =  withMode(`/deeds/${res.deedId}/preview`, mode);
-            } else {
-              alert('Failed to generate deed. Please try again.');
-            }
-          } catch (e:any) {
-            console.error(e);
-            alert('An error occurred while generating the deed.');
-          } finally {
-            setBusy(false);
-          }
-        }} disabled={busy}>
-          {busy ? 'Generating…' : 'Confirm & Generate'}
+        <button className="wiz-btn" onClick={() => history.back()} disabled={busy}>
+          Back
+        </button>
+        <button className="wiz-btn primary" onClick={handleConfirm} disabled={busy}>
+          {busy ? 'Generating...' : 'Confirm & Generate'}
         </button>
       </div>
     </StepShell>
   );
 }
-

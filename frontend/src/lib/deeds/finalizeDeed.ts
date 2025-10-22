@@ -21,7 +21,8 @@ export async function finalizeDeed(payload: any): Promise<{ success: boolean; de
       legal_description: payload.property?.legalDescription || null,
       grantor_name: payload.parties?.grantor?.name || '',
       grantee_name: payload.parties?.grantee?.name || '',
-      vesting: payload.vesting?.description || null
+      vesting: payload.vesting?.description || null,
+      source: 'modern'
     };
     
     console.log('[finalizeDeed] Backend payload:', backendPayload);

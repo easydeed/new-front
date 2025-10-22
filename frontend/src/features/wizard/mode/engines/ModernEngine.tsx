@@ -17,6 +17,20 @@ export default function ModernEngine({ docType }: { docType: string }) {
   const [i, setI] = useState(0);
   const [state, setState] = useState<Record<string, any>>({});
 
+  // Ensure ANY SmartReview variant routes through engine finalization.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const handler = () => { 
+      try { 
+        onNext(); 
+      } catch (e) { 
+        console.error('[ModernEngine] onNext failed from smartreview:confirm', e); 
+      } 
+    };
+    window.addEventListener('smartreview:confirm', handler);
+    return () => window.removeEventListener('smartreview:confirm', handler);
+  }, []);
+
   useEffect(() => {
     if (!hydrated) return;
     const data = getWizardData();
