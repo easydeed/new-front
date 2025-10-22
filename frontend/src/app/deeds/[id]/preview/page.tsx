@@ -158,14 +158,16 @@ export default function DeedPreviewPage() {
 
         if (!res.ok) {
           // Only retry on server errors (500+), not client errors (400)
-          if (res.status >= 500) {
-            console.warn(`[Preview] Server error ${res.status}, will retry`);
+          if (res.status >= 500 && retryCount < 2) {
+            console.warn(`[Preview] Server error ${res.status}, will retry (${retryCount + 1}/3)`);
             setRetryCount(prev => prev + 1);
             throw new Error(`Server error (${res.status}). Retrying...`);
           } else {
-            // Client error (400, 403, etc.) - don't retry
+            // Client error (400, 403, etc.) OR max retries reached - don't retry
             const errorText = await res.text();
-            console.error(`[Preview] Client error ${res.status}:`, errorText);
+            console.error(`[Preview] Error ${res.status}:`, errorText);
+            // Set retryCount to max to prevent further attempts
+            setRetryCount(3);
             throw new Error(`Failed to generate PDF: ${errorText || res.statusText}`);
           }
         }

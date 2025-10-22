@@ -76,7 +76,10 @@ export default function ModernEngine({ docType }: { docType: string }) {
     console.log('[ModernEngine.onNext] Called! Current step:', i + 1, '/', total);
     console.log('[ModernEngine.onNext] Current state:', state);
     
-    if (i < total - 1) {
+    // FIX: i < total (not total - 1) to show SmartReview before finalizing
+    // When i = total - 1 (last Q&A), increment to total to show SmartReview
+    // When i = total (on SmartReview), then finalize
+    if (i < total) {
       console.log('[ModernEngine.onNext] Moving to next step');
       setI(i + 1);
     } else {
