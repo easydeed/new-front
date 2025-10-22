@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+
+import { validateDeedCompleteness, generateWithRetry } from '@/lib/preview/guard';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { 
@@ -138,7 +140,7 @@ export default function DeedPreviewPage() {
         const endpoint = deedTypeMap[deed.deed_type] || 'grant-deed-ca';
         
         console.log(`[Preview] Attempting PDF generation (attempt ${retryCount + 1}/3)`);
-        const res = await fetch(`/api/generate/${endpoint}`, {
+        const res = await generateWithRetry(`/api/generate/${endpoint}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
