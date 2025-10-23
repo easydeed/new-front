@@ -24,10 +24,16 @@ export function PartnersProvider({ children }: { children: React.ReactNode }) {
   const refresh = async () => {
     setLoading(true);
     try {
+      // 🔧 FIX: Get auth token from localStorage (same as PrefillCombo)
+      const token = typeof window !== 'undefined' 
+        ? (localStorage.getItem('token') || localStorage.getItem('access_token'))
+        : null;
+      
       const res = await fetch('/api/partners/selectlist', {
         credentials: 'include',
         headers: {
           'Accept': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         }
       });
       
