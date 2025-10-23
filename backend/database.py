@@ -207,6 +207,14 @@ def create_deed(user_id, deed_data):
         # Phase 11: Debug logging
         print(f"[Phase 11] Inserting deed with data: user_id={user_id}, deed_type={deed_data.get('deed_type')}, property_address={deed_data.get('property_address')}, apn={deed_data.get('apn')}")
         
+        # Phase 15 Backend Hotfix V1: Defensive validation before DB insert
+        critical_fields = ['grantor_name', 'grantee_name', 'legal_description']
+        for field in critical_fields:
+            if not deed_data.get(field):
+                print(f"[Database.create_deed] ❌ ERROR: Missing {field} in deed_data!")
+                print(f"[Database.create_deed] deed_data: {deed_data}")
+                return None
+        
         cursor.execute("""
             INSERT INTO deeds (user_id, deed_type, property_address, apn, county, 
                              legal_description, owner_type, sales_price, 
@@ -225,6 +233,7 @@ def create_deed(user_id, deed_data):
             deed_data.get('grantor_name'),  # Phase 11 Fix: Add grantor field
             deed_data.get('grantee_name'),
             deed_data.get('vesting')
+            # Note: 'source' field not added to INSERT as table may not have column yet
         ))
         
         deed = cursor.fetchone()

@@ -2,7 +2,7 @@ import os
 from fastapi import FastAPI, HTTPException, Depends, Query, Request, Body
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List, Dict
 import stripe
 import psycopg2
@@ -330,16 +330,20 @@ class AdminUserUpdate(BaseModel):
     subscription_status: Optional[str] = None
 
 class DeedCreate(BaseModel):
-    deed_type: str
-    property_address: Optional[str] = None
-    apn: Optional[str] = None
-    county: Optional[str] = None
-    legal_description: Optional[str] = None
-    owner_type: Optional[str] = None
-    sales_price: Optional[float] = None
-    grantor_name: Optional[str] = None  # Phase 11 Fix: Add grantor field
-    grantee_name: Optional[str] = None
-    vesting: Optional[str] = None
+    deed_type: str = Field(..., description="Deed type, e.g., 'grant-deed'")
+    property_address: Optional[str] = Field(default=None)
+    apn: Optional[str] = Field(default=None)
+    county: Optional[str] = Field(default=None)
+    legal_description: str = Field(..., min_length=1, description="Legal description (required, non-empty)")
+    owner_type: Optional[str] = Field(default=None)
+    sales_price: Optional[float] = Field(default=None)
+    grantor_name: str = Field(..., min_length=1, description="Grantor name (required, non-empty)")
+    grantee_name: str = Field(..., min_length=1, description="Grantee name (required, non-empty)")
+    vesting: Optional[str] = Field(default=None)
+    source: Optional[str] = Field(default=None, description="Data source tracking (e.g., 'modern-canonical', 'classic')")
+    
+    class Config:
+        extra = "ignore"  # Ignore extra fields from frontend
 
 class PaymentMethodCreate(BaseModel):
     payment_method_id: str
@@ -1445,15 +1449,42 @@ def get_current_user(user_id: int = Depends(get_current_user_id)):
 # Deed endpoints
 @app.post("/deeds")
 def create_deed_endpoint(deed: DeedCreate, user_id: int = Depends(get_current_user_id)):
-    """Create a new deed - Auth hardening: remove hardcoded user id"""
+    """Create a new deed with validation - Backend Hotfix V1"""
+    
+    # Convert Pydantic model to dict
     deed_data = deed.dict()
     
-    # Debug logging for Phase 11
-    print(f"[Phase 11] Creating deed for user_id={user_id}: {deed_data}")
+    # DEFENSIVE: Strip whitespace and validate non-empty for critical fields
+    # This provides an additional layer of validation beyond Pydantic
+    critical_fields = {
+        'grantor_name': 'Grantor information',
+        'grantee_name': 'Grantee information',
+        'legal_description': 'Legal description'
+    }
+    
+    for field_name, field_label in critical_fields.items():
+        value = (deed_data.get(field_name) or "").strip()
+        deed_data[field_name] = value
+        if not value:
+            print(f"[Backend /deeds] ❌ VALIDATION ERROR: {field_label} is empty!")
+            print(f"[Backend /deeds] Received payload: {deed_data}")
+            raise HTTPException(
+                status_code=422, 
+                detail=f"Validation failed: {field_label} is required and cannot be empty"
+            )
+    
+    # Enhanced logging for diagnostics
+    print(f"[Backend /deeds] ✅ Creating deed for user_id={user_id}")
+    print(f"[Backend /deeds] deed_type: {deed_data.get('deed_type')}")
+    print(f"[Backend /deeds] grantor_name: {deed_data.get('grantor_name')}")
+    print(f"[Backend /deeds] grantee_name: {deed_data.get('grantee_name')}")
+    print(f"[Backend /deeds] legal_description: {deed_data.get('legal_description')[:100]}...")
+    print(f"[Backend /deeds] source: {deed_data.get('source', 'unknown')}")
     
     new_deed = create_deed(user_id, deed_data)
     
     if not new_deed:
+        print(f"[Backend /deeds] ❌ create_deed returned None!")
         raise HTTPException(status_code=500, detail="Failed to create deed - check backend logs")
     
     # Phase 7: Send deed completion notification
