@@ -340,6 +340,7 @@ class DeedCreate(BaseModel):
     grantor_name: str = Field(..., min_length=1, description="Grantor name (required, non-empty)")
     grantee_name: str = Field(..., min_length=1, description="Grantee name (required, non-empty)")
     vesting: Optional[str] = Field(default=None)
+    requested_by: Optional[str] = Field(default=None, description="Person/company requesting the deed (e.g., escrow officer)")
     source: Optional[str] = Field(default=None, description="Data source tracking (e.g., 'modern-canonical', 'classic')")
     
     class Config:

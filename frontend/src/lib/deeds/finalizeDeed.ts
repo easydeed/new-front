@@ -75,6 +75,7 @@ export async function finalizeDeed(
       grantor_name: get(repaired, ['parties','grantor','name']) || '',
       grantee_name: get(repaired, ['parties','grantee','name']) || '',
       vesting: get(repaired, ['vesting','description']) || state?.vesting || null,
+      requested_by: state?.requestedBy || '',  // Phase 16: Add requested_by field
       // Tag for server-side guardrails & analysis
       source: 'modern-canonical',
     };

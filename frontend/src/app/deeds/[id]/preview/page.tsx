@@ -25,8 +25,9 @@ interface DeedData {
   county?: string;
   grantor_name?: string;
   grantee_name?: string;
-  legal_description?: string;  // 🔧 FIX: Add missing field
+  legal_description?: string;
   vesting?: string;
+  requested_by?: string;  // Phase 16: Add requested_by field
   status: string;
   created_at?: string;
 }
@@ -152,8 +153,10 @@ export default function DeedPreviewPage() {
           // 🔧 FIX: Map grantee_name → grantees_text
           grantees_text: deed.grantee_name,
           // Add missing legal_description
-          legal_description: (deed as any).legal_description,
-          vesting: deed.vesting
+          legal_description: deed.legal_description,
+          vesting: deed.vesting,
+          // Phase 16: Add requested_by
+          requested_by: deed.requested_by
         };
         console.log('[Preview] PDF payload:', pdfPayload);
         
