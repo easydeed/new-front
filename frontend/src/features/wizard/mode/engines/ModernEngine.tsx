@@ -9,8 +9,10 @@ import MicroSummary from './steps/MicroSummary';
 import { toCanonicalFor } from '@/utils/canonicalAdapters';
 import { useWizardMode } from '../ModeContext';
 import { finalizeDeed } from '@/lib/deeds/finalizeDeed';
+import { usePartners } from '@/features/partners/PartnersContext';
 
 export default function ModernEngine({ docType }: { docType: string }) {
+  const { partners } = usePartners();
   const { hydrated, getWizardData, updateFormData } = useWizardStoreBridge();
   const { mode } = useWizardMode();
   const flow = useMemo(() => promptFlows[docType] || promptFlows['grant-deed'], [docType]);
@@ -142,7 +144,7 @@ export default function ModernEngine({ docType }: { docType: string }) {
     });
   };
 
-  const { verifiedData = {}, partners = [] } = getWizardData();
+  const { verifiedData = {} } = getWizardData();
   const ownerCandidates: string[] = Array.from(
     new Set(
       [

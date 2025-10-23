@@ -2,7 +2,7 @@
 import { NextRequest } from 'next/server';
 export const runtime = 'edge'; // or 'nodejs' depending on your setup
 
-const API_BASE = process.env.BACKEND_BASE_URL || process.env.NEXT_PUBLIC_BACKEND_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com';
+const API_BASE = process.env.BACKEND_BASE_URL || process.env.NEXT_PUBLIC_BACKEND_BASE_URL;
 if (!API_BASE) {
   console.warn('[partners/selectlist] BACKEND_BASE_URL not set — requests will fail.');
 }

@@ -43,9 +43,9 @@ const basePartiesGrant: Prompt[] = [
     required: true,
     showIf: (state: any) => {
       const legal = (state?.legalDescription || '').toString();
-      const ok = legal.trim() !== '' && legal !== 'Not available';
-      console.log('[Prompt.legalDescription.showIf] 📜 legal:', legal, 'SHOW:', !ok);
-      return !ok;
+      const normalized = legal.trim().toLowerCase();
+      const hasValidLegal = normalized !== '' && normalized !== 'not available' && legal.length >= 12;
+      return !hasValidLegal; // keep step visible until user provides a minimally sufficient edit
     },
   },
   {
