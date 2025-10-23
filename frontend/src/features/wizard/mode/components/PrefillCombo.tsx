@@ -34,7 +34,11 @@ export default function PrefillCombo({
           className="modern-input"
           value={draft}
           onFocus={() => setOpen(true)}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => {
+            const newValue = e.target.value;
+            setDraft(newValue);
+            onChange(newValue);  // 🔧 FIX: Call parent onChange to update wizard state
+          }}
           placeholder={`Type or pick…`}
         />
         {(suggestions.length > 0 || partners.length > 0) && (
