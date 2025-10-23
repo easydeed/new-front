@@ -80,7 +80,8 @@ async def generate_grant_deed_ca(
         
         # 🔧 FIX: Add Jinja built-in variables that templates expect
         from datetime import datetime
-        jinja_ctx['now'] = datetime.now()  # Required by template for date functions
+        jinja_ctx['now'] = datetime.now  # Pass the function itself, not the result
+        jinja_ctx['datetime'] = datetime  # Also provide datetime module for templates
         
         logger.debug(f"[{request_id}] Template context prepared")
 
