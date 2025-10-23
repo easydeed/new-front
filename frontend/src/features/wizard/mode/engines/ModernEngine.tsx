@@ -80,6 +80,7 @@ export default function ModernEngine({ docType }: { docType: string }) {
   const total = steps.length;
 
   const onNext = useCallback(async () => {
+
     console.log('[ModernEngine.onNext] ========== START ==========');
     console.log('[ModernEngine.onNext] Current step:', i + 1, '/', total);
     console.log('[ModernEngine.onNext] Current state:', state);
@@ -124,7 +125,7 @@ export default function ModernEngine({ docType }: { docType: string }) {
       }
     }
     console.log('[ModernEngine.onNext] ========== END ==========');
-  }, [state, i, total, docType, mode]); // CRITICAL: All dependencies to prevent stale closures!
+}, [state, docType, mode, i, total]); // CRITICAL: All dependencies to prevent stale closures!
   
   // Update ref whenever onNext changes (for ref-safe event bridge)
   // @ts-ignore

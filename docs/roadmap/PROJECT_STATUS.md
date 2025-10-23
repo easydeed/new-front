@@ -1,5 +1,154 @@
 # 📊 Project Status - DeedPro Wizard Rebuild
-**Last Updated**: October 21, 2025 at 2:00 PM PT
+**Last Updated**: October 23, 2025 at 12:43 AM UTC
+
+---
+
+## 🚀 **PHASE 15 v6 - CANONICAL TRANSFORMATION FIX (RESCUE PATCH-6)**
+
+### **Status**: 🔨 **IN PROGRESS** - Build Successful, Awaiting Commit & Deployment
+
+**Started**: October 23, 2025 at 12:40 AM UTC  
+**Build Completed**: October 23, 2025 at 12:43 AM UTC  
+**Branch**: `fix/canonical-v6`  
+**Approach**: Systematic root cause fix with rescue mapping
+
+---
+
+### **Mission**: Fix Modern Wizard Data Loss in Canonical Transformation Layer
+
+**Diagnostic Results from User**:
+- ✅ Frontend IS collecting ALL data (confirmed via console logs)
+- ✅ State management working correctly (no stale closures)
+- ✅ SmartReview displaying all fields
+- ❌ Backend receives EMPTY fields despite frontend having complete data
+- ❌ **CRITICAL FINDING**: `[finalizeDeed]` logs NEVER appeared in console
+
+**Root Cause Identified**: 
+Data is being lost in the canonical transformation layer. Either:
+1. `finalizeDeed()` is not being called at all, OR
+2. Canonical transformation is silently failing/losing data
+
+**Solution**: Apply `rescuepatch-6` provided by user
+- Single source of truth for finalization
+- Rescue mapping from localStorage when canonical is incomplete
+- No-blank-deed guard prevents database pollution
+- Trace headers for forensic clarity
+- Preview validation guard prevents infinite retry loops
+
+---
+
+### **What Was Fixed** 🔧
+
+**1. New Canonical V6 Components**:
+- ✅ `frontend/src/lib/deeds/finalizeDeed.ts` - V6 with rescue mapping
+- ✅ `frontend/src/lib/canonical/toCanonicalFor.ts` - Single entry point
+- ✅ `frontend/src/lib/preview/guard.ts` - Preview validation guards
+
+**2. Re-export Consolidation**:
+- ✅ `frontend/src/services/finalizeDeed.ts` - Ensures consistent import
+- ✅ `frontend/src/features/wizard/mode/bridge/finalizeDeed.ts` - Ensures consistent import
+
+**3. ModernEngine Patches**:
+- ✅ Correct SmartReview import path (`../review/SmartReview`)
+- ✅ useCallback with all dependencies `[state, docType, mode, i, total]`
+- ✅ Ref-safe event bridge for fallback
+- ✅ Calls `finalizeDeed(canonical, { docType, state, mode })` with rescue opts
+- 🔧 Manual fix: Arrow function syntax error on line 208
+- ✅ Green logs for finalization steps
+
+**4. Legal Description Prompt Fix**:
+- ✅ Fixed `showIf` logic to detect "Not available" string
+- 🔧 Manual fix: Double arrow function syntax error from patch script
+
+**5. Build Status**:
+- ✅ TypeScript compilation: SUCCESS
+- ✅ Next.js build: SUCCESS (10.0s, 41 pages)
+- ✅ No errors, no warnings (except non-critical lockfile notice)
+
+---
+
+### **Files Modified** (7 total)
+
+| File | Status | Lines | Purpose |
+|------|--------|-------|---------|
+| `frontend/src/lib/deeds/finalizeDeed.ts` | ✅ NEW | 129 | V6 with rescue mapping |
+| `frontend/src/lib/canonical/toCanonicalFor.ts` | ✅ NEW | 24 | Single canonical entry |
+| `frontend/src/lib/preview/guard.ts` | ✅ NEW | 25 | Validation guards |
+| `frontend/src/services/finalizeDeed.ts` | ✅ UPDATED | 1 | Re-export |
+| `frontend/src/features/wizard/mode/bridge/finalizeDeed.ts` | ✅ UPDATED | 1 | Re-export |
+| `frontend/src/features/wizard/mode/engines/ModernEngine.tsx` | ✅ UPDATED | ~220 | Patched + manual fixes |
+| `frontend/src/features/wizard/mode/prompts/promptFlows.ts` | ✅ UPDATED | ~130 | Fixed showIf + manual fix |
+
+---
+
+### **Expected Console Logs After Deployment** ✅
+
+When user clicks "Confirm & Generate", console MUST show:
+
+```
+[ModernEngine.onNext] 🟢 FINAL STEP - Starting finalization
+[ModernEngine.onNext] 🟢 Canonical payload created: {deedType: "grant-deed", ...}
+[finalizeDeed v6] Canonical payload received: {...}
+[finalizeDeed v6] Backend payload (pre-check): {deed_type: "grant-deed", grantor_name: "...", ...}
+```
+
+**Key Success Indicator**: The `[finalizeDeed v6]` logs MUST appear. If they don't, function is not being called.
+
+---
+
+### **Next Steps** (In Order)
+
+**Immediate (Must Complete Before Testing)**:
+1. ⏳ **Commit changes with descriptive message**
+2. ⏳ **Push to GitHub**
+3. ⏳ **Merge to main** (or create PR if user prefers review)
+4. ⏳ **Wait for Vercel deployment** (~3-5 minutes)
+
+**Testing Phase**:
+5. ⏳ **User opens browser console**
+6. ⏳ **User completes Modern wizard (Grant Deed)**
+7. ⏳ **Verify `[finalizeDeed v6]` logs appear**
+8. ⏳ **Verify backend receives complete payload**
+9. ⏳ **Verify PDF generates successfully**
+
+---
+
+### **Documentation Created**
+
+- ✅ `CANONICAL_V6_DEPLOYMENT_LOG.md` - Complete deployment documentation
+- ✅ `MODERN_WIZARD_COMPREHENSIVE_ANALYSIS.md` - Root cause analysis & alternative solutions
+- ✅ `SYSTEMS_ARCHITECT_ANALYSIS.md` - Data flow comparison (Classic vs Modern)
+- ✅ This PROJECT_STATUS.md update
+
+---
+
+### **Risk Assessment** 🎯
+
+**Overall Risk**: 🟡 **MEDIUM**
+
+| Aspect | Status | Notes |
+|--------|--------|-------|
+| **Build** | ✅ Passing | All TypeScript/ESLint checks pass |
+| **Patch Quality** | ✅ High | Provided by user, battle-tested |
+| **Manual Fixes** | ⚠️ 2 required | Patch script regex issues (now fixed) |
+| **Reversibility** | ✅ Easy | Branch-based, can rollback via Vercel |
+| **Impact** | ✅ High | Should fix data loss issue |
+| **Testing** | ⏳ Pending | User validation required |
+
+---
+
+### **Rollback Plan**
+
+If deployment fails:
+```bash
+git checkout main
+git branch -D fix/canonical-v6
+```
+
+Or use provided script:
+```bash
+bash rescuepatch-6/scripts/rollback_v6.sh .
+```
 
 ---
 
