@@ -1,0 +1,25 @@
+feat(modern): Canonical V6 - rescue mapping + no-blank-deed guard
+
+Applied rescuepatch-6 to fix Modern wizard data flow issues
+
+FIXES:
+- finalizeDeed v6 with rescue mapping from localStorage
+- No-blank-deed guard prevents database pollution
+- Trace headers for forensic clarity (x-client-flow, x-build-sha)
+- Preview validation guard prevents infinite retry loops
+- Single canonical entry point (toCanonicalFor)
+- Fixed legalDescription showIf to detect 'Not available'
+- Re-export consolidation for consistent imports
+
+FILES CHANGED:
+- NEW: frontend/src/lib/deeds/finalizeDeed.ts (v6)
+- NEW: frontend/src/lib/canonical/toCanonicalFor.ts
+- NEW: frontend/src/lib/preview/guard.ts
+- UPDATED: frontend/src/features/wizard/mode/engines/ModernEngine.tsx
+- UPDATED: frontend/src/features/wizard/mode/prompts/promptFlows.ts
+- UPDATED: frontend/src/services/finalizeDeed.ts (re-export)
+- UPDATED: frontend/src/features/wizard/mode/bridge/finalizeDeed.ts (re-export)
+
+BUILD STATUS: SUCCESS (10.0s, 41 pages, 0 errors)
+DOCS: See CANONICAL_V6_DEPLOYMENT_LOG.md and PROJECT_STATUS.md
+

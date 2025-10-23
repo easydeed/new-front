@@ -50,6 +50,7 @@ export async function finalizeDeed(
     console.log('[finalizeDeed v6] Canonical payload received:', canonical);
 
     const state = opts?.state ?? readModernDraft() ?? {};
+    console.log('[finalizeDeed v6] State/localStorage:', JSON.stringify(state, null, 2));
     const docType = canonical?.deedType || opts?.docType || canonical?.docType || 'grant-deed';
     const mode = opts?.mode || 'modern';
 
@@ -58,9 +59,11 @@ export async function finalizeDeed(
     const g1 = get(repaired, ['parties','grantor','name']) || state?.grantorName || '';
     const g2 = get(repaired, ['parties','grantee','name']) || state?.granteeName || '';
     const ld = get(repaired, ['property','legalDescription']) || state?.legalDescription || '';
+    console.log('[finalizeDeed v6] Rescue mapping - g1:', g1, 'g2:', g2, 'ld:', ld);
     set(repaired, ['parties','grantor','name'], g1);
     set(repaired, ['parties','grantee','name'], g2);
     set(repaired, ['property','legalDescription'], ld);
+    console.log('[finalizeDeed v6] Repaired canonical:', JSON.stringify(repaired, null, 2));
 
     // Build backend payload (snake_case)
     const backendPayload: AnyObj = {
@@ -77,6 +80,7 @@ export async function finalizeDeed(
     };
 
     console.log('[finalizeDeed v6] Backend payload (pre-check):', backendPayload);
+    console.log('[finalizeDeed v6] Backend payload JSON:', JSON.stringify(backendPayload, null, 2));
 
     // Guard: never create blank deed
     const check = assertBackendReady(backendPayload);
