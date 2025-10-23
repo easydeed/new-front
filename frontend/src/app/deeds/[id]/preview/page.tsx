@@ -25,6 +25,7 @@ interface DeedData {
   county?: string;
   grantor_name?: string;
   grantee_name?: string;
+  legal_description?: string;  // 🔧 FIX: Add missing field
   vesting?: string;
   status: string;
   created_at?: string;
@@ -140,20 +141,29 @@ export default function DeedPreviewPage() {
         const endpoint = deedTypeMap[deed.deed_type] || 'grant-deed-ca';
         
         console.log(`[Preview] Attempting PDF generation (attempt ${retryCount + 1}/3)`);
+        // 🔧 FIX: Map database field names to PDF generation endpoint field names
+        const pdfPayload = {
+          // Property fields (same names)
+          property_address: deed.property_address,
+          apn: deed.apn,
+          county: deed.county,
+          // 🔧 FIX: Map grantor_name → grantors_text
+          grantors_text: deed.grantor_name,
+          // 🔧 FIX: Map grantee_name → grantees_text
+          grantees_text: deed.grantee_name,
+          // Add missing legal_description
+          legal_description: (deed as any).legal_description,
+          vesting: deed.vesting
+        };
+        console.log('[Preview] PDF payload:', pdfPayload);
+        
         const res = await generateWithRetry(`/api/generate/${endpoint}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {})
           },
-          body: JSON.stringify({
-            property_address: deed.property_address,
-            apn: deed.apn,
-            county: deed.county,
-            grantor_name: deed.grantor_name,
-            grantee_name: deed.grantee_name,
-            vesting: deed.vesting
-          })
+          body: JSON.stringify(pdfPayload)
         });
 
         if (!res.ok) {
