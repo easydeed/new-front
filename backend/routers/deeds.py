@@ -77,6 +77,11 @@ async def generate_grant_deed_ca(
 
         # Build the Jinja context with sanitization
         jinja_ctx = sanitize_template_context(ctx.dict())
+        
+        # 🔧 FIX: Add Jinja built-in variables that templates expect
+        from datetime import datetime
+        jinja_ctx['now'] = datetime.now()  # Required by template for date functions
+        
         logger.debug(f"[{request_id}] Template context prepared")
 
         # Render the HTML with timeout protection
