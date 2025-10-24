@@ -193,6 +193,8 @@ export default function ModernEngine({ docType }: { docType: string }) {
                 value={state[current.field] || ''}
                 onChange={(e) => onChange(current.field, e.target.value)}
                 placeholder={current.placeholder || ''}
+                onFocus={() => { if (current.field === "legalDescription") setState(s => ({ ...s, __editing_legal: true })); }}
+                onBlur={() => { if (current.field === "legalDescription") setTimeout(() => setState(s => ({ ...s, __editing_legal: false })), 200); }}
               />
             </div>
           )}
