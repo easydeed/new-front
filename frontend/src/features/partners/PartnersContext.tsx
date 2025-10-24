@@ -45,8 +45,18 @@ export function PartnersProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       const data = await res.json().catch(()=>null);
-      const options = Array.isArray(data) ? data : (data?.options || []);
-      dlog('PartnersContext', 'Options', options?.length ?? 0);
+      const raw = Array.isArray(data) ? data : (data?.options || []);
+      dlog('PartnersContext', 'Raw options', raw?.length ?? 0);
+      
+      // Transform: backend uses "name", PrefillCombo expects "label"
+      const options = raw.map((p: any) => ({
+        id: p.id,
+        label: p.name || p.label || '',  // Map "name" to "label"
+        category: p.category,
+        people_count: p.people_count
+      }));
+      
+      dlog('PartnersContext', 'Transformed options', options?.length ?? 0);
       setPartners(options);
     } catch (e: any) {
       dlog('PartnersContext', 'Exception', String(e));
