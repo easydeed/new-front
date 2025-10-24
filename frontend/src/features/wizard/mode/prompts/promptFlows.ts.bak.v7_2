@@ -1,4 +1,3 @@
-import { shouldShowLegal } from '@/lib/wizard/legalShowIf';
 export type Prompt = {
   id: string;
   title?: string;
@@ -42,7 +41,12 @@ const basePartiesGrant: Prompt[] = [
     placeholder: 'e.g., Lot 1, Block 2, Tract 12345',
     why: 'This describes the exact boundaries of the property being transferred.',
     required: true,
-    showIf: (state: any) => shouldShowLegal(state),
+    showIf: (state: any) => {
+      const legal = (state?.legalDescription || '').toString();
+      const normalized = legal.trim().toLowerCase();
+      const hasValidLegal = normalized !== '' && normalized !== 'not available' && legal.length >= 12;
+      return !hasValidLegal; // keep step visible until user provides a minimally sufficient edit
+    },
   },
   {
     id: 'requestedBy',

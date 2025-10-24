@@ -182,9 +182,7 @@ export default function ModernEngine({ docType }: { docType: string }) {
               suggestions={current.field === 'grantorName' ? ownerCandidates : []}
               partners={current.field === 'requestedBy' ? partners : []}
               allowNewPartner={current.field === 'requestedBy'}
-            
-            onFocus={() => { if (current.field === "legalDescription") setState(s => ({ ...s, __editing_legal: true })); }}
-            onBlur={() => { if (current.field === "legalDescription") setTimeout(() => setState(s => ({ ...s, __editing_legal: false })), 200); }}/>
+            />
           ) : (
             <div className="modern-qna__control">
               <input
