@@ -47,7 +47,9 @@ function Header() {
           <a href="#faq" className="hover:opacity-80">FAQ</a>
         </nav>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" className="hidden sm:inline-flex">Sign in</Button>
+          <Button variant="ghost" className="hidden sm:inline-flex" asChild>
+            <a href="/login">Sign in</a>
+          </Button>
           <Button className="group shadow-glow" asChild>
             <a href="/app/wizard" className="inline-flex items-center">
               Get Started <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-0.5"/>

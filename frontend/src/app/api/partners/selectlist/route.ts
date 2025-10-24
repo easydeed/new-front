@@ -1,10 +1,9 @@
 // frontend/src/app/api/partners/selectlist/route.ts
 import { NextRequest } from 'next/server';
-import { DIAG } from '@/lib/diag/log';
 
-export const runtime = 'edge'; // switch to 'nodejs' if needed
+export const runtime = 'edge';
 
-const API_BASE = process.env.BACKEND_BASE_URL || process.env.NEXT_PUBLIC_BACKEND_BASE_URL || '';
+const API_BASE = process.env.BACKEND_BASE_URL || process.env.NEXT_PUBLIC_BACKEND_BASE_URL || 'https://deedpro-main-api.onrender.com';
 
 export async function GET(req: NextRequest) {
   try {
@@ -22,7 +21,7 @@ export async function GET(req: NextRequest) {
     });
     const text = await res.text();
     const ct = res.headers.get('content-type') || 'application/json';
-    if (DIAG) console.log('[partners/selectlist] proxy', { status: res.status, len: text?.length });
+    console.log('[partners/selectlist] proxy', { status: res.status, len: text?.length });
     return new Response(text, { status: res.status, headers: { 'content-type': ct } });
   } catch (e: any) {
     console.error('[partners/selectlist] proxy error:', e);
