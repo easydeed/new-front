@@ -10,6 +10,7 @@ import { toCanonicalFor } from '@/utils/canonicalAdapters';
 import { useWizardMode } from '../ModeContext';
 import { finalizeDeed } from '@/lib/deeds/finalizeDeed';
 import { usePartners } from '@/features/partners/PartnersContext';
+import { assertStableSteps } from '@/lib/wizard/invariants';
 
 export default function ModernEngine({ docType }: { docType: string }) {
   const { partners } = usePartners();
@@ -78,6 +79,8 @@ export default function ModernEngine({ docType }: { docType: string }) {
   }, [hydrated, state, updateFormData]);
 
   const steps = flow.steps.filter(s => !s.showIf || s.showIf(state));
+// Foundation v8: assert stability if DIAG is on
+assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: steps?.length, label: 'ModernEngine' });
   const current = steps[i];
   const total = steps.length;
 
