@@ -24,25 +24,7 @@ export default function ModernEngine({ docType }: { docType: string }) {
   const onNextRef = useRef<any>(null);
 
   // Update ref when onNext changes (defined below)
-  
-// v8.2: one-shot legal hydration (backfill from verified/formData)
-const __didHydrateLegal = useRef(false);
-useEffect(() => {
-  if (!hydrated || __didHydrateLegal.current) return;
-  try {
-    const data: any = typeof getWizardData === 'function' ? getWizardData() : {};
-    const v = data?.formData?.legalDescription ?? data?.verifiedData?.legalDescription ?? data?.legalDescription ?? '';
-    // backfill only if we have something and current state is empty or 'not available'
-    const cur = (state?.legalDescription || '').toString();
-    const curNorm = cur.trim().toLowerCase();
-    const shouldBackfill = v && (cur === '' || curNorm === 'not available');
-    if (shouldBackfill) {
-      setState(s => ({ ...s, legalDescription: v }));
-    }
-  } catch {}
-  __didHydrateLegal.current = true;
-}, [hydrated]);
-useEffect(() => { 
+  useEffect(() => { 
     if (onNext) {
       // @ts-ignore
       onNextRef.current = onNext; 

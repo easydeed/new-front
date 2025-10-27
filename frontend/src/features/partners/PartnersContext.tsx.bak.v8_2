@@ -1,7 +1,6 @@
 // frontend/src/features/partners/PartnersContext.tsx
 'use client';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-const DIAG = typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_DIAG === '1';
 import { dlog } from '@/lib/diag/log';
 
 type PartnerOption = { id: string | number; label: string; category?: string; people_count?: number };
@@ -30,11 +29,7 @@ export function PartnersProvider({ children }: { children: React.ReactNode }) {
       });
       dlog('PartnersContext', 'Response', res.status, res.statusText);
       if (res.status === 401 || res.status === 403) {
-        if (DIAG) { console.log('[PARTNERS DIAG] setPartners call'); }
-if (DIAG) {
-  try { console.log('[PARTNERS DIAG] length:', ([])?.length, 'first:', ([])?.[0]); } catch {}
-}
-setPartners([]);
+        setPartners([]);
         const t = await res.text().catch(()=>'');
         setError(`auth-${res.status}`);
         dlog('PartnersContext', 'Auth error', res.status, t);
