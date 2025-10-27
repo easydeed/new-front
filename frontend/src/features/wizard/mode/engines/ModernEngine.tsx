@@ -71,6 +71,13 @@ useEffect(() => {
   useEffect(() => {
     if (!hydrated) return;
     const data = getWizardData();
+    
+    // DIAGNOSTIC: Log ENTIRE wizard data structure
+    console.log('[ModernEngine] FULL wizard data:', JSON.stringify(data, null, 2));
+    console.log('[ModernEngine] data.formData?.legalDescription:', data.formData?.legalDescription);
+    console.log('[ModernEngine] data.verifiedData?.legalDescription:', data.verifiedData?.legalDescription);
+    console.log('[ModernEngine] data.legalDescription:', data.legalDescription);
+    
     // FIXED BUG #2 & #3: Merge verifiedData fields + initialize ALL prompt fields
     // This ensures property fields from PropertyStepBridge AND party fields are available
     const initial = { 
