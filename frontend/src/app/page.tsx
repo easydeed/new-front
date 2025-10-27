@@ -428,3 +428,5 @@ function FooterCol({ title, links }: { title: string; links: [string, string][] 
     </div>
   )
 }
+
+// Force rebuild 2025-10-27 14:51:54
