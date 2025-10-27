@@ -1,5 +1,6 @@
 'use client'
 import React from 'react'
+import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -29,7 +30,7 @@ export default function LandingPage() {
 
 function Header() {
   return (
-    <header className="sticky top-0 z-30 border-b border-neutral-200/60 dark:border-neutral-800/60 bg-white/70 dark:bg-neutral-950/40 backdrop-blur supports-[backdrop-filter]:bg-white/70">
+    <header className="sticky top-0 z-30 border-b border-neutral-200/60 dark:border-neutral-800/60 bg-white/80 dark:bg-neutral-950/50 backdrop-blur supports-[backdrop-filter]:bg-white/80">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="relative h-6 w-6 rounded-lg overflow-hidden">
@@ -62,26 +63,69 @@ function Header() {
 function Hero() {
   return (
     <section className="relative overflow-hidden">
+      {/* Background image + stronger brand tint */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-center bg-cover" style={{ backgroundImage: `url(${HERO_IMAGE_URL})`}} />
-        <div className="absolute inset-0 bg-gradient-to-b from-white/80 via-white/70 to-white/90 dark:from-neutral-950/70 dark:via-neutral-950/70 dark:to-neutral-950/80" />
-        <div className="absolute -top-32 -right-32 h-96 w-96 rounded-full blur-3xl opacity-30 bg-[#2563EB]" />
-        <div className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full blur-3xl opacity-30 bg-[#F26B2B]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/78 to-white/92" />
+        {/* color auras */}
+        <div className="absolute -top-36 -right-40 h-[28rem] w-[28rem] rounded-full blur-3xl opacity-40 bg-[#2563EB]" />
+        <div className="absolute -bottom-40 -left-36 h-[28rem] w-[28rem] rounded-full blur-3xl opacity-40 bg-[#F26B2B]" />
       </div>
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 sm:py-32 grid lg:grid-cols-2 gap-12 items-center">
+
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24 sm:py-36 grid lg:grid-cols-2 gap-12 items-center">
         <motion.div initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{duration:0.25}}>
-          <Badge variant="secondary" className="mb-4 bg-white text-neutral-700 ring-1 ring-black/5">AI‑assisted • Enterprise‑ready</Badge>
+          <Badge variant="secondary" className="mb-4 bg-[#2563EB]/10 text-[#2563EB] ring-1 ring-[#2563EB]/20">
+            AI‑assisted • Enterprise‑ready
+          </Badge>
           <h1 className="text-5xl sm:text-6xl font-extrabold tracking-tight">
             Create California deeds
-            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#2563EB] to-[#F26B2B]">in minutes.</span>
+            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#2563EB] to-[#F26B2B]">
+              in minutes.
+            </span>
           </h1>
-          <p className="mt-5 text-lg text-neutral-700/90 dark:text-neutral-300 max-w-prose">
+          <p className="mt-5 text-lg text-neutral-700/90 max-w-prose">
             DeedPro combines an AI‑assisted wizard, SmartReview, and integrations built for title workflows—so your team ships clean documents on the first pass.
           </p>
           <div className="mt-7 flex flex-col sm:flex-row gap-3">
-            <Button size="lg" asChild className="bg-[#2563EB] hover:brightness-95"><a href="/app/wizard">Start a Deed</a></Button>
-            <Button size="lg" variant="outline" asChild className="border-neutral-300/80 hover:bg-white"><a href="/demo">See 2‑min demo</a></Button>
+            <Button size="lg" asChild className="bg-[#2563EB] hover:brightness-95">
+              <a href="/app/wizard">Start a Deed</a>
+            </Button>
+            <Button size="lg" variant="outline" asChild className="border-[#2563EB]/30 hover:bg-white">
+              <a href="/demo">See 2‑min demo</a>
+            </Button>
           </div>
+          <ul className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-neutral-700/90">
+            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-[#2563EB]" /> SoftPro friendly</li>
+            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-[#F26B2B]" /> Qualia sync</li>
+            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-[#2563EB]" /> SmartReview checks</li>
+          </ul>
+        </motion.div>
+
+        {/* Product preview card with deed image */}
+        <motion.div initial={{opacity:0,scale:0.98}} animate={{opacity:1,scale:1}} transition={{duration:0.3,delay:0.05}}>
+          <Card className="border border-white/80 shadow-soft rounded-2xl bg-white">
+            <div className="h-1 w-full bg-gradient-to-r from-[#2563EB] via-[#2563EB] to-[#F26B2B] rounded-t-2xl" />
+            <CardContent className="p-0">
+              <div className="p-6 pb-0 flex items-center justify-between">
+                <div className="font-medium">SmartReview – Grant Deed</div>
+                <Badge variant="secondary" className="bg-[#F7F9FC] text-neutral-700 ring-1 ring-black/5">Preview</Badge>
+              </div>
+              <div className="mt-4 relative">
+                <Image
+                  src="/images/deed-hero.png"
+                  alt="Deed preview"
+                  width={1200}
+                  height={675}
+                  className="w-full h-auto rounded-none"
+                />
+                <div className="pointer-events-none absolute inset-0 ring-1 ring-black/5" />
+              </div>
+              <div className="p-6 flex gap-2">
+                <Button size="sm" variant="outline" className="border-neutral-300/80">Edit</Button>
+                <Button size="sm" className="bg-[#F26B2B] hover:brightness-95">Confirm & Create</Button>
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
       </div>
     </section>
@@ -96,15 +140,15 @@ function StatBar() {
     { icon: Clock, label: 'Docs generated', value: '25k+' },
   ]
   return (
-    <section className="py-6 bg-white border-y border-neutral-200/70">
+    <section className="py-8 bg-white border-y border-[#2563EB]/15">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           {items.map((it, i) => (
-            <div key={i} className="rounded-xl border border-neutral-200/70 p-4">
-              <div className="flex items-center justify-center gap-2 text-sm text-neutral-600">
+            <div key={i} className="rounded-xl border border-[#2563EB]/20 p-4 bg-[#2563EB]/5">
+              <div className="flex items-center justify-center gap-2 text-sm text-neutral-700">
                 <it.icon className="h-4 w-4 text-[#F26B2B]" /> {it.label}
               </div>
-              <div className="mt-1 text-2xl font-semibold">{it.value}</div>
+              <div className="mt-1 text-2xl font-semibold text-neutral-900">{it.value}</div>
             </div>
           ))}
         </div>
@@ -115,7 +159,7 @@ function StatBar() {
 
 function ApiHello() {
   return (
-    <section id="api" className="py-16 bg-[#2563EB]/5">
+    <section id="api" className="py-16 bg-gradient-to-b from-white to-[#2563EB]/10">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-10 items-center">
           <div>
@@ -123,12 +167,12 @@ function ApiHello() {
             <p className="mt-3 text-neutral-700/90">Trigger the same trusted flow from your stack with a single endpoint.</p>
             <div className="mt-6 flex gap-3">
               <Button asChild className="bg-[#F26B2B] hover:brightness-95"><a href="/docs">Read the docs</a></Button>
-              <Button variant="outline" asChild className="border-neutral-300/80"><a href="/demo">Explore the API</a></Button>
+              <Button variant="outline" asChild className="border-[#2563EB]/30 hover:bg-white"><a href="/demo">Explore the API</a></Button>
             </div>
           </div>
-          <Card className="shadow-soft border-neutral-200/80 bg-white">
+          <Card className="shadow-soft border-[#2563EB]/20 bg-white">
             <CardContent className="p-6">
-              <pre className="text-xs md:text-sm overflow-auto rounded-xl bg-[#F7F9FC] p-4 border border-neutral-200">{`curl -X POST https://api.deedpro.app/deeds/create \\
+              <pre className="text-xs md:text-sm overflow-auto rounded-xl bg-[#F7F9FC] p-4 border border-[#2563EB]/20">{`curl -X POST https://api.deedpro.app/deeds/create \\
   -H "Authorization: Bearer <token>" \\
   -H "Content-Type: application/json" \\
   -d '{ 
@@ -147,7 +191,7 @@ function ApiHello() {
 
 function Features() {
   return (
-    <section id="features" className="py-20 bg-white">
+    <section id="features" className="py-20 bg-[#2563EB]/5">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl">
           <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight">Built for accuracy. Designed for speed.</h2>
@@ -175,7 +219,7 @@ function HowItWorksCreative() {
   ]
   return (
     <section id="how" className="py-20 relative">
-      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-white to-[#2563EB]/10" />
+      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-white to-[#F26B2B]/10" />
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl">
           <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight">From address to deed—no detours</h2>
@@ -187,7 +231,7 @@ function HowItWorksCreative() {
             {steps.map((s, i) => (
               <div key={s.n} className={`grid md:grid-cols-2 gap-6 items-stretch ${i % 2 ? 'md:text-left' : 'md:text-right'}`}>
                 <div className={`${i % 2 ? 'md:order-2' : ''}`}>
-                  <Card className="bg-white shadow-soft border-neutral-200/80">
+                  <Card className="bg-white shadow-soft border-[#F26B2B]/20">
                     <CardContent className="p-6">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-[#2563EB] to-[#F26B2B] text-white grid place-items-center font-semibold">{s.n}</div>
@@ -217,10 +261,10 @@ function VideoSection() {
             <p className="mt-3 text-neutral-700/90">See the wizard, SmartReview, and generation flow in action—end‑to‑end.</p>
             <div className="mt-6 flex gap-3">
               <Button asChild className="bg-[#2563EB] hover:brightness-95"><a href="/app/wizard">Start a Deed</a></Button>
-              <Button variant="outline" asChild className="border-neutral-300/80"><a href="/demo">Open full demo</a></Button>
+              <Button variant="outline" asChild className="border-[#2563EB]/30"><a href="/demo">Open full demo</a></Button>
             </div>
           </div>
-          <div className="relative w-full overflow-hidden rounded-2xl shadow-soft border border-neutral-200">
+          <div className="relative w-full overflow-hidden rounded-2xl shadow-soft border border-[#2563EB]/20">
             <div className="aspect-video">
               <iframe
                 className="w-full h-full"
@@ -244,7 +288,7 @@ function Pricing() {
     { name: 'Enterprise', price: 'Custom', blurb: 'For large orgs & integrations.', cta: 'Contact Sales', popular: false, bullets: ['SAML/SSO', 'Custom templates', 'Usage‑based pricing', 'White‑glove onboarding']},
   ]
   return (
-    <section id="pricing" className="py-20 bg-[#2563EB]/5">
+    <section id="pricing" className="py-20 bg-gradient-to-b from-[#2563EB]/6 to-[#F26B2B]/6">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl">
           <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight">Simple pricing for serious work</h2>
@@ -270,7 +314,6 @@ function Pricing() {
             </Card>
           ))}
         </div>
-        <p className="mt-4 text-xs text-neutral-600">Prices shown are examples; replace with your live pricing.</p>
       </div>
     </section>
   )
@@ -278,17 +321,17 @@ function Pricing() {
 
 function CtaCapture() {
   return (
-    <section className="py-20 bg-white">
+    <section className="py-20 bg-[#2563EB]/5">
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
         <h3 className="text-2xl sm:text-3xl font-semibold tracking-tight">See the 2‑minute demo</h3>
-        <p className="mt-3 text-neutral-700/90 dark:text-neutral-300">We'll send a short walkthrough and a sandbox link. No commitment, just clarity.</p>
+        <p className="mt-3 text-neutral-700/90">We’ll send a short walkthrough and a sandbox link. No commitment, just clarity.</p>
         <form className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
           <Input type="email" placeholder="you@brokerage.com" className="sm:w-80" />
           <Button type="submit" className="group bg-[#F26B2B] hover:brightness-95">
             Send it <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-0.5"/>
           </Button>
         </form>
-        <p className="mt-2 text-xs text-neutral-500">No spam. Unsubscribe anytime.</p>
+        <p className="mt-2 text-xs text-neutral-600">No spam. Unsubscribe anytime.</p>
       </div>
     </section>
   )
@@ -296,7 +339,7 @@ function CtaCapture() {
 
 function Faq() {
   return (
-    <section id="faq" className="py-20 border-t border-neutral-200/60 dark:border-neutral-800/60">
+    <section id="faq" className="py-20 border-t border-[#2563EB]/15">
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
         <h3 className="text-2xl sm:text-3xl font-semibold tracking-tight">FAQ</h3>
         <div className="mt-8 grid gap-6 sm:grid-cols-2">
