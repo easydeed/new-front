@@ -581,6 +581,11 @@ def map_sitex_feed_to_ui(sitex_response: Dict, original_address: str) -> Dict:
         
         # Map to UI contract (matching TitlePoint response format)
         # SiteX Feed.PropertyProfile contains all the data we need
+        
+        # PHASE 16 FIX: Legal description is nested in LegalDescriptionInfo object
+        legal_info = profile.get('LegalDescriptionInfo', {})
+        legal_desc = legal_info.get('LegalBriefDescription', '') if legal_info else ''
+        
         return {
             'success': True,
             'apn': profile.get('APN', ''),
@@ -588,8 +593,8 @@ def map_sitex_feed_to_ui(sitex_response: Dict, original_address: str) -> Dict:
             'city': profile.get('SiteCity', ''),
             'state': profile.get('SiteState', 'CA'),
             'zip': profile.get('SiteZip', ''),
-            # Try multiple legal description field names
-            'legalDescription': profile.get('LegalDescription', '') or profile.get('BriefLegal', '') or profile.get('LegalBriefDescription', '') or profile.get('LegalDescriptionBrief', ''),
+            # PHASE 16 FIX: Legal description is in nested LegalDescriptionInfo.LegalBriefDescription
+            'legalDescription': legal_desc,
             'grantorName': profile.get('PrimaryOwnerName', ''),  # Current owner
             'propertyType': profile.get('PropertyType', '') or profile.get('UseCodeDescription', 'Single Family Residence'),
             'fullAddress': original_address,  # Use original address for consistency
