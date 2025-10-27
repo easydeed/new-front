@@ -1,6 +1,7 @@
 'use client'
 import React from 'react'
 import Image from 'next/image'
+import DeedPreview from '@/app/components/DeedPreview'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -102,8 +103,8 @@ function Hero() {
                 <div className="font-medium">SmartReview — Grant Deed</div>
                 <Badge variant="secondary" className="bg-[#F7F9FC] text-neutral-700 ring-1 ring-black/5">Preview</Badge>
               </div>
-              <div className="mt-4 relative">
-                <Image src="/images/deed-hero.png" alt="Deed preview" width={1200} height={675} className="w-full h-auto" />
+              <div className="mt-4 relative rounded-b-xl overflow-hidden">
+                <DeedPreview className="w-full h-auto" />
                 <div className="pointer-events-none absolute inset-0 ring-1 ring-black/5" />
               </div>
               <div className="p-6 flex gap-2">
@@ -145,7 +146,7 @@ function StatBar() {
 
 function ApiHello() {
   return (
-    <section id="api" className="py-16 bg-gradient-to-b from-white to-[#2563EB]/10">
+    <section id="api" className="py-16 bg-gradient-to-b from-white to-[#2563EB]/10 bg-radial-brand">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-10 items-center">
           <div>
@@ -274,7 +275,7 @@ function Pricing() {
     { name: 'Enterprise', price: 'Custom', blurb: 'For large orgs & integrations.', cta: 'Contact Sales', popular: false, bullets: ['SAML/SSO', 'Custom templates', 'Usage‑based pricing', 'White‑glove onboarding']},
   ]
   return (
-    <section id="pricing" className="py-20 bg-gradient-to-b from-[#2563EB]/6 to-[#F26B2B]/6">
+    <section id="pricing" className="py-20 bg-gradient-to-b from-[#2563EB]/6 to-[#F26B2B]/6 bg-stripes">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl">
           <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight">Simple pricing for serious work</h2>
