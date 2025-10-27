@@ -20,6 +20,15 @@ export default function ModernEngine({ docType }: { docType: string }) {
   const [i, setI] = useState(0);
   const [state, setState] = useState<Record<string, any>>({});
 
+  // DEBUG: Log partners data whenever it changes
+  useEffect(() => {
+    console.log('[ModernEngine] 🔵 Partners data updated:', {
+      partnersLength: partners?.length ?? 0,
+      partners: partners,
+      firstPartner: partners?.[0]
+    });
+  }, [partners]);
+
   // Keep a ref to the latest onNext to avoid stale-closure issues.
   const onNextRef = useRef<any>(null);
 
@@ -47,6 +56,8 @@ export default function ModernEngine({ docType }: { docType: string }) {
   useEffect(() => {
     if (!hydrated) return;
     const data = getWizardData();
+    console.log('[ModernEngine] 🔵 Initializing state from wizard data:', data);
+    
     // FIXED BUG #2 & #3: Merge verifiedData fields + initialize ALL prompt fields
     // This ensures property fields from PropertyStepBridge AND party fields are available
     const initial = { 
@@ -56,13 +67,21 @@ export default function ModernEngine({ docType }: { docType: string }) {
       county: data.formData?.county || data.verifiedData?.county || data.county || '',
       propertyAddress: data.formData?.propertyAddress || data.verifiedData?.fullAddress || data.propertyAddress || '',
       fullAddress: data.formData?.fullAddress || data.verifiedData?.fullAddress || data.fullAddress || '',
-      legalDescription: data.formData?.legalDescription || data.verifiedData?.legalDescription || data.legalDescription || '',
+      // ISSUE #2 FIX: Prefill legal description from SiteX data
+      legalDescription: data.formData?.legalDescription || data.verifiedData?.legalDescription || data.verifiedData?.legal_description || data.legalDescription || '',
       // Party fields (ensure they exist even if empty - CRITICAL FIX)
       grantorName: data.formData?.grantorName || data.verifiedData?.currentOwnerPrimary || data.grantorName || '',
       granteeName: data.formData?.granteeName || '',  // NEW: Explicitly initialize
       vesting: data.formData?.vesting || data.verifiedData?.vestingDetails || data.vesting || '',
       requestedBy: data.formData?.requestedBy || '',  // NEW: Explicitly initialize
     };
+    
+    console.log('[ModernEngine] 🔵 Initial state:', {
+      ...initial,
+      legalDescriptionLength: initial.legalDescription?.length ?? 0,
+      legalDescriptionPreview: initial.legalDescription?.substring(0, 100)
+    });
+    
     setState(initial);
   }, [hydrated]);
 
@@ -83,6 +102,21 @@ export default function ModernEngine({ docType }: { docType: string }) {
 assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: steps?.length, label: 'ModernEngine' });
   const current = steps[i];
   const total = steps.length;
+
+  // DEBUG: Log current step info
+  useEffect(() => {
+    if (current) {
+      console.log('[ModernEngine] 🔵 Current step:', {
+        stepIndex: i,
+        stepField: current.field,
+        stepTitle: current.title,
+        stepType: current.type,
+        isRequestedBy: current.field === 'requestedBy',
+        partnersLength: partners?.length ?? 0,
+        willPassPartners: current.field === 'requestedBy' ? partners?.length ?? 0 : 'N/A'
+      });
+    }
+  }, [i, current, partners]);
 
   const onNext = useCallback(async () => {
 
@@ -138,35 +172,57 @@ assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: s
 
   const onBack = () => setI(Math.max(0, i - 1));
 
-  const onChange = (field: string, value: any) => {
-    console.log(`[ModernEngine.onChange] 🔵 field="${field}" value="${value}"`);
-    setState(s => {
-      const newState = { ...s, [field]: value };
-      console.log('[ModernEngine.onChange] 🔵 Updated state:', newState);
-      return newState;
-    });
+  const onChange = (field: string, val: any) => {
+    console.log(`[ModernEngine.onChange] 🔵 field="${field}" value="${val}"`);
+    setState(s => ({ ...s, [field]: val }));
   };
 
-  const { verifiedData = {} } = getWizardData();
-  const ownerCandidates: string[] = Array.from(
-    new Set(
-      [
-        verifiedData?.ownerPrimary,
-        verifiedData?.ownerSecondary,
-        ...(verifiedData?.owners || []),
-      ].filter(Boolean)
-    )
-  );
+  // Derive owner candidates for PrefillCombo suggestions:
+  const data = hydrated ? getWizardData() : { verifiedData: {} };
+  const ownerCandidates = useMemo(() => {
+    const v = data.verifiedData || {};
+    const names: string[] = [];
+    if (v.currentOwnerPrimary) names.push(v.currentOwnerPrimary);
+    if (v.currentOwnerSecondary) names.push(v.currentOwnerSecondary);
+    if (v.additionalOwners && Array.isArray(v.additionalOwners)) {
+      names.push(...v.additionalOwners);
+    }
+    return names.map(n => ({ label: n }));
+  }, [data.verifiedData]);
 
-  // Build summary data for MicroSummary
-  const summaryData = {
-    deedType: flow.docType || docType,
-    property: state.propertyAddress || verifiedData?.address,
-    apn: state.apn || verifiedData?.apn,
-    grantor: state.grantorName,
-    grantee: state.granteeName,
-    county: state.county || verifiedData?.county
-  };
+  const summaryData = useMemo(() => ({
+    property: state.fullAddress || state.propertyAddress || '—',
+    apn: state.apn || '—',
+    grantor: state.grantorName || '—',
+    grantee: state.granteeName || '—',
+  }), [state]);
+
+  // PATCH6: Add refs to enable SmartReview to read them
+  useEffect(() => {
+    // @ts-ignore
+    window.__wizardInternalState = state;
+    // @ts-ignore
+    window.__wizardInternalDocType = docType;
+  }, [state, docType]);
+
+  if (!hydrated) {
+    return (
+      <StepShell>
+        <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+          <p style={{ fontSize: '16px', color: '#555' }}>Loading wizard…</p>
+        </div>
+      </StepShell>
+    );
+  }
+
+  if (i >= total) {
+    return (
+      <StepShell>
+        <MicroSummary data={summaryData} />
+        <SmartReview state={state} docType={docType} onConfirm={onNext} onBack={onBack} />
+      </StepShell>
+    );
+  }
 
   return (
     <StepShell>
@@ -181,45 +237,56 @@ assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: s
             <PrefillCombo
               label={current.label || current.question}
               value={state[current.field] || ''}
-              onChange={(v) => onChange(current.field, v)}
+              onChange={(v) => {
+                console.log(`[ModernEngine.PrefillCombo.onChange] 🔵 field="${current.field}" value="${v}"`);
+                onChange(current.field, v);
+              }}
               suggestions={current.field === 'grantorName' ? ownerCandidates : []}
               partners={current.field === 'requestedBy' ? partners : []}
               allowNewPartner={current.field === 'requestedBy'}
             
-            onFocus={() => { if (current.field === "legalDescription") setState(s => ({ ...s, __editing_legal: true })); }}
-            onBlur={() => { if (current.field === "legalDescription") setTimeout(() => setState(s => ({ ...s, __editing_legal: false })), 200); }}/>
+            onFocus={() => { 
+              console.log(`[ModernEngine.PrefillCombo.onFocus] 🔵 field="${current.field}"`);
+              if (current.field === "legalDescription") setState(s => ({ ...s, __editing_legal: true })); 
+            }}
+            onBlur={() => { 
+              console.log(`[ModernEngine.PrefillCombo.onBlur] 🔵 field="${current.field}"`);
+              if (current.field === "legalDescription") setTimeout(() => setState(s => ({ ...s, __editing_legal: false })), 200); 
+            }}/>
           ) : (
             <div className="modern-qna__control">
-              <input
-                className="modern-input"
-                type="text"
-                value={state[current.field] || ''}
-                onChange={(e) => onChange(current.field, e.target.value)}
-                placeholder={current.placeholder || ''}
-                onFocus={() => { if (current.field === "legalDescription") setState(s => ({ ...s, __editing_legal: true })); }}
-                onBlur={() => { if (current.field === "legalDescription") setTimeout(() => setState(s => ({ ...s, __editing_legal: false })), 200); }}
-              />
+              {current.type === 'textarea' ? (
+                <textarea
+                  value={state[current.field] || ''}
+                  onChange={(e) => onChange(current.field, e.target.value)}
+                  placeholder={current.placeholder || ''}
+                  className="modern-textarea"
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={state[current.field] || ''}
+                  onChange={(e) => onChange(current.field, e.target.value)}
+                  placeholder={current.placeholder || ''}
+                  className="modern-input"
+                />
+              )}
             </div>
           )}
 
-          <div className="modern-qna__nav">
-            <button className="btn btn-secondary" onClick={onBack} disabled={i === 0}>Back</button>
-            <button className="btn btn-primary" onClick={onNext}>Next</button>
-          </div>
-
-          <div className="modern-qna__summary">
+          <div className="modern-qna__actions">
+            <button onClick={onBack} disabled={i === 0} className="modern-btn-back">
+              ← Back
+            </button>
+            <button onClick={onNext} className="modern-btn-next">
+              {i < total - 1 ? 'Next →' : 'Review'}
+            </button>
           </div>
         </div>
       ) : (
-        <SmartReview
-          docType={docType}
-          state={state}
-          onEdit={(field) => {
-            const idx = steps.findIndex(s => s.field === field);
-            if (idx >= 0) setI(idx);
-          }}
-          onConfirm={onNext}
-        />
+        <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+          <p>No prompt found. Please contact support.</p>
+        </div>
       )}
     </StepShell>
   );
