@@ -445,11 +445,11 @@ export default function PropertySearchWithTitlePoint({
           city: result.city || addressData.city,
           state: result.state || addressData.state,
           zip: result.zip || addressData.zip,
-          county: result.county || addressData.county || 'Not available',
-          apn: result.apn || 'Not available',
-          legalDescription: result.legalDescription || 'Not available',
+          county: result.county || addressData.county || '',
+          apn: result.apn || '',
+          legalDescription: result.legalDescription || '',  // Empty string for manual entry
           grantorName: result.grantorName || '',
-          currentOwnerPrimary: result.grantorName || 'Not available',
+          currentOwnerPrimary: result.grantorName || '',
           currentOwnerSecondary: '',
           propertyType: result.propertyType || 'Single Family Residence',  // Use backend data
           placeId: addressData.placeId
