@@ -47,14 +47,20 @@ export function PartnersProvider({ children }: { children: React.ReactNode }) {
       }
       const data = await res.json().catch(()=>null);
       const raw = Array.isArray(data) ? data : (data?.options || []);
+      
+      // DIAGNOSTIC: Show RAW data structure
+      console.log('[PARTNERS] RAW response data:', data);
+      console.log('[PARTNERS] RAW array:', raw);
+      console.log('[PARTNERS] RAW length:', raw?.length);
+      console.log('[PARTNERS] RAW first item:', raw?.[0]);
+      
       dlog('PartnersContext', 'Raw options', raw?.length ?? 0);
       
-      // Transform: backend uses "company_name" + "contact_name", PrefillCombo expects "label"
+      // Transform: backend returns "name" (already mapped from company_name), PrefillCombo expects "label"
       const options = raw.map((p: any) => {
-        // Build label: "Company Name - Contact Name" or just "Company Name"
-        const company = p.company_name || p.name || p.label || '';
-        const contact = p.contact_name || '';
-        const label = contact ? `${company} - ${contact}` : company;
+        // Backend /api/partners/selectlist returns: {id, name, category}
+        // where 'name' is already the company_name from DB
+        const label = p.name || p.company_name || p.label || '';
         
         return {
           id: p.id,
