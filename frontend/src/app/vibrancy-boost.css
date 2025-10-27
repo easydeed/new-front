@@ -1017,3 +1017,35 @@ p {
    END OF VIBRANCY BOOST V3 - HIGH CONTRAST
    ========================================== */
 
+/**
+ * Remove Section Borders
+ * Quick patch to remove top/bottom borders from sections
+ */
+
+/* Remove section borders that were added in v2 and v3 */
+section {
+  border-top: none !important;
+  border-bottom: none !important;
+}
+
+/* Remove section separators */
+section::after {
+  display: none !important;
+}
+
+/* Clean up specific sections */
+section#api,
+section#how,
+section#pricing,
+.py-8.bg-white.border-y,
+.py-20:has(form) {
+  border-top: none !important;
+  border-bottom: none !important;
+  border-width: 0 !important;
+}
+
+/* Keep footer border if it exists */
+footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
