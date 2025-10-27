@@ -108,13 +108,24 @@ assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: s
     if (current) {
       console.log('[ModernEngine] 🔵 Current step:', {
         stepIndex: i,
+        stepId: current.id,
         stepField: current.field,
+        stepFieldType: typeof current.field,
+        stepFieldCharCodes: current.field ? current.field.split('').map((c: string) => c.charCodeAt(0)) : 'N/A',
         stepTitle: current.title,
+        stepQuestion: current.question,
         stepType: current.type,
-        isRequestedBy: current.field === 'requestedBy',
+        EXACT_MATCH_requestedBy: current.field === 'requestedBy',
+        EXACT_MATCH_requested_by: current.field === 'requested_by',
+        partnersArray: partners,
         partnersLength: partners?.length ?? 0,
-        willPassPartners: current.field === 'requestedBy' ? partners?.length ?? 0 : 'N/A'
+        partnersFirstItem: partners?.[0],
+        willPassPartners: current.field === 'requestedBy' ? partners : []
       });
+      
+      // Extra check: What partners will actually be passed?
+      const partnersToPass = current.field === 'requestedBy' ? partners : [];
+      console.log('[ModernEngine] 🔴 PARTNERS TO PASS TO PREFILLCOMBO:', partnersToPass);
     }
   }, [i, current, partners]);
 
@@ -242,8 +253,8 @@ assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: s
                 onChange(current.field, v);
               }}
               suggestions={current.field === 'grantorName' ? ownerCandidates : []}
-              partners={current.field === 'requestedBy' ? partners : []}
-              allowNewPartner={current.field === 'requestedBy'}
+              partners={(current.field === 'requestedBy' || current.id === 'requestedBy') ? partners : []}
+              allowNewPartner={(current.field === 'requestedBy' || current.id === 'requestedBy')}
             
             onFocus={() => { 
               console.log(`[ModernEngine.PrefillCombo.onFocus] 🔵 field="${current.field}"`);
