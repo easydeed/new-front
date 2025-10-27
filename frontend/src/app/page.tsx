@@ -334,6 +334,14 @@ function Faq() {
           <FaqItem q="Does it work with SoftPro?" a="Yes. We designed the flows to play nicely with SoftPro and similar systems." />
           <FaqItem q="Do you store client PII?" a="We store the minimum needed and follow security‑minded practices. You can bring your own storage keys." />
           <FaqItem q="Can I customize the deed templates?" a="Absolutely. SmartReview shows your changes inline before you generate." />
+          <FaqItem q="What deed types do you support?" a="Grant Deed, Quitclaim Deed, Interspousal Transfer, Warranty Deed, and Tax Deed. Each with CA‑specific formatting and validation." />
+          <FaqItem q="How long does document generation take?" a="Average generation time is 1-2 seconds. Most deeds are ready for review within 90 seconds of starting the wizard." />
+          <FaqItem q="Do you integrate with county recording systems?" a="Yes. We support e-recording for all 58 CA counties and provide export formats compatible with major recording platforms." />
+          <FaqItem q="What happens if I make a mistake?" a="SmartReview catches common errors before generation. You can edit and regenerate unlimited times before finalizing." />
+          <FaqItem q="Can I save partial work?" a="Yes. All wizard progress auto-saves. You can return anytime to complete unfinished deeds." />
+          <FaqItem q="Do you support multi-user workflows?" a="Team plans include role-based permissions, shared templates, and audit logs for compliance tracking." />
+          <FaqItem q="What file formats do you export?" a="PDF (print-ready), DOCX (editable), and XML (for county systems). All formats meet CA recording requirements." />
+          <FaqItem q="Is there API access?" a="Yes. REST API available on Team and Enterprise plans. Generate deeds programmatically with the same trusted wizard logic." />
         </div>
       </div>
     </section>

@@ -644,3 +644,376 @@ section:last-of-type::after {
    END OF SECTION COLORS V2
    ========================================== */
 
+/**
+ * DeedPro Vibrancy Boost v3 - High Contrast Edition
+ * Cranks up contrast for sections to match footer's punch
+ * 
+ * Installation:
+ * 1. Append this to frontend/src/app/vibrancy-boost.css
+ * 2. Build and deploy
+ * 
+ * What this adds:
+ * - Solid background for Pricing (STANDS OUT)
+ * - Heavy section headers (font-weight: 800)
+ * - Stronger colors on API and How It Works
+ * - More visual punch overall
+ */
+
+/* ==========================================
+   PRICING SECTION - SOLID BACKGROUND
+   ========================================== */
+
+/* Pricing gets SOLID background color (like footer stands out) */
+section#pricing {
+  /* Choose ONE option below: */
+  
+  /* Option A: Solid Light Blue (Brand Primary) */
+  background: linear-gradient(
+    180deg,
+    rgba(247, 249, 252, 1) 0%,
+    rgba(147, 197, 253, 0.5) 10%,
+    rgba(147, 197, 253, 0.5) 90%,
+    rgba(247, 249, 252, 1) 100%
+  ) !important;
+  
+  /* Option B: Solid Light Orange (Uncomment to use) */
+  /*
+  background: linear-gradient(
+    180deg,
+    rgba(255, 248, 243, 1) 0%,
+    rgba(255, 233, 214, 0.6) 10%,
+    rgba(255, 233, 214, 0.6) 90%,
+    rgba(255, 248, 243, 1) 100%
+  ) !important;
+  */
+  
+  /* Option C: Solid Dual-tone Split (Uncomment to use) */
+  /*
+  background: linear-gradient(
+    180deg,
+    rgba(147, 197, 253, 0.4) 0%,
+    rgba(147, 197, 253, 0.4) 49%,
+    rgba(255, 233, 214, 0.5) 51%,
+    rgba(255, 233, 214, 0.5) 100%
+  ) !important;
+  */
+  
+  border-top: 2px solid rgba(37, 99, 235, 0.2) !important;
+  border-bottom: 2px solid rgba(37, 99, 235, 0.2) !important;
+  padding-top: 5rem;
+  padding-bottom: 5rem;
+}
+
+/* Pricing cards get extra elevation against solid background */
+section#pricing [class*="Card"] {
+  background: #FFFFFF !important;
+  box-shadow: 
+    0 4px 20px rgba(37, 99, 235, 0.15),
+    0 8px 40px rgba(37, 99, 235, 0.1),
+    0 0 0 1px rgba(37, 99, 235, 0.08) !important;
+}
+
+/* Popular pricing card gets EXTRA pop */
+section#pricing .ring-2.ring-\[\#F26B2B\] {
+  box-shadow: 
+    0 0 0 2px rgba(242, 107, 43, 0.3),
+    0 8px 24px rgba(242, 107, 43, 0.2),
+    0 16px 48px rgba(242, 107, 43, 0.15) !important;
+  transform: scale(1.05);
+}
+
+/* ==========================================
+   SECTION HEADERS - HEAVY WEIGHT
+   ========================================== */
+
+/* All section headers get HEAVY weight (commanding presence) */
+h2,
+section h2 {
+  font-weight: 800 !important;
+  letter-spacing: -0.025em !important;
+  color: #0F172A !important;
+}
+
+/* Hero h1 gets extra heavy */
+h1 {
+  font-weight: 900 !important;
+  letter-spacing: -0.03em !important;
+}
+
+/* Section subheadings stay normal for contrast */
+section p.text-neutral-700 {
+  font-weight: 400 !important;
+}
+
+/* ==========================================
+   API SECTION - STRONGER BLUE (MORE POP)
+   ========================================== */
+
+/* API section gets STRONGER blue (stands out like footer) */
+section#api {
+  background: linear-gradient(
+    180deg,
+    rgba(247, 249, 252, 1) 0%,
+    rgba(147, 197, 253, 0.45) 15%,
+    rgba(147, 197, 253, 0.45) 85%,
+    rgba(247, 249, 252, 1) 100%
+  ) !important;
+  border-top: 2px solid rgba(37, 99, 235, 0.25) !important;
+  border-bottom: 2px solid rgba(37, 99, 235, 0.25) !important;
+}
+
+/* API card gets stronger shadow */
+section#api .shadow-soft {
+  box-shadow: 
+    0 6px 24px rgba(37, 99, 235, 0.18),
+    0 12px 48px rgba(37, 99, 235, 0.12),
+    0 0 0 1px rgba(37, 99, 235, 0.12) !important;
+}
+
+/* ==========================================
+   HOW IT WORKS - STRONGER ORANGE (MORE POP)
+   ========================================== */
+
+/* How It Works gets STRONGER orange */
+section#how {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 248, 243, 1) 0%,
+    rgba(255, 233, 214, 0.6) 15%,
+    rgba(255, 233, 214, 0.6) 85%,
+    rgba(255, 248, 243, 1) 100%
+  ) !important;
+  border-top: 2px solid rgba(242, 107, 43, 0.25) !important;
+  border-bottom: 2px solid rgba(242, 107, 43, 0.25) !important;
+}
+
+/* Timeline cards get stronger shadow */
+section#how .bg-white {
+  box-shadow: 
+    0 6px 24px rgba(242, 107, 43, 0.12),
+    0 12px 48px rgba(242, 107, 43, 0.08),
+    0 0 0 1px rgba(242, 107, 43, 0.1) !important;
+}
+
+/* ==========================================
+   STAT BAR - MORE SOLID (STANDS OUT)
+   ========================================== */
+
+/* StatBar gets more solid blue */
+.py-8.bg-white.border-y {
+  background: linear-gradient(
+    180deg,
+    rgba(247, 249, 252, 1) 0%,
+    rgba(147, 197, 253, 0.35) 50%,
+    rgba(247, 249, 252, 1) 100%
+  ) !important;
+  border-color: rgba(37, 99, 235, 0.25) !important;
+  border-width: 2px !important;
+}
+
+/* ==========================================
+   CTA CAPTURE - MORE PROMINENT
+   ========================================== */
+
+/* CTA section gets stronger presence */
+.py-20:has(form) {
+  background: linear-gradient(
+    180deg,
+    rgba(247, 249, 252, 1) 0%,
+    rgba(147, 197, 253, 0.4) 50%,
+    rgba(247, 249, 252, 1) 100%
+  ) !important;
+  border-top: 2px solid rgba(37, 99, 235, 0.2);
+  border-bottom: 2px solid rgba(37, 99, 235, 0.2);
+  padding-top: 5rem !important;
+  padding-bottom: 5rem !important;
+}
+
+/* Email input gets more pop */
+.py-20:has(form) input {
+  box-shadow: 
+    0 4px 16px rgba(37, 99, 235, 0.1),
+    0 0 0 1px rgba(37, 99, 235, 0.12) !important;
+}
+
+/* ==========================================
+   SECTION SEPARATION - THICKER BORDERS
+   ========================================== */
+
+/* Section borders get thicker for more separation */
+section::after {
+  height: 2px !important;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(37, 99, 235, 0.2) 50%,
+    transparent 100%
+  ) !important;
+  opacity: 1 !important;
+}
+
+/* ==========================================
+   ENHANCED CONTRAST ON CARDS
+   ========================================== */
+
+/* All cards get stronger shadows against colored backgrounds */
+[class*="Card"],
+.card,
+.rounded-2xl.bg-white {
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    0 8px 24px rgba(37, 99, 235, 0.12),
+    0 0 0 1px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Cards on hover get STRONGER lift */
+[class*="Card"]:hover,
+.card:hover,
+.rounded-2xl.bg-white:hover {
+  transform: translateY(-6px) !important;
+  box-shadow: 
+    0 8px 20px rgba(0, 0, 0, 0.12),
+    0 16px 56px rgba(37, 99, 235, 0.18),
+    0 0 0 1px rgba(37, 99, 235, 0.15) !important;
+}
+
+/* ==========================================
+   BUTTONS - MORE POP
+   ========================================== */
+
+/* Primary buttons get stronger presence */
+.bg-\[\#2563EB\] {
+  font-weight: 600 !important;
+  box-shadow: 
+    0 4px 12px rgba(37, 99, 235, 0.35),
+    0 12px 32px rgba(37, 99, 235, 0.2) !important;
+}
+
+.bg-\[\#2563EB\]:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 
+    0 6px 16px rgba(37, 99, 235, 0.45),
+    0 16px 48px rgba(37, 99, 235, 0.3) !important;
+}
+
+/* Secondary buttons (orange) */
+.bg-\[\#F26B2B\] {
+  font-weight: 600 !important;
+  box-shadow: 
+    0 4px 12px rgba(242, 107, 43, 0.35),
+    0 12px 32px rgba(242, 107, 43, 0.2) !important;
+}
+
+.bg-\[\#F26B2B\]:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 
+    0 6px 16px rgba(242, 107, 43, 0.45),
+    0 16px 48px rgba(242, 107, 43, 0.3) !important;
+}
+
+/* ==========================================
+   HERO SECTION - MORE CONTRAST
+   ========================================== */
+
+/* Hero grid gets more visible */
+.relative.overflow-hidden:has(h1) {
+  background: 
+    linear-gradient(to right, rgba(37, 99, 235, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(37, 99, 235, 0.06) 1px, transparent 1px),
+    linear-gradient(180deg, 
+      #F7F9FC 0%,
+      rgba(147, 197, 253, 0.25) 50%,
+      #F7F9FC 100%
+    ) !important;
+  background-size: 
+    60px 60px,
+    60px 60px,
+    100% 100% !important;
+}
+
+/* Hero card gets stronger shadow */
+.relative.overflow-hidden:has(h1) .shadow-soft {
+  box-shadow: 
+    0 8px 32px rgba(37, 99, 235, 0.18),
+    0 16px 64px rgba(37, 99, 235, 0.12),
+    0 0 0 1px rgba(37, 99, 235, 0.12) !important;
+}
+
+/* ==========================================
+   FEATURE CARDS - MORE DEFINITION
+   ========================================== */
+
+/* Feature cards get more definition against white background */
+section#features .rounded-2xl.bg-white {
+  border: 1px solid rgba(37, 99, 235, 0.12) !important;
+  box-shadow: 
+    0 4px 16px rgba(37, 99, 235, 0.08),
+    0 8px 32px rgba(37, 99, 235, 0.05) !important;
+}
+
+section#features .rounded-2xl.bg-white:hover {
+  border-color: rgba(37, 99, 235, 0.25) !important;
+  transform: translateY(-4px) scale(1.02) !important;
+}
+
+/* ==========================================
+   TEXT CONTRAST ENHANCEMENT
+   ========================================== */
+
+/* Ensure text is high contrast for readability */
+h1, h2, h3, h4, h5, h6 {
+  color: #0F172A !important;
+}
+
+/* Body text slightly darker for better readability */
+p {
+  color: #334155 !important;
+}
+
+/* Muted text still readable */
+.text-neutral-700,
+.text-muted {
+  color: #475569 !important;
+}
+
+/* ==========================================
+   RESPONSIVE - MAINTAIN CONTRAST ON MOBILE
+   ========================================== */
+
+@media (max-width: 768px) {
+  /* Keep strong backgrounds on mobile */
+  section#pricing {
+    background: linear-gradient(
+      180deg,
+      rgba(247, 249, 252, 1) 0%,
+      rgba(147, 197, 253, 0.4) 20%,
+      rgba(147, 197, 253, 0.4) 80%,
+      rgba(247, 249, 252, 1) 100%
+    ) !important;
+  }
+  
+  section#api {
+    background: linear-gradient(
+      180deg,
+      rgba(247, 249, 252, 1) 0%,
+      rgba(147, 197, 253, 0.35) 20%,
+      rgba(147, 197, 253, 0.35) 80%,
+      rgba(247, 249, 252, 1) 100%
+    ) !important;
+  }
+  
+  section#how {
+    background: linear-gradient(
+      180deg,
+      rgba(255, 248, 243, 1) 0%,
+      rgba(255, 233, 214, 0.5) 20%,
+      rgba(255, 233, 214, 0.5) 80%,
+      rgba(255, 248, 243, 1) 100%
+    ) !important;
+  }
+}
+
+/* ==========================================
+   END OF VIBRANCY BOOST V3 - HIGH CONTRAST
+   ========================================== */
+
