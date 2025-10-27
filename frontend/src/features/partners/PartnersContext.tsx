@@ -49,13 +49,20 @@ export function PartnersProvider({ children }: { children: React.ReactNode }) {
       const raw = Array.isArray(data) ? data : (data?.options || []);
       dlog('PartnersContext', 'Raw options', raw?.length ?? 0);
       
-      // Transform: backend uses "name", PrefillCombo expects "label"
-      const options = raw.map((p: any) => ({
-        id: p.id,
-        label: p.name || p.label || p.company_name || p.displayName || '',  // Map "name" to "label"
-        category: p.category,
-        people_count: p.people_count
-      }));
+      // Transform: backend uses "company_name" + "contact_name", PrefillCombo expects "label"
+      const options = raw.map((p: any) => {
+        // Build label: "Company Name - Contact Name" or just "Company Name"
+        const company = p.company_name || p.name || p.label || '';
+        const contact = p.contact_name || '';
+        const label = contact ? `${company} - ${contact}` : company;
+        
+        return {
+          id: p.id,
+          label: label,
+          category: p.category,
+          people_count: p.people_count
+        };
+      });
       
       dlog('PartnersContext', 'Transformed options', options?.length ?? 0);
       console.log('[PARTNERS] Successfully loaded', options?.length, 'partners. First:', options?.[0]);
