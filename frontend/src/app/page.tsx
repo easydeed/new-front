@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { motion } from 'framer-motion'
-import { Check, Gauge, Shield, Workflow, ArrowRight, FileDigit, Wand2, Sparkles, Zap, Lock, Map, Clock } from 'lucide-react'
+import { Check, Zap, Lock, Map, Clock, ArrowRight, FileDigit, Wand2, Sparkles } from 'lucide-react'
 
-const HERO_IMAGE_URL = 'https://images.unsplash.com/photo-1501183638710-841dd1904471?q=80&w=1887&auto=format&fit=crop'
+const HERO_BG_URL = 'https://images.unsplash.com/photo-1501183638710-841dd1904471?q=80&w=1887&auto=format&fit=crop'
 
 export default function LandingPage() {
   return (
@@ -18,7 +18,7 @@ export default function LandingPage() {
       <StatBar />
       <ApiHello />
       <Features />
-      <HowItWorksCreative />
+      <HowItWorks />
       <VideoSection />
       <Pricing />
       <CtaCapture />
@@ -30,7 +30,7 @@ export default function LandingPage() {
 
 function Header() {
   return (
-    <header className="sticky top-0 z-30 border-b border-neutral-200/60 dark:border-neutral-800/60 bg-white/80 dark:bg-neutral-950/50 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+    <header className="sticky top-0 z-30 border-b border-neutral-200/60 bg-white/80 backdrop-blur">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="relative h-6 w-6 rounded-lg overflow-hidden">
@@ -63,13 +63,11 @@ function Header() {
 function Hero() {
   return (
     <section className="relative overflow-hidden">
-      {/* Background image + stronger brand tint */}
       <div className="absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-center bg-cover" style={{ backgroundImage: `url(${HERO_IMAGE_URL})`}} />
-        <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/78 to-white/92" />
-        {/* color auras */}
-        <div className="absolute -top-36 -right-40 h-[28rem] w-[28rem] rounded-full blur-3xl opacity-40 bg-[#2563EB]" />
-        <div className="absolute -bottom-40 -left-36 h-[28rem] w-[28rem] rounded-full blur-3xl opacity-40 bg-[#F26B2B]" />
+        <div className="absolute inset-0 bg-center bg-cover" style={{ backgroundImage: `url(${HERO_BG_URL})`}} />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/75 to-white/92" />
+        <div className="absolute -top-40 -right-40 h-[28rem] w-[28rem] rounded-full blur-3xl opacity-40 bg-[#2563EB]" />
+        <div className="absolute -bottom-40 -left-40 h-[28rem] w-[28rem] rounded-full blur-3xl opacity-40 bg-[#F26B2B]" />
       </div>
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24 sm:py-36 grid lg:grid-cols-2 gap-12 items-center">
@@ -94,30 +92,18 @@ function Hero() {
               <a href="/demo">See 2‑min demo</a>
             </Button>
           </div>
-          <ul className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-neutral-700/90">
-            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-[#2563EB]" /> SoftPro friendly</li>
-            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-[#F26B2B]" /> Qualia sync</li>
-            <li className="flex items-center gap-2"><Check className="h-4 w-4 text-[#2563EB]" /> SmartReview checks</li>
-          </ul>
         </motion.div>
 
-        {/* Product preview card with deed image */}
         <motion.div initial={{opacity:0,scale:0.98}} animate={{opacity:1,scale:1}} transition={{duration:0.3,delay:0.05}}>
           <Card className="border border-white/80 shadow-soft rounded-2xl bg-white">
             <div className="h-1 w-full bg-gradient-to-r from-[#2563EB] via-[#2563EB] to-[#F26B2B] rounded-t-2xl" />
             <CardContent className="p-0">
               <div className="p-6 pb-0 flex items-center justify-between">
-                <div className="font-medium">SmartReview – Grant Deed</div>
+                <div className="font-medium">SmartReview — Grant Deed</div>
                 <Badge variant="secondary" className="bg-[#F7F9FC] text-neutral-700 ring-1 ring-black/5">Preview</Badge>
               </div>
               <div className="mt-4 relative">
-                <Image
-                  src="/images/deed-hero.png"
-                  alt="Deed preview"
-                  width={1200}
-                  height={675}
-                  className="w-full h-auto rounded-none"
-                />
+                <Image src="/images/deed-hero.png" alt="Deed preview" width={1200} height={675} className="w-full h-auto" />
                 <div className="pointer-events-none absolute inset-0 ring-1 ring-black/5" />
               </div>
               <div className="p-6 flex gap-2">
@@ -172,9 +158,9 @@ function ApiHello() {
           </div>
           <Card className="shadow-soft border-[#2563EB]/20 bg-white">
             <CardContent className="p-6">
-              <pre className="text-xs md:text-sm overflow-auto rounded-xl bg-[#F7F9FC] p-4 border border-[#2563EB]/20">{`curl -X POST https://api.deedpro.app/deeds/create \\
-  -H "Authorization: Bearer <token>" \\
-  -H "Content-Type: application/json" \\
+              <pre className="text-xs md:text-sm overflow-auto rounded-xl bg-[#F7F9FC] p-4 border border-[#2563EB]/20">{`curl -X POST https://api.deedpro.app/deeds/create \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
   -d '{ 
     "grantor": "HERNANDEZ GERARDO J; MENDOZA YESSICA S",
     "grantee": "John Doe",
@@ -210,7 +196,7 @@ function Features() {
   )
 }
 
-function HowItWorksCreative() {
+function HowItWorks() {
   const steps = [
     { n: 1, t: 'Search', d: 'Enter the address. We prefill from trusted sources.' },
     { n: 2, t: 'Answer', d: 'Grantor, grantee, legal, vesting—guided with examples.' },
@@ -398,15 +384,6 @@ function BigFooter() {
         </div>
       </div>
     </footer>
-  )
-}
-
-function Row({ label, value, clamp=false }: { label: string; value: string; clamp?: boolean }) {
-  return (
-    <div className="grid grid-cols-3 gap-2">
-      <span className="text-neutral-500">{label}</span>
-      <span className={`col-span-2 ${clamp ? 'line-clamp-2' : ''}`}>{value}</span>
-    </div>
   )
 }
 
