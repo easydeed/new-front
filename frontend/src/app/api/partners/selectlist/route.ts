@@ -22,8 +22,8 @@ export async function GET(req: NextRequest) {
       authPreview: auth ? `${auth.substring(0, 20)}...` : 'none'
     });
     
-    // Build URL (note: backend requires trailing slash)
-    const url = `${API_BASE}/api/partners/selectlist/`;
+    // Build URL (backend mounts at /partners not /api/partners)
+    const url = `${API_BASE}/partners/selectlist/`;
     console.log(`[partners/selectlist] Proxying to: ${url}`);
     
     // Make request
