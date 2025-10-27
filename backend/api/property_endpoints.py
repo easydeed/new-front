@@ -563,6 +563,22 @@ def map_sitex_feed_to_ui(sitex_response: Dict, original_address: str) -> Dict:
         print(f"🔍 DEBUG: APN from profile: {profile.get('APN', 'MISSING')}")
         print(f"🔍 DEBUG: PrimaryOwnerName from profile: {profile.get('PrimaryOwnerName', 'MISSING')}")
         
+        # PHASE 16: DEBUG legal description fields
+        legal_candidates = ['LegalDescription', 'BriefLegal', 'LegalBriefDescription', 'LegalDescriptionBrief', 
+                           'LegalDesc', 'Legal', 'LegalShort', 'LegalLong']
+        print(f"🔍 PHASE 16 DEBUG: Checking legal description fields:")
+        for field in legal_candidates:
+            if field in profile:
+                value = profile[field]
+                print(f"   FOUND: {field} = {value[:100] if value else 'EMPTY'}...")
+        
+        # Search for ANY field containing 'legal' (case-insensitive)
+        legal_fields_found = [k for k in profile.keys() if 'legal' in k.lower()]
+        print(f"🔍 PHASE 16 DEBUG: All fields containing 'legal': {legal_fields_found}")
+        
+        # Print first 50 profile keys for full visibility
+        print(f"🔍 PHASE 16 DEBUG: First 50 PropertyProfile keys: {list(profile.keys())[:50]}")
+        
         # Map to UI contract (matching TitlePoint response format)
         # SiteX Feed.PropertyProfile contains all the data we need
         return {
