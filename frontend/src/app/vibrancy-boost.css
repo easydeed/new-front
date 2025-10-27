@@ -352,3 +352,295 @@ html {
    END OF VIBRANCY BOOST V1
    ========================================== */
 
+/**
+ * DeedPro Vibrancy Boost v2 - Section Colors
+ * Adds PDFShift-style distinct section backgrounds using brand colors
+ * 
+ * Installation:
+ * 1. Append this to frontend/src/app/vibrancy-boost.css
+ * 2. Or import separately in globals.css
+ * 
+ * Philosophy:
+ * - Distinct colored sections (like PDFShift)
+ * - Uses brand colors (#2563EB blue, #F26B2B orange)
+ * - Creates visual rhythm: White → Blue → White → Orange → White
+ */
+
+/* ==========================================
+   HERO BACKGROUND - Grid Pattern + Color
+   ========================================== */
+
+/* Hero gets subtle grid + light blue tint */
+.relative.overflow-hidden:has(h1) {
+  background: 
+    linear-gradient(to right, rgba(37, 99, 235, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(37, 99, 235, 0.03) 1px, transparent 1px),
+    linear-gradient(180deg, 
+      #F7F9FC 0%,
+      rgba(147, 197, 253, 0.15) 50%,
+      #F7F9FC 100%
+    );
+  background-size: 
+    60px 60px,
+    60px 60px,
+    100% 100%;
+  background-position: 
+    0 0,
+    0 0,
+    0 0;
+}
+
+/* Alternative: Dotted pattern (comment above, uncomment below) */
+/*
+.relative.overflow-hidden:has(h1) {
+  background: 
+    radial-gradient(circle, rgba(37, 99, 235, 0.08) 1px, transparent 1px),
+    linear-gradient(180deg, 
+      #F7F9FC 0%,
+      rgba(147, 197, 253, 0.12) 50%,
+      #F7F9FC 100%
+    );
+  background-size: 
+    30px 30px,
+    100% 100%;
+}
+*/
+
+/* ==========================================
+   STAT BAR - Light Blue Surface
+   ========================================== */
+
+/* Stats bar gets actual color (not just glassmorphism) */
+.py-8.bg-white.border-y {
+  background: linear-gradient(
+    180deg,
+    rgba(247, 249, 252, 1) 0%,
+    rgba(147, 197, 253, 0.12) 50%,
+    rgba(247, 249, 252, 1) 100%
+  ) !important;
+  border-color: rgba(37, 99, 235, 0.15) !important;
+}
+
+/* ==========================================
+   API SECTION - Solid Light Blue
+   ========================================== */
+
+/* API section gets distinct blue background (like PDFShift) */
+section#api {
+  background: linear-gradient(
+    180deg,
+    #FFFFFF 0%,
+    #F7F9FC 5%,
+    rgba(147, 197, 253, 0.25) 50%,
+    #F7F9FC 95%,
+    #FFFFFF 100%
+  ) !important;
+  border-top: 1px solid rgba(37, 99, 235, 0.1);
+  border-bottom: 1px solid rgba(37, 99, 235, 0.1);
+}
+
+/* API card gets white background to pop */
+section#api .shadow-soft {
+  background: #FFFFFF !important;
+  box-shadow: 
+    0 4px 16px rgba(37, 99, 235, 0.12),
+    0 0 0 1px rgba(37, 99, 235, 0.08) !important;
+}
+
+/* ==========================================
+   FEATURES SECTION - Keep White (Rhythm)
+   ========================================== */
+
+/* Features stays white for visual rhythm */
+section#features {
+  background: #FFFFFF !important;
+}
+
+/* Feature cards get subtle blue tint */
+section#features .rounded-2xl.bg-white {
+  background: linear-gradient(
+    135deg,
+    #FFFFFF 0%,
+    rgba(247, 249, 252, 1) 100%
+  ) !important;
+}
+
+/* ==========================================
+   HOW IT WORKS - Light Orange Tint
+   ========================================== */
+
+/* How it Works gets orange section (brand accent) */
+section#how {
+  background: linear-gradient(
+    180deg,
+    #FFFFFF 0%,
+    #FFF8F3 5%,
+    rgba(255, 233, 214, 0.4) 50%,
+    #FFF8F3 95%,
+    #FFFFFF 100%
+  ) !important;
+  border-top: 1px solid rgba(242, 107, 43, 0.1);
+  border-bottom: 1px solid rgba(242, 107, 43, 0.1);
+}
+
+/* Timeline cards stay white to pop */
+section#how .bg-white {
+  background: #FFFFFF !important;
+  box-shadow: 
+    0 4px 16px rgba(242, 107, 43, 0.08),
+    0 0 0 1px rgba(242, 107, 43, 0.06) !important;
+}
+
+/* ==========================================
+   VIDEO SECTION - Keep White
+   ========================================== */
+
+section#video {
+  background: #FFFFFF !important;
+}
+
+/* ==========================================
+   PRICING - Dual Gradient (Blue + Orange)
+   ========================================== */
+
+/* Pricing gets special dual-color treatment */
+section#pricing {
+  background: linear-gradient(
+    135deg,
+    rgba(247, 249, 252, 0.8) 0%,
+    rgba(147, 197, 253, 0.2) 25%,
+    rgba(255, 233, 214, 0.2) 50%,
+    rgba(147, 197, 253, 0.2) 75%,
+    rgba(247, 249, 252, 0.8) 100%
+  ) !important;
+  border-top: 1px solid rgba(37, 99, 235, 0.1);
+  border-bottom: 1px solid rgba(242, 107, 43, 0.1);
+}
+
+/* Pricing cards stay white */
+section#pricing [class*="Card"] {
+  background: #FFFFFF !important;
+}
+
+/* ==========================================
+   CTA CAPTURE - Light Blue
+   ========================================== */
+
+/* Email capture section gets blue tint */
+section:has(form) .py-20 {
+  background: linear-gradient(
+    180deg,
+    #F7F9FC 0%,
+    rgba(147, 197, 253, 0.15) 50%,
+    #F7F9FC 100%
+  ) !important;
+}
+
+/* ==========================================
+   FAQ - Keep White
+   ========================================== */
+
+section#faq {
+  background: #FFFFFF !important;
+}
+
+/* ==========================================
+   VISUAL RHYTHM SUMMARY
+   ========================================== */
+
+/*
+Section Flow (PDFShift-style):
+1. Hero          → Light Blue (grid pattern)
+2. StatBar       → Light Blue
+3. API           → Blue (distinct)
+4. Features      → White
+5. How It Works  → Orange (distinct)
+6. Video         → White
+7. Pricing       → Dual (blue+orange)
+8. CTA           → Light Blue
+9. FAQ           → White
+10. Footer       → Dark
+
+This creates visual rhythm: 
+Blue → Blue → White → Orange → White → Dual → Blue → White → Dark
+
+Like PDFShift's: 
+White → Blue → White → Purple → White → Blue pattern
+*/
+
+/* ==========================================
+   ENHANCED BORDERS FOR SEPARATION
+   ========================================== */
+
+/* Add subtle borders between sections for clarity */
+section {
+  position: relative;
+}
+
+section::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(37, 99, 235, 0.1) 50%,
+    transparent 100%
+  );
+  opacity: 0.5;
+}
+
+/* Remove border after last section before footer */
+section:last-of-type::after {
+  display: none;
+}
+
+/* ==========================================
+   MOBILE OPTIMIZATION
+   ========================================== */
+
+@media (max-width: 768px) {
+  /* Reduce background intensity on mobile */
+  section#api {
+    background: linear-gradient(
+      180deg,
+      #FFFFFF 0%,
+      rgba(147, 197, 253, 0.15) 50%,
+      #FFFFFF 100%
+    ) !important;
+  }
+  
+  section#how {
+    background: linear-gradient(
+      180deg,
+      #FFFFFF 0%,
+      rgba(255, 233, 214, 0.25) 50%,
+      #FFFFFF 100%
+    ) !important;
+  }
+}
+
+/* ==========================================
+   DARK MODE SUPPORT (Future-proofing)
+   ========================================== */
+
+@media (prefers-color-scheme: dark) {
+  /* If you ever add dark mode, these will adapt */
+  .dark section#api {
+    background: linear-gradient(
+      180deg,
+      #0a0a0a 0%,
+      rgba(37, 99, 235, 0.1) 50%,
+      #0a0a0a 100%
+    ) !important;
+  }
+}
+
+/* ==========================================
+   END OF SECTION COLORS V2
+   ========================================== */
+
