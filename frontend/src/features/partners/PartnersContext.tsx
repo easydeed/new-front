@@ -30,11 +30,7 @@ export function PartnersProvider({ children }: { children: React.ReactNode }) {
       });
       dlog('PartnersContext', 'Response', res.status, res.statusText);
       if (res.status === 401 || res.status === 403) {
-        if (DIAG) { console.log('[PARTNERS DIAG] setPartners call'); }
-if (DIAG) {
-  try { console.log('[PARTNERS DIAG] length:', ([])?.length, 'first:', ([])?.[0]); } catch {}
-}
-setPartners([]);
+        setPartners([]);
         const t = await res.text().catch(()=>'');
         setError(`auth-${res.status}`);
         dlog('PartnersContext', 'Auth error', res.status, t);
@@ -56,12 +52,13 @@ setPartners([]);
       // Transform: backend uses "name", PrefillCombo expects "label"
       const options = raw.map((p: any) => ({
         id: p.id,
-        label: p.name || p.label || '',  // Map "name" to "label"
+        label: p.name || p.label || p.company_name || p.displayName || '',  // Map "name" to "label"
         category: p.category,
         people_count: p.people_count
       }));
       
       dlog('PartnersContext', 'Transformed options', options?.length ?? 0);
+      console.log('[PARTNERS] Successfully loaded', options?.length, 'partners. First:', options?.[0]);
       setPartners(options);
     } catch (e: any) {
       dlog('PartnersContext', 'Exception', String(e));

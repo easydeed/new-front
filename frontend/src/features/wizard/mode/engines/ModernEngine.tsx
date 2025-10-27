@@ -31,17 +31,23 @@ useEffect(() => {
   if (!hydrated || __didHydrateLegal.current) return;
   try {
     const data: any = typeof getWizardData === 'function' ? getWizardData() : {};
-    const v = data?.formData?.legalDescription ?? data?.verifiedData?.legalDescription ?? data?.legalDescription ?? '';
+    // Check both camelCase and snake_case
+    const v = data?.formData?.legalDescription 
+           ?? data?.verifiedData?.legalDescription 
+           ?? data?.verifiedData?.legal_description 
+           ?? data?.legalDescription 
+           ?? '';
     // backfill only if we have something and current state is empty or 'not available'
     const cur = (state?.legalDescription || '').toString();
     const curNorm = cur.trim().toLowerCase();
     const shouldBackfill = v && (cur === '' || curNorm === 'not available');
     if (shouldBackfill) {
+      console.log('[ModernEngine] Backfilling legal description:', v);
       setState(s => ({ ...s, legalDescription: v }));
     }
   } catch {}
   __didHydrateLegal.current = true;
-}, [hydrated]);
+}, [hydrated, state?.legalDescription]);
 useEffect(() => { 
     if (onNext) {
       // @ts-ignore
@@ -74,13 +80,18 @@ useEffect(() => {
       county: data.formData?.county || data.verifiedData?.county || data.county || '',
       propertyAddress: data.formData?.propertyAddress || data.verifiedData?.fullAddress || data.propertyAddress || '',
       fullAddress: data.formData?.fullAddress || data.verifiedData?.fullAddress || data.fullAddress || '',
-      legalDescription: data.formData?.legalDescription || data.verifiedData?.legalDescription || data.legalDescription || '',
+      legalDescription: data.formData?.legalDescription || data.verifiedData?.legalDescription || data.verifiedData?.legal_description || data.legalDescription || '',
       // Party fields (ensure they exist even if empty - CRITICAL FIX)
       grantorName: data.formData?.grantorName || data.verifiedData?.currentOwnerPrimary || data.grantorName || '',
       granteeName: data.formData?.granteeName || '',  // NEW: Explicitly initialize
       vesting: data.formData?.vesting || data.verifiedData?.vestingDetails || data.vesting || '',
       requestedBy: data.formData?.requestedBy || '',  // NEW: Explicitly initialize
     };
+    console.log('[ModernEngine] Initial state hydrated:', { 
+      legalDescription: initial.legalDescription,
+      grantorName: initial.grantorName,
+      requestedBy: initial.requestedBy 
+    });
     setState(initial);
   }, [hydrated]);
 

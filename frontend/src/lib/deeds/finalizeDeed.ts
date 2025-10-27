@@ -28,7 +28,6 @@ function set(obj: AnyObj, path: (string|number)[], val: any) {
 
 function readModernDraft(): AnyObj | null {
   try {
-    console.log('[PDF DIAG] finalizeDeed called');
     if (typeof window === 'undefined') return null;
     const s = localStorage.getItem('deedWizardDraft_modern');
     return s ? JSON.parse(s) : null;
@@ -48,6 +47,7 @@ export async function finalizeDeed(
   opts?: { docType?: string; state?: AnyObj; mode?: string }
 ): Promise<{ success: boolean; deedId?: string }> {
   try {
+    console.log('[PDF] finalizeDeed called - starting PDF generation');
     console.log('[finalizeDeed v6] Canonical payload received:', canonical);
 
     const state = opts?.state ?? readModernDraft() ?? {};
@@ -76,11 +76,12 @@ export async function finalizeDeed(
       grantor_name: get(repaired, ['parties','grantor','name']) || '',
       grantee_name: get(repaired, ['parties','grantee','name']) || '',
       vesting: get(repaired, ['vesting','description']) || state?.vesting || null,
-      requested_by: state?.requestedBy || '',  // Phase 16: Add requested_by field
+      requested_by: state?.requestedBy || canonical?.requestedBy || '',  // Phase 16: Add requested_by field
       // Tag for server-side guardrails & analysis
       source: 'modern-canonical',
     };
-console.log('[PDF DIAG] Backend payload (FULL):', JSON.stringify(backendPayload, null, 2));
+    console.log('[PDF] Backend payload - requested_by:', backendPayload.requested_by);
+    console.log('[PDF] Backend payload (FULL):', JSON.stringify(backendPayload, null, 2));
 
     console.log('[finalizeDeed v6] Backend payload (pre-check):', backendPayload);
     console.log('[finalizeDeed v6] Backend payload JSON:', JSON.stringify(backendPayload, null, 2));
