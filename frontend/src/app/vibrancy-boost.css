@@ -1,0 +1,354 @@
+/**
+ * DeedPro Vibrancy Boost v1
+ * Adds PDFShift-inspired visual depth and energy to Face-Lift-6
+ * 
+ * Installation:
+ * 1. Add this file to frontend/src/app/vibrancy-boost.css
+ * 2. Import in globals.css: @import './vibrancy-boost.css';
+ * 3. Build and deploy
+ * 
+ * What this adds:
+ * - Gradient text on hero
+ * - Soft shadows on all cards
+ * - Glassmorphism on stat bar
+ * - Hover lift effects
+ * - Subtle background gradients
+ * - Enhanced visual depth
+ */
+
+/* ==========================================
+   1. GRADIENT HERO TEXT (PDFShift-style)
+   ========================================== */
+
+/* Target the gradient text in hero ("in minutes.") */
+h1 .bg-gradient-to-r {
+  background: linear-gradient(
+    90deg,
+    #2563EB 0%,
+    #8B5CF6 25%,
+    #EC4899 50%,
+    #F26B2B 75%,
+    #2563EB 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradient-shift 6s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ==========================================
+   2. SOFT CARD SHADOWS (Depth & Elevation)
+   ========================================== */
+
+/* All Card components get enhanced shadows */
+[class*="Card"], 
+.card,
+.rounded-2xl.bg-white {
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 4px 16px rgba(37, 99, 235, 0.08),
+    0 0 0 1px rgba(0, 0, 0, 0.02);
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+              box-shadow 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Hero deed card gets extra depth */
+.shadow-soft {
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    0 8px 32px rgba(37, 99, 235, 0.12),
+    0 0 0 1px rgba(37, 99, 235, 0.08) !important;
+}
+
+/* ==========================================
+   3. HOVER LIFT EFFECTS (Interactive Feel)
+   ========================================== */
+
+/* Cards lift up on hover */
+[class*="Card"]:hover,
+.card:hover,
+.rounded-2xl.bg-white:hover {
+  transform: translateY(-4px);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    0 12px 40px rgba(37, 99, 235, 0.15),
+    0 0 0 1px rgba(37, 99, 235, 0.1);
+}
+
+/* Feature cards get subtle lift */
+section#features .rounded-2xl:hover {
+  transform: translateY(-2px) scale(1.01);
+}
+
+/* ==========================================
+   4. GLASSMORPHISM STAT BAR (Modern Polish)
+   ========================================== */
+
+/* Stats bar gets frosted glass effect */
+.py-8.bg-white.border-y {
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border-color: rgba(37, 99, 235, 0.12) !important;
+  box-shadow: 
+    0 4px 24px rgba(37, 99, 235, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+}
+
+/* Individual stat cards get subtle glow */
+.py-8.bg-white.border-y .rounded-xl {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95),
+    rgba(37, 99, 235, 0.02)
+  ) !important;
+  border-color: rgba(37, 99, 235, 0.15) !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.06);
+  transition: all 0.3s ease;
+}
+
+.py-8.bg-white.border-y .rounded-xl:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 1),
+    rgba(37, 99, 235, 0.05)
+  ) !important;
+  border-color: rgba(37, 99, 235, 0.25) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.12);
+}
+
+/* ==========================================
+   5. SUBTLE BACKGROUND GRADIENTS (Not Flat!)
+   ========================================== */
+
+/* API section gets soft blue wash */
+section#api {
+  background: linear-gradient(
+    180deg,
+    #FFFFFF 0%,
+    rgba(37, 99, 235, 0.03) 20%,
+    rgba(37, 99, 235, 0.08) 50%,
+    rgba(37, 99, 235, 0.03) 80%,
+    #FFFFFF 100%
+  ) !important;
+}
+
+/* Features section gets subtle gradient */
+section#features {
+  background: linear-gradient(
+    180deg,
+    rgba(37, 99, 235, 0.02) 0%,
+    rgba(37, 99, 235, 0.06) 50%,
+    rgba(37, 99, 235, 0.02) 100%
+  ) !important;
+}
+
+/* How it works gets orange gradient */
+section#how {
+  background: linear-gradient(
+    180deg,
+    #FFFFFF 0%,
+    rgba(242, 107, 43, 0.04) 30%,
+    rgba(242, 107, 43, 0.08) 50%,
+    rgba(242, 107, 43, 0.04) 70%,
+    #FFFFFF 100%
+  ) !important;
+}
+
+/* Pricing gets dual gradient */
+section#pricing {
+  background: linear-gradient(
+    180deg,
+    rgba(37, 99, 235, 0.04) 0%,
+    rgba(139, 92, 246, 0.04) 25%,
+    rgba(242, 107, 43, 0.04) 50%,
+    rgba(139, 92, 246, 0.04) 75%,
+    rgba(37, 99, 235, 0.04) 100%
+  ) !important;
+}
+
+/* ==========================================
+   6. ENHANCED BUTTONS (Gradient Borders)
+   ========================================== */
+
+/* Primary CTA buttons get gradient glow */
+.bg-\[\#2563EB\] {
+  position: relative;
+  background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%) !important;
+  box-shadow: 
+    0 2px 8px rgba(37, 99, 235, 0.25),
+    0 8px 24px rgba(37, 99, 235, 0.15);
+  transition: all 0.3s ease;
+}
+
+.bg-\[\#2563EB\]:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 4px 12px rgba(37, 99, 235, 0.35),
+    0 12px 32px rgba(37, 99, 235, 0.25);
+}
+
+/* Secondary CTA (orange) */
+.bg-\[\#F26B2B\] {
+  background: linear-gradient(135deg, #F26B2B 0%, #FB923C 100%) !important;
+  box-shadow: 
+    0 2px 8px rgba(242, 107, 43, 0.25),
+    0 8px 24px rgba(242, 107, 43, 0.15);
+  transition: all 0.3s ease;
+}
+
+.bg-\[\#F26B2B\]:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 4px 12px rgba(242, 107, 43, 0.35),
+    0 12px 32px rgba(242, 107, 43, 0.25);
+}
+
+/* ==========================================
+   7. ENHANCED HERO SECTION (More Depth)
+   ========================================== */
+
+/* Hero background auras get more vibrancy */
+.bg-\[\#2563EB\].rounded-full.blur-3xl {
+  opacity: 0.5 !important;
+  background: radial-gradient(
+    circle,
+    rgba(37, 99, 235, 0.8) 0%,
+    rgba(139, 92, 246, 0.4) 50%,
+    transparent 100%
+  ) !important;
+  animation: pulse-aura 8s ease-in-out infinite;
+}
+
+.bg-\[\#F26B2B\].rounded-full.blur-3xl {
+  opacity: 0.5 !important;
+  background: radial-gradient(
+    circle,
+    rgba(242, 107, 43, 0.8) 0%,
+    rgba(251, 146, 60, 0.4) 50%,
+    transparent 100%
+  ) !important;
+  animation: pulse-aura 10s ease-in-out infinite reverse;
+}
+
+@keyframes pulse-aura {
+  0%, 100% { 
+    transform: scale(1) translateX(0);
+    opacity: 0.4;
+  }
+  50% { 
+    transform: scale(1.1) translateX(-20px);
+    opacity: 0.6;
+  }
+}
+
+/* ==========================================
+   8. CODE BLOCK ENHANCEMENT (Subtle Glow)
+   ========================================== */
+
+/* API code block gets soft glow */
+pre {
+  box-shadow: 
+    0 2px 12px rgba(37, 99, 235, 0.08),
+    0 0 0 1px rgba(37, 99, 235, 0.1) inset;
+  background: linear-gradient(
+    135deg,
+    rgba(247, 249, 252, 1),
+    rgba(37, 99, 235, 0.02)
+  ) !important;
+}
+
+/* ==========================================
+   9. PRICING CARDS (Special Treatment)
+   ========================================== */
+
+/* Popular pricing card gets extra glow */
+.ring-2.ring-\[\#F26B2B\] {
+  box-shadow: 
+    0 0 0 1px rgba(242, 107, 43, 0.2),
+    0 4px 16px rgba(242, 107, 43, 0.15),
+    0 12px 40px rgba(242, 107, 43, 0.1) !important;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 1),
+    rgba(242, 107, 43, 0.02)
+  ) !important;
+}
+
+/* All pricing cards get hover effect */
+section#pricing [class*="Card"]:hover {
+  transform: translateY(-6px) scale(1.02);
+}
+
+/* ==========================================
+   10. FOOTER ENHANCEMENT (Subtle Gradient)
+   ========================================== */
+
+/* Footer gets subtle gradient */
+footer.bg-neutral-950 {
+  background: linear-gradient(
+    180deg,
+    #0a0a0a 0%,
+    #1a1a2e 50%,
+    #0a0a0a 100%
+  ) !important;
+}
+
+/* ==========================================
+   11. RESPONSIVE & ACCESSIBILITY
+   ========================================== */
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Ensure hover effects work on touch devices */
+@media (hover: none) {
+  [class*="Card"]:hover,
+  .card:hover,
+  .rounded-2xl.bg-white:hover {
+    transform: none;
+  }
+}
+
+/* ==========================================
+   12. FINAL POLISH (Small Details)
+   ========================================== */
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Slightly increase border radius for modern feel */
+.rounded-2xl {
+  border-radius: 1.25rem !important;
+}
+
+/* Badge gets subtle glow */
+[class*="Badge"] {
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+  transition: all 0.3s ease;
+}
+
+[class*="Badge"]:hover {
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  transform: translateY(-1px);
+}
+
+/* ==========================================
+   END OF VIBRANCY BOOST V1
+   ========================================== */
+

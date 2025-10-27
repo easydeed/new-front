@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Vibrancy Boost v1 - PDFShift-inspired enhancements */
+@import './vibrancy-boost.css';
+
 /* Escrow Skin (Phase 9 - Theme) */
 .escrow {
   --bg: #F8F7F4;
