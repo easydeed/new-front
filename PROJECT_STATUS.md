@@ -30,6 +30,40 @@
 
 ---
 
+## 🔄 ROLLBACK PLAN (Phase 18 v2)
+
+**If Phase 18 v2 encounters issues in production, we have 3 rollback options:**
+
+### **Option 1: Git Revert** (RECOMMENDED - 30 seconds)
+```bash
+git revert f282cf0 --no-edit && git push origin main
+```
+- **Use when**: Most issues, safest option
+- **Effect**: Removes Phase 18 v2 while preserving history
+- **Downtime**: ~3 minutes (Vercel rebuild)
+
+### **Option 2: Rollback Script** (5 minutes)
+```bash
+node phase18-v2/scripts/rollback_phase17_v2.mjs .
+git add -A && git commit -m "rollback: Restore from backups" && git push origin main
+```
+- **Use when**: Need to restore files from backups
+- **Effect**: Restores all `*.bak.v17` backups
+- **Downtime**: ~5 minutes
+
+### **Option 3: Branch Rollback** (Nuclear - 30 seconds)
+```bash
+git reset --hard 99feb6f && git push origin main --force
+```
+- **Use when**: Production completely broken
+- **Effect**: Complete removal from main (preserved in branch)
+- **Downtime**: ~3 minutes
+- **⚠️ WARNING**: Uses force push
+
+**Full Rollback Guide**: `PHASE_18_ROLLBACK_PLAN.md` (includes decision matrix, verification steps, troubleshooting)
+
+---
+
 ## ⚠️ KNOWN MINOR ISSUES (Documented for Future)
 
 ### **Phase 18 v2 - Potential Edge Cases** (Non-Blockers)
