@@ -26,16 +26,47 @@ The Classic Wizard is a **technical debt landmine**. While it "works" for simple
 
 ---
 
+## 🎯 CRITICAL DECISION: SiteX ONLY (No TitlePoint)
+
+### **Architecture Decision for Classic Wizard**
+
+**DECISION**: Classic Wizard will use **SiteX data ONLY**. All TitlePoint references will be **removed/ignored**.
+
+**Rationale**:
+1. **Simplicity**: Single data source = less complexity
+2. **Consistency**: SiteX provides all required fields (apn, county, legal description, owner)
+3. **Cost**: TitlePoint adds extra API calls with minimal value-add for Classic mode
+4. **Maintenance**: Fewer integration points = easier to maintain
+5. **User Experience**: SiteX data is sufficient for Classic Wizard flow
+
+**What This Means**:
+- ✅ Use `data.grantorName` or `data.currentOwnerPrimary` from SiteX
+- ❌ ~~Use `data.titlePoint.owners` array~~ (REMOVE)
+- ✅ Use `data.legalDescription` from SiteX
+- ❌ ~~Use `data.titlePoint.vestingDetails`~~ (REMOVE - not critical for Classic)
+- ✅ Focus on SiteX fields: apn, county, legalDescription, grantorName
+
+**Components to Update**:
+1. `Step4PartiesProperty.tsx` - Remove TitlePoint owner prefill logic
+2. `prefillFromEnrichment()` function - Use SiteX fields only
+3. Documentation - Update to reflect SiteX-only approach
+
+**Note**: Modern Wizard can continue using TitlePoint for advanced features. Classic Wizard = simplified flow with SiteX only.
+
+---
+
 ## 🌊 PROPERTY HYDRATION DEEP DIVE (How Data Flows)
 
 ### **What Is Property Hydration?**
 Property hydration is the process of:
 1. User searches for property address
-2. System calls Google Places API → SiteX API → TitlePoint API
+2. System calls Google Places API → SiteX API ~~→ TitlePoint API~~ **(SiteX ONLY for Classic)**
 3. Backend returns enriched property data (APN, county, legal description, owner, vesting, etc.)
 4. Frontend **prefills** form fields with this data (saves user from manual typing)
 
 **Phase 16-18 Lesson**: Modern Wizard hydrates **10+ fields** automatically. Classic Wizard hydrates **3 fields** (67% data waste).
+
+**Phase 19 Simplification**: Classic Wizard uses **SiteX ONLY** (no TitlePoint).
 
 ---
 
@@ -86,19 +117,20 @@ This means:
 **File**: `frontend/src/components/PropertySearchWithTitlePoint.tsx` (Phase 14-C)  
 **Backend**: `backend/api/property_endpoints.py` - `map_sitex_feed_to_ui()`
 
-**Data Structure Returned**:
+**Data Structure Returned (SiteX ONLY)**:
 ```typescript
 {
   success: true,
-  apn: "8381-021-001",
-  county: "Los Angeles",
-  city: "Los Angeles",
-  state: "CA",
-  zip: "90001",
-  legalDescription: "LOT 1 OF TRACT NO. 12345...",  // ✅ FROM SITEX
-  grantorName: "JOHN DOE AND JANE DOE",  // ✅ FROM SITEX PrimaryOwnerName
-  propertyType: "Single Family Residence",
-  fullAddress: "123 Main St, Los Angeles, CA 90001",
+  apn: "8381-021-001",  // ✅ SITEX
+  county: "Los Angeles",  // ✅ SITEX
+  city: "Los Angeles",  // ✅ SITEX
+  state: "CA",  // ✅ SITEX
+  zip: "90001",  // ✅ SITEX
+  legalDescription: "LOT 1 OF TRACT NO. 12345...",  // ✅ SITEX (PRIMARY FIELD)
+  grantorName: "JOHN DOE AND JANE DOE",  // ✅ SITEX PrimaryOwnerName
+  currentOwnerPrimary: "JOHN DOE AND JANE DOE",  // ✅ SITEX (ALIAS)
+  propertyType: "Single Family Residence",  // ✅ SITEX
+  fullAddress: "123 Main St, Los Angeles, CA 90001",  // ✅ SITEX
   confidence: 0.95,
   fips: "06037",
   recording_date: "2020-05-15",
@@ -106,20 +138,15 @@ This means:
   source: "sitex",
   sitex_validated: true,
   
-  // TitlePoint data (if available):
-  titlePoint: {
-    owners: [
-      { fullName: "JOHN DOE", name: "JOHN DOE" },
-      { fullName: "JANE DOE", name: "JANE DOE" }
-    ],
-    vestingDetails: "HUSBAND AND WIFE AS JOINT TENANTS"
-  }
+  // ❌ TitlePoint data IGNORED for Classic Wizard (SiteX-only decision)
+  // titlePoint: { ... }  // NOT USED
 }
 ```
 
-**Available Fields**: 15+ fields  
-**Used by Classic Wizard**: 3 fields (apn, county, titlePoint.owners)  
-**Wasted**: 12 fields (80% data loss)
+**Available Fields (SiteX)**: 13 fields  
+**Used by Classic Wizard**: 2 fields (apn, county)  
+**Wasted**: 11 fields (85% data loss)  
+**Target for Phase 19**: Use 6+ fields (apn, county, legalDescription, grantorName, fullAddress, propertyType)
 
 ---
 
@@ -187,46 +214,52 @@ export function getStep1Data() {
 }
 ```
 
-**What's Available in step1Data**:
+**What's Available in step1Data (SiteX ONLY)**:
 ```typescript
 {
-  apn: "8381-021-001",  // ✅ USED
-  county: "Los Angeles",  // ✅ USED
-  piqAddress: { ... },  // ✅ USED (mail-to)
-  titlePoint: {
-    owners: [ ... ]  // ✅ USED (grantor prefill)
-  },
+  apn: "8381-021-001",  // ✅ USED by Step2
+  county: "Los Angeles",  // ✅ USED by Step4
+  piqAddress: { ... },  // ✅ USED (mail-to address)
   
-  // ❌ AVAILABLE BUT NOT USED:
-  legalDescription: "LOT 1...",  // ❌ NOT READ BY STEP4
+  // ❌ AVAILABLE FROM SITEX BUT NOT USED:
+  legalDescription: "LOT 1...",  // ❌ NOT READ BY STEP4 (CRITICAL BUG)
   grantorName: "JOHN DOE AND JANE DOE",  // ❌ NOT READ BY STEP4
+  currentOwnerPrimary: "JOHN DOE AND JANE DOE",  // ❌ NOT READ BY STEP4
   propertyType: "Single Family Residence",  // ❌ NOT READ
   fullAddress: "123 Main St...",  // ❌ NOT READ
-  // ... 8 more fields ignored
+  city: "Los Angeles",  // ❌ NOT READ
+  state: "CA",  // ❌ NOT READ
+  zip: "90001",  // ❌ NOT READ
+  // ... more SiteX fields ignored
+  
+  // ❌ TitlePoint data (if present) - IGNORED per SiteX-only decision
+  // titlePoint: { ... }  // NOT USED
 }
 ```
 
 ---
 
-### **Property Hydration Comparison: Classic vs Modern**
+### **Property Hydration Comparison: Classic vs Modern (SiteX ONLY)**
 
 | Field | Available from SiteX | Classic Wizard Uses | Modern Wizard Uses | Gap |
 |-------|---------------------|--------------------|--------------------|-----|
 | **apn** | ✅ | ✅ Step2 prefills | ✅ Auto-hydrates | Equal |
 | **county** | ✅ | ✅ Step4 prefills | ✅ Auto-hydrates | Equal |
 | **legalDescription** | ✅ | ❌ **NOT USED** | ✅ Auto-hydrates | **CRITICAL** |
-| **grantorName** | ✅ | ⚠️ Uses titlePoint.owners | ✅ Fallback to SiteX | **HIGH** |
-| **fullAddress** | ✅ | ❌ NOT USED | ✅ Auto-hydrates | MEDIUM |
-| **propertyType** | ✅ | ❌ NOT USED | ✅ Auto-hydrates | LOW |
-| **vesting** | ✅ (titlePoint) | ❌ NOT USED | ✅ Auto-hydrates | **HIGH** |
-| **recording_date** | ✅ | ❌ NOT USED | ❌ NOT USED | Equal |
-| **doc_number** | ✅ | ❌ NOT USED | ❌ NOT USED | Equal |
-| **fips** | ✅ | ❌ NOT USED | ❌ NOT USED | Equal |
+| **grantorName** | ✅ | ❌ **NOT USED** | ✅ Auto-hydrates | **CRITICAL** |
+| **currentOwnerPrimary** | ✅ | ❌ **NOT USED** | ✅ Auto-hydrates | **CRITICAL** |
+| **fullAddress** | ✅ | ❌ NOT USED | ✅ Auto-hydrates | HIGH |
+| **propertyType** | ✅ | ❌ NOT USED | ✅ Auto-hydrates | MEDIUM |
+| **city** | ✅ | ❌ NOT USED | ⚠️ Partial use | MEDIUM |
+| **state** | ✅ | ❌ NOT USED | ⚠️ Partial use | LOW |
+| **zip** | ✅ | ❌ NOT USED | ⚠️ Partial use | LOW |
 
-**Hydration Score**:
-- **Classic Wizard**: 2/10 fields used (20%)
-- **Modern Wizard**: 7/10 fields used (70%)
-- **Gap**: 50 percentage points
+**Hydration Score (SiteX fields only)**:
+- **Classic Wizard**: 2/10 SiteX fields used (20%)
+- **Modern Wizard**: 6/10 SiteX fields used (60%)
+- **Gap**: 40 percentage points
+
+**Note**: Vesting data removed from comparison (was TitlePoint-only). Classic Wizard focuses on core SiteX fields for simplicity.
 
 ---
 
@@ -290,20 +323,21 @@ const handlePropertyVerified = useCallback((data: any) => {
 **Called in**: `frontend/src/app/create-deed/[docType]/page.tsx` line 148  
 **Defined in**: ❌ **NOWHERE**
 
-**What it SHOULD do**:
+**What it SHOULD do (SiteX ONLY)**:
 ```typescript
 function prefillFromEnrichment(
   enrichedData: any, 
   setGrantDeed: React.Dispatch<React.SetStateAction<Record<string, unknown>>>
 ) {
-  // Extract SiteX data
+  // Extract SiteX data ONLY (no TitlePoint)
   const { 
     apn, 
     county, 
     legalDescription, 
     grantorName, 
     currentOwnerPrimary,
-    titlePoint 
+    fullAddress,
+    propertyType
   } = enrichedData;
   
   // Prefill Step2 (Request Details)
@@ -312,27 +346,26 @@ function prefillFromEnrichment(
     step2: {
       ...prev.step2,
       apn: apn || '',
-      // titleCompany: could prefill if available
+      // Keep existing step2 data, just add apn if missing
     }
   }));
   
-  // Prefill Step4 (Parties & Property)
+  // Prefill Step4 (Parties & Property) - CRITICAL FOR PHASE 19
   setGrantDeed(prev => ({
     ...prev,
     step4: {
       ...prev.step4,
       county: county || '',
-      legalDescription: legalDescription || '',  // ✅ SHOULD PREFILL
-      grantorsText: grantorName || 
-                    currentOwnerPrimary || 
-                    titlePoint?.owners?.map(o => o.fullName || o.name).join('; ') || 
-                    '',
+      legalDescription: legalDescription || '',  // ✅ CRITICAL - FROM SITEX
+      grantorsText: grantorName ||  // ✅ PRIMARY SOURCE
+                    currentOwnerPrimary ||  // ✅ FALLBACK
+                    '',  // ❌ NO TitlePoint fallback (SiteX-only decision)
     }
   }));
 }
 ```
 
-**Reality**: Function doesn't exist → **ALL PREFILL LOGIC IS MISSING**
+**Reality**: Function doesn't exist → **ALL SITEX PREFILL LOGIC IS MISSING**
 
 ---
 
@@ -389,7 +422,7 @@ function prefillFromEnrichment(
 
 ### **Fix Strategy for Property Hydration**
 
-#### **Option A: Implement Missing Function (Quick Fix)**
+#### **Option A: Implement Missing Function (Quick Fix - SiteX ONLY)**
 **Effort**: 1 hour  
 **File**: `frontend/src/app/create-deed/[docType]/page.tsx`
 
@@ -399,13 +432,15 @@ function prefillFromEnrichment(
   enrichedData: any, 
   setGrantDeed: React.Dispatch<React.SetStateAction<Record<string, unknown>>>
 ) {
+  // Extract SiteX fields ONLY (no TitlePoint per Phase 19 decision)
   const { 
     apn, 
     county, 
     legalDescription, 
     grantorName, 
     currentOwnerPrimary,
-    titlePoint 
+    fullAddress,
+    propertyType
   } = enrichedData;
   
   // Prefill Step4 (critical for Phase 19)
@@ -418,21 +453,25 @@ function prefillFromEnrichment(
     step4: {
       ...prev.step4,
       county: county || prev.step4?.county || '',
-      legalDescription: legalDescription || prev.step4?.legalDescription || '',
-      grantorsText: grantorName || 
-                    currentOwnerPrimary || 
-                    titlePoint?.owners?.map(o => o.fullName || o.name).join('; ') || 
-                    prev.step4?.grantorsText ||
-                    '',
+      legalDescription: legalDescription || prev.step4?.legalDescription || '',  // ✅ SITEX
+      grantorsText: grantorName ||  // ✅ SITEX PRIMARY
+                    currentOwnerPrimary ||  // ✅ SITEX FALLBACK
+                    prev.step4?.grantorsText ||  // ✅ PRESERVE EXISTING
+                    '',  // ❌ NO TitlePoint (SiteX-only)
     }
   }));
+  
+  console.log('[Classic] Prefilled from SiteX:', { 
+    apn, county, legalDescription, grantorName 
+  });
 }
 ```
 
 **Pros**:
 - ✅ Quick fix (1 hour)
-- ✅ Enables legal description prefill
-- ✅ Enables grantor prefill from SiteX
+- ✅ Enables legal description prefill from SiteX
+- ✅ Enables grantor prefill from SiteX (no TitlePoint complexity)
+- ✅ Simple single-source architecture
 
 **Cons**:
 - ⚠️ Still uses manual localStorage pattern
@@ -455,17 +494,20 @@ With:
 const { updateFormData, getWizardData } = useWizardStoreBridge();
 ```
 
-Update `handlePropertyVerified`:
+Update `handlePropertyVerified` (SiteX ONLY):
 ```typescript
 const handlePropertyVerified = (data: VerifiedData) => {
   updateFormData({
     verifiedData: data,
     propertyVerified: true,
-    apn: data.apn,
-    county: data.county,
-    legalDescription: data.legalDescription || '',
-    grantorName: data.grantorName || data.currentOwnerPrimary || '',
-    vesting: data.titlePoint?.vestingDetails || '',
+    apn: data.apn,  // ✅ SITEX
+    county: data.county,  // ✅ SITEX
+    legalDescription: data.legalDescription || '',  // ✅ SITEX
+    grantorName: data.grantorName || data.currentOwnerPrimary || '',  // ✅ SITEX
+    fullAddress: data.fullAddress || '',  // ✅ SITEX
+    propertyType: data.propertyType || '',  // ✅ SITEX
+    // ❌ NO vesting (was from TitlePoint - removed per SiteX-only decision)
+    // ❌ NO titlePoint data (SiteX-only for Classic Wizard)
   });
   setPropertyConfirmed(true);
 };
@@ -773,16 +815,16 @@ const { hydrated, getWizardData, updateFormData } = useWizardStoreBridge();
 
 ---
 
-### **🔴 BUG #6: Grantor Prefill Only Uses TitlePoint, Ignores SiteX**
+### **🔴 BUG #6: Grantor Prefill Uses TitlePoint Instead of SiteX**
 
-**Severity**: MEDIUM  
+**Severity**: MEDIUM → **HIGH** (Phase 19 SiteX-only decision)  
 **File**: `frontend/src/features/wizard/steps/Step4PartiesProperty.tsx`  
 **Evidence**: Lines 32-42
 
 ```typescript
 // Prefill grantors from TitlePoint (human‑readable string)
 useEffect(() => {
-  if (!local.grantorsText && step1Data?.titlePoint?.owners) {
+  if (!local.grantorsText && step1Data?.titlePoint?.owners) {  // ❌ TITLEPOINT
     const owners = (step1Data.titlePoint.owners as Array<{ fullName?: string; name?: string }> | undefined)
       ?.map((o) => o.fullName || o.name)
       .filter(Boolean);
@@ -790,30 +832,37 @@ useEffect(() => {
       setLocal((p) => ({ ...p, grantorsText: owners.join("; ") }));
     }
   }
-}, [step1Data?.titlePoint, local.grantorsText]);  // ❌ ONLY TITLEPOINT
+}, [step1Data?.titlePoint, local.grantorsText]);  // ❌ WRONG SOURCE
 ```
 
-**The Problem**:
-- Only checks `step1Data?.titlePoint?.owners`
-- Does NOT check `step1Data?.verifiedData?.currentOwnerPrimary` (SiteX)
-- Does NOT check `step1Data?.verifiedData?.grantorName`
-- Phase 16 taught us: SiteX has `PrimaryOwnerName` field
+**The Problem (Phase 19 Context)**:
+- ❌ Uses `step1Data?.titlePoint?.owners` (DEPRECATED for Classic)
+- ❌ Does NOT check `step1Data?.grantorName` (SiteX primary field)
+- ❌ Does NOT check `step1Data?.currentOwnerPrimary` (SiteX fallback)
+- ❌ **Violates SiteX-only architecture decision**
 
-**Modern Wizard (WORKING)**:
+**Should Be (SiteX ONLY)**:
 ```typescript
-// ModernEngine.tsx lines 92
-grantorName: data.formData?.grantorName || 
-             data.verifiedData?.currentOwnerPrimary ||  // ✅ SITEX FALLBACK
-             data.grantorName || '',
+// Prefill grantors from SiteX ONLY (Phase 19 decision)
+useEffect(() => {
+  if (!local.grantorsText) {
+    const sitexGrantor = step1Data?.grantorName ||  // ✅ SITEX PRIMARY
+                         step1Data?.currentOwnerPrimary ||  // ✅ SITEX FALLBACK
+                         '';
+    if (sitexGrantor) {
+      setLocal((p) => ({ ...p, grantorsText: sitexGrantor }));
+    }
+  }
+}, [step1Data?.grantorName, step1Data?.currentOwnerPrimary, local.grantorsText]);
 ```
 
 **Impact**:
-- ❌ Misses owner data when TitlePoint fails but SiteX succeeds
-- ❌ Users must manually type owner name (data is available)
-- ❌ Inconsistent with Modern Wizard
+- ❌ Wrong data source (TitlePoint instead of SiteX)
+- ❌ Architecture inconsistency (violates SiteX-only decision)
+- ❌ May miss owner data if backend provides SiteX but not TitlePoint
 
-**Fix Complexity**: LOW (30 min)  
-**Fix Priority**: **P2 - MEDIUM**
+**Fix Complexity**: LOW (20 min)  
+**Fix Priority**: **P1 - HIGH** (part of SiteX-only migration)
 
 ---
 
