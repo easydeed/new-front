@@ -168,6 +168,18 @@ export default function Step5PreviewFixed({
 
   const showEmbed = FEATURE_FLAGS.EMBED_PDF_PREVIEW && !!blobUrl;
 
+  // ✅ PHASE 19 UX FIX: Extract data for summary display
+  const contextData = contextBuilder(wizardData);
+  const summaryFields = [
+    { label: 'Recording Requested By', value: contextData.requested_by || 'Not provided' },
+    { label: 'APN', value: contextData.apn || 'Not provided' },
+    { label: 'County', value: contextData.county || 'Not provided' },
+    { label: 'Property Address', value: contextData.property_address || 'Not provided' },
+    { label: 'Grantor (Transferring Title)', value: contextData.grantors_text || 'Not provided' },
+    { label: 'Grantee (Receiving Title)', value: contextData.grantees_text || 'Not provided' },
+    { label: 'Legal Description', value: contextData.legal_description ? (contextData.legal_description.length > 100 ? contextData.legal_description.substring(0, 100) + '...' : contextData.legal_description) : 'Not provided' },
+  ];
+
   return (
     <div className="space-y-6">
       <div>
@@ -188,6 +200,26 @@ export default function Step5PreviewFixed({
       {error && (
         <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
           {error}
+        </div>
+      )}
+
+      {/* ✅ PHASE 19 UX FIX: Data Summary (like Modern Wizard's SmartReview) */}
+      {!blobUrl && (
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">Deed Information Summary</h3>
+            <p className="text-sm text-gray-600 mt-1">Review the details below before generating the PDF</p>
+          </div>
+          <div className="p-6 space-y-3">
+            {summaryFields.map((field, idx) => (
+              <div key={idx} className="flex justify-between items-start py-3 border-b border-gray-100 last:border-0">
+                <span className="font-medium text-gray-700 min-w-[200px]">{field.label}</span>
+                <span className={`text-right flex-1 ${field.value === 'Not provided' ? 'text-gray-400 italic' : 'text-gray-900'}`}>
+                  {field.value}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
