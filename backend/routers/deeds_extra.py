@@ -17,6 +17,11 @@ env = Environment(loader=FileSystemLoader(TEMPLATE_ROOT), autoescape=select_auto
 
 def _render_pdf(template_path: str, ctx: Dict[str, Any]) -> bytes:
     try:
+        # ✅ PHASE 19 FIX: Add datetime functions to match Grant Deed's approach
+        from datetime import datetime
+        ctx['now'] = datetime.now  # Pass the function itself, not the result
+        ctx['datetime'] = datetime  # Also provide datetime module
+        
         template = env.get_template(template_path)
         html = template.render(**ctx)
         from weasyprint import HTML
