@@ -188,7 +188,140 @@ const partners = usePartners();  // Gets the whole context object
 
 ---
 
+---
+
+## 🐛 NEW BUGS DISCOVERED (User Testing: Quitclaim Deed)
+
+**Date**: October 29, 2025, Evening  
+**Tested By**: User  
+**Test Case**: Quitclaim Deed in Classic Wizard  
+**Status**: 🔴 **3 CRITICAL BUGS FOUND**
+
+### Bug #3: No Property Enrichment/Hydration 🔴 CRITICAL
+**Severity**: 🔴 **HIGH**  
+**User Report**: "No hydration / Property Enrichment on any of the applicable fields"
+
+**Expected**:
+- Legal description should auto-fill from SiteX
+- Grantor name should auto-fill from SiteX
+- County should auto-fill from SiteX
+- APN should auto-fill from SiteX
+
+**Actual**: All fields empty (not hydrating)
+
+**Hypothesis**:
+- Phase 19a fix might not be triggering
+- Step4 component might not be receiving verified data
+- localStorage might not have `verifiedData` from property search
+
+**Investigation Needed**:
+1. Check if property search saves `verifiedData` to localStorage
+2. Check if Step4 reads from correct localStorage key
+3. Verify `useEffect` dependencies in Step4PartiesProperty
+4. Check if Classic Wizard uses different data flow than Modern
+
+**Files to Check**:
+- `frontend/src/features/wizard/steps/Step4PartiesProperty.tsx` (Phase 19a hydration logic)
+- `frontend/src/components/PropertySearchWithTitlePoint.tsx` (data saving)
+- `frontend/src/app/create-deed/[docType]/page.tsx` (Classic Wizard data flow)
+
+---
+
+### Bug #4: Wrong PDF Generated (Grant Deed instead of Quitclaim) 🔴 CRITICAL
+**Severity**: 🔴 **CRITICAL**  
+**User Report**: "Deed generated but it was the wrong one. It generated Grant Deed"
+
+**Expected**: Quitclaim Deed PDF
+
+**Actual**: Grant Deed PDF
+
+**✅ ROOT CAUSE FOUND**:
+
+**The Data Flow**:
+1. URL: `/create-deed/quitclaim-deed`
+2. `canonicalFromUrlParam('quitclaim-deed')` → returns `'quitclaim'` ✅
+3. Passed to `Step5PreviewFixed` as `docType='quitclaim'` ✅
+4. `getGenerateEndpoint('quitclaim')` looks in `DOC_ENDPOINTS` map ❌
+5. Map expects `'quitclaim-deed'` or `'quitclaim_deed'`, NOT `'quitclaim'` ❌
+6. Falls back to `'grant-deed'` endpoint → **WRONG PDF!** 🔴
+
+**The Bug**:
+`docEndpoints.ts` is missing canonical format mappings!
+
+```typescript
+// ❌ MISSING in DOC_ENDPOINTS:
+'quitclaim': '/api/generate/quitclaim-deed-ca',
+'interspousal_transfer': '/api/generate/interspousal-transfer-ca',
+'warranty_deed': '/api/generate/warranty-deed-ca',
+'tax_deed': '/api/generate/tax-deed-ca',
+```
+
+**The Fix**:
+Add canonical formats to `DOC_ENDPOINTS` map:
+```typescript
+// Quitclaim Deed
+'quitclaim-deed': '/api/generate/quitclaim-deed-ca',
+'quitclaim_deed': '/api/generate/quitclaim-deed-ca',
+'quitclaim': '/api/generate/quitclaim-deed-ca',  // ✅ ADD THIS
+```
+
+**Files to Fix**:
+- `frontend/src/features/wizard/context/docEndpoints.ts` (add canonical mappings)
+
+---
+
+### Bug #5: No Review Data Display 🟡 MEDIUM
+**Severity**: 🟡 **MEDIUM** (UX issue, not blocker)  
+**User Report**: "The review page just has a generate button. None of the info is displayed like in the modern wizard"
+
+**Expected**: Review step shows all entered data before generation (like Modern Wizard's SmartReview)
+
+**Actual**: Just a "Generate" button with no data preview
+
+**Hypothesis**:
+- Step5PreviewFixed might be missing review UI
+- Modern Wizard uses `SmartReview` component
+- Classic Wizard might have minimal preview implementation
+
+**Investigation Needed**:
+1. Compare Step5PreviewFixed vs Modern's SmartReview
+2. Check if data is available to Step5
+3. Decide: Add review UI or accept minimal UX for Classic?
+
+**Files to Check**:
+- `frontend/src/features/wizard/steps/Step5PreviewFixed.tsx`
+- `frontend/src/features/wizard/mode/review/SmartReview.tsx` (Modern's review)
+
+---
+
+## 🎯 PRIORITY ORDER (User Testing Results)
+
+**Priority 1** (BLOCKER): Bug #4 - Wrong PDF generated  
+**Priority 2** (BLOCKER): Bug #3 - No property hydration  
+**Priority 3** (UX): Bug #5 - No review data display  
+
+---
+
+## 📋 NEXT STEPS
+
+### Step 1: Fix Bug #4 (Wrong PDF) 🔴
+- **Why First**: User expects Quitclaim but gets Grant Deed - completely wrong output
+- **Estimated Time**: 30 minutes
+- **Expected Fix**: Ensure `docEndpoints.ts` is used correctly
+
+### Step 2: Fix Bug #3 (No Hydration) 🔴
+- **Why Second**: Core functionality - users need auto-fill
+- **Estimated Time**: 45 minutes
+- **Expected Fix**: Debug data flow from property search to Step4
+
+### Step 3: Consider Bug #5 (Review UI) 🟡
+- **Why Last**: Nice-to-have, not blocker
+- **Estimated Time**: 1-2 hours (or defer to future phase)
+- **Decision Needed**: Enhance Classic or keep minimal?
+
+---
+
 **Philosophy Reminder**: "Slow and steady wins the race" ✅
 
-Every bug caught, documented, and fixed makes the codebase stronger! 💪
+Document every bug, fix systematically, test thoroughly! 💪
 

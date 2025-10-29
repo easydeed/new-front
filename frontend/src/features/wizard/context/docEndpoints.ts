@@ -23,7 +23,9 @@ export type DocType =
 
 /**
  * Maps deed types to their backend PDF generation endpoints.
- * Supports both hyphenated (frontend) and snake_case (backend) formats.
+ * Supports hyphenated, snake_case, AND canonical formats (e.g., 'quitclaim').
+ * 
+ * ✅ PHASE 19 HOTFIX #3: Added canonical formats to fix Classic Wizard PDF generation
  */
 export const DOC_ENDPOINTS: Record<string, string> = {
   // Grant Deed
@@ -33,6 +35,7 @@ export const DOC_ENDPOINTS: Record<string, string> = {
   // Quitclaim Deed
   'quitclaim-deed': '/api/generate/quitclaim-deed-ca',
   'quitclaim_deed': '/api/generate/quitclaim-deed-ca',
+  'quitclaim': '/api/generate/quitclaim-deed-ca',  // ✅ Canonical format
   
   // Interspousal Transfer
   'interspousal-transfer': '/api/generate/interspousal-transfer-ca',
