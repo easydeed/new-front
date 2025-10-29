@@ -56,19 +56,17 @@ export default function PrefillCombo({
     );
   }, [fullList, draft]);
 
-  // Log for debugging
+  // ✅ PHASE 19 FIX: Removed infinite loop debug logger
+  // This useEffect was running on EVERY render due to array reference dependencies
+  // Only log on mount for debugging, or remove entirely for production
   useEffect(() => {
-    console.log('[PrefillCombo]', {
+    console.log('[PrefillCombo] Mounted with', {
       fullListLength: fullList.length,
-      filteredListLength: filteredList.length,
-      draft,
-      open,
       partnersLength: partners.length,
       suggestionsLength: suggestions.length,
-      firstPartner: partners[0]?.label,
-      firstFiltered: filteredList[0]?.label
+      initialValue: value
     });
-  }, [fullList, filteredList, draft, open, partners, suggestions]);
+  }, []); // Only run on mount
 
   const handleSelect = (label: string) => {
     setDraft(label);
