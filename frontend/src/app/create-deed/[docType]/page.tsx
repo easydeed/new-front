@@ -118,7 +118,20 @@ function ClassicWizard({ docType }: { docType: DocType }) {
 
   // Load saved data on component mount (Phase15: uses isolated Classic key)
   // ✅ PHASE 19 HOTFIX #5: Clear data when switching deed types
+  // ✅ PHASE 19 FORENSIC FIX: Check sessionStorage flag to prevent loading old data
   useEffect(() => {
+    // Check if we just cleared localStorage from document selector
+    const wasJustCleared = typeof window !== 'undefined' && sessionStorage.getItem('deedWizardCleared') === 'true';
+    
+    if (wasJustCleared) {
+      console.log('[ClassicWizard] 🔄 Fresh deed session detected - starting from Step 1');
+      setCurrentStep(1);
+      setVerifiedData({});
+      setGrantDeed({ step2: {}, step3: {}, step4: {} });
+      setPropertyConfirmed(false);
+      return; // Don't load from localStorage
+    }
+    
     const savedData = safeStorage.get(WIZARD_DRAFT_KEY_CLASSIC);
     if (savedData) {
       try {
@@ -127,6 +140,7 @@ function ClassicWizard({ docType }: { docType: DocType }) {
         // Only restore if same docType
         if (parsed.docType === docType) {
           if (parsed.currentStep && parsed.currentStep > 1) {
+            console.log('[ClassicWizard] 📂 Resuming saved session at step', parsed.currentStep);
             setCurrentStep(parsed.currentStep);
             setVerifiedData(parsed.verifiedData || {});
             setGrantDeed(parsed.grantDeed || parsed.wizardData || {});
@@ -268,8 +282,9 @@ function ClassicWizard({ docType }: { docType: DocType }) {
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
       <Sidebar />
       
-      {/* ✅ PHASE 19 FIX: Removed marginLeft - flexbox handles spacing automatically */}
-      <div style={{ flex: 1, padding: '2rem', position: 'relative', zIndex: 1 }}>
+      {/* ✅ PHASE 19 FORENSIC FIX: Sidebar is position:fixed, so wizard needs marginLeft */}
+      {/* Sidebar width is 240px (from CSS), add 240px margin to prevent overlap */}
+      <div style={{ flex: 1, padding: '2rem', marginLeft: '240px', position: 'relative', zIndex: 1 }}>
         {/* Header */}
         <div style={{ marginBottom: '2rem' }}>
           <h1 style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#1f2937' }}>

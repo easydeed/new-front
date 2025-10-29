@@ -137,8 +137,20 @@ export default function Step5PreviewFixed({
         router.push('/past-deeds?success=1');
       }, 2000);
     } catch (e: any) {
+      // ✅ PHASE 19 FORENSIC FIX: Better error logging and display
       console.error('[Phase 11] Finalize error:', e);
-      setError(e?.message || 'PDF downloaded but failed to save metadata to database');
+      console.error('[Phase 11] Error details:', JSON.stringify(e, Object.getOwnPropertyNames(e)));
+      
+      let errorMsg = 'PDF downloaded but failed to save metadata to database';
+      if (e?.message) {
+        errorMsg = e.message;
+      } else if (typeof e === 'string') {
+        errorMsg = e;
+      } else if (e?.detail) {
+        errorMsg = e.detail;
+      }
+      
+      setError(errorMsg);
     } finally {
       setIsBusy(false);
     }
