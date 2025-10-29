@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import InputUnderline from "@/components/ui/InputUnderline";
 // ✅ PHASE 19d: Import PrefillCombo for Partners dropdown
 import PrefillCombo from "@/features/wizard/mode/components/PrefillCombo";
@@ -62,14 +62,29 @@ export default function Step2RequestDetails({ onNext, onDataChange }: Step2Props
 
   // ✅ PHASE 19 HOTFIX #10: Update local state when step2Data changes from parent
   // This handles when prefillFromEnrichment() clears wizard data
+  // ✅ HOTFIX #10.1: Use useRef to prevent infinite loop
+  const lastStep2DataRef = useRef<any>(null);
+  
   useEffect(() => {
+    // Only update if step2Data actually changed (prevent infinite loop)
+    const newRequestedBy = step2Data?.requestedBy ?? "";
+    const newApn = step2Data?.apn ?? step1Data?.apn ?? "";
+    
+    // Compare with last known values
+    if (lastStep2DataRef.current?.requestedBy === newRequestedBy && 
+        lastStep2DataRef.current?.apn === newApn) {
+      return; // No change, skip update
+    }
+    
     console.log('[Step2] step2Data changed, updating local state:', step2Data);
+    lastStep2DataRef.current = { requestedBy: newRequestedBy, apn: newApn };
+    
     setLocal({
-      requestedBy: step2Data?.requestedBy ?? "",
+      requestedBy: newRequestedBy,
       titleCompany: step2Data?.titleCompany ?? "",
       escrowNo: step2Data?.escrowNo ?? "",
       titleOrderNo: step2Data?.titleOrderNo ?? "",
-      apn: step2Data?.apn ?? step1Data?.apn ?? "",
+      apn: newApn,
       usePIQForMailTo: step2Data?.usePIQForMailTo ?? true,
       mailTo: {
         name: step2Data?.mailTo?.name ?? "",

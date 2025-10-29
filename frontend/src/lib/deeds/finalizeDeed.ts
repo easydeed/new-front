@@ -77,10 +77,12 @@ export async function finalizeDeed(
     const g1 = get(repaired, ['parties','grantor','name']) || state?.grantorName || '';
     const g2 = get(repaired, ['parties','grantee','name']) || state?.granteeName || '';
     const ld = get(repaired, ['property','legalDescription']) || state?.legalDescription || '';
-    console.log('[finalizeDeed v6] Rescue mapping - g1:', g1, 'g2:', g2, 'ld:', ld);
+    const county = get(repaired, ['property','county']) || state?.county || '';  // ✅ PHASE 19 HOTFIX #6: Repair county
+    console.log('[finalizeDeed v6] Rescue mapping - g1:', g1, 'g2:', g2, 'ld:', ld, 'county:', county);
     set(repaired, ['parties','grantor','name'], g1);
     set(repaired, ['parties','grantee','name'], g2);
     set(repaired, ['property','legalDescription'], ld);
+    set(repaired, ['property','county'], county);  // ✅ PHASE 19 HOTFIX #6: Set repaired county
     console.log('[finalizeDeed v6] Repaired canonical:', JSON.stringify(repaired, null, 2));
 
     // Build backend payload (snake_case)
