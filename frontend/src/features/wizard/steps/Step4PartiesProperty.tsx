@@ -4,6 +4,8 @@ import TextareaUnderline from "@/components/ui/TextareaUnderline";
 import InputUnderline from "@/components/ui/InputUnderline";
 import { Step4Schema } from "../validation/grantDeed";
 import { getStep1Data, getGrantDeedData } from "../state";
+// ✅ PHASE 19 HOTFIX #4: Import correct Classic Wizard key
+import { WIZARD_DRAFT_KEY_CLASSIC } from "../mode/bridge/persistenceKeys";
 
 interface Step4Data {
   grantorsText: string;
@@ -30,8 +32,9 @@ export default function Step4PartiesProperty({ onNext, onDataChange }: Step4Prop
   });
 
   // ✅ PHASE 19a: Prefill from SiteX data (Modern Wizard's proven pattern)
+  // ✅ PHASE 19 HOTFIX #4: Use CLASSIC key, not Modern key
   useEffect(() => {
-    const wizardData = JSON.parse(localStorage.getItem('deedWizardDraft') || '{}');
+    const wizardData = JSON.parse(localStorage.getItem(WIZARD_DRAFT_KEY_CLASSIC) || '{}');
     const verifiedData = wizardData.verifiedData || {};
     const formData = wizardData.formData || {};
     
@@ -94,7 +97,8 @@ export default function Step4PartiesProperty({ onNext, onDataChange }: Step4Prop
     }
     
     // Save to localStorage
-    const currentData = JSON.parse(localStorage.getItem('deedWizardDraft') || '{}');
+    // ✅ PHASE 19 HOTFIX #4: Use CLASSIC key consistently
+    const currentData = JSON.parse(localStorage.getItem(WIZARD_DRAFT_KEY_CLASSIC) || '{}');
     const updatedData = {
       ...currentData,
       grantDeed: {
@@ -102,7 +106,7 @@ export default function Step4PartiesProperty({ onNext, onDataChange }: Step4Prop
         step4: parsed.data
       }
     };
-    localStorage.setItem('deedWizardDraft', JSON.stringify(updatedData));
+    localStorage.setItem(WIZARD_DRAFT_KEY_CLASSIC, JSON.stringify(updatedData));
     
     onNext();
   }

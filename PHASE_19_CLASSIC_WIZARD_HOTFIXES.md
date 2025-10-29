@@ -197,9 +197,10 @@ const partners = usePartners();  // Gets the whole context object
 **Test Case**: Quitclaim Deed in Classic Wizard  
 **Status**: 🔴 **3 CRITICAL BUGS FOUND**
 
-### Bug #3: No Property Enrichment/Hydration 🔴 CRITICAL
+### Bug #3: No Property Enrichment/Hydration ⏳ FIXED - TESTING
 **Severity**: 🔴 **HIGH**  
 **User Report**: "No hydration / Property Enrichment on any of the applicable fields"
+**Status**: ⏳ **FIXED** - Commit pending - Awaiting user testing!
 
 **Expected**:
 - Legal description should auto-fill from SiteX
@@ -207,33 +208,52 @@ const partners = usePartners();  // Gets the whole context object
 - County should auto-fill from SiteX
 - APN should auto-fill from SiteX
 
-**Actual**: All fields empty (not hydrating)
+**Actual Before**: All fields empty (not hydrating) ❌
+**Actual After**: Fields should hydrate from SiteX ✅ (pending confirmation)
 
-**Hypothesis**:
-- Phase 19a fix might not be triggering
-- Step4 component might not be receiving verified data
-- localStorage might not have `verifiedData` from property search
+**✅ ROOT CAUSE FOUND**:
 
-**Investigation Needed**:
-1. Check if property search saves `verifiedData` to localStorage
-2. Check if Step4 reads from correct localStorage key
-3. Verify `useEffect` dependencies in Step4PartiesProperty
-4. Check if Classic Wizard uses different data flow than Modern
+**The Bug**:
+```typescript
+// ❌ WRONG: Step4 was reading from Modern Wizard's key!
+const wizardData = JSON.parse(localStorage.getItem('deedWizardDraft') || '{}');
 
-**Files to Check**:
-- `frontend/src/features/wizard/steps/Step4PartiesProperty.tsx` (Phase 19a hydration logic)
-- `frontend/src/components/PropertySearchWithTitlePoint.tsx` (data saving)
-- `frontend/src/app/create-deed/[docType]/page.tsx` (Classic Wizard data flow)
+// ✅ Classic Wizard saves to DIFFERENT key:
+safeStorage.set('deedWizardDraft_classic', JSON.stringify(saveData));  // Line 109 in page.tsx
+
+// Result: Step4 never found the data! ❌
+```
+
+**Why This Happened**:
+- Phase 15 introduced **isolated storage keys** to prevent Modern/Classic conflicts
+- Modern uses: `'deedWizardDraft'`
+- Classic uses: `'deedWizardDraft_classic'`
+- Phase 19a hydration used hardcoded `'deedWizardDraft'` instead of importing `WIZARD_DRAFT_KEY_CLASSIC`
+
+**The Fix**:
+```typescript
+// ✅ Import the correct key
+import { WIZARD_DRAFT_KEY_CLASSIC } from "../mode/bridge/persistenceKeys";
+
+// ✅ Use it consistently
+const wizardData = JSON.parse(localStorage.getItem(WIZARD_DRAFT_KEY_CLASSIC) || '{}');
+localStorage.setItem(WIZARD_DRAFT_KEY_CLASSIC, JSON.stringify(updatedData));
+```
+
+**Files Fixed**:
+- `frontend/src/features/wizard/steps/Step4PartiesProperty.tsx` (3 changes: import, read, write)
 
 ---
 
-### Bug #4: Wrong PDF Generated (Grant Deed instead of Quitclaim) 🔴 CRITICAL
+### Bug #4: Wrong PDF Generated (Grant Deed instead of Quitclaim) ✅ FIXED
 **Severity**: 🔴 **CRITICAL**  
 **User Report**: "Deed generated but it was the wrong one. It generated Grant Deed"
+**Status**: ✅ **FIXED** - Commit `675d2c1` - User confirmed working!
 
 **Expected**: Quitclaim Deed PDF
 
-**Actual**: Grant Deed PDF
+**Actual Before**: Grant Deed PDF
+**Actual After**: ✅ Quitclaim Deed PDF (correct!)
 
 **✅ ROOT CAUSE FOUND**:
 
