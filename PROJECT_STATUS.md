@@ -1,8 +1,11 @@
 # 📊 PROJECT STATUS - DeedPro Application
 
-**Last Updated**: October 29, 2025, 10:35 PM PST  
+**Last Updated**: October 29, 2025, 11:15 PM PST  
 **Current Phase**: Phase 19 - Classic Wizard Bug Fixes  
-**Status**: 🟡 **IN PROGRESS** - Systematic bug fixing
+**Status**: 🟢 **DEPLOYED - USER TESTING IN PROGRESS**
+
+**Latest Deployment**: 3 commits pushed (Hotfixes #7, #8, #9 + comprehensive documentation)  
+**Critical Fix**: Hotfix #9 - Architectural alignment with Modern Wizard (REPLACE data, don't merge)
 
 ---
 
@@ -245,17 +248,23 @@ legalDescription: verifiedData.legalDescription || '',  // ✅ Always use SiteX
 
 ## 📋 DEPLOYMENT STATUS
 
-### Last Deployment to Production
-**Date**: October 29, 2025, ~10:00 PM PST  
+### Latest Deployment to Production ✅
+**Date**: October 29, 2025, 11:15 PM PST  
+**Commits**: `f55f01e`, `e9a2ec9`, `f1cf196`, `5a72cc3`
+
 **Includes**:
-- ✅ Hotfix #1: PrefillCombo TypeError fix
+- ✅ Hotfix #1: PrefillCombo TypeError fix (USER CONFIRMED WORKING)
 - ✅ Hotfix #2: Array safety in Step4
-- ✅ Hotfix #3: PDF endpoint mapping for canonical docTypes
+- ✅ Hotfix #3: PDF endpoint mapping for canonical docTypes (USER CONFIRMED WORKING)
 - ✅ Hotfix #4: Classic Wizard localStorage key fix
 - ✅ Hotfix #5: Clear data when switching deed types
+- ✅ Hotfix #7: Always use fresh SiteX data (no fallback to old)
+- ✅ Hotfix #8: Clear wizard data on fresh property search
+- ✅ **Hotfix #9: REPLACE data (don't merge with prev state)** ← **CRITICAL FIX**
+- ✅ Comprehensive documentation (HOTFIX_9_IMPACT_ANALYSIS.md)
 
 ### Pending Deployment (Holding)
-- ⏳ Hotfix #6: Modern Wizard county repair (waiting - Classic priority)
+- ⏳ Hotfix #6: Modern Wizard county repair (waiting - Classic Wizard testing first)
 
 ---
 
@@ -290,21 +299,49 @@ legalDescription: verifiedData.legalDescription || '',  // ✅ Always use SiteX
 
 ## 🔄 ROLLBACK PLAN
 
-If any hotfix causes issues:
+### Quick Rollback (If Hotfix #9 Causes Issues)
 
-### Rollback Hotfixes #1-5
+**Scenario**: Hotfix #9 breaks something unexpectedly
+
+**Action**: Revert to commit BEFORE Hotfix #9:
 ```bash
-# Revert to commit before hotfixes
-git log --oneline  # Find commit hash before hotfixes
-git revert <commit-hash>
+# Rollback to commit e9a2ec9 (before Hotfix #9)
+git revert f1cf196 --no-commit
+git revert 5a72cc3 --no-commit
+git commit -m "ROLLBACK: Hotfix #9 - Reverted to Hotfix #8"
 git push origin main
 ```
 
-### Individual File Rollback
+**What This Does**:
+- Reverts Hotfix #9 (prefill architecture change)
+- Reverts Hotfix #9 documentation
+- Keeps Hotfixes #1-8 active
+- **Safe**: Can re-apply Hotfix #9 later after debugging
+
+---
+
+### Full Rollback (If Multiple Hotfixes Cause Issues)
+
 ```bash
-# Revert specific file
-git checkout HEAD~1 -- <file-path>
-git commit -m "Rollback: <file-path>"
+# Revert ALL hotfixes (#7, #8, #9)
+git revert f55f01e e9a2ec9 f1cf196 5a72cc3 --no-commit
+git commit -m "ROLLBACK: All Phase 19 hotfixes (#7-#9)"
+git push origin main
+```
+
+**What This Does**:
+- Reverts to state before Hotfix #7
+- Keeps Hotfixes #1-6 active
+- Classic Wizard back to "working but has bugs" state
+
+---
+
+### Individual File Rollback
+
+```bash
+# Rollback only prefillFromEnrichment
+git checkout e9a2ec9 -- frontend/src/features/wizard/services/propertyPrefill.ts
+git commit -m "Rollback: propertyPrefill.ts to Hotfix #8 state"
 git push origin main
 ```
 
