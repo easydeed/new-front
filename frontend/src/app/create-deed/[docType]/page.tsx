@@ -154,6 +154,11 @@ function ClassicWizard({ docType }: { docType: DocType }) {
     setVerifiedData(data);
     setPropertyConfirmed(true);
     
+    // ✅ PHASE 19 HOTFIX #8: Clear old wizard data when NEW property is searched
+    // This ensures fresh start with SiteX data, no old junk text
+    console.log('[handlePropertyVerified] 🔄 Fresh property search - clearing old wizard data');
+    setGrantDeed({ step2: {}, step3: {}, step4: {} });
+    
     // Phase 11 Prequal: Prefill enriched data from SiteX/TitlePoint
     prefillFromEnrichment(data as any, setGrantDeed);
   };
