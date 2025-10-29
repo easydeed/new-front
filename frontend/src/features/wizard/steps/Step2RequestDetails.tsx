@@ -60,6 +60,29 @@ export default function Step2RequestDetails({ onNext, onDataChange }: Step2Props
     }
   }));
 
+  // ✅ PHASE 19 HOTFIX #10: Update local state when step2Data changes from parent
+  // This handles when prefillFromEnrichment() clears wizard data
+  useEffect(() => {
+    console.log('[Step2] step2Data changed, updating local state:', step2Data);
+    setLocal({
+      requestedBy: step2Data?.requestedBy ?? "",
+      titleCompany: step2Data?.titleCompany ?? "",
+      escrowNo: step2Data?.escrowNo ?? "",
+      titleOrderNo: step2Data?.titleOrderNo ?? "",
+      apn: step2Data?.apn ?? step1Data?.apn ?? "",
+      usePIQForMailTo: step2Data?.usePIQForMailTo ?? true,
+      mailTo: {
+        name: step2Data?.mailTo?.name ?? "",
+        company: step2Data?.mailTo?.company ?? "",
+        address1: step2Data?.mailTo?.address1 ?? "",
+        address2: step2Data?.mailTo?.address2 ?? "",
+        city: step2Data?.mailTo?.city ?? "",
+        state: step2Data?.mailTo?.state ?? "CA",
+        zip: step2Data?.mailTo?.zip ?? ""
+      }
+    });
+  }, [step2Data, step1Data]);
+
   // AI Smart suggestion: if usePIQForMailTo, mirror Step 1 PIQ address using AI integration
   useEffect(() => {
     if (local.usePIQForMailTo && step1Data?.piqAddress) {
