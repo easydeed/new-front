@@ -39,7 +39,8 @@ export default function Step2RequestDetails({ onNext, onDataChange }: Step2Props
   const step2Data = grantDeedData.step2;
   
   // ✅ PHASE 19d: Fetch partners list (same as Modern Wizard)
-  const partners = usePartners();
+  // ✅ PHASE 19d HOTFIX: Extract partners array from context object
+  const { partners } = usePartners();
 
   const [local, setLocal] = useState(() => ({
     requestedBy: step2Data?.requestedBy ?? "",
