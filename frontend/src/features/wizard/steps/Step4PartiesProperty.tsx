@@ -41,12 +41,16 @@ export default function Step4PartiesProperty({ onNext, onDataChange }: Step4Prop
       
       // ✅ Grantor: Use SiteX currentOwnerPrimary (same as Modern Wizard)
       if (!local.grantorsText) {
+        // ✅ PHASE 19a FIX: Safely handle owners array
+        const titlePointOwners = step1Data?.titlePoint?.owners;
+        const firstOwnerName = Array.isArray(titlePointOwners) && titlePointOwners.length > 0
+          ? (titlePointOwners[0]?.fullName || titlePointOwners[0]?.name || '')
+          : '';
+        
         const grantorFromSiteX = verifiedData.currentOwnerPrimary || 
                                  verifiedData.grantorName ||
                                  formData.grantorName ||
-                                 step1Data?.titlePoint?.owners?.[0]?.fullName ||
-                                 step1Data?.titlePoint?.owners?.[0]?.name ||
-                                 '';
+                                 firstOwnerName;
         if (grantorFromSiteX) {
           updates.grantorsText = grantorFromSiteX;
         }
