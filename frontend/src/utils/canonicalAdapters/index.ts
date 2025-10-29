@@ -5,13 +5,32 @@ import { toCanonical as warranty } from './warranty';
 import { toCanonical as taxDeed } from './taxDeed';
 
 export function toCanonicalFor(docType: string, state: any) {
+  // ✅ PHASE 19 FIX: Use CANONICAL docType format (grant_deed, quitclaim, etc.)
+  // ModernEngine passes canonical format from canonicalFromUrlParam()
   switch (docType) {
-    case 'grant-deed': return grant(state);
-    case 'quitclaim-deed': return quitclaim(state);
-    case 'interspousal-transfer': return interspousal(state);
-    case 'warranty-deed': return warranty(state);
-    case 'tax-deed': return taxDeed(state);
-    default: return grant(state);
+    case 'grant_deed':
+    case 'grant-deed':
+      return grant(state);
+    
+    case 'quitclaim':
+    case 'quitclaim-deed':
+      return quitclaim(state);
+    
+    case 'interspousal_transfer':
+    case 'interspousal-transfer':
+      return interspousal(state);
+    
+    case 'warranty_deed':
+    case 'warranty-deed':
+      return warranty(state);
+    
+    case 'tax_deed':
+    case 'tax-deed':
+      return taxDeed(state);
+    
+    default:
+      console.warn('[toCanonicalFor] Unknown docType:', docType, '- falling back to grant deed');
+      return grant(state);
   }
 }
 

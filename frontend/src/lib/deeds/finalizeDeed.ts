@@ -42,6 +42,18 @@ function assertBackendReady(b: AnyObj) {
   return { ok: missing.length === 0, missing };
 }
 
+// ✅ PHASE 19 FIX: Convert canonical docType to backend format
+function canonicalToBackendDocType(docType: string): string {
+  const map: Record<string, string> = {
+    'grant_deed': 'grant-deed',
+    'quitclaim': 'quitclaim-deed',
+    'interspousal_transfer': 'interspousal-transfer',
+    'warranty_deed': 'warranty-deed',
+    'tax_deed': 'tax-deed',
+  };
+  return map[docType] || docType || 'grant-deed';
+}
+
 export async function finalizeDeed(
   canonical: AnyObj,
   opts?: { docType?: string; state?: AnyObj; mode?: string }
@@ -52,7 +64,12 @@ export async function finalizeDeed(
 
     const state = opts?.state ?? readModernDraft() ?? {};
     console.log('[finalizeDeed v6] State/localStorage:', JSON.stringify(state, null, 2));
-    const docType = canonical?.deedType || opts?.docType || canonical?.docType || 'grant-deed';
+    
+    // ✅ PHASE 19 FIX: Use opts.docType (passed from ModernEngine), convert to backend format
+    const rawDocType = opts?.docType || canonical?.deedType || canonical?.docType || 'grant-deed';
+    const docType = canonicalToBackendDocType(rawDocType);
+    console.log('[finalizeDeed v6] DocType - raw:', rawDocType, 'backend:', docType);
+    
     const mode = opts?.mode || 'modern';
 
     // Repair canonical if adapter left critical fields empty

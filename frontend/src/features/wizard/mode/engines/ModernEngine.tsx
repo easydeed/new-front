@@ -148,7 +148,8 @@ assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: s
       
       try {
         console.log('[ModernEngine.onNext] 🟢 Calling finalizeDeed...');
-        const result = await finalizeDeed(payload);
+        // ✅ PHASE 19 FIX: Pass docType, state, and mode to finalizeDeed
+        const result = await finalizeDeed(payload, { docType, state, mode });
         console.log('[ModernEngine.onNext] 🟢 finalizeDeed returned:', result);
         
         if (result.success) {
