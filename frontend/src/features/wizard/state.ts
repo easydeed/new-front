@@ -1,5 +1,10 @@
 // Simple wizard state management - integrates with existing React state
 import { Step2RequestDetails, Step3DeclarationsTax, Step4PartiesProperty, ExtendedWizardState } from './types';
+import { WIZARD_DRAFT_KEY_CLASSIC } from './mode/bridge/persistenceKeys';
+
+// ✅ PHASE 19 SENIOR DEBUG FIX: Use correct storage key for Classic Wizard
+// Previously: used 'deedWizardDraft' (Modern key) everywhere
+// Now: use WIZARD_DRAFT_KEY_CLASSIC consistently
 
 // Hook for wizard state management that extends the existing pattern
 export const useWizardStore = () => {
@@ -8,7 +13,7 @@ export const useWizardStore = () => {
   
   const getStoredData = (): Partial<ExtendedWizardState> => {
     try {
-      const stored = localStorage.getItem('deedWizardDraft');
+      const stored = localStorage.getItem(WIZARD_DRAFT_KEY_CLASSIC);
       return stored ? JSON.parse(stored) : {};
     } catch {
       return {};
@@ -19,7 +24,7 @@ export const useWizardStore = () => {
     try {
       const current = getStoredData();
       const updated = { ...current, ...data, timestamp: new Date().toISOString() };
-      localStorage.setItem('deedWizardDraft', JSON.stringify(updated));
+      localStorage.setItem(WIZARD_DRAFT_KEY_CLASSIC, JSON.stringify(updated));
     } catch {
       // Ignore storage errors
     }
@@ -81,8 +86,9 @@ export const useWizardStore = () => {
 };
 
 // Helper functions to extract data for the components
+// ✅ PHASE 19 SENIOR DEBUG FIX: Use correct storage key
 export const getStep1Data = () => {
-  const data = JSON.parse(localStorage.getItem('deedWizardDraft') || '{}');
+  const data = JSON.parse(localStorage.getItem(WIZARD_DRAFT_KEY_CLASSIC) || '{}');
   return {
     apn: data.formData?.apn || data.verifiedData?.apn,
     county: data.formData?.county || data.verifiedData?.county,
@@ -92,6 +98,6 @@ export const getStep1Data = () => {
 };
 
 export const getGrantDeedData = () => {
-  const data = JSON.parse(localStorage.getItem('deedWizardDraft') || '{}');
+  const data = JSON.parse(localStorage.getItem(WIZARD_DRAFT_KEY_CLASSIC) || '{}');
   return data.grantDeed || {};
 };

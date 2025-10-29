@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState } from "react";
 import InputUnderline from "@/components/ui/InputUnderline";
 // ✅ PHASE 19d: Import PrefillCombo for Partners dropdown
 import PrefillCombo from "@/features/wizard/mode/components/PrefillCombo";
@@ -42,6 +42,9 @@ export default function Step2RequestDetails({ onNext, onDataChange }: Step2Props
   // ✅ PHASE 19d HOTFIX: Extract partners array from context object
   const { partners } = usePartners();
 
+  // ✅ PHASE 19 SENIOR DEBUG FIX: Removed broken useEffect patches
+  // Root cause was state.ts using wrong localStorage key
+  // Now getGrantDeedData() reads from WIZARD_DRAFT_KEY_CLASSIC correctly
   const [local, setLocal] = useState(() => ({
     requestedBy: step2Data?.requestedBy ?? "",
     titleCompany: step2Data?.titleCompany ?? "",
@@ -59,44 +62,6 @@ export default function Step2RequestDetails({ onNext, onDataChange }: Step2Props
       zip: step2Data?.mailTo?.zip ?? ""
     }
   }));
-
-  // ✅ PHASE 19 HOTFIX #10: Update local state when step2Data changes from parent
-  // This handles when prefillFromEnrichment() clears wizard data
-  // ✅ HOTFIX #10.1: Use useRef to prevent infinite loop
-  const lastStep2DataRef = useRef<any>(null);
-  
-  useEffect(() => {
-    // Only update if step2Data actually changed (prevent infinite loop)
-    const newRequestedBy = step2Data?.requestedBy ?? "";
-    const newApn = step2Data?.apn ?? step1Data?.apn ?? "";
-    
-    // Compare with last known values
-    if (lastStep2DataRef.current?.requestedBy === newRequestedBy && 
-        lastStep2DataRef.current?.apn === newApn) {
-      return; // No change, skip update
-    }
-    
-    console.log('[Step2] step2Data changed, updating local state:', step2Data);
-    lastStep2DataRef.current = { requestedBy: newRequestedBy, apn: newApn };
-    
-    setLocal({
-      requestedBy: newRequestedBy,
-      titleCompany: step2Data?.titleCompany ?? "",
-      escrowNo: step2Data?.escrowNo ?? "",
-      titleOrderNo: step2Data?.titleOrderNo ?? "",
-      apn: newApn,
-      usePIQForMailTo: step2Data?.usePIQForMailTo ?? true,
-      mailTo: {
-        name: step2Data?.mailTo?.name ?? "",
-        company: step2Data?.mailTo?.company ?? "",
-        address1: step2Data?.mailTo?.address1 ?? "",
-        address2: step2Data?.mailTo?.address2 ?? "",
-        city: step2Data?.mailTo?.city ?? "",
-        state: step2Data?.mailTo?.state ?? "CA",
-        zip: step2Data?.mailTo?.zip ?? ""
-      }
-    });
-  }, [step2Data, step1Data]);
 
   // AI Smart suggestion: if usePIQForMailTo, mirror Step 1 PIQ address using AI integration
   useEffect(() => {
