@@ -197,10 +197,14 @@ const partners = usePartners();  // Gets the whole context object
 **Test Case**: Quitclaim Deed in Classic Wizard  
 **Status**: 🔴 **3 CRITICAL BUGS FOUND**
 
-### Bug #3: No Property Enrichment/Hydration ⏳ FIXED - TESTING
+### Bug #3: No Property Enrichment/Hydration 🔴 CRITICAL - AFFECTS MODERN TOO!
 **Severity**: 🔴 **HIGH**  
 **User Report**: "No hydration / Property Enrichment on any of the applicable fields"
-**Status**: ⏳ **FIXED** - Commit pending - Awaiting user testing!
+**Status**: 🔴 **PARTIAL FIX** - Classic fixed, but Modern Wizard ALSO has this bug!
+
+**CRITICAL DISCOVERY**: Render logs show `source: 'modern-canonical'` - User is in **Modern Wizard**, NOT Classic!
+- Hotfix #4 only fixed Classic Wizard's localStorage key
+- **Modern Wizard ALSO doesn't hydrate county field properly!**
 
 **Expected**:
 - Legal description should auto-fill from SiteX
@@ -329,18 +333,22 @@ Add canonical formats to `DOC_ENDPOINTS` map:
 **Test Case**: Quitclaim Deed in Classic Wizard (fresh session after logout + hard refresh)  
 **Status**: 🔴 **3 NEW ISSUES FOUND**
 
-### Bug #6: Partners 404 Error (REGRESSION!) 🔴 CRITICAL
-**User Report**: `GET .../api/partners/selectlist 404 (Not Found)`
+### Bug #6: Partners 404 Error (NOT A BUG - Preview Deployment!) ✅ EXPLAINED
+**User Report**: `GET https://deedpro-frontend-afu8d6nq7-easydeeds-projects.vercel.app/api/partners/selectlist 404`
 
-**Status**: 🔴 **REGRESSION** - Partners endpoint worked earlier, now broken again!
+**Status**: ✅ **NOT A BUG** - User is on Vercel **preview deployment**, not production!
 
-**Hypothesis**:
-- Vercel might have deployed an older build
-- Frontend route might have reverted
-- Need to verify latest commit is deployed
+**Root Cause FOUND**:
+- URL shows: `deedpro-frontend-afu8d6nq7-easydeeds-projects.vercel.app` ← **Preview URL**
+- Production URL is: `deedpro-frontend-new.vercel.app`
+- Preview deployments are from specific commits, may not have latest code
+- Partners route exists in current code: `frontend/src/app/api/partners/selectlist/route.ts` ✅
 
-**Files to Check**:
-- `frontend/src/app/api/partners/selectlist/route.ts` (verify still has correct proxy)
+**Solution**: User needs to test on **production URL**, not preview deployment!
+
+**Files Verified**:
+- `frontend/src/app/api/partners/selectlist/route.ts` ✅ EXISTS, proxies correctly
+- `frontend/src/features/partners/PartnersContext.tsx` ✅ Calls `/api/partners/selectlist`
 
 ---
 
