@@ -11,6 +11,8 @@ import { useWizardMode } from '../ModeContext';
 import { finalizeDeed } from '@/lib/deeds/finalizeDeed';
 import { usePartners } from '@/features/partners/PartnersContext';
 import { assertStableSteps } from '@/lib/wizard/invariants';
+// ✅ PHASE 19 SESSION FIX: Import Modern Wizard localStorage key
+import { WIZARD_DRAFT_KEY_MODERN } from '../bridge/persistenceKeys';
 
 export default function ModernEngine({ docType }: { docType: string }) {
   const { partners } = usePartners();
@@ -153,7 +155,10 @@ assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: s
         console.log('[ModernEngine.onNext] 🟢 finalizeDeed returned:', result);
         
         if (result.success) {
+          // ✅ PHASE 19 SESSION FIX: Clear Modern Wizard localStorage after successful finalization
+          console.log('[ModernEngine] ✅ Clearing Modern Wizard localStorage after successful finalization');
           if (typeof window !== 'undefined') {
+            localStorage.removeItem(WIZARD_DRAFT_KEY_MODERN);
             console.log('[ModernEngine.onNext] 🟢 Redirecting to preview page:', `/deeds/${result.deedId}/preview?mode=${mode}`);
             window.location.href = `/deeds/${result.deedId}/preview?mode=${mode}`;
           }

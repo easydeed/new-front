@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/Sidebar';
 import '../../styles/dashboard.css';
+// ✅ PHASE 19 SESSION FIX: Import localStorage keys to clear when starting new deed
+import { WIZARD_DRAFT_KEY_MODERN, WIZARD_DRAFT_KEY_CLASSIC } from '@/features/wizard/mode/bridge/persistenceKeys';
 
 interface DocumentType {
   label: string;
@@ -63,6 +65,14 @@ export default function CreateDeedPage() {
   }, []);
 
   const handleDocumentTypeSelect = (docTypeKey: string) => {
+    // ✅ PHASE 19 SESSION FIX: Clear all wizard localStorage when starting a NEW deed
+    // This ensures a fresh start and prevents resuming old wizard sessions
+    console.log('[CreateDeedPage] 🔄 Starting new deed - clearing all wizard localStorage');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(WIZARD_DRAFT_KEY_MODERN);
+      localStorage.removeItem(WIZARD_DRAFT_KEY_CLASSIC);
+    }
+    
     // Navigate to specific document wizard per architecture
     router.push(`/create-deed/${docTypeKey.replace('_', '-')}`);
   };

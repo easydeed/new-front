@@ -7,6 +7,8 @@ import { saveDeedMetadata } from '@/features/wizard/services/deeds';
 import type { DocType } from '@/features/wizard/components/PreviewTitle';
 // ✅ PHASE 19b: Import shared endpoint map
 import { getGenerateEndpoint } from '../context/docEndpoints';
+// ✅ PHASE 19 SESSION FIX: Import correct localStorage key
+import { WIZARD_DRAFT_KEY_CLASSIC } from '../mode/bridge/persistenceKeys';
 
 interface Step5PreviewFixedProps {
   docType: DocType;
@@ -123,8 +125,9 @@ export default function Step5PreviewFixed({
       
       await saveDeedMetadata(payload, token || undefined);
 
-      // 3. Clear draft
-      localStorage.removeItem('deedWizardDraft');
+      // 3. Clear draft - ✅ PHASE 19 SESSION FIX: Use correct Classic Wizard key
+      console.log('[Step5] ✅ Clearing Classic Wizard localStorage after successful finalization');
+      localStorage.removeItem(WIZARD_DRAFT_KEY_CLASSIC);
 
       // 4. Show success
       setSuccessMessage('✅ Deed finalized and saved successfully!');
