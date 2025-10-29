@@ -1,16 +1,16 @@
 # DeedPro - Project Status
-**Last Updated**: October 29, 2025, Late Morning  
-**Production Deploy**: Phase 19 County Fix (DEPLOYED & TESTING)  
+**Last Updated**: October 29, 2025, Afternoon  
+**Production Deploy**: Phase 19 Validator Fix (JUST DEPLOYED)  
 **Production URL**: https://deedpro-frontend-new.vercel.app/
 
 ---
 
 ## 🎯 CURRENT STATUS
 
-**Phase**: 19 (Modern Wizard Fixes - DocType & County)  
-**Status**: ✅ **DEPLOYED - AWAITING USER TESTING**  
+**Phase**: 19 (Modern Wizard Fixes - DocType & Validators)  
+**Status**: ✅ **JUST DEPLOYED - AWAITING USER TESTING**  
 - ✅ DocType Fix: DEPLOYED & TESTED (Quitclaim generates correct PDF type)
-- ✅ County Fix: DEPLOYED (All 5 deed types - PDF generation 500 error)  
+- ✅ Validator Fix: JUST DEPLOYED (Removed strict validators that caused 500 errors)  
 **Next**: User testing all deed types, then Classic Wizard
 
 ---
@@ -18,20 +18,23 @@
 ## 🎯 IN PROGRESS
 
 ### **Phase 19: Modern Wizard Critical Fixes**
-- **Status**: ✅ DEPLOYED TO PRODUCTION (Render confirmed deployment)
-- **Issue**: Empty county field from SiteX causing 500 errors on PDF generation
+- **Status**: ✅ JUST DEPLOYED (Commit: b1c8c98)
+- **Issue**: PDF generation returned 500 errors for Quitclaim/Interspousal/Warranty/Tax deeds
 - **Scope**: ALL 5 deed types (Grant, Quitclaim, Interspousal, Warranty, Tax)
-- **Root Cause**: Backend validator rejects empty county; SiteX returns county in `CountyName` not `County`
-- **Fix**: 2-part fix (county mapping + validator relaxation)
-- **Impact**: Fixes PDF generation for ALL Modern Wizard deed types
+- **Root Cause**: Pydantic validators in deed models were REJECTING valid data
+  - Grant Deed: NO validators → ✅ Works perfectly
+  - Other deeds: Strict validators checking `if not v` → ❌ 500 errors
+- **Fix**: Removed strict validators from all 4 deed models to match Grant Deed's approach
+- **Impact**: All deed types now use same permissive model structure as Grant Deed
 
 **Completed**:
 - ✅ DocType mismatch fixed (Quitclaim now generates correct PDF type)
-- ✅ County fix deployed (5 files modified: 1 API endpoint + 4 Pydantic models)
-- ✅ Render deployment confirmed by user
+- ✅ Validator fix deployed (4 deed model files: quitclaim, interspousal, warranty, tax)
+- ✅ Browser automation test confirmed county field flows correctly end-to-end
+- ✅ Identified Grant Deed as the working reference model
 
 **Next Steps**:
-1. ⏳ User testing: Quitclaim Deed (first priority)
+1. ⏳ User testing: Quitclaim Deed (should now work like Grant Deed)
 2. ⏳ User testing: Interspousal Transfer, Warranty, Tax Deed
 3. Continue Classic Wizard forensic analysis
 
