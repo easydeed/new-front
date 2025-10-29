@@ -322,22 +322,86 @@ Add canonical formats to `DOC_ENDPOINTS` map:
 
 ---
 
+## 🐛 NEW BUGS DISCOVERED (User Testing Round 2)
+
+**Date**: October 29, 2025, Late Evening  
+**Tested By**: User  
+**Test Case**: Quitclaim Deed in Classic Wizard (fresh session after logout + hard refresh)  
+**Status**: 🔴 **3 NEW ISSUES FOUND**
+
+### Bug #6: Partners 404 Error (REGRESSION!) 🔴 CRITICAL
+**User Report**: `GET .../api/partners/selectlist 404 (Not Found)`
+
+**Status**: 🔴 **REGRESSION** - Partners endpoint worked earlier, now broken again!
+
+**Hypothesis**:
+- Vercel might have deployed an older build
+- Frontend route might have reverted
+- Need to verify latest commit is deployed
+
+**Files to Check**:
+- `frontend/src/app/api/partners/selectlist/route.ts` (verify still has correct proxy)
+
+---
+
+### Bug #7: Data Persistence Across Deed Types 🔴 CRITICAL
+**User Report**: "When I choose quit claim looks like some info stays cached when using the same address... Yep. Still Caching the data entered on the previous deed."
+
+**Console Log Evidence**:
+```
+[useWizardStoreBridge.getWizardData] HYDRATED - loaded from localStorage: 
+{
+  currentStep: 3,  // ❌ Should be 1 for fresh deed!
+  verifiedData: {...},
+  grantDeed: {...},  // ❌ Old grantDeed data still there!
+  docType: 'quitclaim',
+  timestamp: '2025-10-29T20:23:21.147Z'
+}
+```
+
+**The Bug**: Classic Wizard doesn't clear previous deed data when switching deed types!
+
+**Expected**: Fresh wizard for each deed type  
+**Actual**: Old data from previous deed persists
+
+**Root Cause Hypothesis**:
+- Classic Wizard loads saved data from localStorage on mount
+- Only restores if `docType` matches (line 127 in page.tsx)
+- But doesn't CLEAR data when docType changes!
+- Result: Old step data (step2, step3, step4) persists
+
+**Files to Fix**:
+- `frontend/src/app/create-deed/[docType]/page.tsx` (add docType change listener to clear data)
+
+---
+
+### Bug #8: Console Logs Say "Grant Deed" for Quitclaim 🟡 MEDIUM
+**User Report**: "Also says grant deed in the console. Not sure why."
+
+**Severity**: 🟡 **MEDIUM** (confusing logs, but functionality might work)
+
+**Hypothesis**:
+- Some component still has hardcoded "grant deed" in console.log
+- Not functional issue, just misleading diagnostics
+
+**Files to Check**:
+- Search for console.log statements with "grant" or "Grant Deed"
+
+---
+
 ## 📋 NEXT STEPS
 
-### Step 1: Fix Bug #4 (Wrong PDF) 🔴
-- **Why First**: User expects Quitclaim but gets Grant Deed - completely wrong output
-- **Estimated Time**: 30 minutes
-- **Expected Fix**: Ensure `docEndpoints.ts` is used correctly
+### Priority 1: Bug #6 (Partners 404 Regression) 🔴
+- **Why First**: Critical regression - feature worked, now broken
+- **Action**: Verify Vercel deployed latest commit with fix
 
-### Step 2: Fix Bug #3 (No Hydration) 🔴
-- **Why Second**: Core functionality - users need auto-fill
-- **Estimated Time**: 45 minutes
-- **Expected Fix**: Debug data flow from property search to Step4
+### Priority 2: Bug #7 (Data Persistence) 🔴
+- **Why Second**: User enters wrong data in wrong deed type
+- **Action**: Clear localStorage when docType changes
 
-### Step 3: Consider Bug #5 (Review UI) 🟡
-- **Why Last**: Nice-to-have, not blocker
-- **Estimated Time**: 1-2 hours (or defer to future phase)
-- **Decision Needed**: Enhance Classic or keep minimal?
+### Priority 3: Bug #8 (Console Logs) 🟡
+- **Why Last**: Cosmetic issue, doesn't affect functionality
+- **Action**: Find and fix misleading console.log statements
 
 ---
 

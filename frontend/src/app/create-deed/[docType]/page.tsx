@@ -117,6 +117,7 @@ function ClassicWizard({ docType }: { docType: DocType }) {
   }, [currentStep, verifiedData, grantDeed, docType]);
 
   // Load saved data on component mount (Phase15: uses isolated Classic key)
+  // ✅ PHASE 19 HOTFIX #5: Clear data when switching deed types
   useEffect(() => {
     const savedData = safeStorage.get(WIZARD_DRAFT_KEY_CLASSIC);
     if (savedData) {
@@ -133,6 +134,15 @@ function ClassicWizard({ docType }: { docType: DocType }) {
               setPropertyConfirmed(true);
             }
           }
+        } else {
+          // ✅ HOTFIX #5: Different docType - clear old data and start fresh
+          console.log(`[ClassicWizard] DocType changed from ${parsed.docType} to ${docType} - clearing old data`);
+          setCurrentStep(1);
+          setVerifiedData({});
+          setGrantDeed({ step2: {}, step3: {}, step4: {} });
+          setPropertyConfirmed(false);
+          // Clear localStorage to prevent confusion
+          safeStorage.remove(WIZARD_DRAFT_KEY_CLASSIC);
         }
       } catch (error) {
         console.error('Error loading saved data:', error);
