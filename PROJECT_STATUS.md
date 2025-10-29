@@ -115,6 +115,50 @@ legalDescription: verifiedData.legalDescription || '',  // ✅ Fresh only
 
 ---
 
+### Hotfix #9: Classic Wizard - REPLACE Data (Don't Merge with Prev State) ✅ DEPLOYED - TESTING REQUIRED
+**File**: `frontend/src/features/wizard/services/propertyPrefill.ts`  
+**Issue**: 
+- Random text persisting even after clearing cache/browser
+- SiteX enrichment NOT filling fields
+
+**Root Cause Found by Reviewing Modern Wizard**:
+```typescript
+// MODERN WIZARD (works):
+updateFormData(storeUpdate);  // REPLACES data completely ✅
+
+// CLASSIC WIZARD (broken):
+setGrantDeed((prev) => ({
+  ...prev,  // ❌ MERGES with old data!
+  step4: { ...prev.step4, ... }  // ❌ Keeps old junk!
+}));
+```
+
+**The Architectural Fix**:
+Changed Classic Wizard to mirror Modern Wizard's proven pattern:
+```typescript
+setGrantDeed({  // ✅ NO prev! REPLACE completely!
+  step2: { apn: verifiedData.apn || '' },
+  step3: {},  // ✅ Fresh empty!
+  step4: {
+    grantorsText: grantorFromSiteX || '',
+    granteesText: '',  // ✅ Empty for user to fill
+    county: verifiedData.county || '',
+    legalDescription: verifiedData.legalDescription || ''
+  }
+});
+```
+
+**Impact Analysis**: See `HOTFIX_9_IMPACT_ANALYSIS.md`
+- ✅ Affects ALL deed types equally (Grant, Quitclaim, Interspousal, Warranty, Tax)
+- ✅ No data loss - Each step component has proper defaults
+- ✅ Works with Hotfix #5 (deed type switching)
+- ✅ Edge cases handled (refresh, back button, etc.)
+- ✅ Based on Modern Wizard's proven architecture
+
+**Status**: ✅ **DEPLOYED** - ⏳ **USER TESTING CRITICAL**
+
+---
+
 ### Hotfix #6: Modern Wizard County Field Not Hydrated ⚠️ IN PROGRESS - CLASSIC FIRST!
 **File**: `frontend/src/lib/deeds/finalizeDeed.ts`  
 **Issue**: Modern Wizard's `county` field empty when generating PDF → 500 error  
@@ -217,34 +261,30 @@ legalDescription: verifiedData.legalDescription || '',  // ✅ Always use SiteX
 
 ## 🎯 IMMEDIATE NEXT STEPS
 
-### Step 1: Investigate "Extra Text" Issue 🔴 IN PROGRESS
-**Goal**: Understand what text is appearing and why
-
-**Questions for User**:
-1. Which wizard? (Classic - confirmed)
-2. Which fields have extra text?
-3. What is the extra text? Examples?
-4. Is it from a previous deed or SiteX data?
-
-**Action**: Get specific examples before coding fixes
-
----
-
-### Step 2: Verify Hotfix #4 & #5 Working
-**Goal**: Confirm hydration and data clearing work correctly
+### Step 1: USER TESTING - Hotfix #9 ✅ READY
+**Goal**: Verify prefill bug is COMPLETELY fixed
 
 **Test Cases**:
-1. Create Grant Deed with address A
-2. Switch to Quitclaim Deed (should clear data)
-3. Enter address B
-4. Verify fields auto-fill from SiteX (not from Grant Deed)
+1. ✅ Fresh property search fills SiteX data (NO old junk)
+2. ✅ Mid-wizard refresh preserves user's progress
+3. ✅ Switching deed types clears old data
+4. ✅ All 5 deed types work consistently
+
+**Comprehensive Testing Guide**: See `HOTFIX_9_IMPACT_ANALYSIS.md`
 
 ---
 
-### Step 3: Review Page Enhancement (Lower Priority)
+### Step 2: Review Page Enhancement (Next Priority)
 **Goal**: Show deed details on Classic Wizard Step 5 (Preview)
 
-**Status**: Documented, waiting for higher priority bugs to be resolved
+**Status**: Documented, waiting for Hotfix #9 user confirmation
+
+---
+
+### Step 3: Modern Wizard County Fix (On Hold)
+**Goal**: Fix Modern Wizard's county field hydration
+
+**Status**: Code ready (Hotfix #6), deployment on hold until Classic Wizard fully tested
 
 ---
 
