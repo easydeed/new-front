@@ -268,7 +268,8 @@ function ClassicWizard({ docType }: { docType: DocType }) {
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
       <Sidebar />
       
-      <div style={{ flex: 1, padding: '2rem', marginLeft: '280px' }}>
+      {/* ✅ PHASE 19 FIX: Removed marginLeft - flexbox handles spacing automatically */}
+      <div style={{ flex: 1, padding: '2rem', position: 'relative', zIndex: 1 }}>
         {/* Header */}
         <div style={{ marginBottom: '2rem' }}>
           <h1 style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#1f2937' }}>
@@ -434,6 +435,7 @@ export default function UnifiedWizard() {
 
   // PATCH4a-FIX: Clear localStorage if ?fresh=true URL param is present
   // Usage: /create-deed/grant-deed?mode=modern&fresh=true
+  // ✅ PHASE 19 SESSION FIX: Also clear sessionStorage flag after initial clear
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
@@ -441,10 +443,19 @@ export default function UnifiedWizard() {
         console.log('[UnifiedWizard] Fresh start requested - clearing localStorage');
         safeStorage.remove(WIZARD_DRAFT_KEY_MODERN);
         safeStorage.remove(WIZARD_DRAFT_KEY_CLASSIC);
+        sessionStorage.removeItem('deedWizardCleared'); // Clear flag for fresh start
         // Remove ?fresh=true from URL to prevent clearing on refresh
         urlParams.delete('fresh');
         const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
         router.replace(newUrl);
+      } else {
+        // ✅ PHASE 19 SESSION FIX: Clear flag after initial page load
+        // This prevents repeated clearing when navigating sidebar links within wizard
+        const hasCleared = sessionStorage.getItem('deedWizardCleared');
+        if (hasCleared) {
+          console.log('[UnifiedWizard] Initial wizard load complete - clearing session flag');
+          sessionStorage.removeItem('deedWizardCleared');
+        }
       }
     }
   }, [router]);

@@ -71,6 +71,8 @@ export default function CreateDeedPage() {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(WIZARD_DRAFT_KEY_MODERN);
       localStorage.removeItem(WIZARD_DRAFT_KEY_CLASSIC);
+      // Mark that we've cleared localStorage for this new deed session
+      sessionStorage.setItem('deedWizardCleared', 'true');
     }
     
     // Navigate to specific document wizard per architecture
