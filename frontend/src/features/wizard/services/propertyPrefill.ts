@@ -16,25 +16,32 @@ export function prefillFromEnrichment(
 ) {
   if (!verifiedData) return;
   
-  // ✅ PHASE 19 HOTFIX #7: Always overwrite with fresh SiteX data (don't preserve old values)
+  // ✅ PHASE 19 HOTFIX #9: DO NOT merge with previous state!
+  // Modern Wizard's proven pattern: REPLACE data, don't merge
   const grantorFromSiteX = [verifiedData.currentOwnerPrimary, verifiedData.currentOwnerSecondary]
     .filter(Boolean)
     .join('; ');
   
-  // Prefill Step 2 (Request Details) with APN
-  setGrantDeed((prev) => ({
-    ...prev,
+  console.log('[prefillFromEnrichment] 🔄 REPLACING wizard data with fresh SiteX (no merge!)');
+  console.log('[prefillFromEnrichment] SiteX data:', {
+    apn: verifiedData.apn,
+    grantor: grantorFromSiteX,
+    county: verifiedData.county,
+    legalDescription: verifiedData.legalDescription?.substring(0, 50)
+  });
+  
+  // ✅ CRITICAL FIX: DO NOT use prev state! Set fresh data only!
+  setGrantDeed({
     step2: {
-      ...prev.step2,
-      apn: verifiedData.apn || '', // ✅ Use SiteX data or empty (don't preserve old)
+      apn: verifiedData.apn || '',
     },
+    step3: {},  // ✅ Empty - no old data!
     step4: {
-      ...prev.step4,
-      // ✅ PHASE 19 HOTFIX #7: Always use fresh SiteX data (overwrite old values)
-      grantorsText: grantorFromSiteX || '', // Don't preserve prev.step4?.grantorsText
-      county: verifiedData.county || '', // Don't preserve prev.step4?.county
-      legalDescription: verifiedData.legalDescription || '', // Don't preserve prev.step4?.legalDescription
+      grantorsText: grantorFromSiteX || '',
+      granteesText: '', // ✅ Empty for user to fill
+      county: verifiedData.county || '',
+      legalDescription: verifiedData.legalDescription || '',
     },
-  }));
+  });
 }
 
