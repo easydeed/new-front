@@ -29,53 +29,17 @@ export default function Step4PartiesProperty({ onNext, onDataChange }: Step4Prop
     legalDescription: step4Data?.legalDescription ?? ""
   });
 
-  // ✅ PHASE 19a: Prefill from SiteX data (Modern Wizard's proven pattern)
+  // Prefill grantors from TitlePoint (human‑readable string)
   useEffect(() => {
-    const wizardData = JSON.parse(localStorage.getItem('deedWizardDraft') || '{}');
-    const verifiedData = wizardData.verifiedData || {};
-    const formData = wizardData.formData || {};
-    
-    // Only hydrate if fields are empty and we have SiteX data
-    if (!local.grantorsText || !local.legalDescription) {
-      const updates: Partial<Step4Data> = {};
-      
-      // ✅ Grantor: Use SiteX currentOwnerPrimary (same as Modern Wizard)
-      if (!local.grantorsText) {
-        const grantorFromSiteX = verifiedData.currentOwnerPrimary || 
-                                 verifiedData.grantorName ||
-                                 formData.grantorName ||
-                                 step1Data?.titlePoint?.owners?.[0]?.fullName ||
-                                 step1Data?.titlePoint?.owners?.[0]?.name ||
-                                 '';
-        if (grantorFromSiteX) {
-          updates.grantorsText = grantorFromSiteX;
-        }
-      }
-      
-      // ✅ Legal Description: Use SiteX legalDescription (same as Modern Wizard)
-      if (!local.legalDescription) {
-        const legalFromSiteX = verifiedData.legalDescription || 
-                               formData.legalDescription ||
-                               '';
-        if (legalFromSiteX) {
-          updates.legalDescription = legalFromSiteX;
-        }
-      }
-      
-      // ✅ County: Already hydrated from step1Data, but ensure it's from SiteX
-      if (!local.county) {
-        const countyFromSiteX = verifiedData.county || formData.county || step1Data?.county || '';
-        if (countyFromSiteX) {
-          updates.county = countyFromSiteX;
-        }
-      }
-      
-      if (Object.keys(updates).length > 0) {
-        console.log('[Step4PartiesProperty] ✅ PHASE 19a: Hydrating from SiteX data:', updates);
-        setLocal((p) => ({ ...p, ...updates }));
+    if (!local.grantorsText && step1Data?.titlePoint?.owners) {
+      const owners = (step1Data.titlePoint.owners as Array<{ fullName?: string; name?: string }> | undefined)
+        ?.map((o) => o.fullName || o.name)
+        .filter(Boolean);
+      if (owners.length) {
+        setLocal((p) => ({ ...p, grantorsText: owners.join("; ") }));
       }
     }
-  }, [step1Data, local.grantorsText, local.legalDescription, local.county]);
+  }, [step1Data?.titlePoint, local.grantorsText]);
 
   // Update parent component when local data changes
   useEffect(() => {
@@ -112,7 +76,7 @@ export default function Step4PartiesProperty({ onNext, onDataChange }: Step4Prop
 
       <TextareaUnderline
         label="Grantor(s)"
-        hint="Auto-filled from SiteX; edit as needed."
+        hint="Auto-filled from TitlePoint; edit as needed."
         value={local.grantorsText}
         onChange={(e) => setLocal({ ...local, grantorsText: e.target.value })}
         placeholder="Enter grantor names exactly as they should appear"

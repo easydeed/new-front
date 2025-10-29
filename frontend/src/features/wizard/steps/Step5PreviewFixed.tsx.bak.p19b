@@ -5,14 +5,33 @@ import PreviewTitle from '@/features/wizard/components/PreviewTitle';
 import { FEATURE_FLAGS } from '@/features/wizard/lib/featureFlags';
 import { saveDeedMetadata } from '@/features/wizard/services/deeds';
 import type { DocType } from '@/features/wizard/components/PreviewTitle';
-// ✅ PHASE 19b: Import shared endpoint map
-import { getGenerateEndpoint } from '../context/docEndpoints';
 
 interface Step5PreviewFixedProps {
   docType: DocType;
   onStepChange: (step: number) => void;
   wizardData: any;
   contextBuilder: (data: any) => any;
+}
+
+function getGenerateEndpoint(docType: DocType) {
+  const usePixelPerfectPDF = process.env.NEXT_PUBLIC_PDF_PIXEL_PERFECT === 'true';
+  
+  switch (docType) {
+    case 'grant_deed':
+      return usePixelPerfectPDF 
+        ? '/api/generate/grant-deed-ca-pixel'
+        : '/api/generate/grant-deed-ca';
+    case 'quitclaim':
+      return '/api/generate/quitclaim-deed-ca';
+    case 'interspousal_transfer':
+      return '/api/generate/interspousal-transfer-ca';
+    case 'warranty_deed':
+      return '/api/generate/warranty-deed-ca';
+    case 'tax_deed':
+      return '/api/generate/tax-deed-ca';
+    default:
+      return '/api/generate/grant-deed-ca';
+  }
 }
 
 export default function Step5PreviewFixed({

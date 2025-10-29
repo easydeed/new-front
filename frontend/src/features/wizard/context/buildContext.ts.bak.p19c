@@ -158,19 +158,13 @@ function getAPN(s: WizardStore): string {
 
 /**
  * Base context adapter - used by all deed types
- * ✅ PHASE 19c: Enhanced requested_by field with robust fallbacks
  */
 export function toBaseContext(s: WizardStore) {
   const step2 = s.grantDeed?.step2;
   const mailTo = step2?.mailTo;
   
   return {
-    // ✅ PHASE 19c: Enhanced requested_by with multiple fallbacks
-    requested_by: step2?.requestedBy || 
-                  s.formData?.requestedBy || 
-                  s.formData?.requested_by ||
-                  step2?.titleCompany || 
-                  '',
+    requested_by: step2?.requestedBy || step2?.titleCompany || '',
     title_company: step2?.titleCompany || '',
     escrow_no: step2?.escrowNo || '',
     title_order_no: step2?.titleOrderNo || '',

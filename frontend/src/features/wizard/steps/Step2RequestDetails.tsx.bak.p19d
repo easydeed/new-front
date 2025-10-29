@@ -1,10 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import InputUnderline from "@/components/ui/InputUnderline";
-// ✅ PHASE 19d: Import PrefillCombo for Partners dropdown
-import PrefillCombo from "@/features/wizard/mode/components/PrefillCombo";
-// ✅ PHASE 19d: Import usePartners hook for fetching partners
-import { usePartners } from "@/features/partners/PartnersContext";
 import { Step2Schema } from "../validation/grantDeed";
 import { getStep1Data, getGrantDeedData } from "../state";
 
@@ -37,9 +33,6 @@ export default function Step2RequestDetails({ onNext, onDataChange }: Step2Props
   const step1Data = getStep1Data();
   const grantDeedData = getGrantDeedData();
   const step2Data = grantDeedData.step2;
-  
-  // ✅ PHASE 19d: Fetch partners list (same as Modern Wizard)
-  const partners = usePartners();
 
   const [local, setLocal] = useState(() => ({
     requestedBy: step2Data?.requestedBy ?? "",
@@ -113,18 +106,12 @@ export default function Step2RequestDetails({ onNext, onDataChange }: Step2Props
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        {/* ✅ PHASE 19d: Replace plain input with PrefillCombo (same as Modern Wizard) */}
-        <div className="md:col-span-2">
-          <PrefillCombo
-            label="Recording Requested By"
-            placeholder="Search partners or type a new name…"
-            value={local.requestedBy || ''}
-            onChange={(val) => setLocal({ ...local, requestedBy: val })}
-            partners={partners}
-            allowNewPartner={true}
-          />
-          <p className="text-sm text-gray-500 mt-1">Select from your industry partners or type a custom name</p>
-        </div>
+        <InputUnderline
+          label="Recording Requested By"
+          value={local.requestedBy}
+          onChange={(e) => setLocal({ ...local, requestedBy: e.target.value })}
+          placeholder="(Optional)"
+        />
         <InputUnderline
           label="Title Company"
           value={local.titleCompany}

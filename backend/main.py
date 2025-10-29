@@ -1477,6 +1477,7 @@ def create_deed_endpoint(deed: DeedCreate, user_id: int = Depends(get_current_us
     # Enhanced logging for diagnostics
     print(f"[Backend /deeds] ✅ Creating deed for user_id={user_id}")
     print(f"[Backend /deeds] deed_type: {deed_data.get('deed_type')}")
+    print(f"[Backend /deeds] county: {deed_data.get('county')}")  # ✅ PHASE 19: Add county logging
     print(f"[Backend /deeds] grantor_name: {deed_data.get('grantor_name')}")
     print(f"[Backend /deeds] grantee_name: {deed_data.get('grantee_name')}")
     print(f"[Backend /deeds] legal_description: {deed_data.get('legal_description')[:100]}...")

@@ -1,0 +1,13 @@
+{
+  "frontendDir": "frontend",
+  "backendDir": "backend",
+  "partnersRoutePath": "frontend/src/app/api/partners/selectlist/route.ts",
+  "partnersInputPath": "frontend/src/components/classic/PartnersInput.tsx",
+  "usePartnersListHookPath": "frontend/src/hooks/usePartnersList.ts",
+  "templatesGlob": "backend/templates/**/*.{html,jinja,jinja2}",
+  "modelsGlob": "backend/**/models/**/*.{py}",
+  "prefillComboPaths": [
+    "frontend/src/components/common/PrefillCombo.tsx"
+  ],
+  "backupTag": "p19"
+}

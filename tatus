@@ -1,0 +1,43 @@
+[1mdiff --git a/frontend/src/utils/canonicalAdapters/index.ts b/frontend/src/utils/canonicalAdapters/index.ts[m
+[1mindex ac88a8a..c4321df 100644[m
+[1m--- a/frontend/src/utils/canonicalAdapters/index.ts[m
+[1m+++ b/frontend/src/utils/canonicalAdapters/index.ts[m
+[36m@@ -5,13 +5,32 @@[m [mimport { toCanonical as warranty } from './warranty';[m
+ import { toCanonical as taxDeed } from './taxDeed';[m
+ [m
+ export function toCanonicalFor(docType: string, state: any) {[m
+[32m+[m[32m  // ✅ PHASE 19 FIX: Use CANONICAL docType format (grant_deed, quitclaim, etc.)[m
+[32m+[m[32m  // ModernEngine passes canonical format from canonicalFromUrlParam()[m
+   switch (docType) {[m
+[31m-    case 'grant-deed': return grant(state);[m
+[31m-    case 'quitclaim-deed': return quitclaim(state);[m
+[31m-    case 'interspousal-transfer': return interspousal(state);[m
+[31m-    case 'warranty-deed': return warranty(state);[m
+[31m-    case 'tax-deed': return taxDeed(state);[m
+[31m-    default: return grant(state);[m
+[32m+[m[32m    case 'grant_deed':[m
+[32m+[m[32m    case 'grant-deed':[m
+[32m+[m[32m      return grant(state);[m
+[32m+[m[41m    [m
+[32m+[m[32m    case 'quitclaim':[m
+[32m+[m[32m    case 'quitclaim-deed':[m
+[32m+[m[32m      return quitclaim(state);[m
+[32m+[m[41m    [m
+[32m+[m[32m    case 'interspousal_transfer':[m
+[32m+[m[32m    case 'interspousal-transfer':[m
+[32m+[m[32m      return interspousal(state);[m
+[32m+[m[41m    [m
+[32m+[m[32m    case 'warranty_deed':[m
+[32m+[m[32m    case 'warranty-deed':[m
+[32m+[m[32m      return warranty(state);[m
+[32m+[m[41m    [m
+[32m+[m[32m    case 'tax_deed':[m
+[32m+[m[32m    case 'tax-deed':[m
+[32m+[m[32m      return taxDeed(state);[m
+[32m+[m[41m    [m
+[32m+[m[32m    default:[m
+[32m+[m[32m      console.warn('[toCanonicalFor] Unknown docType:', docType, '- falling back to grant deed');[m
+[32m+[m[32m      return grant(state);[m
+   }[m
+ }[m
+ [m
