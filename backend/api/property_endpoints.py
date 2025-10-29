@@ -589,7 +589,8 @@ def map_sitex_feed_to_ui(sitex_response: Dict, original_address: str) -> Dict:
         return {
             'success': True,
             'apn': profile.get('APN', ''),
-            'county': profile.get('SiteCountyName', ''),  # County name field
+            # ✅ PHASE 19 FIX: Get county from CountyName (standard SiteX field)
+            'county': profile.get('CountyName', '') or profile.get('SiteCountyName', ''),  # Try CountyName first
             'city': profile.get('SiteCity', ''),
             'state': profile.get('SiteState', 'CA'),
             'zip': profile.get('SiteZip', ''),

@@ -1,31 +1,43 @@
 # DeedPro - Project Status
-**Last Updated**: October 29, 2025, Morning  
-**Production Deploy**: Phase 19 DocType Fix (DEPLOYED) | Modern Wizard 100% Functional  
+**Last Updated**: October 29, 2025, Mid-Morning  
+**Production Deploy**: Phase 19 DocType Fix (DEPLOYED) + County Fix (IN PROGRESS)  
 **Production URL**: https://deedpro-frontend-new.vercel.app/
 
 ---
 
 ## 🎯 CURRENT STATUS
 
-**Phase**: 19 (Modern Wizard - DocType Mismatch Fix)  
-**Status**: ✅ **DEPLOYED TO PRODUCTION** (Critical Bug Fixed)  
-**Next**: Continue Classic Wizard forensic analysis (Phase 19 continuation)
+**Phase**: 19 (Modern Wizard Fixes - DocType & County)  
+**Status**: 🔧 **IN PROGRESS**  
+- ✅ DocType Fix: DEPLOYED (Quitclaim generates correct PDF type)
+- 🔧 County Fix: APPLYING (All 5 deed types - PDF generation 500 error)  
+**Next**: Deploy county fix, test all deed types, then Classic Wizard
 
 ---
 
 ## 🎯 IN PROGRESS
 
-### **Phase 19: Classic Wizard Forensic Analysis**
-- **Scope**: Full analysis and fixes for Classic Wizard (SiteX-only)
-- **Status**: Forensic analysis document ready, awaiting continuation
-- **Critical Bug Fixed**: Modern Wizard DocType mismatch (Quitclaim→Grant Deed)
-- **Next Steps**:
-  - Apply SiteX data hydration to Classic Wizard
-  - Implement Partners dropdown in Classic Wizard
-  - Ensure Classic Wizard PDF generation works for all deed types
-  - Remove all TitlePoint references from Classic Wizard
+### **Phase 19: Modern Wizard Critical Fixes**
+- **Status**: Deploying county fix for all deed types
+- **Issue**: Empty county field from SiteX causing 500 errors on PDF generation
+- **Scope**: ALL 5 deed types (Grant, Quitclaim, Interspousal, Warranty, Tax)
+- **Root Cause**: Backend validator rejects empty county; SiteX returns county in `CountyName` not `County`
+- **Fix**: 2-part fix (county mapping + validator relaxation)
+- **Impact**: Fixes PDF generation for ALL Modern Wizard deed types
 
-**See**: `PHASE_19_CLASSIC_WIZARD_FORENSIC_ANALYSIS.md` for complete analysis
+**Completed**:
+- ✅ DocType mismatch fixed (Quitclaim now generates correct PDF type)
+- 🔧 County fix in progress (2 files to edit)
+
+**Next Steps**:
+1. Deploy county fix
+2. Test all 5 deed types in Modern Wizard
+3. Continue Classic Wizard forensic analysis
+
+**See**: 
+- `PHASE_19_BUG_QUITCLAIM_500_ERROR.md` - Detailed root cause analysis
+- `PHASE_19_COUNTY_FIX_SUMMARY.md` - Verification all deed types affected
+- `PHASE_19_CLASSIC_WIZARD_FORENSIC_ANALYSIS.md` - Classic Wizard analysis (pending)
 
 ---
 

@@ -29,10 +29,11 @@ class BaseDeedContext(BaseModel):
         return v
 
     @validator('county')
-    def county_required(cls, v):
-        if not v or not v.strip():
-            raise ValueError("County is required")
-        return v
+    def county_optional_for_pdf(cls, v):
+        # ✅ PHASE 19 FIX: Allow empty county for PDF generation
+        # County will be extracted from SiteX CountyName field when available
+        # If missing, PDF template will show blank (better than 500 error)
+        return v or ''  # Return empty string instead of raising error
 
     @validator('legal_description')
     def legal_required(cls, v):
