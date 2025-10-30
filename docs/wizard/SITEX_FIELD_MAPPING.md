@@ -1,8 +1,7 @@
 # SiteX Property Data → Deed Generation Field Mapping
 
-**Author:** Platform Architect  
-**Date:** October 6, 2025  
-**Status:** ✅ Implemented (Phase 5-Prequal)
+**Last Updated:** October 30, 2025  
+**Status:** ✅ Implemented & Updated (Phase 16-19 Critical Fixes)
 
 ---
 
@@ -31,58 +30,118 @@ flowchart LR
 
 ---
 
+## 🚨 **CRITICAL PHASE 16-19 DISCOVERIES**
+
+### **Issue #1: Legal Description is NESTED** (Phase 16)
+**❌ WRONG**:
+```python
+profile.get('LegalDescription', '')  # This doesn't exist!
+```
+
+**✅ CORRECT**:
+```python
+legal_info = profile.get('LegalDescriptionInfo', {})
+legal_desc = legal_info.get('LegalBriefDescription', '')
+```
+
+**Why**: SiteX returns legal description in a NESTED object, not at root level.
+
+---
+
+### **Issue #2: County Field Name** (Phase 19)
+**❌ WRONG**:
+```python
+profile.get('County', '')  # This field doesn't exist!
+```
+
+**✅ CORRECT**:
+```python
+profile.get('CountyName', '') or profile.get('SiteCountyName', '')
+```
+
+**Why**: SiteX uses `CountyName`, NOT `County`.
+
+**See**: [../../BREAKTHROUGHS.md](../../BREAKTHROUGHS.md) → Discovery #2 & #7
+
+---
+
 ## SiteX API Response Structure
 
-From Render logs analysis (see `RenderLogs.txt`), SiteX returns:
+**CORRECTED** based on Phase 16-19 analysis:
 
 ```json
 {
-  "Locations": [...],  // Multi-match array (resolved server-side)
+  "Locations": [...],
   "Feed": {
     "@Name": "Title Profile_144",
     "@Version": 1,
     "PropertyProfile": {
       "APN": "6327-030-021",
-      "PrimaryOwnerName": "MAJESTIC ENTERPRISES LP",
-      "SiteAddress": "6616 WALKER AVE",
-      "SiteCity": "BELL",
-      "SiteState": "CA",
-      "SiteZip": "90201",
+      "PropertyAddress": {
+        "FullAddress": "6616 WALKER AVE, BELL, CA 90201",
+        "APNFormatted": "6327-030-021"
+      },
+      "OwnerInformation": {
+        "OwnerFullName": "MAJESTIC ENTERPRISES LP"
+      },
+      "PropertyInfo": {
+        "PropertyType": "Apartment house (5+ units)"
+      },
+      "LegalDescriptionInfo": {
+        "LegalBriefDescription": "LOT 5 BLK 2 TRACT 12345"
+      },
+      "CountyName": "LOS ANGELES",
       "SiteCountyName": "LOS ANGELES",
-      "LegalDescription": "LOT 5 BLK 2 TRACT 12345",
-      "UseCodeDescription": "Apartment house (5+ units)",
-      "MailAddress": "9040 TELEGRAPH RD",
-      "MailUnit": "300",
-      "MailCity": "DOWNEY",
       "FIPS": "06037",
-      "LastSaleRecordingDate": "2020-05-15",
-      "LastSaleDocumentNumber": "2020-12345"
+      "LastSaleRecordingDate": "2020-05-15"
     }
-  },
-  "Report": {...},
-  "OrderInfo": {...}
+  }
 }
 ```
+
+**Key Changes** (Phase 16-19):
+- ✅ `LegalDescriptionInfo.LegalBriefDescription` → NOT `LegalDescription`
+- ✅ `CountyName` or `SiteCountyName` → NOT `County`
+- ✅ `OwnerInformation.OwnerFullName` → Nested owner data
+- ✅ `PropertyAddress.APNFormatted` → Nested APN
 
 ---
 
 ## Backend Field Mapping
 
-**File:** `backend/api/property_endpoints.py` → `map_sitex_feed_to_ui()`
+**File:** `backend/api/property_endpoints.py` (Lines 576-597)  
+**Phase 16-19 CORRECTED**:
 
-| SiteX Field | Backend Mapping | Purpose |
-|-------------|----------------|---------|
-| `Feed.PropertyProfile.APN` | `apn` | Assessor's Parcel Number (required for recording) |
-| `Feed.PropertyProfile.PrimaryOwnerName` | `grantorName` | Current property owner (becomes Grantor in deeds) |
-| `Feed.PropertyProfile.SiteCity` | `city` | Property city |
-| `Feed.PropertyProfile.SiteState` | `state` | Property state (default: CA) |
-| `Feed.PropertyProfile.SiteZip` | `zip` | Property ZIP code |
-| `Feed.PropertyProfile.SiteCountyName` | `county` | County name (required for transfer tax) |
-| `Feed.PropertyProfile.LegalDescription` | `legalDescription` | Full legal description of property |
-| `Feed.PropertyProfile.UseCodeDescription` | `propertyType` | Property type (e.g., "Single Family Residence") |
-| `Feed.PropertyProfile.FIPS` | `fips` | County FIPS code |
-| `Feed.PropertyProfile.LastSaleRecordingDate` | `recording_date` | Last sale recording date |
-| `Feed.PropertyProfile.LastSaleDocumentNumber` | `doc_number` | Last sale document number |
+| SiteX Field | Backend Mapping | Purpose | Phase |
+|-------------|----------------|---------|-------|
+| `Feed.PropertyProfile.APN` OR `PropertyAddress.APNFormatted` | `apn` | Assessor's Parcel Number | ✅ |
+| `Feed.PropertyProfile.OwnerInformation.OwnerFullName` | `grantorName`, `currentOwnerPrimary` | Current property owner | ✅ |
+| `Feed.PropertyProfile.PropertyAddress.FullAddress` | `fullAddress` | Complete address | ✅ |
+| `Feed.PropertyProfile.PropertyInfo.PropertyType` | `propertyType` | Property type | ✅ |
+| `Feed.PropertyProfile.LegalDescriptionInfo.LegalBriefDescription` | `legalDescription` | Legal description | ✅ Phase 16 |
+| `Feed.PropertyProfile.CountyName` OR `SiteCountyName` | `county` | County name | ✅ Phase 19 |
+| `Feed.PropertyProfile.FIPS` | `fips` | County FIPS code | ✅ |
+
+**Critical Code** (`backend/api/property_endpoints.py`):
+```python
+# Phase 16 FIX: Legal Description is NESTED
+legal_info = profile.get('LegalDescriptionInfo', {})
+legal_desc = legal_info.get('LegalBriefDescription', '') if legal_info else ''
+
+# Phase 19 FIX: County field name
+county = profile.get('CountyName', '') or profile.get('SiteCountyName', '')
+
+# Map to frontend contract
+return {
+    'apn': profile.get('APN', '') or profile.get('PropertyAddress', {}).get('APNFormatted', ''),
+    'legalDescription': legal_desc,  # ← NESTED extraction
+    'county': county,                # ← Correct field name
+    'grantorName': profile.get('OwnerInformation', {}).get('OwnerFullName', ''),
+    'currentOwnerPrimary': profile.get('OwnerInformation', {}).get('OwnerFullName', ''),
+    'propertyType': profile.get('PropertyInfo', {}).get('PropertyType', ''),
+    # ... etc
+}
+```
 
 **Backend Response Format:**
 ```python
