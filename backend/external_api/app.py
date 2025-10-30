@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 import time, uuid
+from pathlib import Path
 
 from .deps import get_logger, get_settings
 from .routers.partners import router as partners_router
@@ -11,6 +12,10 @@ app = FastAPI(title="DeedPro External Partner API", version="22.0.0")
 
 settings = get_settings()
 if settings.STORAGE_DRIVER == "local":
+    # ✅ PHASE 22-B FIX: Create storage directory if it doesn't exist
+    storage_path = Path(settings.LOCAL_STORAGE_DIR)
+    storage_path.mkdir(parents=True, exist_ok=True)
+    logger.info(f"✅ Storage directory ready: {storage_path}")
     app.mount("/files", StaticFiles(directory=settings.LOCAL_STORAGE_DIR), name="files")
 
 @app.middleware("http")
