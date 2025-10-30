@@ -1,0 +1,87 @@
+{
+  "info": {
+    "name": "DeedPro External API",
+    "_postman_id": "9be2c84e-a896-4e6b-b74d-2610a3a0cc99",
+    "description": "Partner API for deed generation",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/healthz",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "healthz"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Bootstrap API Key",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-Admin-Setup-Secret",
+            "value": "{{ADMIN_SETUP_SECRET}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"company\": \"TestCo\", \"scopes\": [\"deed:create\", \"deed:read\"], \"rate_limit_per_minute\": 60}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/admin/api-keys/bootstrap",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "api-keys",
+            "bootstrap"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Grant Deed",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-API-Key",
+            "value": "{{API_KEY}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"order_id\": \"ORD-123\", \"property_address\": \"123 Main St, La Verne, CA\", \"parties\": {\"grantor\": \"Alice\", \"grantee\": \"Bob\"}}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/deeds/grant",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "deeds",
+            "grant"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
