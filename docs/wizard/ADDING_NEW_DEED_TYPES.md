@@ -1,1067 +1,429 @@
-# 📚 Adding New Deed Types to DeedPro Wizard
+# 📚 Adding New Deed Types
 
-**Purpose**: Complete step-by-step guide for adding new deed types to the DeedPro platform  
-**Last Updated**: October 9, 2025  
-**Based On**: Phase 5 Wizard Rebuild (Pixel-Perfect PDF System)  
-**Difficulty**: Medium (3-6 hours per deed type)
+**Last Updated**: October 30, 2025  
+**Purpose**: Step-by-step guide for adding new deed types to DeedPro
 
 ---
 
-## 🎯 **OVERVIEW**
+## 🎯 **CURRENT DEED TYPES**
 
-The DeedPro wizard uses a **template-based system** where adding a new deed type requires coordinated changes across:
-1. **Frontend** - Wizard UI and type selection
-2. **Backend** - API endpoints and validation
-3. **Templates** - Jinja2 HTML templates
-4. **Database** - Optional schema updates
-
-**Current Supported Types**:
-- ✅ **Grant Deed** (California) - Fully implemented, pixel-perfect
-- ⏳ **Quitclaim Deed** - Stub exists, needs template
-- ⏳ **Interspousal Transfer** - Stub exists, needs template
-- ⏳ **Warranty Deed** - Stub exists, needs template
-- ⏳ **Tax Deed** - Stub exists, needs template
+✅ **Implemented** (Phase 17-19):
+- Grant Deed (CA)
+- Quitclaim Deed (CA)
+- Interspousal Transfer Deed (CA)
+- Warranty Deed (CA)
+- Tax Deed (CA)
 
 ---
 
-## 📊 **SYSTEM ARCHITECTURE FOR DEED TYPES**
+## 🏗️ **ARCHITECTURE OVERVIEW**
 
-### **How Deed Types Flow Through The System**
+### **Two Wizard Paths**:
+1. **Modern Wizard**: Canonical Adapter → Backend
+2. **Classic Wizard**: Context Builder → Backend
 
-```mermaid
-flowchart TD
-    A[User Selects Deed Type] --> B[Frontend Wizard]
-    B --> C[Type-Specific Fields]
-    C --> D[POST /api/generate/deed-type]
-    D --> E[Backend Validation]
-    E --> F[Jinja2 Template Selection]
-    F --> G[HTML Rendering]
-    G --> H[WeasyPrint PDF]
-    H --> I[User Download]
-```
-
-### **Key Components**
-
-| Component | Purpose | Location |
-|-----------|---------|----------|
-| **Type Registry** | Lists available deed types | `backend/api/generate_deed.py` line 57 |
-| **Validation Rules** | Required fields per type | `backend/api/generate_deed.py` line 140 |
-| **Templates** | HTML/CSS for each type | `templates/<deed_type>/` |
-| **API Endpoints** | Type-specific generation | `backend/routers/deeds.py` |
-| **Frontend Wizard** | UI for data collection | `frontend/src/app/create-deed/<type>/` |
-| **Models** | Pydantic validation | `backend/models/<type>.py` |
+**Both paths end at**: PDF Generation (Jinja2 + Weasyprint)
 
 ---
 
-## 🛠️ **STEP-BY-STEP GUIDE**
+## ✅ **COMPLETE CHECKLIST**
 
-### **Prerequisites**
+Use this checklist to add a new deed type:
 
-Before starting, ensure you have:
-- ✅ Legal expertise for the deed type (or access to legal templates)
-- ✅ County-specific requirements documented
-- ✅ Sample deed to model from
-- ✅ Understanding of required vs optional fields
-- ✅ Dev environment set up (`backend/` and `frontend/`)
+### **Backend** (Required):
+- [ ] 1. Create Pydantic model (`backend/models/{deed}_deed.py`)
+- [ ] 2. Create Jinja2 template (`templates/{deed}_ca/index.jinja2`)
+- [ ] 3. Add endpoint (`backend/routers/deeds_extra.py`)
+- [ ] 4. Test PDF generation
+
+### **Frontend - Modern Wizard** (Optional):
+- [ ] 5. Create canonical adapter (`frontend/src/utils/canonicalAdapters/{deed}.ts`)
+- [ ] 6. Add to adapter index (`canonicalAdapters/index.ts`)
+- [ ] 7. Add docType mapping (`docEndpoints.ts`)
+- [ ] 8. Create prompt flow (`promptFlows.ts`)
+
+### **Frontend - Classic Wizard** (Optional):
+- [ ] 9. Create context builder (`frontend/src/features/wizard/context/buildContext.ts`)
+- [ ] 10. Add to docEndpoints.ts
+- [ ] 11. Test wizard flow
 
 ---
 
-## **STEP 1: Backend - Add Deed Type to Registry** (15 min)
+## 📝 **STEP-BY-STEP GUIDE**
 
-### **File**: `backend/api/generate_deed.py`
+### **STEP 1: Create Pydantic Model**
 
-### **1.1 - Add to Template Mapping**
+**File**: `backend/models/{deed_name}_deed.py`
 
+**Pattern** (Copy from existing deed):
 ```python
-# Line 57-64
-template_mapping = {
-    'grant_deed': 'grant_deed_template.html',
-    'quit_claim': 'quitclaim_deed_template.html',
-    'interspousal_transfer': 'interspousal_transfer_template.html',
-    'warranty_deed': 'warranty_deed_template.html',
-    'tax_deed': 'tax_deed_template.html',
-    'property_profile': 'property_profile_template.html',
-    # ADD YOUR NEW TYPE HERE:
-    'trust_transfer': 'trust_transfer_template.html',  # ← NEW
-}
-```
-
-### **1.2 - Add Validation Rules**
-
-```python
-# Line 140-147
-required_fields = {
-    'grant_deed': ['grantorName', 'granteeName', 'propertySearch'],
-    'quit_claim': ['grantorName', 'granteeName', 'propertySearch'],
-    # ... existing types ...
-    # ADD YOUR NEW TYPE HERE:
-    'trust_transfer': ['trustName', 'trustees', 'beneficiaries', 'propertySearch'],  # ← NEW
-}
-```
-
-### **1.3 - Add Type-Specific Data Preparation** (if needed)
-
-```python
-# Line 130-135
-def prepare_template_data(request: GenerateDeedRequest) -> Dict[str, Any]:
-    # ... existing preparation ...
-    
-    # ADD TYPE-SPECIFIC LOGIC:
-    if request.deedType == 'trust_transfer':
-        data['transfer_type'] = 'Trust Transfer'
-        data['trust_statement'] = "This transfer is to a revocable living trust."
-        # Format trustees
-        if isinstance(data.get('trustees'), list):
-            data['trustees_text'] = ', '.join(data['trustees'])
-    
-    return data
-```
-
----
-
-## **STEP 2: Backend - Create Pydantic Model** (30 min)
-
-### **File**: `backend/models/<deed_type>.py` (NEW FILE)
-
-### **2.1 - Create Model Class**
-
-**Example**: `backend/models/trust_transfer.py`
-
-```python
-from pydantic import BaseModel, Field, validator
-from typing import Optional, List
+from pydantic import BaseModel, validator
+from typing import Optional, Dict
 from datetime import date
 
-class TrustTransferContext(BaseModel):
-    """
-    Pydantic model for Trust Transfer Deed rendering context.
-    Validates all required fields before PDF generation.
-    """
+class BaseDeedContext(BaseModel):
+    """Base context for all deed types"""
+    requested_by: Optional[str] = None
+    title_company: Optional[str] = None
+    escrow_no: Optional[str] = None
+    title_order_no: Optional[str] = None
+    return_to: Optional[Dict[str, Optional[str]]] = None
     
-    # Trust Information
-    trust_name: str = Field(..., min_length=1, description="Full legal name of trust")
-    trustees: List[str] = Field(..., min_length=1, description="List of trustee names")
-    trust_date: date = Field(..., description="Date trust was established")
+    apn: Optional[str] = None
+    county: Optional[str] = None
+    legal_description: Optional[str] = None
+    property_address: Optional[str] = None
     
-    # Property Information
-    apn: str = Field(..., min_length=5, description="Assessor's Parcel Number")
-    county: str = Field(..., min_length=1, description="County name")
-    legal_description: str = Field(..., min_length=10, description="Full legal description")
-    property_address: str = Field(..., min_length=5, description="Property street address")
+    grantors_text: Optional[str] = None
+    grantees_text: Optional[str] = None
     
-    # Transfer Details
-    grantors_text: str = Field(..., description="Formatted grantor names")
-    consideration: str = Field(default="", description="Consideration amount")
-    execution_date: date = Field(..., description="Date of execution")
+    execution_date: Optional[str] = None
+    exhibit_threshold: int = 600
     
-    # Document Information
-    requested_by: str = Field(..., description="Escrow officer or preparer")
-    title_company: Optional[str] = Field(None, description="Title company name")
-    escrow_no: Optional[str] = Field(None, description="Escrow number")
+    # ✅ PHASE 19 LESSON: Use permissive validators!
+    @validator('county')
+    def county_optional_for_pdf(cls, v):
+        return v or ''  # Allow empty, template handles display
     
-    # Return Address
-    return_to: dict = Field(..., description="Recording return address")
-    
-    @validator('trustees')
-    def validate_trustees(cls, v):
-        """Ensure at least one trustee"""
-        if not v or len(v) == 0:
-            raise ValueError("At least one trustee is required")
+    @validator('execution_date', pre=True, always=False)
+    def validate_date_format(cls, v):
+        if not v:
+            return v
+        date.fromisoformat(v)  # Validate format only
         return v
-    
-    @validator('trust_name')
-    def validate_trust_name(cls, v):
-        """Ensure trust name contains key words"""
-        v_lower = v.lower()
-        if 'trust' not in v_lower:
-            raise ValueError("Trust name should contain the word 'trust'")
-        return v
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "trust_name": "The John Doe Family Trust",
-                "trustees": ["John Doe", "Jane Doe"],
-                "trust_date": "2020-01-15",
-                "apn": "5123-456-789",
-                "county": "Los Angeles",
-                "legal_description": "Lot 5, Block 2 of Tract 12345...",
-                "property_address": "123 Main St, Los Angeles, CA 90012",
-                "grantors_text": "JOHN DOE AND JANE DOE, HUSBAND AND WIFE",
-                "consideration": "10.00",
-                "execution_date": "2025-10-09",
-                "requested_by": "John Smith, Escrow Officer",
-                "title_company": "First American Title",
-                "escrow_no": "ESC-2025-001",
-                "return_to": {
-                    "name": "John Smith",
-                    "company": "ABC Escrow",
-                    "address1": "123 Title Way",
-                    "city": "Los Angeles",
-                    "state": "CA",
-                    "zip": "90012"
-                }
-            }
-        }
+
+# Your deed-specific model
+class YourDeedContext(BaseDeedContext):
+    """Context for Your Deed Type"""
+    # Add deed-specific fields here
+    pass
 ```
+
+**Key Lessons** (Phase 19):
+- ✅ Use permissive validators (allow empty fields)
+- ✅ Don't raise errors for missing data
+- ✅ Let templates handle blank fields
 
 ---
 
-## **STEP 3: Backend - Create API Endpoint** (1 hour)
+### **STEP 2: Create Jinja2 Template**
 
-### **File**: `backend/routers/deeds.py`
+**File**: `templates/{deed_name}_ca/index.jinja2`
 
-### **3.1 - Import the Model**
-
-```python
-# Top of file
-from models.grant_deed import GrantDeedRenderContext
-from models.grant_deed_pixel import GrantDeedPixelContext
-from models.trust_transfer import TrustTransferContext  # ← ADD THIS
-```
-
-### **3.2 - Create Endpoint**
-
-```python
-@router.post("/trust-transfer-ca", response_class=StreamingResponse)
-async def generate_trust_transfer_ca(
-    ctx: TrustTransferContext,
-    user_id: str = Depends(get_current_user_id)
-):
-    """
-    Generate Trust Transfer Deed (California) as PDF.
-    
-    Requirements:
-    - Trust must be valid revocable living trust
-    - Property must be in California
-    - Proper trustee authorization
-    """
-    start_time = time.time()
-    request_id = f"trust_transfer_{user_id}_{int(start_time)}"
-    
-    logger.info(f"[{request_id}] Trust Transfer deed generation started for user {user_id}")
-    
-    try:
-        # Render Jinja2 template
-        template = env.get_template("trust_transfer_ca/index.jinja2")
-        html_content = template.render(ctx.dict())
-        
-        # Generate PDF
-        from pdf_engine import render_html_to_pdf
-        pdf_bytes = render_html_to_pdf(html_content, engine="weasyprint")
-        
-        # Create response
-        pdf_stream = io.BytesIO(pdf_bytes)
-        pdf_stream.seek(0)
-        
-        duration = time.time() - start_time
-        logger.info(f"[{request_id}] Trust Transfer deed generated successfully in {duration:.2f}s")
-        
-        return StreamingResponse(
-            pdf_stream,
-            media_type="application/pdf",
-            headers={
-                "Content-Disposition": f'attachment; filename="trust_transfer_deed_{request_id}.pdf"'
-            }
-        )
-        
-    except ValidationError as e:
-        logger.error(f"[{request_id}] Validation error: {e}")
-        raise HTTPException(status_code=400, detail=f"Validation failed: {str(e)}")
-    except Exception as e:
-        logger.error(f"[{request_id}] Generation error: {e}")
-        raise HTTPException(status_code=500, detail=f"PDF generation failed: {str(e)}")
-```
-
----
-
-## **STEP 4: Templates - Create HTML/CSS Template** (2-4 hours)
-
-### **Directory**: `templates/trust_transfer_ca/`
-
-### **4.1 - Create Directory Structure**
-
-```bash
-mkdir -p templates/trust_transfer_ca
-touch templates/trust_transfer_ca/index.jinja2
-touch templates/trust_transfer_ca/trust_transfer.css
-```
-
-### **4.2 - Create Base Template** (`index.jinja2`)
-
+**Pattern**:
 ```jinja2
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Trust Transfer Deed</title>
-    <link rel="stylesheet" href="trust_transfer.css">
     <style>
         @page {
             size: letter;
-            margin: 1in 1in 1in 1in;
+            margin: 0.5in;
         }
         body {
             font-family: 'Times New Roman', serif;
             font-size: 12pt;
-            line-height: 1.5;
+            line-height: 1.4;
+        }
+        .header {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
-    <div class="deed-container">
-        <!-- Recording Information (Top Right) -->
-        <div class="recording-section">
-            <p><strong>When Recorded Mail To:</strong></p>
-            <p>{{ return_to.name }}</p>
-            {% if return_to.company %}<p>{{ return_to.company }}</p>{% endif %}
-            <p>{{ return_to.address1 }}</p>
-            <p>{{ return_to.city }}, {{ return_to.state }} {{ return_to.zip }}</p>
-        </div>
+    <div class="header">
+        <h1>YOUR DEED TYPE</h1>
+    </div>
+    
+    {# Current Date #}
+    <p>Date: {{ now().strftime('%B %d, %Y') }}</p>
+    
+    {# Recording Information #}
+    <p>Recording Requested By: {{ requested_by or 'N/A' }}</p>
+    <p>When Recorded Mail To: {{ return_to.name or 'N/A' }}</p>
+    
+    {# Property Information #}
+    <p>APN: {{ apn or 'N/A' }}</p>
+    <p>County: {{ county or 'N/A' }}</p>
+    
+    {# Legal Description with Exhibit Threshold #}
+    {% if legal_description and legal_description|length > exhibit_threshold %}
+        <p><strong>Legal Description:</strong> See Exhibit A attached hereto</p>
         
-        <!-- APN and Escrow Info -->
-        <div class="reference-section">
-            <p><strong>APN:</strong> {{ apn }}</p>
-            {% if escrow_no %}<p><strong>Escrow No:</strong> {{ escrow_no }}</p>{% endif %}
-        </div>
+        <div style="page-break-before: always;"></div>
         
-        <!-- Title -->
-        <h1 class="deed-title">TRUST TRANSFER DEED</h1>
-        
-        <!-- Grantor Section -->
-        <div class="party-section">
-            <p><strong>GRANTOR:</strong></p>
-            <p class="party-name">{{ grantors_text }}</p>
-        </div>
-        
-        <!-- Grantee Section (Trust) -->
-        <div class="party-section">
-            <p><strong>GRANTEE:</strong></p>
-            <p class="party-name">{{ trust_name }}</p>
-            <p class="trust-info">
-                Dated {{ trust_date.strftime('%B %d, %Y') }}
-            </p>
-            <p class="trustees-info">
-                <strong>Trustees:</strong> {{ trustees|join(', ') }}
-            </p>
-        </div>
-        
-        <!-- Consideration -->
-        <div class="consideration-section">
-            <p>FOR A VALUABLE CONSIDERATION, receipt of which is hereby acknowledged,</p>
-        </div>
-        
-        <!-- Granting Clause -->
-        <div class="granting-clause">
-            <p>
-                <strong>{{ grantors_text }}</strong> hereby GRANT(S) to 
-                <strong>{{ trust_name }}</strong>, as Trustee(s),
-            </p>
-        </div>
-        
-        <!-- Property Description -->
-        <div class="property-section">
-            <p><strong>The real property in the County of {{ county }}, State of California, described as:</strong></p>
-            <div class="legal-description">
-                {{ legal_description }}
-            </div>
-            <p class="property-address">
-                <strong>Commonly known as:</strong> {{ property_address }}
-            </p>
-        </div>
-        
-        <!-- Trust Statement -->
-        <div class="trust-statement">
-            <p>
-                This transfer is made for the purpose of conveying title to the above-described 
-                real property to the trustees of {{ trust_name }}, to be held, managed, and 
-                distributed in accordance with the terms of said trust.
-            </p>
-        </div>
-        
-        <!-- Execution -->
-        <div class="execution-section">
-            <p>Dated: {{ execution_date.strftime('%B %d, %Y') }}</p>
-            <div class="signature-block">
-                <div class="signature-line"></div>
-                <p class="signature-label">Grantor Signature</p>
-            </div>
-        </div>
-        
-        <!-- Notary Section -->
-        <div class="notary-section">
-            <p><strong>NOTARY ACKNOWLEDGMENT</strong></p>
-            <p><em>(To be completed by Notary Public)</em></p>
-            <div class="notary-placeholder">
-                [Notary acknowledgment text per California Civil Code §1189]
-            </div>
-        </div>
+        <h2>Exhibit A - Legal Description</h2>
+        <p>{{ legal_description }}</p>
+    {% else %}
+        <p><strong>Legal Description:</strong> {{ legal_description or 'N/A' }}</p>
+    {% endif %}
+    
+    {# Parties #}
+    <p><strong>Grantor:</strong> {{ grantors_text or '_____________________' }}</p>
+    <p><strong>Grantee:</strong> {{ grantees_text or '_____________________' }}</p>
+    
+    {# Signature Section #}
+    <div style="margin-top: 40px;">
+        <p>Dated: ________________</p>
+        <br><br>
+        <p>_____________________________</p>
+        <p>Grantor Signature</p>
     </div>
 </body>
 </html>
 ```
 
-### **4.3 - Create Stylesheet** (`trust_transfer.css`)
-
-```css
-/* Trust Transfer Deed Stylesheet */
-
-.deed-container {
-    max-width: 7.5in;
-    margin: 0 auto;
-}
-
-.recording-section {
-    text-align: right;
-    margin-bottom: 1in;
-    font-size: 10pt;
-}
-
-.reference-section {
-    margin-bottom: 0.5in;
-    font-size: 10pt;
-}
-
-.deed-title {
-    text-align: center;
-    font-size: 16pt;
-    font-weight: bold;
-    margin: 0.5in 0;
-    text-decoration: underline;
-}
-
-.party-section {
-    margin: 0.25in 0;
-}
-
-.party-name {
-    margin-left: 0.5in;
-    font-weight: bold;
-}
-
-.trust-info, .trustees-info {
-    margin-left: 0.5in;
-    font-size: 11pt;
-}
-
-.granting-clause {
-    margin: 0.25in 0;
-    text-indent: 0.5in;
-}
-
-.property-section {
-    margin: 0.25in 0;
-}
-
-.legal-description {
-    margin: 0.25in 0.5in;
-    text-align: justify;
-    border-left: 2px solid #ccc;
-    padding-left: 0.25in;
-}
-
-.trust-statement {
-    margin: 0.25in 0;
-    text-align: justify;
-}
-
-.execution-section {
-    margin-top: 0.5in;
-}
-
-.signature-block {
-    margin: 0.5in 0;
-}
-
-.signature-line {
-    width: 3in;
-    border-bottom: 1px solid #000;
-    margin-bottom: 0.1in;
-}
-
-.signature-label {
-    font-size: 10pt;
-}
-
-.notary-section {
-    margin-top: 1in;
-    border: 1px solid #000;
-    padding: 0.25in;
-}
-
-.notary-placeholder {
-    min-height: 2in;
-    background-color: #f5f5f5;
-    padding: 0.25in;
-}
-```
+**Key Patterns**:
+- Use `{{ field or 'N/A' }}` for optional fields
+- Use `now().strftime()` for dates
+- Check `|length` for exhibit threshold
+- Use `page-break-before: always` for exhibits
 
 ---
 
-## **STEP 5: Frontend - Create Wizard Page** (2-3 hours)
+### **STEP 3: Add Backend Endpoint**
 
-### **Directory**: `frontend/src/app/create-deed/trust-transfer/`
+**File**: `backend/routers/deeds_extra.py`
 
-### **5.1 - Create Page Component**
-
-**File**: `frontend/src/app/create-deed/trust-transfer/page.tsx`
-
-```typescript
-'use client';
-
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-
-interface TrustTransferData {
-  // Trust Information
-  trust_name: string;
-  trustees: string[];
-  trust_date: string;
-  
-  // Property Information
-  apn: string;
-  county: string;
-  legal_description: string;
-  property_address: string;
-  
-  // Transfer Details
-  grantors_text: string;
-  consideration: string;
-  execution_date: string;
-  
-  // Document Info
-  requested_by: string;
-  title_company: string;
-  escrow_no: string;
-  
-  // Return Address
-  return_to: {
-    name: string;
-    company: string;
-    address1: string;
-    city: string;
-    state: string;
-    zip: string;
-  };
-}
-
-export default function TrustTransferDeed() {
-  const router = useRouter();
-  const [currentStep, setCurrentStep] = useState(1);
-  const [deedData, setDeedData] = useState<TrustTransferData>({
-    trust_name: '',
-    trustees: [''],
-    trust_date: '',
-    apn: '',
-    county: '',
-    legal_description: '',
-    property_address: '',
-    grantors_text: '',
-    consideration: '',
-    execution_date: new Date().toISOString().split('T')[0],
-    requested_by: '',
-    title_company: '',
-    escrow_no: '',
-    return_to: {
-      name: '',
-      company: '',
-      address1: '',
-      city: '',
-      state: 'CA',
-      zip: ''
-    }
-  });
-  
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState('');
-  
-  // Auto-save to localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('trust-transfer-draft');
-    if (saved) {
-      setDeedData(JSON.parse(saved));
-    }
-  }, []);
-  
-  useEffect(() => {
-    localStorage.setItem('trust-transfer-draft', JSON.stringify(deedData));
-  }, [deedData]);
-  
-  const handleFieldChange = (field: string, value: any) => {
-    setDeedData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-  
-  const addTrustee = () => {
-    setDeedData(prev => ({
-      ...prev,
-      trustees: [...prev.trustees, '']
-    }));
-  };
-  
-  const updateTrustee = (index: number, value: string) => {
-    const newTrustees = [...deedData.trustees];
-    newTrustees[index] = value;
-    setDeedData(prev => ({
-      ...prev,
-      trustees: newTrustees
-    }));
-  };
-  
-  const removeTrustee = (index: number) => {
-    setDeedData(prev => ({
-      ...prev,
-      trustees: prev.trustees.filter((_, i) => i !== index)
-    }));
-  };
-  
-  const generatePDF = async () => {
-    setIsGenerating(true);
-    setError('');
-    
-    try {
-      const token = localStorage.getItem('token');
-      
-      const response = await fetch('/api/generate/trust-transfer-ca', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(deedData)
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to generate PDF');
-      }
-      
-      // Download PDF
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `trust_transfer_deed_${Date.now()}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      // Clear draft
-      localStorage.removeItem('trust-transfer-draft');
-      
-      // Redirect to success page
-      router.push('/past-deeds?success=trust-transfer');
-      
-    } catch (err: any) {
-      setError(err.message || 'Failed to generate PDF');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-  
-  return (
-    <div className="wizard-container">
-      <h1>Trust Transfer Deed - California</h1>
-      
-      {/* Step 1: Trust Information */}
-      {currentStep === 1 && (
-        <div className="step-content">
-          <h2>Step 1: Trust Information</h2>
-          
-          <div className="form-group">
-            <label>Trust Name *</label>
-            <input
-              type="text"
-              value={deedData.trust_name}
-              onChange={(e) => handleFieldChange('trust_name', e.target.value)}
-              placeholder="The John Doe Family Trust"
-            />
-          </div>
-          
-          <div className="form-group">
-            <label>Trust Date *</label>
-            <input
-              type="date"
-              value={deedData.trust_date}
-              onChange={(e) => handleFieldChange('trust_date', e.target.value)}
-            />
-          </div>
-          
-          <div className="form-group">
-            <label>Trustees *</label>
-            {deedData.trustees.map((trustee, index) => (
-              <div key={index} className="trustee-input">
-                <input
-                  type="text"
-                  value={trustee}
-                  onChange={(e) => updateTrustee(index, e.target.value)}
-                  placeholder="Trustee Name"
-                />
-                {deedData.trustees.length > 1 && (
-                  <button onClick={() => removeTrustee(index)}>Remove</button>
-                )}
-              </div>
-            ))}
-            <button onClick={addTrustee}>+ Add Trustee</button>
-          </div>
-          
-          <button onClick={() => setCurrentStep(2)}>Next</button>
-        </div>
-      )}
-      
-      {/* Step 2: Property Information */}
-      {currentStep === 2 && (
-        <div className="step-content">
-          {/* Property form fields... */}
-          <button onClick={() => setCurrentStep(1)}>Back</button>
-          <button onClick={() => setCurrentStep(3)}>Next</button>
-        </div>
-      )}
-      
-      {/* Step 3: Preview & Generate */}
-      {currentStep === 3 && (
-        <div className="step-content">
-          <h2>Step 3: Review & Generate</h2>
-          {/* Preview... */}
-          <button onClick={generatePDF} disabled={isGenerating}>
-            {isGenerating ? 'Generating...' : 'Generate PDF'}
-          </button>
-          {error && <div className="error">{error}</div>}
-        </div>
-      )}
-    </div>
-  );
-}
-```
-
----
-
-## **STEP 6: Frontend - Create API Route** (15 min)
-
-### **File**: `frontend/src/app/api/generate/trust-transfer-ca/route.ts` (NEW)
-
-```typescript
-import { NextRequest, NextResponse } from 'next/server';
-
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    
-    // Forward to backend
-    const authHeader = req.headers.get('authorization');
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json'
-    };
-    if (authHeader) {
-      headers['Authorization'] = authHeader;
-    }
-    
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    const response = await fetch(`${backendUrl}/api/generate/trust-transfer-ca`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body)
-    });
-    
-    if (!response.ok) {
-      const error = await response.json();
-      return NextResponse.json(error, { status: response.status });
-    }
-    
-    // Stream PDF back to client
-    const pdf = await response.blob();
-    return new NextResponse(pdf, {
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': response.headers.get('Content-Disposition') || 'attachment; filename="trust_transfer.pdf"'
-      }
-    });
-    
-  } catch (error: any) {
-    return NextResponse.json(
-      { detail: error.message || 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
-```
-
----
-
-## **STEP 7: Testing** (1 hour)
-
-### **7.1 - Backend Testing**
-
+**Pattern**:
 ```python
-# Create test file: backend/tests/test_trust_transfer.py
+from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
+from backend.models.your_deed import YourDeedContext
+import io
+import tempfile
+from datetime import datetime
 
-import pytest
-from fastapi.testclient import TestClient
-from main import app
+router = APIRouter()
 
-client = TestClient(app)
-
-def test_trust_transfer_validation():
-    """Test that validation catches missing required fields"""
-    data = {
-        "trust_name": "Test Trust",
-        # Missing trustees - should fail
-    }
+def _render_pdf(template_path: str, ctx: Dict[str, Any]) -> bytes:
+    """Helper to render PDF from Jinja template"""
+    # ✅ PHASE 19 CRITICAL: Add datetime functions to context
+    from datetime import datetime
+    ctx['now'] = datetime.now  # Pass function, not result!
+    ctx['datetime'] = datetime
     
-    response = client.post("/api/generate/trust-transfer-ca", json=data)
-    assert response.status_code == 400
-    assert "trustees" in response.json()["detail"].lower()
-
-def test_trust_transfer_success():
-    """Test successful PDF generation"""
-    data = {
-        "trust_name": "The John Doe Family Trust",
-        "trustees": ["John Doe", "Jane Doe"],
-        "trust_date": "2020-01-15",
-        "apn": "5123-456-789",
-        "county": "Los Angeles",
-        # ... complete data ...
-    }
+    template = env.get_template(template_path)
+    html = template.render(**ctx)
     
-    response = client.post("/api/generate/trust-transfer-ca", json=data)
-    assert response.status_code == 200
-    assert response.headers["content-type"] == "application/pdf"
+    from weasyprint import HTML
+    with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+        HTML(string=html, encoding='utf-8').write_pdf(tmp.name)
+        with open(tmp.name,'rb') as f:
+            pdf = f.read()
+    return pdf
+
+@router.post("/your-deed-ca", response_class=StreamingResponse)
+async def generate_your_deed_ca(ctx: YourDeedContext):
+    """Generate Your Deed PDF"""
+    pdf = _render_pdf("your_deed_ca/index.jinja2", ctx.dict())
+    
+    return StreamingResponse(
+        io.BytesIO(pdf),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=your_deed.pdf"
+        }
+    )
 ```
 
-### **7.2 - Frontend Testing**
-
-1. **Manual Testing**:
-   - Navigate to `/create-deed/trust-transfer`
-   - Fill out all fields
-   - Test validation
-   - Generate PDF
-   - Verify PDF contents
-
-2. **Check**:
-   - ✅ Auto-save working
-   - ✅ Validation errors display
-   - ✅ PDF downloads
-   - ✅ Draft clears after success
-   - ✅ Redirect to past-deeds
+**Register Router** (`backend/main.py`):
+```python
+from backend.routers import deeds_extra
+app.include_router(deeds_extra.router, prefix="/api/generate", tags=["Deeds Extra"])
+```
 
 ---
 
-## **STEP 8: Documentation** (30 min)
+### **STEP 4: Create Canonical Adapter (Modern Wizard)**
 
-### **8.1 - Update README**
+**File**: `frontend/src/utils/canonicalAdapters/yourDeed.ts`
 
-Add to `backend/README.md`:
-
-```markdown
-### Trust Transfer Deed
-
-**Endpoint**: `POST /api/generate/trust-transfer-ca`
-
-**Purpose**: Generate California Trust Transfer Deed for transferring property to a revocable living trust.
-
-**Required Fields**:
-- `trust_name` - Full legal name of trust
-- `trustees` - Array of trustee names
-- `trust_date` - Date trust was established
-- `apn` - Assessor's Parcel Number
-- `county` - County name
-- `legal_description` - Full legal description
-- `property_address` - Property street address
-- `grantors_text` - Formatted grantor names
-- `execution_date` - Date of execution
-- `requested_by` - Escrow officer name
-- `return_to` - Recording return address object
-
-**Returns**: PDF binary stream
-
-**Example**:
-```bash
-curl -X POST http://localhost:8000/api/generate/trust-transfer-ca \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <token>" \
-  -d @trust_transfer_example.json \
-  --output trust_transfer.pdf
-```
+**Pattern**:
+```typescript
+export function toCanonical(state: any) {
+  return {
+    deedType: 'your-deed',  // Hyphenated format for backend
+    property: {
+      address: state.propertyAddress || state.fullAddress || null,
+      apn: state.apn || null,
+      county: state.county || null,
+      legalDescription: state.legalDescription || null,
+    },
+    parties: {
+      grantor: { name: state.grantorName || null },
+      grantee: { name: state.granteeName || null },
+    },
+    vesting: { description: state.vesting || null },
+    requestDetails: {
+      requestedBy: state.requestedBy || null,
+    },
+  };
+}
 ```
 
-### **8.2 - Create Example JSON**
+---
 
-**File**: `backend/examples/trust_transfer_example.json`
+### **STEP 5: Register in Adapter Index**
 
-```json
-{
-  "trust_name": "The John Doe Family Trust",
-  "trustees": ["John Doe", "Jane Doe"],
-  "trust_date": "2020-01-15",
-  "apn": "5123-456-789",
-  "county": "Los Angeles",
-  "legal_description": "Lot 5, Block 2 of Tract 12345, as per map recorded in Book 123, Page 45 of Maps, in the Office of the County Recorder of Los Angeles County, State of California.",
-  "property_address": "123 Main St, Los Angeles, CA 90012",
-  "grantors_text": "JOHN DOE AND JANE DOE, HUSBAND AND WIFE AS JOINT TENANTS",
-  "consideration": "10.00",
-  "execution_date": "2025-10-09",
-  "requested_by": "John Smith, Escrow Officer",
-  "title_company": "First American Title",
-  "escrow_no": "ESC-2025-001",
-  "return_to": {
-    "name": "John Smith",
-    "company": "ABC Escrow",
-    "address1": "123 Title Way",
-    "city": "Los Angeles",
-    "state": "CA",
-    "zip": "90012"
+**File**: `frontend/src/utils/canonicalAdapters/index.ts`
+
+**Add to switch statement** (support ALL 3 formats):
+```typescript
+import * as yourDeed from './yourDeed';
+
+export function toCanonicalFor(docType: string, state: any): any {
+  switch (docType) {
+    // ... existing cases ...
+    
+    // ✅ PHASE 19 LESSON: Support 3 formats!
+    case 'your_deed':           // Canonical
+    case 'your-deed':           // Hyphenated
+    case 'yourDeed':            // CamelCase
+      return yourDeed.toCanonical(state);
+    
+    default:
+      console.warn('[toCanonicalFor] Unknown docType:', docType);
+      return grant(state);  // Fallback
   }
 }
 ```
 
 ---
 
-## **STEP 9: Deployment** (15 min)
+### **STEP 6: Add to Endpoint Mapping**
 
-### **9.1 - Commit Changes**
+**File**: `frontend/src/features/wizard/context/docEndpoints.ts`
 
-```bash
-git add backend/models/trust_transfer.py
-git add backend/routers/deeds.py
-git add backend/api/generate_deed.py
-git add templates/trust_transfer_ca/
-git add frontend/src/app/create-deed/trust-transfer/
-git add frontend/src/app/api/generate/trust-transfer-ca/
-
-git commit -m "Add Trust Transfer Deed type - complete implementation"
-git push origin main
+**Add all 3 formats**:
+```typescript
+export const DOC_ENDPOINTS: Record<string, string> = {
+  // ... existing mappings ...
+  
+  // ✅ Support ALL formats
+  'your-deed': '/api/generate/your-deed-ca',
+  'your_deed': '/api/generate/your-deed-ca',
+  'yourDeed': '/api/generate/your-deed-ca',
+};
 ```
 
-### **9.2 - Verify Deployment**
+---
 
-1. **Backend** (Render):
-   - Watch deployment logs
-   - Check for errors
-   - Test endpoint: `GET /docs` (should show new endpoint)
+### **STEP 7: Create Prompt Flow (Modern Wizard)**
 
-2. **Frontend** (Vercel):
-   - Watch deployment logs
-   - Navigate to `/create-deed/trust-transfer`
-   - Test full workflow
+**File**: `frontend/src/features/wizard/mode/flows/promptFlows.ts`
+
+**Pattern**:
+```typescript
+export const promptFlows: Record<DocType, PromptFlow> = {
+  // ... existing flows ...
+  
+  your_deed: {
+    steps: [
+      {
+        id: 'grantor',
+        question: 'Who is transferring the property?',
+        fieldKey: 'grantorName',
+        prefillFrom: (data) => data.currentOwnerPrimary
+      },
+      {
+        id: 'grantee',
+        question: 'Who is receiving the property?',
+        fieldKey: 'granteeName'
+      },
+      {
+        id: 'requestedBy',
+        question: 'Recording requested by?',
+        fieldKey: 'requestedBy',
+        inputType: 'partnersCombo'
+      },
+      // Add more questions as needed
+    ]
+  }
+};
+```
 
 ---
 
-## ✅ **COMPLETION CHECKLIST**
+### **STEP 8: Test End-to-End**
 
-Before marking a new deed type as "complete", verify:
+#### **Modern Wizard Test**:
+```bash
+1. Navigate to: /create-deed/your-deed?mode=modern
+2. Search property: "1358 5th St, La Verne, CA 91750"
+3. Answer all prompts
+4. Review SmartReview summary
+5. Click "Confirm & Finalize"
+6. Generate PDF on preview page
+7. Verify all fields appear correctly
+```
 
-- [ ] Backend registry updated (`generate_deed.py`)
-- [ ] Validation rules added
-- [ ] Pydantic model created with examples
-- [ ] API endpoint implemented in `routers/deeds.py`
-- [ ] Jinja2 template created with proper styling
-- [ ] Frontend wizard page created
-- [ ] Frontend API proxy route created
-- [ ] Backend tests written and passing
-- [ ] Frontend manual testing complete
-- [ ] Documentation updated (README, examples)
-- [ ] Committed and pushed to `main`
-- [ ] Backend deployed to Render
-- [ ] Frontend deployed to Vercel
-- [ ] End-to-end test in production
-- [ ] PDF looks professional and legally compliant
-
----
-
-## 🎯 **TIPS & BEST PRACTICES**
-
-### **Legal Compliance**
-- ✅ Consult with legal experts for deed wording
-- ✅ Research county-specific requirements
-- ✅ Include all legally required elements (grantors, grantees, property description, execution, notary)
-- ✅ Follow California Civil Code requirements
-
-### **Template Design**
-- ✅ Use US Letter size (8.5" × 11")
-- ✅ Standard 1" margins (adjustable for recording requirements)
-- ✅ Times New Roman font, 12pt
-- ✅ Clear section headings
-- ✅ Proper spacing for notary stamps
-- ✅ Recording box in top right
-
-### **Validation**
-- ✅ Validate all required fields
-- ✅ Use Pydantic validators for complex rules
-- ✅ Provide helpful error messages
-- ✅ Test with invalid data
-
-### **User Experience**
-- ✅ Auto-save drafts to localStorage
-- ✅ Clear progress indicators
-- ✅ Inline validation feedback
-- ✅ Preview before generation
-- ✅ Download automatically
-- ✅ Clear drafts after success
+#### **Classic Wizard Test**:
+```bash
+1. Navigate to: /create-deed/your-deed
+2. Search property
+3. Fill all 5 steps
+4. Generate PDF at Step 5
+5. Verify PDF fields
+6. Click "Finalize Deed"
+7. Verify redirect and save
+```
 
 ---
 
-## 📊 **EFFORT SUMMARY**
+## 🐛 **COMMON ISSUES & SOLUTIONS**
 
-| Step | Task | Time | Difficulty |
-|------|------|------|------------|
-| 1 | Backend Registry | 15 min | Easy |
-| 2 | Pydantic Model | 30 min | Easy |
-| 3 | API Endpoint | 1 hour | Medium |
-| 4 | HTML/CSS Template | 2-4 hours | Hard |
-| 5 | Frontend Wizard | 2-3 hours | Medium |
-| 6 | API Proxy Route | 15 min | Easy |
-| 7 | Testing | 1 hour | Medium |
-| 8 | Documentation | 30 min | Easy |
-| 9 | Deployment | 15 min | Easy |
-| **TOTAL** | **8-11 hours** | **Medium** |
+### **Issue #1: 500 Error - Field Required**
+**Cause**: Strict Pydantic validator  
+**Fix**: Use permissive validators (allow empty)
 
-**Most Time-Consuming**: Template creation (Step 4)  
-**Most Complex**: Legal compliance and styling  
-**Easiest**: Registry updates (Steps 1, 6, 9)
+### **Issue #2: Template Error - 'now' is undefined**
+**Cause**: Missing datetime functions in context  
+**Fix**: Add `ctx['now'] = datetime.now` in `_render_pdf`
 
----
+### **Issue #3: Wrong PDF Generated**
+**Cause**: docType format mismatch  
+**Fix**: Add ALL 3 formats to `DOC_ENDPOINTS`
 
-## 🆘 **TROUBLESHOOTING**
-
-### **Issue: PDF not generating**
-- Check Render logs for Python errors
-- Verify template path is correct
-- Test template rendering separately
-
-### **Issue: Validation failing**
-- Check Pydantic model field names match frontend
-- Verify all required fields are sent
-- Test with example JSON
-
-### **Issue: Styling doesn't match**
-- Check CSS `@page` rules
-- Verify font sizes and margins
-- Test with different PDF viewers
-
-### **Issue: Frontend not connecting**
-- Verify API route is created
-- Check Authorization header forwarding
-- Test backend endpoint directly
+### **Issue #4: Fields Not Hydrating**
+**Cause**: SiteX field mapping incorrect  
+**Fix**: Check [SITEX_FIELD_MAPPING.md](SITEX_FIELD_MAPPING.md)
 
 ---
 
-## 📚 **REFERENCE**
+## 📊 **TIME ESTIMATES**
 
-- **Existing Grant Deed**: `templates/grant_deed_ca_pixel/index.jinja2`
-- **PDF Generation System**: `docs/backend/PDF_GENERATION_SYSTEM.md`
-- **Wizard Architecture**: `docs/wizard/ARCHITECTURE.md`
-- **California Civil Code**: [leginfo.legislature.ca.gov](https://leginfo.legislature.ca.gov/)
+| Step | Time | Difficulty |
+|------|------|------------|
+| Pydantic Model | 15 min | Easy |
+| Jinja2 Template | 1-2 hours | Medium |
+| Backend Endpoint | 15 min | Easy |
+| Canonical Adapter | 30 min | Easy |
+| Prompt Flow | 30 min | Medium |
+| Testing | 30 min | Easy |
+| **Total** | **3-4 hours** | **Medium** |
 
 ---
 
-**Status**: Production-ready guide  
-**Last Tested**: Phase 5 (October 2025)  
-**Next**: Use this guide to add Quitclaim, Interspousal Transfer, Warranty Deed types
+## 🔗 **RELATED DOCUMENTATION**
+
+- [PDF_GENERATION_SYSTEM.md](../backend/PDF_GENERATION_SYSTEM.md) → PDF generation details
+- [ARCHITECTURE.md](ARCHITECTURE.md) → Modern vs Classic wizards
+- [SITEX_FIELD_MAPPING.md](SITEX_FIELD_MAPPING.md) → Property enrichment
+- [BREAKTHROUGHS.md](../../BREAKTHROUGHS.md) → Recent fixes and patterns
 
 ---
 
-**Questions?** Check `docs/DOCS_INDEX.md` or ask the team!
+## 🎓 **KEY LESSONS** (Phase 16-19)
 
+1. ✅ **Permissive Validators**: Allow empty fields, templates handle blanks
+2. ✅ **datetime Functions**: Always pass `now` and `datetime` to Jinja
+3. ✅ **Multiple Formats**: Support canonical, snake_case, hyphenated
+4. ✅ **SiteX Fields**: Use correct nested paths (CountyName, LegalDescriptionInfo)
+5. ✅ **Test Both Wizards**: Modern AND Classic flows
+
+---
+
+**Need Help?** Check [BREAKTHROUGHS.md](../../BREAKTHROUGHS.md) for common patterns and solutions!
