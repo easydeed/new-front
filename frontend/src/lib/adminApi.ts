@@ -130,12 +130,22 @@ export const AdminApi = {
   getUser: (id: number) => http<UserDetail>(`/admin/users/${id}/real`),
 
   // Deeds Management  
-  searchDeeds: (page = 1, limit = 25, search = '', status = '') => {
+  searchDeeds: async (page = 1, limit = 25, search = '', status = '') => {
     // Phase 23-B Fix: Use /admin/deeds (not /admin/deeds/search)
+    // Backend returns { deeds: [], total } but frontend expects { items: [], total }
     const qs = new URLSearchParams({ page: String(page), limit: String(limit) });
     if (search) qs.set('search', search);
     if (status) qs.set('status', status);
-    return http<Paged<DeedRow>>(`/admin/deeds?${qs.toString()}`);
+    
+    const response = await http<{ deeds: DeedRow[]; total: number; page: number; limit: number }>(`/admin/deeds?${qs.toString()}`);
+    
+    // Transform backend response to match frontend Paged<T> type
+    return {
+      items: response.deeds,
+      total: response.total,
+      page: response.page || page,
+      limit: response.limit || limit
+    };
   },
   
   getDeed: (id: number) => http<DeedRow>(`/admin/deeds/${id}`),
