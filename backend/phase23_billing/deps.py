@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     AWS_SECRET_ACCESS_KEY: str | None = None
     LOCAL_STORAGE_DIR: str = "./billing_storage/files"
     DEBUG: bool = True
+    
+    class Config:
+        env_file = ".env"
+        case_sensitive = False
 
 @lru_cache
 def get_settings() -> Settings:
