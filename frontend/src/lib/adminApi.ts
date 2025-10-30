@@ -52,10 +52,26 @@ export type UserDetail = UserRow & {
   deeds?: DeedRow[];
 };
 
+// Phase 23-B: Complete revenue data structure
 export type RevenueSummary = {
-  total_revenue: number;
-  monthly_revenue: number;
-  plan_counts?: Record<string, number>;
+  overview: {
+    total_revenue_cents: number;
+    monthly_revenue_cents: number;
+    stripe_fees_cents: number;
+    refunds_cents: number;
+    net_monthly_revenue_cents: number;
+  };
+  monthly_breakdown: Array<{
+    month: string;
+    revenue_cents: number;
+    revenue_dollars: number;
+  }>;
+  mrr_arr: {
+    mrr_cents: number;
+    mrr_dollars: number;
+    arr_cents: number;
+    arr_dollars: number;
+  };
 };
 
 export type SystemMetric = {
