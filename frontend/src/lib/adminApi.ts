@@ -129,12 +129,13 @@ export const AdminApi = {
   
   getUser: (id: number) => http<UserDetail>(`/admin/users/${id}/real`),
 
-  // Deeds Management
+  // Deeds Management  
   searchDeeds: (page = 1, limit = 25, search = '', status = '') => {
+    // Phase 23-B Fix: Use /admin/deeds (not /admin/deeds/search)
     const qs = new URLSearchParams({ page: String(page), limit: String(limit) });
     if (search) qs.set('search', search);
     if (status) qs.set('status', status);
-    return http<Paged<DeedRow>>(`/admin/deeds/search?${qs.toString()}`);
+    return http<Paged<DeedRow>>(`/admin/deeds?${qs.toString()}`);
   },
   
   getDeed: (id: number) => http<DeedRow>(`/admin/deeds/${id}`),
