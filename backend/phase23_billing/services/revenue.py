@@ -39,10 +39,14 @@ def monthly_breakdown(db: Session):
 
 def mrr_arr(db: Session):
     # assumes subscriptions table exists and contains mrr_cents + status
-    row = db.execute(text("""
-        SELECT COALESCE(SUM(mrr_cents),0)::bigint FROM subscriptions WHERE status='active'
-    """)).fetchone()
-    mrr = int(row[0] or 0)
+    try:
+        row = db.execute(text("""
+            SELECT COALESCE(SUM(mrr_cents),0)::bigint FROM subscriptions WHERE status='active'
+        """)).fetchone()
+        mrr = int(row[0] or 0) if row else 0
+    except Exception:
+        # subscriptions table doesn't exist yet, return zeros
+        mrr = 0
     return {
         "mrr_cents": mrr,
         "mrr_dollars": mrr/100,
