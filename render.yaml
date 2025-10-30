@@ -1,5 +1,8 @@
 # Fixed monorepo deployment configuration
 services:
+# ============================================================================
+# MAIN API (Existing - Port 8000)
+# ============================================================================
 - type: web
   name: deedpro-main-api
   env: python
@@ -38,4 +41,71 @@ services:
   - key: QA_DETAILED_LOGGING
     value: "true"
   - key: PERFORMANCE_MONITORING
-    value: "true" 
+    value: "true"
+
+# ============================================================================
+# EXTERNAL API (Phase 22-B - Port 8001)
+# Partner integrations: SoftPro, Qualia, etc.
+# ============================================================================
+- type: web
+  name: deedpro-external-api
+  env: python
+  plan: free
+  repo: https://github.com/easydeed/new-front
+  branch: main
+  rootDir: backend
+  buildCommand: pip install -r requirements.txt
+  startCommand: python -m uvicorn external_api.app:app --host 0.0.0.0 --port $PORT
+  healthCheckPath: /healthz
+  autoDeploy: true
+  envVars:
+  # Database (same as main API)
+  - key: DATABASE_URL
+    fromDatabase:
+      name: deedpro-db
+  
+  # Main API Connection (CRITICAL!)
+  - key: MAIN_API_BASE_URL
+    value: https://deedpro-main-api.onrender.com
+  - key: MAIN_API_INTERNAL_TOKEN
+    sync: false  # Set manually in Render dashboard
+  
+  # Admin Secret (must match frontend EXTERNAL_API_ADMIN_SETUP_SECRET!)
+  - key: ADMIN_SETUP_SECRET
+    sync: false  # Set manually: deedpro-admin-secret-2025
+  
+  # API Key Config
+  - key: API_KEY_MIN_PREFIX
+    value: dp_pk_
+  - key: EXTERNAL_API_DEBUG
+    value: "false"
+  
+  # Storage (start with local, upgrade to S3 later)
+  - key: STORAGE_DRIVER
+    value: local
+  - key: LOCAL_STORAGE_DIR
+    value: ./external_api/storage/files
+  # S3 Config (optional, set if using S3):
+  # - key: STORAGE_DRIVER
+  #   value: s3
+  # - key: S3_BUCKET
+  #   sync: false
+  # - key: S3_REGION
+  #   value: us-west-1
+  # - key: AWS_ACCESS_KEY_ID
+  #   sync: false
+  # - key: AWS_SECRET_ACCESS_KEY
+  #   sync: false
+  
+  # Rate Limiting
+  - key: RATE_LIMIT_REQUESTS_PER_MINUTE
+    value: "120"
+  # Redis (optional, for multi-instance rate limiting):
+  # - key: RATE_LIMIT_REDIS_URL
+  #   sync: false
+  
+  # Webhook Secrets (optional, for partners):
+  # - key: SOFTPRO_WEBHOOK_SECRET
+  #   sync: false
+  # - key: QUALIA_WEBHOOK_SECRET
+  #   sync: false 
