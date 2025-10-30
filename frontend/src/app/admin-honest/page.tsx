@@ -18,7 +18,12 @@ export default function AdminHonestPage() {
 
   return (
     <div className="container">
-      <h1 className="title">Admin (Honest)</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+        <h1 className="title" style={{ margin: 0 }}>Admin (Honest)</h1>
+        <a href="/admin/partners" style={{ padding: '8px 16px', background: '#3b82f6', color: 'white', borderRadius: '8px', textDecoration: 'none', fontSize: '14px' }}>
+          🤝 API Partners
+        </a>
+      </div>
       <nav className="tabs">
         <button onClick={()=>setTab('overview')} className={tab==='overview'?'active':''}>Overview</button>
         <button onClick={()=>setTab('users')} className={tab==='users'?'active':''}>Users</button>

@@ -58,6 +58,12 @@ export default function AdminSidebar({ activeTab, setActiveTab, stats, notificat
       description: 'View and manage all deed documents'
     },
     {
+      id: 'partners',
+      label: 'API Partners',
+      icon: '🤝',
+      description: 'Manage partner API keys and usage'
+    },
+    {
       id: 'audit',
       label: 'Audit Logs',
       icon: '📋',
