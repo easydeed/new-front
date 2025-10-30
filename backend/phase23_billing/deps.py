@@ -1,11 +1,11 @@
 import logging
+import os
 from functools import lru_cache
 from pydantic_settings import BaseSettings
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = "postgresql+psycopg://user:pass@localhost:5432/deedpro"
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
     STRIPE_OVERAGE_PRICE_CENTS: int = 500  # default $5
@@ -37,7 +37,20 @@ def get_logger():
         logger.addHandler(ch)
     return logger
 
-engine = create_engine(get_settings().DATABASE_URL, future=True, pool_pre_ping=True)
+# CRITICAL FIX: Use same DATABASE_URL as main app
+# Main app uses psycopg2 format (postgresql://), not psycopg3 (postgresql+psycopg://)
+# Get from environment directly, don't override
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/deedpro")
+
+# Convert psycopg2 URL to SQLAlchemy format if needed
+# psycopg2 uses: postgresql://
+# SQLAlchemy with psycopg (v3) needs: postgresql+psycopg://
+# But we'll use psycopg2-binary which main app uses
+if DATABASE_URL.startswith("postgresql://") and "+psycopg" not in DATABASE_URL:
+    # Use psycopg2 driver (already installed)
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://")
+
+engine = create_engine(DATABASE_URL, future=True, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
 
 def get_db():
