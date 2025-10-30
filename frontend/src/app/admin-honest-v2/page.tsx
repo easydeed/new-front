@@ -34,8 +34,25 @@ export default function AdminHonestV2Page(){
   return (
     <div className="admin-shell">
       <div className="hstack" style={{justifyContent:'space-between', marginBottom:12}}>
-        <div className="hstack">
+        <div className="hstack" style={{ gap: '12px' }}>
           <div style={{fontWeight:700, fontSize:20, letterSpacing:.25}}>Admin — Honest (v2)</div>
+          <a 
+            href="/admin/partners" 
+            style={{ 
+              padding: '6px 14px', 
+              background: '#3b82f6', 
+              color: 'white', 
+              borderRadius: '6px', 
+              textDecoration: 'none', 
+              fontSize: '13px',
+              fontWeight: 500,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            🤝 API Partners
+          </a>
         </div>
         <button className="button ghost" onClick={handleLogout}>Logout</button>
       </div>
