@@ -39,6 +39,16 @@ if os.getenv("ENVIRONMENT") == "staging":
         enable_detailed_logging=True
     )
 
+# PHASE 23-B: Include billing & reporting routers (October 30, 2025)
+try:
+    from phase23_billing.app_include import include_billing_routers
+    include_billing_routers(app)
+    print("✅ Phase 23-B billing & reporting endpoints loaded successfully")
+except ImportError as e:
+    print(f"⚠️ Phase 23-B billing endpoints not available: {e}")
+except Exception as e:
+    print(f"❌ Error loading Phase 23-B billing endpoints: {e}")
+
 # Include AI assistance router
 app.include_router(ai_router)
 
