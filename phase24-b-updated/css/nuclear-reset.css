@@ -1,0 +1,12 @@
+/* Nuclear reset for stubborn bleed-through (use sparingly) */
+[data-v0-page] *, 
+[data-v0-page] *::before, 
+[data-v0-page] *::after {
+  background: unset !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+}

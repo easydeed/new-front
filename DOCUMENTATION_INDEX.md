@@ -61,6 +61,7 @@
 ## 🎨 **V0 PROMPTS** (AI UI Generation)
 
 - **[v0-prompts/landing-page-master-prompt-v1.md](v0-prompts/landing-page-master-prompt-v1.md)** - Landing page prompt
+- **[v0-prompts/V0_UPDATE_PROCEDURE_CHECKLIST.md](v0-prompts/V0_UPDATE_PROCEDURE_CHECKLIST.md)** - AI assistant checklist for V0 updates
 - Dashboard & Wizard prompts: ⏳ Awaiting from user
 
 ---

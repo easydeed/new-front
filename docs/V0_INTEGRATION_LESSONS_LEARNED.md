@@ -1,8 +1,11 @@
 # V0 Integration Lessons Learned - Phase 24-A
 
 **Date**: October 31, 2025  
+**Updated**: October 31, 2025 (Added update procedure reference)  
 **Phase**: Phase 24-A (Landing Page)  
 **Purpose**: Critical lessons for Phase 24-B (Dashboard) and Phase 24-C (Wizard UI)
+
+**📋 For V0 Updates**: See **`v0-prompts/V0_UPDATE_PROCEDURE_CHECKLIST.md`** for step-by-step AI assistant checklist when user provides updated V0 files.
 
 ---
 

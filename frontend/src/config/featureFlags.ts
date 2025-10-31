@@ -20,18 +20,25 @@ export const FEATURE_FLAGS = {
   QUICK_ACTIONS: true,         // ✅ CSV exports work
   
   // Phase 24: V0 UI Facelift
-  NEW_LANDING_PAGE: false,     // 🚧 Phase 24: V0-generated landing page (set to true after integration)
-  NEW_DASHBOARD: false,        // 🚧 Phase 24: V0-generated dashboard (future)
-  NEW_WIZARD_UI: false,        // 🚧 Phase 24: V0-generated wizard UI facelift (future)
+  NEW_LANDING_PAGE: false,     // ✅ Phase 24-A: V0-generated landing page (deployed!)
+  
+  // Phase 24-B: Auth Pages + Dashboard
+  NEW_AUTH_PAGES: false,       // 🚧 Phase 24-B: V0 auth flow (Login, Register, Forgot, Reset)
+  NEW_DASHBOARD: false,        // 🚧 Phase 24-B: V0-generated dashboard
+  
+  // Phase 24-C: Wizard UI (future)
+  NEW_WIZARD_MODERN: false,    // 🚧 Phase 24-C: V0 wizard components (Modern)
+  NEW_WIZARD_CLASSIC: false,   // 🚧 Phase 24-C: V0 wizard components (Classic)
 } as const;
 
 /**
  * Deployment Log:
  * - Created: October 9, 2025 at 9:15 PM PT
  * - Phase 23-B Deployed: October 30, 2025 at 9:15 PM PST
- * - Phase 24 Feature Flags Added: October 31, 2025 at 12:45 AM PST
- * - Status: REVENUE_TAB enabled, Phase 24 flags added (NEW_LANDING_PAGE, NEW_DASHBOARD, NEW_WIZARD_UI)
+ * - Phase 24-A Deployed: October 31, 2025 at 9:30 AM PST (Landing page)
+ * - Phase 24-B Started: October 31, 2025 at 10:15 AM PST (Auth + Dashboard)
+ * - Status: All flags OFF by default (incremental rollout)
  * - Working: EXPORTS, QUICK_ACTIONS, REVENUE_TAB
- * - Next: Enable NEW_LANDING_PAGE after V0 integration complete
+ * - Next: Phase 24-B deployment (NEW_AUTH_PAGES, NEW_DASHBOARD)
  */
 

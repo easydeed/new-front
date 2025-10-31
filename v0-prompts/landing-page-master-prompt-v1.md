@@ -8,6 +8,10 @@
 
 ---
 
+**⚠️ IMPORTANT FOR UPDATES**: When V0 generates updates to this landing page, refer to **`V0_UPDATE_PROCEDURE_CHECKLIST.md`** in this folder for step-by-step integration instructions.
+
+---
+
 ## 🏗️ ARCHITECTURE & FILES (CRITICAL)
 
 ### **File Structure**:

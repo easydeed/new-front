@@ -1,0 +1,10 @@
+/* Example: scope aggressive global styles away from V0 pages */
+body:not([data-v0-page]) * {
+  /* put your existing global aesthetic rules here */
+  /* e.g., background-image: linear-gradient(...); */
+}
+
+/* Optional: dashboard-only V0 scope */
+body[data-v0-page][data-v0-dashboard] * {
+  /* any dashboard-specific tweaks */
+}
