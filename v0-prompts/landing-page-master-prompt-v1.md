@@ -70,16 +70,27 @@ components/
 
 ### **Typography**:
 ```typescript
-// System font stack ONLY (no external fonts)
-font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 
-             Roboto, 'Helvetica Neue', Arial, sans-serif
+// Modern system font stack (optimized for tech aesthetic)
+font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 
+             'Segoe UI Variable', 'Segoe UI', 'Inter var', system-ui, sans-serif
 
-Sizes:
-- Hero Headline: text-5xl sm:text-6xl lg:text-7xl (font-bold, gradient text)
-- Section Titles: text-3xl sm:text-4xl (font-semibold)
-- Body: text-base sm:text-lg (font-normal)
-- Small: text-sm (font-normal)
-- Micro: text-xs (font-medium)
+// Font weights (use specific weights for modern look)
+- Display (headlines): font-bold (700) or font-extrabold (800)
+- Titles: font-semibold (600)
+- Body: font-normal (400)
+- Labels: font-medium (500)
+
+// Sizes (with tight tracking for modern feel)
+- Hero Headline: text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight
+- Section Titles: text-3xl sm:text-4xl font-bold tracking-tight
+- Body: text-base sm:text-lg font-normal leading-relaxed
+- Small: text-sm font-normal
+- Micro: text-xs font-medium tracking-wide uppercase (for labels)
+
+// Letter spacing
+- Headlines: tracking-tight (-0.025em)
+- Body: tracking-normal (0em)
+- Labels/Micro: tracking-wide (0.025em)
 ```
 
 ### **Spacing**:
@@ -199,13 +210,13 @@ import Image from 'next/image'
 
 **Content**:
 ```typescript
-// Badge (techy, neutral)
-<Badge variant="secondary" className="bg-primary/10 text-primary ring-1 ring-primary/20 backdrop-blur-sm">
+// Badge (techy, neutral, uppercase with wide tracking)
+<Badge variant="secondary" className="bg-primary/10 text-primary ring-1 ring-primary/20 backdrop-blur-sm text-xs font-medium tracking-wide uppercase">
   AI‑Powered • Enterprise‑Grade
 </Badge>
 
-// Headline (gradient text from primary to accent)
-<h1 className="mt-6 text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white">
+// Headline (gradient text from primary to accent, extra bold for impact)
+<h1 className="mt-6 text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white">
   Create California deeds
   <span className="block mt-2 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
     in minutes.
@@ -313,10 +324,10 @@ import ApiSnippet from '@/components/ApiSnippet';
     <div className="grid lg:grid-cols-2 gap-10 items-center">
       {/* Left side */}
       <div>
-        <h2 className="text-3xl sm:text-4xl font-semibold text-white">
+        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
           Deed creation in one call
         </h2>
-        <p className="mt-4 text-lg text-gray-400">
+        <p className="mt-4 text-lg text-gray-400 leading-relaxed">
           Trigger the same trusted flow from your stack with a single endpoint.
         </p>
         <div className="mt-6 flex gap-3">
@@ -844,9 +855,11 @@ export default function StickyCta() {
 8. ✅ **No layout shift** (set explicit aspect ratios, skeleton loaders)
 9. ✅ **Hero uses CSS gradient** (NO heavy background image)
 10. ✅ **IntersectionObserver for scroll-triggered components** (not raw scroll handlers)
+11. ✅ **Use modern font stack** (ui-sans-serif, SF Pro Display, Segoe UI Variable)
+12. ✅ **Tight tracking on headlines** (tracking-tight for modern feel)
 
 ### **❌ MUST NOT DO**:
-1. ❌ **No external fonts** (system font stack ONLY: system-ui, -apple-system, Segoe UI, Roboto)
+1. ❌ **No external font files** (system font stack ONLY: ui-sans-serif, SF Pro, Segoe UI Variable)
 2. ❌ **No autoplay** (user-initiated video only)
 3. ❌ **No cookies or trackers** (consent gate required before any analytics)
 4. ❌ **No third-party scripts** (except YouTube iframe with youtube-nocookie.com)
