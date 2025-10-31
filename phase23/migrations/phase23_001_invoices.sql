@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS invoices (id SERIAL PRIMARY KEY, invoice_number VARCHAR(50) UNIQUE, status VARCHAR(20), total_cents INT, amount_due_cents INT, created_at TIMESTAMPTZ DEFAULT now());

@@ -17,15 +17,21 @@ export const FEATURE_FLAGS = {
   AUDIT_LOGS: false,           // Hide until audit log API exists
   
   // Quick actions (only wired to real endpoints)
-  QUICK_ACTIONS: true          // ✅ CSV exports work
+  QUICK_ACTIONS: true,         // ✅ CSV exports work
+  
+  // Phase 24: V0 UI Facelift
+  NEW_LANDING_PAGE: false,     // 🚧 Phase 24: V0-generated landing page (set to true after integration)
+  NEW_DASHBOARD: false,        // 🚧 Phase 24: V0-generated dashboard (future)
+  NEW_WIZARD_UI: false,        // 🚧 Phase 24: V0-generated wizard UI facelift (future)
 } as const;
 
 /**
  * Deployment Log:
  * - Created: October 9, 2025 at 9:15 PM PT
  * - Phase 23-B Deployed: October 30, 2025 at 9:15 PM PST
- * - Status: REVENUE_TAB now enabled (complete billing system deployed)
+ * - Phase 24 Feature Flags Added: October 31, 2025 at 12:45 AM PST
+ * - Status: REVENUE_TAB enabled, Phase 24 flags added (NEW_LANDING_PAGE, NEW_DASHBOARD, NEW_WIZARD_UI)
  * - Working: EXPORTS, QUICK_ACTIONS, REVENUE_TAB
- * - Next: Enable SYSTEM_TAB when /admin/system-metrics endpoint is ready
+ * - Next: Enable NEW_LANDING_PAGE after V0 integration complete
  */
 

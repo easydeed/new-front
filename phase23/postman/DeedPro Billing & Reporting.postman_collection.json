@@ -1,0 +1,42 @@
+{
+  "info": {
+    "name": "DeedPro Billing & Reporting (minimal)",
+    "_postman_id": "f433ef52-ee93-453c-b325-4b67ef08ad4a",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Admin \u2014 Revenue",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/admin/revenue",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "revenue"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Usage \u2014 Overage Quote",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/usage/overage/quote",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usage",
+            "overage",
+            "quote"
+          ]
+        }
+      }
+    }
+  ]
+}
