@@ -51,61 +51,75 @@ components/
 
 ### **Colors** (CRITICAL - Use Exactly):
 ```typescript
-// Neutral, techy palette with modern vibrance
---primary: #3B82F6        // Modern Blue (Sky 500 - professional, trustworthy)
---accent: #8B5CF6         // Vibrant Purple (Violet 500 - innovation, AI)
---dark: #0F172A           // Slate 900 (dark sections, footer)
---light: #F8FAFC          // Slate 50 (light sections background)
---white: #FFFFFF          // Pure white sections
---gray-50: #F1F5F9        // Slate 100 (subtle backgrounds)
---gray-600: #475569       // Slate 600 (body text, neutral)
---gray-900: #0F172A       // Slate 900 (headings, high contrast)
---success: #10B981        // Emerald 500 (checkmarks, success states)
---warning: #F59E0B        // Amber 500 (alerts, highlights)
+// Professional palette for escrow officers + tech integrations
+--primary: #f9f9f9        // Near-white (clean, professional, plenty of white space)
+--secondary: #1F2B37      // Dark slate (headers, text, contrast)
+--accent-green: #77F2A1   // Fresh mint green (success, CTAs, energy)
+--accent-blue: #4F76F6    // Tech blue (links, tech features, trust)
+--white: #FFFFFF          // Pure white (maximum breathing room)
+--gray-100: #F3F4F6       // Very light gray (subtle sections)
+--gray-800: #1F2937       // Dark gray (body text)
+--gray-900: #111827       // Near black (headings)
+
+// Semantic colors
+--success: #77F2A1        // Mint green (checkmarks, success states)
+--tech: #4F76F6           // Tech blue (badges, tech features)
+--text-primary: #1F2B37   // Dark slate (main text)
+--text-secondary: #6B7280 // Medium gray (secondary text)
 
 // Gradient overlays (for hero, cards)
---gradient-primary: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)
---gradient-dark: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0.85) 100%)
+--gradient-hero: linear-gradient(135deg, #FFFFFF 0%, #f9f9f9 50%, #F3F4F6 100%)
+--gradient-accent: linear-gradient(135deg, #77F2A1 0%, #4F76F6 100%)
+--gradient-dark: linear-gradient(180deg, #1F2B37 0%, #111827 100%)
 ```
 
 ### **Typography**:
 ```typescript
-// Modern system font stack (optimized for tech aesthetic)
+// Modern system font stack (heavy weights for impact)
 font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 
              'Segoe UI Variable', 'Segoe UI', 'Inter var', system-ui, sans-serif
 
-// Font weights (use specific weights for modern look)
-- Display (headlines): font-bold (700) or font-extrabold (800)
-- Titles: font-semibold (600)
-- Body: font-normal (400)
-- Labels: font-medium (500)
+// Font weights (HEAVY fonts on headers as requested)
+- Display (hero): font-black (900) - MAXIMUM WEIGHT
+- Section Headers: font-extrabold (800) - VERY HEAVY
+- Subheadings: font-bold (700) - HEAVY
+- Body: font-normal (400) - readable
+- Labels: font-semibold (600) - medium weight
 
-// Sizes (with tight tracking for modern feel)
-- Hero Headline: text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight
-- Section Titles: text-3xl sm:text-4xl font-bold tracking-tight
-- Body: text-base sm:text-lg font-normal leading-relaxed
-- Small: text-sm font-normal
-- Micro: text-xs font-medium tracking-wide uppercase (for labels)
+// Sizes (generous spacing between lines)
+- Hero Headline: text-6xl sm:text-7xl lg:text-8xl font-black tracking-tight
+- Section Titles: text-4xl sm:text-5xl font-extrabold tracking-tight
+- Subheadings: text-2xl sm:text-3xl font-bold
+- Body: text-lg sm:text-xl font-normal leading-relaxed
+- Small: text-base font-normal
+- Micro: text-sm font-semibold
 
 // Letter spacing
-- Headlines: tracking-tight (-0.025em)
+- Headlines: tracking-tight (-0.025em) - tight and impactful
 - Body: tracking-normal (0em)
-- Labels/Micro: tracking-wide (0.025em)
+- Generous line height: leading-loose (2) for body text
 ```
 
-### **Spacing**:
+### **Spacing** (GENEROUS - Plenty of breathing room):
 ```typescript
-// Section padding (responsive)
-py-16 sm:py-20 lg:py-24
+// Section padding (EXTRA generous as requested)
+py-20 sm:py-28 lg:py-36  // More vertical space than usual
 
 // Container (max-width wrapper)
-max-w-7xl mx-auto px-4 sm:px-6 lg:px-8
+max-w-7xl mx-auto px-6 sm:px-8 lg:px-12  // Extra horizontal padding
 
-// Card gap
-gap-6 sm:gap-8
+// Element spacing (generous gaps everywhere)
+gap-8 sm:gap-12 lg:gap-16  // Large gaps between elements
+space-y-8 sm:space-y-12    // Vertical rhythm
 
-// Grid layouts
-grid-cols-1 sm:grid-cols-2 lg:grid-cols-4
+// Card padding (roomy)
+p-8 sm:p-10 lg:p-12
+
+// Grid layouts (breathing room)
+grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-12
+
+// Margins between sections
+mb-16 sm:mb-20 lg:mb-24
 ```
 
 ---
@@ -191,189 +205,281 @@ import Image from 'next/image'
 ### **1. HERO SECTION** (Server Component)
 
 **Layout**: 
-- Dark background (CSS gradient - NO heavy image)
-- Grid layout: left (text) + right (deed preview card)
+- **White/light background** (plenty of white space as requested)
+- Grid layout: left (text) + right (**actual deed illustration**)
 - Mobile: stack vertically
+- Generous padding (py-28 lg:py-36)
 
-**Background** (CRITICAL - Use CSS gradient, not image):
+**Background** (CRITICAL - Clean white with subtle gradient):
 ```typescript
-<section className="relative overflow-hidden bg-gradient-to-br from-dark via-gray-900 to-primary/10">
-  {/* Optional: Subtle grid pattern */}
-  <div className="absolute inset-0 bg-grid-pattern opacity-5" />
+<section className="relative overflow-hidden bg-gradient-to-br from-white via-primary to-gray-100">
+  {/* Optional: Subtle dot grid pattern for texture */}
+  <div className="absolute inset-0 bg-dot-pattern opacity-[0.02]" />
   
-  {/* Content container */}
-  <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32">
-    {/* Grid: left text + right card */}
+  {/* Content container with GENEROUS spacing */}
+  <div className="relative max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-28 lg:py-36">
+    <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+      {/* Left: Text */}
+      {/* Right: Deed illustration */}
+    </div>
   </div>
 </section>
 ```
 
 **Content**:
 ```typescript
-// Badge (techy, neutral, uppercase with wide tracking)
-<Badge variant="secondary" className="bg-primary/10 text-primary ring-1 ring-primary/20 backdrop-blur-sm text-xs font-medium tracking-wide uppercase">
-  AI‑Powered • Enterprise‑Grade
+// Badge (mint green background, tech blue text)
+<Badge className="bg-accent-green/10 text-accent-blue border border-accent-green/20 text-sm font-semibold px-4 py-2">
+  Trusted by 500+ Escrow Officers
 </Badge>
 
-// Headline (gradient text from primary to accent, extra bold for impact)
-<h1 className="mt-6 text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white">
+// Headline (FONT-BLACK - maximum weight as requested, dark slate color)
+<h1 className="mt-8 text-6xl sm:text-7xl lg:text-8xl font-black tracking-tight text-secondary leading-[1.1]">
   Create California deeds
-  <span className="block mt-2 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-    in minutes.
+  <span className="block mt-3 bg-gradient-to-r from-accent-green to-accent-blue bg-clip-text text-transparent">
+    in minutes, not hours.
   </span>
 </h1>
 
-// Subheadline (lighter gray for contrast)
-<p className="mt-6 text-xl text-gray-400 max-w-2xl leading-relaxed">
+// Subheadline (larger text, generous line height)
+<p className="mt-8 text-xl sm:text-2xl text-gray-800 max-w-2xl leading-loose">
   DeedPro combines an AI‑assisted wizard, SmartReview, and integrations 
   built for title workflows—so your team ships clean documents on the first pass.
 </p>
 
-// CTAs (primary = blue, secondary = outline)
-<div className="mt-8 flex flex-col sm:flex-row gap-4">
-  <Button size="lg" className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25">
-    Start a Deed <ArrowRight className="ml-2 h-5 w-5" />
+// CTAs (mint green primary, outline secondary - generous spacing)
+<div className="mt-12 flex flex-col sm:flex-row gap-6">
+  <Button size="lg" className="bg-accent-green hover:bg-accent-green/90 text-secondary font-bold text-lg px-8 py-6 shadow-xl shadow-accent-green/25">
+    Start Creating Deeds <ArrowRight className="ml-2 h-6 w-6" />
   </Button>
-  <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 backdrop-blur-sm">
-    See 2‑min demo
+  <Button size="lg" variant="outline" className="border-2 border-secondary text-secondary hover:bg-gray-50 font-bold text-lg px-8 py-6">
+    Watch 2‑min Demo
   </Button>
+</div>
+
+// Trust indicators (below CTAs)
+<div className="mt-12 flex items-center gap-8 text-sm text-gray-600">
+  <div className="flex items-center gap-2">
+    <Check className="h-5 w-5 text-accent-green" />
+    <span className="font-medium">No credit card required</span>
+  </div>
+  <div className="flex items-center gap-2">
+    <Check className="h-5 w-5 text-accent-green" />
+    <span className="font-medium">Free 14-day trial</span>
+  </div>
 </div>
 ```
 
-**Deed Preview Card** (right side):
+**Deed Illustration** (right side - ACTUAL DEED VISUAL):
 ```typescript
-<Card className="border border-white/10 shadow-2xl bg-white/95 backdrop-blur-sm">
-  {/* Gradient top bar (primary to accent) */}
-  <div className="h-1 w-full bg-gradient-to-r from-primary via-accent to-primary rounded-t-lg" />
+<div className="relative">
+  {/* Main deed illustration */}
+  <div className="relative rounded-2xl bg-white shadow-2xl border-2 border-gray-200 overflow-hidden">
+    {/* Deed header bar (gradient) */}
+    <div className="h-3 w-full bg-gradient-to-r from-accent-green to-accent-blue" />
+    
+    {/* Deed content area - realistic deed preview */}
+    <div className="p-8 sm:p-12">
+      {/* Official-looking header */}
+      <div className="text-center mb-8">
+        <div className="text-xs font-semibold text-gray-500 tracking-wider uppercase mb-2">
+          Recording Requested By
+        </div>
+        <div className="text-sm font-bold text-secondary">
+          DeedPro • Escrow Services
+        </div>
+      </div>
+      
+      {/* Deed title */}
+      <div className="text-center mb-8 pb-6 border-b-2 border-gray-200">
+        <h3 className="text-2xl font-black text-secondary tracking-tight">
+          GRANT DEED
+        </h3>
+        <p className="mt-2 text-xs text-gray-500">
+          CALIFORNIA CIVIL CODE § 1092
+        </p>
+      </div>
+      
+      {/* Deed body (sample text) */}
+      <div className="space-y-4 text-sm text-gray-700 leading-relaxed">
+        <p className="font-medium">
+          <span className="font-bold text-secondary">GRANTOR:</span> John A. Smith and Jane B. Smith
+        </p>
+        <p className="font-medium">
+          <span className="font-bold text-secondary">GRANTEE:</span> Michael C. Johnson
+        </p>
+        <p className="text-xs text-gray-600 leading-loose">
+          For valuable consideration, receipt of which is hereby acknowledged, 
+          Grantor(s) hereby GRANT(S) to Grantee(s) the following described real property...
+        </p>
+        
+        {/* Property description box */}
+        <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="text-xs font-semibold text-secondary mb-2">LEGAL DESCRIPTION:</div>
+          <div className="text-xs text-gray-600 font-mono">
+            LOT 42, TRACT NO. 12345<br />
+            IN THE CITY OF LOS ANGELES<br />
+            COUNTY OF LOS ANGELES
+          </div>
+        </div>
+      </div>
+      
+      {/* Signature area */}
+      <div className="mt-8 pt-6 border-t border-gray-200">
+        <div className="text-xs text-gray-500">Signature of Grantor(s)</div>
+        <div className="mt-2 h-px bg-gray-300 w-48" />
+      </div>
+    </div>
+    
+    {/* "AI Generated" badge overlay */}
+    <div className="absolute top-4 right-4">
+      <Badge className="bg-accent-blue text-white font-semibold shadow-lg">
+        <Sparkles className="h-3 w-3 mr-1" />
+        AI Generated
+      </Badge>
+    </div>
+  </div>
   
-  <CardContent className="p-6">
-    <div className="flex items-center justify-between mb-4">
-      <span className="text-sm font-medium text-gray-900">SmartReview — Grant Deed</span>
-      <Badge variant="secondary" className="bg-light text-gray-700">Preview</Badge>
-    </div>
-    
-    {/* Deed preview placeholder (use CSS, not image) */}
-    <div className="aspect-[8.5/11] rounded-lg bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 flex items-center justify-center">
-      <FileDigit className="h-16 w-16 text-gray-400" />
-    </div>
-    
-    {/* Bottom buttons */}
-    <div className="mt-6 flex gap-3">
-      <Button size="sm" variant="outline" className="flex-1">Edit</Button>
-      <Button size="sm" className="flex-1 bg-accent hover:bg-accent/90">
-        Confirm & Create
-      </Button>
-    </div>
-  </CardContent>
-</Card>
+  {/* Floating accent elements */}
+  <div className="absolute -top-6 -right-6 w-32 h-32 bg-accent-green/20 rounded-full blur-3xl" />
+  <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-accent-blue/20 rounded-full blur-3xl" />
+</div>
 ```
 
 **Performance**:
-- NO background image (pure CSS gradient)
-- Deed preview: CSS placeholder (not image)
-- LCP candidate: Badge or headline text
-- No layout shift (explicit aspect ratios)
+- Light background (fast render)
+- Deed illustration: Pure HTML/CSS (no image loading)
+- LCP candidate: Headline text
+- No layout shift (explicit dimensions)
 
 ---
 
 ### **2. STATS BAR**
 
 **Layout**:
-- Light background (#FFFFFF)
-- Border top/bottom with primary color (border-primary/15)
+- **Pure white background** (plenty of white space)
+- Subtle border top/bottom (border-gray-200)
 - Grid: 4 columns on desktop, 2 on mobile
-- Each stat: icon + label + big number
+- Each stat: Large number + icon + label
+- **Generous padding** (py-20)
 
 **Content**:
 ```typescript
 const stats = [
-  { icon: FileDigit, label: 'Deeds Generated', value: '25,000+' },
-  { icon: Check, label: 'Accuracy Rate', value: '99.9%' },
-  { icon: Clock, label: 'Avg. Time Saved', value: '45 min' },
-  { icon: Shield, label: 'Compliance', value: '100%' },
+  { icon: FileDigit, label: 'Deeds Generated', value: '25,000+', color: 'text-accent-green' },
+  { icon: Check, label: 'Accuracy Rate', value: '99.9%', color: 'text-accent-blue' },
+  { icon: Clock, label: 'Time Saved', value: '45 min', color: 'text-accent-green' },
+  { icon: Shield, label: 'Compliance', value: '100%', color: 'text-accent-blue' },
 ]
 
-// Each stat card
-<div className="rounded-xl border border-primary/20 p-6 bg-primary/5">
-  <div className="flex items-center gap-2 text-sm text-gray-600">
-    <Icon className="h-4 w-4 text-accent" />
-    {label}
+// Section wrapper (generous spacing)
+<section className="py-20 bg-white border-y border-gray-200">
+  <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-12">
+      {stats.map((stat) => (
+        <div key={stat.label} className="text-center">
+          {/* Big number first (font-black as requested) */}
+          <div className="text-5xl sm:text-6xl font-black text-secondary mb-3">
+            {stat.value}
+          </div>
+          
+          {/* Icon + Label (stacked, generous spacing) */}
+          <div className="flex items-center justify-center gap-2 text-gray-600">
+            <stat.icon className={`h-5 w-5 ${stat.color}`} />
+            <span className="text-base font-semibold">{stat.label}</span>
+          </div>
+        </div>
+      ))}
+    </div>
   </div>
-  <div className="mt-2 text-3xl font-bold text-gray-900">{value}</div>
-</div>
+</section>
 ```
 
 **Performance**: Static content, no lazy loading needed
 
 ---
 
-### **3. API EXAMPLE** (Server Component + ApiSnippet.tsx)
+### **3. API / INTEGRATIONS SECTION** (Server Component)
 
 **Layout**:
-- Dark background (#0F172A)
-- Grid: left (text) + right (code snippet component)
+- **Dark slate background** (#1F2B37) for contrast
+- Grid: left (text) + right (integration logos or code snippet)
 - Mobile: stack vertically
+- **Generous padding** (py-28)
 
-**Content**:
+**Content** (Tech Integration Focus):
 ```typescript
-// app/(marketing)/page.tsx
-import ApiSnippet from '@/components/ApiSnippet';
-
-<section aria-label="API Integration" className="py-16 sm:py-20 lg:py-24 bg-dark">
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div className="grid lg:grid-cols-2 gap-10 items-center">
+<section aria-label="Integrations" className="py-28 bg-secondary">
+  <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+    <div className="grid lg:grid-cols-2 gap-16 items-center">
       {/* Left side */}
       <div>
-        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
-          Deed creation in one call
+        {/* Badge */}
+        <Badge className="bg-accent-blue/10 text-accent-blue border border-accent-blue/20 text-sm font-semibold px-4 py-2 mb-6">
+          <Zap className="h-4 w-4 mr-2" />
+          API & Integrations
+        </Badge>
+        
+        {/* Title (font-extrabold, white text) */}
+        <h2 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight mb-6">
+          One API call.<br />
+          Instant deed generation.
         </h2>
-        <p className="mt-4 text-lg text-gray-400 leading-relaxed">
-          Trigger the same trusted flow from your stack with a single endpoint.
+        
+        {/* Description (larger, generous line height) */}
+        <p className="text-xl text-gray-300 leading-loose mb-8">
+          Integrate DeedPro into your existing workflow. Works seamlessly with 
+          SoftPro, Qualia, and all major title software platforms.
         </p>
-        <div className="mt-6 flex gap-3">
-          <Button className="bg-accent hover:bg-accent/90 shadow-lg shadow-accent/25">
-            Read the docs
+        
+        {/* CTAs */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Button className="bg-accent-green hover:bg-accent-green/90 text-secondary font-bold px-6 py-3">
+            View API Docs
           </Button>
-          <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
-            Explore the API
+          <Button variant="outline" className="border-white/30 text-white hover:bg-white/10 font-bold px-6 py-3">
+            Explore Integrations
           </Button>
+        </div>
+        
+        {/* Trust badges */}
+        <div className="mt-12 grid grid-cols-2 gap-6">
+          <div>
+            <div className="text-3xl font-black text-accent-green mb-2">99.9%</div>
+            <div className="text-sm text-gray-400">API Uptime</div>
+          </div>
+          <div>
+            <div className="text-3xl font-black text-accent-blue mb-2">&lt;200ms</div>
+            <div className="text-sm text-gray-400">Avg Response</div>
+          </div>
         </div>
       </div>
       
-      {/* Right side: Code snippet component */}
-      <ApiSnippet />
+      {/* Right side: Integration logos or code snippet */}
+      <div>
+        {/* Integration logos grid */}
+        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-10">
+          <div className="text-sm font-semibold text-gray-400 mb-8 text-center">
+            TRUSTED INTEGRATIONS
+          </div>
+          <div className="grid grid-cols-2 gap-8 items-center">
+            {/* Placeholder for integration logos */}
+            {['SoftPro', 'Qualia', 'RamQuest', 'ResWare'].map((name) => (
+              <div key={name} className="bg-white/10 rounded-xl p-6 text-center">
+                <div className="text-lg font-bold text-white">{name}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
 ```
 
-**components/ApiSnippet.tsx** (Server Component):
-```typescript
-// Mark TODOs for placeholders
-export default function ApiSnippet() {
-  return (
-    <Card className="border-primary/20 bg-gray-900/50 backdrop-blur-sm">
-      <CardContent className="p-6">
-        <pre className="text-xs sm:text-sm overflow-auto text-gray-300 font-mono leading-relaxed">
-{`curl -X POST https://api.deedpro.app/deeds/create \\
-  -H "Authorization: Bearer <TODO: token>" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "grantor": "TODO: grantor name",
-    "grantee": "TODO: grantee name",
-    "legalDescription": "TODO: legal description",
-    "vesting": "TODO: vesting type"
-  }'`}
-        </pre>
-      </CardContent>
-    </Card>
-  );
-}
-```
-
 **Performance**: 
-- Server component (no hydration cost)
-- Lazy render if offscreen (optional: wrap in Suspense)
+- Dark background for visual contrast
+- Static content (fast render)
 
 ---
 
@@ -458,9 +564,10 @@ export default function VideoPlayer() {
 ### **5. FEATURES**
 
 **Layout**:
-- Light background (#F7F9FC)
-- Grid: 2×2 (4 cards) on desktop, 1 column on mobile
-- Each card: icon + title + description
+- **Pure white background** (maximum breathing room)
+- Grid: 3 columns on desktop, 1 column on mobile
+- Each card: Large icon + heavy title + description
+- **Generous spacing** (py-28, gap-12)
 
 **Content**:
 ```typescript
@@ -468,35 +575,67 @@ const features = [
   { 
     icon: Wand2, 
     title: 'AI-Powered Wizard',
-    description: 'Clean, accessible forms with inline validation. Less friction, fewer do-overs.'
+    description: 'Clean, accessible forms with inline validation. Less friction, fewer do-overs.',
+    accent: 'accent-green'
   },
   { 
     icon: Shield, 
     title: 'CA Compliance Built-in',
-    description: 'All 58 counties supported with up-to-date recording requirements and formatting.'
+    description: 'All 58 counties supported with up-to-date recording requirements and formatting.',
+    accent: 'accent-blue'
   },
   { 
     icon: Zap, 
-    title: 'SoftPro & Qualia Integration',
-    description: 'Fits your existing workflow—no dramatic retooling needed.'
-  },
-  { 
-    icon: Lock, 
-    title: 'Enterprise Security',
-    description: 'Bank-grade encryption, SOC 2 compliance, and audit logs for every action.'
+    title: 'Instant Integrations',
+    description: 'SoftPro, Qualia, and major title software. Fits your existing workflow seamlessly.',
+    accent: 'accent-green'
   },
 ]
 
-// Each feature card
-<Card className="border-gray-200 bg-white hover:shadow-lg transition-shadow">
-  <CardContent className="p-6">
-    <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-      <Icon className="h-6 w-6 text-primary" />
+// Section wrapper (generous spacing, clean white)
+<section className="py-28 bg-white">
+  <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+    {/* Section header (font-extrabold as requested) */}
+    <div className="text-center mb-20">
+      <h2 className="text-4xl sm:text-5xl font-extrabold text-secondary tracking-tight mb-6">
+        Everything you need to create deeds faster
+      </h2>
+      <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-loose">
+        Built for escrow officers, loved by title companies. Trusted integrations for seamless workflow.
+      </p>
     </div>
-    <h3 className="text-xl font-semibold text-gray-900">{title}</h3>
-    <p className="mt-2 text-gray-600">{description}</p>
-  </CardContent>
-</Card>
+    
+    {/* Feature grid (generous spacing) */}
+    <div className="grid md:grid-cols-3 gap-12">
+      {features.map((feature) => (
+        <div key={feature.title} className="group">
+          {/* Icon (large, colored background) */}
+          <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl ${
+            feature.accent === 'accent-green' 
+              ? 'bg-accent-green/10' 
+              : 'bg-accent-blue/10'
+          } mb-6 group-hover:scale-110 transition-transform`}>
+            <feature.icon className={`h-8 w-8 ${
+              feature.accent === 'accent-green' 
+                ? 'text-accent-green' 
+                : 'text-accent-blue'
+            }`} />
+          </div>
+          
+          {/* Title (font-extrabold as requested) */}
+          <h3 className="text-2xl font-extrabold text-secondary mb-4">
+            {feature.title}
+          </h3>
+          
+          {/* Description (larger text, generous line height) */}
+          <p className="text-lg text-gray-600 leading-loose">
+            {feature.description}
+          </p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
 ```
 
 ---
@@ -610,9 +749,10 @@ const certifications = [
 ### **10. PRICING**
 
 **Layout**:
-- Light gray background (#F9FAFB)
+- **Pure white background** (plenty of space)
 - 3 pricing cards (Starter, Professional, Enterprise)
-- Middle card highlighted with ring
+- Middle card highlighted with mint green accent
+- **Generous spacing** (py-28, gap-8)
 
 **Content**:
 ```typescript
@@ -621,7 +761,7 @@ const tiers = [
     name: 'Starter', 
     price: '$0', 
     period: 'forever',
-    features: ['5 deeds/month', 'Email support', 'Basic templates'],
+    features: ['5 deeds/month', 'Email support', 'Basic templates', 'All deed types'],
     cta: 'Start Free',
     popular: false
   },
@@ -629,7 +769,7 @@ const tiers = [
     name: 'Professional', 
     price: '$149', 
     period: '/month',
-    features: ['Unlimited deeds', 'Priority support', 'All deed types', 'API access', 'Custom branding'],
+    features: ['Unlimited deeds', 'Priority support', 'API access', 'Custom branding', 'SoftPro & Qualia integration'],
     cta: 'Start 14-day trial',
     popular: true
   },
@@ -643,28 +783,73 @@ const tiers = [
   },
 ]
 
-// Pricing card (popular has ring)
-<Card className={popular ? 'ring-2 ring-accent' : 'border-gray-200'}>
-  {popular && <Badge className="bg-accent">Most Popular</Badge>}
-  <CardContent className="p-6">
-    <h3 className="text-2xl font-bold text-gray-900">{name}</h3>
-    <div className="mt-4">
-      <span className="text-4xl font-bold text-gray-900">{price}</span>
-      <span className="text-gray-600">{period}</span>
+// Section wrapper (generous spacing, clean white)
+<section className="py-28 bg-white">
+  <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+    {/* Section header (font-extrabold) */}
+    <div className="text-center mb-20">
+      <h2 className="text-4xl sm:text-5xl font-extrabold text-secondary tracking-tight mb-6">
+        Simple pricing for every team
+      </h2>
+      <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-loose">
+        Start free, scale as you grow. No hidden fees, cancel anytime.
+      </p>
     </div>
-    <ul className="mt-6 space-y-3">
-      {features.map(f => (
-        <li key={f} className="flex items-center gap-2 text-gray-700">
-          <Check className="h-4 w-4 text-accent" />
-          {f}
-        </li>
+    
+    {/* Pricing grid (generous spacing between cards) */}
+    <div className="grid md:grid-cols-3 gap-8">
+      {tiers.map((tier) => (
+        <Card 
+          key={tier.name}
+          className={`${
+            tier.popular 
+              ? 'ring-4 ring-accent-green border-accent-green shadow-2xl scale-105' 
+              : 'border-gray-200'
+          } transition-all hover:shadow-xl`}
+        >
+          <CardContent className="p-10">
+            {/* Popular badge */}
+            {tier.popular && (
+              <Badge className="bg-accent-green text-secondary font-bold mb-6 px-3 py-1">
+                Most Popular
+              </Badge>
+            )}
+            
+            {/* Tier name (font-extrabold) */}
+            <h3 className="text-2xl font-extrabold text-secondary">{tier.name}</h3>
+            
+            {/* Price (font-black) */}
+            <div className="mt-6 mb-8">
+              <span className="text-5xl font-black text-secondary">{tier.price}</span>
+              <span className="text-lg text-gray-600">{tier.period}</span>
+            </div>
+            
+            {/* Features (generous spacing) */}
+            <ul className="space-y-4 mb-10">
+              {tier.features.map(f => (
+                <li key={f} className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-accent-green flex-shrink-0 mt-0.5" />
+                  <span className="text-base text-gray-700">{f}</span>
+                </li>
+              ))}
+            </ul>
+            
+            {/* CTA button */}
+            <Button 
+              className={`w-full font-bold text-base py-6 ${
+                tier.popular 
+                  ? 'bg-accent-green hover:bg-accent-green/90 text-secondary' 
+                  : 'bg-secondary hover:bg-secondary/90 text-white'
+              }`}
+            >
+              {tier.cta}
+            </Button>
+          </CardContent>
+        </Card>
       ))}
-    </ul>
-    <Button className={popular ? 'bg-accent' : 'bg-primary'}>
-      {cta}
-    </Button>
-  </CardContent>
-</Card>
+    </div>
+  </div>
+</section>
 ```
 
 ---
