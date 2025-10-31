@@ -1,0 +1,72 @@
+:root {
+  /* Phase 24‑B theme tokens (purple/blue, light) */
+  --accent-purple: #7C4DFF;
+  --accent-blue:   #4F76F6;
+  --bg:            #F9F9F9;
+  --ink:           #1F2B37;
+  --ink-dim:       #425466;
+  --card:          #FFFFFF;
+  --border:        #E5E7EB;
+  --success:       #10B981;
+  --danger:        #EF4444;
+}
+
+/* Scope every rule to the wizard body attributes */
+body[data-v0-page][data-v0-wizard] {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+/* Simple utility palette for the presentational components */
+body[data-v0-page][data-v0-wizard] .v0-btn-primary {
+  background: var(--accent-purple);
+  color: white;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+}
+
+body[data-v0-page][data-v0-wizard] .v0-btn-secondary {
+  background: var(--accent-blue);
+  color: white;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+}
+
+body[data-v0-page][data-v0-wizard] .v0-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+body[data-v0-page][data-v0-wizard] .v0-muted { color: var(--ink-dim); }
+body[data-v0-page][data-v0-wizard] .v0-border { border-color: var(--border); }
+
+/* Inputs */
+body[data-v0-page][data-v0-wizard] .v0-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  background: white;
+  outline: none;
+}
+
+body[data-v0-page][data-v0-wizard] .v0-input:focus {
+  border-color: var(--accent-purple);
+  box-shadow: 0 0 0 3px rgba(124,77,255,0.15);
+}
+
+/* Progress bar */
+body[data-v0-page][data-v0-wizard] .v0-progress {
+  height: 8px;
+  background: #eef2f7;
+  border-radius: 999px;
+  overflow: hidden;
+}
+body[data-v0-page][data-v0-wizard] .v0-progress > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-purple), var(--accent-blue));
+}
