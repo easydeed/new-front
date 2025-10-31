@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+// Phase 24-A: vibrancy-boost.css DELETED - V0 design system taking over
+// V0 provides all styling via route group layouts (see (v0-landing)/layout.tsx)
 import "../styles/wizardModern.css"; // Phase 15 v5: Modern wizard styles
 import "../styles/modern-wizard.css"; // Patch 6-c: Modern wizard styles
 

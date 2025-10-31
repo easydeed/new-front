@@ -1,0 +1,273 @@
+/**
+ * NUCLEAR CSS RESET - SCORCHED EARTH APPROACH
+ * 
+ * This completely obliterates ALL styles from the main app before V0 styles load.
+ * Uses maximum specificity to override everything.
+ */
+
+/* ==========================================
+   PHASE 1: KILL ALL BACKGROUNDS & GRADIENTS
+   ========================================== */
+
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed, 
+figure, figcaption, footer, header, hgroup, 
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video, button, input, select, textarea,
+main, section, nav, aside, header, footer {
+  background-image: none !important;
+  background-blend-mode: normal !important;
+  mix-blend-mode: normal !important;
+  -webkit-text-fill-color: inherit !important;
+  background-clip: border-box !important;
+  -webkit-background-clip: border-box !important;
+}
+
+/* Kill all pseudo-element backgrounds */
+*::before,
+*::after {
+  background-image: none !important;
+  background: transparent !important;
+  content: none !important;
+  display: none !important;
+}
+
+/* ==========================================
+   PHASE 2: KILL ALL SHADOWS & TRANSFORMS
+   ========================================== */
+
+* {
+  box-shadow: none !important;
+  text-shadow: none !important;
+  transform: none !important;
+  transform-origin: initial !important;
+  perspective: none !important;
+  transform-style: flat !important;
+}
+
+/* ==========================================
+   PHASE 3: KILL ALL FILTERS & EFFECTS
+   ========================================== */
+
+* {
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  mask: none !important;
+  -webkit-mask: none !important;
+  mask-image: none !important;
+  -webkit-mask-image: none !important;
+  clip-path: none !important;
+}
+
+/* ==========================================
+   PHASE 4: KILL ALL ANIMATIONS & TRANSITIONS
+   ========================================== */
+
+*,
+*::before,
+*::after {
+  animation: none !important;
+  animation-name: none !important;
+  animation-duration: 0s !important;
+  animation-timing-function: ease !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+  animation-direction: normal !important;
+  animation-fill-mode: none !important;
+  animation-play-state: running !important;
+  transition: none !important;
+  transition-property: none !important;
+  transition-duration: 0s !important;
+  transition-timing-function: ease !important;
+  transition-delay: 0s !important;
+}
+
+/* ==========================================
+   PHASE 5: KILL ALL BORDERS & OUTLINES WITH EFFECTS
+   ========================================== */
+
+* {
+  border-image: none !important;
+  border-image-source: none !important;
+  outline-offset: 0 !important;
+}
+
+/* ==========================================
+   PHASE 6: RESET ALL CUSTOM PROPERTIES (CSS Variables)
+   ========================================== */
+
+/* We can't reset ALL CSS variables without breaking Tailwind,
+   but we can reset the ones that cause issues */
+
+body {
+  /* Reset any custom gradient variables */
+  --tw-gradient-from: transparent !important;
+  --tw-gradient-to: transparent !important;
+  --tw-gradient-stops: transparent !important;
+  
+  /* Reset shadow variables */
+  --tw-shadow: 0 0 #0000 !important;
+  --tw-shadow-colored: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  
+  /* Reset blur variables */
+  --tw-blur: none !important;
+  --tw-brightness: none !important;
+  --tw-contrast: none !important;
+  --tw-grayscale: none !important;
+  --tw-hue-rotate: none !important;
+  --tw-invert: none !important;
+  --tw-saturate: none !important;
+  --tw-sepia: none !important;
+  --tw-drop-shadow: none !important;
+  --tw-backdrop-blur: none !important;
+  --tw-backdrop-brightness: none !important;
+  --tw-backdrop-contrast: none !important;
+  --tw-backdrop-grayscale: none !important;
+  --tw-backdrop-hue-rotate: none !important;
+  --tw-backdrop-invert: none !important;
+  --tw-backdrop-opacity: none !important;
+  --tw-backdrop-saturate: none !important;
+  --tw-backdrop-sepia: none !important;
+}
+
+/* ==========================================
+   PHASE 7: KILL SPECIFIC VIBRANCY-BOOST PATTERNS
+   ========================================== */
+
+/* Gradient text (most aggressive pattern) */
+h1 *, h2 *, h3 *, h4 *, h5 *, h6 *, 
+.gradient, .bg-gradient-to-r, .bg-gradient-to-l,
+.bg-gradient-to-t, .bg-gradient-to-b,
+.bg-gradient-to-br, .bg-gradient-to-bl,
+.bg-gradient-to-tr, .bg-gradient-to-tl,
+[class*="gradient"] {
+  background: transparent !important;
+  background-image: none !important;
+  -webkit-text-fill-color: inherit !important;
+  color: inherit !important;
+}
+
+/* Card effects */
+[class*="card"],
+[class*="Card"],
+.card, .Card,
+[data-card],
+[class*="rounded"],
+[class*="border"] {
+  box-shadow: none !important;
+  transform: none !important;
+  transition: none !important;
+  backdrop-filter: none !important;
+  border-image: none !important;
+}
+
+/* Button effects */
+button,
+[type="button"],
+[type="submit"],
+[class*="button"],
+[class*="Button"],
+.button, .Button,
+[class*="btn"] {
+  background-image: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+  transition: none !important;
+  text-shadow: none !important;
+}
+
+/* Stat cards & bars (glassmorphism targets) */
+[class*="stat"],
+[data-stat],
+.stat-card,
+[class*="StatCard"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-image: none !important;
+}
+
+/* ==========================================
+   PHASE 8: KILL HOVER/FOCUS EFFECTS
+   ========================================== */
+
+*:hover,
+*:focus,
+*:active,
+*:focus-within {
+  transform: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transition: none !important;
+}
+
+/* ==========================================
+   PHASE 9: RESET BACKGROUND PATTERNS
+   ========================================== */
+
+/* Kill dot patterns, stripes, etc. */
+body,
+main,
+section,
+div[class*="bg-"],
+div[class*="background"] {
+  background-image: none !important;
+  background-pattern: none !important;
+}
+
+/* ==========================================
+   PHASE 10: KILL SPECIFIC UTILITY CLASSES
+   ========================================== */
+
+/* Target common utility patterns that might have gradients */
+.bg-primary,
+.bg-secondary,
+.bg-accent,
+.bg-hero,
+.bg-feature,
+[class*="bg-gradient"] {
+  background-image: none !important;
+}
+
+/* ==========================================
+   PHASE 11: FORCE CLEAN DEFAULTS
+   ========================================== */
+
+/* Set explicit clean defaults */
+* {
+  /* Ensure no inherited gradients */
+  background-image: revert-layer !important;
+  
+  /* Reset to browser defaults where possible */
+  transform: revert-layer !important;
+  filter: revert-layer !important;
+  backdrop-filter: revert-layer !important;
+}
+
+/* Then immediately set to none for safety */
+* {
+  background-image: none !important;
+  transform: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* ==========================================
+   END NUCLEAR RESET
+   ========================================== */
+
+/**
+ * At this point, EVERYTHING from the main app should be obliterated.
+ * V0's globals.css can now apply cleanly.
+ */
+

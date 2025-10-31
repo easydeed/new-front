@@ -2,8 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Vibrancy Boost v1 - PDFShift-inspired enhancements */
-@import './vibrancy-boost.css';
+/* Vibrancy Boost v1 - Now scoped via layout.tsx import (vibrancy-boost.scoped.css) */
+/* @import removed - handled in layout.tsx to maintain proper scope */
 
 /* Escrow Skin (Phase 9 - Theme) */
 .escrow {

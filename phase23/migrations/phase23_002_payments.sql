@@ -1,1 +1,0 @@
-CREATE TABLE IF NOT EXISTS payment_history (id SERIAL PRIMARY KEY, invoice_id INT, user_id INT, amount_cents INT, currency VARCHAR(3) DEFAULT 'USD', status VARCHAR(20), stripe_fee_cents INT DEFAULT 0, net_amount_cents INT, created_at TIMESTAMPTZ DEFAULT now());

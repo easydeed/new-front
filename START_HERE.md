@@ -1,6 +1,6 @@
 # 👋 **Welcome to DeedPro!**
 
-**Last Updated**: October 30, 2025  
+**Last Updated**: October 31, 2025  
 **New Team Member?** You're in the right place! This guide will get you productive in 30 minutes.
 
 ---
@@ -9,12 +9,13 @@
 
 ###  **1. What is DeedPro?**
 
-DeedPro is a web application that automates California real estate deed generation:
-- **Frontend**: Next.js 15 + React + TypeScript + Tailwind CSS
-- **Backend**: Python FastAPI + PostgreSQL
+DeedPro is an AI-enhanced real estate deed generation platform:
+- **Frontend**: Next.js 15 + React + TypeScript + Tailwind CSS + V0 (AI-generated UI)
+- **Backend**: Python FastAPI + PostgreSQL + External API Service
 - **PDF Generation**: Weasyprint + Jinja2 templates
-- **APIs**: Google Places (address search), SiteX (property enrichment), Stripe (payments)
+- **APIs**: Google Places (address search), SiteX (property enrichment), Stripe (billing)
 - **5 Deed Types**: Grant, Quitclaim, Interspousal Transfer, Warranty, Tax
+- **Enterprise API**: External deed generation for partners (API keys, webhooks, S3 storage)
 
 ---
 
@@ -50,10 +51,11 @@ python main.py
 
 ### 3. **Read Key Documentation** (10 minutes)
 
-1. 📊 **[PROJECT_STATUS.md](PROJECT_STATUS.md)** → Current system state (Phase 19-20 complete)
-2. 🚀 **[BREAKTHROUGHS.md](BREAKTHROUGHS.md)** → Recent discoveries (last 2 weeks)
-3. 🏗️ **[docs/wizard/ARCHITECTURE.md](docs/wizard/ARCHITECTURE.md)** → System architecture
-4. 🗺️ **[docs/backend/ROUTES.md](docs/backend/ROUTES.md)** → Backend API endpoints
+1. 📊 **[PROJECT_STATUS.md](PROJECT_STATUS.md)** → Current system state (Phase 24-A complete!)
+2. 🚀 **[BREAKTHROUGHS.md](BREAKTHROUGHS.md)** → Recent discoveries
+3. 🗺️ **[docs/backend/ROUTES.md](docs/backend/ROUTES.md)** → Backend API endpoints
+4. 🎨 **[PHASE_24_V0_UI_FACELIFT_PLAN.md](PHASE_24_V0_UI_FACELIFT_PLAN.md)** → UI facelift roadmap
+5. 📚 **[docs/V0_INTEGRATION_LESSONS_LEARNED.md](docs/V0_INTEGRATION_LESSONS_LEARNED.md)** → V0 CSS isolation lessons
 
 ---
 
