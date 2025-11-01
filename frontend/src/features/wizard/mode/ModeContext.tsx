@@ -1,41 +1,39 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
-export type WizardMode = 'classic' | 'modern';
+/**
+ * ✅ PHASE 24-C: MODERN WIZARD ONLY
+ * 
+ * ModeContext simplified to always return 'modern' mode.
+ * Classic mode has been DELETED!
+ * 
+ * API kept compatible for existing code, but mode is always 'modern'.
+ */
+
+export type WizardMode = 'modern'; // Classic removed!
 
 type ModeContextType = {
   mode: WizardMode;
-  setMode: (m: WizardMode) => void;
+  setMode: (m: WizardMode) => void; // No-op, kept for API compatibility
   storageKey: string;
   hydrated: boolean;
 };
 
 const ModeContext = createContext<ModeContextType | null>(null);
 
-function resolveInitialMode(): WizardMode {
-  if (typeof window === 'undefined') return 'classic';
-  const urlMode = new URLSearchParams(window.location.search).get('mode');
-  if (urlMode === 'modern' || urlMode === 'classic') return urlMode as WizardMode;
-  return (process.env.NEXT_PUBLIC_WIZARD_MODE_DEFAULT as WizardMode) || 'classic';
-}
-
 export function WizardModeProvider({ children }: { children: React.ReactNode }) {
-  const [mode, setMode] = useState<WizardMode>(resolveInitialMode());
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     setHydrated(true);
-    try {
-      const stored = localStorage.getItem('wizard_mode');
-      if (stored === 'modern' || stored === 'classic') setMode(stored as WizardMode);
-    } catch {}
   }, []);
 
-  const storageKey = mode === 'modern' ? 'deedWizardDraft_modern' : 'deedWizardDraft_classic';
-
-  const value = useMemo(
-    () => ({ mode, setMode, storageKey, hydrated }),
-    [mode, storageKey, hydrated]
-  );
+  // Always 'modern' mode, always use modern storage key
+  const value: ModeContextType = {
+    mode: 'modern',
+    setMode: () => { /* No-op - mode is always 'modern' */ },
+    storageKey: 'deedWizardDraft_modern',
+    hydrated
+  };
 
   return <ModeContext.Provider value={value}>{children}</ModeContext.Provider>;
 }
