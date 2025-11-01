@@ -20,24 +20,18 @@ function Inner({ docType, classic }: { docType: string; classic: React.ReactNode
   const { mode } = useWizardMode();
   const { isPropertyVerified } = useWizardStoreBridge();
   const [forceRender, setForceRender] = React.useState(0);
-  
-  // DEBUG: Log mode and verification status
-  console.log('[WizardHost] Mode:', mode, 'PropertyVerified:', isPropertyVerified(), 'ForceRender:', forceRender);
 
   if (mode === 'modern') {
     // Hybrid: run Step 1 first if needed
     if (!isPropertyVerified()) {
-      console.log('[WizardHost] Rendering PropertyStepBridge (property not verified)');
       return (
         <WizardFrame docType={docType} heading="Create Deed">
           <PropertyStepBridge onVerified={() => {
-            console.log('[WizardHost] Property verified! Triggering re-render...');
             setForceRender(prev => prev + 1);
           }} />
         </WizardFrame>
       );
     }
-    console.log('[WizardHost] Rendering ModernEngine (property verified)');
     return (
       <WizardModeBoundary fallback={<ClassicEngine>{classic}</ClassicEngine>}>
         <WizardFrame docType={docType} heading="Create Deed">
@@ -48,7 +42,6 @@ function Inner({ docType, classic }: { docType: string; classic: React.ReactNode
   }
 
   // Classic (your existing tree) - also wrapped for consistent header/toggle
-  console.log('[WizardHost] Rendering ClassicEngine (mode:', mode, ')');
   return (
     <WizardFrame docType={docType} heading="Create Deed">
       <ClassicEngine>{classic}</ClassicEngine>
