@@ -52,8 +52,6 @@ export default function Step5PreviewFixed({
 
       // Build context using the adapter
       const payload = contextBuilder(wizardData);
-      
-      console.log(`[Phase 11] Generating PDF for ${docType}`, { endpoint, payload });
 
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -103,10 +101,7 @@ export default function Step5PreviewFixed({
       a.remove();
 
       // 2. Save to database (use context adapter output for consistency)
-      console.log('[Phase 11 DEBUG] wizardData:', JSON.stringify(wizardData, null, 2));
-      
       const contextData = contextBuilder(wizardData);
-      console.log('[Phase 11 DEBUG] contextData after adapter:', JSON.stringify(contextData, null, 2));
       
       const payload = {
         deed_type: docType,
@@ -121,12 +116,9 @@ export default function Step5PreviewFixed({
         sales_price: null, // Could be extracted from DTT data if needed
       };
 
-      console.log('[Phase 11] Saving deed metadata:', payload);
-      
       await saveDeedMetadata(payload, token || undefined);
 
       // 3. Clear draft - ✅ PHASE 19 SESSION FIX: Use correct Classic Wizard key
-      console.log('[Step5] ✅ Clearing Classic Wizard localStorage after successful finalization');
       localStorage.removeItem(WIZARD_DRAFT_KEY_CLASSIC);
 
       // 4. Show success
