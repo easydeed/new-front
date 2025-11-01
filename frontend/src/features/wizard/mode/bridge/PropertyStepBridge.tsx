@@ -6,12 +6,22 @@
 import React, { useCallback } from 'react';
 import PropertySearchWithTitlePoint from '@/components/PropertySearchWithTitlePoint';
 import { useWizardStoreBridge } from './useWizardStoreBridge';
+// ✅ PHASE 24-C STEP 8: Telemetry for property search events
+import { trackWizardEvent } from '@/lib/telemetry';
 
 export default function PropertyStepBridge({ onVerified }: { onVerified?: () => void } = {}) {
   const { isPropertyVerified, updateFormData } = useWizardStoreBridge();
 
   // Handle property verification callback
   const handlePropertyVerified = useCallback((data: any) => {
+    // ✅ PHASE 24-C STEP 8: Track property enrichment with SiteX data
+    trackWizardEvent('Wizard.PropertyEnriched', { 
+      address: data.fullAddress || data.address,
+      apn: data.apn,
+      county: data.county,
+      hasLegal: Boolean(data.legalDescription)
+    });
+
     // Update the store with verified property data + SiteX enrichment
     const storeUpdate = {
       verifiedData: data,

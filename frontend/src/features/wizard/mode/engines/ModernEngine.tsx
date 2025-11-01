@@ -13,6 +13,8 @@ import { usePartners } from '@/features/partners/PartnersContext';
 import { assertStableSteps } from '@/lib/wizard/invariants';
 // ✅ PHASE 19 SESSION FIX: Import Modern Wizard localStorage key
 import { WIZARD_DRAFT_KEY_MODERN } from '../bridge/persistenceKeys';
+// ✅ PHASE 24-C STEP 8: Telemetry for wizard events
+import { trackWizardEvent } from '@/lib/telemetry';
 
 export default function ModernEngine({ docType }: { docType: string }) {
   const { partners } = usePartners();
@@ -69,6 +71,15 @@ useEffect(() => {
     return () => window.removeEventListener('smartreview:confirm', handler);
   }, []);
 
+  // ✅ PHASE 24-C STEP 8: Track when wizard starts (once per session)
+  const __didTrackStart = useRef(false);
+  useEffect(() => {
+    if (hydrated && !__didTrackStart.current) {
+      trackWizardEvent('Wizard.Started', { mode: 'modern', deedType: docType });
+      __didTrackStart.current = true;
+    }
+  }, [hydrated, docType]);
+
   useEffect(() => {
     if (!hydrated) return;
     const data = getWizardData();
@@ -109,7 +120,31 @@ assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: s
   const current = steps[i];
   const total = steps.length;
 
+  // ✅ PHASE 24-C STEP 8: Track when a step is shown
+  const stepStartTimeRef = useRef<number>(Date.now());
+  useEffect(() => {
+    if (hydrated && current) {
+      stepStartTimeRef.current = Date.now();
+      const stepName = i === total ? 'SmartReview' : (current.title || current.question || `Step ${i + 1}`);
+      trackWizardEvent('Wizard.StepShown', { 
+        step: i + 1, 
+        stepName,
+        deedType: docType 
+      });
+    }
+  }, [i, hydrated, current, total, docType]);
+
   const onNext = useCallback(async () => {
+    // ✅ PHASE 24-C STEP 8: Track step completion with duration
+    const duration = Math.round((Date.now() - stepStartTimeRef.current) / 1000);
+    const stepName = i === total ? 'SmartReview' : (current?.title || current?.question || `Step ${i + 1}`);
+    trackWizardEvent('Wizard.StepCompleted', { 
+      step: i + 1, 
+      stepName,
+      duration,
+      deedType: docType 
+    });
+
     // FIX: i < total (not total - 1) to show SmartReview before finalizing
     // When i = total - 1 (last Q&A), increment to total to show SmartReview
     // When i = total (on SmartReview), then finalize
@@ -123,16 +158,37 @@ assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: s
         const result = await finalizeDeed(payload, { docType, state, mode });
         
         if (result.success) {
+          // ✅ PHASE 24-C STEP 8: Track wizard completion
+          trackWizardEvent('Wizard.Completed', { 
+            deedType: docType,
+            stepsCompleted: total + 1, // +1 for SmartReview
+            mode: 'modern'
+          });
+
           // ✅ PHASE 19 SESSION FIX: Clear Modern Wizard localStorage after successful finalization
           if (typeof window !== 'undefined') {
             localStorage.removeItem(WIZARD_DRAFT_KEY_MODERN);
             window.location.href = `/deeds/${result.deedId}/preview?mode=${mode}`;
           }
         } else {
+          // ✅ PHASE 24-C STEP 8: Track error
+          trackWizardEvent('Wizard.Error', { 
+            step: total + 1,
+            stepName: 'Finalization',
+            error: 'Finalize returned success=false',
+            deedType: docType 
+          });
           console.error('[ModernEngine.onNext] ❌ Finalize returned success=false');
           alert('We could not finalize the deed. Please review and try again.');
         }
       } catch (e) {
+        // ✅ PHASE 24-C STEP 8: Track error
+        trackWizardEvent('Wizard.Error', { 
+          step: total + 1,
+          stepName: 'Finalization',
+          error: String(e),
+          deedType: docType 
+        });
         console.error('[ModernEngine.onNext] ❌ Finalize exception:', e);
         alert('We could not finalize the deed. Please try again.');
       }
