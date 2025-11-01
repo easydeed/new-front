@@ -17,12 +17,7 @@ type Props = {
  * - Emits 'smartreview:confirm' event that ModernEngine listens for
  */
 export default function SmartReview({ docType, state, onEdit, onConfirm, busy }: Props) {
-  // Debug: Log what state we're receiving
-  console.log('[SmartReview/components] Rendered with state:', state);
-  console.log('[SmartReview/components] docType:', docType);
-  
   const handleConfirm = useCallback(() => {
-    console.log('[SmartReview/components] Confirm clicked with state:', state);
     if (typeof onConfirm === 'function') {
       onConfirm();
     } else {
@@ -50,8 +45,6 @@ export default function SmartReview({ docType, state, onEdit, onConfirm, busy }:
   // Check if we have ANY state data at all
   const hasAnyData = state && Object.keys(state).length > 0;
   const hasImportantData = importantFields.some(k => state?.[k] && String(state[k]).trim() !== '');
-
-  console.log('[SmartReview/components] hasAnyData:', hasAnyData, 'hasImportantData:', hasImportantData);
 
   return (
     <div className="modern-qna" data-component="SmartReview">
