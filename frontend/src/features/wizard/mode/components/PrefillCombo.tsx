@@ -58,15 +58,7 @@ export default function PrefillCombo({
 
   // ✅ PHASE 19 FIX: Removed infinite loop debug logger
   // This useEffect was running on EVERY render due to array reference dependencies
-  // Only log on mount for debugging, or remove entirely for production
-  useEffect(() => {
-    console.log('[PrefillCombo] Mounted with', {
-      fullListLength: fullList.length,
-      partnersLength: partners.length,
-      suggestionsLength: suggestions.length,
-      initialValue: value
-    });
-  }, []); // Only run on mount
+  // Removed debug logging for production
 
   const handleSelect = (label: string) => {
     setDraft(label);
@@ -90,13 +82,11 @@ export default function PrefillCombo({
         className="modern-input"
         value={draft}
         onFocus={() => { 
-          console.log('[PrefillCombo] Focus - opening dropdown');
           setOpen(true); 
           onFocus?.(); 
         }}
         onChange={(e) => {
           const newValue = e.target.value;
-          console.log('[PrefillCombo] onChange:', newValue);
           setDraft(newValue);
           onChange(newValue); // ✅ propagate every keystroke
           setOpen(true); // Ensure dropdown opens when typing
@@ -105,7 +95,6 @@ export default function PrefillCombo({
           // allow click on dropdown without losing focus immediately
           if (blurTimer.current) window.clearTimeout(blurTimer.current);
           blurTimer.current = window.setTimeout(() => {
-            console.log('[PrefillCombo] Blur - closing dropdown');
             setOpen(false);
             if (draft !== value) onChange(draft); // safety flush
             onBlur?.();
@@ -135,7 +124,6 @@ export default function PrefillCombo({
                   type="button" 
                   className="prefill-option" 
                   onClick={() => {
-                    console.log('[PrefillCombo] Selected:', it.label);
                     handleSelect(it.label);
                   }}
                 >
