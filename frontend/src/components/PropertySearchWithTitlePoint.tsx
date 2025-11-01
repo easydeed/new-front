@@ -2,115 +2,15 @@
 
 import { useState, useEffect, useRef } from 'react';
 import ProgressOverlay from '@/components/ProgressOverlay';
-import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
-
-// Types for property data
-interface PropertyData {
-  fullAddress: string;
-  street: string;
-  city: string;
-  state: string;
-  zip: string;
-  neighborhood?: string;
-  county?: string;
-  placeId: string;
-  // TitlePoint data
-  apn?: string;
-  legalDescription?: string;
-  grantorName?: string;
-  currentOwnerPrimary?: string;
-  currentOwnerSecondary?: string;
-}
-
-interface PropertyDetailsResponse {
-  success?: boolean;
-  property_details?: {
-    county?: string;
-    legal_description?: string;
-    owner_name_primary?: string;
-    owner_name_secondary?: string;
-    full_address?: string;
-    [key: string]: string | undefined;
-  };
-}
-
-interface PropertySearchProps {
-  onVerified: (data: PropertyData) => void;
-  onError?: (error: string) => void;
-  placeholder?: string;
-  className?: string;
-  onPropertyFound?: (data: PropertyData) => void; // New callback for property details
-}
-
-interface GoogleAddressComponent {
-  long_name?: string;
-  short_name?: string;
-  types: string[];
-}
-
-interface GooglePlaceResult {
-  address_components?: GoogleAddressComponent[];
-  formatted_address?: string;
-  name?: string;
-  place_id?: string;
-}
-
-interface GoogleAutocompletePrediction {
-  description: string;
-  place_id: string;
-  structured_formatting?: {
-    main_text?: string;
-    secondary_text?: string;
-  };
-}
-
-interface GoogleAutocompleteRequest {
-  input: string;
-  componentRestrictions?: { country: string };
-  types?: string[];
-}
-
-type GooglePlacesServiceStatus = string;
-
-interface GoogleAutocompleteService {
-  getPlacePredictions: (
-    request: GoogleAutocompleteRequest,
-    callback: (predictions: GoogleAutocompletePrediction[] | null, status: GooglePlacesServiceStatus) => void
-  ) => void;
-}
-
-interface GooglePlacesService {
-  getDetails: (
-    request: { placeId: string; fields: string[] },
-    callback: (place: GooglePlaceResult | null, status: GooglePlacesServiceStatus) => void
-  ) => void;
-}
-
-interface GooglePlacesNamespace {
-  AutocompleteService: new () => GoogleAutocompleteService;
-  PlacesService: new (element: HTMLElement) => GooglePlacesService;
-  PlacesServiceStatus: Record<string, GooglePlacesServiceStatus>;
-}
-
-interface GoogleMapsNamespace {
-  places?: GooglePlacesNamespace;
-  Map: new (element: HTMLElement) => unknown;
-}
-
-interface GoogleNamespace {
-  maps?: GoogleMapsNamespace;
-}
-
-interface PropertyDetails extends PropertyData {
-  propertyType?: string;
-}
-
-declare global {
-  interface Window {
-    google: GoogleNamespace | undefined;
-    initGoogleMaps?: () => void;
-  }
-}
+import { useGoogleMaps } from './hooks/useGoogleMaps';
+import { usePropertyLookup } from './hooks/usePropertyLookup';
+import { extractStreetAddress, getComponent, getCountyFallback } from './utils/addressHelpers';
+import {
+  PropertyData,
+  PropertySearchProps,
+  GoogleAutocompletePrediction,
+  GoogleAutocompleteRequest
+} from './types/PropertySearchTypes';
 
 export default function PropertySearchWithTitlePoint({ 
   onVerified, 
@@ -123,78 +23,28 @@ export default function PropertySearchWithTitlePoint({
   const [inputValue, setInputValue] = useState('');
   const [suggestions, setSuggestions] = useState<GoogleAutocompletePrediction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [stage, setStage] = useState<'idle'|'connecting'|'searching'|'resolving'|'done'|'error'>('idle');
-  const [isGoogleLoaded, setIsGoogleLoaded] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<PropertyData | null>(null);
   const [selectedSuggestion, setSelectedSuggestion] = useState<GoogleAutocompletePrediction | null>(null);
-  const [isTitlePointLoading, setIsTitlePointLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [searchAttempted, setSearchAttempted] = useState(false);
-  const [propertyDetails, setPropertyDetails] = useState<PropertyDetails | null>(null);
-  const [showPropertyDetails, setShowPropertyDetails] = useState(false);
   
   const inputRef = useRef<HTMLInputElement>(null);
-  const autocompleteService = useRef<GoogleAutocompleteService | null>(null);
-  const placesService = useRef<GooglePlacesService | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
 
-  // Initialize Google Maps API
-  useEffect(() => {
-  const initializeGoogle = async () => {
-      // Check if Google Places is enabled via feature flag
-      const googlePlacesEnabled = process.env.NEXT_PUBLIC_GOOGLE_PLACES_ENABLED === 'true';
-      if (!googlePlacesEnabled) {
-        console.log('Google Places API disabled via feature flag');
-        return;
-      }
-
-      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
-      if (!apiKey) {
-        console.warn('Google Places API key not configured');
-        onError?.('Address search not available. Please enter address manually.');
-        return;
-      }
-
-      if (window.google && window.google.maps) {
-        setIsGoogleLoaded(true);
-        initializeServices();
-        return;
-      }
-
-      // Load Google Maps API with modern loading approach
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&loading=async&callback=initGoogleMaps`;
-      script.async = true;
-      script.defer = true;
-      
-      // Define global callback
-      window.initGoogleMaps = () => {
-        console.log('✅ Google Maps API loaded successfully');
-        setIsGoogleLoaded(true);
-        initializeServices();
-      };
-      
-      script.onerror = () => {
-        onError?.('Failed to load Google Maps API');
-      };
-      
-      document.head.appendChild(script);
-    };
-
-    const initializeServices = () => {
-      if (window.google && window.google.maps) {
-        autocompleteService.current = new window.google.maps.places.AutocompleteService();
-        
-        // Create a div element for PlacesService (required)
-        const mapDiv = document.createElement('div');
-        const map = new window.google.maps.Map(mapDiv);
-        placesService.current = new window.google.maps.places.PlacesService(map);
-      }
-    };
-
-    initializeGoogle();
-  }, [onError]);
+  // Use custom hooks for Google Maps and Property Lookup
+  const { isGoogleLoaded, autocompleteService, placesService } = useGoogleMaps(onError);
+  const {
+    isTitlePointLoading,
+    propertyDetails,
+    showPropertyDetails,
+    errorMessage,
+    stage,
+    lookupPropertyDetails,
+    handleConfirmProperty,
+    setShowPropertyDetails,
+    setPropertyDetails,
+    setErrorMessage
+  } = usePropertyLookup(onVerified, onPropertyFound);
 
   // Handle input change with address suggestions - improved debouncing
   const handleInputChange = (value: string) => {
@@ -291,8 +141,6 @@ export default function PropertySearchWithTitlePoint({
           setSelectedAddress(propertyData);
           setIsLoading(false);
           
-          // Don&#39;t automatically call TitlePoint - let user confirm first
-          // await lookupPropertyDetails(propertyData);
           resolve(true);
         } else {
           reject(new Error('Failed to get place details'));
@@ -314,7 +162,7 @@ export default function PropertySearchWithTitlePoint({
     };
 
     return new Promise((resolve, reject) => {
-      autocompleteService.current.getPlacePredictions(
+      autocompleteService.current!.getPlacePredictions(
         request,
         (predictions, status) => {
           if (status === window.google?.maps?.places?.PlacesServiceStatus?.OK && predictions && predictions.length > 0) {
@@ -349,9 +197,6 @@ export default function PropertySearchWithTitlePoint({
 
                 setSelectedAddress(propertyData);
                 setIsLoading(false);
-                
-                // Don&#39;t automatically call TitlePoint - let user confirm first
-                // await lookupPropertyDetails(propertyData);
                 resolve(true);
               } else {
                 reject(new Error('Failed to get place details'));
@@ -363,134 +208,6 @@ export default function PropertySearchWithTitlePoint({
         }
       );
     });
-  };
-
-  // Unified property search using /api/property/search (Per Dynamic Wizard Architecture)
-  const lookupPropertyDetails = async (addressData: PropertyData, retryCount = 0) => {
-    // PHASE 5-PREQUAL: Check if TitlePoint OR SiteX integration is enabled
-    const enrichmentEnabled =
-      process.env.NEXT_PUBLIC_TITLEPOINT_ENABLED === 'true' ||
-      process.env.NEXT_PUBLIC_SITEX_ENABLED === 'true';
-    
-    if (!enrichmentEnabled) {
-      console.log('Property enrichment disabled via feature flags');
-      setErrorMessage('Property enrichment not available. Please enter details manually.');
-      return;
-    }
-
-    setIsTitlePointLoading(true);
-    setErrorMessage(null);
-    setStage('connecting');  // PHASE 14-C: Start progress feedback
-    // PHASE 5-PREQUAL: Removed setSitexMatches/setShowSitexMatches - multi-match auto-resolved on backend
-    
-    try {
-      console.log('🔍 Unified Property Search for:', addressData);
-      if (retryCount > 0) {
-        console.log(`[PropertySearch] Retry attempt #${retryCount}`);
-      }
-      
-      // Check authentication token first
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        throw new Error('Authentication required. Please log in again.');
-      }
-      
-      // PHASE 14-C: Small delay to show "Connecting" stage
-      await new Promise(resolve => setTimeout(resolve, 400));
-      setStage('searching');  // PHASE 14-C: Update stage
-      
-      // PHASE 14-C: Call unified endpoint with 15-second timeout
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com';
-      const searchResponse = await fetchWithTimeout(`${apiUrl}/api/property/search`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          fullAddress: addressData.fullAddress,  // PHASE 5-PREQUAL: Fixed field name to match backend schema
-          street: addressData.street,
-          city: addressData.city,
-          state: addressData.state,
-          zip: addressData.zip,
-          neighborhood: addressData.neighborhood,
-          placeId: addressData.placeId
-        }),
-        timeoutMs: 15000  // PHASE 14-C: 15-second timeout
-      });
-
-      if (!searchResponse.ok) {
-        console.error(`Property search error: ${searchResponse.status} ${searchResponse.statusText}`);
-        
-        if (searchResponse.status === 401) {
-          throw new Error('Authentication expired. Please refresh the page and log in again.');
-        }
-        
-        throw new Error(`Property search error: ${searchResponse.status}`);
-      }
-
-      setStage('resolving');  // PHASE 14-C: Processing response
-      const result = await searchResponse.json();
-      console.log('✅ Unified Property Search result:', result);
-
-      // PHASE 14-C: Small delay to show "Resolving" stage
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      if (result.success) {
-        // Map backend response to frontend PropertyDetails format
-        const propertyInfo: PropertyDetails = {
-          ...selectedAddress,
-          fullAddress: result.fullAddress || addressData.fullAddress,
-          street: addressData.street,
-          city: result.city || addressData.city,
-          state: result.state || addressData.state,
-          zip: result.zip || addressData.zip,
-          county: result.county || addressData.county || '',
-          apn: result.apn || '',
-          legalDescription: result.legalDescription || '',  // Empty string for manual entry
-          grantorName: result.grantorName || '',
-          currentOwnerPrimary: result.grantorName || '',
-          currentOwnerSecondary: '',
-          propertyType: result.propertyType || 'Single Family Residence',  // Use backend data
-          placeId: addressData.placeId
-        };
-
-        setPropertyDetails(propertyInfo);
-        setShowPropertyDetails(true);
-        setErrorMessage(null);
-        setStage('done');  // PHASE 14-C: Success
-        onPropertyFound?.(propertyInfo);
-      } else {
-        // No property data found - allow manual entry
-        console.log('Property search returned no data');
-        setErrorMessage(result.error || '⚠️ Property details not available. You can proceed with manual entry.');
-        setShowPropertyDetails(false);
-      }
-    } catch (error: any) {
-      // BUG FIX #1: Auto-retry on AbortError (first attempt only)
-      // This handles the "first search after login fails" issue
-      if (error?.name === 'AbortError' && retryCount === 0) {
-        console.log('[PropertySearch] First attempt aborted, retrying automatically...');
-        // Don't reset loading state, just retry
-        return lookupPropertyDetails(addressData, retryCount + 1);
-      }
-      
-      console.error('Property search failed:', error);
-      setStage('error');  // PHASE 14-C: Error state
-      setErrorMessage('⚠️ Unable to retrieve property details. You can proceed with manual entry.');
-      setShowPropertyDetails(false);
-    } finally {
-      setIsTitlePointLoading(false);
-      // Reset stage after a brief delay to allow error message to show
-      setTimeout(() => setStage('idle'), 3000);
-    }
-  };
-
-  // User confirms property details and proceeds
-  const handleConfirmProperty = () => {
-    if (propertyDetails) {
-      onVerified(propertyDetails);
-    }
   };
 
   // Search for places using Google Places API
@@ -543,67 +260,6 @@ export default function PropertySearchWithTitlePoint({
     }, 0);
   };
 
-
-
-  // Helper function to extract street address
-  const extractStreetAddress = (components: GoogleAddressComponent[], placeName?: string) => {
-    const streetNumber = getComponent(components, 'street_number');
-    const route = getComponent(components, 'route');
-    
-    if (streetNumber && route) {
-      return `${streetNumber} ${route}`;
-    } else if (placeName) {
-      return placeName;
-    } else if (route) {
-      return route;
-    }
-    return '';
-  };
-
-  // Helper function to get component by type
-  const getComponent = (components: GoogleAddressComponent[], type: string, nameType: 'long_name' | 'short_name' = 'long_name') => {
-    const component = components.find((comp) => comp.types.includes(type));
-    return component ? component[nameType] : null;
-  };
-
-  // Helper function to get county fallback based on city and state
-  const getCountyFallback = (city: string, state: string) => {
-    // Common California county mappings for major cities
-    const countyMappings: {[key: string]: string} = {
-      'los angeles': 'Los Angeles',
-      'beverly hills': 'Los Angeles',
-      'santa monica': 'Los Angeles',
-      'hollywood': 'Los Angeles',
-      'pasadena': 'Los Angeles',
-      'glendale': 'Los Angeles',
-      'burbank': 'Los Angeles',
-      'long beach': 'Los Angeles',
-      'torrance': 'Los Angeles',
-      'la verne': 'Los Angeles',
-      'pomona': 'Los Angeles',
-      'san francisco': 'San Francisco',
-      'oakland': 'Alameda',
-      'san jose': 'Santa Clara',
-      'san diego': 'San Diego',
-      'sacramento': 'Sacramento',
-      'fresno': 'Fresno',
-      'bakersfield': 'Kern',
-      'anaheim': 'Orange',
-      'santa ana': 'Orange',
-      'riverside': 'Riverside',
-      'stockton': 'San Joaquin',
-      'irvine': 'Orange',
-      'fremont': 'Alameda',
-      'san bernardino': 'San Bernardino',
-      'modesto': 'Stanislaus'
-    };
-
-    if (state === 'CA' && city) {
-      return countyMappings[city.toLowerCase()] || '';
-    }
-    return '';
-  };
-
   return (
     <>
       <ProgressOverlay stage={stage} />
@@ -651,142 +307,142 @@ export default function PropertySearchWithTitlePoint({
                 position: 'absolute',
                 right: '20px',
                 top: '50%',
-                transform: 'translateY(-50%)'
+                transform: 'translateY(-50%)',
+                width: '20px',
+                height: '20px',
+                border: '2px solid #e5e7eb',
+                borderTop: '2px solid #F57C00',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }}></div>
+            )}
+
+            {/* Suggestions dropdown */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: 'calc(100% + 8px)',
+                left: 0,
+                right: 0,
+                backgroundColor: 'white',
+                border: '1px solid #e5e7eb',
+                borderRadius: '12px',
+                boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+                maxHeight: '300px',
+                overflowY: 'auto',
+                zIndex: 10
               }}>
-                <div style={{
-                  width: '20px',
-                  height: '20px',
-                  border: '2px solid #e5e7eb',
-                  borderTop: '2px solid #F57C00',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite'
-                }}></div>
+                {suggestions.map((suggestion) => (
+                  <div
+                    key={suggestion.place_id}
+                    onClick={() => handleSuggestionSelect(suggestion)}
+                    style={{
+                      padding: '16px 20px',
+                      cursor: 'pointer',
+                      borderBottom: '1px solid #f3f4f6',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#fef3e2';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'white';
+                    }}
+                  >
+                    <div style={{ fontSize: '15px', fontWeight: '500', color: '#1f2937', marginBottom: '4px' }}>
+                      {suggestion.structured_formatting?.main_text}
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#6b7280' }}>
+                      {suggestion.structured_formatting?.secondary_text}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
-          
-          {/* Address Search Button */}
+
           <button
             onClick={handleAddressSearch}
-            disabled={isLoading || isTitlePointLoading || !inputValue.trim()}
+            disabled={isLoading || inputValue.length < 3}
             style={{
-              padding: '20px 28px',
-              backgroundColor: (inputValue.trim() && !isLoading && !isTitlePointLoading) ? '#F57C00' : '#d1d5db',
+              padding: '20px 32px',
+              backgroundColor: isLoading || inputValue.length < 3 ? '#e5e7eb' : '#F57C00',
               color: 'white',
               border: 'none',
               borderRadius: '16px',
               fontSize: '16px',
-              fontWeight: '600',
-              cursor: (inputValue.trim() && !isLoading && !isTitlePointLoading) ? 'pointer' : 'not-allowed',
-              transition: 'all 0.2s ease',
-              minWidth: '110px',
+              fontWeight: '700',
+              cursor: isLoading || inputValue.length < 3 ? 'not-allowed' : 'pointer',
+              whiteSpace: 'nowrap',
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-              whiteSpace: 'nowrap'
+              transition: 'all 0.2s'
             }}
             onMouseEnter={(e) => {
-              if (inputValue.trim() && !isLoading && !isTitlePointLoading) {
-                e.currentTarget.style.backgroundColor = '#e67100';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.15)';
+              if (!isLoading && inputValue.length >= 3) {
+                e.currentTarget.style.backgroundColor = '#E67100';
               }
             }}
             onMouseLeave={(e) => {
-              if (inputValue.trim() && !isLoading && !isTitlePointLoading) {
+              if (!isLoading && inputValue.length >= 3) {
                 e.currentTarget.style.backgroundColor = '#F57C00';
-                e.currentTarget.style.transform = 'translateY(0px)';
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
               }
             }}
           >
-            {isLoading || isTitlePointLoading ? 'Searching...' : 'Search'}
+            {isLoading ? 'Searching...' : 'Find Address'}
           </button>
         </div>
 
-        {/* Google Places Suggestions */}
-        {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute z-50 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-            {suggestions.map((suggestion, index) => (
-              <div
-                key={index}
-                className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                onClick={() => handleSuggestionSelect(suggestion)}
-              >
-                <div className="text-sm font-medium text-gray-900">
-                  {suggestion.structured_formatting?.main_text || suggestion.description}
-                </div>
-                <div className="text-xs text-gray-500">
-                  {suggestion.structured_formatting?.secondary_text || ''}
-                </div>
-              </div>
-            ))}
+        {/* Error Message */}
+        {errorMessage && !selectedAddress && (
+          <div style={{
+            padding: '12px 16px',
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: '8px',
+            fontSize: '14px',
+            color: '#991b1b'
+          }}>
+            {errorMessage}
           </div>
         )}
 
-        {/* Error Message Display */}
-        {errorMessage && (
+        {/* Address Found - Get Property Details Button */}
+        {selectedAddress && !showPropertyDetails && (
           <div style={{
-            padding: '16px',
-            backgroundColor: '#fef3c7',
-            border: '2px solid #f59e0b',
-            borderRadius: '12px',
-            marginTop: '12px'
+            padding: '20px',
+            backgroundColor: '#ecfdf5',
+            border: '2px solid #6ee7b7',
+            borderRadius: '16px'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ fontSize: '18px', color: '#d97706' }}>⚠️</div>
-              <div style={{ fontSize: '14px', color: '#92400e', lineHeight: '1.5' }}>
-                {errorMessage}
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ fontSize: '14px', fontWeight: '600', color: '#047857', marginBottom: '8px' }}>
+                ✓ Address Validated
+              </div>
+              <div style={{ fontSize: '16px', color: '#1e293b', fontWeight: '500' }}>
+                {selectedAddress.fullAddress}
               </div>
             </div>
-          </div>
-        )}
 
-        {/* Selected Address Display */}
-        {selectedAddress && !errorMessage && !showPropertyDetails && (
-          <div style={{
-            padding: '16px',
-            backgroundColor: '#f0fdf4',
-            border: '2px solid #22c55e',
-            borderRadius: '12px',
-            marginTop: '12px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <div>
-                <div style={{ fontSize: '14px', fontWeight: '600', color: '#15803d', marginBottom: '4px' }}>
-                  ✅ Address Validated
-                </div>
-                <div style={{ fontSize: '14px', color: '#166534' }}>
-                  {selectedAddress.fullAddress}
-                </div>
-                <div style={{ fontSize: '12px', color: '#166534', marginTop: '4px' }}>
-                  County: {selectedAddress.county}
-                </div>
-              </div>
-              <div style={{ fontSize: '24px', color: '#22c55e' }}>✓</div>
-            </div>
-            
-            {/* Get Property Details Button */}
             <button
-              onClick={() => lookupPropertyDetails(selectedAddress)}
+              onClick={() => lookupPropertyDetails(selectedAddress, selectedAddress)}
               disabled={isTitlePointLoading}
               style={{
-                width: '100%',
-                padding: '12px 20px',
-                backgroundColor: isTitlePointLoading ? '#d1d5db' : '#F57C00',
+                padding: '14px 28px',
+                backgroundColor: isTitlePointLoading ? '#e5e7eb' : '#F57C00',
                 color: 'white',
                 border: 'none',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: '600',
+                borderRadius: '12px',
+                fontSize: '15px',
+                fontWeight: '700',
                 cursor: isTitlePointLoading ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s ease',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
+                gap: '8px',
+                transition: 'all 0.2s'
               }}
               onMouseEnter={(e) => {
                 if (!isTitlePointLoading) {
-                  e.currentTarget.style.backgroundColor = '#e67100';
+                  e.currentTarget.style.backgroundColor = '#E67100';
                 }
               }}
               onMouseLeave={(e) => {
@@ -1022,3 +678,4 @@ export default function PropertySearchWithTitlePoint({
     </>
   );
 }
+
