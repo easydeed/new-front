@@ -1,0 +1,10 @@
+/* Tailwind v3 layer entries; keep neutral palette and let app theme drive tokens */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Minimal helpers that do NOT fight the app: */
+.v0-card { @apply rounded-xl border border-gray-200 bg-white shadow-sm; }
+.v0-section { @apply py-6 sm:py-8; }
+.v0-heading { @apply text-lg sm:text-xl font-semibold text-gray-900; }
+.v0-subtle { @apply text-sm text-gray-600; }
