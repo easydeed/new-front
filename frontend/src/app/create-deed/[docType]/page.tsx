@@ -124,7 +124,6 @@ function ClassicWizard({ docType }: { docType: DocType }) {
     const wasJustCleared = typeof window !== 'undefined' && sessionStorage.getItem('deedWizardCleared') === 'true';
     
     if (wasJustCleared) {
-      console.log('[ClassicWizard] 🔄 Fresh deed session detected - starting from Step 1');
       setCurrentStep(1);
       setVerifiedData({});
       setGrantDeed({ step2: {}, step3: {}, step4: {} });
