@@ -13,6 +13,8 @@ import { usePartners } from '@/features/partners/PartnersContext';
 import { assertStableSteps } from '@/lib/wizard/invariants';
 // ✅ PHASE 19 SESSION FIX: Import Modern Wizard localStorage key
 import { WIZARD_DRAFT_KEY_MODERN } from '../bridge/persistenceKeys';
+// ✅ PHASE 24-C STEP 8: Telemetry for wizard events
+import { trackWizardEvent } from '@/lib/telemetry';
 
 export default function ModernEngine({ docType }: { docType: string }) {
   const { partners } = usePartners();
@@ -44,7 +46,6 @@ useEffect(() => {
     const curNorm = cur.trim().toLowerCase();
     const shouldBackfill = v && (cur === '' || curNorm === 'not available');
     if (shouldBackfill) {
-      console.log('[ModernEngine] Backfilling legal description:', v);
       setState(s => ({ ...s, legalDescription: v }));
     }
   } catch {}
@@ -70,15 +71,18 @@ useEffect(() => {
     return () => window.removeEventListener('smartreview:confirm', handler);
   }, []);
 
+  // ✅ PHASE 24-C STEP 8: Track when wizard starts (once per session)
+  const __didTrackStart = useRef(false);
+  useEffect(() => {
+    if (hydrated && !__didTrackStart.current) {
+      trackWizardEvent('Wizard.Started', { mode: 'modern', deedType: docType });
+      __didTrackStart.current = true;
+    }
+  }, [hydrated, docType]);
+
   useEffect(() => {
     if (!hydrated) return;
     const data = getWizardData();
-    
-    // DIAGNOSTIC: Log ENTIRE wizard data structure
-    console.log('[ModernEngine] FULL wizard data:', JSON.stringify(data, null, 2));
-    console.log('[ModernEngine] data.formData?.legalDescription:', data.formData?.legalDescription);
-    console.log('[ModernEngine] data.verifiedData?.legalDescription:', data.verifiedData?.legalDescription);
-    console.log('[ModernEngine] data.legalDescription:', data.legalDescription);
     
     // FIXED BUG #2 & #3: Merge verifiedData fields + initialize ALL prompt fields
     // This ensures property fields from PropertyStepBridge AND party fields are available
@@ -96,11 +100,6 @@ useEffect(() => {
       vesting: data.formData?.vesting || data.verifiedData?.vestingDetails || data.vesting || '',
       requestedBy: data.formData?.requestedBy || '',  // NEW: Explicitly initialize
     };
-    console.log('[ModernEngine] Initial state hydrated:', { 
-      legalDescription: initial.legalDescription,
-      grantorName: initial.grantorName,
-      requestedBy: initial.requestedBy 
-    });
     setState(initial);
   }, [hydrated]);
 
@@ -110,7 +109,6 @@ useEffect(() => {
     if (!hydrated) return;
     const stateStr = JSON.stringify(state);
     if (stateStr !== prevStateRef.current) {
-      console.log('[ModernEngine] 🔄 Syncing state to wizard store:', state);
       updateFormData(state);
       prevStateRef.current = stateStr;
     }
@@ -122,56 +120,79 @@ assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: s
   const current = steps[i];
   const total = steps.length;
 
-  const onNext = useCallback(async () => {
+  // ✅ PHASE 24-C STEP 8: Track when a step is shown
+  const stepStartTimeRef = useRef<number>(Date.now());
+  useEffect(() => {
+    if (hydrated && current) {
+      stepStartTimeRef.current = Date.now();
+      const stepName = i === total ? 'SmartReview' : (current.title || current.question || `Step ${i + 1}`);
+      trackWizardEvent('Wizard.StepShown', { 
+        step: i + 1, 
+        stepName,
+        deedType: docType 
+      });
+    }
+  }, [i, hydrated, current, total, docType]);
 
-    console.log('[ModernEngine.onNext] ========== START ==========');
-    console.log('[ModernEngine.onNext] Current step:', i + 1, '/', total);
-    console.log('[ModernEngine.onNext] Current state:', state);
-    console.log('[ModernEngine.onNext] State keys:', Object.keys(state));
-    console.log('[ModernEngine.onNext] 🔴 grantorName:', state.grantorName);
-    console.log('[ModernEngine.onNext] 🔴 granteeName:', state.granteeName);
-    console.log('[ModernEngine.onNext] 🔴 legalDescription:', state.legalDescription);
-    console.log('[ModernEngine.onNext] 🔴 requestedBy:', state.requestedBy);
-    console.log('[ModernEngine.onNext] 🔴 vesting:', state.vesting);
-    
+  const onNext = useCallback(async () => {
+    // ✅ PHASE 24-C STEP 8: Track step completion with duration
+    const duration = Math.round((Date.now() - stepStartTimeRef.current) / 1000);
+    const stepName = i === total ? 'SmartReview' : (current?.title || current?.question || `Step ${i + 1}`);
+    trackWizardEvent('Wizard.StepCompleted', { 
+      step: i + 1, 
+      stepName,
+      duration,
+      deedType: docType 
+    });
+
     // FIX: i < total (not total - 1) to show SmartReview before finalizing
     // When i = total - 1 (last Q&A), increment to total to show SmartReview
     // When i = total (on SmartReview), then finalize
     if (i < total) {
-      console.log('[ModernEngine.onNext] Moving to next step');
       setI(i + 1);
     } else {
-      console.log('[ModernEngine.onNext] 🟢 FINAL STEP - Starting finalization');
-      console.log('[ModernEngine.onNext] docType:', docType);
-      console.log('[ModernEngine.onNext] state before transform:', state);
-      
       const payload = toCanonicalFor(docType, state);
-      console.log('[ModernEngine.onNext] 🟢 Canonical payload created:', JSON.stringify(payload, null, 2));
       
       try {
-        console.log('[ModernEngine.onNext] 🟢 Calling finalizeDeed...');
         // ✅ PHASE 19 FIX: Pass docType, state, and mode to finalizeDeed
         const result = await finalizeDeed(payload, { docType, state, mode });
-        console.log('[ModernEngine.onNext] 🟢 finalizeDeed returned:', result);
         
         if (result.success) {
+          // ✅ PHASE 24-C STEP 8: Track wizard completion
+          trackWizardEvent('Wizard.Completed', { 
+            deedType: docType,
+            stepsCompleted: total + 1, // +1 for SmartReview
+            mode: 'modern'
+          });
+
           // ✅ PHASE 19 SESSION FIX: Clear Modern Wizard localStorage after successful finalization
-          console.log('[ModernEngine] ✅ Clearing Modern Wizard localStorage after successful finalization');
           if (typeof window !== 'undefined') {
             localStorage.removeItem(WIZARD_DRAFT_KEY_MODERN);
-            console.log('[ModernEngine.onNext] 🟢 Redirecting to preview page:', `/deeds/${result.deedId}/preview?mode=${mode}`);
             window.location.href = `/deeds/${result.deedId}/preview?mode=${mode}`;
           }
         } else {
+          // ✅ PHASE 24-C STEP 8: Track error
+          trackWizardEvent('Wizard.Error', { 
+            step: total + 1,
+            stepName: 'Finalization',
+            error: 'Finalize returned success=false',
+            deedType: docType 
+          });
           console.error('[ModernEngine.onNext] ❌ Finalize returned success=false');
           alert('We could not finalize the deed. Please review and try again.');
         }
       } catch (e) {
+        // ✅ PHASE 24-C STEP 8: Track error
+        trackWizardEvent('Wizard.Error', { 
+          step: total + 1,
+          stepName: 'Finalization',
+          error: String(e),
+          deedType: docType 
+        });
         console.error('[ModernEngine.onNext] ❌ Finalize exception:', e);
         alert('We could not finalize the deed. Please try again.');
       }
     }
-    console.log('[ModernEngine.onNext] ========== END ==========');
 }, [state, docType, mode, i, total]); // CRITICAL: All dependencies to prevent stale closures!
   
   // Update ref whenever onNext changes (for ref-safe event bridge)
@@ -181,12 +202,7 @@ assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: s
   const onBack = () => setI(Math.max(0, i - 1));
 
   const onChange = (field: string, value: any) => {
-    console.log(`[ModernEngine.onChange] 🔵 field="${field}" value="${value}"`);
-    setState(s => {
-      const newState = { ...s, [field]: value };
-      console.log('[ModernEngine.onChange] 🔵 Updated state:', newState);
-      return newState;
-    });
+    setState(s => ({ ...s, [field]: value }));
   };
 
   const { verifiedData = {} } = getWizardData();

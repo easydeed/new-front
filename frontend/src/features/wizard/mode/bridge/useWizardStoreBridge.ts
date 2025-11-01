@@ -12,14 +12,12 @@ export function useWizardStoreBridge() {
 
   const getWizardData = useCallback(() => {
     if (!hydrated) {
-      console.log('[useWizardStoreBridge.getWizardData] NOT HYDRATED - returning empty');
       return { formData: {}, verifiedData: {}, docType: 'grant_deed' };
     }
     try {
       const raw = localStorage.getItem(storageKey);
       if (!raw) return { formData: {}, verifiedData: {}, docType: 'grant_deed' };
       const parsed = JSON.parse(raw);
-      console.log('[useWizardStoreBridge.getWizardData] HYDRATED - loaded from localStorage:', parsed);
       return parsed || { formData: {}, verifiedData: {}, docType: 'grant_deed' };
     } catch {
       return { formData: {}, verifiedData: {}, docType: 'grant_deed' };
@@ -28,7 +26,6 @@ export function useWizardStoreBridge() {
 
   const updateFormData = useCallback((patch: Record<string, any>) => {
     if (!hydrated) {
-      console.log('[useWizardStoreBridge.updateFormData] NOT HYDRATED - blocked write');
       return;
     }
     try {
@@ -39,7 +36,6 @@ export function useWizardStoreBridge() {
         timestamp: new Date().toISOString(),
       };
       localStorage.setItem(storageKey, JSON.stringify(merged));
-      console.log('[useWizardStoreBridge.updateFormData] Saved to localStorage');
       window.dispatchEvent(new CustomEvent('wizard:formDataUpdated', { detail: merged }));
     } catch (e) {
       console.warn('Failed to update formData', e);
@@ -62,13 +58,10 @@ export function useWizardStoreBridge() {
 
   const isPropertyVerified = useCallback(() => {
     if (!hydrated) {
-      console.log('[useWizardStoreBridge.isPropertyVerified] NOT HYDRATED - returning false');
       return false;
     }
     const { formData = {}, verifiedData = {} } = getWizardData();
-    console.log('[useWizardStoreBridge.isPropertyVerified] Checking:', '\n  - wizardData:', { formData, verifiedData });
     const result = !!(formData.propertyVerified || verifiedData.apn || verifiedData.fullAddress);
-    console.log('  - RESULT:', result);
     return result;
   }, [hydrated, getWizardData]);
 

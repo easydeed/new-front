@@ -2,7 +2,7 @@
 import React from 'react';
 import Sidebar from '@/components/Sidebar';
 import DeedTypeBadge from '../components/DeedTypeBadge';
-import ToggleSwitch from '../components/ToggleSwitch';
+// ✅ PHASE 24-C: ToggleSwitch removed - Modern only!
 import { useWizardMode, WizardModeProvider } from '../ModeContext';
 import ModeCookieSync from '../hoc/ModeCookieSync';
 import './wizard-frame.css';
@@ -34,9 +34,8 @@ export default function WizardFrame({
           <div className="wizard-frame__title">
             <DeedTypeBadge docType={docType} />
             <h1 className="wizard-heading">{heading || 'Create Deed'}</h1>
-            {mode === 'modern' && <span className="wizard-mode-badge">Modern</span>}
+            {/* ✅ PHASE 24-C: Always Modern now, mode badge removed */}
           </div>
-          <ToggleSwitch />
         </div>
         
         <div className="wizard-frame__body">

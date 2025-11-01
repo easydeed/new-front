@@ -1,0 +1,12 @@
+diff --git a/src/app/vibrancy-boost.css b/src/app/vibrancy-boost.css
+--- a/src/app/vibrancy-boost.css
++++ b/src/app/vibrancy-boost.css
+@@
+-* { /* many global decorative rules */ }
++body:not([data-v0-page]) * { /* scoped decorative rules */ }
+ 
+-/* headings, cards, buttons targeted globally */
+-h1 *, [class*="Card"], button { /* … */ }
++body:not([data-v0-page]) h1 *,
++body:not([data-v0-page]) [class*="Card"],
++body:not([data-v0-page]) button { /* … */ }

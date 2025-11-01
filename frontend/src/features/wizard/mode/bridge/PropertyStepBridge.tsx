@@ -6,14 +6,22 @@
 import React, { useCallback } from 'react';
 import PropertySearchWithTitlePoint from '@/components/PropertySearchWithTitlePoint';
 import { useWizardStoreBridge } from './useWizardStoreBridge';
+// ✅ PHASE 24-C STEP 8: Telemetry for property search events
+import { trackWizardEvent } from '@/lib/telemetry';
 
 export default function PropertyStepBridge({ onVerified }: { onVerified?: () => void } = {}) {
   const { isPropertyVerified, updateFormData } = useWizardStoreBridge();
 
   // Handle property verification callback
   const handlePropertyVerified = useCallback((data: any) => {
-    console.log('[PropertyStepBridge] Property verified! Raw data:', data);
-    
+    // ✅ PHASE 24-C STEP 8: Track property enrichment with SiteX data
+    trackWizardEvent('Wizard.PropertyEnriched', { 
+      address: data.fullAddress || data.address,
+      apn: data.apn,
+      county: data.county,
+      hasLegal: Boolean(data.legalDescription)
+    });
+
     // Update the store with verified property data + SiteX enrichment
     const storeUpdate = {
       verifiedData: data,
@@ -46,18 +54,10 @@ export default function PropertyStepBridge({ onVerified }: { onVerified?: () => 
       lastSalePrice: data.titlePoint?.lastSalePrice || ''
     };
     
-    console.log('[PropertyStepBridge] Updating store with enriched SiteX data:', storeUpdate);
-    console.log('[PropertyStepBridge] 📋 Prefilled:', {
-      legalDescription: Boolean(storeUpdate.legalDescription),
-      grantorName: Boolean(storeUpdate.grantorName),
-      vesting: Boolean(storeUpdate.vesting)
-    });
     updateFormData(storeUpdate);
-    console.log('[PropertyStepBridge] Store updated, should trigger re-render');
     
     // PATCH 6-C FIX: Call parent callback to trigger WizardHost re-render
     if (onVerified) {
-      console.log('[PropertyStepBridge] Calling onVerified callback...');
       onVerified();
     }
   }, [updateFormData, onVerified]);
