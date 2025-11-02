@@ -1,38 +1,53 @@
-'use client';
+"use client"
 
-import { useState, useEffect, useRef } from 'react';
-import ProgressOverlay from '@/components/ProgressOverlay';
-import { useGoogleMaps } from './hooks/useGoogleMaps';
-import { usePropertyLookup } from './hooks/usePropertyLookup';
-import { extractStreetAddress, getComponent, getCountyFallback } from './utils/addressHelpers';
+import type React from "react"
+
+import { useState, useEffect, useRef } from "react"
 import {
-  PropertyData,
-  PropertySearchProps,
-  GoogleAutocompletePrediction,
-  GoogleAutocompleteRequest
-} from './types/PropertySearchTypes';
+  Search,
+  MapPin,
+  X,
+  Check,
+  AlertCircle,
+  Home,
+  FileText,
+  Map,
+  User,
+  Copy,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react"
+import ProgressOverlay from "@/components/ProgressOverlay"
+import { useGoogleMaps } from "./hooks/useGoogleMaps"
+import { usePropertyLookup } from "./hooks/usePropertyLookup"
+import { extractStreetAddress, getComponent, getCountyFallback } from "./utils/addressHelpers"
+import type { PropertyData, PropertySearchProps, GoogleAutocompletePrediction } from "./types/PropertySearchTypes"
 
-export default function PropertySearchWithTitlePoint({ 
-  onVerified, 
-  onError, 
+export default function PropertySearchWithTitlePoint({
+  onVerified,
+  onError,
   placeholder = "Enter property address",
   className = "",
-  onPropertyFound
+  onPropertyFound,
 }: PropertySearchProps) {
-  
-  const [inputValue, setInputValue] = useState('');
-  const [suggestions, setSuggestions] = useState<GoogleAutocompletePrediction[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [selectedAddress, setSelectedAddress] = useState<PropertyData | null>(null);
-  const [selectedSuggestion, setSelectedSuggestion] = useState<GoogleAutocompletePrediction | null>(null);
-  const [searchAttempted, setSearchAttempted] = useState(false);
-  
-  const inputRef = useRef<HTMLInputElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  // State hooks
+  const [inputValue, setInputValue] = useState("")
+  const [suggestions, setSuggestions] = useState<GoogleAutocompletePrediction[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [selectedAddress, setSelectedAddress] = useState<PropertyData | null>(null)
+  const [selectedSuggestion, setSelectedSuggestion] = useState<GoogleAutocompletePrediction | null>(null)
+  const [searchAttempted, setSearchAttempted] = useState(false)
+  const [copiedField, setCopiedField] = useState<string | null>(null)
+  const [isLegalExpanded, setIsLegalExpanded] = useState(false)
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1)
 
-  // Use custom hooks for Google Maps and Property Lookup
-  const { isGoogleLoaded, autocompleteService, placesService } = useGoogleMaps(onError);
+  const inputRef = useRef<HTMLInputElement>(null)
+  const timeoutRef = useRef<NodeJS.Timeout>()
+  const suggestionsRef = useRef<HTMLDivElement>(null)
+
+  // Custom hooks
+  const { isGoogleLoaded, autocompleteService, placesService } = useGoogleMaps(onError)
   const {
     isTitlePointLoading,
     propertyDetails,
@@ -43,639 +58,620 @@ export default function PropertySearchWithTitlePoint({
     handleConfirmProperty,
     setShowPropertyDetails,
     setPropertyDetails,
-    setErrorMessage
-  } = usePropertyLookup(onVerified, onPropertyFound);
+    setErrorMessage,
+  } = usePropertyLookup(onVerified, onPropertyFound)
 
-  // Handle input change with address suggestions - improved debouncing
+  // Search places using Google Autocomplete
+  const searchPlaces = (input: string) => {
+    if (!autocompleteService || !input || input.length < 3) {
+      setSuggestions([])
+      return
+    }
+
+    const request = {
+      input,
+      types: ["address"],
+      componentRestrictions: { country: "us" },
+    }
+
+    autocompleteService.getPlacePredictions(request, (predictions, status) => {
+      if (status === window.google?.maps?.places?.PlacesServiceStatus?.OK && predictions) {
+        setSuggestions(predictions)
+        setShowSuggestions(true)
+      } else {
+        setSuggestions([])
+        setShowSuggestions(false)
+      }
+    })
+  }
+
+  // Handle input change with debouncing
   const handleInputChange = (value: string) => {
-    setInputValue(value);
-    setSelectedAddress(null); // Clear selection when typing
-    setSelectedSuggestion(null); // Clear suggestion when typing
-    setErrorMessage(null); // Clear any previous errors
-    setSearchAttempted(false); // Reset search attempted flag
+    setInputValue(value)
+    setSelectedAddress(null)
+    setSelectedSuggestion(null)
+    setErrorMessage(null)
+    setSearchAttempted(false)
+    setSelectedSuggestionIndex(-1)
 
-    // Clear existing timeout
     if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
+      clearTimeout(timeoutRef.current)
     }
 
     if (value.length < 3) {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      return;
+      setSuggestions([])
+      setShowSuggestions(false)
+      return
     }
 
-    // Debounce suggestions with longer delay to prevent rapid API calls
+    // Debounce suggestions
     timeoutRef.current = setTimeout(() => {
-      searchPlaces(value);
-    }, 500);
-  };
+      searchPlaces(value)
+    }, 500)
+  }
 
-  // Preserve focus after state updates
-  useEffect(() => {
-    if (inputRef.current && document.activeElement !== inputRef.current) {
-      // Only focus if user was interacting with the input
-      if (searchAttempted || showSuggestions) {
-        inputRef.current.focus();
-      }
+  // Process selected suggestion
+  const processSelectedSuggestionForAddress = async (suggestion: GoogleAutocompletePrediction) => {
+    if (!placesService) return
+
+    return new Promise<void>((resolve, reject) => {
+      placesService.getDetails({ placeId: suggestion.place_id }, (place, status) => {
+        if (status === window.google?.maps?.places?.PlacesServiceStatus?.OK && place?.address_components) {
+          const addressComponents = place.address_components
+
+          const propertyData: PropertyData = {
+            fullAddress: place.formatted_address || suggestion.description,
+            street: extractStreetAddress(addressComponents),
+            city: getComponent(addressComponents, "locality"),
+            state: getComponent(addressComponents, "administrative_area_level_1"),
+            zip: getComponent(addressComponents, "postal_code"),
+            county: getCountyFallback(addressComponents),
+            placeId: suggestion.place_id,
+          }
+
+          setSelectedAddress(propertyData)
+          setInputValue(propertyData.fullAddress)
+          setIsLoading(false)
+          resolve()
+        } else {
+          setErrorMessage("Failed to retrieve address details. Please try again.")
+          setIsLoading(false)
+          reject()
+        }
+      })
+    })
+  }
+
+  // Search places and select first result
+  const searchPlacesAndSelectFirstForAddress = async (input: string) => {
+    if (!autocompleteService) return
+
+    const request = {
+      input,
+      types: ["address"],
+      componentRestrictions: { country: "us" },
     }
-  }, [suggestions, searchAttempted, showSuggestions]);
 
-  // Address validation only - separated from TitlePoint lookup
+    autocompleteService.getPlacePredictions(request, async (predictions, status) => {
+      if (status === window.google?.maps?.places?.PlacesServiceStatus?.OK && predictions && predictions.length > 0) {
+        await processSelectedSuggestionForAddress(predictions[0])
+      } else {
+        setErrorMessage("No matching addresses found. Please try a different search.")
+        setIsLoading(false)
+      }
+    })
+  }
+
+  // Handle address search
   const handleAddressSearch = async () => {
     if (!inputValue.trim() || inputValue.length < 3) {
-      setErrorMessage('Please enter at least 3 characters to search for addresses');
-      return;
+      setErrorMessage("Please enter at least 3 characters to search for addresses")
+      return
     }
 
-    setIsLoading(true);
-    setSearchAttempted(true);
-    setSuggestions([]);
-    setShowSuggestions(false);
-    setErrorMessage(null);
-    setPropertyDetails(null);
-    setShowPropertyDetails(false);
-    
+    setIsLoading(true)
+    setSearchAttempted(true)
+    setSuggestions([])
+    setShowSuggestions(false)
+    setErrorMessage(null)
+    setPropertyDetails(null)
+    setShowPropertyDetails(false)
+
     try {
-      // If user has selected a suggestion, use it
       if (selectedSuggestion) {
-        await processSelectedSuggestionForAddress(selectedSuggestion);
+        await processSelectedSuggestionForAddress(selectedSuggestion)
       } else {
-        // Search for addresses using Google Places and auto-select first
-        await searchPlacesAndSelectFirstForAddress(inputValue);
+        await searchPlacesAndSelectFirstForAddress(inputValue)
       }
     } catch (error) {
-      console.error('Address search error:', error);
-      setIsLoading(false);
-      setErrorMessage('Address search failed. Please try again or select from suggestions.');
+      console.error("Address search error:", error)
+      setIsLoading(false)
+      setErrorMessage("Address search failed. Please try again or select from suggestions.")
     }
-  };
+  }
 
-  // Process a selected suggestion for address validation only
-  const processSelectedSuggestionForAddress = async (suggestion: GoogleAutocompletePrediction) => {
-    const request = {
-      placeId: suggestion.place_id,
-      fields: ['address_components', 'formatted_address', 'name', 'place_id']
-    };
+  // Handle TitlePoint lookup
+  const handleTitlePointLookup = async () => {
+    if (!selectedAddress) {
+      setErrorMessage("Please search and select an address first")
+      return
+    }
 
-    return new Promise((resolve, reject) => {
-      placesService.current?.getDetails(request, (place, status) => {
-        if (status === window.google?.maps?.places?.PlacesServiceStatus?.OK && place && place.address_components) {
-          const components = place.address_components;
-          
-          const city = getComponent(components, 'locality') || '';
-          const state = getComponent(components, 'administrative_area_level_1', 'short_name') || 'CA';
-          const county = getComponent(components, 'administrative_area_level_2') || getCountyFallback(city, state);
+    await lookupPropertyDetails(selectedAddress)
+  }
 
-          const propertyData = {
-            fullAddress: place.formatted_address || suggestion.description,
-            street: extractStreetAddress(components, place.name),
-            city,
-            state,
-            zip: getComponent(components, 'postal_code') || '',
-            neighborhood: getComponent(components, 'neighborhood'),
-            county,
-            placeId: place.place_id
-          };
+  // Handle suggestion selection
+  const handleSelectSuggestion = async (suggestion: GoogleAutocompletePrediction) => {
+    setSelectedSuggestion(suggestion)
+    setInputValue(suggestion.description)
+    setShowSuggestions(false)
+    setSuggestions([])
+    setSelectedSuggestionIndex(-1)
 
-          setSelectedAddress(propertyData);
-          setIsLoading(false);
-          
-          resolve(true);
+    // Auto-search after selection
+    setIsLoading(true)
+    try {
+      await processSelectedSuggestionForAddress(suggestion)
+    } catch (error) {
+      setIsLoading(false)
+    }
+  }
+
+  // Handle clear input
+  const handleClearInput = () => {
+    setInputValue("")
+    setSelectedAddress(null)
+    setSelectedSuggestion(null)
+    setSuggestions([])
+    setShowSuggestions(false)
+    setErrorMessage(null)
+    setSearchAttempted(false)
+    setPropertyDetails(null)
+    setShowPropertyDetails(false)
+    setSelectedSuggestionIndex(-1)
+    inputRef.current?.focus()
+  }
+
+  // Handle change address
+  const handleChangeAddress = () => {
+    handleClearInput()
+  }
+
+  // Copy to clipboard
+  const handleCopy = async (text: string, field: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedField(field)
+      setTimeout(() => setCopiedField(null), 2000)
+    } catch (error) {
+      console.error("Failed to copy:", error)
+    }
+  }
+
+  // Keyboard navigation for suggestions
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions || suggestions.length === 0) return
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault()
+        setSelectedSuggestionIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : prev))
+        break
+      case "ArrowUp":
+        e.preventDefault()
+        setSelectedSuggestionIndex((prev) => (prev > 0 ? prev - 1 : -1))
+        break
+      case "Enter":
+        e.preventDefault()
+        if (selectedSuggestionIndex >= 0) {
+          handleSelectSuggestion(suggestions[selectedSuggestionIndex])
         } else {
-          reject(new Error('Failed to get place details'));
+          handleAddressSearch()
         }
-      });
-    });
-  };
-
-  // Search for places and auto-select the first result for address validation only
-  const searchPlacesAndSelectFirstForAddress = async (input: string) => {
-    if (!autocompleteService.current || !isGoogleLoaded) {
-      throw new Error('Google Maps not loaded');
+        break
+      case "Escape":
+        setShowSuggestions(false)
+        setSelectedSuggestionIndex(-1)
+        break
     }
+  }
 
-    const request = {
-      input,
-      componentRestrictions: { country: 'us' },
-      types: ['address']
-    };
-
-    return new Promise((resolve, reject) => {
-      autocompleteService.current!.getPlacePredictions(
-        request,
-        (predictions, status) => {
-          if (status === window.google?.maps?.places?.PlacesServiceStatus?.OK && predictions && predictions.length > 0) {
-            // Auto-select the first suggestion
-            const firstSuggestion = predictions[0];
-            setInputValue(firstSuggestion.description);
-            
-            // Get detailed place information
-            const placeRequest = {
-              placeId: firstSuggestion.place_id,
-              fields: ['address_components', 'formatted_address', 'name', 'place_id']
-            };
-
-            placesService.current?.getDetails(placeRequest, (place, placeStatus) => {
-              if (placeStatus === window.google?.maps?.places?.PlacesServiceStatus?.OK && place && place.address_components) {
-                const components = place.address_components;
-                
-                const city = getComponent(components, 'locality') || '';
-                const state = getComponent(components, 'administrative_area_level_1', 'short_name') || 'CA';
-                const county = getComponent(components, 'administrative_area_level_2') || getCountyFallback(city, state);
-
-                const propertyData = {
-                  fullAddress: place.formatted_address || firstSuggestion.description,
-                  street: extractStreetAddress(components, place.name),
-                  city,
-                  state,
-                  zip: getComponent(components, 'postal_code') || '',
-                  neighborhood: getComponent(components, 'neighborhood'),
-                  county,
-                  placeId: place.place_id
-                };
-
-                setSelectedAddress(propertyData);
-                setIsLoading(false);
-                resolve(true);
-              } else {
-                reject(new Error('Failed to get place details'));
-              }
-            });
-          } else {
-            reject(new Error('No addresses found'));
-          }
-        }
-      );
-    });
-  };
-
-  // Search for places using Google Places API
-  const searchPlaces = (input: string) => {
-    if (!autocompleteService.current || !isGoogleLoaded) {
-      return;
-    }
-
-    setIsLoading(true);
-
-    const request: GoogleAutocompleteRequest = {
-      input,
-      componentRestrictions: { country: 'us' },
-      types: ['address']
-    };
-
-    autocompleteService.current.getPlacePredictions(
-      request,
-      (predictions, status) => {
-        setIsLoading(false);
-        
-        if (status === window.google?.maps?.places?.PlacesServiceStatus?.OK && predictions) {
-          setSuggestions(predictions);
-          setShowSuggestions(true);
-        } else {
-          setSuggestions([]);
-          setShowSuggestions(false);
-          onError?.('No addresses found. Please try a different search term.');
-        }
+  // Click outside to close suggestions
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false)
+        setSelectedSuggestionIndex(-1)
       }
-    );
-  };
+    }
 
-  // Handle suggestion selection (Google Places) - NO auto-validation
-  const handleSuggestionSelect = (suggestion: GoogleAutocompletePrediction) => {
-    setInputValue(suggestion.description);
-    setShowSuggestions(false);
-    setSuggestions([]);
-    setErrorMessage(null); // Clear any errors
-    
-    // Store the suggestion for later use but DON'T auto-validate
-    setSelectedSuggestion(suggestion);
-    
-    // Clear any previous validated data since user selected a new address
-    setSelectedAddress(null);
-    
-    // Keep focus on input after selection
-    setTimeout(() => {
-      inputRef.current?.focus();
-    }, 0);
-  };
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  // Auto-focus input on mount
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [])
 
   return (
-    <>
-      <ProgressOverlay stage={stage} />
-      <style jsx>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
-      <div className={`relative ${className}`}>
-      {/* Address Input with Search Button */}
-      <div className="space-y-4">
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-          <div style={{ flex: 1, position: 'relative' }}>
+    <div className={`w-full ${className}`}>
+      {/* Progress Overlay */}
+      <ProgressOverlay stage={stage} isVisible={isTitlePointLoading} />
+
+      {/* Header */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Property Search</h2>
+        <p className="text-gray-600">Enter the property address to begin</p>
+      </div>
+
+      {/* Input Section */}
+      <div className="mb-6">
+        <label htmlFor="property-address" className="block text-sm font-semibold text-gray-900 mb-2">
+          <MapPin className="inline w-4 h-4 mr-1 text-purple-600" />
+          Property Address *
+        </label>
+
+        <div className="relative" ref={suggestionsRef}>
+          <div className="relative">
             <input
               ref={inputRef}
+              id="property-address"
               type="text"
               value={inputValue}
               onChange={(e) => handleInputChange(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder={placeholder}
-              style={{
-                width: '100%',
-                padding: '20px 24px',
-                border: '2px solid #e5e7eb',
-                borderRadius: '16px',
-                fontSize: '16px',
-                fontWeight: '400',
-                outline: 'none',
-                transition: 'all 0.2s ease',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)'
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = '#F57C00';
-                e.target.style.boxShadow = '0 0 0 4px rgba(245, 124, 0, 0.1)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = '#e5e7eb';
-                e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.05)';
-              }}
-              disabled={isLoading}
+              disabled={!!selectedAddress || isLoading}
+              className="w-full px-4 py-3 pr-10 text-base rounded-lg border-2 border-gray-300 
+                       focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 
+                       transition-all duration-200 
+                       placeholder:text-gray-400
+                       disabled:bg-gray-50 disabled:text-gray-600 disabled:cursor-not-allowed"
+              aria-label="Property address input"
+              aria-describedby={errorMessage ? "address-error" : undefined}
+              aria-autocomplete="list"
+              aria-controls="suggestions-list"
+              aria-expanded={showSuggestions}
             />
-            
-            {isLoading && (
-              <div style={{
-                position: 'absolute',
-                right: '20px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: '20px',
-                height: '20px',
-                border: '2px solid #e5e7eb',
-                borderTop: '2px solid #F57C00',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite'
-              }}></div>
-            )}
 
-            {/* Suggestions dropdown */}
-            {showSuggestions && suggestions.length > 0 && (
-              <div style={{
-                position: 'absolute',
-                top: 'calc(100% + 8px)',
-                left: 0,
-                right: 0,
-                backgroundColor: 'white',
-                border: '1px solid #e5e7eb',
-                borderRadius: '12px',
-                boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
-                maxHeight: '300px',
-                overflowY: 'auto',
-                zIndex: 10
-              }}>
-                {suggestions.map((suggestion) => (
-                  <div
-                    key={suggestion.place_id}
-                    onClick={() => handleSuggestionSelect(suggestion)}
-                    style={{
-                      padding: '16px 20px',
-                      cursor: 'pointer',
-                      borderBottom: '1px solid #f3f4f6',
-                      transition: 'background-color 0.2s'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#fef3e2';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'white';
-                    }}
-                  >
-                    <div style={{ fontSize: '15px', fontWeight: '500', color: '#1f2937', marginBottom: '4px' }}>
-                      {suggestion.structured_formatting?.main_text}
+            {inputValue && !selectedAddress && (
+              <button
+                onClick={handleClearInput}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Clear input"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+
+          {/* Suggestions Dropdown */}
+          {showSuggestions && suggestions.length > 0 && (
+            <div
+              id="suggestions-list"
+              role="listbox"
+              className="absolute z-50 w-full mt-2 bg-white rounded-lg shadow-xl border border-gray-200 max-h-80 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200"
+            >
+              {suggestions.map((suggestion, index) => (
+                <button
+                  key={suggestion.place_id}
+                  role="option"
+                  aria-selected={index === selectedSuggestionIndex}
+                  onClick={() => handleSelectSuggestion(suggestion)}
+                  className={`w-full px-4 py-3 text-left transition-colors border-b border-gray-100 last:border-none flex items-start gap-3 ${
+                    index === selectedSuggestionIndex ? "bg-purple-50" : "hover:bg-purple-50"
+                  }`}
+                >
+                  <MapPin className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-gray-900 truncate">
+                      {suggestion.structured_formatting.main_text}
                     </div>
-                    <div style={{ fontSize: '13px', color: '#6b7280' }}>
-                      {suggestion.structured_formatting?.secondary_text}
+                    <div className="text-sm text-gray-500 truncate">
+                      {suggestion.structured_formatting.secondary_text}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                </button>
+              ))}
+            </div>
+          )}
 
-          <button
-            onClick={handleAddressSearch}
-            disabled={isLoading || inputValue.length < 3}
-            style={{
-              padding: '20px 32px',
-              backgroundColor: isLoading || inputValue.length < 3 ? '#e5e7eb' : '#F57C00',
-              color: 'white',
-              border: 'none',
-              borderRadius: '16px',
-              fontSize: '16px',
-              fontWeight: '700',
-              cursor: isLoading || inputValue.length < 3 ? 'not-allowed' : 'pointer',
-              whiteSpace: 'nowrap',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              if (!isLoading && inputValue.length >= 3) {
-                e.currentTarget.style.backgroundColor = '#E67100';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isLoading && inputValue.length >= 3) {
-                e.currentTarget.style.backgroundColor = '#F57C00';
-              }
-            }}
-          >
-            {isLoading ? 'Searching...' : 'Find Address'}
-          </button>
+          {/* Loading suggestions indicator */}
+          {inputValue.length >= 3 && !showSuggestions && !selectedAddress && !isLoading && (
+            <div className="mt-2 text-sm text-gray-500 flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
+              Searching for addresses...
+            </div>
+          )}
         </div>
 
-        {/* Error Message */}
-        {errorMessage && !selectedAddress && (
-          <div style={{
-            padding: '12px 16px',
-            backgroundColor: '#fef2f2',
-            border: '1px solid #fecaca',
-            borderRadius: '8px',
-            fontSize: '14px',
-            color: '#991b1b'
-          }}>
-            {errorMessage}
-          </div>
+        {/* Search Button */}
+        {!selectedAddress && inputValue.length >= 3 && (
+          <button
+            onClick={handleAddressSearch}
+            disabled={isLoading}
+            className="mt-4 px-6 py-3 bg-purple-600 hover:bg-purple-700 active:scale-98 
+                     text-white font-semibold rounded-lg 
+                     shadow-lg shadow-purple-500/25 
+                     transition-all duration-200 
+                     disabled:bg-gray-300 disabled:cursor-not-allowed disabled:shadow-none
+                     focus:ring-4 focus:ring-purple-500/50
+                     flex items-center gap-2"
+          >
+            {isLoading ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Searching...
+              </>
+            ) : (
+              <>
+                <Search className="w-5 h-5" />
+                Search Address
+              </>
+            )}
+          </button>
         )}
+      </div>
 
-        {/* Address Found - Get Property Details Button */}
-        {selectedAddress && !showPropertyDetails && (
-          <div style={{
-            padding: '20px',
-            backgroundColor: '#ecfdf5',
-            border: '2px solid #6ee7b7',
-            borderRadius: '16px'
-          }}>
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ fontSize: '14px', fontWeight: '600', color: '#047857', marginBottom: '8px' }}>
-                ✓ Address Validated
-              </div>
-              <div style={{ fontSize: '16px', color: '#1e293b', fontWeight: '500' }}>
-                {selectedAddress.fullAddress}
-              </div>
+      {/* Error Message */}
+      {errorMessage && (
+        <div className="mb-6 bg-red-50 border-2 border-red-200 rounded-lg p-4 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
+          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <div className="font-semibold text-red-900">Error</div>
+            <div className="text-sm text-red-700" id="address-error">
+              {errorMessage}
             </div>
+          </div>
+          <button
+            onClick={() => setErrorMessage(null)}
+            className="text-red-400 hover:text-red-600 transition-colors"
+            aria-label="Dismiss error"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+
+      {/* Address Verified State */}
+      {selectedAddress && !showPropertyDetails && (
+        <div className="mb-6 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 flex items-start gap-3 mb-4">
+            <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+              <Check className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1">
+              <div className="font-semibold text-green-900 mb-1">Address Verified</div>
+              <div className="text-sm text-green-700">{selectedAddress.fullAddress}</div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={handleTitlePointLookup}
+              disabled={isTitlePointLoading}
+              className="px-6 py-3 bg-purple-600 hover:bg-purple-700 active:scale-98 
+                       text-white font-semibold rounded-lg 
+                       shadow-lg shadow-purple-500/25 
+                       transition-all duration-200 
+                       disabled:bg-gray-300 disabled:cursor-not-allowed disabled:shadow-none
+                       focus:ring-4 focus:ring-purple-500/50
+                       flex items-center gap-2"
+            >
+              <Search className="w-5 h-5" />
+              Look Up Property Details
+            </button>
 
             <button
-              onClick={() => lookupPropertyDetails(selectedAddress, selectedAddress)}
-              disabled={isTitlePointLoading}
-              style={{
-                padding: '14px 28px',
-                backgroundColor: isTitlePointLoading ? '#e5e7eb' : '#F57C00',
-                color: 'white',
-                border: 'none',
-                borderRadius: '12px',
-                fontSize: '15px',
-                fontWeight: '700',
-                cursor: isTitlePointLoading ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                if (!isTitlePointLoading) {
-                  e.currentTarget.style.backgroundColor = '#E67100';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isTitlePointLoading) {
-                  e.currentTarget.style.backgroundColor = '#F57C00';
-                }
-              }}
+              onClick={handleChangeAddress}
+              className="px-6 py-3 border-2 border-purple-600 text-purple-600 
+                       hover:bg-purple-50 active:scale-98 
+                       font-semibold rounded-lg 
+                       transition-all duration-200
+                       focus:ring-4 focus:ring-purple-500/50"
             >
-              {isTitlePointLoading ? (
-                <>
-                  <div style={{
-                    width: '16px',
-                    height: '16px',
-                    border: '2px solid #ffffff40',
-                    borderTop: '2px solid #ffffff',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite'
-                  }}></div>
-                  Getting Property Details...
-                </>
-              ) : (
-                <>
-                  🏠 Get Property Details
-                </>
-              )}
+              Change Address
             </button>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Property Details Display for User Confirmation */}
-        {showPropertyDetails && propertyDetails && (
-          <div style={{
-            padding: '20px',
-            backgroundColor: '#f8fafc',
-            border: '2px solid #e2e8f0',
-            borderRadius: '16px',
-            marginTop: '16px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1e293b', margin: 0 }}>
-                🏠 Property Details Found
-              </h3>
-              {isTitlePointLoading && (
-                <div style={{
-                  width: '20px',
-                  height: '20px',
-                  border: '2px solid #e5e7eb',
-                  borderTop: '2px solid #F57C00',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite'
-                }}></div>
-              )}
-            </div>
-            
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ fontSize: '14px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>
-                📍 Address
-              </div>
-              <div style={{ fontSize: '16px', color: '#1e293b', marginBottom: '12px' }}>
-                {propertyDetails.fullAddress}
-              </div>
-            </div>
+      {/* Property Details Card */}
+      {showPropertyDetails && propertyDetails && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <Home className="w-6 h-6 text-purple-600" />
+              Property Details
+            </h3>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px', marginBottom: '20px' }}>
-              <div>
-                <div style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', marginBottom: '4px' }}>
-                  📋 APN (Parcel Number)
-                </div>
-                <div style={{ fontSize: '14px', color: '#1e293b' }}>
-                  {propertyDetails.apn}
-                </div>
-              </div>
-              
-              <div>
-                <div style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', marginBottom: '4px' }}>
-                  🏛️ County
-                </div>
-                <div style={{ fontSize: '14px', color: '#1e293b' }}>
-                  {propertyDetails.county}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', marginBottom: '4px' }}>
-                  👤 Current Owner
-                </div>
-                <div style={{ fontSize: '14px', color: '#1e293b' }}>
-                  {propertyDetails.currentOwnerPrimary}
-                  {propertyDetails.currentOwnerSecondary && (
-                    <div style={{ fontSize: '12px', color: '#64748b' }}>
-                      & {propertyDetails.currentOwnerSecondary}
+            <div className="space-y-6">
+              {/* Full Address */}
+              <div className="border-b border-gray-100 pb-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="text-sm text-gray-500 mb-1 flex items-center gap-1">
+                      <MapPin className="w-4 h-4" />
+                      Full Address
                     </div>
-                  )}
+                    <div className="text-base font-semibold text-gray-900">{propertyDetails.fullAddress}</div>
+                  </div>
+                  <button
+                    onClick={() => handleCopy(propertyDetails.fullAddress, "address")}
+                    className="text-gray-400 hover:text-purple-600 transition-colors p-2"
+                    aria-label="Copy address"
+                  >
+                    {copiedField === "address" ? (
+                      <Check className="w-5 h-5 text-green-500" />
+                    ) : (
+                      <Copy className="w-5 h-5" />
+                    )}
+                  </button>
                 </div>
               </div>
 
+              {/* APN */}
+              <div className="border-b border-gray-100 pb-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="text-sm text-gray-500 mb-1 flex items-center gap-1">
+                      <FileText className="w-4 h-4" />
+                      APN (Assessor Parcel Number)
+                    </div>
+                    <div className="text-base font-semibold text-gray-900">{propertyDetails.apn}</div>
+                  </div>
+                  <button
+                    onClick={() => handleCopy(propertyDetails.apn || "", "apn")}
+                    className="text-gray-400 hover:text-purple-600 transition-colors p-2"
+                    aria-label="Copy APN"
+                  >
+                    {copiedField === "apn" ? (
+                      <Check className="w-5 h-5 text-green-500" />
+                    ) : (
+                      <Copy className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* County */}
+              <div className="border-b border-gray-100 pb-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="text-sm text-gray-500 mb-1 flex items-center gap-1">
+                      <Map className="w-4 h-4" />
+                      County
+                    </div>
+                    <div className="text-base font-semibold text-gray-900">{propertyDetails.county}</div>
+                  </div>
+                  <button
+                    onClick={() => handleCopy(propertyDetails.county, "county")}
+                    className="text-gray-400 hover:text-purple-600 transition-colors p-2"
+                    aria-label="Copy county"
+                  >
+                    {copiedField === "county" ? (
+                      <Check className="w-5 h-5 text-green-500" />
+                    ) : (
+                      <Copy className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Legal Description */}
+              <div className="border-b border-gray-100 pb-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="text-sm text-gray-500 mb-1 flex items-center gap-1">
+                      <FileText className="w-4 h-4" />
+                      Legal Description
+                    </div>
+                    <div className="text-base font-semibold text-gray-900">
+                      {propertyDetails.legalDescription && propertyDetails.legalDescription.length > 100 ? (
+                        <>
+                          <div className={`${!isLegalExpanded ? "line-clamp-2" : ""}`}>
+                            {propertyDetails.legalDescription}
+                          </div>
+                          <button
+                            onClick={() => setIsLegalExpanded(!isLegalExpanded)}
+                            className="text-purple-600 hover:text-purple-700 text-sm font-medium mt-2 flex items-center gap-1"
+                          >
+                            {isLegalExpanded ? (
+                              <>
+                                Show less <ChevronUp className="w-4 h-4" />
+                              </>
+                            ) : (
+                              <>
+                                Show more <ChevronDown className="w-4 h-4" />
+                              </>
+                            )}
+                          </button>
+                        </>
+                      ) : (
+                        propertyDetails.legalDescription
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleCopy(propertyDetails.legalDescription || "", "legal")}
+                    className="text-gray-400 hover:text-purple-600 transition-colors p-2"
+                    aria-label="Copy legal description"
+                  >
+                    {copiedField === "legal" ? (
+                      <Check className="w-5 h-5 text-green-500" />
+                    ) : (
+                      <Copy className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Current Owner */}
               <div>
-                <div style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', marginBottom: '4px' }}>
-                  🏘️ Property Type
-                </div>
-                <div style={{ fontSize: '14px', color: '#1e293b' }}>
-                  {propertyDetails.propertyType}
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="text-sm text-gray-500 mb-1 flex items-center gap-1">
+                      <User className="w-4 h-4" />
+                      Current Owner
+                    </div>
+                    <div className="text-base font-semibold text-gray-900">{propertyDetails.currentOwner}</div>
+                  </div>
+                  <button
+                    onClick={() => handleCopy(propertyDetails.currentOwner || "", "owner")}
+                    className="text-gray-400 hover:text-purple-600 transition-colors p-2"
+                    aria-label="Copy owner name"
+                  >
+                    {copiedField === "owner" ? (
+                      <Check className="w-5 h-5 text-green-500" />
+                    ) : (
+                      <Copy className="w-5 h-5" />
+                    )}
+                  </button>
                 </div>
               </div>
             </div>
 
-            {propertyDetails.legalDescription !== 'Not available' && (
-              <div style={{ marginBottom: '20px' }}>
-                <div style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', marginBottom: '4px' }}>
-                  📜 Legal Description
-                </div>
-                <div style={{ fontSize: '14px', color: '#1e293b', lineHeight: '1.5' }}>
-                  {propertyDetails.legalDescription}
-                </div>
-              </div>
-            )}
-
-            <div style={{ 
-              padding: '12px 16px', 
-              backgroundColor: '#dbeafe', 
-              border: '1px solid #93c5fd',
-              borderRadius: '8px',
-              marginBottom: '16px'
-            }}>
-              <div style={{ fontSize: '14px', color: '#1e40af', fontWeight: '500' }}>
-                ✅ Please review the property details above to ensure they are correct before proceeding.
+            {/* Warning Banner */}
+            <div className="mt-6 bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 text-sm text-yellow-800">
+                <strong>Important:</strong> Please verify all property details are correct before proceeding.
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '12px' }}>
+            {/* Action Buttons */}
+            <div className="mt-6 flex flex-wrap gap-3">
               <button
                 onClick={handleConfirmProperty}
-                style={{
-                  padding: '12px 24px',
-                  backgroundColor: '#22c55e',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#16a34a';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#22c55e';
-                }}
+                className="px-6 py-3 bg-green-600 hover:bg-green-700 active:scale-98 
+                         text-white font-semibold rounded-lg 
+                         shadow-lg shadow-green-500/25 
+                         transition-all duration-200 
+                         focus:ring-4 focus:ring-green-500/50
+                         flex items-center gap-2"
               >
-                ✓ Confirm & Continue
+                <Check className="w-5 h-5" />
+                Confirm Property
               </button>
-              
-              <button
-                onClick={() => {
-                  setShowPropertyDetails(false);
-                  setPropertyDetails(null);
-                  setInputValue('');
-                  setSelectedAddress(null);
-                  setSelectedSuggestion(null);
-                }}
-                style={{
-                  padding: '12px 24px',
-                  backgroundColor: 'white',
-                  color: '#6b7280',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#9ca3af';
-                  e.currentTarget.style.color = '#374151';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = '#d1d5db';
-                  e.currentTarget.style.color = '#6b7280';
-                }}
-              >
-                🔄 Search Different Address
-              </button>
-            </div>
-          </div>
-        )}
 
-        {/* Address Found but No Property Data */}
-        {selectedAddress && errorMessage && !showPropertyDetails && (
-          <div style={{
-            padding: '16px',
-            backgroundColor: '#fef3c7',
-            border: '2px solid #f59e0b',
-            borderRadius: '12px',
-            marginTop: '12px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ fontSize: '14px', fontWeight: '600', color: '#92400e', marginBottom: '4px' }}>
-                  📍 Address Verified
-                </div>
-                <div style={{ fontSize: '14px', color: '#92400e' }}>
-                  {selectedAddress.fullAddress}
-                </div>
-                <div style={{ fontSize: '12px', color: '#a16207', marginTop: '4px' }}>
-                  Property data will be entered manually
-                </div>
-              </div>
-              <div style={{ fontSize: '24px', color: '#f59e0b' }}>⚠️</div>
-            </div>
-            
-            <div style={{ marginTop: '12px' }}>
               <button
-                onClick={() => onVerified(selectedAddress)}
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#f59e0b',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
+                onClick={handleChangeAddress}
+                className="px-6 py-3 border-2 border-gray-300 text-gray-700 
+                         hover:bg-gray-50 active:scale-98 
+                         font-semibold rounded-lg 
+                         transition-all duration-200
+                         focus:ring-4 focus:ring-gray-500/50"
               >
-                Continue with Manual Entry
+                Search Different Property
               </button>
             </div>
           </div>
-        )}
-      </div>
-      </div>
-    </>
-  );
+        </div>
+      )}
+
+      {/* Google Maps Attribution */}
+      {isGoogleLoaded && <div className="text-xs text-gray-400 text-center mt-4">Powered by Google Maps</div>}
+    </div>
+  )
 }
-
