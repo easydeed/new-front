@@ -49,7 +49,7 @@ export default function PropertySearchWithTitlePoint({
   // Custom hooks
   const { isGoogleLoaded, autocompleteService, placesService } = useGoogleMaps(onError)
   const {
-    isTitlePointLoading,
+    isSiteXLoading,
     propertyDetails,
     showPropertyDetails,
     errorMessage,
@@ -297,7 +297,7 @@ export default function PropertySearchWithTitlePoint({
   return (
     <div className={`w-full ${className}`}>
       {/* Progress Overlay */}
-      <ProgressOverlay stage={stage} isVisible={isTitlePointLoading} />
+      <ProgressOverlay stage={stage} isVisible={isSiteXLoading} />
 
       {/* Header */}
       <div className="mb-6">
@@ -450,7 +450,7 @@ export default function PropertySearchWithTitlePoint({
           <div className="flex flex-wrap gap-3">
             <button
               onClick={handleTitlePointLookup}
-              disabled={isTitlePointLoading}
+              disabled={isSiteXLoading}
               className="px-6 py-3 bg-purple-600 hover:bg-purple-700 active:scale-98 
                        text-white font-semibold rounded-lg 
                        shadow-lg shadow-purple-500/25 

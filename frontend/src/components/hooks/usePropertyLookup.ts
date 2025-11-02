@@ -4,23 +4,23 @@ import { useState } from "react"
 import type { PropertyData, EnrichedPropertyData } from "../types/PropertySearchTypes"
 
 export function usePropertyLookup(onVerified: (data: PropertyData) => void, onPropertyFound?: (data: any) => void) {
-  const [isTitlePointLoading, setIsTitlePointLoading] = useState(false)
+  const [isSiteXLoading, setIsSiteXLoading] = useState(false)
   const [propertyDetails, setPropertyDetails] = useState<EnrichedPropertyData | null>(null)
   const [showPropertyDetails, setShowPropertyDetails] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [stage, setStage] = useState<string>("")
 
   const lookupPropertyDetails = async (address: PropertyData) => {
-    setIsTitlePointLoading(true)
+    setIsSiteXLoading(true)
     setErrorMessage(null)
-    setStage("Connecting to TitlePoint...")
+    setStage("Connecting to SiteX...")
 
     try {
       // Simulate API call stages
       await new Promise((resolve) => setTimeout(resolve, 1000))
       setStage("Retrieving property data...")
 
-      // Call TitlePoint API
+      // Call SiteX API
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/property/search`, {
         method: "POST",
         headers: {
@@ -37,7 +37,7 @@ export function usePropertyLookup(onVerified: (data: PropertyData) => void, onPr
       })
 
       if (!response.ok) {
-        throw new Error("TitlePoint lookup failed")
+        throw new Error("SiteX lookup failed")
       }
 
       const data = await response.json()
@@ -47,20 +47,20 @@ export function usePropertyLookup(onVerified: (data: PropertyData) => void, onPr
 
       const enrichedData: EnrichedPropertyData = {
         ...address,
-        apn: data.apn || "Not available",
-        legalDescription: data.legal_description || "Not available",
-        currentOwner: data.current_owner || "Not available",
-        propertyType: data.property_type || "Residential",
+        apn: data.apn || "",
+        legalDescription: data.legalDescription || "",
+        currentOwner: data.grantorName || data.currentOwnerPrimary || "",
+        propertyType: data.propertyType || "Residential",
       }
 
       setPropertyDetails(enrichedData)
       setShowPropertyDetails(true)
       onPropertyFound?.(enrichedData)
     } catch (error) {
-      console.error("TitlePoint lookup error:", error)
-      setErrorMessage("TitlePoint lookup failed. Please try again or continue without enriched data.")
+      console.error("SiteX lookup error:", error)
+      setErrorMessage("SiteX lookup failed. Please try again or continue without enriched data.")
     } finally {
-      setIsTitlePointLoading(false)
+      setIsSiteXLoading(false)
       setStage("")
     }
   }
@@ -72,7 +72,7 @@ export function usePropertyLookup(onVerified: (data: PropertyData) => void, onPr
   }
 
   return {
-    isTitlePointLoading,
+    isSiteXLoading,
     propertyDetails,
     showPropertyDetails,
     errorMessage,
