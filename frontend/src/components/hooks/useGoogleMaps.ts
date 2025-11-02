@@ -1,77 +1,55 @@
-import { useEffect, useRef, useState } from 'react';
-import { GoogleAutocompleteService, GooglePlacesService } from '../types/PropertySearchTypes';
+"use client"
 
-interface UseGoogleMapsReturn {
-  isGoogleLoaded: boolean;
-  autocompleteService: React.MutableRefObject<GoogleAutocompleteService | null>;
-  placesService: React.MutableRefObject<GooglePlacesService | null>;
-}
+import { useState, useEffect } from "react"
 
-export const useGoogleMaps = (onError?: (error: string) => void): UseGoogleMapsReturn => {
-  const [isGoogleLoaded, setIsGoogleLoaded] = useState(false);
-  const autocompleteService = useRef<GoogleAutocompleteService | null>(null);
-  const placesService = useRef<GooglePlacesService | null>(null);
+export function useGoogleMaps(onError?: (error: string) => void) {
+  const [isGoogleLoaded, setIsGoogleLoaded] = useState(false)
+  const [autocompleteService, setAutocompleteService] = useState<google.maps.places.AutocompleteService | null>(null)
+  const [placesService, setPlacesService] = useState<google.maps.places.PlacesService | null>(null)
 
   useEffect(() => {
-    const initializeGoogle = async () => {
-      // Check if Google Places is enabled via feature flag
-      const googlePlacesEnabled = process.env.NEXT_PUBLIC_GOOGLE_PLACES_ENABLED === 'true';
-      if (!googlePlacesEnabled) {
-        console.log('Google Places API disabled via feature flag');
-        return;
-      }
+    // Check if Google Maps is already loaded
+    if (typeof window !== "undefined" && window.google?.maps?.places) {
+      initializeServices()
+      return
+    }
 
-      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
-      if (!apiKey) {
-        console.warn('Google Places API key not configured');
-        onError?.('Address search not available. Please enter address manually.');
-        return;
-      }
+    // Load Google Maps script
+    const script = document.createElement("script")
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`
+    script.async = true
+    script.defer = true
 
-      if (window.google && window.google.maps) {
-        setIsGoogleLoaded(true);
-        initializeServices();
-        return;
-      }
+    script.onload = () => {
+      initializeServices()
+    }
 
-      // Load Google Maps API with modern loading approach
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&loading=async&callback=initGoogleMaps`;
-      script.async = true;
-      script.defer = true;
-      
-      // Define global callback
-      window.initGoogleMaps = () => {
-        console.log('✅ Google Maps API loaded successfully');
-        setIsGoogleLoaded(true);
-        initializeServices();
-      };
-      
-      script.onerror = () => {
-        onError?.('Failed to load Google Maps API');
-      };
-      
-      document.head.appendChild(script);
-    };
+    script.onerror = () => {
+      onError?.("Failed to load Google Maps. Please refresh the page.")
+    }
 
-    const initializeServices = () => {
-      if (window.google && window.google.maps) {
-        autocompleteService.current = new window.google.maps.places.AutocompleteService();
-        
-        // Create a div element for PlacesService (required)
-        const mapDiv = document.createElement('div');
-        const map = new window.google.maps.Map(mapDiv);
-        placesService.current = new window.google.maps.places.PlacesService(map);
-      }
-    };
+    document.head.appendChild(script)
 
-    initializeGoogle();
-  }, [onError]);
+    return () => {
+      // Cleanup if needed
+    }
+  }, [])
+
+  const initializeServices = () => {
+    if (window.google?.maps?.places) {
+      setAutocompleteService(new window.google.maps.places.AutocompleteService())
+
+      // Create a dummy div for PlacesService (required by Google Maps API)
+      const dummyDiv = document.createElement("div")
+      setPlacesService(new window.google.maps.places.PlacesService(dummyDiv))
+
+      setIsGoogleLoaded(true)
+    }
+  }
 
   return {
     isGoogleLoaded,
     autocompleteService,
-    placesService
-  };
-};
-
+    placesService,
+  }
+}

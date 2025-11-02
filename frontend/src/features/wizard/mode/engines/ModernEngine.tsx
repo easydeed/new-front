@@ -15,6 +15,8 @@ import { assertStableSteps } from '@/lib/wizard/invariants';
 import { WIZARD_DRAFT_KEY_MODERN } from '../bridge/persistenceKeys';
 // ✅ PHASE 24-C STEP 8: Telemetry for wizard events
 import { trackWizardEvent } from '@/lib/telemetry';
+// ✅ PHASE 24-D: Import Lucide icons for modern UI
+import { ArrowLeft, ArrowRight, Lightbulb } from 'lucide-react';
 
 export default function ModernEngine({ docType }: { docType: string }) {
   const { partners } = usePartners();
@@ -231,25 +233,40 @@ assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: s
       <ProgressBar current={i + 1} total={total} />
       <MicroSummary data={summaryData} />
       {current ? (
-        <div className="modern-qna">
-          <h1 className="modern-qna__title">{current.title || current.question}</h1>
-          <p className="modern-qna__why">{current.why || ''}</p>
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 mb-8 animate-in fade-in duration-300">
+          {/* Question heading */}
+          <h1 className="text-3xl font-bold text-gray-900 mb-3">
+            {current.title || current.question}
+          </h1>
+          
+          {/* Why explanation */}
+          {current.why && (
+            <div className="flex items-start gap-2 mb-8">
+              <Lightbulb className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-1" />
+              <p className="text-lg text-gray-600">{current.why}</p>
+            </div>
+          )}
 
+          {/* Input field */}
           {current.type === 'prefill-combo' ? (
-            <PrefillCombo
-              label={current.label || current.question}
-              value={state[current.field] || ''}
-              onChange={(v) => onChange(current.field, v)}
-              suggestions={current.field === 'grantorName' ? ownerCandidates : []}
-              partners={current.field === 'requestedBy' ? partners : []}
-              allowNewPartner={current.field === 'requestedBy'}
-            
-            onFocus={() => { if (current.field === "legalDescription") setState(s => ({ ...s, __editing_legal: true })); }}
-            onBlur={() => { if (current.field === "legalDescription") setTimeout(() => setState(s => ({ ...s, __editing_legal: false })), 200); }}/>
+            <div className="mb-8">
+              <PrefillCombo
+                label={current.label || current.question}
+                value={state[current.field] || ''}
+                onChange={(v) => onChange(current.field, v)}
+                suggestions={current.field === 'grantorName' ? ownerCandidates : []}
+                partners={current.field === 'requestedBy' ? partners : []}
+                allowNewPartner={current.field === 'requestedBy'}
+                onFocus={() => { if (current.field === "legalDescription") setState(s => ({ ...s, __editing_legal: true })); }}
+                onBlur={() => { if (current.field === "legalDescription") setTimeout(() => setState(s => ({ ...s, __editing_legal: false })), 200); }}
+              />
+            </div>
           ) : (
-            <div className="modern-qna__control">
+            <div className="mb-8">
               <input
-                className="modern-input"
+                className="w-full px-6 py-4 text-lg rounded-lg border-2 border-gray-300
+                          focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20
+                          transition-all duration-200 placeholder:text-gray-400"
                 type="text"
                 value={state[current.field] || ''}
                 onChange={(e) => onChange(current.field, e.target.value)}
@@ -260,12 +277,30 @@ assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: s
             </div>
           )}
 
-          <div className="modern-qna__nav">
-            <button className="btn btn-secondary" onClick={onBack} disabled={i === 0}>Back</button>
-            <button className="btn btn-primary" onClick={onNext}>Next</button>
-          </div>
-
-          <div className="modern-qna__summary">
+          {/* Navigation buttons */}
+          <div className="flex justify-between gap-4">
+            <button 
+              className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg
+                        font-semibold hover:bg-gray-50 active:scale-98
+                        transition-all duration-200
+                        disabled:opacity-50 disabled:cursor-not-allowed
+                        flex items-center gap-2"
+              onClick={onBack} 
+              disabled={i === 0}
+            >
+              <ArrowLeft className="w-5 h-5" />
+              Back
+            </button>
+            <button 
+              className="px-8 py-3 bg-purple-600 hover:bg-purple-700 active:scale-98
+                        text-white font-bold rounded-lg shadow-lg shadow-purple-500/25
+                        transition-all duration-200
+                        flex items-center gap-2"
+              onClick={onNext}
+            >
+              Next
+              <ArrowRight className="w-5 h-5" />
+            </button>
           </div>
         </div>
       ) : (
