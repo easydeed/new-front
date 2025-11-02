@@ -14,9 +14,18 @@ export function useGoogleMaps(onError?: (error: string) => void) {
       return
     }
 
+    // ✅ FIXED: Use correct env variable name (NEXT_PUBLIC_GOOGLE_API_KEY, not MAPS)
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY
+    console.log('[useGoogleMaps] API Key status:', apiKey ? `Present (${apiKey.substring(0, 8)}...)` : '❌ MISSING!')
+    
+    if (!apiKey) {
+      onError?.("Google Maps API key is not configured. Please contact support.")
+      return
+    }
+
     // Load Google Maps script
     const script = document.createElement("script")
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`
     script.async = true
     script.defer = true
 
