@@ -1,6 +1,6 @@
 # 👋 **Welcome to DeedPro!**
 
-**Last Updated**: October 31, 2025  
+**Last Updated**: November 3, 2025  
 **New Team Member?** You're in the right place! This guide will get you productive in 30 minutes.
 
 ---
@@ -51,11 +51,12 @@ python main.py
 
 ### 3. **Read Key Documentation** (10 minutes)
 
-1. 📊 **[PROJECT_STATUS.md](PROJECT_STATUS.md)** → Current system state (Phase 24-E complete!)
+1. 📊 **[PROJECT_STATUS.md](PROJECT_STATUS.md)** → Current system state (Phase 24-E in production!)
 2. 🚀 **[BREAKTHROUGHS.md](BREAKTHROUGHS.md)** → Recent discoveries
 3. 🗺️ **[docs/backend/ROUTES.md](docs/backend/ROUTES.md)** → Backend API endpoints
-4. 🎨 **[PHASE_24E_COMPLETE_SUMMARY.md](PHASE_24E_COMPLETE_SUMMARY.md)** → V0 Dashboard Pages integration
+4. 🎨 **[v0-prompts/phase-24f-wizard-main-ui-redesign.md](v0-prompts/phase-24f-wizard-main-ui-redesign.md)** → Next V0 UI enhancement
 5. 📚 **[docs/V0_INTEGRATION_LESSONS_LEARNED.md](docs/V0_INTEGRATION_LESSONS_LEARNED.md)** → V0 CSS isolation lessons
+6. 📁 **[docs/archive/phase24/](docs/archive/phase24/)** → Phase 24 historical documentation
 
 ---
 
