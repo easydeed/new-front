@@ -20,12 +20,21 @@ export function usePropertyLookup(onVerified: (data: PropertyData) => void, onPr
       await new Promise((resolve) => setTimeout(resolve, 1000))
       setStage("Retrieving property data...")
 
+      // Get auth token
+      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+
       // Call SiteX API
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      }
+
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`
+      }
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/property/search`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           address: address.fullAddress,
           street: address.street,
