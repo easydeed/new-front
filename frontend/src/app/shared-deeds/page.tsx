@@ -1,335 +1,390 @@
-'use client';
+"use client"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import Sidebar from "@/components/Sidebar"
+import { Send, Eye, Clock, CheckCircle, XCircle, AlertCircle, RotateCw, X, Plus, FileText } from "lucide-react"
 
-import React, { useState, useEffect } from 'react';
-import Sidebar from '../../components/Sidebar';
-import FeedbackModal from '../../components/FeedbackModal';
-import { getShareFeedback } from '../../lib/api/deedShares';
-import '../../styles/dashboard.css';
+interface SharedDeed {
+  id: number
+  property: string
+  deed_type: string
+  shared_with: string
+  recipient_email: string
+  status: "sent" | "viewed" | "approved" | "rejected" | "expired" | "revoked"
+  shared_date: string
+  expires_at: string
+  viewed_at?: string
+  response_date?: string
+  feedback?: string
+}
 
-// Phase 6-1: Shared Deeds API Integration
-type SharedRow = { 
-  id: string; 
-  deed_id: string; 
-  property?: string; 
-  deed_type?: string; 
-  shared_with: string; 
-  status: 'sent'|'opened'|'downloaded'|'revoked'|'viewed'|'approved'|'rejected'|'expired'; 
-  created_at?: string; 
-  shared_date?: string;
-  expires_at?: string;
-  viewed_at?: string | null;
-  response_date?: string | null;
-};
-
-export default function SharedDeeds() {
-  const [sharedDeeds, setSharedDeeds] = useState<SharedRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  // REJECTION BUNDLE: Feedback modal state
+// ✅ PHASE 24-E: V0-generated Shared Deeds page with feedback modal and expiry countdown
+export default function SharedDeedsPageV0() {
+  const router = useRouter()
+  const [sharedDeeds, setSharedDeeds] = useState<SharedDeed[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [feedbackModal, setFeedbackModal] = useState<{ open: boolean; text: string }>({
     open: false,
-    text: ''
-  });
+    text: "",
+  })
+  const [shareModalOpen, setShareModalOpen] = useState(false)
 
-  // Phase 6-1: Fetch and refresh shared deeds
-  async function refresh() {
-    const api = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_BASE_URL || 'https://deedpro-main-api.onrender.com';
-    const token = (typeof window !== 'undefined') ? localStorage.getItem('access_token') : null;
+  useEffect(() => {
+    fetchSharedDeeds()
+  }, [])
+
+  const fetchSharedDeeds = async () => {
     try {
-      setLoading(true);
-      const res = await fetch(`${api}/shared-deeds`, { 
-        headers: token ? { Authorization: `Bearer ${token}` } : {} 
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setSharedDeeds(Array.isArray(data) ? data : data.shared_deeds || []);
-    } catch (e: any) {
-      console.error('Failed to load shared deeds:', e);
-      setError(e.message || 'Failed to load shared deeds');
+      const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
+      const token = localStorage.getItem("access_token")
+
+      if (!token) {
+        router.push("/login?redirect=/shared-deeds")
+        return
+      }
+
+      const response = await fetch(`${api}/shared-deeds`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch shared deeds")
+      }
+
+      const data = await response.json()
+      setSharedDeeds(Array.isArray(data) ? data : data.shared_deeds || [])
+    } catch (err) {
+      console.error("Error fetching shared deeds:", err)
+      setError(err instanceof Error ? err.message : "Failed to load shared deeds")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   }
 
-  useEffect(() => { 
-    refresh(); 
-  }, []);
-
-  // REJECTION BUNDLE: View feedback handler
-  const onViewFeedback = async (shareId: string) => {
+  const handleViewFeedback = async (shareId: number) => {
     try {
-      const token = (typeof window !== 'undefined') ? (localStorage.getItem('access_token') || localStorage.getItem('token') || '') : '';
-      const data = await getShareFeedback(parseInt(shareId), token);
-      setFeedbackModal({ open: true, text: data.feedback || '(No comments provided)' });
-    } catch (e: any) {
-      console.error('Failed to load feedback:', e);
-      setFeedbackModal({ open: true, text: '(Feedback not available)' });
+      const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
+      const token = localStorage.getItem("access_token")
+
+      const response = await fetch(`${api}/shared-deeds/${shareId}/feedback`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setFeedbackModal({
+          open: true,
+          text: data.feedback || "(No comments provided)",
+        })
+      } else {
+        // Fallback to deed's feedback field
+        const deed = sharedDeeds.find((d) => d.id === shareId)
+        setFeedbackModal({
+          open: true,
+          text: deed?.feedback || "(No comments provided)",
+        })
+      }
+    } catch (err) {
+      console.error("Error fetching feedback:", err)
+      alert("Failed to load feedback")
     }
-  };
+  }
 
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [shareFormData, setShareFormData] = useState({
-    deedId: '',
-    emails: '',
-    message: '',
-    expiryDays: '30'
-  });
+  const handleRemind = async (shareId: number) => {
+    try {
+      const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
+      const token = localStorage.getItem("access_token")
 
-  const [availableDeeds] = useState([
-    { id: 1, property: '123 Main St, Los Angeles, CA 90210' },
-    { id: 2, property: '456 Oak Ave, Beverly Hills, CA 90212' },
-    { id: 3, property: '789 Pine Rd, Santa Monica, CA 90401' }
-  ]);
+      const response = await fetch(`${api}/shared-deeds/${shareId}/resend`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
 
-  const handleShare = () => {
-    setIsShareModalOpen(true);
-  };
+      if (!response.ok) {
+        throw new Error("Failed to send reminder")
+      }
 
-  const handleResend = (sharedDeedId: number) => {
-    alert(`Resending reminder for shared deed ${sharedDeedId}`);
-  };
-
-  const handleRevoke = (sharedDeedId: number) => {
-    if (window.confirm('Are you sure you want to revoke access to this shared deed?')) {
-      setSharedDeeds(sharedDeeds.filter(deed => deed.id !== sharedDeedId));
+      alert("Reminder sent successfully!")
+      fetchSharedDeeds()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to send reminder")
     }
-  };
+  }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setShareFormData({
-      ...shareFormData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  const handleSubmitShare = () => {
-    if (shareFormData.deedId && shareFormData.emails.trim()) {
-      alert(`Sharing deed with: ${shareFormData.emails}`);
-      setShareFormData({ deedId: '', emails: '', message: '', expiryDays: '30' });
-      setIsShareModalOpen(false);
+  const handleRevoke = async (shareId: number) => {
+    if (!confirm("Are you sure you want to revoke access to this deed?")) {
+      return
     }
-  };
 
-  const isExpired = (expiryDate: string) => {
-    return new Date(expiryDate) < new Date();
-  };
+    try {
+      const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
+      const token = localStorage.getItem("access_token")
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'sent':
-        return <span className="badge badge-info">Sent</span>;
-      case 'viewed':
-        return <span className="badge badge-warning">Viewed</span>;
-      case 'approved':
-        return <span className="badge badge-success">Approved</span>;
-      case 'rejected':
-        return <span className="badge badge-danger">Rejected</span>;
-      case 'expired':
-        return <span className="badge badge-secondary">Expired</span>;
-      default:
-        return <span className="badge badge-secondary">{status}</span>;
+      const response = await fetch(`${api}/shared-deeds/${shareId}/revoke`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to revoke access")
+      }
+
+      alert("Access revoked successfully")
+      fetchSharedDeeds()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to revoke access")
     }
-  };
+  }
 
-  const getDaysRemaining = (expiryDate: string) => {
-    const now = new Date();
-    const expiry = new Date(expiryDate);
-    const diffTime = expiry.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
+  const getStatusBadge = (status: SharedDeed["status"]) => {
+    const styles = {
+      sent: "bg-blue-100 text-blue-800 border-blue-200",
+      viewed: "bg-amber-100 text-amber-800 border-amber-200",
+      approved: "bg-green-100 text-green-800 border-green-200",
+      rejected: "bg-red-100 text-red-800 border-red-200",
+      expired: "bg-slate-100 text-slate-800 border-slate-200",
+      revoked: "bg-slate-100 text-slate-800 border-slate-200",
+    }
+
+    const icons = {
+      sent: <Send className="w-3.5 h-3.5" />,
+      viewed: <Eye className="w-3.5 h-3.5" />,
+      approved: <CheckCircle className="w-3.5 h-3.5" />,
+      rejected: <XCircle className="w-3.5 h-3.5" />,
+      expired: <Clock className="w-3.5 h-3.5" />,
+      revoked: <XCircle className="w-3.5 h-3.5" />,
+    }
+
+    const labels = {
+      sent: "Sent",
+      viewed: "Viewed",
+      approved: "Approved",
+      rejected: "Rejected",
+      expired: "Expired",
+      revoked: "Revoked",
+    }
+
+    return (
+      <span
+        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${styles[status]}`}
+      >
+        {icons[status]}
+        {labels[status]}
+      </span>
+    )
+  }
+
+  // ✅ PHASE 24-E: Expiry countdown logic with red text when ≤3 days
+  const calculateDaysRemaining = (expiresAt: string) => {
+    const now = new Date()
+    const expiry = new Date(expiresAt)
+    const diffTime = expiry.getTime() - now.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+    if (diffDays < 0) return { text: "Expired", isUrgent: true }
+    if (diffDays === 0) return { text: "Expires today", isUrgent: true }
+    if (diffDays <= 3) return { text: `${diffDays} days left`, isUrgent: true }
+    return { text: `${diffDays} days left`, isUrgent: false }
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "2-digit",
+      day: "2-digit",
+      year: "numeric",
+    })
+  }
+
+  const canRemind = (deed: SharedDeed) => {
+    return !["expired", "approved", "rejected", "revoked"].includes(deed.status)
+  }
+
+  const canRevoke = (deed: SharedDeed) => {
+    return deed.status !== "revoked"
+  }
 
   return (
-    <div style={{ display: 'flex' }}>
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
       <Sidebar />
-      <div className="main-content">
-        <div className="contact-wrapper">
-          
-          {/* Page Header */}
-          <div className="page-header">
-            <h1 className="page-title">Shared Deeds</h1>
-            <p className="page-description">
+
+      <main className="flex-1 p-6 md:p-10 lg:p-16">
+        <div className="max-w-[1600px] mx-auto">
+          {/* Header Section */}
+          <div className="mb-8">
+            <h1 className="text-4xl md:text-5xl font-bold text-slate-800 mb-4 tracking-tight">Shared Deeds</h1>
+            <p className="text-lg text-slate-600 mb-6">
               Track deeds shared for approval and manage collaboration with title companies, lenders, and other parties.
             </p>
-          </div>
 
-          {/* Action Button */}
-          <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ color: 'var(--gray-600)', fontSize: '1.125rem' }}>
-              {sharedDeeds.length} shared deed{sharedDeeds.length !== 1 ? 's' : ''}
+            {/* Subheader Bar */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+              <div className="flex items-center gap-2">
+                <Send className="w-5 h-5 text-[#7C4DFF]" />
+                <span className="text-lg font-semibold text-slate-700">
+                  {sharedDeeds.length} shared {sharedDeeds.length === 1 ? "deed" : "deeds"}
+                </span>
+              </div>
+              <button
+                onClick={() => setShareModalOpen(true)}
+                className="flex items-center gap-2 px-6 py-3 bg-[#7C4DFF] hover:bg-[#6a3de8] text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
+              >
+                <Plus className="w-5 h-5" />
+                Share New Deed
+              </button>
             </div>
-            <button className="btn-primary" onClick={handleShare}>
-              🤝 Share New Deed
-            </button>
           </div>
 
-          {/* Shared Deeds Table */}
-          <div className="card">
-            <div className="card-body">
-              <div className="table-responsive">
-                <table className="table w-100 table-striped">
+          {/* Loading State */}
+          {loading && (
+            <div className="flex flex-col items-center justify-center min-h-[50vh] gap-6">
+              <div className="relative">
+                <div className="w-16 h-16 rounded-full border-4 border-purple-100 animate-spin border-t-[#7C4DFF]" />
+                <Send className="w-6 h-6 text-[#7C4DFF] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+              </div>
+              <p className="text-lg text-slate-600 font-medium">Loading shared deeds...</p>
+            </div>
+          )}
+
+          {/* Error State */}
+          {!loading && error && (
+            <div className="flex flex-col items-center justify-center min-h-[50vh] gap-6">
+              <div className="w-20 h-20 rounded-full bg-red-50 flex items-center justify-center ring-4 ring-red-100">
+                <AlertCircle className="w-10 h-10 text-red-500" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-xl font-bold text-slate-800 mb-2">Failed to Load Shared Deeds</h3>
+                <p className="text-slate-600">{error}</p>
+              </div>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-6 py-3 bg-[#7C4DFF] hover:bg-[#6a3de8] text-white font-semibold rounded-xl shadow-md transition-all"
+              >
+                Try Again
+              </button>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!loading && !error && sharedDeeds.length === 0 && (
+            <div className="flex flex-col items-center justify-center min-h-[50vh] gap-6 bg-white rounded-2xl p-12 shadow-sm border border-slate-200">
+              <div className="w-24 h-24 rounded-full bg-slate-100 flex items-center justify-center ring-4 ring-slate-50">
+                <Send className="w-12 h-12 text-slate-400" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-2xl font-semibold text-slate-700 mb-2">No shared deeds yet</h3>
+                <p className="text-slate-500 mb-6">Share a deed from Past Deeds to start collaborating</p>
+                <button
+                  onClick={() => router.push("/past-deeds")}
+                  className="px-8 py-4 bg-[#7C4DFF] hover:bg-[#6a3de8] text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all"
+                >
+                  Go to Past Deeds
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Table */}
+          {!loading && !error && sharedDeeds.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
                   <thead>
-                    <tr>
-                      <th>Property</th>
-                      <th>Deed Type</th>
-                      <th>Shared With</th>
-                      <th>Status</th>
-                      <th>Shared Date</th>
-                      <th>Expires</th>
-                      <th>Response</th>
-                      <th>Actions</th>
+                    <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-slate-700">Property</th>
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-slate-700">Deed Type</th>
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-slate-700">Shared With</th>
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-slate-700">Status</th>
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-slate-700">Shared Date</th>
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-slate-700">Expires</th>
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-slate-700">Response</th>
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-slate-700">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {/* Phase 6-1: Loading and error states */}
-                    {loading && (
-                      <tr>
-                        <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-600)' }}>
-                          Loading shared deeds...
-                        </td>
-                      </tr>
-                    )}
-                    {error && !loading && (
-                      <tr>
-                        <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--error)' }}>
-                          Error: {error}
-                        </td>
-                      </tr>
-                    )}
-                    {!loading && !error && sharedDeeds.length === 0 && (
-                      <tr>
-                        <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-600)' }}>
-                          No shared deeds yet. Share a deed from <a href="/past-deeds" style={{color: 'var(--primary)', textDecoration: 'underline'}}>Past Deeds</a>
-                        </td>
-                      </tr>
-                    )}
-                    {/* Phase 6-1: Real shared deed data */}
-                    {!loading && !error && sharedDeeds.map((sharedDeed) => {
-                      const expired = sharedDeed.expires_at ? isExpired(sharedDeed.expires_at) : false;
-                      const daysRemaining = sharedDeed.expires_at ? getDaysRemaining(sharedDeed.expires_at) : 0;
-                      
+                    {sharedDeeds.map((deed, index) => {
+                      const daysRemaining = calculateDaysRemaining(deed.expires_at)
+                      const showCountdown = !["expired", "approved", "rejected"].includes(deed.status)
+
                       return (
-                        <tr key={sharedDeed.id}>
-                          <td style={{ fontWeight: '500' }}>{sharedDeed.property}</td>
-                          <td>{sharedDeed.deed_type}</td>
-                          <td>{sharedDeed.shared_with}</td>
-                          <td>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              {expired && sharedDeed.status !== 'approved' && sharedDeed.status !== 'rejected' 
-                                ? getStatusBadge('expired') 
-                                : getStatusBadge(sharedDeed.status)
-                              }
-                              {/* REJECTION BUNDLE: View Feedback button for rejected deeds */}
-                              {sharedDeed.status === 'rejected' && (
+                        <tr
+                          key={deed.id}
+                          className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${
+                            index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
+                          }`}
+                        >
+                          <td className="py-4 px-6 font-medium text-slate-800">{deed.property}</td>
+                          <td className="py-4 px-6 text-slate-600">{deed.deed_type}</td>
+                          <td className="py-4 px-6">
+                            <div className="flex flex-col">
+                              <span className="font-medium text-slate-800">{deed.shared_with}</span>
+                              <span className="text-xs text-slate-500">{deed.recipient_email}</span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="flex flex-col gap-2">
+                              {getStatusBadge(deed.status)}
+                              {deed.status === "rejected" && (
                                 <button
-                                  onClick={() => onViewFeedback(sharedDeed.id)}
-                                  className="text-sm text-red-600 hover:text-red-800 underline"
-                                  style={{ 
-                                    background: 'none', 
-                                    border: 'none', 
-                                    cursor: 'pointer',
-                                    padding: '2px 4px',
-                                    fontSize: '0.875rem'
-                                  }}
+                                  onClick={() => handleViewFeedback(deed.id)}
+                                  className="text-xs text-red-600 hover:text-red-700 underline font-medium text-left"
                                 >
                                   View Feedback
                                 </button>
                               )}
                             </div>
                           </td>
-                          <td>{new Date(sharedDeed.shared_date).toLocaleDateString()}</td>
-                          <td>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                              <span>{new Date(sharedDeed.expires_at).toLocaleDateString()}</span>
-                              {!expired && sharedDeed.status !== 'approved' && sharedDeed.status !== 'rejected' && (
-                                <span style={{ 
-                                  fontSize: '0.8rem', 
-                                  color: daysRemaining <= 3 ? '#ef4444' : 'var(--gray-500)' 
-                                }}>
-                                  {daysRemaining > 0 ? `${daysRemaining} days left` : 'Expires today'}
+                          <td className="py-4 px-6 text-sm text-slate-600">{formatDate(deed.shared_date)}</td>
+                          <td className="py-4 px-6">
+                            <div className="flex flex-col">
+                              <span className="text-sm text-slate-600">{formatDate(deed.expires_at)}</span>
+                              {showCountdown && (
+                                <span
+                                  className={`text-xs font-medium ${
+                                    daysRemaining.isUrgent ? "text-red-500" : "text-slate-500"
+                                  }`}
+                                >
+                                  {daysRemaining.text}
                                 </span>
                               )}
                             </div>
                           </td>
-                          <td>
-                            {sharedDeed.response_date ? (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                <span>{new Date(sharedDeed.response_date).toLocaleDateString()}</span>
-                                {sharedDeed.viewed_at && (
-                                  <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>
-                                    Viewed: {new Date(sharedDeed.viewed_at).toLocaleDateString()}
-                                  </span>
-                                )}
-                              </div>
-                            ) : sharedDeed.viewed_at ? (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                <span style={{ color: 'var(--gray-500)' }}>Pending</span>
-                                <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>
-                                  Viewed: {new Date(sharedDeed.viewed_at).toLocaleDateString()}
-                                </span>
-                              </div>
-                            ) : (
-                              <span style={{ color: 'var(--gray-500)' }}>Not viewed</span>
-                            )}
+                          <td className="py-4 px-6">
+                            <div className="flex flex-col">
+                              <span className="text-sm text-slate-600">
+                                {deed.response_date ? formatDate(deed.response_date) : "Pending"}
+                              </span>
+                              {deed.viewed_at && (
+                                <span className="text-xs text-slate-500">Viewed: {formatDate(deed.viewed_at)}</span>
+                              )}
+                              {!deed.viewed_at && <span className="text-xs text-slate-400">Not viewed</span>}
+                            </div>
                           </td>
-                          <td>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                              {/* Phase 6-1: Real API calls for Resend/Revoke */}
-                              {!expired && sharedDeed.status !== 'approved' && sharedDeed.status !== 'rejected' && sharedDeed.status !== 'revoked' && (
+                          <td className="py-4 px-6">
+                            <div className="flex items-center gap-2">
+                              {canRemind(deed) && (
                                 <button
-                                  className="btn-secondary"
-                                  style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
-                                  onClick={async () => {
-                                    const api = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_BASE_URL || 'https://deedpro-main-api.onrender.com';
-                                    const token = (typeof window !== 'undefined') ? localStorage.getItem('access_token') : null;
-                                    try {
-                                      await fetch(`${api}/shared-deeds/${sharedDeed.id}/resend`, { 
-                                        method: 'POST', 
-                                        headers: token ? { Authorization: `Bearer ${token}` } : {} 
-                                      });
-                                      refresh();
-                                    } catch (e) {
-                                      console.error('Failed to resend:', e);
-                                    }
-                                  }}
+                                  onClick={() => handleRemind(deed.id)}
+                                  className="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
                                   title="Send reminder"
                                 >
+                                  <RotateCw className="w-4 h-4" />
                                   Remind
                                 </button>
                               )}
-                              {sharedDeed.status !== 'revoked' && (
+                              {canRevoke(deed) && (
                                 <button
-                                  style={{
-                                    background: 'var(--background)',
-                                    color: '#ef4444',
-                                    border: '2px solid #fee2e2',
-                                    padding: '0.5rem 1rem',
-                                    borderRadius: '8px',
-                                    fontSize: '0.9rem',
-                                    fontWeight: '600',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.3s ease'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = '#fee2e2';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = 'var(--background)';
-                                  }}
-                                  onClick={async () => {
-                                    const api = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_BASE_URL || 'https://deedpro-main-api.onrender.com';
-                                    const token = (typeof window !== 'undefined') ? localStorage.getItem('access_token') : null;
-                                    try {
-                                      await fetch(`${api}/shared-deeds/${sharedDeed.id}/revoke`, { 
-                                        method: 'POST', 
-                                        headers: token ? { Authorization: `Bearer ${token}` } : {} 
-                                      });
-                                      refresh();
-                                    } catch (e) {
-                                      console.error('Failed to revoke:', e);
-                                    }
-                                  }}
+                                  onClick={() => handleRevoke(deed.id)}
+                                  className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-sm font-medium rounded-lg transition-colors"
                                   title="Revoke access"
                                 >
                                   Revoke
@@ -338,165 +393,76 @@ export default function SharedDeeds() {
                             </div>
                           </td>
                         </tr>
-                      );
+                      )
                     })}
                   </tbody>
                 </table>
               </div>
             </div>
-          </div>
-
-          {/* Share Modal */}
-          {isShareModalOpen && (
-            <div style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              background: 'rgba(0, 0, 0, 0.5)',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              zIndex: 1000,
-              backdropFilter: 'blur(4px)'
-            }}>
-              <div style={{
-                background: 'var(--background)',
-                borderRadius: '12px',
-                padding: '2.5rem',
-                maxWidth: '600px',
-                width: '90%',
-                maxHeight: '80vh',
-                overflow: 'auto',
-                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-                border: '1px solid var(--secondary-light)'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '2rem'
-                }}>
-                  <h3 style={{
-                    fontSize: '1.5rem',
-                    fontWeight: '600',
-                    color: 'var(--text)',
-                    margin: 0
-                  }}>
-                    Share Deed for Review
-                  </h3>
-                  <button
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      fontSize: '1.5rem',
-                      cursor: 'pointer',
-                      color: 'var(--gray-400)',
-                      padding: '0.25rem',
-                      borderRadius: '4px',
-                      transition: 'all 0.2s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = 'var(--text)';
-                      e.currentTarget.style.background = 'var(--gray-100)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = 'var(--gray-400)';
-                      e.currentTarget.style.background = 'none';
-                    }}
-                    onClick={() => setIsShareModalOpen(false)}
-                  >
-                    ×
-                  </button>
-                </div>
-                
-                <div style={{ display: 'grid', gap: '1.5rem' }}>
-                  <div className="form-group">
-                    <label className="form-label">Select Deed</label>
-                    <select
-                      name="deedId"
-                      className="form-control"
-                      value={shareFormData.deedId}
-                      onChange={handleInputChange}
-                    >
-                      <option value="">Choose a deed to share</option>
-                      {availableDeeds.map((deed) => (
-                        <option key={deed.id} value={deed.id}>
-                          {deed.property}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Email Recipients</label>
-                    <textarea
-                      name="emails"
-                      className="form-control"
-                      rows={3}
-                      placeholder="Enter email addresses separated by commas..."
-                      value={shareFormData.emails}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Expiry Period</label>
-                    <select
-                      name="expiryDays"
-                      className="form-control"
-                      value={shareFormData.expiryDays}
-                      onChange={handleInputChange}
-                    >
-                      <option value="7">7 days</option>
-                      <option value="14">14 days</option>
-                      <option value="30">30 days</option>
-                      <option value="60">60 days</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Message (Optional)</label>
-                    <textarea
-                      name="message"
-                      className="form-control"
-                      rows={4}
-                      placeholder="Add a personal message for the recipients..."
-                      value={shareFormData.message}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                </div>
-                
-                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '2rem' }}>
-                  <button 
-                    className="btn-secondary"
-                    onClick={() => setIsShareModalOpen(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    className="btn-primary"
-                    onClick={handleSubmitShare}
-                  >
-                    Share Deed
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {/* REJECTION BUNDLE: Feedback Modal */}
-          {feedbackModal.open && (
-            <FeedbackModal
-              title="Reviewer Feedback"
-              comments={feedbackModal.text}
-              onClose={() => setFeedbackModal({ open: false, text: '' })}
-            />
           )}
         </div>
-      </div>
+      </main>
+
+      {/* Feedback Modal */}
+      {feedbackModal.open && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-[600px] w-full p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-slate-800">Reviewer Feedback</h2>
+              <button
+                onClick={() => setFeedbackModal({ open: false, text: "" })}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-slate-400 hover:text-slate-600" />
+              </button>
+            </div>
+            <div className="bg-slate-50 rounded-lg p-6 border border-slate-200">
+              <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">{feedbackModal.text}</p>
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setFeedbackModal({ open: false, text: "" })}
+                className="px-6 py-3 bg-[#7C4DFF] hover:bg-[#6a3de8] text-white font-medium rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share New Deed Modal (Placeholder) */}
+      {shareModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-[600px] w-full p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-slate-800">Share Deed for Review</h2>
+              <button
+                onClick={() => setShareModalOpen(false)}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-slate-400 hover:text-slate-600" />
+              </button>
+            </div>
+            <div className="text-center py-12">
+              <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+              <p className="text-slate-600 mb-6">
+                To share a deed, please go to the Past Deeds page and click the Share button on a completed deed.
+              </p>
+              <button
+                onClick={() => {
+                  setShareModalOpen(false)
+                  router.push("/past-deeds")
+                }}
+                className="px-6 py-3 bg-[#7C4DFF] hover:bg-[#6a3de8] text-white font-medium rounded-lg transition-colors"
+              >
+                Go to Past Deeds
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  );
-} 
+  )
+}
+

@@ -1,836 +1,694 @@
-'use client';
+"use client"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import Sidebar from "@/components/Sidebar"
+import { User, CreditCard, Bell, Lock, Code, Check, Copy, Loader2 } from "lucide-react"
 
-import React, { useState, useEffect } from 'react';
-import Sidebar from '../../components/Sidebar';
-import '../../styles/dashboard.css';
+type Tab = "profile" | "billing" | "notifications" | "security" | "widget"
 
 interface UserProfile {
-  plan: string;
-  plan_limits?: {
-    max_deeds_per_month: number;
-    api_calls_per_month: number;
-  };
-  widget_addon?: boolean;
-  embed_key?: string;
+  first_name?: string
+  last_name?: string
+  email?: string
+  phone?: string
+  company?: string
+  street_address?: string
+  city?: string
+  state?: string
+  zip_code?: string
+  plan?: string
+  plan_limits?: any
+  widget_addon?: boolean
+  embed_key?: string
 }
 
-export default function AccountSettings() {
-  const [activeTab, setActiveTab] = useState('profile');
+// ✅ PHASE 24-E: V0-generated Account Settings page with 5 tabs (Profile, Billing, Notifications, Security, Widget)
+export default function AccountSettingsPageV0() {
+  const router = useRouter()
+  const [activeTab, setActiveTab] = useState<Tab>("profile")
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    fetchUserProfile()
+  }, [])
+
+  const fetchUserProfile = async () => {
+    try {
+      const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
+      const token = localStorage.getItem("access_token")
+
+      if (!token) {
+        router.push("/login?redirect=/account-settings")
+        return
+      }
+
+      const response = await fetch(`${api}/users/profile`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch profile")
+      }
+
+      const profile = await response.json()
+      setUserProfile(profile)
+    } catch (err) {
+      console.error("Error fetching profile:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleUpgrade = async (planKey: string) => {
+    try {
+      const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
+      const token = localStorage.getItem("access_token")
+
+      const response = await fetch(`${api}/users/upgrade`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ plan: planKey }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to upgrade plan")
+      }
+
+      const data = await response.json()
+      if (data.session_url) {
+        window.location.href = data.session_url
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to upgrade plan")
+    }
+  }
+
+  const handleManageSubscription = async () => {
+    setSaving(true)
+    try {
+      const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
+      const token = localStorage.getItem("access_token")
+
+      const response = await fetch(`${api}/payments/create-portal-session`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to create portal session")
+      }
+
+      const data = await response.json()
+      if (data.url) {
+        window.location.href = data.url
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to open billing portal")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const copySnippet = () => {
+    const embedKey = userProfile?.embed_key || "YOUR_EMBED_KEY"
+    const snippet = `<script src="https://deedpro.com/widget.js" data-key="${embedKey}"></script>
+<iframe src="https://deedpro.com/embed/${embedKey}" width="100%" height="600"></iframe>`
+
+    navigator.clipboard.writeText(snippet)
+    alert("Embed snippet copied to clipboard!")
+  }
+
+  const tabs = [
+    { id: "profile" as Tab, label: "Profile", icon: User },
+    { id: "billing" as Tab, label: "Billing", icon: CreditCard },
+    { id: "notifications" as Tab, label: "Notifications", icon: Bell },
+    { id: "security" as Tab, label: "Security", icon: Lock },
+    { id: "widget" as Tab, label: "Widget Add-on", icon: Code },
+  ]
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
+        <Sidebar />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-16 h-16 rounded-full border-4 border-purple-100 animate-spin border-t-[#7C4DFF] mx-auto mb-4" />
+            <p className="text-slate-600 font-medium">Loading settings...</p>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
+      <Sidebar />
+
+      <main className="flex-1 p-6 md:p-10 lg:p-16">
+        <div className="max-w-[1200px] mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-4xl md:text-5xl font-bold text-slate-800 mb-3 tracking-tight">Account Settings</h1>
+            <p className="text-lg text-slate-600">Manage your account preferences and billing information.</p>
+          </div>
+
+          {/* Tabs Navigation */}
+          <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden mb-8">
+            <div className="flex overflow-x-auto border-b border-slate-200">
+              {tabs.map((tab) => {
+                const Icon = tab.icon
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center gap-2 px-6 py-4 font-semibold text-sm whitespace-nowrap transition-all ${
+                      activeTab === tab.id
+                        ? "text-[#7C4DFF] border-b-3 border-[#7C4DFF] bg-purple-50/50"
+                        : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Tab Content */}
+            <div className="p-8">
+              {activeTab === "profile" && <ProfileTab userProfile={userProfile} />}
+              {activeTab === "billing" && (
+                <BillingTab
+                  userProfile={userProfile}
+                  onUpgrade={handleUpgrade}
+                  onManageSubscription={handleManageSubscription}
+                  saving={saving}
+                />
+              )}
+              {activeTab === "notifications" && <NotificationsTab />}
+              {activeTab === "security" && <SecurityTab />}
+              {activeTab === "widget" && <WidgetTab userProfile={userProfile} onCopySnippet={copySnippet} />}
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  )
+}
+
+// Profile Tab Component
+function ProfileTab({ userProfile }: { userProfile: UserProfile | null }) {
   const [formData, setFormData] = useState({
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@example.com',
-    phone: '(555) 123-4567',
-    company: 'Acme Real Estate',
-    address: '123 Main St',
-    city: 'Los Angeles',
-    state: 'CA',
-    zipCode: '90210'
-  });
+    first_name: userProfile?.first_name || "",
+    last_name: userProfile?.last_name || "",
+    email: userProfile?.email || "",
+    phone: userProfile?.phone || "",
+    company: userProfile?.company || "",
+    street_address: userProfile?.street_address || "",
+    city: userProfile?.city || "",
+    state: userProfile?.state || "",
+    zip_code: userProfile?.zip_code || "",
+  })
 
-  // Plan management state
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [upgradeLoading, setUpgradeLoading] = useState(false);
+  const handleSave = () => {
+    alert("Profile saved! (API integration pending)")
+  }
 
-  // Widget add-on state
-  const [widgetAddon, setWidgetAddon] = useState(false);
-  const [embedKey, setEmbedKey] = useState('');
+  return (
+    <div className="space-y-8">
+      {/* Personal Information */}
+      <div>
+        <h3 className="text-xl font-bold text-slate-800 mb-6">Personal Information</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">First Name</label>
+            <input
+              type="text"
+              value={formData.first_name}
+              onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Last Name</label>
+            <input
+              type="text"
+              value={formData.last_name}
+              onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Email Address</label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Phone Number</label>
+            <input
+              type="tel"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-slate-700 mb-2">Company</label>
+            <input
+              type="text"
+              value={formData.company}
+              onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Address Information */}
+      <div>
+        <h3 className="text-xl font-bold text-slate-800 mb-6">Address Information</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-slate-700 mb-2">Street Address</label>
+            <input
+              type="text"
+              value={formData.street_address}
+              onChange={(e) => setFormData({ ...formData, street_address: e.target.value })}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">City</label>
+            <input
+              type="text"
+              value={formData.city}
+              onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">State</label>
+            <input
+              type="text"
+              value={formData.state}
+              onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">ZIP Code</label>
+            <input
+              type="text"
+              value={formData.zip_code}
+              onChange={(e) => setFormData({ ...formData, zip_code: e.target.value })}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
+            />
+          </div>
+        </div>
+      </div>
+
+      <button
+        onClick={handleSave}
+        className="px-8 py-4 bg-[#7C4DFF] hover:bg-[#6a3de8] text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all"
+      >
+        Save Changes
+      </button>
+    </div>
+  )
+}
+
+// Billing Tab Component
+function BillingTab({
+  userProfile,
+  onUpgrade,
+  onManageSubscription,
+  saving,
+}: {
+  userProfile: UserProfile | null
+  onUpgrade: (plan: string) => void
+  onManageSubscription: () => void
+  saving: boolean
+}) {
+  const currentPlan = userProfile?.plan || "starter"
 
   const plans = [
     {
-      name: 'Starter',
-      price: 'Free',
-      features: [
-        '5 deeds per month',
-        'Basic AI assistance',
-        'Standard templates',
-        'Email support'
-      ],
-      buttonText: 'Current Plan',
-      disabled: true,
-      planKey: 'free'
+      key: "starter",
+      name: "Starter",
+      price: "Free",
+      features: ["5 deeds/month", "Basic AI assistance", "Standard templates", "Email support"],
     },
     {
-      name: 'Professional',
-      price: '$29/month',
-      features: [
-        'Unlimited deeds',
-        'Advanced AI assistance',
-        'Premium templates',
-        'SoftPro integration',
-        'Priority support'
-      ],
-      buttonText: 'Upgrade to Pro',
-      disabled: false,
-      planKey: 'professional'
+      key: "professional",
+      name: "Professional",
+      price: "$29",
+      features: ["Unlimited deeds", "Advanced AI assistance", "SoftPro integration", "Priority support"],
     },
     {
-      name: 'Enterprise',
-      price: '$99/month',
-      features: [
-        'Everything in Professional',
-        'Qualia integration',
-        'API access',
-        'Team management',
-        'White-label options',
-        '24/7 dedicated support'
-      ],
-      buttonText: 'Upgrade to Enterprise',
-      disabled: false,
-      planKey: 'enterprise'
-    }
-  ];
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  // API functions
-  const fetchUserProfile = async () => {
-    try {
-      const token = localStorage.getItem('access_token');
-      if (!token) return;
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com'}/users/profile`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const profile = await response.json();
-        setUserProfile(profile);
-        setWidgetAddon(profile.widget_addon || false);
-        setEmbedKey(profile.embed_key || '');
-      }
-    } catch (error) {
-      console.error('Failed to fetch user profile:', error);
-    }
-  };
-
-  const handleUpgrade = async (planKey: string) => {
-    setUpgradeLoading(true);
-    try {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        alert('Please log in to upgrade your plan');
-        return;
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com'}/users/upgrade`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ plan: planKey })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        window.location.href = data.session_url;
-      } else {
-        const error = await response.json();
-        alert(`Upgrade failed: ${error.detail}`);
-      }
-    } catch (error) {
-      alert('Upgrade failed. Please try again.');
-    } finally {
-      setUpgradeLoading(false);
-    }
-  };
-
-  const handleManageSubscription = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        alert('Please log in to manage your subscription');
-        return;
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com'}/payments/create-portal-session`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        window.location.href = data.url;
-      } else {
-        alert('Failed to open billing portal');
-      }
-    } catch (error) {
-      alert('Failed to open billing portal. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUserProfile();
-  }, []);
-
-  const copySnippet = () => {
-    const snippet = `
-      <script>
-        async function loadDeedWizard() {
-          const data = { deed_type: "grant_deed", data: { grantor: "John Doe" /* Your data */ } };
-          const res = await fetch("https://deedpro-main-api.onrender.com/embed/wizard", {
-            method: "POST",
-            headers: { "X-API-Key": "${embedKey}", "Content-Type": "application/json" },
-            body: JSON.stringify(data)
-          });
-          const result = await res.json();
-          document.getElementById("deed-iframe").contentDocument.body.innerHTML = result.html;
-        }
-        loadDeedWizard();
-      </script>
-      <iframe id="deed-iframe" style="width: 100%; height: 600px; border: none;"></iframe>
-    `;
-    navigator.clipboard.writeText(snippet);
-    alert('Snippet copied!');
-  };
-
-  const handleSave = () => {
-    alert('Settings saved successfully!');
-  };
+      key: "enterprise",
+      name: "Enterprise",
+      price: "$99",
+      features: ["Everything in Pro", "Qualia integration", "API access", "Team management", "24/7 support"],
+    },
+  ]
 
   return (
-    <div style={{ display: 'flex' }}>
-      <Sidebar />
-      <div className="main-content">
-        <div className="settings-container">
-          
-          {/* Header */}
-          <div style={{ marginBottom: '3rem' }}>
-            <h1 className="contact-title">Account Settings</h1>
-            <p className="contact-paragraph">
-              Manage your account preferences and billing information.
-            </p>
-          </div>
-
-          {/* Tabs */}
-          <div className="settings-tabs">
-            <button
-              className={`settings-tab ${activeTab === 'profile' ? 'active' : ''}`}
-              onClick={() => setActiveTab('profile')}
-            >
-              Profile
-            </button>
-            <button
-              className={`settings-tab ${activeTab === 'billing' ? 'active' : ''}`}
-              onClick={() => setActiveTab('billing')}
-            >
-              Billing
-            </button>
-            <button
-              className={`settings-tab ${activeTab === 'notifications' ? 'active' : ''}`}
-              onClick={() => setActiveTab('notifications')}
-            >
-              Notifications
-            </button>
-            <button
-              className={`settings-tab ${activeTab === 'security' ? 'active' : ''}`}
-              onClick={() => setActiveTab('security')}
-            >
-              Security
-            </button>
-            <button
-              className={`settings-tab ${activeTab === 'widget' ? 'active' : ''}`}
-              onClick={() => setActiveTab('widget')}
-            >
-              Widget Add-on
-            </button>
-          </div>
-
-          {/* Profile Tab */}
-          <div className={`settings-content ${activeTab === 'profile' ? 'active' : ''}`}>
-            <div className="settings-section">
-              <h3>Personal Information</h3>
-              <div className="settings-form">
-                <div className="settings-form-row">
-                  <div className="form-group">
-                    <label className="form-label">First Name</label>
-                    <input
-                      type="text"
-                      name="firstName"
-                      className="form-control"
-                      value={formData.firstName}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Last Name</label>
-                    <input
-                      type="text"
-                      name="lastName"
-                      className="form-control"
-                      value={formData.lastName}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                </div>
-                <div className="settings-form-row">
-                  <div className="form-group">
-                    <label className="form-label">Email Address</label>
-                    <input
-                      type="email"
-                      name="email"
-                      className="form-control"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Phone Number</label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      className="form-control"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Company</label>
-                  <input
-                    type="text"
-                    name="company"
-                    className="form-control"
-                    value={formData.company}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              </div>
+    <div className="space-y-8">
+      {/* Current Plan Status */}
+      {currentPlan !== "starter" && (
+        <div className="bg-slate-50 border border-[#7C4DFF]/30 rounded-xl p-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">
+                {plans.find((p) => p.key === currentPlan)?.name} Plan
+              </h3>
+              <p className="text-slate-600">Your current subscription</p>
             </div>
-
-            <div className="settings-section">
-              <h3>Address Information</h3>
-              <div className="settings-form">
-                <div className="form-group">
-                  <label className="form-label">Street Address</label>
-                  <input
-                    type="text"
-                    name="address"
-                    className="form-control"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className="settings-form-row">
-                  <div className="form-group">
-                    <label className="form-label">City</label>
-                    <input
-                      type="text"
-                      name="city"
-                      className="form-control"
-                      value={formData.city}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">State</label>
-                    <select
-                      name="state"
-                      className="form-control"
-                      value={formData.state}
-                      onChange={handleInputChange}
-                    >
-                      <option value="CA">California</option>
-                      <option value="NY">New York</option>
-                      <option value="TX">Texas</option>
-                      <option value="FL">Florida</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="form-group" style={{ maxWidth: '300px' }}>
-                  <label className="form-label">ZIP Code</label>
-                  <input
-                    type="text"
-                    name="zipCode"
-                    className="form-control"
-                    value={formData.zipCode}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              </div>
+            <div className="text-right">
+              <div className="text-3xl font-bold text-[#7C4DFF]">{plans.find((p) => p.key === currentPlan)?.price}</div>
+              <div className="text-sm text-slate-600">per month</div>
             </div>
           </div>
+          <button
+            onClick={onManageSubscription}
+            disabled={saving}
+            className="mt-6 px-6 py-3 bg-[#7C4DFF] hover:bg-[#6a3de8] text-white font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              "Manage Subscription"
+            )}
+          </button>
+        </div>
+      )}
 
-          {/* Billing Tab */}
-          <div className={`settings-content ${activeTab === 'billing' ? 'active' : ''}`}>
-            {/* Current Plan Status */}
-            <div className="settings-section">
-              <h3>Current Plan</h3>
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                padding: '1.5rem',
-                background: 'var(--gray-50)',
-                borderRadius: '12px',
-                marginBottom: '2rem',
-                border: '2px solid var(--secondary-light)'
-              }}>
-                <div>
-                  <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)', fontSize: '1.25rem' }}>
-                    {userProfile?.plan?.charAt(0).toUpperCase() + userProfile?.plan?.slice(1) || 'Starter'} Plan
-                  </h4>
-                  <p style={{ margin: 0, color: 'var(--gray-600)', fontSize: '0.875rem' }}>
-                    {userProfile?.plan === 'free' && '5 deeds per month • Basic AI assistance • Email support'}
-                    {userProfile?.plan === 'professional' && 'Unlimited deeds • Advanced AI • SoftPro integration • Priority support'}
-                    {userProfile?.plan === 'enterprise' && 'Everything in Pro • Qualia integration • API access • 24/7 support'}
-                  </p>
-                  {userProfile?.plan_limits && (
-                    <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: 'var(--gray-500)' }}>
-                      {userProfile.plan_limits.max_deeds_per_month > 0 
-                        ? `${userProfile.plan_limits.max_deeds_per_month} deeds per month`
-                        : 'Unlimited deeds'
-                      } • {userProfile.plan_limits.api_calls_per_month} API calls per month
-                    </div>
-                  )}
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '600', color: 'var(--text)' }}>
-                    {userProfile?.plan === 'free' ? 'Free' : 
-                     userProfile?.plan === 'professional' ? '$29' : '$99'}
-                  </div>
-                  <div style={{ fontSize: '0.875rem', color: 'var(--gray-600)' }}>
-                    {userProfile?.plan === 'free' ? 'forever' : 'per month'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Quick Actions */}
-              {userProfile?.plan !== 'free' && (
-                <div style={{ marginBottom: '2rem' }}>
-                  <button 
-                    onClick={handleManageSubscription}
-                    disabled={loading}
-                    style={{
-                      background: 'var(--primary)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '0.75rem 1.5rem',
-                      fontWeight: '500',
-                      cursor: loading ? 'not-allowed' : 'pointer',
-                      marginRight: '1rem',
-                      opacity: loading ? 0.6 : 1
-                    }}
-                  >
-                    {loading ? 'Loading...' : 'Manage Subscription'}
-                  </button>
-                  <span style={{ fontSize: '0.875rem', color: 'var(--gray-600)' }}>
-                    Update payment method, download invoices, or cancel subscription
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Plan Comparison */}
-            <div className="settings-section">
-              <h3>Choose Your Plan</h3>
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
-                gap: '1.5rem',
-                marginBottom: '2rem'
-              }}>
-                {plans.map((plan, index) => (
-                  <div 
-                    key={plan.planKey}
-                    style={{
-                      border: userProfile?.plan === plan.planKey ? '2px solid var(--primary)' : '2px solid var(--secondary-light)',
-                      borderRadius: '12px',
-                      padding: '1.5rem',
-                      background: userProfile?.plan === plan.planKey ? 'rgba(59, 130, 246, 0.05)' : 'var(--background)',
-                      position: 'relative',
-                      transition: 'all 0.3s ease'
-                    }}
-                  >
-                    {userProfile?.plan === plan.planKey && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '-1px',
-                        right: '1rem',
-                        background: 'var(--primary)',
-                        color: 'white',
-                        padding: '0.25rem 0.75rem',
-                        borderRadius: '0 0 8px 8px',
-                        fontSize: '0.75rem',
-                        fontWeight: '600'
-                      }}>
-                        CURRENT
-                      </div>
-                    )}
-                    
-                    <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-                      <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem', color: 'var(--text)' }}>
-                        {plan.name}
-                      </h4>
-                      <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--primary)', marginBottom: '0.5rem' }}>
-                        {plan.price}
-                      </div>
-                    </div>
-
-                    <ul style={{ 
-                      listStyle: 'none', 
-                      padding: 0, 
-                      margin: '0 0 1.5rem 0',
-                      fontSize: '0.875rem'
-                    }}>
-                      {plan.features.map((feature, featureIndex) => (
-                        <li key={featureIndex} style={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          marginBottom: '0.5rem',
-                          color: 'var(--gray-700)'
-                        }}>
-                          <svg style={{ width: '16px', height: '16px', color: 'var(--primary)', marginRight: '0.5rem' }} fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-
-                    <button 
-                      onClick={() => handleUpgrade(plan.planKey)}
-                      disabled={userProfile?.plan === plan.planKey || upgradeLoading}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        background: userProfile?.plan === plan.planKey ? 'var(--gray-300)' : 'var(--primary)',
-                        color: userProfile?.plan === plan.planKey ? 'var(--gray-600)' : 'white',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontWeight: '600',
-                        cursor: userProfile?.plan === plan.planKey || upgradeLoading ? 'not-allowed' : 'pointer',
-                        opacity: upgradeLoading ? 0.6 : 1
-                      }}
-                    >
-                      {upgradeLoading ? 'Processing...' : 
-                       userProfile?.plan === plan.planKey ? 'Current Plan' : plan.buttonText}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="settings-section">
-              <h3>Payment Methods</h3>
-              <div style={{ marginBottom: '2rem' }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '1rem',
-                  border: '1px solid var(--secondary-light)',
-                  borderRadius: '8px',
-                  marginBottom: '1rem'
-                }}>
-                  <div style={{
-                    width: '40px',
-                    height: '25px',
-                    background: 'var(--primary-dark)',
-                    borderRadius: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontSize: '0.75rem',
-                    fontWeight: '600',
-                    marginRight: '1rem'
-                  }}>VISA</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: '500', color: 'var(--text)' }}>•••• •••• •••• 4242</div>
-                    <div style={{ fontSize: '0.875rem', color: 'var(--gray-600)' }}>Expires 12/26</div>
-                  </div>
-                  <span style={{
-                    background: 'rgba(163, 230, 53, 0.1)',
-                    color: '#365314',
-                    padding: '0.25rem 0.75rem',
-                    borderRadius: '12px',
-                    fontSize: '0.75rem',
-                    fontWeight: '500'
-                  }}>Default</span>
-                </div>
-              </div>
-              <button 
-                style={{
-                  background: 'var(--background)',
-                  border: '2px solid var(--secondary-light)',
-                  borderRadius: '8px',
-                  padding: '0.75rem 1.5rem',
-                  color: 'var(--text)',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--gray-400)';
-                  e.currentTarget.style.background = 'var(--gray-50)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--secondary-light)';
-                  e.currentTarget.style.background = 'var(--background)';
-                }}
+      {/* Choose Your Plan */}
+      <div>
+        <h3 className="text-xl font-bold text-slate-800 mb-6">Choose Your Plan</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {plans.map((plan) => {
+            const isCurrent = plan.key === currentPlan
+            return (
+              <div
+                key={plan.key}
+                className={`rounded-xl p-6 border-2 transition-all ${
+                  isCurrent ? "border-[#7C4DFF] bg-purple-50/50" : "border-slate-200 bg-white hover:border-slate-300"
+                }`}
               >
-                + Add Payment Method
-              </button>
-            </div>
-
-            <div className="settings-section">
-              <h3>Billing History</h3>
-              <div className="table-responsive">
-                <table className="table w-100 table-striped">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Description</th>
-                      <th>Amount</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>Jan 15, 2024</td>
-                      <td>Professional Plan - Monthly</td>
-                      <td>$29.00</td>
-                      <td><span className="badge badge-success">Paid</span></td>
-                    </tr>
-                    <tr>
-                      <td>Dec 15, 2023</td>
-                      <td>Professional Plan - Monthly</td>
-                      <td>$29.00</td>
-                      <td><span className="badge badge-success">Paid</span></td>
-                    </tr>
-                    <tr>
-                      <td>Nov 15, 2023</td>
-                      <td>Professional Plan - Monthly</td>
-                      <td>$29.00</td>
-                      <td><span className="badge badge-success">Paid</span></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          {/* Notifications Tab */}
-          <div className={`settings-content ${activeTab === 'notifications' ? 'active' : ''}`}>
-            <div className="settings-section">
-              <h3>Email Notifications</h3>
-              <div style={{ display: 'grid', gap: '1rem' }}>
-                {[
-                  { id: 'deed-completed', label: 'Deed completion notifications', description: 'Get notified when your deeds are ready' },
-                  { id: 'payment-receipts', label: 'Payment receipts', description: 'Receive receipts for all payments' },
-                  { id: 'shared-deed-updates', label: 'Shared deed updates', description: 'Notifications when shared deeds are approved or rejected' },
-                  { id: 'marketing', label: 'Marketing communications', description: 'Product updates and feature announcements' }
-                ].map((item) => (
-                  <label key={item.id} style={{ 
-                    display: 'flex', 
-                    alignItems: 'flex-start', 
-                    gap: '1rem',
-                    padding: '1rem',
-                    border: '1px solid var(--secondary-light)',
-                    borderRadius: '8px',
-                    cursor: 'pointer'
-                  }}>
-                    <input 
-                      type="checkbox" 
-                      defaultChecked={item.id !== 'marketing'} 
-                      style={{ marginTop: '0.25rem' }}
-                    />
-                    <div>
-                      <div style={{ fontWeight: '500', color: 'var(--text)' }}>{item.label}</div>
-                      <div style={{ fontSize: '0.875rem', color: 'var(--gray-600)' }}>{item.description}</div>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Security Tab */}
-          <div className={`settings-content ${activeTab === 'security' ? 'active' : ''}`}>
-            <div className="settings-section">
-              <h3>Change Password</h3>
-              <div className="settings-form" style={{ maxWidth: '500px' }}>
-                <div className="form-group">
-                  <label className="form-label">Current Password</label>
-                  <input type="password" className="form-control" />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">New Password</label>
-                  <input type="password" className="form-control" />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Confirm New Password</label>
-                  <input type="password" className="form-control" />
-                </div>
-                <button className="wizard-btn wizard-btn-primary">
-                  Update Password
+                {isCurrent && (
+                  <div className="inline-block px-3 py-1 bg-[#7C4DFF] text-white text-xs font-bold rounded-full mb-4">
+                    CURRENT
+                  </div>
+                )}
+                <h4 className="text-2xl font-bold text-slate-800 mb-2">{plan.name}</h4>
+                <div className="text-3xl font-bold text-[#7C4DFF] mb-1">{plan.price}</div>
+                {plan.price !== "Free" && <div className="text-sm text-slate-600 mb-6">per month</div>}
+                <ul className="space-y-3 mb-6">
+                  {plan.features.map((feature, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-sm text-slate-700">
+                      <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={() => !isCurrent && onUpgrade(plan.key)}
+                  disabled={isCurrent}
+                  className={`w-full py-3 rounded-lg font-semibold transition-all ${
+                    isCurrent
+                      ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                      : "bg-[#7C4DFF] hover:bg-[#6a3de8] text-white shadow-md hover:shadow-lg"
+                  }`}
+                >
+                  {isCurrent ? "Current Plan" : `Upgrade to ${plan.name}`}
                 </button>
               </div>
-            </div>
+            )
+          })}
+        </div>
+      </div>
 
-            <div className="settings-section">
-              <h3>Two-Factor Authentication</h3>
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                padding: '1.5rem',
-                background: 'var(--gray-50)',
-                borderRadius: '8px'
-              }}>
-                <div>
-                  <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>SMS Authentication</h4>
-                  <p style={{ margin: 0, color: 'var(--gray-600)', fontSize: '0.875rem' }}>
-                    Add an extra layer of security to your account
-                  </p>
-                </div>
-                <button className="wizard-btn wizard-btn-secondary">
-                  Enable 2FA
-                </button>
-              </div>
+      {/* Payment Methods */}
+      <div>
+        <h3 className="text-xl font-bold text-slate-800 mb-6">Payment Methods</h3>
+        <div className="bg-white border border-slate-200 rounded-xl p-6 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-8 bg-blue-600 rounded flex items-center justify-center text-white text-xs font-bold">
+              VISA
+            </div>
+            <div>
+              <div className="font-medium text-slate-800">•••• •••• •••• 4242</div>
+              <div className="text-sm text-slate-500">Expires 12/26</div>
             </div>
           </div>
+          <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">Default</span>
+        </div>
+        <button className="mt-4 px-6 py-3 border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium rounded-lg transition-colors">
+          + Add Payment Method
+        </button>
+      </div>
 
-          {/* Widget Add-on Tab */}
-          <div className={`settings-content ${activeTab === 'widget' ? 'active' : ''}`}>
-            <div className="settings-section">
-              <h3>Widget Add-On Status</h3>
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                padding: '1.5rem',
-                background: widgetAddon ? 'rgba(34, 197, 94, 0.1)' : 'var(--gray-50)',
-                borderRadius: '12px',
-                border: widgetAddon ? '2px solid #22c55e' : '2px solid var(--secondary-light)',
-                marginBottom: '2rem'
-              }}>
-                <div>
-                  <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)', fontSize: '1.25rem' }}>
-                    Widget Add-On: {widgetAddon ? '✅ Enabled' : '❌ Disabled'}
-                  </h4>
-                  <p style={{ margin: 0, color: 'var(--gray-600)', fontSize: '0.875rem' }}>
-                    {widgetAddon 
-                      ? 'Embed DeedPro widget in your website or application'
-                      : 'Upgrade to enable widget embedding functionality'
-                    }
-                  </p>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '600', color: 'var(--text)' }}>
-                    {widgetAddon ? '$49' : 'N/A'}
-                  </div>
-                  <div style={{ fontSize: '0.875rem', color: 'var(--gray-600)' }}>
-                    {widgetAddon ? 'per month' : ''}
-                  </div>
-                </div>
-              </div>
-
-              {widgetAddon && embedKey && (
-                <div style={{
-                  background: 'white',
-                  border: '2px solid #22c55e',
-                  borderRadius: '12px',
-                  padding: '2rem',
-                  marginBottom: '2rem'
-                }}>
-                  <h3 style={{ color: '#111827', marginBottom: '1rem', fontSize: '1.25rem' }}>
-                    🔑 Your Embed Key
-                  </h3>
-                  <div style={{
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px',
-                    padding: '1rem',
-                    marginBottom: '1rem',
-                    fontFamily: 'monospace',
-                    fontSize: '14px',
-                    wordBreak: 'break-all',
-                    color: '#1e293b'
-                  }}>
-                    {embedKey}
-                  </div>
-                  <button 
-                    onClick={copySnippet} 
-                    style={{
-                      backgroundColor: '#3b82f6',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '12px 24px',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#2563eb';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = '#3b82f6';
-                    }}
-                  >
-                    📋 Copy Embed Snippet
-                  </button>
-                </div>
-              )}
-
-              {!widgetAddon && (
-                <div style={{
-                  background: 'rgba(59, 130, 246, 0.05)',
-                  border: '1px solid rgba(59, 130, 246, 0.1)',
-                  borderRadius: '12px',
-                  padding: '2rem',
-                  textAlign: 'center'
-                }}>
-                  <div style={{ fontSize: '48px', marginBottom: '1rem' }}>🔧</div>
-                  <h4 style={{ color: '#111827', marginBottom: '1rem' }}>Widget Add-On Not Enabled</h4>
-                  <p style={{ color: '#565F64', marginBottom: '1.5rem', lineHeight: '1.6' }}>
-                    Contact your administrator to enable the Widget Add-On feature for your account. 
-                    This allows you to embed DeedPro functionality directly into your website or application.
-                  </p>
-                  <div style={{
-                    background: '#f3f4f6',
-                    borderRadius: '8px',
-                    padding: '1rem',
-                    fontSize: '14px',
-                    color: '#565F64'
-                  }}>
-                    💡 Widget Add-On: $49/month additional charge
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Save Button */}
-          {activeTab === 'profile' && (
-            <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid var(--secondary-light)' }}>
-              <button 
-                className="wizard-btn wizard-btn-primary"
-                onClick={handleSave}
-              >
-                Save Changes
-              </button>
-            </div>
-          )}
+      {/* Billing History */}
+      <div>
+        <h3 className="text-xl font-bold text-slate-800 mb-6">Billing History</h3>
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Date</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Description</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Amount</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b border-slate-100 hover:bg-slate-50">
+                <td className="py-3 px-4 text-sm text-slate-600">11/01/2025</td>
+                <td className="py-3 px-4 text-sm text-slate-800">Professional Plan - Monthly</td>
+                <td className="py-3 px-4 text-sm text-slate-800 font-medium">$29.00</td>
+                <td className="py-3 px-4">
+                  <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">Paid</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
-  );
-} 
+  )
+}
+
+// Notifications Tab Component
+function NotificationsTab() {
+  const [notifications, setNotifications] = useState({
+    deed_completion: true,
+    payment_receipts: true,
+    shared_deed_updates: true,
+    marketing: false,
+  })
+
+  return (
+    <div className="space-y-6">
+      <h3 className="text-xl font-bold text-slate-800 mb-6">Email Notifications</h3>
+
+      {[
+        {
+          key: "deed_completion" as const,
+          label: "Deed completion notifications",
+          description: "Get notified when your deeds are ready",
+        },
+        {
+          key: "payment_receipts" as const,
+          label: "Payment receipts",
+          description: "Receive receipts for all payments",
+        },
+        {
+          key: "shared_deed_updates" as const,
+          label: "Shared deed updates",
+          description: "Notifications when shared deeds are approved or rejected",
+        },
+        {
+          key: "marketing" as const,
+          label: "Marketing communications",
+          description: "Product updates and feature announcements",
+        },
+      ].map((item) => (
+        <label
+          key={item.key}
+          className="flex items-start gap-4 p-4 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors"
+        >
+          <input
+            type="checkbox"
+            checked={notifications[item.key]}
+            onChange={(e) => setNotifications({ ...notifications, [item.key]: e.target.checked })}
+            className="mt-1 w-5 h-5 text-[#7C4DFF] rounded focus:ring-2 focus:ring-[#7C4DFF]"
+          />
+          <div className="flex-1">
+            <div className="font-medium text-slate-800">{item.label}</div>
+            <div className="text-sm text-slate-600">{item.description}</div>
+          </div>
+        </label>
+      ))}
+    </div>
+  )
+}
+
+// Security Tab Component
+function SecurityTab() {
+  const [passwords, setPasswords] = useState({
+    current: "",
+    new: "",
+    confirm: "",
+  })
+
+  const handleUpdatePassword = () => {
+    alert("Password updated! (API integration pending)")
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Change Password */}
+      <div>
+        <h3 className="text-xl font-bold text-slate-800 mb-6">Change Password</h3>
+        <div className="max-w-[500px] space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Current Password</label>
+            <input
+              type="password"
+              value={passwords.current}
+              onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">New Password</label>
+            <input
+              type="password"
+              value={passwords.new}
+              onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Confirm New Password</label>
+            <input
+              type="password"
+              value={passwords.confirm}
+              onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
+            />
+          </div>
+          <button
+            onClick={handleUpdatePassword}
+            className="px-8 py-4 bg-[#7C4DFF] hover:bg-[#6a3de8] text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all"
+          >
+            Update Password
+          </button>
+        </div>
+      </div>
+
+      {/* Two-Factor Authentication */}
+      <div className="bg-slate-50 rounded-xl p-6 flex items-center justify-between">
+        <div>
+          <h4 className="text-lg font-bold text-slate-800 mb-2">SMS Authentication</h4>
+          <p className="text-slate-600">Add an extra layer of security to your account</p>
+        </div>
+        <button className="px-6 py-3 bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-lg transition-colors">
+          Enable 2FA
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// Widget Tab Component
+function WidgetTab({
+  userProfile,
+  onCopySnippet,
+}: {
+  userProfile: UserProfile | null
+  onCopySnippet: () => void
+}) {
+  const widgetEnabled = userProfile?.widget_addon || false
+  const embedKey = userProfile?.embed_key || "YOUR_EMBED_KEY"
+
+  return (
+    <div className="space-y-8">
+      {/* Widget Status */}
+      <div
+        className={`rounded-xl p-6 border-2 ${
+          widgetEnabled ? "border-green-500 bg-green-50" : "border-slate-200 bg-slate-50"
+        }`}
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-2xl font-bold text-slate-800 mb-2">{widgetEnabled ? "✅ Enabled" : "❌ Disabled"}</h3>
+            <p className="text-slate-600">Widget Add-On Status</p>
+          </div>
+          <div className="text-right">
+            <div className="text-3xl font-bold text-[#7C4DFF]">{widgetEnabled ? "$49" : "N/A"}</div>
+            {widgetEnabled && <div className="text-sm text-slate-600">per month</div>}
+          </div>
+        </div>
+      </div>
+
+      {widgetEnabled ? (
+        <>
+          {/* Embed Key */}
+          <div className="bg-white border-2 border-green-500 rounded-xl p-6">
+            <h3 className="text-xl font-bold text-slate-800 mb-4">🔑 Your Embed Key</h3>
+            <div className="bg-slate-800 rounded-lg p-4 mb-4">
+              <code className="text-green-400 font-mono text-sm break-all">{embedKey}</code>
+            </div>
+            <button
+              onClick={onCopySnippet}
+              className="flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors"
+            >
+              <Copy className="w-4 h-4" />📋 Copy Embed Snippet
+            </button>
+          </div>
+
+          {/* Usage Instructions */}
+          <div className="bg-slate-50 rounded-xl p-6">
+            <h4 className="text-lg font-bold text-slate-800 mb-3">Usage Instructions</h4>
+            <ol className="list-decimal list-inside space-y-2 text-slate-700">
+              <li>Copy the embed snippet above</li>
+              <li>Paste it into your website's HTML</li>
+              <li>The widget will appear automatically</li>
+              <li>Customize styling via the widget dashboard</li>
+            </ol>
+          </div>
+        </>
+      ) : (
+        <div className="bg-blue-50 rounded-xl p-8 text-center">
+          <div className="text-6xl mb-4">🔧</div>
+          <h3 className="text-2xl font-bold text-slate-800 mb-3">Widget Add-On Not Enabled</h3>
+          <p className="text-slate-600 mb-6">Contact your administrator to enable the widget add-on for your account</p>
+          <div className="bg-slate-100 rounded-lg p-4 inline-block">
+            <p className="text-sm text-slate-700">
+              <strong>💡 Widget Add-On:</strong> $49/month additional charge
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
