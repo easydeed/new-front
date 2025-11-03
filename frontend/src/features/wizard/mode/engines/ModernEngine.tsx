@@ -229,14 +229,13 @@ assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: s
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
+    <div className="min-h-screen bg-white">
       <StepShell>
         <ProgressBar current={i + 1} total={total} steps={steps} />
-        <MicroSummary data={summaryData} />
         {current ? (
-          <div className="bg-white rounded-2xl shadow-md border border-slate-200 p-8 md:p-10 mb-8 animate-in fade-in duration-300">
-          {/* Question heading */}
-          <h1 className="text-3xl md:text-4xl font-bold text-slate-800 mb-3">
+          <div className="bg-white rounded-2xl shadow-md border border-slate-200 p-8 md:p-10 mb-6 animate-in fade-in duration-300">
+          {/* Question heading - LARGER TEXT */}
+          <h1 className="text-4xl md:text-5xl font-bold text-slate-800 mb-4">
             {current.title || current.question}
           </h1>
           
@@ -265,9 +264,9 @@ assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: s
           ) : (
             <div className="mb-8">
               <input
-                className="w-full px-6 py-4 text-lg rounded-lg border-2 border-gray-300
+                className="w-full px-8 py-6 text-xl md:text-2xl font-medium rounded-lg border-2 border-slate-300
                           focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20
-                          transition-all duration-200 placeholder:text-gray-400"
+                          transition-all duration-200 placeholder:text-slate-400"
                 type="text"
                 value={state[current.field] || ''}
                 onChange={(e) => onChange(current.field, e.target.value)}
@@ -279,7 +278,7 @@ assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: s
           )}
 
           {/* Navigation buttons */}
-          <div className="flex justify-between gap-4 pt-4 border-t border-slate-200">
+          <div className="flex justify-between gap-4 pt-6 mt-8 border-t border-slate-200">
             <button 
               className="px-6 py-3 border-2 border-slate-300 text-slate-700 rounded-lg
                         font-semibold hover:bg-slate-50 active:scale-98
@@ -315,6 +314,9 @@ assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: s
           onConfirm={onNext}
         />
       )}
+      
+      {/* MicroSummary - Moved BELOW input for better UX */}
+      <MicroSummary data={summaryData} />
       </StepShell>
     </div>
   );

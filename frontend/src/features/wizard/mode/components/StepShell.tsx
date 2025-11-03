@@ -18,7 +18,7 @@ export default function StepShell({ children, currentStep, totalSteps, stepTitle
   const showHeader = currentStep && totalSteps && stepTitle;
 
   return (
-    <div className="max-w-5xl mx-auto px-6 md:px-10 lg:px-16 py-8 md:py-12">
+    <div className="max-w-6xl mx-auto px-5 md:px-6 lg:px-8 py-8 md:py-12">
       {showHeader ? (
         <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
           {/* Step Header */}
