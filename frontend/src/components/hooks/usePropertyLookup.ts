@@ -36,7 +36,7 @@ export function usePropertyLookup(onVerified: (data: PropertyData) => void, onPr
         method: "POST",
         headers,
         body: JSON.stringify({
-          address: address.fullAddress,
+          fullAddress: address.fullAddress,  // ✅ FIXED: Backend expects "fullAddress" not "address"
           street: address.street,
           city: address.city,
           state: address.state,
@@ -54,12 +54,15 @@ export function usePropertyLookup(onVerified: (data: PropertyData) => void, onPr
       setStage("Finalizing...")
       await new Promise((resolve) => setTimeout(resolve, 500))
 
-      const enrichedData: EnrichedPropertyData = {
+      // ✅ BACKEND RETURNS: grantorName, county, city, state, zip, apn, legalDescription
+      // ✅ WIZARD EXPECTS: currentOwnerPrimary (PropertyStepBridge line 43)
+      const enrichedData: any = {
         ...address,
-        apn: data.apn || "",
-        legalDescription: data.legalDescription || "",
-        currentOwner: data.grantorName || data.currentOwnerPrimary || "",
-        propertyType: data.propertyType || "Residential",
+        // Pass through ALL backend fields unchanged
+        ...data,
+        // Add aliases for backward compatibility
+        currentOwner: data.grantorName || "",
+        currentOwnerPrimary: data.grantorName || "",  // PropertyStepBridge expects this name
       }
 
       setPropertyDetails(enrichedData)
