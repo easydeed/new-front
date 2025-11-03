@@ -66,7 +66,18 @@ export default function PropertyStepBridge({ onVerified }: { onVerified?: () => 
   if (isPropertyVerified()) return null;
 
   return (
-    <div className="p-4">
+    <div className="bg-white rounded-2xl shadow-md border border-slate-200 p-8 md:p-10 mb-6 animate-in fade-in duration-300">
+      {/* Step heading - matches Q&A steps */}
+      <h1 className="text-4xl md:text-5xl font-bold text-slate-800 mb-6">
+        Property Search & Verification
+      </h1>
+      
+      {/* Description */}
+      <p className="text-lg text-slate-600 mb-8">
+        Enter the property address to begin your deed creation. We'll automatically retrieve the APN, county, and owner information.
+      </p>
+      
+      {/* Property search component */}
       <PropertySearchWithTitlePoint onVerified={handlePropertyVerified} />
     </div>
   );
