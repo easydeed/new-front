@@ -1,21 +1,19 @@
-import React from 'react';
+import type React from "react"
 
 type Props = {
-  children: React.ReactNode;
-  currentStep?: number; // Optional: Current step number for header
-  totalSteps?: number; // Optional: Total steps for header
-  stepTitle?: string; // Optional: Title for this step
-  stepDescription?: string; // Optional: Description for this step
-};
+  children: React.ReactNode
+  currentStep?: number // Optional: Current step number for header
+  totalSteps?: number // Optional: Total steps for header
+  stepTitle?: string // Optional: Title for this step
+  stepDescription?: string // Optional: Description for this step
+}
 
 /**
  * StepShell - Modern container component for wizard steps
  * Provides consistent spacing, layout, and step header for Q&A UI
- * 
- * ✅ Phase 24-F: Enhanced with V0 UI styling (spacious max-w-5xl layout)
  */
 export default function StepShell({ children, currentStep, totalSteps, stepTitle, stepDescription }: Props) {
-  const showHeader = currentStep && totalSteps && stepTitle;
+  const showHeader = currentStep && totalSteps && stepTitle
 
   return (
     <div className="max-w-5xl mx-auto px-6 md:px-10 lg:px-16 py-8 md:py-12">
@@ -47,5 +45,5 @@ export default function StepShell({ children, currentStep, totalSteps, stepTitle
         children
       )}
     </div>
-  );
+  )
 }

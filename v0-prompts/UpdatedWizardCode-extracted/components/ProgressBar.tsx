@@ -10,9 +10,8 @@ type Props = {
 }
 
 export default function ProgressBar({ current, total, steps }: Props) {
-  // ✅ MUST KEEP - Calculate percentage (0-100%)
   const pct = Math.max(0, Math.min(100, Math.round((current / Math.max(total, 1)) * 100)))
-  
+
   const stepTitles = steps?.map((s) => s.title) || Array.from({ length: total }, (_, i) => `Step ${i + 1}`)
 
   return (

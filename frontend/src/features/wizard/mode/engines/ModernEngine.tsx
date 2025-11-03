@@ -229,21 +229,22 @@ assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: s
   };
 
   return (
-    <StepShell>
-      <ProgressBar current={i + 1} total={total} />
-      <MicroSummary data={summaryData} />
-      {current ? (
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 mb-8 animate-in fade-in duration-300">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
+      <StepShell>
+        <ProgressBar current={i + 1} total={total} steps={steps} />
+        <MicroSummary data={summaryData} />
+        {current ? (
+          <div className="bg-white rounded-2xl shadow-md border border-slate-200 p-8 md:p-10 mb-8 animate-in fade-in duration-300">
           {/* Question heading */}
-          <h1 className="text-3xl font-bold text-gray-900 mb-3">
+          <h1 className="text-3xl md:text-4xl font-bold text-slate-800 mb-3">
             {current.title || current.question}
           </h1>
           
           {/* Why explanation */}
           {current.why && (
-            <div className="flex items-start gap-2 mb-8">
-              <Lightbulb className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-1" />
-              <p className="text-lg text-gray-600">{current.why}</p>
+            <div className="flex items-start gap-3 mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <Lightbulb className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+              <p className="text-base text-slate-700">{current.why}</p>
             </div>
           )}
 
@@ -278,10 +279,10 @@ assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: s
           )}
 
           {/* Navigation buttons */}
-          <div className="flex justify-between gap-4">
+          <div className="flex justify-between gap-4 pt-4 border-t border-slate-200">
             <button 
-              className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg
-                        font-semibold hover:bg-gray-50 active:scale-98
+              className="px-6 py-3 border-2 border-slate-300 text-slate-700 rounded-lg
+                        font-semibold hover:bg-slate-50 active:scale-98
                         transition-all duration-200
                         disabled:opacity-50 disabled:cursor-not-allowed
                         flex items-center gap-2"
@@ -292,9 +293,9 @@ assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: s
               Back
             </button>
             <button 
-              className="px-8 py-3 bg-purple-600 hover:bg-purple-700 active:scale-98
-                        text-white font-bold rounded-lg shadow-lg shadow-purple-500/25
-                        transition-all duration-200
+              className="px-8 py-3 bg-gradient-to-br from-[#7C4DFF] to-[#6a3de8] hover:from-[#6a3de8] hover:to-[#5a2dd8]
+                        text-white font-bold rounded-lg shadow-lg shadow-[#7C4DFF]/30
+                        transition-all duration-200 active:scale-98
                         flex items-center gap-2"
               onClick={onNext}
             >
@@ -314,6 +315,7 @@ assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: s
           onConfirm={onNext}
         />
       )}
-    </StepShell>
+      </StepShell>
+    </div>
   );
 }
