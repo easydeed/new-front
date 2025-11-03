@@ -229,7 +229,7 @@ assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: s
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen">
       <StepShell>
         <ProgressBar current={i + 1} total={total} steps={steps} />
         {current ? (

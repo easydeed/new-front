@@ -11,7 +11,7 @@
 .wizard-main-content {
   flex: 1;
   padding: 2rem;
-  margin-left: 280px; /* Sidebar width */
+  margin-left: 20px; /* Minimal left margin */
 }
 
 /* Header with toggle */
