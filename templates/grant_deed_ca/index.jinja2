@@ -31,25 +31,28 @@
     .recording-stamp-area {
       position: absolute;
       top: -0.5in;
-      right: -0.25in;
-      width: 3in;
-      height: 3in;
-      border: 1px solid #ccc;
-      background: #f9f9f9;
+      right: 0;
+      width: 3.8in;
+      height: 2.0in;
+      border-left: 1px solid #ccc;
+      background: transparent;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
     }
     
     .recording-stamp-text {
       font-size: 8pt;
       color: #666;
       text-align: center;
-      padding: 5px;
+      padding: 8px 5px 5px 5px;
       line-height: 1.2;
     }
     
     /* Header section - OPTIMIZED FOR COMPACT PAGE 1 */
     .header-section {
       margin-bottom: 5px;
-      padding-right: 3.25in; /* Leave space for recording stamp */
+      padding-right: 4.05in; /* Leave space for recording stamp (3.8in width + 0.25in buffer) */
     }
     
     .recording-info {
@@ -419,15 +422,15 @@
       </p>
     </div>
     
-    <!-- Grantee information -->
+    <!-- Grantee information (VESTING) -->
     <div class="party-section">
-      <div class="party-value">{{ grantees_text or '__________________________' }}</div>
+      <div class="party-value" style="font-weight: bold;">{{ grantees_text or '__________________________' }}</div>
     </div>
     
     <!-- Property location -->
     <div class="main-content">
       <p class="legal-language">
-        the real property situated in the County of <span class="underline-field" style="min-width: 150px;">{{ county or '' }}</span>, State of California, more particularly described as follows:
+        the real property situated in the County of <span class="underline-field" style="min-width: 150px; font-weight: bold;">{{ county or '' }}</span>, State of California, more particularly described as follows:
       </p>
     </div>
     
@@ -446,7 +449,7 @@
     <!-- Signature section -->
     <div class="signature-section">
       <div class="date-line">
-        <strong>Dated:</strong> <span class="underline-field" style="min-width: 250px;">{{ execution_date or now().strftime('%B %d, %Y') }}</span>
+        <strong>Dated:</strong> <span class="underline-field" style="min-width: 250px; font-weight: bold;">{{ execution_date or now().strftime('%B %d, %Y') }}</span>
       </div>
       
       <div class="signature-block">
