@@ -1,5 +1,5 @@
 # 📊 Project Status - DeedPro Wizard Rebuild
-**Last Updated**: November 5, 2025 - Phase 24-G Optimization Complete! 📐
+**Last Updated**: November 5, 2025 - Phase 24-G DEPLOYED! Phase 24-H PLANNING! 🚀📐
 
 ---
 
@@ -57,26 +57,30 @@ def get_db_connection():
 
 ---
 
-## ✅ **PHASE 24-G: PDF TEMPLATES REDESIGN - OPTIMIZED & DEPLOYED!** 🎉
+## ✅ **PHASE 24-G: PDF TEMPLATES REDESIGN - FULLY OPTIMIZED & DEPLOYED!** 🎉
 
-### **Status**: ✅ **2/5 TEMPLATES COMPLETE, OPTIMIZED & IN PRODUCTION** (40% Done)
+### **Status**: ✅ **2/5 TEMPLATES COMPLETE, PRODUCTION-READY** (40% Done)
 
 **Started**: November 5, 2025  
 **Deployed**: November 5, 2025 (same day!)  
-**Commits**: `613621c`, `bb5f519` (templates), `test_phase24g_templates.py` (local testing)  
+**Commits**: `e1d687f` (final optimization), `613621c`, `bb5f519` (initial templates)  
 **Test Results**: 100% Pass Rate (2/2 tests passed)  
 **Risk Level**: 🟢 LOW (Drop-in replacement, no code changes)
 
-**🎯 Phase 24-G Accomplishments:**
+**🎯 Phase 24-G Final Accomplishments:**
 - [x] ✅ V0 generated Grant Deed and Quitclaim Deed templates
 - [x] ✅ Converted V0 HTML to Jinja2 format
 - [x] ✅ **OPTIMIZED for 2-page consolidation** (user requirement)
-- [x] ✅ Recording stamp resized: 4" × 3" → **3" × 3"**
+- [x] ✅ Recording stamp: **3.8" × 2.0"**, left border only, top-aligned text
 - [x] ✅ Margins optimized: 0.75" → **0.625"** (sides/bottom)
 - [x] ✅ Line-height compressed: 1.5 → **1.2** globally
 - [x] ✅ Section spacing reduced by ~50% for page 1 fit
-- [x] ✅ Local testing workflow established
-- [x] ✅ Comprehensive documentation created
+- [x] ✅ **Tax section styling** - bordered box with background (both deeds)
+- [x] ✅ **Bold emphasis** - Grantor, Grantee, County, Vesting, Date fields
+- [x] ✅ **Property description** - Compact 0.4" min-height for "See Exhibit A"
+- [x] ✅ **Consistent top section** - Matching recording area across both deeds
+- [x] ✅ Local testing workflow established (`test_phase24g_templates.py`, `preview_template.py`)
+- [x] ✅ Comprehensive documentation created (`GRANT_DEED_STRUCTURE.md`, `TESTING_LOCALLY.md`)
 
 ---
 
@@ -96,6 +100,93 @@ def get_db_connection():
 - **Notary section**: margins 40px → **20px**, padding 20px → **12px**
 
 **Estimated Space Saved**: ~0.75 inches on Page 1 (critical for 2-page fit)
+
+---
+
+## 🆕 **PHASE 24-H: WIZARD UI IMPROVEMENTS - PLANNING** 🧙‍♂️
+
+### **Status**: 🔄 **ANALYSIS COMPLETE, AWAITING V0 GENERATION** (Planning Phase)
+
+**Started**: November 5, 2025  
+**Analysis Doc**: `v0-prompts/phase-24h-wizard-improvements.md` (8,300+ words)  
+**Priority**: HIGH - User Experience Enhancement  
+**Complexity**: MEDIUM - UI/UX redesign with business logic updates
+
+**🎯 Phase 24-H Objectives:**
+1. **Consolidate Parties Section** - Combine Grantor + Grantee into single compact UI
+2. **Enhanced DTT Calculator** - Auto-calculate transfer tax from property value
+3. **Improved Wizard Flow** - Streamline 5-step Grant Deed wizard
+4. **Modern UI Components** - Professional, space-efficient form designs
+
+**📋 Current Problems:**
+- ❌ DTT amount requires manual calculation ($1.10 per $1,000)
+- ❌ Grantor/Grantee collected separately with excessive spacing
+- ❌ Missing transfer value input (critical for DTT calculation)
+- ❌ Plain tax UI with no educational context
+
+**✅ Proposed Solutions:**
+- ✅ **Transfer Value Input** → Auto-calculate DTT amount
+- ✅ **Calculation Breakdown Panel** → Show math visually
+- ✅ **Side-by-side Parties Layout** → Grantor/Grantee in same section
+- ✅ **Exemption Handling** → Optional checkbox with reason field
+- ✅ **Real-time Validation** → Instant feedback on inputs
+
+**📐 Technical Specifications:**
+
+```typescript
+// New Step 3 - Enhanced Tax Data
+step3?: {
+  transferValue: number;           // NEW: Primary input ✅
+  dttAmount: number;                // AUTO-CALCULATED ✅
+  dttBasis: 'full_value' | 'less_liens';
+  areaType: 'unincorporated' | 'city';
+  cityName?: string;
+  isExempt: boolean;                // NEW: Exemption flag ✅
+  exemptionReason?: string;         // NEW: Required if exempt ✅
+}
+
+// New Step 4 - Consolidated Parties
+step4?: {
+  grantorName: string;              // Combined layout
+  granteeName: string;              // Combined layout
+  vesting?: string;                 // Integrated
+  legalDescription: string;
+}
+```
+
+**🎨 V0 Components to Generate:**
+1. **`ConsolidatedPartiesSection.tsx`**
+   - Side-by-side Grantor/Grantee inputs
+   - Responsive layout (stacks on mobile)
+   - Prefill indicators, integrated vesting
+   
+2. **`DocumentTransferTaxCalculator.tsx`**
+   - Transfer value currency input
+   - Real-time DTT calculation display
+   - Breakdown panel with visual hierarchy
+   - Exemption handling with reason field
+
+**📊 Impact Metrics:**
+- 🎯 Wizard completion time: 5min → **3min** (40% faster)
+- 🎯 DTT calculation errors: High → **Zero** (100% accuracy)
+- 🎯 Clicks to complete: 25 → **15** (40% reduction)
+
+**📅 Next Steps:**
+1. User generates V0 components with detailed prompts
+2. AI integrates components into wizard flow
+3. Update backend models for new fields
+4. Add DTT auto-calculation validator
+5. End-to-end testing
+6. Deploy to production
+
+**🔗 Documentation:**
+- 📄 `v0-prompts/phase-24h-wizard-improvements.md` - Comprehensive analysis (67KB)
+  - Current state analysis
+  - Proposed improvements with mockups
+  - Detailed V0 prompts (2 components)
+  - Implementation checklist
+  - DTT calculation logic
+  - Technical specifications
 
 ---
 
