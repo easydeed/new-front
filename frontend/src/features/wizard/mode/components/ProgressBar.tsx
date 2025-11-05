@@ -18,8 +18,8 @@ export default function ProgressBar({ current, total, steps }: Props) {
   return (
     <div className="w-full mb-8 bg-white rounded-2xl shadow-md border border-slate-200 p-6 md:p-8">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-bold text-slate-800">Your Progress</h3>
-        <div className="text-sm font-semibold text-slate-600">
+        <h3 className="text-xl font-bold text-slate-800">Your Progress</h3>
+        <div className="text-base font-semibold text-slate-600">
           Step {current} of {total} • <span className="text-[#7C4DFF]">{pct}% Complete</span>
         </div>
       </div>
@@ -66,7 +66,7 @@ export default function ProgressBar({ current, total, steps }: Props) {
                 <div className="mt-3 text-center">
                   <div
                     className={`
-                      text-xs md:text-sm font-medium transition-colors duration-300
+                      text-sm md:text-base font-medium transition-colors duration-300
                       ${isCurrent ? "text-[#7C4DFF] font-semibold" : ""}
                       ${isCompleted ? "text-slate-700" : ""}
                       ${isUpcoming ? "text-slate-500" : ""}
@@ -75,7 +75,7 @@ export default function ProgressBar({ current, total, steps }: Props) {
                     {stepTitles[i] || `Step ${stepNum}`}
                   </div>
                   {/* Status indicator */}
-                  <div className="text-[10px] md:text-xs text-slate-400 mt-0.5">
+                  <div className="text-xs md:text-sm text-slate-400 mt-0.5">
                     {isCompleted && "Completed"}
                     {isCurrent && "Current"}
                     {isUpcoming && "Upcoming"}

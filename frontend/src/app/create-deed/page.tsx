@@ -29,11 +29,11 @@ const FALLBACK_TYPES: DocumentTypesRegistry = {
     description:
       "Transfer property ownership with warranties against defects during grantor's ownership. Most commonly used in California real estate transactions and sales.",
     steps: [
-      { key: "request_details", title: "Request Details" },
-      { key: "tax", title: "Transfer Tax" },
-      { key: "parties_property", title: "Parties & Property" },
-      { key: "review", title: "Review" },
-      { key: "generate", title: "Generate" },
+      { key: "property", title: "Property Search" },
+      { key: "requested_by", title: "Recording Details" },
+      { key: "transfer_tax", title: "Transfer Tax" },
+      { key: "parties", title: "Parties & Property" },
+      { key: "review", title: "Review & Generate" },
     ],
   },
   quitclaim_deed: {

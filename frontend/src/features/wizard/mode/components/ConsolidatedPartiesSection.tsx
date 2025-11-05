@@ -39,8 +39,8 @@ export default function ConsolidatedPartiesSection({
         <div className="h-0.5 bg-gradient-to-r from-[#7C4DFF] to-[#7C4DFF]/20" />
       </div>
 
-      {/* Grantor and Grantee Side-by-Side */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Grantor and Grantee - Full Width Stacked */}
+      <div className="grid grid-cols-1 gap-6">
         {/* Grantor (FROM) */}
         <div className="space-y-2">
           <label htmlFor="grantorName" className="block text-sm font-medium text-gray-900">
@@ -52,7 +52,7 @@ export default function ConsolidatedPartiesSection({
             value={grantorName}
             onChange={(e) => onChange("grantorName", e.target.value)}
             placeholder="e.g., John Smith and Mary Smith, husband and wife"
-            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-transparent transition-all ${
+            className={`w-full px-4 py-4 border rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-transparent transition-all ${
               errors.grantorName ? "border-red-500" : "border-gray-300"
             }`}
             aria-required="true"
@@ -82,7 +82,7 @@ export default function ConsolidatedPartiesSection({
             value={granteeName}
             onChange={(e) => onChange("granteeName", e.target.value)}
             placeholder="e.g., Jane Doe, a single woman"
-            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-transparent transition-all ${
+            className={`w-full px-4 py-4 border rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-transparent transition-all ${
               errors.granteeName ? "border-red-500" : "border-gray-300"
             }`}
             aria-required="true"
@@ -133,7 +133,7 @@ export default function ConsolidatedPartiesSection({
           value={vesting}
           onChange={(e) => onChange("vesting", e.target.value)}
           placeholder="e.g., Sole and Separate Property"
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-transparent transition-all"
+          className="w-full px-4 py-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-transparent transition-all"
         />
         <p className="text-sm text-gray-500 flex items-start gap-2">
           <span>💡</span>
@@ -152,7 +152,7 @@ export default function ConsolidatedPartiesSection({
           onChange={(e) => onChange("legalDescription", e.target.value)}
           placeholder="Lot, Block, Tract information..."
           rows={4}
-          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-transparent transition-all resize-none ${
+          className={`w-full px-4 py-4 border rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-transparent transition-all resize-none ${
             errors.legalDescription ? "border-red-500" : "border-gray-300"
           }`}
           aria-required="true"

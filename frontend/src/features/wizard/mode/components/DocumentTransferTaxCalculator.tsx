@@ -78,7 +78,6 @@ export default function DocumentTransferTaxCalculator({
     <div className="space-y-6">
       {/* Section Header */}
       <div className="flex items-center gap-3">
-        <span className="text-2xl">📊</span>
         <div className="flex-1">
           <h3 className="text-xl font-semibold text-gray-900">Documentary Transfer Tax Calculation</h3>
           <div className="h-0.5 bg-gradient-to-r from-[#7C4DFF] to-[#7C4DFF]/20 mt-2" />

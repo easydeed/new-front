@@ -239,13 +239,13 @@ assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: s
             {current.title || current.question}
           </h1>
           
-          {/* Why explanation */}
-          {current.why && (
+          {/* Why explanation - Hidden per user request */}
+          {/* {current.why && (
             <div className="flex items-start gap-3 mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <Lightbulb className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
               <p className="text-base text-slate-700">{current.why}</p>
             </div>
-          )}
+          )} */}
 
           {/* Input field */}
           {current.type === 'component' ? (

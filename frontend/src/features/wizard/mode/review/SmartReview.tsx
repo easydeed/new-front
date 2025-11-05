@@ -153,7 +153,7 @@ export default function SmartReview({ docType, state, onEdit, onConfirm, busy }:
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 animate-in fade-in duration-500">
+    <div className="max-w-6xl mx-auto px-4 py-8 animate-in fade-in duration-500">
       {/* Header */}
       <h1 className="text-3xl md:text-4xl font-bold text-[#1F2B37] mb-2">Review Your Deed</h1>
       <p className="text-lg text-gray-600 mb-8">Please review the information below before generating the deed.</p>

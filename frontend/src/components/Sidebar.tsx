@@ -74,12 +74,12 @@ export default function Sidebar() {
             <li key={item.href}>
               <Link
                 href={item.href}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-[#7C4DFF]/10 hover:text-[#7C4DFF] transition-colors group"
+                className="flex items-center gap-3 px-3 py-3.5 rounded-lg text-gray-700 hover:bg-[#7C4DFF]/10 hover:text-[#7C4DFF] transition-colors group"
                 title={isCollapsed ? item.label : ''}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
                 {!isCollapsed && (
-                  <span className="font-medium text-sm">{item.label}</span>
+                  <span className="font-medium text-base">{item.label}</span>
                 )}
               </Link>
             </li>
@@ -90,12 +90,12 @@ export default function Sidebar() {
         <li className="pt-4 mt-4 border-t border-gray-200">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors group w-full"
+            className="flex items-center gap-3 px-3 py-3.5 rounded-lg text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors group w-full"
             title={isCollapsed ? 'Logout' : ''}
           >
             <LogOut className="w-5 h-5 flex-shrink-0" />
             {!isCollapsed && (
-              <span className="font-medium text-sm">Logout</span>
+              <span className="font-medium text-base">Logout</span>
             )}
           </button>
         </li>
