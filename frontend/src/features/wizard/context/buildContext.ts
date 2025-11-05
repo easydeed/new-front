@@ -44,16 +44,20 @@ export type WizardStore = {
       apn?: string;
     };
     step3?: {
-      dttAmount?: string;
+      transferValue?: number | null; // Phase 24-H: NEW
+      dttAmount?: number; // Phase 24-H: UPDATED (auto-calculated)
       dttBasis?: 'full_value' | 'less_liens';
       areaType?: 'unincorporated' | 'city';
       cityName?: string;
+      isExempt?: boolean; // Phase 24-H: NEW
+      exemptionReason?: string; // Phase 24-H: NEW
     };
     step4?: {
-      grantorsText?: string;
-      granteesText?: string;
-      county?: string;
+      grantorName?: string; // Phase 24-H: UPDATED (renamed from grantorsText)
+      granteeName?: string; // Phase 24-H: UPDATED (renamed from granteesText)
+      vesting?: string; // Phase 24-H: NEW
       legalDescription?: string;
+      // county removed (Phase 24-H: no duplication, use step1.county)
     };
   };
   
@@ -99,11 +103,13 @@ function formatAddress(piq?: any): string {
 
 /**
  * Helper: Extract grantors text from various sources
+ * Phase 24-H: Updated to support both grantorName (new) and grantorsText (old)
  */
 function getGrantorsText(s: WizardStore): string {
-  // Priority: step4 → titlePoint owners → formData
-  if (s.grantDeed?.step4?.grantorsText) {
-    return s.grantDeed.step4.grantorsText;
+  // Priority: step4 (new or old field) → titlePoint owners → formData
+  const step4Data = s.grantDeed?.step4 as any;
+  if (step4Data?.grantorName || step4Data?.grantorsText) {
+    return step4Data.grantorName || step4Data.grantorsText;
   }
   
   if (s.step1?.titlePoint?.owners) {
@@ -113,8 +119,8 @@ function getGrantorsText(s: WizardStore): string {
       .join('; ');
   }
   
-  if (s.formData?.grantorsText) {
-    return s.formData.grantorsText;
+  if (s.formData?.grantorName || s.formData?.grantorsText) {
+    return s.formData.grantorName || s.formData.grantorsText;
   }
   
   return '';
@@ -122,9 +128,19 @@ function getGrantorsText(s: WizardStore): string {
 
 /**
  * Helper: Extract grantees text
+ * Phase 24-H: Updated to support both granteeName (new) and granteesText (old)
  */
 function getGranteesText(s: WizardStore): string {
-  return s.grantDeed?.step4?.granteesText || s.formData?.granteesText || '';
+  const step4Data = s.grantDeed?.step4 as any;
+  return step4Data?.granteeName || step4Data?.granteesText || s.formData?.granteeName || s.formData?.granteesText || '';
+}
+
+/**
+ * Helper: Extract vesting (Phase 24-H: NEW)
+ */
+function getVesting(s: WizardStore): string {
+  const step4Data = s.grantDeed?.step4 as any;
+  return step4Data?.vesting || s.formData?.vesting || '';
 }
 
 /**
@@ -189,6 +205,7 @@ export function toBaseContext(s: WizardStore) {
     property_address: getPropertyAddress(s),
     grantors_text: getGrantorsText(s),
     grantees_text: getGranteesText(s),
+    vesting: getVesting(s), // Phase 24-H: NEW
     execution_date: new Date().toISOString().split('T')[0], // YYYY-MM-DD
   };
 }
@@ -234,18 +251,24 @@ export function toTaxDeedContext(s: WizardStore) {
 }
 
 /**
- * Grant Deed context adapter (existing)
- * Adds: dtt_amount, dtt_basis, area_type, city_name
+ * Grant Deed context adapter
+ * Phase 24-H: Updated with enhanced DTT fields
+ * Adds: transfer_value, dtt (dict with amount, basis, area_type, city_name, is_exempt, exemption_reason)
  */
 export function toGrantDeedContext(s: WizardStore) {
   const step3 = s.grantDeed?.step3;
   
   return {
     ...toBaseContext(s),
-    dtt_amount: step3?.dttAmount || '',
-    dtt_basis: step3?.dttBasis || 'full_value',
-    area_type: step3?.areaType || 'unincorporated',
-    city_name: step3?.cityName || '',
+    transfer_value: step3?.transferValue || null, // Phase 24-H: NEW
+    dtt: {
+      amount: step3?.dttAmount?.toString() || '',
+      basis: step3?.dttBasis || 'full_value',
+      area_type: step3?.areaType || 'unincorporated',
+      city_name: step3?.cityName || '',
+      is_exempt: step3?.isExempt || false, // Phase 24-H: NEW
+      exemption_reason: step3?.exemptionReason || '', // Phase 24-H: NEW
+    },
   };
 }
 
