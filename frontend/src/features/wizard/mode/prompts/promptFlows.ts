@@ -36,16 +36,16 @@ const grantDeedSteps: Prompt[] = [
   {
     id: 'dtt',
     title: 'Documentary Transfer Tax',
-    question: 'Let's calculate the Documentary Transfer Tax',
+    question: 'Let us calculate the Documentary Transfer Tax',
     field: 'dtt_fields', // Composite field
     type: 'component',
     component: DocumentTransferTaxCalculator as any,
-    why: 'California requires Documentary Transfer Tax on most property transfers. We'll auto-calculate this for you.',
+    why: 'California requires Documentary Transfer Tax on most property transfers. We will auto-calculate this for you.',
   },
   {
     id: 'parties',
     title: 'Parties & Property Details',
-    question: 'Who's involved in this transfer?',
+    question: 'Who is involved in this transfer?',
     field: 'parties_fields', // Composite field
     type: 'component',
     component: ConsolidatedPartiesSection as any,
