@@ -3,6 +3,7 @@ from fastapi import FastAPI, HTTPException, Depends, Query, Request, Body
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
+# Phase 24-G: Updated PDF templates with adjusted margins (trigger deploy)
 from typing import Optional, List, Dict
 import stripe
 import psycopg2
