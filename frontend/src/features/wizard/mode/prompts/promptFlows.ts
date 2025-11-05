@@ -1,4 +1,9 @@
 import { shouldShowLegal } from '@/lib/wizard/legalShowIf';
+import type React from 'react';
+// Phase 24-H: Import custom wizard components
+import DocumentTransferTaxCalculator from '../components/DocumentTransferTaxCalculator';
+import ConsolidatedPartiesSection from '../components/ConsolidatedPartiesSection';
+
 export type Prompt = {
   id: string;
   title?: string;
@@ -6,7 +11,8 @@ export type Prompt = {
   field: string;
   placeholder?: string;
   why?: string;
-  type?: 'text' | 'prefill-combo';
+  type?: 'text' | 'prefill-combo' | 'component'; // Phase 24-H: Added 'component' type
+  component?: React.ComponentType<any>; // Phase 24-H: Custom component
   required?: boolean;
   showIf?: (state: any) => boolean;
   label?: string;
@@ -17,6 +23,37 @@ type Flow = {
   steps: Prompt[];
 };
 
+// Phase 24-H: Enhanced Grant Deed flow with custom components
+const grantDeedSteps: Prompt[] = [
+  {
+    id: 'requestedBy',
+    question: 'Who is requesting the recording?',
+    field: 'requestedBy',
+    type: 'prefill-combo',
+    label: 'Requested By',
+    why: 'Select from Industry Partners or type a new one.',
+  },
+  {
+    id: 'dtt',
+    title: 'Documentary Transfer Tax',
+    question: 'Let's calculate the Documentary Transfer Tax',
+    field: 'dtt_fields', // Composite field
+    type: 'component',
+    component: DocumentTransferTaxCalculator as any,
+    why: 'California requires Documentary Transfer Tax on most property transfers. We'll auto-calculate this for you.',
+  },
+  {
+    id: 'parties',
+    title: 'Parties & Property Details',
+    question: 'Who's involved in this transfer?',
+    field: 'parties_fields', // Composite field
+    type: 'component',
+    component: ConsolidatedPartiesSection as any,
+    why: 'We need to know who is transferring the property (Grantor) and who is receiving it (Grantee).',
+  },
+];
+
+// Base parties flow for other deed types (not Grant Deed)
 const basePartiesGrant: Prompt[] = [
   {
     id: 'grantor',
@@ -64,7 +101,7 @@ const basePartiesGrant: Prompt[] = [
 export const promptFlows: Record<string, Flow> = {
   'grant-deed': {
     docType: 'grant-deed',
-    steps: [...basePartiesGrant],
+    steps: [...grantDeedSteps], // Phase 24-H: Using new enhanced flow
   },
   'quitclaim-deed': {
     docType: 'quitclaim-deed',

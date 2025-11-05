@@ -248,7 +248,32 @@ assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: s
           )}
 
           {/* Input field */}
-          {current.type === 'prefill-combo' ? (
+          {current.type === 'component' ? (
+            // Phase 24-H: Render custom component
+            <div className="mb-8">
+              {current.component && React.createElement(current.component, {
+                // For DTT Calculator
+                transferValue: state.transferValue || null,
+                dttBasis: state.dttBasis || 'full_value',
+                areaType: state.areaType || 'unincorporated',
+                cityName: state.cityName || '',
+                isExempt: state.isExempt || false,
+                exemptionReason: state.exemptionReason || '',
+                // For Consolidated Parties
+                grantorName: state.grantorName || verifiedData?.ownerPrimary || '',
+                granteeName: state.granteeName || '',
+                vesting: state.vesting || '',
+                legalDescription: state.legalDescription || verifiedData?.legalDescription || '',
+                // Universal props
+                onChange: (field: string, value: any) => onChange(field, value),
+                errors: {},
+                prefilled: {
+                  grantorName: !!verifiedData?.ownerPrimary,
+                  legalDescription: !!verifiedData?.legalDescription,
+                }
+              })}
+            </div>
+          ) : current.type === 'prefill-combo' ? (
             <div className="mb-8">
               <PrefillCombo
                 label={current.label || current.question}
