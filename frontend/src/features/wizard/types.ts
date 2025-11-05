@@ -19,17 +19,21 @@ export type Step2RequestDetails = {
 };
 
 export type Step3DeclarationsTax = {
-  dttAmount?: string; // raw input; parse to number on submit
+  transferValue?: number | null; // NEW: Property transfer value for DTT calculation
+  dttAmount?: number; // UPDATED: Auto-calculated from transferValue
   dttBasis?: "full_value" | "less_liens";
   areaType?: "unincorporated" | "city";
   cityName?: string; // only if areaType === "city"
+  isExempt?: boolean; // NEW: DTT exemption flag
+  exemptionReason?: string; // NEW: Required if isExempt is true
 };
 
 export type Step4PartiesProperty = {
-  grantorsText?: string; // prefilled from TitlePoint enrichment
-  granteesText?: string;
-  county?: string;
+  grantorName?: string; // UPDATED: Renamed from grantorsText (prefilled from TitlePoint)
+  granteeName?: string; // UPDATED: Renamed from granteesText
+  vesting?: string; // NEW: How title will be held (e.g., "Sole and Separate Property")
   legalDescription?: string;
+  // Note: county removed (already captured in step1)
 };
 
 export type GrantDeedState = {
