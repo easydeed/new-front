@@ -44,14 +44,53 @@ const MailToSchema = z
 
 const TransferTaxSchema = z
   .object({
-    amount: z.union([PositiveNumber, z.undefined()]).optional(),
-    assessedValue: z.union([PositiveNumber, z.undefined()]).optional(),
-    exemptionCode: OptionalString,
+    transferValue: z.union([PositiveNumber, z.null()]).optional(), // Property transfer value
+    amount: z.union([PositiveNumber, z.undefined()]).optional(), // Auto-calculated DTT amount
+    dttBasis: z.enum(['full_value', 'less_liens']).describe('Tax computation basis'),
+    areaType: z.enum(['unincorporated', 'city']).describe('Property location type'),
+    cityName: OptionalString, // Required if areaType is 'city'
+    isExempt: z.boolean().optional(), // DTT exemption flag
+    exemptionReason: OptionalString, // Required if isExempt is true
   })
-  .refine((data) => !!data.exemptionCode || typeof data.amount === 'number', {
-    message: 'Either transfer tax amount or exemption code is required',
-    path: ['amount'],
-  })
+  .refine(
+    (data) => {
+      // If exempt, exemptionReason is required
+      if (data.isExempt && !data.exemptionReason) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'Exemption reason is required when transfer is exempt',
+      path: ['exemptionReason'],
+    }
+  )
+  .refine(
+    (data) => {
+      // If not exempt, transferValue is required
+      if (!data.isExempt && (data.transferValue === null || data.transferValue === undefined)) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'Transfer value is required when not exempt',
+      path: ['transferValue'],
+    }
+  )
+  .refine(
+    (data) => {
+      // If areaType is 'city', cityName is required
+      if (data.areaType === 'city' && !data.cityName) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'City name is required when location is a city',
+      path: ['cityName'],
+    }
+  )
   .optional();
 
 export const GrantDeedSchema = z.object({
