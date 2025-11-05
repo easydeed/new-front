@@ -69,17 +69,15 @@ def test_grant_deed():
         try:
             from weasyprint import HTML
             
-            with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
-                HTML(string=html, encoding='utf-8').write_pdf(tmp.name)
-                pdf_path = tmp.name
+            # Save to backend directory for easy access
+            pdf_path = os.path.join(os.path.dirname(__file__), 'test_grant_deed.pdf')
+            HTML(string=html, encoding='utf-8').write_pdf(pdf_path)
             
             pdf_size = os.path.getsize(pdf_path)
             print(f"✅ PDF generated successfully")
             print(f"   PDF path: {pdf_path}")
             print(f"   PDF size: {pdf_size:,} bytes")
-            
-            # Clean up
-            os.unlink(pdf_path)
+            print(f"   🎯 Open this file to review the PDF!")
             
             return True
             
@@ -172,17 +170,15 @@ def test_quitclaim_deed():
         try:
             from weasyprint import HTML
             
-            with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
-                HTML(string=html, encoding='utf-8').write_pdf(tmp.name)
-                pdf_path = tmp.name
+            # Save to backend directory for easy access
+            pdf_path = os.path.join(os.path.dirname(__file__), 'test_quitclaim_deed.pdf')
+            HTML(string=html, encoding='utf-8').write_pdf(pdf_path)
             
             pdf_size = os.path.getsize(pdf_path)
             print(f"✅ PDF generated successfully")
             print(f"   PDF path: {pdf_path}")
             print(f"   PDF size: {pdf_size:,} bytes")
-            
-            # Clean up
-            os.unlink(pdf_path)
+            print(f"   🎯 Open this file to review the PDF!")
             
             return True
             
