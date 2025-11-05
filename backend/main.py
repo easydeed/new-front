@@ -233,13 +233,40 @@ async def metrics_middleware(request: Request, call_next):
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
 
-# Database connection
+# Database connection with auto-reconnect support
 DB_URL = os.getenv("DATABASE_URL") or os.getenv("DB_URL")
 if DB_URL:
     conn = psycopg2.connect(DB_URL)
 else:
     conn = None
     print("Warning: No database connection URL found")
+
+def get_db_connection():
+    """Get database connection, reconnecting if necessary"""
+    global conn
+    if not DB_URL:
+        raise HTTPException(status_code=500, detail="Database connection not available")
+    
+    try:
+        # Test if connection is alive
+        if conn is None or conn.closed:
+            print("⚠️ Database connection closed, reconnecting...")
+            conn = psycopg2.connect(DB_URL)
+            print("✅ Database reconnected successfully")
+        else:
+            # Test with a simple query
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+    except (psycopg2.OperationalError, psycopg2.InterfaceError, AttributeError) as e:
+        print(f"⚠️ Database connection lost ({e}), reconnecting...")
+        try:
+            conn = psycopg2.connect(DB_URL)
+            print("✅ Database reconnected successfully")
+        except Exception as reconnect_error:
+            print(f"❌ Failed to reconnect to database: {reconnect_error}")
+            raise HTTPException(status_code=500, detail="Database connection failed")
+    
+    return conn
 
 # Phase 6-2: System Metrics Tracking
 METRICS = defaultdict(int)
@@ -467,24 +494,26 @@ async def register_user(user: UserRegister = Body(...)):
         # Hash password
         hashed_password = get_password_hash(user.password)
         
+        # PHASE 24-G FIX: Use resilient connection that auto-reconnects
+        conn = get_db_connection()
+        
         # Insert user into database
         new_user_id = None
-        if conn:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    INSERT INTO users (email, password_hash, full_name, role, company_name, 
-                                     company_type, phone, state, subscribe, plan)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    RETURNING id
-                """, (
-                    user.email.lower(), hashed_password, user.full_name, user.role,
-                    user.company_name, user.company_type, user.phone, user.state.upper(),
-                    user.subscribe, 'free'
-                ))
-                result = cur.fetchone()
-                if result:
-                    new_user_id = result[0]
-                conn.commit()
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO users (email, password_hash, full_name, role, company_name, 
+                                 company_type, phone, state, subscribe, plan)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+            """, (
+                user.email.lower(), hashed_password, user.full_name, user.role,
+                user.company_name, user.company_type, user.phone, user.state.upper(),
+                user.subscribe, 'free'
+            ))
+            result = cur.fetchone()
+            if result:
+                new_user_id = result[0]
+            conn.commit()
         
         # Phase 7: Send admin notification for new user registration
         try:
@@ -513,20 +542,29 @@ async def register_user(user: UserRegister = Body(...)):
             "plan": "free"
         }
         
-    except psycopg2.IntegrityError:
-        conn.rollback()
+    except psycopg2.IntegrityError as ie:
+        # PHASE 24-G FIX: Safe rollback that handles closed connections
+        try:
+            if conn and not conn.closed:
+                conn.rollback()
+        except Exception as rollback_error:
+            print(f"[REGISTER ROLLBACK ERROR] {rollback_error}")
         raise HTTPException(status_code=400, detail="Email already exists")
     except Exception as e:
-        if conn:
-            conn.rollback()
+        # PHASE 24-G FIX: Safe rollback that handles closed connections
+        try:
+            if conn and not conn.closed:
+                conn.rollback()
+        except Exception as rollback_error:
+            print(f"[REGISTER ROLLBACK ERROR] {rollback_error}")
         raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
 @app.post("/users/login")
 async def login_user(credentials: UserLogin = Body(...)):
     """Authenticate user and return JWT token"""
     try:
-        if not conn:
-            raise HTTPException(status_code=500, detail="Database connection not available")
+        # PHASE 24-G FIX: Use resilient connection that auto-reconnects
+        conn = get_db_connection()
         
         with conn.cursor() as cur:
             cur.execute("""
@@ -583,7 +621,13 @@ async def login_user(credentials: UserLogin = Body(...)):
     except HTTPException:
         raise
     except Exception as e:
-        conn.rollback()  # CRITICAL: Rollback to prevent transaction cascade failures
+        # PHASE 24-G FIX: Safe rollback that handles closed connections
+        try:
+            if conn and not conn.closed:
+                conn.rollback()
+        except Exception as rollback_error:
+            print(f"[LOGIN ROLLBACK ERROR] {rollback_error}")
+        
         print(f"[LOGIN ERROR] {e}")
         raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
 
