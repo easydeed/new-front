@@ -179,6 +179,38 @@ def get_db_connection():
 
 ---
 
+### **🚀 Local PDF Testing Workflow** (Game Changer!)
+
+**Problem**: Previously, testing PDF changes required deploying to production and generating deeds through the wizard (5+ min per test)
+
+**Solution**: Built local testing scripts that render PDFs instantly without deployment:
+
+**Key Scripts:**
+1. **`backend/preview_template.py`** - Renders Jinja2 templates to HTML with sample data
+   ```bash
+   cd backend
+   python preview_template.py grant_deed_ca
+   # Opens preview_grant_deed.html in browser (instant feedback!)
+   ```
+
+2. **`backend/test_phase24g_templates.py`** - Generates actual PDFs with WeasyPrint
+   ```bash
+   cd backend
+   python test_phase24g_templates.py
+   # Creates test_grant_deed.pdf and test_quitclaim_deed.pdf
+   ```
+
+**Benefits:**
+- ⚡ **Instant Iteration**: Edit template → Run script → See changes in 5 seconds
+- 🎯 **No Deployment Needed**: Test spacing/styling locally before pushing
+- 📏 **Precise Measurements**: Measure recording stamps, margins, line heights directly
+- ✅ **Rapid Testing**: Test 10+ layout variations in 5 minutes vs. 50+ minutes production testing
+- 🔍 **HTML Preview**: Debug Jinja2 rendering issues before PDF generation
+
+**Result**: Completed Phase 24-G spacing optimization in 1 day instead of 3-5 days!
+
+---
+
 ### **📐 Spacing Optimization Details**
 
 **Goal**: Consolidate Grant Deed to 2 pages with legal description and signatures on Page 1
