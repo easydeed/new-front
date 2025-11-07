@@ -619,3 +619,4 @@ print('PDF generated successfully!')
 **Status**: Ready for V0 Prompt  
 **Next**: User attaches reference image → V0 generates templates → Convert to Jinja2
 
+

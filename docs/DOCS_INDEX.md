@@ -1,103 +1,116 @@
 # 📚 DeedPro Documentation Index
-**Last Updated**: October 8, 2025
+**Last Updated**: November 3, 2025
 
 ---
 
-## 🚀 **START HERE - New Agents**
+## 🚀 **START HERE - New Team Members**
 
-👉 **[ONBOARDING_NEW_AGENTS.md](./ONBOARDING_NEW_AGENTS.md)** - Complete 30-minute onboarding guide
+👉 **[../START_HERE.md](../START_HERE.md)** - Complete onboarding guide (30 minutes)
 
 **Quick Start Reading Order**:
-1. [Project README](../README.md) - Overview (3 min)
-2. [wizard-catastrophes.md](./wizard-catastrophes.md) - Why we rebuilt (5 min)
-3. [wizard/ARCHITECTURE.md](./wizard/ARCHITECTURE.md) - System design (10 min)
-4. [roadmap/WIZARD_REBUILD_PLAN.md](./roadmap/WIZARD_REBUILD_PLAN.md) - 5-phase plan (10 min)
-5. [roadmap/PROJECT_STATUS.md](./roadmap/PROJECT_STATUS.md) - Current status (2 min)
+1. [START_HERE.md](../START_HERE.md) - Setup & onboarding (30 min)
+2. [PROJECT_STATUS.md](../PROJECT_STATUS.md) - Current system state (10 min)
+3. [BREAKTHROUGHS.md](../BREAKTHROUGHS.md) - Critical discoveries (10 min)
+4. [wizard/ARCHITECTURE.md](./wizard/ARCHITECTURE.md) - Wizard system design (15 min)
+5. [backend/ROUTES.md](./backend/ROUTES.md) - API reference (10 min)
 
 ---
 
 ## ⭐ **MOST IMPORTANT DOCS**
 
 ### **Always Check First**
-- **[roadmap/PROJECT_STATUS.md](./roadmap/PROJECT_STATUS.md)** - Current phase, blockers, next steps (updated daily)
+- **[../PROJECT_STATUS.md](../PROJECT_STATUS.md)** - Current phase (Phase 24-F), system status, recent completions
+- **[../START_HERE.md](../START_HERE.md)** - Onboarding, setup, first task
 
-### **Never Deviate**
-- **[roadmap/WIZARD_REBUILD_PLAN.md](./roadmap/WIZARD_REBUILD_PLAN.md)** - Master 5-phase plan with exit criteria
+### **Critical System Docs**
+- **[wizard/ARCHITECTURE.md](./wizard/ARCHITECTURE.md)** - Modern Wizard architecture
+- **[backend/ROUTES.md](./backend/ROUTES.md)** - All FastAPI endpoints
+- **[backend/PDF_GENERATION_SYSTEM.md](./backend/PDF_GENERATION_SYSTEM.md)** - PDF generation pipeline
 
-### **System Design**
-- **[wizard/ARCHITECTURE.md](./wizard/ARCHITECTURE.md)** - Dynamic Wizard Architecture (metadata-driven)
-- **[backend/ROUTES.md](./backend/ROUTES.md)** - All FastAPI endpoints documented
+### **Integration Guides**
+- **[titlepoint-failproof-guide.md](./titlepoint-failproof-guide.md)** - TitlePoint API integration
+- **[wizard/SITEX_FIELD_MAPPING.md](./wizard/SITEX_FIELD_MAPPING.md)** - SiteX property enrichment
+- **[V0_INTEGRATION_LESSONS_LEARNED.md](./V0_INTEGRATION_LESSONS_LEARNED.md)** - V0 UI integration patterns
 
 ### **Critical Context**
-- **[wizard-catastrophes.md](./wizard-catastrophes.md)** - Legal/UX failures that drove rebuild
-
----
-
-## 🛠️ **DEVELOPMENT GUIDES**
-
-- **[roadmap/TESTING_GUIDE.md](./roadmap/TESTING_GUIDE.md)** - Jest, Pytest, Cypress, manual testing
-- **[roadmap/DEPLOYMENT_GUIDE.md](./roadmap/DEPLOYMENT_GUIDE.md)** - Vercel/Render deployment procedures
-- **[ONBOARDING_NEW_AGENTS.md](./ONBOARDING_NEW_AGENTS.md)** - Role-specific guides (Dev, QA, DevOps, PM)
+- **[../BREAKTHROUGHS.md](../BREAKTHROUGHS.md)** - 14 critical discoveries from Phases 16-20
+- **[resilience/DEGRADED_SERVICES_PLAYBOOK.md](./resilience/DEGRADED_SERVICES_PLAYBOOK.md)** - Error handling & recovery
 
 ---
 
 ## 📊 **PROJECT PROGRESS**
 
 ### **Current Status**
-- [roadmap/PROJECT_STATUS.md](./roadmap/PROJECT_STATUS.md) ⭐ **← CHECK THIS DAILY**
+- **[../PROJECT_STATUS.md](../PROJECT_STATUS.md)** ⭐ **← CHECK THIS FIRST**
 
-### **Phase 5-Prequal (October 2025)** ✅ **COMPLETE**
-- [roadmap/PHASE5_PREQUAL_COMPLETE_SUMMARY.md](./roadmap/PHASE5_PREQUAL_COMPLETE_SUMMARY.md) - Complete summary
-- [roadmap/PHASE5_PREQUAL_C_PLAN.md](./roadmap/PHASE5_PREQUAL_C_PLAN.md) - Wizard state fix
-- [roadmap/PHASE5_PREQUAL_B_DEPLOYMENT_1.md](./roadmap/PHASE5_PREQUAL_B_DEPLOYMENT_1.md) - Pixel-perfect backend
-- [roadmap/PHASE5_ENABLE_PIXEL_PERFECT.md](./roadmap/PHASE5_ENABLE_PIXEL_PERFECT.md) - Feature flag guide
-- [backend/PDF_GENERATION_SYSTEM.md](./backend/PDF_GENERATION_SYSTEM.md) - PDF system docs
+### **Recent Completions (November 2025)**
+- **[../PHASE_24D_V0_PROMPTS_COMPLETE.md](../PHASE_24D_V0_PROMPTS_COMPLETE.md)** - Wizard component prompts ✅
+- **[../PHASE_24E_COMPLETE_SUMMARY.md](../PHASE_24E_COMPLETE_SUMMARY.md)** - Dashboard pages redesign ✅
+- **[../PHASE_24F_COMPLETE_SUMMARY.md](../PHASE_24F_COMPLETE_SUMMARY.md)** - Wizard UI refinements ✅
+- **[../PHASE_24G_COMPLETE_SUMMARY.md](../PHASE_24G_COMPLETE_SUMMARY.md)** - PDF template system ✅
 
-### **Phase Completion**
-- [roadmap/PHASE1_LINT_SOLUTIONS.md](./roadmap/PHASE1_LINT_SOLUTIONS.md) ✅
-- [roadmap/PHASE2_INTEGRATIONS_LOG.md](./roadmap/PHASE2_INTEGRATIONS_LOG.md) ✅
-- [roadmap/PHASE3_BACKEND_SERVICES_LOG.md](./roadmap/PHASE3_BACKEND_SERVICES_LOG.md) ✅
-- [roadmap/PHASE4_COMPLETION_REPORT.md](./roadmap/PHASE4_COMPLETION_REPORT.md) ✅
-- [roadmap/PHASE5_PRODUCTION_READINESS_REPORT.md](./roadmap/PHASE5_PRODUCTION_READINESS_REPORT.md) 🔄
-
-### **Architecture Verification**
-- [roadmap/PHASE4_ARCHITECTURE_VERIFICATION.md](./roadmap/PHASE4_ARCHITECTURE_VERIFICATION.md)
-- [roadmap/PHASE_DEBUG_AGENT_REPORT.md](./roadmap/PHASE_DEBUG_AGENT_REPORT.md)
-
-### **Deployment Docs**
-- [roadmap/PHASE5_DEPLOYMENT_ROLLOUT_PLAN.md](./roadmap/PHASE5_DEPLOYMENT_ROLLOUT_PLAN.md)
-- [roadmap/DEPLOYMENT_MONITORING.md](./roadmap/DEPLOYMENT_MONITORING.md)
-
-### **Testing Docs**
-- [roadmap/CYPRESS_AUTH_SOLUTION.md](./roadmap/CYPRESS_AUTH_SOLUTION.md)
-- [roadmap/PHASE5_CYPRESS_SIGNOFF_EVIDENCE.md](./roadmap/PHASE5_CYPRESS_SIGNOFF_EVIDENCE.md)
+### **Archive**
+- **[archive/phase24/](./archive/phase24/)** - Phase 24 historical documentation
 
 ---
 
-## 🔧 **TECHNICAL REFERENCES**
+## 🛠️ **DEVELOPMENT GUIDES**
 
-- **[titlepoint-failproof-guide.md](./titlepoint-failproof-guide.md)** - TitlePoint integration patterns
-- **[resilience/DEGRADED_SERVICES_PLAYBOOK.md](./resilience/DEGRADED_SERVICES_PLAYBOOK.md)** - Error handling & recovery
+### **Wizard System**
+- **[wizard/ARCHITECTURE.md](./wizard/ARCHITECTURE.md)** - Modern Wizard flow
+- **[wizard/ADDING_NEW_DEED_TYPES.md](./wizard/ADDING_NEW_DEED_TYPES.md)** - How to add deed types
+- **[wizard/SITEX_FIELD_MAPPING.md](./wizard/SITEX_FIELD_MAPPING.md)** - Property enrichment fields
+- **[wizard/AI_USAGE_SPECIFICATION.md](./wizard/AI_USAGE_SPECIFICATION.md)** - AI feature usage
+
+### **Backend Development**
+- **[backend/ROUTES.md](./backend/ROUTES.md)** - All API endpoints
+- **[backend/PDF_GENERATION_SYSTEM.md](./backend/PDF_GENERATION_SYSTEM.md)** - PDF generation
+
+### **UI Development**
+- **[V0_INTEGRATION_LESSONS_LEARNED.md](./V0_INTEGRATION_LESSONS_LEARNED.md)** - V0 patterns & CSS isolation
+
+### **Operations**
+- **[resilience/DEGRADED_SERVICES_PLAYBOOK.md](./resilience/DEGRADED_SERVICES_PLAYBOOK.md)** - Error handling
+- **[titlepoint-failproof-guide.md](./titlepoint-failproof-guide.md)** - TitlePoint resilience
 
 ---
 
 ## 📦 **BY ROLE**
 
-### **Developers** 👨‍💻
-Start: [ONBOARDING_NEW_AGENTS.md](./ONBOARDING_NEW_AGENTS.md) → Developer section  
-Key: [wizard/ARCHITECTURE.md](./wizard/ARCHITECTURE.md), [backend/ROUTES.md](./backend/ROUTES.md)
+### **New Developers** 👨‍💻
+**Start**: [../START_HERE.md](../START_HERE.md) → Complete setup guide  
+**Read Next**:
+1. [../PROJECT_STATUS.md](../PROJECT_STATUS.md) - Current system state
+2. [wizard/ARCHITECTURE.md](./wizard/ARCHITECTURE.md) - System design
+3. [backend/ROUTES.md](./backend/ROUTES.md) - API reference
+4. [../BREAKTHROUGHS.md](../BREAKTHROUGHS.md) - Critical learnings
 
-### **QA/Testing** 🧪
-Start: [roadmap/TESTING_GUIDE.md](./roadmap/TESTING_GUIDE.md)  
-Key: [roadmap/CYPRESS_AUTH_SOLUTION.md](./roadmap/CYPRESS_AUTH_SOLUTION.md)
+### **UI/Frontend Developers** 🎨
+**Start**: [../START_HERE.md](../START_HERE.md)  
+**Key Docs**:
+- [V0_INTEGRATION_LESSONS_LEARNED.md](./V0_INTEGRATION_LESSONS_LEARNED.md)
+- [../PHASE_24E_COMPLETE_SUMMARY.md](../PHASE_24E_COMPLETE_SUMMARY.md)
+- [../PHASE_24F_COMPLETE_SUMMARY.md](../PHASE_24F_COMPLETE_SUMMARY.md)
 
-### **DevOps** 🚀
-Start: [roadmap/DEPLOYMENT_GUIDE.md](./roadmap/DEPLOYMENT_GUIDE.md)  
-Key: [roadmap/DEPLOYMENT_MONITORING.md](./roadmap/DEPLOYMENT_MONITORING.md)
+### **Backend Developers** ⚙️
+**Start**: [../START_HERE.md](../START_HERE.md)  
+**Key Docs**:
+- [backend/ROUTES.md](./backend/ROUTES.md)
+- [backend/PDF_GENERATION_SYSTEM.md](./backend/PDF_GENERATION_SYSTEM.md)
+- [wizard/SITEX_FIELD_MAPPING.md](./wizard/SITEX_FIELD_MAPPING.md)
+- [titlepoint-failproof-guide.md](./titlepoint-failproof-guide.md)
 
-### **PM/Architects** 📋
-Start: [roadmap/PROJECT_STATUS.md](./roadmap/PROJECT_STATUS.md)  
-Key: [roadmap/WIZARD_REBUILD_PLAN.md](./roadmap/WIZARD_REBUILD_PLAN.md)
+### **DevOps/Production** 🚀
+**Start**: [../PROJECT_STATUS.md](../PROJECT_STATUS.md)  
+**Key Docs**:
+- [resilience/DEGRADED_SERVICES_PLAYBOOK.md](./resilience/DEGRADED_SERVICES_PLAYBOOK.md)
+- [../README.md](../README.md) - Deployment info
+
+### **Project Managers** 📋
+**Start**: [../PROJECT_STATUS.md](../PROJECT_STATUS.md)  
+**Key Docs**:
+- [../START_HERE.md](../START_HERE.md) - System overview
+- Phase 24 completion summaries (D, E, F, G)
 
 ---
 
@@ -105,21 +118,83 @@ Key: [roadmap/WIZARD_REBUILD_PLAN.md](./roadmap/WIZARD_REBUILD_PLAN.md)
 
 | Need | Document |
 |------|----------|
-| Current status | [PROJECT_STATUS.md](./roadmap/PROJECT_STATUS.md) |
-| How to test | [TESTING_GUIDE.md](./roadmap/TESTING_GUIDE.md) |
-| How to deploy | [DEPLOYMENT_GUIDE.md](./roadmap/DEPLOYMENT_GUIDE.md) |
+| Current status | [PROJECT_STATUS.md](../PROJECT_STATUS.md) |
+| Getting started | [START_HERE.md](../START_HERE.md) |
 | System architecture | [wizard/ARCHITECTURE.md](./wizard/ARCHITECTURE.md) |
 | API reference | [backend/ROUTES.md](./backend/ROUTES.md) |
-| Master plan | [WIZARD_REBUILD_PLAN.md](./roadmap/WIZARD_REBUILD_PLAN.md) |
+| Property enrichment | [wizard/SITEX_FIELD_MAPPING.md](./wizard/SITEX_FIELD_MAPPING.md) |
+| TitlePoint integration | [titlepoint-failproof-guide.md](./titlepoint-failproof-guide.md) |
+| V0 UI patterns | [V0_INTEGRATION_LESSONS_LEARNED.md](./V0_INTEGRATION_LESSONS_LEARNED.md) |
+| Error handling | [resilience/DEGRADED_SERVICES_PLAYBOOK.md](./resilience/DEGRADED_SERVICES_PLAYBOOK.md) |
+| Critical learnings | [BREAKTHROUGHS.md](../BREAKTHROUGHS.md) |
 
 ---
 
-## 📁 **ARCHIVE**
+## 📁 **DIRECTORY STRUCTURE**
 
-Historical docs in `archive/legacy-2025/` and `archive/2025-overhaul/` - for context only, don't follow for current development.
+```
+docs/
+├── README.md                              # Documentation overview
+├── DOCS_INDEX.md                          # This file
+├── ONBOARDING_NEW_AGENTS.md              # Onboarding guide
+├── V0_INTEGRATION_LESSONS_LEARNED.md     # V0 UI patterns
+├── titlepoint-failproof-guide.md         # TitlePoint integration
+├── backend/
+│   ├── ROUTES.md                         # API endpoints
+│   └── PDF_GENERATION_SYSTEM.md          # PDF generation
+├── wizard/
+│   ├── ARCHITECTURE.md                   # Wizard system design
+│   ├── ADDING_NEW_DEED_TYPES.md         # Adding deed types
+│   ├── SITEX_FIELD_MAPPING.md           # Property enrichment
+│   └── AI_USAGE_SPECIFICATION.md        # AI features
+├── resilience/
+│   └── DEGRADED_SERVICES_PLAYBOOK.md    # Error handling
+└── archive/
+    └── phase24/                          # Phase 24 history
+```
 
 ---
 
-**Questions?** See [ONBOARDING_NEW_AGENTS.md](./ONBOARDING_NEW_AGENTS.md)
+## 🎯 **RECOMMENDED READING PATH**
 
-**Last Updated**: October 1, 2025 | **By**: Architecture Team
+### **Week 1 - Onboarding**
+**Day 1-2**: Setup & Core System
+1. [../START_HERE.md](../START_HERE.md)
+2. [../PROJECT_STATUS.md](../PROJECT_STATUS.md)
+3. [../README.md](../README.md)
+4. Generate your first deed locally
+
+**Day 3-4**: Architecture & APIs
+1. [wizard/ARCHITECTURE.md](./wizard/ARCHITECTURE.md)
+2. [backend/ROUTES.md](./backend/ROUTES.md)
+3. [../BREAKTHROUGHS.md](../BREAKTHROUGHS.md)
+
+**Day 5**: Integrations
+1. [wizard/SITEX_FIELD_MAPPING.md](./wizard/SITEX_FIELD_MAPPING.md)
+2. [titlepoint-failproof-guide.md](./titlepoint-failproof-guide.md)
+3. [resilience/DEGRADED_SERVICES_PLAYBOOK.md](./resilience/DEGRADED_SERVICES_PLAYBOOK.md)
+
+### **Week 2 - Advanced**
+1. [V0_INTEGRATION_LESSONS_LEARNED.md](./V0_INTEGRATION_LESSONS_LEARNED.md)
+2. [backend/PDF_GENERATION_SYSTEM.md](./backend/PDF_GENERATION_SYSTEM.md)
+3. [wizard/ADDING_NEW_DEED_TYPES.md](./wizard/ADDING_NEW_DEED_TYPES.md)
+4. Phase 24 completion summaries (../PHASE_24*.md)
+
+---
+
+## ❓ **HELP & SUPPORT**
+
+**Questions?**
+1. Check [../START_HERE.md](../START_HERE.md) first
+2. Review [../BREAKTHROUGHS.md](../BREAKTHROUGHS.md) for common issues
+3. Check [../PROJECT_STATUS.md](../PROJECT_STATUS.md) for current status
+4. Ask the team on Slack/Discord
+
+**Contributing?**
+- Always check [../PROJECT_STATUS.md](../PROJECT_STATUS.md) before starting work
+- Test locally before deploying (see [../START_HERE.md](../START_HERE.md))
+- Document your discoveries (add to [../BREAKTHROUGHS.md](../BREAKTHROUGHS.md))
+
+---
+
+**Last Updated**: November 3, 2025 | **Status**: Production-Ready 🟢
