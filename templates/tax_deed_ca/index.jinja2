@@ -1,102 +1,193 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Tax Deed</title>
-  <style>
-    @page { size: 8.5in 11in; margin: 0.75in 0.5in 0.5in 0.5in; }
-    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; font-size: 11pt; }
-    .meta { font-size: 10pt; line-height: 1.2; }
-    .box { border:1px solid #000; padding:.18in; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Tax Deed - California</title>
+    <style>
+        @page { size: letter; margin: 0.5in 0.625in 0.625in 0.75in; }
+        @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: "Times New Roman", Times, serif; font-size: 12pt; line-height: 1.4; color: #000; background: #fff; }
+        .deed-page { width: 100%; min-height: 100%; }
+        .header-grid { display: grid; grid-template-columns: 1fr 3.5in; gap: 0.25in; margin-bottom: 0.15in; min-height: 2in; }
+        .recording-info { font-size: 10pt; line-height: 1.35; }
+        .recording-info-label { font-weight: bold; text-transform: uppercase; font-size: 9pt; letter-spacing: 0.5px; margin-bottom: 2px; }
+        .recording-info-value { margin-bottom: 0.12in; }
+        .recorder-space { border: 2px solid #000; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 0.15in; min-height: 2in; }
+        .recorder-space-label { font-size: 8pt; text-transform: uppercase; letter-spacing: 1px; color: #000; text-align: center; font-weight: bold; }
+        .reference-line { display: flex; justify-content: flex-end; gap: 0.4in; font-size: 10pt; margin-bottom: 0.1in; padding-bottom: 0.08in; border-bottom: 1px solid #000; }
+        .reference-item { white-space: nowrap; }
+        .reference-label { font-weight: bold; }
+        .deed-title { text-align: center; font-size: 22pt; font-weight: bold; letter-spacing: 4px; text-transform: uppercase; margin: 0.25in 0; padding: 0.12in 0; }
+        .tax-sale-info { margin: 0.2in 0; padding: 0.15in; border: 2px solid #000; font-size: 11pt; line-height: 1.5; background: #fafafa; }
+        .tax-sale-header { font-weight: bold; text-transform: uppercase; margin-bottom: 0.1in; font-size: 12pt; }
+        .tax-sale-row { margin: 0.08in 0; display: flex; }
+        .tax-sale-label { font-weight: bold; min-width: 2in; }
+        .tax-sale-value { flex: 1; border-bottom: 1px solid #000; padding-left: 0.1in; }
+        .exemption-notice { margin: 0.15in 0; padding: 0.12in; border: 1.5px solid #000; font-size: 10pt; line-height: 1.4; }
+        .exemption-header { font-weight: bold; text-transform: uppercase; margin-bottom: 0.05in; }
+        .deed-body { margin: 0.2in 0; text-align: justify; font-size: 12pt; line-height: 1.5; }
+        .deed-body p { margin-bottom: 0.15in; }
+        .party-name { font-weight: bold; text-transform: uppercase; }
+        .party-designation { font-style: normal; }
+        .grant-language { text-transform: uppercase; font-weight: bold; }
+        .county-name { font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000; padding: 0 0.1in; }
+        .legal-description-section { margin: 0.2in 0; page-break-inside: avoid; }
+        .legal-description-content { font-size: 11pt; line-height: 1.5; text-align: justify; white-space: pre-wrap; margin-top: 0.1in; }
+        .legal-description-exhibit-ref { font-weight: bold; font-style: italic; }
+        .apn-line { margin-top: 0.15in; font-size: 11pt; }
+        .apn-label { font-weight: bold; }
+        .apn-value { font-family: "Courier New", Courier, monospace; letter-spacing: 1px; }
+        .tax-deed-provisions { margin: 0.2in 0; padding: 0.15in; border: 1px solid #000; font-size: 10pt; line-height: 1.4; }
+        .provisions-header { font-weight: bold; text-transform: uppercase; margin-bottom: 0.1in; }
+        .provision-item { margin: 0.08in 0; padding-left: 0.2in; }
+        .execution-section { margin-top: 0.35in; page-break-inside: avoid; }
+        .execution-date { margin-bottom: 0.25in; font-size: 12pt; }
+        .date-label { font-weight: bold; }
+        .date-value { border-bottom: 1px solid #000; padding: 0 0.15in; min-width: 2.5in; display: inline-block; }
+        .official-signature-block { margin-top: 0.3in; }
+        .official-title { font-weight: bold; margin-bottom: 0.1in; }
+        .signature-line { border-bottom: 1px solid #000; width: 3.5in; height: 0.35in; }
+        .signature-name { font-size: 11pt; margin-top: 0.05in; }
+        .signature-title { font-size: 10pt; font-style: italic; }
+        .attestation-section { margin-top: 0.4in; padding-top: 0.2in; border-top: 1px solid #000; }
+        .attestation-header { font-weight: bold; margin-bottom: 0.15in; }
+        .seal-area { border: 2px solid #000; width: 2.5in; height: 2.5in; margin: 0.2in 0; display: flex; align-items: center; justify-content: center; text-align: center; }
+        .seal-label { font-size: 10pt; font-weight: bold; text-transform: uppercase; color: #666; }
+        .page-break { page-break-before: always; }
+        .exhibit-page { padding-top: 0.5in; }
+        .exhibit-header { text-align: center; margin-bottom: 0.4in; }
+        .exhibit-title { font-size: 16pt; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
+        .exhibit-subtitle { font-size: 12pt; margin-top: 0.1in; font-style: italic; }
+        .exhibit-content { font-size: 11pt; line-height: 1.6; text-align: justify; white-space: pre-wrap; }
+        .exhibit-apn { margin-top: 0.3in; font-size: 10pt; border-top: 1px solid #ccc; padding-top: 0.15in; }
+    </style>
 </head>
 <body>
-  <div class="meta" style="margin-top:1.8in; position:relative;">
-    <div class="box" style="width:3.25in;">
-      <div><strong>RECORDING REQUESTED BY:</strong> {{ (requested_by or title_company) or "" }}</div>
-      <div style="margin-top:.18in;"><strong>AND WHEN RECORDED MAIL TO:</strong></div>
-      {% if return_to %}
-        {% if return_to.get('name') %}<div>{{ return_to.get('name') }}</div>{% endif %}
-        {% if return_to.get('company') %}<div>{{ return_to.get('company') }}</div>{% endif %}
-        {% if return_to.get('address1') %}<div>{{ return_to.get('address1') }}</div>{% endif %}
-        {% set _city = return_to.get('city') %}
-        {% set _state = return_to.get('state') %}
-        {% set _zip = return_to.get('zip') %}
-        <div>{{ _city or "" }}{% if _city and (_state or _zip) %}, {% endif %}{{ _state or "" }} {{ _zip or "" }}</div>
-      {% endif %}
-    </div>
-    <div style="position:absolute; right:.5in; top:0; width:2.8in; font-size:9pt;">
-      {% if escrow_no %}<div><strong>Escrow / Order No.:</strong> {{ escrow_no }}</div>{% endif %}
-      {% if title_order_no %}<div><strong>Title Order #:</strong> {{ title_order_no }}</div>{% endif %}
-      {% if title_company %}<div><strong>Title Company:</strong> {{ title_company }}</div>{% endif %}
-      {% if apn %}<div><strong>APN:</strong> {{ apn }}</div>{% endif %}
-    </div>
-  </div>
-
-  <div style="margin-top:.45in;">
-    <h2 style="text-align:center; margin:0 0 .18in 0;">TAX DEED</h2>
-
-    <p style="margin:0 0 .15in 0;">
-      This conveyance is made pursuant to a tax sale conducted according to law. The TAX COLLECTOR conveys whatever title was acquired at such sale.
-Grantor: {{ grantors_text or '________________' }}. Reference: {{ tax_sale_ref or '________________' }}.
-Grantee: {{ grantees_text or '________________' }}. Property situated in the County of {{ county or '________________' }}, State of California, as described below.
-    </p>
-
-    <div style="margin:0.2in 0;">
-      <strong>Legal Description (County of {{ county or '________________' }}, State of California)</strong>
-      {% if legal_description and legal_description|length > exhibit_threshold %}
-        <p>See Exhibit "A" attached hereto and made a part hereof.</p>
-      {% else %}
-        <div style="border:1px solid #000; padding:.18in; white-space:pre-wrap;">{{ legal_description or '' }}</div>
-      {% endif %}
-      <div style="margin-top:.1in;"><strong>Commonly known as:</strong> {{ property_address or '' }}</div>
-    </div>
-
-    
-
-    <div style="margin-top:.45in;">
-      <p>Dated: {{ execution_date or (now().strftime("%B %d, %Y")) }}</p>
-      {% set _signers = grantors_text.split(';') if grantors_text else [] %}
-      {% if _signers and _signers|length > 0 %}
-        {% for s in _signers %}
-          {% set s_trim = (s|string).strip() %}
-          {% if s_trim %}
-            <div style="margin-top:.35in;"><div>____________________________________</div><div>{{ s_trim }}</div></div>
-          {% endif %}
-        {% endfor %}
-      {% else %}
-        <div style="margin-top:.35in;"><div>____________________________________</div><div>Grantor</div></div>
-      {% endif %}
-
-      <div style="page-break-inside:avoid; margin-top:.5in; font-size:10pt;">
-        <h3 style="text-align:center; margin:0 0 .12in 0;">ACKNOWLEDGMENT</h3>
-        <div class="box">
-          <div><strong>California All-Purpose Acknowledgment</strong></div>
-          <p>State of California</p>
-          <p>County of __________________________</p>
-          <p>On __________________ before me, ______________________, Notary Public, personally appeared
-          {% if _signers and _signers|length > 0 %}
-            {% for s in _signers %}{{ (s|string).strip() }}{% if not loop.last %}, {% endif %}{% endfor %}
-          {% else %}
-            ________________________________
-          {% endif %}
-          , who proved to me on the basis of satisfactory evidence to be the person(s) whose name(s) is/are subscribed to the within instrument and acknowledged to me that he/she/they executed the same in his/her/their authorized capacity(ies), and that by his/her/their signature(s) on the instrument the person(s), or the entity upon behalf of which the person(s) acted, executed the instrument.</p>
-          <p>I certify under PENALTY OF PERJURY under the laws of the State of California that the foregoing paragraph is true and correct.</p>
-          <p>WITNESS my hand and official seal.</p>
-          <p>Signature __________________________________ (Seal)</p>
+    <div class="deed-page">
+        <div class="header-grid">
+            <div class="recording-info">
+                <div class="recording-info-label">Recording Requested By:</div>
+                <div class="recording-info-value">{{ requested_by or tax_collector_office or county or '' }} County Tax Collector</div>
+                <div class="recording-info-label">When Recorded Mail To:</div>
+                <div class="recording-info-value">
+                    {% if return_to %}
+                        {% if return_to.get('name') %}{{ return_to.get('name') }}<br>{% endif %}
+                        {% if return_to.get('company') %}{{ return_to.get('company') }}<br>{% endif %}
+                        {% if return_to.get('address1') %}{{ return_to.get('address1') }}<br>{% endif %}
+                        {% if return_to.get('address2') %}{{ return_to.get('address2') }}<br>{% endif %}
+                        {% set _city = return_to.get('city', '') %}{% set _state = return_to.get('state', '') %}{% set _zip = return_to.get('zip', '') %}
+                        {% if _city or _state or _zip %}{{ _city }}{% if _city and (_state or _zip) %}, {% endif %}{{ _state }} {{ _zip }}{% endif %}
+                    {% else %}_________________________________<br>_________________________________<br>_________________________________{% endif %}
+                </div>
+                <div class="recording-info-label">Mail Tax Statements To:</div>
+                <div class="recording-info-value">{% if mail_tax_to %}{{ mail_tax_to }}{% else %}Same as above{% endif %}</div>
+            </div>
+            <div class="recorder-space">
+                <div class="recorder-space-label">Space Above This Line<br>For Recorder's Use Only</div>
+            </div>
         </div>
-      </div>
-    </div>
-  </div>
 
-  {% if legal_description and legal_description|length > exhibit_threshold %}
-    <div style="page-break-before:always; font-size:11pt;">
-      <h3 style="text-align:center;">EXHIBIT "A"</h3>
-      <div style="border:1px solid #000; padding:.3in; white-space:pre-wrap;">{{ legal_description }}</div>
-      {% if apn %}<div style="font-size:9pt; margin-top:.15in;">APN: {{ apn }}</div>{% endif %}
+        <div class="reference-line">
+            {% if apn %}<span class="reference-item"><span class="reference-label">APN:</span> {{ apn }}</span>{% endif %}
+            {% if tax_sale_ref %}<span class="reference-item"><span class="reference-label">Tax Sale No:</span> {{ tax_sale_ref }}</span>{% endif %}
+            {% if title_order_no %}<span class="reference-item"><span class="reference-label">Order No:</span> {{ title_order_no }}</span>{% endif %}
+        </div>
+
+        <h1 class="deed-title">Tax Deed</h1>
+
+        <div class="tax-sale-info">
+            <div class="tax-sale-header">Tax Sale Information</div>
+            <div class="tax-sale-row">
+                <span class="tax-sale-label">Tax Sale Reference:</span>
+                <span class="tax-sale-value">{{ tax_sale_ref or '' }}</span>
+            </div>
+            <div class="tax-sale-row">
+                <span class="tax-sale-label">Sale Date:</span>
+                <span class="tax-sale-value">{{ tax_sale_date or '' }}</span>
+            </div>
+            <div class="tax-sale-row">
+                <span class="tax-sale-label">Purchase Price:</span>
+                <span class="tax-sale-value">${{ tax_sale_amount or '' }}</span>
+            </div>
+            <div class="tax-sale-row">
+                <span class="tax-sale-label">Tax Years Delinquent:</span>
+                <span class="tax-sale-value">{{ tax_years_delinquent or '' }}</span>
+            </div>
+        </div>
+
+        <div class="exemption-notice">
+            <div class="exemption-header">Documentary Transfer Tax: Exempt</div>
+            <div>This deed is exempt from Documentary Transfer Tax pursuant to California Revenue and Taxation Code Section 11922 (conveyance by operation of law).</div>
+        </div>
+
+        <div class="deed-body">
+            <p>WHEREAS, the real property hereinafter described was duly sold by the Tax Collector of the County of <span class="county-name">{{ county or '_______________' }}</span>, State of California, for nonpayment of delinquent taxes; and</p>
+            <p>WHEREAS, all statutory requirements for such tax sale have been duly complied with, and the period of redemption has expired;</p>
+            <p>NOW, THEREFORE, the undersigned Tax Collector, by virtue of the authority vested by law, does hereby grant, bargain, sell and convey to:</p>
+            <p><span class="party-name">{{ grantees_text or '_______________________________________' }}</span> <span class="party-designation">("Grantee/Purchaser")</span></p>
+            <p>all right, title, interest and claim of the State of California, the County of {{ county or '_______________' }}, and all taxing agencies, in and to the following described real property:</p>
+        </div>
+
+        <div class="legal-description-section">
+            {% if legal_description and legal_description|length > (exhibit_threshold or 600) %}
+                <p class="legal-description-exhibit-ref">See Exhibit "A" attached hereto and incorporated herein by this reference.</p>
+            {% else %}
+                <div class="legal-description-content">{{ legal_description or 'LEGAL DESCRIPTION TO BE INSERTED' }}</div>
+            {% endif %}
+            {% if apn %}<div class="apn-line"><span class="apn-label">Assessor's Parcel Number:</span> <span class="apn-value">{{ apn }}</span></div>{% endif %}
+        </div>
+
+        <div class="tax-deed-provisions">
+            <div class="provisions-header">Tax Deed Provisions</div>
+            <div class="provision-item">1. This conveyance is made pursuant to Division 1, Part 6, Chapter 7 and Chapter 8 of the California Revenue and Taxation Code.</div>
+            <div class="provision-item">2. The property is conveyed subject to any liens for special assessments or other charges not included in the tax sale.</div>
+            <div class="provision-item">3. This deed conveys only the interest acquired by the taxing agencies through the tax sale process.</div>
+            <div class="provision-item">4. The grantee takes title subject to any rights of redemption that may still exist under applicable law.</div>
+        </div>
+
+        <div class="execution-section">
+            <div class="execution-date"><span class="date-label">Dated:</span> <span class="date-value">{{ execution_date or now().strftime('%B %d, %Y') }}</span></div>
+            
+            <div class="official-signature-block">
+                <div class="official-title">COUNTY OF {{ (county or '_______________')|upper }}</div>
+                <div style="margin-top: 0.3in;">
+                    <div class="signature-line"></div>
+                    <div class="signature-name">{{ tax_collector_name or '' }}</div>
+                    <div class="signature-title">Tax Collector</div>
+                </div>
+                <div style="margin-top: 0.25in;">
+                    <div class="signature-line"></div>
+                    <div class="signature-name">{{ deputy_name or '' }}</div>
+                    <div class="signature-title">Deputy Tax Collector</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="attestation-section">
+            <div class="attestation-header">ATTESTATION</div>
+            <p style="font-size: 11pt; line-height: 1.5; margin-bottom: 0.2in;">
+                I, the undersigned Tax Collector of the County of {{ county or '_______________' }}, State of California, 
+                do hereby certify that the foregoing Tax Deed was executed pursuant to due authority of law, 
+                and that all proceedings required by law preliminary to the issuance of this deed have been 
+                regularly had and taken.
+            </p>
+            <div class="seal-area">
+                <span class="seal-label">Official Seal of<br>Tax Collector<br>{{ county or '' }} County</span>
+            </div>
+        </div>
     </div>
-  {% endif %}
+
+    {% if legal_description and legal_description|length > (exhibit_threshold or 600) %}
+    <div class="page-break"></div>
+    <div class="exhibit-page">
+        <div class="exhibit-header">
+            <div class="exhibit-title">Exhibit "A"</div>
+            <div class="exhibit-subtitle">Legal Description</div>
+        </div>
+        <div class="exhibit-content">{{ legal_description }}</div>
+        {% if apn %}<div class="exhibit-apn"><span class="apn-label">APN:</span> <span class="apn-value">{{ apn }}</span></div>{% endif %}
+    </div>
+    {% endif %}
 </body>
 </html>
-

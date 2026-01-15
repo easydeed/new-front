@@ -160,6 +160,7 @@ function LoginContent() {
                 placeholder="you@example.com"
                 required
                 disabled={loading}
+                autoFocus
               />
             </div>
 
@@ -233,62 +234,65 @@ function LoginContent() {
           </div>
         </div>
 
-        {/* Demo Credentials Card */}
-        <div className="bg-white rounded-2xl shadow-lg border border-[#E5E7EB] p-6 space-y-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-[#7C4DFF]/10 rounded-lg flex items-center justify-center">
-              <Zap className="w-4 h-4 text-[#7C4DFF]" />
+        {/* Demo Credentials Card - Only show in development */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="bg-white rounded-2xl shadow-lg border border-[#E5E7EB] p-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-[#7C4DFF]/10 rounded-lg flex items-center justify-center">
+                <Zap className="w-4 h-4 text-[#7C4DFF]" />
+              </div>
+              <h3 className="font-bold text-[#1F2B37]">Demo Credentials</h3>
+              <span className="ml-auto text-xs text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">Dev only</span>
             </div>
-            <h3 className="font-bold text-[#1F2B37]">Demo Credentials</h3>
-          </div>
 
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-wide">Email</p>
-              <div className="flex items-center justify-between gap-2 p-3 bg-[#F9F9F9] rounded-lg border border-[#E5E7EB]">
-                <code className="text-sm text-[#1F2B37] font-mono">gerardoh@gmail.com</code>
-                <button
-                  onClick={() => copyToClipboard("gerardoh@gmail.com", "email")}
-                  className="text-[#6B7280] hover:text-[#7C4DFF] transition-colors"
-                  aria-label="Copy email"
-                >
-                  {copiedField === "email" ? (
-                    <Check className="w-4 h-4 text-[#10B981]" />
-                  ) : (
-                    <Copy className="w-4 h-4" />
-                  )}
-                </button>
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-wide">Email</p>
+                <div className="flex items-center justify-between gap-2 p-3 bg-[#F9F9F9] rounded-lg border border-[#E5E7EB]">
+                  <code className="text-sm text-[#1F2B37] font-mono">gerardoh@gmail.com</code>
+                  <button
+                    onClick={() => copyToClipboard("gerardoh@gmail.com", "email")}
+                    className="text-[#6B7280] hover:text-[#7C4DFF] transition-colors"
+                    aria-label="Copy email"
+                  >
+                    {copiedField === "email" ? (
+                      <Check className="w-4 h-4 text-[#10B981]" />
+                    ) : (
+                      <Copy className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-wide">Password</p>
+                <div className="flex items-center justify-between gap-2 p-3 bg-[#F9F9F9] rounded-lg border border-[#E5E7EB]">
+                  <code className="text-sm text-[#1F2B37] font-mono">Test123!</code>
+                  <button
+                    onClick={() => copyToClipboard("Test123!", "password")}
+                    className="text-[#6B7280] hover:text-[#7C4DFF] transition-colors"
+                    aria-label="Copy password"
+                  >
+                    {copiedField === "password" ? (
+                      <Check className="w-4 h-4 text-[#10B981]" />
+                    ) : (
+                      <Copy className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
 
-            <div className="space-y-1">
-              <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-wide">Password</p>
-              <div className="flex items-center justify-between gap-2 p-3 bg-[#F9F9F9] rounded-lg border border-[#E5E7EB]">
-                <code className="text-sm text-[#1F2B37] font-mono">Test123!</code>
-                <button
-                  onClick={() => copyToClipboard("Test123!", "password")}
-                  className="text-[#6B7280] hover:text-[#7C4DFF] transition-colors"
-                  aria-label="Copy password"
-                >
-                  {copiedField === "password" ? (
-                    <Check className="w-4 h-4 text-[#10B981]" />
-                  ) : (
-                    <Copy className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-            </div>
+            <button
+              type="button"
+              onClick={handleDemoFill}
+              className="w-full bg-[#1F2B37] hover:bg-[#374151] text-white font-semibold py-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
+            >
+              <Zap className="w-4 h-4" />
+              Fill Login Form
+            </button>
           </div>
-
-          <button
-            type="button"
-            onClick={handleDemoFill}
-            className="w-full bg-[#1F2B37] hover:bg-[#374151] text-white font-semibold py-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
-          >
-            <Zap className="w-4 h-4" />
-            Fill Login Form
-          </button>
-        </div>
+        )}
 
         {/* Back to Home */}
         <div className="text-center">

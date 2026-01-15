@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import {
   Search,
   MapPin,
@@ -19,9 +19,29 @@ import {
 } from "lucide-react"
 import ProgressOverlay from "@/components/ProgressOverlay"
 import { useGoogleMaps } from "./hooks/useGoogleMaps"
-import { usePropertyLookup } from "./hooks/usePropertyLookup"
 import { extractStreetAddress, getComponent, getCountyFallback } from "./utils/addressHelpers"
-import type { PropertyData, PropertySearchProps, GoogleAutocompletePrediction } from "./types/PropertySearchTypes"
+import type { PropertyData, PropertySearchProps, GoogleAutocompletePrediction, EnrichedPropertyData } from "./types/PropertySearchTypes"
+
+// New integrations
+import PropertyMatchPicker from "./PropertyMatchPicker"
+import { EnrichmentStatus } from "./EnrichmentStatus"
+import RecentPropertiesDropdown from "./RecentPropertiesDropdown"
+import { prefillFromEnrichment, normalizePropertyResponse } from "@/features/wizard/services/propertyPrefill"
+import type { RecentProperty } from "@/features/wizard/services/recentProperties"
+
+/**
+ * Property match from multi-match SiteX response
+ */
+interface PropertyMatch {
+  address: string
+  city: string
+  state: string
+  zip_code: string
+  apn: string
+  fips: string
+  owner_name: string
+  property_type?: string
+}
 
 export default function PropertySearchWithTitlePoint({
   onVerified,
@@ -42,24 +62,29 @@ export default function PropertySearchWithTitlePoint({
   const [isLegalExpanded, setIsLegalExpanded] = useState(false)
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1)
 
+  // New state for multi-match handling
+  const [multiMatchResults, setMultiMatchResults] = useState<PropertyMatch[]>([])
+  const [showMatchPicker, setShowMatchPicker] = useState(false)
+  const [isSelectingMatch, setIsSelectingMatch] = useState(false)
+
+  // Enrichment status state
+  const [enrichmentStatus, setEnrichmentStatus] = useState<"idle" | "searching" | "enriching" | "complete" | "error">("idle")
+  const [enrichmentData, setEnrichmentData] = useState<any>(null)
+  const [enrichmentError, setEnrichmentError] = useState<string | undefined>()
+
+  // Property lookup state (refactored from hook for better control)
+  const [isSiteXLoading, setIsSiteXLoading] = useState(false)
+  const [propertyDetails, setPropertyDetails] = useState<EnrichedPropertyData | null>(null)
+  const [showPropertyDetails, setShowPropertyDetails] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [stage, setStage] = useState<string>("")
+
   const inputRef = useRef<HTMLInputElement>(null)
   const timeoutRef = useRef<NodeJS.Timeout>()
   const suggestionsRef = useRef<HTMLDivElement>(null)
 
   // Custom hooks
   const { isGoogleLoaded, autocompleteService, placesService } = useGoogleMaps(onError)
-  const {
-    isSiteXLoading,
-    propertyDetails,
-    showPropertyDetails,
-    errorMessage,
-    stage,
-    lookupPropertyDetails,
-    handleConfirmProperty,
-    setShowPropertyDetails,
-    setPropertyDetails,
-    setErrorMessage,
-  } = usePropertyLookup(onVerified, onPropertyFound)
 
   // Search places using Google Autocomplete
   const searchPlaces = (input: string) => {
@@ -190,15 +215,222 @@ export default function PropertySearchWithTitlePoint({
     }
   }
 
-  // Handle TitlePoint lookup
-  const handleTitlePointLookup = async () => {
-    if (!selectedAddress) {
+  /**
+   * Handle property lookup using SiteX search-v2 endpoint
+   * Supports multi-match responses with PropertyMatchPicker
+   */
+  const handlePropertyLookup = useCallback(async (address?: PropertyData) => {
+    const targetAddress = address || selectedAddress
+    if (!targetAddress) {
       setErrorMessage("Please search and select an address first")
       return
     }
 
-    await lookupPropertyDetails(selectedAddress)
-  }
+    setIsSiteXLoading(true)
+    setErrorMessage(null)
+    setEnrichmentStatus("searching")
+    setEnrichmentError(undefined)
+    setStage("Connecting to SiteX...")
+
+    try {
+      // Get auth token
+      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      }
+
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`
+      }
+
+      // Use search-v2 endpoint for multi-match support
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/property/search-v2`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          fullAddress: targetAddress.fullAddress,
+          street: targetAddress.street,
+          city: targetAddress.city,
+          state: targetAddress.state,
+          zip: targetAddress.zip,
+          county: targetAddress.county,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.detail || "SiteX lookup failed")
+      }
+
+      const data = await response.json()
+      setStage("Processing results...")
+
+      // Handle API response statuses
+      if (data.status === "error") {
+        throw new Error(data.message || "Property search failed")
+      }
+
+      if (data.status === "not_found") {
+        throw new Error(data.message || "Property not found in records")
+      }
+
+      // Handle multi-match response
+      if (data.status === "multi_match" && data.matches && data.matches.length > 1) {
+        setMultiMatchResults(data.matches)
+        setShowMatchPicker(true)
+        setIsSiteXLoading(false)
+        setEnrichmentStatus("idle")
+        setStage("")
+        return
+      }
+
+      // Single match / success - proceed with enrichment
+      setEnrichmentStatus("enriching")
+      setStage("Enriching property data...")
+
+      // Extract property data from successful response
+      const propertyData = data.data || (data.matches && data.matches[0]) || data
+
+      await processEnrichedProperty(propertyData, targetAddress)
+
+    } catch (error) {
+      console.error("SiteX lookup error:", error)
+      setErrorMessage(error instanceof Error ? error.message : "SiteX lookup failed. Please try again.")
+      setEnrichmentStatus("error")
+      setEnrichmentError(error instanceof Error ? error.message : "Property lookup failed")
+    } finally {
+      setIsSiteXLoading(false)
+      setStage("")
+    }
+  }, [selectedAddress])
+
+  /**
+   * Process enriched property data and update state
+   */
+  const processEnrichedProperty = useCallback(async (propertyData: any, baseAddress: PropertyData) => {
+    try {
+      // Normalize the response data
+      const normalized = normalizePropertyResponse({
+        ...baseAddress,
+        ...propertyData,
+        fullAddress: baseAddress.fullAddress,
+      })
+
+      // Create enriched data object
+      const enrichedData: EnrichedPropertyData = {
+        ...baseAddress,
+        apn: propertyData.apn || "",
+        county: propertyData.county || baseAddress.county || "",
+        legalDescription: propertyData.legal_description || propertyData.legalDescription || "",
+        currentOwner: propertyData.owner_name || propertyData.primary_owner?.full_name || "",
+        currentOwnerPrimary: propertyData.owner_name || propertyData.primary_owner?.full_name || "",
+        currentOwnerSecondary: propertyData.secondary_owner?.full_name || "",
+        fips: propertyData.fips || "",
+      }
+
+      // Apply prefill to wizard state
+      const wizardState = {}
+      const prefilled = prefillFromEnrichment(normalized, wizardState)
+
+      // Update state
+      setEnrichmentData(enrichedData)
+      setEnrichmentStatus("complete")
+      setPropertyDetails(enrichedData)
+      setShowPropertyDetails(true)
+
+      // Notify parent with prefilled data
+      onPropertyFound?.({ ...enrichedData, _prefilled: prefilled })
+
+    } catch (error) {
+      console.error("Error processing enriched property:", error)
+      setEnrichmentStatus("error")
+      setEnrichmentError("Failed to process property data")
+    }
+  }, [onPropertyFound])
+
+  /**
+   * Handle selection from multi-match picker
+   */
+  const handleMatchSelect = useCallback(async (match: PropertyMatch) => {
+    setIsSelectingMatch(true)
+    setShowMatchPicker(false)
+    setEnrichmentStatus("enriching")
+    setStage("Loading selected property...")
+
+    try {
+      // Create base address from selected match
+      const baseAddress: PropertyData = {
+        fullAddress: `${match.address}, ${match.city}, ${match.state} ${match.zip_code}`,
+        street: match.address,
+        city: match.city,
+        state: match.state,
+        zip: match.zip_code,
+        county: "", // Will be enriched
+        placeId: "",
+      }
+
+      await processEnrichedProperty(match, baseAddress)
+
+    } catch (error) {
+      console.error("Error selecting match:", error)
+      setEnrichmentStatus("error")
+      setEnrichmentError("Failed to load selected property")
+    } finally {
+      setIsSelectingMatch(false)
+      setStage("")
+    }
+  }, [processEnrichedProperty])
+
+  /**
+   * Handle cancel from multi-match picker
+   */
+  const handleMatchCancel = useCallback(() => {
+    setShowMatchPicker(false)
+    setMultiMatchResults([])
+    setEnrichmentStatus("idle")
+  }, [])
+
+  /**
+   * Handle selection from recent properties dropdown
+   */
+  const handleRecentPropertySelect = useCallback((property: RecentProperty) => {
+    // Create enriched data from recent property
+    const enrichedData: EnrichedPropertyData = {
+      fullAddress: `${property.address}, ${property.city}, ${property.state}`,
+      street: property.address,
+      city: property.city,
+      state: property.state,
+      zip: "",
+      county: property.county,
+      placeId: "",
+      apn: property.apn,
+      legalDescription: property.legalDescription || "",
+      currentOwner: property.ownerName,
+      currentOwnerPrimary: property.ownerName,
+    }
+
+    setSelectedAddress(enrichedData)
+    setInputValue(enrichedData.fullAddress)
+    setPropertyDetails(enrichedData)
+    setShowPropertyDetails(true)
+    setEnrichmentStatus("complete")
+    setEnrichmentData(enrichedData)
+
+    onPropertyFound?.(enrichedData)
+  }, [onPropertyFound])
+
+  // Legacy alias for backward compatibility
+  const handleTitlePointLookup = handlePropertyLookup
+
+  /**
+   * Confirm property and pass to parent
+   */
+  const handleConfirmProperty = useCallback(() => {
+    if (propertyDetails) {
+      onVerified(propertyDetails)
+    }
+  }, [propertyDetails, onVerified])
 
   // Handle suggestion selection
   const handleSelectSuggestion = async (suggestion: GoogleAutocompletePrediction) => {
@@ -307,10 +539,15 @@ export default function PropertySearchWithTitlePoint({
 
       {/* Input Section */}
       <div className="mb-6">
-        <label htmlFor="property-address" className="block text-sm font-semibold text-gray-900 mb-2">
-          <MapPin className="inline w-4 h-4 mr-1 text-purple-600" />
-          Property Address *
-        </label>
+        <div className="flex items-center justify-between mb-2">
+          <label htmlFor="property-address" className="block text-sm font-semibold text-gray-900">
+            <MapPin className="inline w-4 h-4 mr-1 text-purple-600" />
+            Property Address *
+          </label>
+          
+          {/* Recent Properties Dropdown */}
+          <RecentPropertiesDropdown onSelect={handleRecentPropertySelect} />
+        </div>
 
         <div className="relative" ref={suggestionsRef}>
           <div className="relative">
@@ -412,7 +649,25 @@ export default function PropertySearchWithTitlePoint({
             )}
           </button>
         )}
+
+        {/* Enrichment Status */}
+        <EnrichmentStatus 
+          status={enrichmentStatus} 
+          data={enrichmentData}
+          errorMessage={enrichmentError}
+        />
       </div>
+
+      {/* Multi-Match Picker Modal */}
+      {showMatchPicker && multiMatchResults.length > 0 && (
+        <PropertyMatchPicker
+          matches={multiMatchResults}
+          onSelect={handleMatchSelect}
+          onCancel={handleMatchCancel}
+          searchAddress={selectedAddress?.fullAddress || inputValue}
+          isLoading={isSelectingMatch}
+        />
+      )}
 
       {/* Error Message */}
       {errorMessage && (

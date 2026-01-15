@@ -1,0 +1,38 @@
+<div style="margin-top:.45in; font-size:11pt;">
+  <h2 style="text-align:center; margin:0 0 .18in 0;">GRANT DEED</h2>
+
+  <div style="font-size:10pt; margin-bottom:.2in; line-height:1.35;">
+    <div><strong>THE UNDERSIGNED GRANTOR(S) DECLARE(S):</strong></div>
+    <div>DOCUMENTARY TRANSFER TAX IS ${{ (dtt.get('amount') if dtt and dtt.get('amount') is not none else '0.00') }}</div>
+    <div>
+      {% if dtt and dtt.get('basis') == 'less_liens' %}
+        ☐ Computed on full value less liens and encumbrances remaining at time of sale.
+      {% else %}
+        ☑ Computed on full value of property conveyed.
+      {% endif %}
+    </div>
+    <div>
+      {% if dtt and dtt.get('area_type') == 'city' %}
+        ☑ City of {{ dtt.get('city_name') or '________________' }}
+      {% else %}
+        ☑ Unincorporated area
+      {% endif %}
+    </div>
+  </div>
+
+  <p style="margin:0 0 .15in 0;">
+    For valuable consideration, receipt of which is hereby acknowledged,
+    {{ grantors_text or '________________' }}
+    ("Grantor{% if grantors_text and ';' in grantors_text %}s{% endif %}") hereby GRANT(s) to
+    {{ grantees_text or '________________' }}
+    ("Grantee{% if grantees_text and ';' in grantees_text %}s{% endif %}")
+    the real property situated in the County of {{ county or '________________' }}, State of California,
+    more particularly described as follows:
+  </p>
+
+  {% if legal_description and legal_description|length > exhibit_threshold %}
+    <p>See Exhibit "A" attached hereto and made a part hereof.</p>
+  {% else %}
+    <div style="border:1px solid #000; padding:.18in; white-space:pre-wrap;">{{ legal_description or '' }}</div>
+  {% endif %}
+</div>

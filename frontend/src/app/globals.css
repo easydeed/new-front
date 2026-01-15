@@ -58,16 +58,34 @@
   font-weight: 600;
 }
 
-/* Unified landing-page color scheme (matches tailwind.config.js) */
+/* Unified design system (DeedPro brand: #7C4DFF) */
 :root {
-  /* Core palette */       /* light-seafoam */
-  --surface: #FFFFFF;          /* pale-slate/surface */
-  --brand-primary: #3B82F6;    /* gentle-indigo */
-  --brand-primary-dark: #2563EB; /* deep-teal brand blue */
-  --accent: #F57C00;           /* subtle orange accent */
-  --accent-soft: #FFE9D6;      /* very light accent background */
-  --text-primary: #1F2937;     /* dark-slate */
-  --text-secondary: #6B7280;   /* gray-500 */
+  /* Brand colors - single source of truth */
+  --color-brand: #7C4DFF;
+  --color-brand-hover: #6a3de8;
+  --color-brand-active: #5b32d1;
+  --color-brand-light: #F5F3FF;
+  
+  /* Semantic colors */
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  
+  /* Neutrals */
+  --color-text-primary: #111827;
+  --color-text-secondary: #6B7280;
+  --color-text-muted: #9CA3AF;
+  --color-border: #E5E7EB;
+  --color-background: #F9FAFB;
+  
+  /* Legacy aliases (for backward compatibility) */
+  --surface: #FFFFFF;
+  --brand-primary: #7C4DFF;
+  --brand-primary-dark: #6a3de8;
+  --accent: #F57C00;
+  --accent-soft: #FFE9D6;
+  --text-primary: #1F2937;
+  --text-secondary: #6B7280;
 }
 
 /* Ensure body has proper base styles with flat design */
@@ -165,25 +183,71 @@ body {
   }
 }
 
-/* Vibrant background utilities (face-lift-6) */
+/* Vibrant background utilities (face-lift-6) - Updated to brand purple */
 .bg-radial-brand {
   background-image:
-    radial-gradient(80% 50% at 50% -10%, rgba(37,99,235,0.15), transparent),
+    radial-gradient(80% 50% at 50% -10%, rgba(124,77,255,0.15), transparent),
     radial-gradient(60% 40% at 100% 20%, rgba(242,107,43,0.12), transparent);
 }
 .bg-stripes {
-  background-image: repeating-linear-gradient(-45deg, rgba(37,99,235,0.06) 0 8px, transparent 8px 16px);
+  background-image: repeating-linear-gradient(-45deg, rgba(124,77,255,0.06) 0 8px, transparent 8px 16px);
 }
 .mask-top-fade {
   -webkit-mask-image: linear-gradient(black 60%, transparent);
   mask-image: linear-gradient(black 60%, transparent);
 }
 .section-blue {
-  background: linear-gradient(180deg, rgba(37,99,235,0.06), rgba(37,99,235,0.03));
+  background: linear-gradient(180deg, rgba(124,77,255,0.06), rgba(124,77,255,0.03));
 }
 .section-accent {
   background: linear-gradient(180deg, rgba(242,107,43,0.06), rgba(242,107,43,0.03));
 }
 .section-duo {
-  background: linear-gradient(180deg, rgba(37,99,235,0.06), rgba(242,107,43,0.06));
+  background: linear-gradient(180deg, rgba(124,77,255,0.06), rgba(242,107,43,0.06));
+}
+
+/* Component utility classes */
+@layer components {
+  /* Button variants */
+  .btn-primary {
+    @apply bg-brand-500 hover:bg-brand-600 active:bg-brand-700 
+           text-white font-medium rounded-lg 
+           shadow-brand transition-all duration-200;
+  }
+  
+  .btn-secondary {
+    @apply bg-white hover:bg-gray-50 
+           text-gray-700 font-medium rounded-lg 
+           border border-gray-300 
+           transition-all duration-200;
+  }
+  
+  .btn-ghost {
+    @apply bg-transparent hover:bg-brand-50 
+           text-brand-500 font-medium rounded-lg 
+           transition-all duration-200;
+  }
+  
+  .btn-danger {
+    @apply bg-error-500 hover:bg-error-600 
+           text-white font-medium rounded-lg 
+           transition-all duration-200;
+  }
+  
+  /* Input styles */
+  .input-default {
+    @apply w-full px-4 py-3 
+           border border-gray-300 rounded-lg 
+           focus:ring-2 focus:ring-brand-500 focus:border-brand-500 
+           transition-all duration-200;
+  }
+  
+  /* Card styles */
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-200;
+  }
+  
+  .card-elevated {
+    @apply bg-white rounded-xl shadow-md border border-gray-100;
+  }
 }

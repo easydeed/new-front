@@ -8,11 +8,42 @@ module.exports = {
   theme: {
   	extend: {
   		colors: {
+  			// Brand colors - single source of truth (#7C4DFF purple)
   			brand: {
-  				DEFAULT: '#2563EB',
-  				blue: '#2563EB',
+  				DEFAULT: '#7C4DFF',
+  				50: '#F5F3FF',
+  				100: '#EDE9FE',
+  				200: '#DDD6FE',
+  				300: '#C4B5FD',
+  				400: '#A78BFA',
+  				500: '#7C4DFF',  // Primary
+  				600: '#6a3de8',  // Hover
+  				700: '#5b32d1',  // Active
+  				800: '#4c27ba',
+  				900: '#3d1f9e',
+  				// Legacy aliases (for backward compatibility)
+  				blue: '#7C4DFF',
   				accent: '#F26B2B',
   				surface: '#F7F9FC'
+  			},
+  			// Semantic colors
+  			success: {
+  				DEFAULT: '#10B981',
+  				50: '#ECFDF5',
+  				500: '#10B981',
+  				600: '#059669',
+  			},
+  			warning: {
+  				DEFAULT: '#F59E0B',
+  				50: '#FFFBEB',
+  				500: '#F59E0B',
+  				600: '#D97706',
+  			},
+  			error: {
+  				DEFAULT: '#EF4444',
+  				50: '#FEF2F2',
+  				500: '#EF4444',
+  				600: '#DC2626',
   			},
   			'escrow-bg': '#F8F7F4',
   			'escrow-ink': '#0F2A3D',
@@ -119,7 +150,9 @@ module.exports = {
   		boxShadow: {
   			elevated: '0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.10)',
   			soft: '0 10px 30px rgba(2,6,23,0.08)',
-  			glow: '0 10px 40px rgba(37, 99, 235, 0.25)'
+  			glow: '0 10px 40px rgba(37, 99, 235, 0.25)',
+  			'brand': '0 4px 14px 0 rgba(124, 77, 255, 0.25)',
+  			'brand-lg': '0 10px 25px -3px rgba(124, 77, 255, 0.3)',
   		},
   		blur: {
   			xs: '2px'

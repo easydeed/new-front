@@ -5,6 +5,7 @@ import "./globals.css";
 // V0 provides all styling via route group layouts (see (v0-landing)/layout.tsx)
 import "../styles/wizardModern.css"; // Phase 15 v5: Modern wizard styles
 import "../styles/modern-wizard.css"; // Patch 6-c: Modern wizard styles
+import { Toaster } from 'sonner'; // UI Polish: Toast notifications
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -39,6 +40,17 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} ${inter.variable} font-inter antialiased`} suppressHydrationWarning>
         {children}
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: 'white',
+              border: '1px solid #E5E7EB',
+              borderRadius: '12px',
+            },
+            className: 'shadow-lg',
+          }}
+        />
       </body>
     </html>
   );

@@ -2,17 +2,22 @@
 
 import { Info } from "lucide-react"
 import { useState } from "react"
+import VestingInput from "@/components/ui/VestingInput"
+import { AIHelpButton } from "@/components/AIHelpButton"
 
 interface ConsolidatedPartiesSectionProps {
   grantorName: string
   granteeName: string
   vesting: string
   legalDescription: string
+  deedType?: string
+  county?: string
   onChange: (field: string, value: string) => void
   errors?: {
     grantorName?: string
     granteeName?: string
     legalDescription?: string
+    vesting?: string
   }
   prefilled?: {
     grantorName?: boolean
@@ -25,11 +30,16 @@ export default function ConsolidatedPartiesSection({
   granteeName,
   vesting,
   legalDescription,
+  deedType = "Grant Deed",
+  county = "",
   onChange,
   errors = {},
   prefilled = {},
 }: ConsolidatedPartiesSectionProps) {
   const [showVestingTooltip, setShowVestingTooltip] = useState(false)
+  
+  // Count grantees for vesting validation hints
+  const granteeCount = granteeName ? granteeName.split(/\s+and\s+/i).length : 0
 
   return (
     <div className="space-y-6">
@@ -96,49 +106,27 @@ export default function ConsolidatedPartiesSection({
         </div>
       </div>
 
-      {/* Vesting */}
+      {/* Vesting - Now using enhanced VestingInput component */}
       <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <label htmlFor="vesting" className="block text-sm font-medium text-gray-900">
-            Vesting (How will title be held?)
-          </label>
-          <div className="relative">
-            <button
-              type="button"
-              onMouseEnter={() => setShowVestingTooltip(true)}
-              onMouseLeave={() => setShowVestingTooltip(false)}
-              onFocus={() => setShowVestingTooltip(true)}
-              onBlur={() => setShowVestingTooltip(false)}
-              className="text-gray-400 hover:text-[#7C4DFF] transition-colors"
-              aria-label="Vesting information"
-            >
-              <Info className="w-4 h-4" />
-            </button>
-            {showVestingTooltip && (
-              <div className="absolute left-0 top-6 z-10 w-72 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg">
-                <p className="font-medium mb-1">Common vesting options:</p>
-                <ul className="space-y-1 list-disc list-inside">
-                  <li>Sole and Separate Property</li>
-                  <li>Joint Tenants</li>
-                  <li>Community Property</li>
-                  <li>Tenants in Common</li>
-                </ul>
-              </div>
-            )}
-          </div>
-        </div>
-        <input
-          type="text"
-          id="vesting"
+        <VestingInput
           value={vesting}
-          onChange={(e) => onChange("vesting", e.target.value)}
-          placeholder="e.g., Sole and Separate Property"
-          className="w-full px-4 py-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-transparent transition-all"
+          onChange={(value) => onChange("vesting", value)}
+          error={errors.vesting}
+          label="Vesting (How will title be held?)"
         />
-        <p className="text-sm text-gray-500 flex items-start gap-2">
-          <span>💡</span>
-          <span>Common options: "Sole and Separate", "Joint Tenants", "Community Property", "Tenants in Common"</span>
-        </p>
+        
+        {/* AI Help for Vesting */}
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-500 flex items-start gap-2">
+            <span>💡</span>
+            <span>Select from common California vesting types or enter custom language</span>
+          </p>
+          <AIHelpButton
+            context={{ deedType, county, vesting, granteeName }}
+            fieldName="vesting"
+            placeholder="E.g., What's the difference between joint tenants and community property?"
+          />
+        </div>
       </div>
 
       {/* Legal Description */}

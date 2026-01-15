@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Grant Deed - California</title>
+  <style>
+    @page {
+      size: letter;
+      margin: 1in 0.625in 0.625in 0.625in;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Times New Roman', Georgia, serif;
+      font-size: 12pt;
+      line-height: 1.2;
+      color: #000;
+    }
+    
+    .page-container {
+      position: relative;
+      width: 100%;
+    }
+    
+    /* Recording stamp area - top right, reserved */
+    .recording-stamp-area {
+      position: absolute;
+      top: -0.5in;
+      right: 0;
+      width: 3.8in;
+      height: 2.0in;
+      border-left: 1px solid #ccc;
+      background: transparent;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    
+    .recording-stamp-text {
+      font-size: 8pt;
+      color: #666;
+      text-align: center;
+      padding: 8px 5px 5px 5px;
+      line-height: 1.2;
+    }
+    
+    /* Header section - OPTIMIZED FOR COMPACT PAGE 1 */
+    .header-section {
+      margin-bottom: 5px;
+      padding-right: 4.05in; /* Leave space for recording stamp (3.8in width + 0.25in buffer) */
+    }
+    
+    .recording-info {
+      font-size: 11pt;
+      line-height: 1.1;
+      margin-bottom: 5px;
+    }
+    
+    .recording-info p {
+      margin-bottom: 2px;
+    }
+    
+    .recording-info strong {
+      font-weight: bold;
+    }
+    
+    .mail-to-section {
+      margin-top: 4px;
+      margin-left: 0;
+    }
+    
+    /* Property identifiers - COMPACT */
+    .property-identifiers {
+      margin: 12px 0;
+      font-size: 11pt;
+    }
+    
+    .property-row {
+      margin-bottom: 5px;
+    }
+    
+    .property-row strong {
+      display: inline-block;
+      width: 100px;
+    }
+    
+    .underline-field {
+      display: inline-block;
+      min-width: 200px;
+      border-bottom: 1px solid #000;
+      padding: 0 5px 2px 5px;
+    }
+    
+    /* Deed title - COMPACT */
+    .deed-title {
+      text-align: center;
+      font-size: 18pt;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin: 18px 0 15px 0;
+      border-top: 2px solid #000;
+      border-bottom: 2px solid #000;
+      padding: 10px 0;
+    }
+    
+    /* Documentary transfer tax section - COMPACT */
+    .tax-section {
+      margin: 12px 0;
+      padding: 8px;
+      border: 1px solid #000;
+      background: #f9f9f9;
+      font-size: 11pt;
+    }
+    
+    .tax-section p {
+      margin-bottom: 5px;
+    }
+    
+    .tax-section strong {
+      font-weight: bold;
+    }
+    
+    .checkbox-line {
+      margin: 5px 0 5px 20px;
+    }
+    
+    .checkbox {
+      display: inline-block;
+      width: 15px;
+      height: 15px;
+      border: 1px solid #000;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    
+    /* Main content */
+    .main-content {
+      margin: 10px 0;
+      text-align: justify;
+      line-height: 1.2;
+    }
+    
+    .main-content p {
+      margin-bottom: 8px;
+    }
+    
+    .legal-language {
+      font-size: 12pt;
+      line-height: 1.2;
+    }
+    
+    /* Party information */
+    .party-section {
+      margin: 10px 0;
+    }
+    
+    .party-label {
+      font-weight: bold;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+    
+    .party-value {
+      border-bottom: 1px solid #000;
+      padding: 3px 0;
+      min-height: 20px;
+      margin-bottom: 8px;
+    }
+    
+    /* Legal description */
+    .legal-description-section {
+      margin: 12px 0;
+      padding: 10px;
+      border: 1px solid #ccc;
+      background: #fafafa;
+    }
+    
+    .legal-description-section h3 {
+      font-size: 13pt;
+      font-weight: bold;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+    
+    .legal-description-text {
+      font-size: 11pt;
+      line-height: 1.2;
+      text-align: justify;
+    }
+    
+    /* Signature section */
+    .signature-section {
+      margin-top: 20px;
+      page-break-inside: avoid;
+    }
+    
+    .date-line {
+      margin-bottom: 20px;
+    }
+    
+    .date-line strong {
+      margin-right: 10px;
+    }
+    
+    .signature-block {
+      margin-top: 25px;
+      margin-bottom: 20px;
+    }
+    
+    .signature-line {
+      border-top: 1px solid #000;
+      width: 350px;
+      margin-bottom: 5px;
+      padding-top: 5px;
+    }
+    
+    .signature-label {
+      font-size: 11pt;
+      margin-left: 0;
+    }
+    
+    /* Notary section */
+    .notary-section {
+      margin-top: 20px;
+      padding: 12px;
+      border: 2px solid #000;
+      page-break-inside: avoid;
+    }
+    
+    .notary-disclaimer {
+      font-size: 9pt;
+      font-style: italic;
+      padding: 6px;
+      border: 1px solid #000;
+      margin-bottom: 10px;
+      text-align: center;
+      line-height: 1.2;
+    }
+    
+    .notary-header {
+      margin-bottom: 10px;
+      font-size: 12pt;
+    }
+    
+    .notary-header p {
+      margin-bottom: 2px;
+    }
+    
+    .ss-notation {
+      margin-left: 20px;
+    }
+    
+    .notary-text {
+      font-size: 11pt;
+      line-height: 1.2;
+      text-align: justify;
+      margin: 10px 0;
+    }
+    
+    .notary-certification {
+      font-size: 11pt;
+      line-height: 1.2;
+      margin: 10px 0;
+    }
+    
+    .witness-line {
+      font-size: 11pt;
+      margin: 12px 0;
+    }
+    
+    .notary-signature-block {
+      margin-top: 15px;
+    }
+    
+    .notary-signature-line {
+      border-top: 1px solid #000;
+      width: 350px;
+      margin-bottom: 5px;
+      padding-top: 5px;
+    }
+    
+    .notary-seal-box {
+      width: 2in;
+      height: 2in;
+      border: 2px solid #000;
+      margin: 12px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11pt;
+      font-weight: bold;
+    }
+    
+    .commission-line {
+      margin-top: 15px;
+      font-size: 11pt;
+    }
+    
+    /* Footer */
+    .footer-text {
+      margin-top: 30px;
+      text-align: center;
+      font-size: 10pt;
+      font-weight: bold;
+    }
+    
+    /* Exhibit page */
+    .page-break {
+      page-break-before: always;
+    }
+    
+    .exhibit-page {
+      margin-top: 0;
+    }
+    
+    .exhibit-title {
+      text-align: center;
+      font-size: 16pt;
+      font-weight: bold;
+      text-transform: uppercase;
+      margin-bottom: 15px;
+      letter-spacing: 1px;
+    }
+    
+    .exhibit-content {
+      font-size: 11pt;
+      line-height: 1.2;
+      text-align: justify;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-container">
+    <!-- Recording stamp area (reserved, top right) -->
+    <div class="recording-stamp-area">
+      <div class="recording-stamp-text">
+        SPACE ABOVE THIS LINE IS FOR RECORDER'S USE
+      </div>
+    </div>
+    
+    <!-- Header section -->
+    <div class="header-section">
+      <div class="recording-info">
+        <p><strong>RECORDING REQUESTED BY:</strong></p>
+        <p style="margin-left: 20px;">{{ requested_by or title_company or '' }}</p>
+        
+        <div class="mail-to-section">
+          <p><strong>MAIL TAX STATEMENTS AND</strong></p>
+          <p><strong>WHEN RECORDED MAIL TO:</strong></p>
+          <p style="margin-left: 20px; margin-top: 4px;">
+            {% if return_to %}
+              {% if return_to.get('name') %}{{ return_to.get('name') }}<br>{% endif %}
+              {% if return_to.get('company') %}{{ return_to.get('company') }}<br>{% endif %}
+              {% if return_to.get('address1') %}{{ return_to.get('address1') }}<br>{% endif %}
+              {% if return_to.get('address2') %}{{ return_to.get('address2') }}<br>{% endif %}
+              {% set _city = return_to.get('city') %}
+              {% set _state = return_to.get('state') %}
+              {% set _zip = return_to.get('zip') %}
+              {% if _city or _state or _zip %}{{ _city or '' }}{% if _city and (_state or _zip) %}, {% endif %}{{ _state or '' }} {{ _zip or '' }}{% endif %}
+            {% endif %}
+          </p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Property identifiers -->
+    <div class="property-identifiers">
+      <div class="property-row">
+        <strong>Order No.:</strong>
+        <span class="underline-field">{{ title_order_no or '' }}</span>
+      </div>
+      <div class="property-row">
+        <strong>Escrow No.:</strong>
+        <span class="underline-field">{{ escrow_no or '' }}</span>
+      </div>
+      <div class="property-row">
+        <strong>APN:</strong>
+        <span class="underline-field">{{ apn or '' }}</span>
+      </div>
+    </div>
+    
+    <!-- Deed title -->
+    <h1 class="deed-title">Grant Deed</h1>
+    
+    <!-- Documentary transfer tax section -->
+    <div class="tax-section">
+      <p><strong>THE UNDERSIGNED GRANTOR(S) DECLARE(S):</strong></p>
+      <p style="margin-left: 20px;">DOCUMENTARY TRANSFER TAX IS $<span class="underline-field" style="min-width: 150px;">{{ dtt.get('amount') if dtt else '' }}</span></p>
+      <div class="checkbox-line">
+        <span class="checkbox">{% if dtt and dtt.get('basis') == 'full' %}X{% endif %}</span>
+        Computed on full value of property conveyed, or
+      </div>
+      <div class="checkbox-line">
+        <span class="checkbox">{% if dtt and dtt.get('basis') == 'less_liens' %}X{% endif %}</span>
+        Computed on full value less liens and encumbrances remaining at time of sale.
+      </div>
+      <div class="checkbox-line">
+        <span class="checkbox">{% if dtt and dtt.get('area_type') == 'unincorporated' %}X{% endif %}</span>
+        Unincorporated area <span class="checkbox">{% if dtt and dtt.get('area_type') == 'city' %}X{% endif %}</span> City of <span class="underline-field" style="min-width: 200px;">{{ dtt.get('city_name') if dtt else '' }}</span>
+      </div>
+    </div>
+    
+    <!-- Main legal language -->
+    <div class="main-content">
+      <p class="legal-language">
+        For valuable consideration, receipt of which is hereby acknowledged,
+      </p>
+      
+      <p class="legal-language">
+        <strong>{{ grantors_text or '__________________________' }}</strong>
+      </p>
+      
+      <p class="legal-language">
+        hereby GRANT(S) to
+      </p>
+    </div>
+    
+    <!-- Grantee information (VESTING) -->
+    <div class="party-section">
+      <div class="party-value" style="font-weight: bold;">{{ grantees_text or '__________________________' }}</div>
+    </div>
+    
+    <!-- Property location -->
+    <div class="main-content">
+      <p class="legal-language">
+        the real property situated in the County of <span class="underline-field" style="min-width: 150px; font-weight: bold;">{{ county or '' }}</span>, State of California, more particularly described as follows:
+      </p>
+    </div>
+    
+    <!-- Legal description section -->
+    <div class="legal-description-section">
+      <h3>Legal Description:</h3>
+      <div class="legal-description-text">
+        {% if legal_description and legal_description|length > exhibit_threshold %}
+          See Exhibit A attached hereto
+        {% else %}
+          {{ legal_description or 'N/A' }}
+        {% endif %}
+      </div>
+    </div>
+    
+    <!-- Signature section -->
+    <div class="signature-section">
+      <div class="date-line">
+        <strong>Dated:</strong> <span class="underline-field" style="min-width: 250px; font-weight: bold;">{{ execution_date or now().strftime('%B %d, %Y') }}</span>
+      </div>
+      
+      <div class="signature-block">
+        <div class="signature-line"></div>
+        <div class="signature-label">{{ grantors_text or 'Grantor' }}</div>
+        <div class="signature-label">Grantor</div>
+      </div>
+    </div>
+    
+    <!-- Notary acknowledgment section -->
+    <div class="notary-section">
+      <div class="notary-disclaimer">
+        A notary public or other officer completing this certificate verifies only the identity of the individual who signed the document to which this certificate is attached, and not the truthfulness, accuracy, or validity of that document.
+      </div>
+      
+      <div class="notary-header">
+        <p>STATE OF CALIFORNIA</p>
+        <p class="ss-notation">) SS.</p>
+        <p>COUNTY OF <span class="underline-field" style="min-width: 200px;">{{ county or '__________' }}</span> )</p>
+      </div>
+      
+      <div class="notary-text">
+        <p>
+          On <span class="underline-field" style="min-width: 150px;">______________</span> before me, <span class="underline-field" style="min-width: 250px;">__________________________</span>, Notary Public, personally appeared <span class="underline-field" style="min-width: 250px;">{{ grantors_text or '__________________________' }}</span>, who proved to me on the basis of satisfactory evidence to be the person(s) whose name(s) is/are subscribed to the within instrument and acknowledged to me that he/she/they executed the same in his/her/their authorized capacity(ies), and that by his/her/their signature(s) on the instrument the person(s), or the entity upon behalf of which the person(s) acted, executed the instrument.
+        </p>
+      </div>
+      
+      <div class="notary-certification">
+        <p>
+          I certify under PENALTY OF PERJURY under the laws of the State of California that the foregoing paragraph is true and correct.
+        </p>
+      </div>
+      
+      <div class="witness-line">
+        <p>WITNESS my hand and official seal.</p>
+      </div>
+      
+      <div class="notary-signature-block">
+        <div class="notary-signature-line"></div>
+        <div class="signature-label">Notary Public Signature</div>
+      </div>
+      
+      <div class="notary-seal-box">
+        [NOTARY SEAL]
+      </div>
+      
+      <div class="commission-line">
+        <strong>Commission Expires:</strong> <span class="underline-field" style="min-width: 200px;">______________</span>
+      </div>
+    </div>
+    
+    <!-- Footer -->
+    <div class="footer-text">
+      MAIL TAX STATEMENTS AS DIRECTED ABOVE
+    </div>
+  </div>
+  
+  <!-- Exhibit A page (conditional - only if legal description > 600 characters) -->
+  {% if legal_description and legal_description|length > exhibit_threshold %}
+  <div class="page-break"></div>
+  <div class="exhibit-page">
+    <h2 class="exhibit-title">Exhibit A - Legal Description</h2>
+    <div class="exhibit-content">
+      {{ legal_description }}
+    </div>
+    {% if apn %}
+    <div style="font-size:9pt; margin-top:15px;">APN: {{ apn }}</div>
+    {% endif %}
+  </div>
+  {% endif %}
+</body>
+</html>

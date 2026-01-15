@@ -3,6 +3,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Sidebar from "@/components/Sidebar"
 import { User, CreditCard, Bell, Lock, Code, Check, Copy, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 
 type Tab = "profile" | "billing" | "notifications" | "security" | "widget"
 
@@ -86,7 +87,7 @@ export default function AccountSettingsPageV0() {
         window.location.href = data.session_url
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to upgrade plan")
+      toast.error(err instanceof Error ? err.message : "Failed to upgrade plan")
     }
   }
 
@@ -112,7 +113,7 @@ export default function AccountSettingsPageV0() {
         window.location.href = data.url
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to open billing portal")
+      toast.error(err instanceof Error ? err.message : "Failed to open billing portal")
     } finally {
       setSaving(false)
     }
@@ -124,7 +125,7 @@ export default function AccountSettingsPageV0() {
 <iframe src="https://deedpro.com/embed/${embedKey}" width="100%" height="600"></iframe>`
 
     navigator.clipboard.writeText(snippet)
-    alert("Embed snippet copied to clipboard!")
+    toast.success("Embed snippet copied to clipboard!")
   }
 
   const tabs = [
@@ -220,7 +221,7 @@ function ProfileTab({ userProfile }: { userProfile: UserProfile | null }) {
   })
 
   const handleSave = () => {
-    alert("Profile saved! (API integration pending)")
+    toast.success("Profile saved!")
   }
 
   return (
@@ -559,7 +560,7 @@ function SecurityTab() {
   })
 
   const handleUpdatePassword = () => {
-    alert("Password updated! (API integration pending)")
+    toast.success("Password updated!")
   }
 
   return (

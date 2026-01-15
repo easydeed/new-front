@@ -173,3 +173,137 @@ def send_deed_completion_notification(user_email: str, user_name: str, deed_type
     subject = f"✅ Your {deed_type} is Ready!"
     html = render_deed_completion_email(user_name, deed_type, property_address, deed_id, preview_link)
     return send_email(user_email, subject, html)
+
+
+def log_share_activity(
+    conn,
+    share_id: int,
+    activity_type: str,
+    actor_email: str = None,
+    metadata: dict = None
+) -> Optional[int]:
+    """
+    Log sharing activity for audit trail.
+    
+    Args:
+        conn: Database connection
+        share_id: ID of the deed_share
+        activity_type: One of 'created', 'viewed', 'reminded', 'approved', 'rejected', 'revoked', 'expired'
+        actor_email: Email of the person performing the action
+        metadata: Optional JSON metadata
+    
+    Returns:
+        Activity log ID or None if failed
+    """
+    import json
+    
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO deed_share_activity (share_id, activity_type, actor_email, metadata)
+                VALUES (%s, %s, %s, %s)
+                RETURNING id
+            """, (share_id, activity_type, actor_email, json.dumps(metadata) if metadata else None))
+            result = cur.fetchone()
+            conn.commit()
+            activity_id = result[0] if result else None
+            logger.info(f"[Activity] Logged {activity_type} for share {share_id}")
+            return activity_id
+    except Exception as e:
+        logger.warning(f"[Activity] Failed to log {activity_type} for share {share_id}: {e}")
+        # Don't fail - activity logging is non-critical
+        return None
+
+
+def render_approval_email(owner_name: str, deed_type: str, property_address: str, reviewer_email: str, view_link: str) -> str:
+    """Render HTML email for deed approval notification."""
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }}
+            .container {{ max-width: 600px; margin: 40px auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }}
+            .header {{ background: #10B981; color: white; padding: 30px; text-align: center; }}
+            .header h1 {{ margin: 0; font-size: 24px; font-weight: 700; }}
+            .content {{ padding: 30px; }}
+            .button {{ display: inline-block; background: #7C4DFF; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; }}
+            .footer {{ background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 14px; }}
+            .details {{ background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 20px 0; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>✓ Deed Approved</h1>
+            </div>
+            <div class="content">
+                <p>Hi {owner_name},</p>
+                <p>Great news! Your deed has been approved and is ready for recording.</p>
+                
+                <div class="details">
+                    <p><strong>Deed Type:</strong> {deed_type}</p>
+                    <p><strong>Property:</strong> {property_address}</p>
+                    <p><strong>Approved by:</strong> {reviewer_email}</p>
+                </div>
+                
+                <center>
+                    <a href="{view_link}" class="button">View Your Deed</a>
+                </center>
+            </div>
+            <div class="footer">
+                <p><strong>DeedPro</strong> - Professional Deed Preparation</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+
+def render_reminder_email(owner_name: str, deed_type: str, property_address: str, approval_url: str, hours_remaining: int) -> str:
+    """Render HTML email for approval reminder."""
+    urgency_color = "#e53e3e" if hours_remaining < 24 else "#d69e2e"
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }}
+            .container {{ max-width: 600px; margin: 40px auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }}
+            .header {{ background: #7C4DFF; color: white; padding: 30px; text-align: center; }}
+            .content {{ padding: 30px; }}
+            .button {{ display: inline-block; background: #7C4DFF; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; }}
+            .footer {{ background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 14px; }}
+            .details {{ background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 20px 0; }}
+            .urgency {{ color: {urgency_color}; font-weight: bold; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>⏰ Review Reminder</h1>
+            </div>
+            <div class="content">
+                <p>This is a reminder that <strong>{owner_name}</strong> is waiting for your review of a deed:</p>
+                
+                <div class="details">
+                    <p><strong>Deed Type:</strong> {deed_type}</p>
+                    <p><strong>Property:</strong> {property_address}</p>
+                    <p class="urgency">⚠️ Expires in: {hours_remaining} hours</p>
+                </div>
+                
+                <center>
+                    <a href="{approval_url}" class="button">Review Deed Now</a>
+                </center>
+                
+                <p style="color: #666; font-size: 14px; margin-top: 30px;">
+                    If you did not expect this email, you can safely ignore it.
+                </p>
+            </div>
+            <div class="footer">
+                <p><strong>DeedPro</strong> - Professional Deed Preparation</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """

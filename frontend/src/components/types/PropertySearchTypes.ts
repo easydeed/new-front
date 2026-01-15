@@ -38,5 +38,9 @@ export interface EnrichedPropertyData extends PropertyData {
   apn?: string
   legalDescription?: string
   currentOwner?: string
+  currentOwnerPrimary?: string
+  currentOwnerSecondary?: string
   propertyType?: string
+  fips?: string
+  _prefilled?: any
 }

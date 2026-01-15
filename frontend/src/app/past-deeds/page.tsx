@@ -5,6 +5,8 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Sidebar from "@/components/Sidebar"
 import { FileText, Download, Share2, Trash2, AlertCircle, CheckCircle, Clock, X, Plus, Loader2 } from "lucide-react"
+import { toast } from "sonner"
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 
 interface Deed {
   id: number
@@ -22,7 +24,7 @@ interface ShareFormData {
   recipient_email: string
   recipient_role: string
   message: string
-  expires_in_days: number
+  expires_in_hours: number
 }
 
 // ✅ PHASE 24-E: V0-generated Past Deeds page with all business logic preserved
@@ -40,7 +42,11 @@ export default function PastDeedsPageV0() {
     recipient_email: "",
     recipient_role: "Title Officer",
     message: "",
-    expires_in_days: 30,
+    expires_in_hours: 168, // 7 days default
+  })
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; deedId: number | null }>({
+    isOpen: false,
+    deedId: null,
   })
 
   useEffect(() => {
@@ -86,7 +92,7 @@ export default function PastDeedsPageV0() {
     if (deed.pdf_url) {
       window.open(deed.pdf_url, "_blank")
     } else {
-      alert("PDF not available for this deed")
+      toast.error("PDF not available for this deed")
     }
   }
 
@@ -128,9 +134,9 @@ export default function PastDeedsPageV0() {
         recipient_email: "",
         recipient_role: "Title Officer",
         message: "",
-        expires_in_days: 30,
+        expires_in_hours: 168,
       })
-      alert("Deed shared successfully!")
+      toast.success("Deed shared successfully! The recipient will receive an email with the review link.")
     } catch (err) {
       setShareError(err instanceof Error ? err.message : "Failed to share deed")
     } finally {
@@ -138,16 +144,18 @@ export default function PastDeedsPageV0() {
     }
   }
 
-  const handleDelete = async (deedId: number) => {
-    if (!confirm("Are you sure you want to delete this deed? This action cannot be undone.")) {
-      return
-    }
+  const handleDeleteClick = (deedId: number) => {
+    setDeleteConfirm({ isOpen: true, deedId })
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirm.deedId) return
 
     try {
       const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
       const token = localStorage.getItem("access_token")
 
-      const response = await fetch(`${api}/deeds/${deedId}`, {
+      const response = await fetch(`${api}/deeds/${deleteConfirm.deedId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -159,10 +167,12 @@ export default function PastDeedsPageV0() {
       }
 
       // Remove from local state
-      setDeeds(deeds.filter((d) => d.id !== deedId))
-      alert("Deed deleted successfully")
+      setDeeds(deeds.filter((d) => d.id !== deleteConfirm.deedId))
+      toast.success("Deed deleted successfully")
+      setDeleteConfirm({ isOpen: false, deedId: null })
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete deed")
+      toast.error(err instanceof Error ? err.message : "Failed to delete deed")
+      setDeleteConfirm({ isOpen: false, deedId: null })
     }
   }
 
@@ -350,7 +360,7 @@ export default function PastDeedsPageV0() {
                               </>
                             )}
                             <button
-                              onClick={() => handleDelete(deed.id)}
+                              onClick={() => handleDeleteClick(deed.id)}
                               className="p-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg transition-colors"
                               title="Delete deed"
                             >
@@ -447,6 +457,22 @@ export default function PastDeedsPageV0() {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Link Expires In</label>
+                <select
+                  value={shareForm.expires_in_hours}
+                  onChange={(e) => setShareForm({ ...shareForm, expires_in_hours: parseInt(e.target.value) })}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
+                >
+                  <option value="24">24 hours</option>
+                  <option value="72">3 days</option>
+                  <option value="168">7 days (recommended)</option>
+                  <option value="336">14 days</option>
+                  <option value="720">30 days</option>
+                </select>
+                <p className="text-xs text-slate-500 mt-1">The recipient must approve or request changes before this date.</p>
+              </div>
+
               {/* Footer Buttons */}
               <div className="flex items-center justify-end gap-3 pt-4">
                 <button
@@ -475,6 +501,17 @@ export default function PastDeedsPageV0() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, deedId: null })}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Deed"
+        message="Are you sure you want to delete this deed? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+      />
     </div>
   )
 }

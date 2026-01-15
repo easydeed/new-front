@@ -16,7 +16,10 @@ import { WIZARD_DRAFT_KEY_MODERN } from '../bridge/persistenceKeys';
 // ✅ PHASE 24-C STEP 8: Telemetry for wizard events
 import { trackWizardEvent } from '@/lib/telemetry';
 // ✅ PHASE 24-D: Import Lucide icons for modern UI
-import { ArrowLeft, ArrowRight, Lightbulb } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Lightbulb, Loader2 } from 'lucide-react';
+// ✅ AI INTEGRATION: Import AI validation components
+import { aiAssistant, type AIContext, type AIGuidance as AIGuidanceType } from '@/services/aiAssistant';
+import { AIGuidance } from '@/components/AIGuidance';
 
 export default function ModernEngine({ docType }: { docType: string }) {
   const { partners } = usePartners();
@@ -25,6 +28,11 @@ export default function ModernEngine({ docType }: { docType: string }) {
   const flow = useMemo(() => promptFlows[docType] || promptFlows['grant-deed'], [docType]);
   const [i, setI] = useState(0);
   const [state, setState] = useState<Record<string, any>>({});
+
+  // ✅ AI INTEGRATION: State for AI validation
+  const [aiGuidance, setAIGuidance] = useState<AIGuidanceType[]>([]);
+  const [isValidating, setIsValidating] = useState(false);
+  const [showAIWarnings, setShowAIWarnings] = useState(false);
 
   // Keep a ref to the latest onNext to avoid stale-closure issues.
   const onNextRef = useRef<any>(null);
@@ -153,6 +161,47 @@ assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: s
     if (i < total) {
       setI(i + 1);
     } else {
+      // ✅ AI INTEGRATION: Run AI validation before finalizing
+      setIsValidating(true);
+      
+      // Build AI context from wizard state
+      const aiContext: AIContext = {
+        deedType: docType,
+        grantorName: state.grantorName || state.step1?.grantorName || '',
+        granteeName: state.granteeName || '',
+        vesting: state.vesting || '',
+        county: state.county || '',
+        legalDescription: state.legalDescription || '',
+        dttAmount: state.dtt?.amount || state.transferValue || '',
+        dttExempt: state.dtt?.is_exempt || state.isExempt || false,
+        dttExemptReason: state.dtt?.exempt_reason || state.exemptionReason || '',
+      };
+
+      try {
+        // Run AI validation (non-blocking - don't prevent submission)
+        const validation = await aiAssistant.validateBeforeSubmit(aiContext);
+        setIsValidating(false);
+        
+        if (!validation.isValid && validation.issues.length > 0) {
+          // Show AI warnings but don't block submission
+          setAIGuidance(validation.issues);
+          setShowAIWarnings(true);
+          
+          // Track AI validation warnings
+          trackWizardEvent('Wizard.AIValidation', { 
+            deedType: docType,
+            issuesFound: validation.issues.length,
+            issues: validation.issues.map(g => g.title)
+          });
+          
+          // Still proceed with finalization - warnings are advisory only
+        }
+      } catch (aiError) {
+        // AI validation failed - proceed anyway
+        console.warn('[ModernEngine] AI validation error:', aiError);
+        setIsValidating(false);
+      }
+
       const payload = toCanonicalFor(docType, state);
       
       try {
@@ -195,7 +244,7 @@ assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: s
         alert('We could not finalize the deed. Please try again.');
       }
     }
-}, [state, docType, mode, i, total]); // CRITICAL: All dependencies to prevent stale closures!
+}, [state, docType, mode, i, total, current]); // CRITICAL: All dependencies to prevent stale closures!
   
   // Update ref whenever onNext changes (for ref-safe event bridge)
   // @ts-ignore
@@ -329,15 +378,41 @@ assertStableSteps(steps as any[], typeof i==='number'? i : 0, { expectedTotal: s
           </div>
         </div>
       ) : (
-        <SmartReview
-          docType={docType}
-          state={state}
-          onEdit={(field) => {
-            const idx = steps.findIndex(s => s.field === field);
-            if (idx >= 0) setI(idx);
-          }}
-          onConfirm={onNext}
-        />
+        <>
+          {/* ✅ AI INTEGRATION: Show AI validation warnings above SmartReview */}
+          {showAIWarnings && aiGuidance.length > 0 && (
+            <div className="mb-6 space-y-3">
+              {aiGuidance.map((guidance, index) => (
+                <AIGuidance
+                  key={index}
+                  guidance={guidance}
+                  onDismiss={() => {
+                    setAIGuidance(prev => prev.filter((_, i) => i !== index));
+                    if (aiGuidance.length === 1) setShowAIWarnings(false);
+                  }}
+                />
+              ))}
+            </div>
+          )}
+          
+          {/* ✅ AI INTEGRATION: Show validation loading state */}
+          {isValidating && (
+            <div className="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-lg flex items-center gap-3">
+              <Loader2 className="w-5 h-5 text-purple-600 animate-spin" />
+              <span className="text-purple-800 font-medium">AI is reviewing your deed...</span>
+            </div>
+          )}
+          
+          <SmartReview
+            docType={docType}
+            state={state}
+            onEdit={(field) => {
+              const idx = steps.findIndex(s => s.field === field);
+              if (idx >= 0) setI(idx);
+            }}
+            onConfirm={onNext}
+          />
+        </>
       )}
       
       {/* MicroSummary - Moved BELOW input for better UX */}

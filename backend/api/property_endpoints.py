@@ -1161,6 +1161,141 @@ async def log_search_history(user_id: str, query: str, results: Dict):
         print(f"Search history logging failed: {e}")
 
 
+# ============================================================================
+# PHASE 1.3: Enhanced Property Search with Multi-Match Handling
+# ============================================================================
+
+class PropertySearchRequestV2(BaseModel):
+    """Enhanced request model for property search v2"""
+    address: str = Field(..., description="Street address")
+    city: Optional[str] = Field(None, description="City name (recommended)")
+    state: str = Field("CA", description="State abbreviation")
+    zip_code: Optional[str] = Field(None, alias="zip", description="ZIP code")
+    use_cache: bool = Field(True, description="Whether to use cached results")
+
+    class Config:
+        populate_by_name = True
+
+
+@router.post("/search-v2")
+async def property_search_v2(
+    request: PropertySearchRequestV2,
+    background_tasks: BackgroundTasks,
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    PHASE 1.3: Enhanced property search with multi-match handling
+    
+    Returns structured PropertySearchResult with:
+    - status: 'success', 'multi_match', 'not_found', or 'error'
+    - data: Full PropertyData when status='success'
+    - matches: List of PropertyMatch when status='multi_match'
+    
+    Frontend should show PropertyMatchPicker when status='multi_match'
+    """
+    import time
+    start_time = time.time()
+    
+    try:
+        # Get the enhanced SiteX service
+        from services.sitex_service import sitex_service
+        
+        if not sitex_service.is_configured():
+            return {
+                'status': 'error',
+                'message': 'Property enrichment not configured. Please enter details manually.',
+                'data': None,
+                'matches': None
+            }
+        
+        # Search using enhanced service
+        result = await sitex_service.search_property(
+            address=request.address,
+            city=request.city,
+            state=request.state,
+            zip_code=request.zip_code,
+            client_ref=f"user:{user_id}",
+            use_cache=request.use_cache
+        )
+        
+        elapsed = time.time() - start_time
+        print(f"⏱️  Property search v2 took {elapsed:.2f}s - status: {result.status}")
+        
+        # Non-blocking logging
+        background_tasks.add_task(
+            log_api_usage, 
+            user_id, 
+            "sitex_v2", 
+            "property_search", 
+            request.dict(),
+            result.dict() if result else None
+        )
+        
+        # Return the structured result
+        return result.dict()
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        background_tasks.add_task(
+            log_api_usage, 
+            user_id, 
+            "sitex_v2", 
+            "property_search", 
+            request.dict(),
+            None, 
+            str(e)
+        )
+        return {
+            'status': 'error',
+            'message': f'Property search failed: {str(e)}',
+            'data': None,
+            'matches': None
+        }
+
+
+@router.post("/resolve-match")
+async def resolve_property_match(
+    fips: str,
+    apn: str,
+    background_tasks: BackgroundTasks,
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    PHASE 1.3: Resolve a multi-match selection by FIPS + APN
+    
+    Called after user selects from PropertyMatchPicker
+    """
+    try:
+        from services.sitex_service import sitex_service
+        
+        result = await sitex_service.search_by_fips_apn(
+            fips=fips,
+            apn=apn,
+            client_ref=f"user:{user_id}"
+        )
+        
+        # Non-blocking logging
+        background_tasks.add_task(
+            log_api_usage, 
+            user_id, 
+            "sitex_v2", 
+            "resolve_match", 
+            {"fips": fips, "apn": apn},
+            result.dict() if result else None
+        )
+        
+        return result.dict()
+        
+    except Exception as e:
+        return {
+            'status': 'error',
+            'message': f'Failed to resolve property: {str(e)}',
+            'data': None,
+            'matches': None
+        }
+
+
 # Production endpoints for exact SiteX two-step flow
 class SiteXAddressSearchRequest(BaseModel):
     """Request for SiteX AddressSearch (Step 1)"""

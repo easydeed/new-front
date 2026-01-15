@@ -403,7 +403,13 @@ class ShareDeedCreate(BaseModel):
     recipient_email: str
     recipient_role: str
     message: Optional[str] = None
-    expires_in_days: int = 7
+    expires_in_hours: Optional[int] = 168  # Default 7 days (168 hours)
+    
+    @validator('expires_in_hours')
+    def validate_expiry(cls, v):
+        if v is not None and (v < 1 or v > 720):  # 1 hour to 30 days
+            raise ValueError('Expiration must be between 1 and 720 hours')
+        return v
 
 class ApprovalResponse(BaseModel):
     approved: bool
@@ -1767,12 +1773,13 @@ def update_deed_status(deed_id: int, status: str):
 # Shared Deeds endpoints
 @app.post("/shared-deeds")
 def share_deed_for_approval(share_data: ShareDeedCreate, user_id: int = Depends(get_current_user_id)):
-    """Share a deed with someone for approval - Phase 7.5: Real DB with UUID tokens"""
+    """Share a deed with someone for approval - Enhanced with configurable expiration"""
     import uuid
     from datetime import timezone
-    # Phase 7.5 FIX: Use timezone-aware datetime + 24 hours expiration
-    expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
-    approval_token = str(uuid.uuid4())  # Phase 7.5 FIX: Use UUID instead of string
+    # Use configurable expiration (default 7 days = 168 hours)
+    expires_in = share_data.expires_in_hours or 168
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=expires_in)
+    approval_token = str(uuid.uuid4())
     
     # Get the owner's name and deed details from database
     owner_name = "DeedPro User"  # Default
@@ -1960,13 +1967,112 @@ def list_shared_deeds(user_id: int = Depends(get_current_user_id)):
         raise HTTPException(status_code=500, detail=f"Failed to fetch shared deeds: {str(e)}")
 
 @app.post("/shared-deeds/{shared_deed_id}/resend")
-def resend_approval_email(shared_deed_id: int):
-    """Resend approval email reminder"""
-    # In production, resend the approval email
-    return {
-        "success": True,
-        "message": f"Reminder email sent for shared deed {shared_deed_id}"
-    }
+def resend_approval_email(shared_deed_id: int, user_id: int = Depends(get_current_user_id)):
+    """Resend the approval reminder email with expiration extension"""
+    if not conn:
+        raise HTTPException(status_code=500, detail="Database connection not available")
+    
+    try:
+        from datetime import timezone
+        from utils.notifications import send_email
+        
+        with conn.cursor() as cur:
+            # Get the share details
+            cur.execute("""
+                SELECT ds.id, ds.token, ds.recipient_email, ds.status, ds.expires_at,
+                       d.deed_type, d.property_address, d.apn,
+                       u.email as owner_email, u.full_name as owner_name
+                FROM deed_shares ds
+                JOIN deeds d ON ds.deed_id = d.id
+                JOIN users u ON ds.owner_user_id = u.id
+                WHERE ds.id = %s AND ds.owner_user_id = %s
+            """, (shared_deed_id, user_id))
+            
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Share not found")
+            
+            # Extract data
+            if isinstance(row, dict):
+                share_id = row.get('id')
+                token = row.get('token')
+                recipient_email = row.get('recipient_email')
+                status = row.get('status')
+                expires_at = row.get('expires_at')
+                deed_type = row.get('deed_type')
+                property_address = row.get('property_address')
+                owner_name = row.get('owner_name') or 'DeedPro User'
+            else:
+                share_id, token, recipient_email, status, expires_at = row[0], row[1], row[2], row[3], row[4]
+                deed_type, property_address = row[5], row[6]
+                owner_name = row[9] or 'DeedPro User'
+            
+            # Check if can be resent
+            if status in ('approved', 'rejected', 'revoked'):
+                raise HTTPException(status_code=400, detail=f"Cannot resend - share is {status}")
+            
+            # Check if expired and extend expiration by 24 hours
+            now = datetime.now(timezone.utc)
+            if expires_at < now:
+                new_expiry = now + timedelta(hours=24)
+                cur.execute("""
+                    UPDATE deed_shares 
+                    SET expires_at = %s, updated_at = NOW()
+                    WHERE id = %s
+                """, (new_expiry, share_id))
+                expires_at = new_expiry
+            
+            # Build approval URL
+            app_url = os.getenv('FRONTEND_URL', 'https://deedpro-frontend-new.vercel.app')
+            approval_url = f"{app_url}/approve/{token}"
+            
+            # Calculate hours remaining
+            hours_remaining = max(0, int((expires_at - now).total_seconds() / 3600))
+            
+            # Send reminder email
+            subject = f"Reminder: Deed Review Pending - {property_address}"
+            html_content = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #1a1a1a;">Review Reminder</h2>
+                <p>This is a reminder that <strong>{owner_name}</strong> is waiting for your review of a deed:</p>
+                
+                <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <p style="margin: 5px 0;"><strong>Deed Type:</strong> {deed_type}</p>
+                    <p style="margin: 5px 0;"><strong>Property:</strong> {property_address}</p>
+                    <p style="margin: 5px 0; color: #e53e3e;"><strong>Expires in:</strong> {hours_remaining} hours</p>
+                </div>
+                
+                <a href="{approval_url}" 
+                   style="display: inline-block; background: #7C4DFF; color: white; padding: 12px 24px; 
+                          text-decoration: none; border-radius: 6px; font-weight: bold;">
+                    Review Deed Now
+                </a>
+                
+                <p style="color: #666; font-size: 14px; margin-top: 30px;">
+                    If you did not expect this email, you can safely ignore it.
+                </p>
+            </div>
+            """
+            
+            email_sent = send_email(recipient_email, subject, html_content)
+            
+            conn.commit()
+            
+            print(f"[Sharing] ✅ Reminder sent for share {share_id}, email_sent={email_sent}")
+            
+            return {
+                "success": True, 
+                "message": "Reminder sent",
+                "email_sent": email_sent,
+                "expires_at": expires_at.isoformat()
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        print(f"[Sharing] ❌ Resend error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/shared-deeds/{shared_deed_id}")
 def revoke_shared_deed(shared_deed_id: int, user_id: int = Depends(get_current_user_id)):
@@ -2019,20 +2125,22 @@ def revoke_shared_deed(shared_deed_id: int, user_id: int = Depends(get_current_u
 # Public approval endpoint (for recipients)
 @app.get("/approve/{approval_token}")
 def view_shared_deed(approval_token: str):
-    """Public endpoint for recipients to view shared deed - Phase 7.5: Real DB integration"""
-    # Phase 7.5: Read from deed_shares table
+    """Public endpoint for recipients to view shared deed - Enhanced with view tracking"""
     if not conn:
         raise HTTPException(status_code=500, detail="Database connection unavailable")
     
     try:
+        from datetime import datetime, timezone
+        
         with conn.cursor() as cur:
-            # Get share details with deed info
+            # Get share details with deed info (including county)
             cur.execute("""
                 SELECT 
                     ds.id, ds.deed_id, ds.owner_user_id, ds.recipient_email,
-                    ds.status, ds.expires_at, ds.created_at,
+                    ds.status, ds.expires_at, ds.created_at, ds.viewed_at,
                     d.deed_type, d.property_address, d.apn, d.grantor_name, d.grantee_name,
-                    u.full_name as owner_name
+                    d.county, d.pdf_url,
+                    u.full_name as owner_name, u.email as owner_email
                 FROM deed_shares ds
                 JOIN deeds d ON d.id = ds.deed_id
                 LEFT JOIN users u ON u.id = ds.owner_user_id
@@ -2044,67 +2152,92 @@ def view_shared_deed(approval_token: str):
             if not share:
                 raise HTTPException(status_code=404, detail="This approval link is invalid or does not exist")
             
-            # Extract data (Phase 7.5 FIX: Handle both dict and tuple)
+            # Extract data (handle both dict and tuple)
             if isinstance(share, dict):
-                # RealDictCursor returns dict
                 share_id = share.get('id')
                 deed_id = share.get('deed_id')
                 owner_id = share.get('owner_user_id')
                 recipient_email = share.get('recipient_email')
                 status = share.get('status')
                 expires_at = share.get('expires_at')
-                created_at = share.get('created_at')
+                viewed_at = share.get('viewed_at')
                 deed_type = share.get('deed_type')
                 property_address = share.get('property_address')
                 apn = share.get('apn')
                 grantor_name = share.get('grantor_name')
                 grantee_name = share.get('grantee_name')
+                county = share.get('county')
+                pdf_url = share.get('pdf_url')
                 owner_name = share.get('owner_name') or "DeedPro User"
             else:
-                # Regular cursor returns tuple
                 share_id = share[0]
                 deed_id = share[1]
                 owner_id = share[2]
                 recipient_email = share[3]
                 status = share[4]
                 expires_at = share[5]
-                created_at = share[6]
-                deed_type = share[7]
-                property_address = share[8]
-                apn = share[9]
-                grantor_name = share[10]
-                grantee_name = share[11]
-                owner_name = share[12] or "DeedPro User"
+                viewed_at = share[7] if len(share) > 7 else None
+                deed_type = share[8] if len(share) > 8 else None
+                property_address = share[9] if len(share) > 9 else None
+                apn = share[10] if len(share) > 10 else None
+                grantor_name = share[11] if len(share) > 11 else None
+                grantee_name = share[12] if len(share) > 12 else None
+                county = share[13] if len(share) > 13 else None
+                pdf_url = share[14] if len(share) > 14 else None
+                owner_name = share[15] if len(share) > 15 else "DeedPro User"
             
-            # Check if expired (Phase 7.5 FIX: Use timezone-aware datetime)
-            from datetime import datetime, timezone
+            # Check if expired
             now = datetime.now(timezone.utc)
             is_expired = expires_at < now if expires_at else False
-            can_approve = not is_expired and status == 'sent'
+            
+            # Update status to expired if needed
+            if is_expired and status == 'sent':
+                cur.execute("UPDATE deed_shares SET status = 'expired', updated_at = NOW() WHERE id = %s", (share_id,))
+                conn.commit()
+                raise HTTPException(status_code=410, detail="This approval link has expired")
+            
+            # Track first view (only if status is still 'sent')
+            if status == 'sent' and not viewed_at:
+                try:
+                    cur.execute("""
+                        UPDATE deed_shares 
+                        SET status = 'viewed', viewed_at = NOW(), updated_at = NOW()
+                        WHERE id = %s AND status = 'sent'
+                    """, (share_id,))
+                    conn.commit()
+                    status = 'viewed'
+                    print(f"[Sharing] ✅ First view tracked for share {share_id}")
+                except Exception as view_err:
+                    # Non-blocking - viewed_at column may not exist
+                    print(f"[Sharing] ⚠️ Could not track view: {view_err}")
+            
+            can_approve = not is_expired and status in ('sent', 'viewed')
             
             deed_data = {
                 "deed_id": deed_id,
                 "deed_type": deed_type,
                 "property_address": property_address,
                 "apn": apn,
-                "grantor_name": grantor_name,
-                "grantee_name": grantee_name,
-                "shared_by": owner_name,
+                "county": county,
+                "grantors": grantor_name,
+                "grantees": grantee_name,
+                "owner_name": owner_name,
                 "message": f"Please review this {deed_type}",
                 "expires_at": expires_at.isoformat() if expires_at else None,
                 "can_approve": can_approve,
-                "status": status
+                "status": status,
+                "pdf_url": pdf_url,
             }
             
-            print(f"[Phase 7.5] ✅ Approval link accessed: share_id={share_id}, can_approve={can_approve}")
+            print(f"[Sharing] ✅ Approval link accessed: share_id={share_id}, status={status}, can_approve={can_approve}")
             
             return deed_data
             
     except HTTPException:
         raise
     except Exception as e:
-        conn.rollback()  # Phase 14-B: Prevent transaction cascade failures
-        print(f"[Phase 7.5] ❌ Error loading shared deed: {e}")
+        conn.rollback()
+        print(f"[Sharing] ❌ Error loading shared deed: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to load shared deed: {str(e)}")
 
 @app.post("/approve/{approval_token}")
@@ -2159,10 +2292,16 @@ def submit_approval_response(approval_token: str, response: ApprovalResponse):
             if is_expired:
                 raise HTTPException(status_code=410, detail="This approval link has expired")
             
-            if current_status != 'sent':
+            # Allow approval from 'sent' or 'viewed' status
+            if current_status not in ('sent', 'viewed'):
                 raise HTTPException(status_code=409, detail=f"This deed has already been {current_status}")
             
-            # APPROVAL PATH (existing logic)
+            # Get additional details for email (deed_type)
+            cur.execute("SELECT deed_type FROM deeds WHERE id = %s", (deed_id,))
+            deed_row = cur.fetchone()
+            deed_type = deed_row[0] if deed_row else "deed"
+            
+            # APPROVAL PATH - Enhanced with email notification
             if response.approved:
                 cur.execute("""
                     UPDATE deed_shares
@@ -2171,11 +2310,52 @@ def submit_approval_response(approval_token: str, response: ApprovalResponse):
                 """, (share_id,))
                 conn.commit()
                 
-                print(f"[REJECTION BUNDLE] ✅ Deed approved: share_id={share_id}")
+                print(f"[Sharing] ✅ Deed approved: share_id={share_id}")
+                
+                # Send approval notification to owner
+                try:
+                    from utils.notifications import send_email
+                    
+                    if owner_email:
+                        app_url = os.getenv('FRONTEND_URL', 'https://deedpro-frontend-new.vercel.app')
+                        view_link = f"{app_url}/past-deeds"
+                        
+                        subject = f"✓ Deed Approved - {property_address}"
+                        html_content = f"""
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                            <div style="background: #10B981; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+                                <h2 style="margin: 0;">✓ Deed Approved</h2>
+                            </div>
+                            
+                            <div style="padding: 20px; background: #f9fafb; border-radius: 0 0 8px 8px;">
+                                <p>Great news! Your deed has been approved:</p>
+                                
+                                <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                                    <p style="margin: 5px 0;"><strong>Deed Type:</strong> {deed_type}</p>
+                                    <p style="margin: 5px 0;"><strong>Property:</strong> {property_address}</p>
+                                    <p style="margin: 5px 0;"><strong>Approved by:</strong> {recipient_email}</p>
+                                </div>
+                                
+                                <p>The deed is ready for recording.</p>
+                                
+                                <a href="{view_link}" 
+                                   style="display: inline-block; background: #7C4DFF; color: white; padding: 12px 24px; 
+                                          text-decoration: none; border-radius: 6px; font-weight: bold;">
+                                    View Deed
+                                </a>
+                            </div>
+                        </div>
+                        """
+                        
+                        email_sent = send_email(owner_email, subject, html_content)
+                        if email_sent:
+                            print(f"[Sharing] ✅ Approval email sent to {owner_email}")
+                except Exception as email_err:
+                    print(f"[Sharing] ⚠️ Approval email error (non-blocking): {email_err}")
                 
                 return {
                     "success": True,
-                    "message": "Thank you! Your approval has been recorded.",
+                    "message": "Thank you! Your approval has been recorded. The owner has been notified.",
                     "status": "approved"
                 }
             
@@ -2252,6 +2432,78 @@ def submit_approval_response(approval_token: str, response: ApprovalResponse):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Failed to submit approval: {str(e)}")
+
+# PDF access for shared deed recipients
+@app.get("/approve/{approval_token}/pdf")
+def get_shared_deed_pdf(approval_token: str):
+    """
+    Get the PDF for a shared deed.
+    Requires valid, non-expired token.
+    """
+    from fastapi.responses import Response
+    from datetime import timezone
+    
+    if not conn:
+        raise HTTPException(status_code=500, detail="Database connection unavailable")
+    
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT ds.status, ds.expires_at,
+                       d.pdf_data, d.pdf_url, d.deed_type, d.property_address
+                FROM deed_shares ds
+                JOIN deeds d ON ds.deed_id = d.id
+                WHERE ds.token = %s
+            """, (approval_token,))
+            
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Share not found")
+            
+            # Extract data
+            if isinstance(row, dict):
+                status = row.get('status')
+                expires_at = row.get('expires_at')
+                pdf_data = row.get('pdf_data')
+                pdf_url = row.get('pdf_url')
+                deed_type = row.get('deed_type', 'deed')
+                property_address = row.get('property_address', 'property')
+            else:
+                status, expires_at, pdf_data, pdf_url, deed_type, property_address = row[0], row[1], row[2], row[3], row[4] or 'deed', row[5] or 'property'
+            
+            # Check expiration
+            now = datetime.now(timezone.utc)
+            if expires_at and expires_at < now:
+                raise HTTPException(status_code=410, detail="This link has expired")
+            
+            # Check status (allow viewing even if rejected, but not if revoked)
+            if status == 'revoked':
+                raise HTTPException(status_code=403, detail="Access has been revoked")
+            
+            # Return PDF
+            if pdf_data:
+                # Clean filename
+                safe_filename = f"{deed_type}_{property_address}".replace(' ', '_').replace('/', '-')[:50]
+                return Response(
+                    content=pdf_data,
+                    media_type="application/pdf",
+                    headers={
+                        "Content-Disposition": f'inline; filename="{safe_filename}.pdf"'
+                    }
+                )
+            elif pdf_url:
+                # Redirect to PDF URL if no embedded data
+                from fastapi.responses import RedirectResponse
+                return RedirectResponse(url=pdf_url)
+            else:
+                raise HTTPException(status_code=404, detail="PDF not available for this deed")
+                
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Sharing] ❌ PDF access error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve PDF")
+
 
 # Recipients endpoints (from previous implementation)
 @app.post("/deeds/{deed_id}/recipients")

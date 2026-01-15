@@ -1,11 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import React, { useState } from 'react';
 import { AuthManager } from '../utils/auth';
 import { Home, FileText, FolderOpen, Users, UserPlus, Settings, Smartphone, Shield, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function Sidebar() {
+  const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const toggleSidebar = () => {
@@ -27,6 +29,13 @@ export default function Sidebar() {
     { href: '/mobile', icon: Smartphone, label: 'Mobile' },
     { href: '/admin-honest-v2', icon: Shield, label: 'Admin' },
   ];
+
+  const isActive = (href: string) => {
+    if (href === '/dashboard') {
+      return pathname === '/dashboard';
+    }
+    return pathname?.startsWith(href);
+  };
 
   return (
     <nav 
@@ -70,16 +79,23 @@ export default function Sidebar() {
       <ul className="flex-1 p-2 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
+          const active = isActive(item.href);
           return (
             <li key={item.href}>
               <Link
                 href={item.href}
-                className="flex items-center gap-3 px-3 py-3.5 rounded-lg text-gray-700 hover:bg-[#7C4DFF]/10 hover:text-[#7C4DFF] transition-colors group"
+                className={`
+                  flex items-center gap-3 px-3 py-3.5 rounded-lg font-medium transition-all duration-200
+                  ${active 
+                    ? 'bg-[#7C4DFF]/10 text-[#7C4DFF] border-r-2 border-[#7C4DFF]' 
+                    : 'text-gray-700 hover:bg-[#7C4DFF]/10 hover:text-[#7C4DFF]'
+                  }
+                `}
                 title={isCollapsed ? item.label : ''}
               >
-                <Icon className="w-5 h-5 flex-shrink-0" />
+                <Icon className={`w-5 h-5 flex-shrink-0 ${active ? 'text-[#7C4DFF]' : ''}`} />
                 {!isCollapsed && (
-                  <span className="font-medium text-base">{item.label}</span>
+                  <span className="text-base">{item.label}</span>
                 )}
               </Link>
             </li>

@@ -1,0 +1,25 @@
+<div style="margin-top:1.8in; font-size:10pt; line-height:1.2; position:relative;">
+  <div style="border:1px solid #000; padding:.18in; width:3.25in;">
+    <div><strong>RECORDING REQUESTED BY:</strong> {{ (requested_by or title_company) or "" }}</div>
+    <div style="margin-top:.18in;"><strong>AND WHEN RECORDED MAIL TO:</strong></div>
+    {% if return_to %}
+      {% if return_to.get('name') %}<div>{{ return_to.get('name') }}</div>{% endif %}
+      {% if return_to.get('company') %}<div>{{ return_to.get('company') }}</div>{% endif %}
+      {% if return_to.get('address1') %}<div>{{ return_to.get('address1') }}</div>{% endif %}
+      {% if return_to.get('address2') %}<div>{{ return_to.get('address2') }}</div>{% endif %}
+      {% set _city = return_to.get('city') %}
+      {% set _state = return_to.get('state') %}
+      {% set _zip = return_to.get('zip') %}
+      <div>{{ _city or "" }}{% if _city and (_state or _zip) %}, {% endif %}{{ _state or "" }} {{ _zip or "" }}</div>
+    {% else %}
+      <div>____________________________</div><div>____________________________</div><div>____________________________</div><div>____________________________</div>
+    {% endif %}
+  </div>
+
+  <div style="position:absolute; right:.5in; top:0; width:2.8in; font-size:9pt;">
+    {% if escrow_no %}<div><strong>Escrow / Order No.:</strong> {{ escrow_no }}</div>{% endif %}
+    {% if title_order_no %}<div><strong>Title Order #:</strong> {{ title_order_no }}</div>{% endif %}
+    {% if title_company %}<div><strong>Title Company:</strong> {{ title_company }}</div>{% endif %}
+    {% if apn %}<div><strong>APN:</strong> {{ apn }}</div>{% endif %}
+  </div>
+</div>

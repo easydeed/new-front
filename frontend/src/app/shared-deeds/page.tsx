@@ -2,7 +2,9 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Sidebar from "@/components/Sidebar"
-import { Send, Eye, Clock, CheckCircle, XCircle, AlertCircle, RotateCw, X, Plus, FileText } from "lucide-react"
+import { Send, Eye, Clock, CheckCircle, XCircle, AlertCircle, RotateCw, X, Plus, FileText, MessageSquare } from "lucide-react"
+import { toast } from "sonner"
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 
 interface SharedDeed {
   id: number
@@ -18,17 +20,45 @@ interface SharedDeed {
   feedback?: string
 }
 
+// Issue labels for structured feedback
+const ISSUE_LABELS: Record<string, string> = {
+  grantor_name: 'Grantor name incorrect',
+  grantee_name: 'Grantee name incorrect',
+  legal_description: 'Legal description issue',
+  vesting: 'Vesting incorrect',
+  property_address: 'Property address incorrect',
+  apn: 'APN incorrect',
+  dtt: 'Transfer tax issue',
+  other: 'Other issue',
+}
+
+// Parsed structured feedback interface
+interface StructuredFeedback {
+  issues?: string[]
+  comments?: string
+  timestamp?: string
+}
+
 // ✅ PHASE 24-E: V0-generated Shared Deeds page with feedback modal and expiry countdown
 export default function SharedDeedsPageV0() {
   const router = useRouter()
   const [sharedDeeds, setSharedDeeds] = useState<SharedDeed[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [feedbackModal, setFeedbackModal] = useState<{ open: boolean; text: string }>({
+  const [feedbackModal, setFeedbackModal] = useState<{ 
+    open: boolean
+    text: string
+    structured?: StructuredFeedback | null 
+  }>({
     open: false,
     text: "",
+    structured: null,
   })
   const [shareModalOpen, setShareModalOpen] = useState(false)
+  const [revokeConfirm, setRevokeConfirm] = useState<{ isOpen: boolean; shareId: number | null }>({
+    isOpen: false,
+    shareId: null,
+  })
 
   useEffect(() => {
     fetchSharedDeeds()
@@ -70,6 +100,8 @@ export default function SharedDeedsPageV0() {
       const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
       const token = localStorage.getItem("access_token")
 
+      let feedbackText = ""
+      
       const response = await fetch(`${api}/shared-deeds/${shareId}/feedback`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -78,21 +110,32 @@ export default function SharedDeedsPageV0() {
 
       if (response.ok) {
         const data = await response.json()
-        setFeedbackModal({
-          open: true,
-          text: data.feedback || "(No comments provided)",
-        })
+        feedbackText = data.feedback || ""
       } else {
         // Fallback to deed's feedback field
         const deed = sharedDeeds.find((d) => d.id === shareId)
-        setFeedbackModal({
-          open: true,
-          text: deed?.feedback || "(No comments provided)",
-        })
+        feedbackText = deed?.feedback || ""
       }
+      
+      // Try to parse as structured feedback
+      let structured: StructuredFeedback | null = null
+      try {
+        const parsed = JSON.parse(feedbackText)
+        if (parsed && (parsed.issues || parsed.comments)) {
+          structured = parsed
+        }
+      } catch {
+        // Not structured - use as plain text
+      }
+      
+      setFeedbackModal({
+        open: true,
+        text: feedbackText || "(No comments provided)",
+        structured,
+      })
     } catch (err) {
       console.error("Error fetching feedback:", err)
-      alert("Failed to load feedback")
+      toast.error("Failed to load feedback")
     }
   }
 
@@ -112,23 +155,25 @@ export default function SharedDeedsPageV0() {
         throw new Error("Failed to send reminder")
       }
 
-      alert("Reminder sent successfully!")
+      toast.success("Reminder sent successfully!")
       fetchSharedDeeds()
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to send reminder")
+      toast.error(err instanceof Error ? err.message : "Failed to send reminder")
     }
   }
 
-  const handleRevoke = async (shareId: number) => {
-    if (!confirm("Are you sure you want to revoke access to this deed?")) {
-      return
-    }
+  const handleRevokeClick = (shareId: number) => {
+    setRevokeConfirm({ isOpen: true, shareId })
+  }
+
+  const handleRevokeConfirm = async () => {
+    if (!revokeConfirm.shareId) return
 
     try {
       const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
       const token = localStorage.getItem("access_token")
 
-      const response = await fetch(`${api}/shared-deeds/${shareId}/revoke`, {
+      const response = await fetch(`${api}/shared-deeds/${revokeConfirm.shareId}/revoke`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -139,10 +184,12 @@ export default function SharedDeedsPageV0() {
         throw new Error("Failed to revoke access")
       }
 
-      alert("Access revoked successfully")
+      toast.success("Access revoked successfully")
       fetchSharedDeeds()
+      setRevokeConfirm({ isOpen: false, shareId: null })
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to revoke access")
+      toast.error(err instanceof Error ? err.message : "Failed to revoke access")
+      setRevokeConfirm({ isOpen: false, shareId: null })
     }
   }
 
@@ -383,7 +430,7 @@ export default function SharedDeedsPageV0() {
                               )}
                               {canRevoke(deed) && (
                                 <button
-                                  onClick={() => handleRevoke(deed.id)}
+                                  onClick={() => handleRevokeClick(deed.id)}
                                   className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-sm font-medium rounded-lg transition-colors"
                                   title="Revoke access"
                                 >
@@ -408,20 +455,65 @@ export default function SharedDeedsPageV0() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl shadow-2xl max-w-[600px] w-full p-8">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-slate-800">Reviewer Feedback</h2>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                  <MessageSquare className="w-5 h-5 text-red-600" />
+                </div>
+                <h2 className="text-2xl font-bold text-slate-800">Reviewer Feedback</h2>
+              </div>
               <button
-                onClick={() => setFeedbackModal({ open: false, text: "" })}
+                onClick={() => setFeedbackModal({ open: false, text: "", structured: null })}
                 className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
               >
                 <X className="w-5 h-5 text-slate-400 hover:text-slate-600" />
               </button>
             </div>
-            <div className="bg-slate-50 rounded-lg p-6 border border-slate-200">
-              <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">{feedbackModal.text}</p>
-            </div>
+            
+            {/* Structured Feedback Display */}
+            {feedbackModal.structured ? (
+              <div className="space-y-4">
+                {/* Issues List */}
+                {feedbackModal.structured.issues && feedbackModal.structured.issues.length > 0 && (
+                  <div className="bg-red-50 rounded-lg p-4 border border-red-200">
+                    <h4 className="text-sm font-semibold text-red-800 mb-3">Issues Identified:</h4>
+                    <ul className="space-y-2">
+                      {feedbackModal.structured.issues.map((issue) => (
+                        <li key={issue} className="flex items-center gap-2 text-sm text-red-700">
+                          <XCircle className="w-4 h-4 flex-shrink-0" />
+                          {ISSUE_LABELS[issue] || issue}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {/* Additional Comments */}
+                {feedbackModal.structured.comments && (
+                  <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                    <h4 className="text-sm font-semibold text-slate-700 mb-2">Additional Comments:</h4>
+                    <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
+                      {feedbackModal.structured.comments}
+                    </p>
+                  </div>
+                )}
+                
+                {/* Timestamp if available */}
+                {feedbackModal.structured.timestamp && (
+                  <p className="text-xs text-slate-500 text-right">
+                    Submitted: {new Date(feedbackModal.structured.timestamp).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            ) : (
+              /* Plain Text Feedback (legacy) */
+              <div className="bg-slate-50 rounded-lg p-6 border border-slate-200">
+                <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">{feedbackModal.text}</p>
+              </div>
+            )}
+            
             <div className="mt-6 flex justify-end">
               <button
-                onClick={() => setFeedbackModal({ open: false, text: "" })}
+                onClick={() => setFeedbackModal({ open: false, text: "", structured: null })}
                 className="px-6 py-3 bg-[#7C4DFF] hover:bg-[#6a3de8] text-white font-medium rounded-lg transition-colors"
               >
                 Close
@@ -462,6 +554,17 @@ export default function SharedDeedsPageV0() {
           </div>
         </div>
       )}
+
+      {/* Revoke Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={revokeConfirm.isOpen}
+        onClose={() => setRevokeConfirm({ isOpen: false, shareId: null })}
+        onConfirm={handleRevokeConfirm}
+        title="Revoke Access"
+        message="Are you sure you want to revoke access to this deed? The recipient will no longer be able to view or approve it."
+        confirmLabel="Revoke"
+        variant="danger"
+      />
     </div>
   )
 }
