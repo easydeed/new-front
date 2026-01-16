@@ -23,7 +23,6 @@ export default function PartnerDetailPage() {
     
     const token = localStorage.getItem('access_token');
     if (!token) {
-      console.log('[PartnerDetailPage] No auth token - redirecting to login');
       router.push('/login');
       return;
     }

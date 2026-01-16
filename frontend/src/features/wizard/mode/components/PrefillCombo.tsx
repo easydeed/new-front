@@ -1,7 +1,9 @@
 // frontend/src/features/wizard/mode/components/PrefillCombo.tsx
 // FIXED: Added filtering as user types
+// UPDATED: Integrated QuickAddPartnerModal for inline partner creation
 'use client';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { QuickAddPartnerModal } from '@/features/partners/QuickAddPartnerModal';
 
 type Option = { id?: string|number; label: string };
 type Props = {
@@ -25,6 +27,10 @@ export default function PrefillCombo({
   const [draft, setDraft] = useState(value || '');
   const inputRef = useRef<HTMLInputElement>(null);
   const blurTimer = useRef<number | null>(null);
+  
+  // State for inline partner creation modal
+  const [showAddPartner, setShowAddPartner] = useState(false);
+  const [pendingNewName, setPendingNewName] = useState('');
 
   useEffect(() => { setDraft(value || ''); }, [value]);
 
@@ -67,11 +73,24 @@ export default function PrefillCombo({
     inputRef.current?.blur();
   };
 
-  const handleAddNew = async () => {
+  const handleAddNew = () => {
     const full = (draft || '').trim();
     if (!full) return;
-    try { await onAddNew?.(full); } catch (e) { /* ignore */ }
-    handleSelect(full); // always use typed
+    
+    // Show the modal for actual partner creation
+    setPendingNewName(full);
+    setShowAddPartner(true);
+    setOpen(false);
+  };
+  
+  // Handle partner created via modal
+  const handlePartnerCreated = (partner: { id: string; label: string }) => {
+    handleSelect(partner.label);
+    setShowAddPartner(false);
+    setPendingNewName('');
+    
+    // Also call the legacy onAddNew if provided
+    onAddNew?.(partner.label);
   };
 
   return (
@@ -169,14 +188,28 @@ export default function PrefillCombo({
           transition: background 0.15s;
         }
         .prefill-option:hover { 
-          background: rgba(37,99,235,0.08); 
+          background: rgba(124,77,255,0.08); 
         }
         .add-new { 
           font-weight: 600; 
-          color: #2563EB;
+          color: #7C4DFF;
           border-top: 1px solid #e5e5e5;
         }
       `}</style>
+      
+      {/* Quick Add Partner Modal */}
+      {showAddPartner && (
+        <QuickAddPartnerModal
+          isOpen={showAddPartner}
+          onClose={() => {
+            setShowAddPartner(false);
+            setPendingNewName('');
+          }}
+          onCreated={handlePartnerCreated}
+          initialName={pendingNewName}
+          category="title_company"
+        />
+      )}
     </div>
   );
 }
