@@ -569,13 +569,6 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
             : "Start typing an address and we'll pull the APN, owner, and legal description automatically."
         }
       </p>
-      
-      {/* Debug info - remove in production */}
-      {addressSelected && selectedParsedAddress && (
-        <div className="text-xs text-gray-400 bg-gray-50 p-2 rounded">
-          Parsed: {selectedParsedAddress.street}, {selectedParsedAddress.city}, {selectedParsedAddress.state} {selectedParsedAddress.zip}
-        </div>
-      )}
     </div>
   )
 }
