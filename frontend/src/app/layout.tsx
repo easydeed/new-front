@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 // Phase 24-A: vibrancy-boost.css DELETED - V0 design system taking over
 // V0 provides all styling via route group layouts (see (v0-landing)/layout.tsx)
@@ -40,6 +41,13 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} ${inter.variable} font-inter antialiased`} suppressHydrationWarning>
         {children}
+        {/* Google Maps API for address autocomplete */}
+        {(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY) && (
+          <Script
+            src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY}&libraries=places`}
+            strategy="beforeInteractive"
+          />
+        )}
         <Toaster 
           position="top-right"
           toastOptions={{
