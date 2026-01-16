@@ -47,8 +47,13 @@ export function AIAssistProvider({ children }: { children: ReactNode }) {
 
 export function useAIAssist() {
   const context = useContext(AIAssistContext)
+  // Return safe defaults if used outside provider (during SSR)
   if (!context) {
-    throw new Error("useAIAssist must be used within AIAssistProvider")
+    return { 
+      enabled: true, 
+      setEnabled: () => {}, 
+      toggle: () => {} 
+    }
   }
   return context
 }
