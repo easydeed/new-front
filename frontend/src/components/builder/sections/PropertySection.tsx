@@ -205,15 +205,14 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
     setAddressReady(false) // Reset the ready state
 
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('access_token') || localStorage.getItem('token')
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (token) headers['Authorization'] = `Bearer ${token}`
       
-      const response = await fetch('/api/property/search-v2', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/property/search-v2`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ address }),
+        headers,
+        body: JSON.stringify({ fullAddress: address }),
       })
 
       const result = await response.json()
@@ -249,15 +248,14 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
     setMultipleUnits(null)
 
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('access_token') || localStorage.getItem('token')
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (token) headers['Authorization'] = `Bearer ${token}`
       
       // Fetch specific unit by APN
-      const response = await fetch('/api/property/search-v2', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/property/search-v2`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+        headers,
         body: JSON.stringify({ apn: unit.apn }),
       })
 
