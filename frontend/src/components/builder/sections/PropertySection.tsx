@@ -102,6 +102,44 @@ declare global {
   }
 }
 
+// Parse Google address into components
+interface ParsedAddress {
+  street: string
+  city: string
+  state: string
+  zip: string
+}
+
+function parseGoogleAddress(fullAddress: string): ParsedAddress {
+  // Example: "123 Main Street, Los Angeles, CA 90012, USA"
+  const parts = fullAddress.split(', ')
+  
+  let street = ''
+  let city = ''
+  let state = 'CA'
+  let zip = ''
+  
+  if (parts.length >= 3) {
+    street = parts[0] // "123 Main Street"
+    city = parts[1]   // "Los Angeles"
+    
+    // Parse state and zip from "CA 90012" or just "CA"
+    const stateZipPart = parts[2].replace(', USA', '').replace(' USA', '')
+    const stateZipMatch = stateZipPart.match(/^([A-Z]{2})\s*(\d{5})?/)
+    if (stateZipMatch) {
+      state = stateZipMatch[1]
+      zip = stateZipMatch[2] || ''
+    }
+  } else if (parts.length === 2) {
+    street = parts[0]
+    city = parts[1]
+  } else {
+    street = fullAddress
+  }
+  
+  return { street, city, state, zip }
+}
+
 export function PropertySection({ value, onChange, onComplete }: PropertySectionProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoadingProperty, setIsLoadingProperty] = useState(false)
@@ -111,7 +149,10 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
   const [multipleUnits, setMultipleUnits] = useState<Array<{ address: string; unit: string; apn: string }> | null>(null)
   const [selectedBuildingAddress, setSelectedBuildingAddress] = useState("")
   const [isGoogleLoaded, setIsGoogleLoaded] = useState(false)
-  const [addressReady, setAddressReady] = useState(false) // User selected an address, ready to search
+  
+  // Track if user has selected an address (prevents re-triggering autocomplete)
+  const [addressSelected, setAddressSelected] = useState(false)
+  const [selectedParsedAddress, setSelectedParsedAddress] = useState<ParsedAddress | null>(null)
   
   const inputRef = useRef<HTMLInputElement>(null)
   const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null)
@@ -158,9 +199,9 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
     )
   }, [])
 
-  // Debounced search
+  // Debounced search - only when user is typing (not when address is selected)
   useEffect(() => {
-    if (!isGoogleLoaded) return
+    if (!isGoogleLoaded || addressSelected) return
     
     const timer = setTimeout(() => {
       if (searchQuery.length >= 3) {
@@ -172,7 +213,7 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [searchQuery, fetchSuggestions, isGoogleLoaded])
+  }, [searchQuery, fetchSuggestions, isGoogleLoaded, addressSelected])
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -189,48 +230,85 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
   // Handle address selection from Google autocomplete
   const handleSelectAddress = (prediction: google.maps.places.AutocompletePrediction) => {
     const address = prediction.description
+    const parsed = parseGoogleAddress(address)
+    
     setSearchQuery(address)
     setShowSuggestions(false)
     setSuggestions([])
     setSelectedBuildingAddress(address)
-    setAddressReady(true) // Mark as ready - user will click button to search
+    setAddressSelected(true) // Prevent re-triggering autocomplete
+    setSelectedParsedAddress(parsed)
     setError(null)
   }
 
   // Fetch property data from SiteX
-  const fetchPropertyData = async (address: string) => {
+  const fetchPropertyData = async () => {
+    if (!selectedParsedAddress) {
+      setError("Please select an address from the dropdown first")
+      return
+    }
+    
     setIsLoadingProperty(true)
     setError(null)
     setMultipleUnits(null)
-    setAddressReady(false) // Reset the ready state
 
     try {
       const token = localStorage.getItem('access_token') || localStorage.getItem('token')
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (token) headers['Authorization'] = `Bearer ${token}`
       
+      // Build the correct payload matching backend schema:
+      // address: str (REQUIRED - street address)
+      // city: Optional[str]
+      // state: str = "CA"
+      // zip: Optional[str] (alias for zip_code)
+      const payload = {
+        address: selectedParsedAddress.street,  // Backend expects "address" as street
+        city: selectedParsedAddress.city || undefined,
+        state: selectedParsedAddress.state || 'CA',
+        zip: selectedParsedAddress.zip || undefined,
+      }
+      
+      console.log('Property search payload:', payload)
+      
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/property/search-v2`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ fullAddress: address }),
+        body: JSON.stringify(payload),
       })
+
+      // Handle auth errors
+      if (response.status === 401) {
+        setError("Please log in to search properties. Your session may have expired.")
+        return
+      }
+      
+      // Handle validation errors
+      if (response.status === 422) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('Validation error:', errorData)
+        setError(errorData.detail || "Invalid address format. Please try a different address.")
+        return
+      }
 
       const result = await response.json()
 
       if (result.status === 'success' && result.data) {
         // Single property found
-        const propertyData = mapSiteXResponse(result.data, address)
+        const propertyData = mapSiteXResponse(result.data, searchQuery)
         onChange(propertyData)
         onComplete()
         
-      } else if (result.status === 'multiple_matches' && result.matches?.length > 0) {
+      } else if ((result.status === 'multi_match' || result.status === 'multiple_matches') && result.matches?.length > 0) {
         // Multiple units found (condo building)
         setMultipleUnits(result.matches.map((match: { address?: string; unit?: string; unit_number?: string; apn?: string }) => ({
-          address: match.address || address,
+          address: match.address || searchQuery,
           unit: match.unit || match.unit_number || '',
           apn: match.apn || '',
         })))
         
+      } else if (result.status === 'not_found') {
+        setError("Property not found in county records. Please verify the address.")
       } else {
         setError(result.message || 'Property not found. Please check the address.')
       }
@@ -252,12 +330,20 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (token) headers['Authorization'] = `Bearer ${token}`
       
-      // Fetch specific unit by APN
+      // Fetch specific unit by APN - use the correct field names
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/property/search-v2`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ apn: unit.apn }),
+        body: JSON.stringify({ 
+          address: unit.address,
+          apn: unit.apn 
+        }),
       })
+
+      if (response.status === 401) {
+        setError("Please log in to search properties.")
+        return
+      }
 
       const result = await response.json()
 
@@ -288,6 +374,7 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
     legal_description?: string;
     primary_owner?: { full_name?: string };
     secondary_owner?: { full_name?: string };
+    owner_name?: string;
   }, fallbackAddress: string): PropertyData => ({
     address: data.address || fallbackAddress,
     city: data.city || '',
@@ -296,7 +383,7 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
     zip: data.zip_code || data.zip || '',
     apn: data.apn || '',
     legalDescription: data.legal_description || '',
-    owner: formatOwnerName(data.primary_owner, data.secondary_owner),
+    owner: data.owner_name || formatOwnerName(data.primary_owner, data.secondary_owner),
   })
 
   // Reset to search
@@ -304,9 +391,19 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
     setSearchQuery("")
     setMultipleUnits(null)
     setError(null)
-    setAddressReady(false)
+    setAddressSelected(false)
+    setSelectedParsedAddress(null)
     onChange(null as unknown as PropertyData)
     inputRef.current?.focus()
+  }
+
+  // Handle manual input (user typing instead of selecting)
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value
+    setSearchQuery(newValue)
+    setAddressSelected(false) // User is typing, allow autocomplete
+    setSelectedParsedAddress(null)
+    setError(null)
   }
 
   // ─────────────────────────────────────────────────────────────────
@@ -391,45 +488,55 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
           ref={inputRef}
           type="text"
           value={searchQuery}
-          onChange={(e) => {
-            setSearchQuery(e.target.value)
-            setAddressReady(false) // Reset when user types
+          onChange={handleInputChange}
+          onFocus={() => {
+            // Only show suggestions if user hasn't selected an address yet
+            if (!addressSelected && suggestions.length > 0) {
+              setShowSuggestions(true)
+            }
           }}
-          onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && searchQuery.trim()) {
-              setShowSuggestions(false)
-              fetchPropertyData(searchQuery)
+            if (e.key === "Enter" && addressSelected && selectedParsedAddress) {
+              e.preventDefault()
+              fetchPropertyData()
             }
           }}
           placeholder="Start typing an address..."
-          className={`w-full pl-12 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors ${
-            addressReady ? 'border-brand-500 bg-brand-50/30' : 'border-gray-300'
+          className={`w-full pl-12 pr-28 py-3 border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors ${
+            addressSelected ? 'border-brand-500 bg-brand-50/30' : 'border-gray-300'
           }`}
           autoFocus
           autoComplete="off"
         />
-        {searchQuery && (
+        
+        {/* Search button - only show when address is selected */}
+        {addressSelected && (
           <button 
-            onClick={() => fetchPropertyData(searchQuery)} 
-            className={`absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 transition-all ${
-              addressReady 
-                ? 'bg-brand-500 text-white px-3 py-1.5 rounded-md hover:bg-brand-600 animate-pulse'
-                : ''
-            }`}
+            type="button"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              fetchPropertyData()
+            }}
+            className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5 bg-brand-500 text-white px-3 py-1.5 rounded-md hover:bg-brand-600 transition-colors"
           >
-            <Search className={`w-5 h-5 ${addressReady ? 'text-white' : 'text-brand-500 hover:text-brand-600'}`} />
-            {addressReady && <span className="text-sm font-medium">Search</span>}
+            <Search className="w-4 h-4" />
+            <span className="text-sm font-medium">Search</span>
           </button>
         )}
 
         {/* Google Autocomplete Suggestions */}
-        {showSuggestions && suggestions.length > 0 && (
+        {showSuggestions && suggestions.length > 0 && !addressSelected && (
           <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
             {suggestions.map((prediction) => (
               <button
                 key={prediction.place_id}
-                onClick={() => handleSelectAddress(prediction)}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  handleSelectAddress(prediction)
+                }}
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 text-left transition-colors"
               >
                 <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
@@ -455,13 +562,20 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
       )}
 
       <p className="text-sm text-gray-500">
-        {addressReady 
+        {addressSelected 
           ? "Click Search to pull property details from county records."
           : isGoogleLoaded 
             ? "Start typing and select an address, then click Search."
             : "Start typing an address and we'll pull the APN, owner, and legal description automatically."
         }
       </p>
+      
+      {/* Debug info - remove in production */}
+      {addressSelected && selectedParsedAddress && (
+        <div className="text-xs text-gray-400 bg-gray-50 p-2 rounded">
+          Parsed: {selectedParsedAddress.street}, {selectedParsedAddress.city}, {selectedParsedAddress.state} {selectedParsedAddress.zip}
+        </div>
+      )}
     </div>
   )
 }
