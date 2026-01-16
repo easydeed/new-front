@@ -21,7 +21,7 @@ export default function Sidebar() {
 
   const navItems = [
     { href: '/dashboard', icon: Home, label: 'Dashboard' },
-    { href: '/create-deed-v2', icon: FileText, label: 'Create Deed' },
+    { href: '/deed-builder', icon: FileText, label: 'Create Deed' },
     { href: '/past-deeds', icon: FolderOpen, label: 'Past Deeds' },
     { href: '/shared-deeds', icon: Users, label: 'Shared Deeds' },
     { href: '/partners', icon: UserPlus, label: 'Partners' },
