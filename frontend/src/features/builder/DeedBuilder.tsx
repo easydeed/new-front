@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { AIAssistProvider } from '@/contexts/AIAssistContext';
 import { BuilderHeader } from '@/components/builder/BuilderHeader';
 import { InputPanel } from '@/components/builder/InputPanel';
 import { PreviewPanel } from '@/components/builder/PreviewPanel';
@@ -22,7 +23,7 @@ const DEED_LABELS: Record<string, string> = {
   'tax-deed': 'Tax Deed',
 };
 
-export function DeedBuilder({ deedType, initialProperty }: DeedBuilderProps) {
+function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
   const router = useRouter();
   useBuilderMode();
 
@@ -85,8 +86,9 @@ export function DeedBuilder({ deedType, initialProperty }: DeedBuilderProps) {
       }
       
       const result = await response.json();
+      const generatedDeedId = result.id || result.deed_id;
       toast.success('Deed generated successfully!');
-      router.push(`/past-deeds?highlight=${result.id || result.deed_id}`);
+      router.push(`/deed-builder/${deedType}/success?id=${generatedDeedId}`);
     } catch (err) {
       console.error('Generation failed:', err);
       toast.error(err instanceof Error ? err.message : 'Generation failed. Please try again.');
@@ -119,3 +121,11 @@ export function DeedBuilder({ deedType, initialProperty }: DeedBuilderProps) {
   );
 }
 
+// Wrap with AIAssistProvider
+export function DeedBuilder(props: DeedBuilderProps) {
+  return (
+    <AIAssistProvider>
+      <DeedBuilderInner {...props} />
+    </AIAssistProvider>
+  );
+}

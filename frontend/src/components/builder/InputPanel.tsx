@@ -160,6 +160,7 @@ export function InputPanel({
             onChange={(vesting) => onChange({ vesting })}
             granteeCount={countGrantees(state.grantee)}
             deedType={state.deedType}
+            grantee={state.grantee}
           />
         </InputSection>
 
@@ -182,6 +183,8 @@ export function InputPanel({
             onChange={(dtt) => onChange({ dtt })}
             city={state.property?.city}
             deedType={state.deedType}
+            grantor={state.grantor}
+            grantee={state.grantee}
           />
         </InputSection>
 
