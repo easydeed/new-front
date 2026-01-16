@@ -2,7 +2,7 @@ import os
 from fastapi import FastAPI, HTTPException, Depends, Query, Request, Body
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 # Phase 24-G: Updated PDF templates with adjusted margins (trigger deploy)
 from typing import Optional, List, Dict
 import stripe
@@ -405,7 +405,8 @@ class ShareDeedCreate(BaseModel):
     message: Optional[str] = None
     expires_in_hours: Optional[int] = 168  # Default 7 days (168 hours)
     
-    @validator('expires_in_hours')
+    @field_validator('expires_in_hours')
+    @classmethod
     def validate_expiry(cls, v):
         if v is not None and (v < 1 or v > 720):  # 1 hour to 30 days
             raise ValueError('Expiration must be between 1 and 720 hours')
