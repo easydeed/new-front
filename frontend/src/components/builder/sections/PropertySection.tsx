@@ -111,6 +111,7 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
   const [multipleUnits, setMultipleUnits] = useState<Array<{ address: string; unit: string; apn: string }> | null>(null)
   const [selectedBuildingAddress, setSelectedBuildingAddress] = useState("")
   const [isGoogleLoaded, setIsGoogleLoaded] = useState(false)
+  const [addressReady, setAddressReady] = useState(false) // User selected an address, ready to search
   
   const inputRef = useRef<HTMLInputElement>(null)
   const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null)
@@ -186,14 +187,14 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
   }, [])
 
   // Handle address selection from Google autocomplete
-  const handleSelectAddress = async (prediction: google.maps.places.AutocompletePrediction) => {
+  const handleSelectAddress = (prediction: google.maps.places.AutocompletePrediction) => {
     const address = prediction.description
     setSearchQuery(address)
     setShowSuggestions(false)
     setSuggestions([])
     setSelectedBuildingAddress(address)
-    
-    await fetchPropertyData(address)
+    setAddressReady(true) // Mark as ready - user will click button to search
+    setError(null)
   }
 
   // Fetch property data from SiteX
@@ -201,6 +202,7 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
     setIsLoadingProperty(true)
     setError(null)
     setMultipleUnits(null)
+    setAddressReady(false) // Reset the ready state
 
     try {
       const token = localStorage.getItem('token')
@@ -304,6 +306,7 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
     setSearchQuery("")
     setMultipleUnits(null)
     setError(null)
+    setAddressReady(false)
     onChange(null as unknown as PropertyData)
     inputRef.current?.focus()
   }
@@ -390,7 +393,10 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
           ref={inputRef}
           type="text"
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => {
+            setSearchQuery(e.target.value)
+            setAddressReady(false) // Reset when user types
+          }}
           onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && searchQuery.trim()) {
@@ -399,16 +405,23 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
             }
           }}
           placeholder="Start typing an address..."
-          className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+          className={`w-full pl-12 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors ${
+            addressReady ? 'border-brand-500 bg-brand-50/30' : 'border-gray-300'
+          }`}
           autoFocus
           autoComplete="off"
         />
         {searchQuery && (
           <button 
             onClick={() => fetchPropertyData(searchQuery)} 
-            className="absolute right-4 top-1/2 -translate-y-1/2"
+            className={`absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 transition-all ${
+              addressReady 
+                ? 'bg-brand-500 text-white px-3 py-1.5 rounded-md hover:bg-brand-600 animate-pulse'
+                : ''
+            }`}
           >
-            <Search className="w-5 h-5 text-brand-500 hover:text-brand-600" />
+            <Search className={`w-5 h-5 ${addressReady ? 'text-white' : 'text-brand-500 hover:text-brand-600'}`} />
+            {addressReady && <span className="text-sm font-medium">Search</span>}
           </button>
         )}
 
@@ -444,9 +457,11 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
       )}
 
       <p className="text-sm text-gray-500">
-        {isGoogleLoaded 
-          ? "Start typing and select an address. We'll pull the APN, owner, and legal description from county records."
-          : "Start typing an address and we'll pull the APN, owner, and legal description automatically."
+        {addressReady 
+          ? "Click Search to pull property details from county records."
+          : isGoogleLoaded 
+            ? "Start typing and select an address, then click Search."
+            : "Start typing an address and we'll pull the APN, owner, and legal description automatically."
         }
       </p>
     </div>
