@@ -7,7 +7,7 @@ import {
   AlertTriangle, ArrowLeft, ArrowRight, FileText, Loader2
 } from 'lucide-react';
 import { usePartners } from '@/features/partners/PartnersContext';
-import { VestingInput } from '@/components/ui/VestingInput';
+import VestingInput from '@/components/ui/VestingInput';
 import { AIGuidance } from '@/components/AIGuidance';
 import { aiAssistant } from '@/services/aiAssistant';
 import { toast } from 'sonner';
