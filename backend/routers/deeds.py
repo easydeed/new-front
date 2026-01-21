@@ -94,20 +94,12 @@ async def generate_grant_deed_ca(
             logger.error(f"[{request_id}] Template rendering failed: {e}")
             raise HTTPException(status_code=500, detail=f"Template rendering error: {e}")
         
-        # Generate PDF using WeasyPrint with timeout and error handling
+        # Generate PDF using pdf_engine (PDFShift with WeasyPrint fallback)
         try:
-            from weasyprint import HTML  # Lazy import to avoid test env failures
+            from pdf_engine import render_pdf_async
             
             pdf_start = time.time()
-            with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:
-                HTML(string=html_content, encoding='utf-8').write_pdf(tmp_file.name)
-                
-                # Read the PDF content
-                with open(tmp_file.name, 'rb') as pdf_file:
-                    pdf_bytes = pdf_file.read()
-                
-                # Clean up temp file
-                os.unlink(tmp_file.name)
+            pdf_bytes = await render_pdf_async(html_content)
                 
             pdf_time = time.time() - pdf_start
             total_time = time.time() - start_time

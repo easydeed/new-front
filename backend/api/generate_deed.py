@@ -7,9 +7,8 @@ from typing import Dict, Any, Optional
 from auth import get_current_user_id
 from database import create_deed
 from jinja2 import Environment, FileSystemLoader
-from weasyprint import HTML
+from pdf_engine import render_pdf_async
 import base64
-import tempfile
 import os
 import logging
 
@@ -156,7 +155,7 @@ def validate_document_data(doc_type: str, data: Dict[str, Any]) -> Optional[str]
     return None
 
 async def generate_pdf_document(template_file: str, data: Dict[str, Any]) -> Optional[str]:
-    """Generate PDF from template and data"""
+    """Generate PDF from template and data using pdf_engine (PDFShift with WeasyPrint fallback)"""
     try:
         # Setup Jinja2 environment
         template_dir = os.path.join(os.path.dirname(__file__), '..', 'templates')
@@ -166,20 +165,12 @@ async def generate_pdf_document(template_file: str, data: Dict[str, Any]) -> Opt
         template = env.get_template(template_file)
         html_content = template.render(**data)
         
-        # Generate PDF
-        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:
-            HTML(string=html_content).write_pdf(tmp_file.name)
-            
-            # Read PDF and encode as base64
-            with open(tmp_file.name, 'rb') as pdf_file:
-                pdf_content = pdf_file.read()
-                pdf_base64 = base64.b64encode(pdf_content).decode('utf-8')
-            
-            # Clean up temp file
-            os.unlink(tmp_file.name)
-            
-            return pdf_base64
-            
+        # Generate PDF using pdf_engine (PDFShift with WeasyPrint fallback)
+        pdf_content = await render_pdf_async(html_content)
+        pdf_base64 = base64.b64encode(pdf_content).decode('utf-8')
+        
+        return pdf_base64
+        
     except Exception as e:
         logger.error(f"PDF generation error: {str(e)}")
         return None

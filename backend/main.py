@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from time import time
 from collections import defaultdict
 from jinja2 import Environment, FileSystemLoader
-from weasyprint import HTML
+from pdf_engine import render_pdf, render_pdf_async
 import base64
 import tempfile
 import json
@@ -2794,17 +2794,8 @@ async def generate_deed(deed: DeedData):
         # Render HTML with data injection
         html_content = template.render(data)
         
-        # Generate PDF using WeasyPrint
-        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:
-            HTML(string=html_content).write_pdf(tmp_file.name)
-            tmp_file.seek(0)
-            
-            # Read PDF content and encode as base64
-            with open(tmp_file.name, 'rb') as f:
-                pdf_bytes = f.read()
-            
-            # Clean up temporary file
-            os.unlink(tmp_file.name)
+        # Generate PDF using pdf_engine (PDFShift with WeasyPrint fallback)
+        pdf_bytes = await render_pdf_async(html_content)
             
         # Return both HTML and PDF
         return {
