@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS document_authenticity (
     
     -- Ownership
     organization_id UUID,                     -- If multi-tenant
-    created_by_user_id INTEGER REFERENCES users(id),
+    created_by_user_id UUID REFERENCES users(id),
     
     -- Status
     status VARCHAR(20) DEFAULT 'active',      -- active, revoked, superseded
@@ -39,8 +39,8 @@ CREATE TABLE IF NOT EXISTS document_authenticity (
     revoked_reason TEXT,
     superseded_by UUID REFERENCES document_authenticity(id),
     
-    -- Reference to deed record
-    deed_id INTEGER REFERENCES deeds(id),
+    -- Reference to deed record (optional - deed_id is just for linking, no FK constraint)
+    deed_id INTEGER,
     
     -- Constraints
     CONSTRAINT valid_status CHECK (status IN ('active', 'revoked', 'superseded'))
