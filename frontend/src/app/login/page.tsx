@@ -68,7 +68,21 @@ function LoginContent() {
           AuthManager.setAuth(token, data.user)
         }
         setSuccessMessage("Login successful! Redirecting...")
-        const redirectTo = searchParams.get("redirect") || "/dashboard"
+        
+        // Check if user is admin and redirect accordingly
+        let redirectTo = searchParams.get("redirect") || "/dashboard"
+        if (token) {
+          try {
+            const payload = JSON.parse(atob(token.split('.')[1]))
+            const role = (payload.role || '').toLowerCase().trim()
+            const isAdmin = ['admin', 'administrator', 'superadmin', 'super_admin'].includes(role)
+            if (isAdmin && !searchParams.get("redirect")) {
+              redirectTo = "/admin"
+            }
+          } catch (e) {
+            // Token decode failed, use default redirect
+          }
+        }
         setTimeout(() => router.push(redirectTo), 1000)
       } else if (response.status === 401) {
         setError("Invalid email or password. Please check your credentials and try again.")

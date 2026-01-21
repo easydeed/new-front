@@ -1,0 +1,266 @@
+/* ========================================
+   DeedPro Admin - Sidebar Layout
+   ======================================== */
+
+/* Layout Structure */
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--dp-bg);
+}
+
+/* Sidebar */
+.admin-sidebar {
+  width: 260px;
+  background: #fff;
+  border-right: 1px solid var(--dp-border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 50;
+}
+
+/* Sidebar Header */
+.admin-sidebar-header {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--dp-border);
+}
+
+.admin-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-logo-icon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #F57C00 0%, #FF9800 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.admin-logo-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-logo-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--dp-text);
+  line-height: 1.2;
+}
+
+.admin-logo-badge {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--dp-primary);
+  background: var(--dp-primary-light);
+  padding: 2px 8px;
+  border-radius: 4px;
+  width: fit-content;
+  margin-top: 2px;
+}
+
+/* Navigation */
+.admin-nav {
+  flex: 1;
+  padding: 16px 12px;
+  overflow-y: auto;
+}
+
+.admin-nav-section {
+  margin-bottom: 24px;
+}
+
+.admin-nav-section:last-child {
+  margin-bottom: 0;
+}
+
+.admin-nav-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--dp-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0 12px;
+  margin-bottom: 8px;
+}
+
+.admin-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--dp-text-dim);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  margin-bottom: 2px;
+}
+
+.admin-nav-item:hover {
+  background: var(--dp-hover);
+  color: var(--dp-text);
+}
+
+.admin-nav-item.active {
+  background: var(--dp-primary-light);
+  color: var(--dp-primary);
+}
+
+.admin-nav-item.active svg {
+  color: var(--dp-primary);
+}
+
+.admin-nav-item svg {
+  flex-shrink: 0;
+  color: var(--dp-text-muted);
+  transition: color 0.15s ease;
+}
+
+.admin-nav-item:hover svg {
+  color: var(--dp-text-dim);
+}
+
+/* Sidebar Footer */
+.admin-sidebar-footer {
+  padding: 16px;
+  border-top: 1px solid var(--dp-border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-user {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.admin-user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--dp-bg-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--dp-text-dim);
+  flex-shrink: 0;
+}
+
+.admin-user-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.admin-user-email {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dp-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-user-role {
+  font-size: 11px;
+  color: var(--dp-text-muted);
+}
+
+.admin-logout-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--dp-border);
+  background: transparent;
+  color: var(--dp-text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.admin-logout-btn:hover {
+  background: var(--dp-danger-light);
+  border-color: var(--dp-danger);
+  color: var(--dp-danger);
+}
+
+/* Main Content */
+.admin-main {
+  flex: 1;
+  margin-left: 260px;
+  min-height: 100vh;
+}
+
+/* Loading State */
+.admin-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--dp-bg);
+  color: var(--dp-text-dim);
+  gap: 16px;
+}
+
+.admin-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--dp-border);
+  border-top-color: var(--dp-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .admin-sidebar {
+    width: 240px;
+  }
+  
+  .admin-main {
+    margin-left: 240px;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .admin-sidebar.open {
+    transform: translateX(0);
+  }
+  
+  .admin-main {
+    margin-left: 0;
+  }
+}
