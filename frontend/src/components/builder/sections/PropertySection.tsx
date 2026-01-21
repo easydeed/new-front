@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { MapPin, Search, Check, Loader2, AlertCircle, Building2, ChevronRight } from "lucide-react"
 import type { PropertyData } from "@/types/builder"
+import { useAIAssist } from "@/contexts/AIAssistContext"
+import { AISuggestion } from "../AISuggestion"
 
 interface PropertySectionProps {
   value: PropertyData | null
@@ -141,6 +143,8 @@ function parseGoogleAddress(fullAddress: string): ParsedAddress {
 }
 
 export function PropertySection({ value, onChange, onComplete }: PropertySectionProps) {
+  const { enabled: aiEnabled } = useAIAssist()
+  const [guidanceDismissed, setGuidanceDismissed] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoadingProperty, setIsLoadingProperty] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -482,6 +486,15 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
       className="space-y-4 transition-all duration-200 ease-out"
       style={{ minHeight: suggestionsHeight > 0 ? `${suggestionsHeight + 120}px` : 'auto' }}
     >
+      {/* AI Guidance */}
+      {aiEnabled && !guidanceDismissed && !value?.address && (
+        <AISuggestion
+          message="Start by searching for the property address. We'll automatically pull the APN, legal description, and current owner from county records to pre-fill the deed."
+          variant="info"
+          onDismiss={() => setGuidanceDismissed(true)}
+        />
+      )}
+
       <div className="relative" ref={suggestionsRef}>
         <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 z-10" />
         <input

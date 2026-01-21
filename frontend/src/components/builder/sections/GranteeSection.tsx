@@ -1,6 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { User, AlertTriangle } from 'lucide-react';
+import { useAIAssist } from '@/contexts/AIAssistContext';
+import { AISuggestion } from '../AISuggestion';
 
 interface GranteeSectionProps {
   value: string;
@@ -9,11 +12,23 @@ interface GranteeSectionProps {
 }
 
 export function GranteeSection({ value, onChange, grantorName }: GranteeSectionProps) {
+  const { enabled: aiEnabled } = useAIAssist();
+  const [guidanceDismissed, setGuidanceDismissed] = useState(false);
+
   const isSameAsGrantor = value && grantorName && 
     value.trim().toUpperCase() === grantorName.trim().toUpperCase();
 
   return (
     <div className="space-y-4">
+      {/* AI Guidance */}
+      {aiEnabled && !guidanceDismissed && !value && (
+        <AISuggestion
+          message="The GRANTEE is the person or entity receiving the property. Enter their full legal name exactly as it should appear on the deed. For multiple people, use 'and' between names."
+          variant="info"
+          onDismiss={() => setGuidanceDismissed(true)}
+        />
+      )}
+
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Grantee Name (New Owner)

@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Building2 } from 'lucide-react';
 import { usePartners } from '@/features/partners/PartnersContext';
+import { useAIAssist } from '@/contexts/AIAssistContext';
+import { AISuggestion } from '../AISuggestion';
 
 interface RecordingSectionProps {
   requestedBy: string;
@@ -11,6 +13,8 @@ interface RecordingSectionProps {
 }
 
 export function RecordingSection({ requestedBy, returnTo, onChange }: RecordingSectionProps) {
+  const { enabled: aiEnabled } = useAIAssist();
+  const [guidanceDismissed, setGuidanceDismissed] = useState(false);
   const { partners } = usePartners();
   
   useEffect(() => {
@@ -27,6 +31,15 @@ export function RecordingSection({ requestedBy, returnTo, onChange }: RecordingS
 
   return (
     <div className="space-y-4">
+      {/* AI Guidance */}
+      {aiEnabled && !guidanceDismissed && !requestedBy && (
+        <AISuggestion
+          message="Select who is submitting this deed for recording. This is typically the title company, escrow officer, or attorney handling the transaction. The recorded deed will be mailed to the 'Return To' address."
+          variant="info"
+          onDismiss={() => setGuidanceDismissed(true)}
+        />
+      )}
+
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Recording Requested By

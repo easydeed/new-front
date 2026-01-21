@@ -1,7 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { User, Sparkles } from 'lucide-react';
+import { useAIAssist } from '@/contexts/AIAssistContext';
+import { AISuggestion } from '../AISuggestion';
 
 interface GrantorSectionProps {
   value: string;
@@ -10,6 +12,9 @@ interface GrantorSectionProps {
 }
 
 export function GrantorSection({ value, onChange, suggestedName }: GrantorSectionProps) {
+  const { enabled: aiEnabled } = useAIAssist();
+  const [guidanceDismissed, setGuidanceDismissed] = useState(false);
+
   useEffect(() => {
     if (!value && suggestedName) {
       onChange(suggestedName);
@@ -18,6 +23,15 @@ export function GrantorSection({ value, onChange, suggestedName }: GrantorSectio
 
   return (
     <div className="space-y-4">
+      {/* AI Guidance */}
+      {aiEnabled && !guidanceDismissed && !value && (
+        <AISuggestion
+          message="The GRANTOR is the current owner transferring the property. This should match the name on the existing deed exactly. For married couples, include both names."
+          variant="info"
+          onDismiss={() => setGuidanceDismissed(true)}
+        />
+      )}
+
       {suggestedName && value === suggestedName && (
         <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg">
           <Sparkles className="w-4 h-4" />
