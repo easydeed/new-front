@@ -1,19 +1,43 @@
 :root{
-  --dp-bg: #0b1020;
-  --dp-panel: #0f172a;
-  --dp-panel-alt: #0b1220;
-  --dp-border: #1f2a44;
-  --dp-text: #e5e7eb;
-  --dp-text-dim: #9ca3af;
-  --dp-primary: #0f7cff; /* brand-ish */
-  --dp-primary-600:#0b64cc;
-  --dp-success: #10b981;
-  --dp-warning: #f59e0b;
-  --dp-danger: #ef4444;
-  --dp-card-grad: linear-gradient(135deg, #0f7cff 0%, #7c3aed 100%);
-  --dp-shadow: 0 10px 25px rgba(0,0,0,.25);
-  --dp-radius: 14px;
-  --dp-radius-sm: 10px;
-  --dp-radius-xs: 8px;
+  /* Light Professional Theme */
+  --dp-bg: #f8fafc;
+  --dp-bg-subtle: #f1f5f9;
+  --dp-panel: #ffffff;
+  --dp-panel-alt: #f8fafc;
+  --dp-border: #e2e8f0;
+  --dp-border-hover: #cbd5e1;
+  --dp-text: #1e293b;
+  --dp-text-dim: #64748b;
+  --dp-text-muted: #94a3b8;
+  
+  /* Brand - Subtle Orange Accent */
+  --dp-primary: #F57C00;
+  --dp-primary-light: #fff7ed;
+  --dp-primary-600: #ea580c;
+  --dp-primary-hover: #c2410c;
+  
+  /* Status Colors */
+  --dp-success: #059669;
+  --dp-success-light: #ecfdf5;
+  --dp-warning: #d97706;
+  --dp-warning-light: #fffbeb;
+  --dp-danger: #dc2626;
+  --dp-danger-light: #fef2f2;
+  
+  /* Shadows */
+  --dp-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --dp-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --dp-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --dp-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+  
+  /* Radius */
+  --dp-radius: 12px;
+  --dp-radius-sm: 8px;
+  --dp-radius-xs: 6px;
+  --dp-radius-full: 9999px;
+  
+  /* Hover */
+  --dp-hover: #f1f5f9;
+  --dp-surface: #f8fafc;
 }
 

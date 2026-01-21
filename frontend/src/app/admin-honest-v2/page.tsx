@@ -27,45 +27,102 @@ export default function AdminHonestV2Page(){
   const Active = TABS.find(t=> t.id===tab)?.render || (() => null);
   
   const handleLogout = () => {
-    // Clear auth tokens
     localStorage.removeItem('access_token');
     localStorage.removeItem('token');
-    // Redirect to login
     router.push('/login');
   };
   
   return (
     <div className="admin-shell">
-      <div className="hstack" style={{justifyContent:'space-between', marginBottom:12}}>
-        <div className="hstack" style={{ gap: '12px' }}>
-          <div style={{fontWeight:700, fontSize:20, letterSpacing:.25}}>DeedPro Admin</div>
+      {/* Header */}
+      <header style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        marginBottom: 8,
+        paddingBottom: 20,
+        borderBottom: '1px solid var(--dp-border)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ 
+            width: 40, 
+            height: 40, 
+            background: 'linear-gradient(135deg, #F57C00 0%, #FF9800 100%)',
+            borderRadius: 10,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            fontWeight: 700,
+            fontSize: 18
+          }}>
+            D
+          </div>
+          <div>
+            <h1 style={{ 
+              fontSize: 22, 
+              fontWeight: 700, 
+              color: 'var(--dp-text)',
+              margin: 0,
+              letterSpacing: '-0.02em'
+            }}>
+              DeedPro Admin
+            </h1>
+            <p style={{ 
+              fontSize: 13, 
+              color: 'var(--dp-text-dim)',
+              margin: 0
+            }}>
+              Manage users, deeds, and analytics
+            </p>
+          </div>
+        </div>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {FEATURE_FLAGS.PARTNERS_TAB && (
             <a 
               href="/admin/partners" 
               style={{ 
-                padding: '6px 14px', 
-                background: '#3b82f6', 
-                color: 'white', 
-                borderRadius: '6px', 
+                padding: '8px 16px', 
+                background: 'var(--dp-bg-subtle)', 
+                color: 'var(--dp-text)',
+                borderRadius: 'var(--dp-radius-sm)', 
                 textDecoration: 'none', 
-                fontSize: '13px',
+                fontSize: '14px',
                 fontWeight: 500,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px'
+                border: '1px solid var(--dp-border)',
+                transition: 'all 0.2s'
               }}
             >
-              🤝 API Partners
+              API Partners
             </a>
           )}
+          <button 
+            className="button ghost" 
+            onClick={handleLogout}
+            style={{ padding: '8px 16px' }}
+          >
+            Sign Out
+          </button>
         </div>
-        <button className="button ghost" onClick={handleLogout}>Logout</button>
-      </div>
+      </header>
+
+      {/* Tab Navigation */}
       <div role="tablist" className="tabs">
         {TABS.map(t => (
-          <button key={t.id} role="tab" className="tab" aria-selected={t.id===tab} onClick={()=>setTab(t.id)}>{t.label}</button>
+          <button 
+            key={t.id} 
+            role="tab" 
+            className="tab" 
+            aria-selected={t.id===tab} 
+            onClick={()=>setTab(t.id)}
+          >
+            {t.label}
+          </button>
         ))}
       </div>
+
+      {/* Tab Content */}
       <Active/>
     </div>
   );
