@@ -110,6 +110,13 @@ class AuthUtils:
         }
         return state.upper() in valid_states
 
+def is_admin_role(role: str) -> bool:
+    """Check if role string indicates admin access (case-insensitive)"""
+    if not role:
+        return False
+    r = role.strip().lower()
+    return r in ('admin', 'administrator', 'superadmin', 'super_admin')
+
 async def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
     """Verify admin access from JWT token"""
     try:
@@ -117,7 +124,7 @@ async def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(
         user_email: str = payload.get("email")
         user_role: str = payload.get("role")
         
-        if user_email is None or user_role != "admin":
+        if user_email is None or not is_admin_role(user_role):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Admin access required"

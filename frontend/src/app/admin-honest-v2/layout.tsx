@@ -93,9 +93,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       const payload = JSON.parse(atob(token.split('.')[1]));
       setUserEmail(payload.email || '');
       
-      if (payload.role !== 'admin') {
+      // Flexible admin check (case-insensitive, multiple variations)
+      const role = (payload.role || '').toLowerCase().trim();
+      const isAdminRole = ['admin', 'administrator', 'superadmin', 'super_admin'].includes(role);
+      
+      if (!isAdminRole) {
         // Not admin - redirect to dashboard
-        alert('Admin access required');
+        alert('Admin access required. Your role: ' + (payload.role || 'none'));
         router.push('/dashboard');
         return;
       }
