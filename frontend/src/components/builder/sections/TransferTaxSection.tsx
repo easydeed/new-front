@@ -175,8 +175,8 @@ export function TransferTaxSection({
       {/* General AI Guidance (when AI is on but no specific suggestion) */}
       {showGeneralGuidance && (
         <AISuggestion
-          message={`For a ${deedType.replace(/-/g, ' ')}, tax is typically calculated on the full transfer value. Mark as exempt only if a valid R&T code applies.`}
-          variant="info"
+          message={`For a ${deedType.replace(/-/g, ' ')}, documentary transfer tax is typically calculated on the full transfer value.`}
+          details="California DTT is $1.10 per $1,000 of transfer value. Some cities add their own tax (e.g., LA adds $4.50/1,000). Common exemptions: R&T 11911 (gift), R&T 11927 (interspousal), R&T 11930 (trust transfer). If the transfer involves no cash exchange (like adding a spouse), it may be exempt."
           onDismiss={() => setSuggestionDismissed(true)}
         />
       )}

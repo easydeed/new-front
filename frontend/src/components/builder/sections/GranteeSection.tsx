@@ -23,8 +23,8 @@ export function GranteeSection({ value, onChange, grantorName }: GranteeSectionP
       {/* AI Guidance */}
       {aiEnabled && !guidanceDismissed && !value && (
         <AISuggestion
-          message="The GRANTEE is the person or entity receiving the property. Enter their full legal name exactly as it should appear on the deed. For multiple people, use 'and' between names."
-          variant="info"
+          message="The GRANTEE is the person or entity receiving the property. Enter their full legal name in ALL CAPS."
+          details="For multiple grantees, use 'AND' between names (e.g., 'JOHN DOE AND JANE DOE'). For LLCs or corporations, use the exact legal entity name. For trusts, include the trust name, date, and trustee name (e.g., 'JOHN SMITH, TRUSTEE OF THE SMITH FAMILY TRUST DATED 01/01/2020')."
           onDismiss={() => setGuidanceDismissed(true)}
         />
       )}

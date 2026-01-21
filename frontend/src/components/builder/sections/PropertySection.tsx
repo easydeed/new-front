@@ -476,21 +476,13 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
   // RENDER: Search input with Google autocomplete
   // ─────────────────────────────────────────────────────────────────
   
-  // Calculate dynamic height based on suggestions
-  const suggestionsHeight = showSuggestions && suggestions.length > 0 
-    ? Math.min(suggestions.length * 68, 272) // ~68px per suggestion, max 4 visible (272px)
-    : 0
-
   return (
-    <div 
-      className="space-y-4 transition-all duration-200 ease-out"
-      style={{ minHeight: suggestionsHeight > 0 ? `${suggestionsHeight + 120}px` : 'auto' }}
-    >
+    <div className="space-y-4">
       {/* AI Guidance */}
       {aiEnabled && !guidanceDismissed && !value?.address && (
         <AISuggestion
-          message="Start by searching for the property address. We'll automatically pull the APN, legal description, and current owner from county records to pre-fill the deed."
-          variant="info"
+          message="Start by searching for the property address. We'll automatically pull the APN, legal description, and current owner from county records."
+          details="Type at least 3 characters to see address suggestions. Select an address from the dropdown, then click 'Search' to fetch property data. For condos or multi-unit buildings, you'll be prompted to select the specific unit."
           onDismiss={() => setGuidanceDismissed(true)}
         />
       )}

@@ -115,7 +115,12 @@ export function VestingSection({ value, onChange, granteeCount, deedType, grante
               ? "For two grantees, choose based on relationship: married couples often use community property or joint tenants."
               : "For multiple grantees, joint tenants provides survivorship rights; tenants in common allows separate shares."
           }
-          variant="info"
+          details={granteeCount === 1
+            ? "Single/unmarried: Property is owned individually. Married as sole & separate: Spouse has no claim to the property — often used when one spouse is purchasing with separate funds or for estate planning reasons."
+            : granteeCount === 2
+              ? "Joint Tenants: Equal ownership with right of survivorship — when one dies, the other automatically inherits. Community Property: For married couples — each spouse owns 50%. Tenants in Common: Unequal shares allowed, no survivorship — share passes to heirs."
+              : "Joint Tenants: All owners have equal shares with right of survivorship. Tenants in Common: Shares can be unequal (e.g., 50/25/25) and each share can be willed separately. Specify percentages if using tenants in common."
+          }
           onDismiss={() => setSuggestionApplied(true)}
         />
       )}

@@ -26,8 +26,8 @@ export function GrantorSection({ value, onChange, suggestedName }: GrantorSectio
       {/* AI Guidance */}
       {aiEnabled && !guidanceDismissed && !value && (
         <AISuggestion
-          message="The GRANTOR is the current owner transferring the property. This should match the name on the existing deed exactly. For married couples, include both names."
-          variant="info"
+          message="The GRANTOR is the current owner transferring the property. This should match the name on the existing deed exactly."
+          details="Enter the grantor's full legal name in ALL CAPS as it appears on the current deed. For married couples, use 'JOHN SMITH AND JANE SMITH, HUSBAND AND WIFE'. For trusts, include the full trust name and trustee. If the name has changed since the original deed, a name affidavit may be required."
           onDismiss={() => setGuidanceDismissed(true)}
         />
       )}

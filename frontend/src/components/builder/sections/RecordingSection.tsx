@@ -34,8 +34,8 @@ export function RecordingSection({ requestedBy, returnTo, onChange }: RecordingS
       {/* AI Guidance */}
       {aiEnabled && !guidanceDismissed && !requestedBy && (
         <AISuggestion
-          message="Select who is submitting this deed for recording. This is typically the title company, escrow officer, or attorney handling the transaction. The recorded deed will be mailed to the 'Return To' address."
-          variant="info"
+          message="Select who is submitting this deed for recording. This appears in the top-left corner of the deed."
+          details="The 'Recording Requested By' is typically the title company, escrow officer, or attorney handling the transaction. 'Return To' specifies where the county recorder should mail the deed after recording — usually the same party, or directly to the new owner (grantee)."
           onDismiss={() => setGuidanceDismissed(true)}
         />
       )}
