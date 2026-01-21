@@ -200,6 +200,16 @@ except ImportError as e:
 except Exception as e:
     print(f"❌ Phase 15 v5: Error loading Industry Partners API: {e}")
 
+# QR Verification System (Public endpoint - no auth required)
+try:
+    from routers.verification import router as verification_router
+    app.include_router(verification_router, tags=["Document Verification"])
+    print("✅ QR Verification System loaded (/api/verify/{code} - public)")
+except ImportError as e:
+    print(f"⚠️ QR Verification System not available: {e}")
+except Exception as e:
+    print(f"❌ QR Verification System error: {e}")
+
 # Allow CORS for local dev and frontend
 app.add_middleware(
     CORSMiddleware,
