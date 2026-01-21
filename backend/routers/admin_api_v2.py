@@ -331,3 +331,220 @@ def admin_get_deed_pdf(deed_id: int, admin=Depends(get_current_admin)):
             "deed_id": deed_id,
             "message": "PDF not available. Use /api/generate/{deed_type} to regenerate."
         }
+
+
+# ============================================================================
+# API KEY MANAGEMENT ENDPOINTS
+# ============================================================================
+
+@router.get("/api-keys")
+def list_api_keys(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    admin=Depends(get_current_admin)
+):
+    """List all API keys with usage statistics."""
+    offset = (page - 1) * limit
+    conn = get_db_connection()
+    with conn.cursor() as cur:
+        # Get total count
+        cur.execute("SELECT COUNT(*) as count FROM api_keys")
+        total = cur.fetchone()['count']
+        
+        # Get paginated keys
+        cur.execute("""
+            SELECT 
+                ak.id, ak.key_prefix, ak.name, ak.is_active, ak.is_test,
+                ak.rate_limit_hour, ak.rate_limit_day, ak.created_at, ak.last_used_at,
+                (SELECT COUNT(*) FROM api_deeds WHERE api_key_id = ak.id) as deed_count,
+                (SELECT COUNT(*) FROM api_usage_log WHERE api_key_id = ak.id) as request_count
+            FROM api_keys ak
+            ORDER BY ak.created_at DESC
+            LIMIT %s OFFSET %s
+        """, (limit, offset))
+        
+        keys = [dict(row) for row in cur.fetchall()]
+        
+        return {
+            "api_keys": keys,
+            "total": total,
+            "page": page,
+            "pages": (total + limit - 1) // limit
+        }
+
+
+@router.post("/api-keys")
+def create_api_key(
+    name: str = Body(..., embed=True),
+    is_test: bool = Body(False, embed=True),
+    rate_limit_hour: int = Body(100, embed=True),
+    rate_limit_day: int = Body(1000, embed=True),
+    admin=Depends(get_current_admin)
+):
+    """
+    Create a new API key.
+    Returns the full key ONCE - it cannot be retrieved again.
+    """
+    from utils.api_keys import generate_api_key as gen_key
+    
+    full_key, key_prefix, key_hash = gen_key(is_test=is_test)
+    
+    conn = get_db_connection()
+    with conn.cursor() as cur:
+        cur.execute("""
+            INSERT INTO api_keys (key_prefix, key_hash, name, is_test, rate_limit_hour, rate_limit_day, created_by_email)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            RETURNING id, created_at
+        """, (key_prefix, key_hash, name, is_test, rate_limit_hour, rate_limit_day, admin))
+        
+        row = cur.fetchone()
+        conn.commit()
+        
+        return {
+            "success": True,
+            "api_key": {
+                "id": row['id'],
+                "key": full_key,  # Only shown once!
+                "key_prefix": key_prefix,
+                "name": name,
+                "is_test": is_test,
+                "rate_limit_hour": rate_limit_hour,
+                "rate_limit_day": rate_limit_day,
+                "created_at": row['created_at'].isoformat() if row['created_at'] else None
+            },
+            "warning": "Save this API key now. It cannot be retrieved again."
+        }
+
+
+@router.get("/api-keys/{key_id}")
+def get_api_key(
+    key_id: int,
+    admin=Depends(get_current_admin)
+):
+    """Get API key details and usage statistics."""
+    conn = get_db_connection()
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT id, key_prefix, name, is_active, is_test,
+                   rate_limit_hour, rate_limit_day, created_at, last_used_at, created_by_email
+            FROM api_keys
+            WHERE id = %s
+        """, (key_id,))
+        
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="API key not found")
+        
+        key_data = dict(row)
+        
+        # Get usage stats
+        cur.execute("""
+            SELECT COUNT(*) as total_deeds,
+                   COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_deeds
+            FROM api_deeds WHERE api_key_id = %s
+        """, (key_id,))
+        deed_stats = dict(cur.fetchone())
+        
+        cur.execute("""
+            SELECT COUNT(*) as total_requests,
+                   COUNT(CASE WHEN status_code >= 400 THEN 1 END) as error_requests,
+                   AVG(response_time_ms) as avg_response_ms
+            FROM api_usage_log WHERE api_key_id = %s
+        """, (key_id,))
+        usage_stats = dict(cur.fetchone())
+        
+        # Get recent requests
+        cur.execute("""
+            SELECT endpoint, method, status_code, response_time_ms, created_at
+            FROM api_usage_log
+            WHERE api_key_id = %s
+            ORDER BY created_at DESC
+            LIMIT 10
+        """, (key_id,))
+        recent_requests = [dict(row) for row in cur.fetchall()]
+        
+        return {
+            "api_key": key_data,
+            "stats": {
+                **deed_stats,
+                **usage_stats
+            },
+            "recent_requests": recent_requests
+        }
+
+
+@router.patch("/api-keys/{key_id}")
+def update_api_key(
+    key_id: int,
+    name: Optional[str] = Body(None, embed=True),
+    is_active: Optional[bool] = Body(None, embed=True),
+    rate_limit_hour: Optional[int] = Body(None, embed=True),
+    rate_limit_day: Optional[int] = Body(None, embed=True),
+    admin=Depends(get_current_admin)
+):
+    """Update API key settings."""
+    conn = get_db_connection()
+    with conn.cursor() as cur:
+        # Build update query dynamically
+        updates = []
+        params = []
+        
+        if name is not None:
+            updates.append("name = %s")
+            params.append(name)
+        if is_active is not None:
+            updates.append("is_active = %s")
+            params.append(is_active)
+        if rate_limit_hour is not None:
+            updates.append("rate_limit_hour = %s")
+            params.append(rate_limit_hour)
+        if rate_limit_day is not None:
+            updates.append("rate_limit_day = %s")
+            params.append(rate_limit_day)
+        
+        if not updates:
+            raise HTTPException(status_code=400, detail="No updates provided")
+        
+        params.append(key_id)
+        cur.execute(f"""
+            UPDATE api_keys SET {', '.join(updates)}
+            WHERE id = %s
+            RETURNING id, key_prefix, name, is_active, is_test, rate_limit_hour, rate_limit_day
+        """, params)
+        
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="API key not found")
+        
+        conn.commit()
+        
+        return {
+            "success": True,
+            "api_key": dict(row)
+        }
+
+
+@router.delete("/api-keys/{key_id}")
+def delete_api_key(
+    key_id: int,
+    admin=Depends(get_current_admin)
+):
+    """Deactivate (soft delete) an API key."""
+    conn = get_db_connection()
+    with conn.cursor() as cur:
+        cur.execute("""
+            UPDATE api_keys SET is_active = false
+            WHERE id = %s
+            RETURNING id, key_prefix, name
+        """, (key_id,))
+        
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="API key not found")
+        
+        conn.commit()
+        
+        return {
+            "success": True,
+            "message": f"API key '{row['name']}' has been deactivated"
+        }

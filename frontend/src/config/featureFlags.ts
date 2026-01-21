@@ -13,7 +13,7 @@ export const FEATURE_FLAGS = {
   SYSTEM_TAB: true,            // ✅ Real PDF engine stats
   VERIFICATION_TAB: true,      // ✅ NEW: Document authenticity / QR verification
   DEED_ACTIONS: true,          // ✅ NEW: View PDF, Delete deed
-  PARTNERS_TAB: false,         // 🔒 HIDDEN: Bring back when API launches
+  PARTNERS_TAB: true,          // ✅ ENABLED: Public API v1 launched
   
   // ========================================
   // ADMIN FEATURES

@@ -211,6 +211,16 @@ except ImportError as e:
 except Exception as e:
     print(f"❌ QR Verification System error: {e}")
 
+# Public API v1 (Partner API for deed generation)
+try:
+    from routers.api_v1.router import router as api_v1_router
+    app.include_router(api_v1_router, tags=["Public API v1"])
+    print("✅ Public API v1 loaded (/api/v1/deeds - partner deed generation)")
+except ImportError as e:
+    print(f"⚠️ Public API v1 not available: {e}")
+except Exception as e:
+    print(f"❌ Public API v1 error: {e}")
+
 # Allow CORS for local dev and frontend
 app.add_middleware(
     CORSMiddleware,
