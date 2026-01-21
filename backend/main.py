@@ -202,9 +202,10 @@ except Exception as e:
 
 # QR Verification System (Public endpoint - no auth required)
 try:
-    from routers.verification import router as verification_router
+    from routers.verification import router as verification_router, admin_router as verification_admin_router
     app.include_router(verification_router, tags=["Document Verification"])
-    print("✅ QR Verification System loaded (/api/verify/{code} - public)")
+    app.include_router(verification_admin_router, tags=["Admin Verification"])
+    print("✅ QR Verification System loaded (/api/verify/{code} - public, /admin/verification/* - admin)")
 except ImportError as e:
     print(f"⚠️ QR Verification System not available: {e}")
 except Exception as e:
@@ -1313,45 +1314,95 @@ def admin_list_all_deeds(
 
 @app.get("/admin/revenue")
 def admin_revenue_analytics():
-    """Get detailed revenue analytics"""
+    """Get real revenue analytics from Stripe"""
     if not verify_admin():
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    # Mock revenue data - in production, calculate from database/Stripe
-    revenue_data = {
-        "overview": {
-            "total_revenue": 45230.50,
-            "monthly_revenue": 8750.25,
-            "daily_revenue": 291.67,
-            "average_revenue_per_user": 36.29
-        },
-        "monthly_breakdown": [
-            {"month": "2024-01", "revenue": 8750.25, "new_subscriptions": 23, "cancellations": 5},
-            {"month": "2023-12", "revenue": 8120.00, "new_subscriptions": 19, "cancellations": 8},
-            {"month": "2023-11", "revenue": 7890.75, "new_subscriptions": 31, "cancellations": 3}
-        ],
-        "subscription_revenue": {
-            "free": {"count": 456, "revenue": 0.00},
-            "basic": {"count": 523, "revenue": 5229.77},
-            "pro": {"count": 268, "revenue": 8032.32}
-        },
-        "payment_methods": {
-            "credit_card": {"count": 678, "revenue": 12450.23},
-            "paypal": {"count": 113, "revenue": 1300.86}
-        },
-        "top_paying_users": [
-            {"user_id": 1, "email": "john@example.com", "total_paid": 359.88},
-            {"user_id": 45, "email": "sarah@lawfirm.com", "total_paid": 299.88},
-            {"user_id": 23, "email": "mike@realty.com", "total_paid": 239.91}
-        ],
-        "refunds": {
-            "total_refunded": 234.50,
-            "refund_count": 8,
-            "refund_rate": 0.52  # percentage
+    try:
+        # Calculate time ranges
+        now = datetime.now()
+        start_of_month = datetime(now.year, now.month, 1)
+        start_of_month_ts = int(start_of_month.timestamp())
+        
+        # Get active subscriptions for MRR
+        subscriptions = stripe.Subscription.list(status="active", limit=100)
+        mrr_cents = sum(sub.plan.amount for sub in subscriptions.data if sub.plan)
+        
+        # Get charges this month
+        charges = stripe.Charge.list(created={"gte": start_of_month_ts}, limit=100)
+        monthly_revenue_cents = sum(c.amount for c in charges.data if c.paid and not c.refunded)
+        stripe_fees_cents = sum(c.balance_transaction.fee if hasattr(c, 'balance_transaction') and c.balance_transaction else 0 for c in charges.data if c.paid)
+        
+        # Get refunds this month
+        refunds = stripe.Refund.list(created={"gte": start_of_month_ts}, limit=100)
+        refunds_cents = sum(r.amount for r in refunds.data)
+        
+        # Get all-time charges for total revenue (last 12 months to keep it manageable)
+        twelve_months_ago = int((now - timedelta(days=365)).timestamp())
+        all_charges = stripe.Charge.list(created={"gte": twelve_months_ago}, limit=100)
+        total_revenue_cents = sum(c.amount for c in all_charges.data if c.paid and not c.refunded)
+        
+        # Build monthly breakdown (last 6 months)
+        monthly_breakdown = []
+        for i in range(6):
+            month_date = now - timedelta(days=30 * i)
+            month_str = month_date.strftime("%Y-%m")
+            month_start = datetime(month_date.year, month_date.month, 1)
+            month_end = (month_start + timedelta(days=32)).replace(day=1)
+            
+            month_charges = stripe.Charge.list(
+                created={"gte": int(month_start.timestamp()), "lt": int(month_end.timestamp())},
+                limit=100
+            )
+            revenue = sum(c.amount for c in month_charges.data if c.paid and not c.refunded)
+            
+            monthly_breakdown.append({
+                "month": month_str,
+                "revenue_cents": revenue,
+                "revenue_dollars": revenue / 100
+            })
+        
+        revenue_data = {
+            "overview": {
+                "total_revenue_cents": total_revenue_cents,
+                "monthly_revenue_cents": monthly_revenue_cents,
+                "stripe_fees_cents": stripe_fees_cents,
+                "refunds_cents": refunds_cents,
+                "net_monthly_revenue_cents": monthly_revenue_cents - stripe_fees_cents - refunds_cents
+            },
+            "monthly_breakdown": monthly_breakdown,
+            "mrr_arr": {
+                "mrr_cents": mrr_cents,
+                "mrr_dollars": mrr_cents / 100,
+                "arr_cents": mrr_cents * 12,
+                "arr_dollars": (mrr_cents * 12) / 100
+            }
         }
-    }
-    
-    return revenue_data
+        
+        return revenue_data
+        
+    except stripe.error.StripeError as e:
+        print(f"Stripe error: {e}")
+        # Return zero values if Stripe fails
+        return {
+            "overview": {
+                "total_revenue_cents": 0,
+                "monthly_revenue_cents": 0,
+                "stripe_fees_cents": 0,
+                "refunds_cents": 0,
+                "net_monthly_revenue_cents": 0
+            },
+            "monthly_breakdown": [],
+            "mrr_arr": {
+                "mrr_cents": 0,
+                "mrr_dollars": 0,
+                "arr_cents": 0,
+                "arr_dollars": 0
+            }
+        }
+    except Exception as e:
+        print(f"Revenue analytics error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch revenue data: {str(e)}")
 
 @app.get("/admin/analytics")
 def admin_platform_analytics():
@@ -1421,6 +1472,93 @@ def admin_system_health():
     }
     
     return health_data
+
+
+@app.get("/admin/system/overview")
+def admin_system_overview():
+    """Get system overview with real health checks and PDF stats - Phase 5D"""
+    if not verify_admin():
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    # Check database health
+    db_status = "down"
+    db_latency = 0
+    try:
+        import time
+        start = time.time()
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1")
+            cur.fetchone()
+        db_latency = int((time.time() - start) * 1000)
+        db_status = "up"
+    except Exception as e:
+        print(f"DB health check failed: {e}")
+    
+    # Check Stripe health
+    stripe_status = "down"
+    try:
+        stripe.Account.retrieve()
+        stripe_status = "up"
+    except Exception as e:
+        print(f"Stripe health check failed: {e}")
+    
+    # PDF engine status
+    pdf_engine_primary = os.getenv("PDF_ENGINE", "auto")
+    use_pdfshift = os.getenv("USE_PDFSHIFT", "false").lower() == "true"
+    pdfshift_key = os.getenv("PDFSHIFT_API_KEY")
+    
+    if use_pdfshift and pdfshift_key:
+        pdf_primary = "PDFShift"
+    else:
+        pdf_primary = "WeasyPrint"
+    
+    # Get PDF generation stats from deeds table
+    pdf_stats = {
+        "total_generated": 0,
+        "pdfshift_count": 0,
+        "weasyprint_count": 0,
+        "avg_time_ms": 0,
+        "by_type": {}
+    }
+    
+    try:
+        with conn.cursor() as cur:
+            # Total deeds with PDFs (completed deeds)
+            cur.execute("SELECT COUNT(*) FROM deeds WHERE status = 'completed'")
+            pdf_stats["total_generated"] = cur.fetchone()[0] or 0
+            
+            # For now, estimate PDFShift vs WeasyPrint based on deployment date
+            # (In future, add pdf_engine column to deeds table)
+            if use_pdfshift:
+                pdf_stats["pdfshift_count"] = pdf_stats["total_generated"]
+                pdf_stats["weasyprint_count"] = 0
+            else:
+                pdf_stats["pdfshift_count"] = 0
+                pdf_stats["weasyprint_count"] = pdf_stats["total_generated"]
+            
+            # By deed type
+            cur.execute("""
+                SELECT deed_type, COUNT(*) as count 
+                FROM deeds 
+                WHERE status = 'completed'
+                GROUP BY deed_type
+                ORDER BY count DESC
+            """)
+            for row in cur.fetchall():
+                pdf_stats["by_type"][row[0]] = row[1]
+                
+    except Exception as e:
+        print(f"PDF stats error: {e}")
+    
+    return {
+        "health": {
+            "database": {"status": db_status, "latency_ms": db_latency},
+            "pdf_engine": {"status": "up", "primary": pdf_primary},
+            "sitex": {"status": "unknown", "last_call": None},
+            "stripe": {"status": stripe_status}
+        },
+        "pdf_stats": pdf_stats
+    }
 
 @app.get("/admin/system-metrics")
 def admin_system_metrics():

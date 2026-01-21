@@ -261,3 +261,73 @@ def admin_reset_user_password(user_id: int, admin=Depends(get_current_admin)):
             "message": f"Password reset email sent to {email}",
             "email": email
         }
+
+
+# ============================================================================
+# PHASE 5: DEED ACTIONS (View PDF, Delete)
+# ============================================================================
+
+@router.delete("/deeds/{deed_id}")
+def admin_delete_deed(deed_id: int, admin=Depends(get_current_admin)):
+    """Soft delete a deed (set status to 'deleted') - Phase 5B"""
+    conn = get_db_connection()
+    with conn.cursor() as cur:
+        # Check if deed exists
+        cur.execute("SELECT id, status FROM deeds WHERE id = %s", (deed_id,))
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Deed not found")
+        
+        if row['status'] == 'deleted':
+            raise HTTPException(status_code=400, detail="Deed is already deleted")
+        
+        # Soft delete - update status
+        cur.execute("""
+            UPDATE deeds 
+            SET status = 'deleted', updated_at = NOW() 
+            WHERE id = %s
+        """, (deed_id,))
+        conn.commit()
+        
+        return {"success": True, "message": f"Deed {deed_id} deleted successfully"}
+
+
+@router.get("/deeds/{deed_id}/pdf")
+def admin_get_deed_pdf(deed_id: int, admin=Depends(get_current_admin)):
+    """Get the PDF for a deed - Phase 5B
+    
+    Returns the stored PDF URL or regenerates the PDF if needed.
+    """
+    conn = get_db_connection()
+    with conn.cursor() as cur:
+        # Get deed with PDF info
+        cur.execute("""
+            SELECT id, deed_type, status, pdf_url, property_address, 
+                   grantor_name, grantee_name, created_at
+            FROM deeds 
+            WHERE id = %s
+        """, (deed_id,))
+        row = cur.fetchone()
+        
+        if not row:
+            raise HTTPException(status_code=404, detail="Deed not found")
+        
+        deed = dict(row)
+        
+        # Check if PDF URL exists
+        if deed.get('pdf_url'):
+            return {
+                "success": True,
+                "pdf_url": deed['pdf_url'],
+                "deed_type": deed['deed_type'],
+                "message": "PDF available"
+            }
+        
+        # No PDF stored - return info for regeneration
+        return {
+            "success": False,
+            "pdf_url": None,
+            "deed_type": deed['deed_type'],
+            "deed_id": deed_id,
+            "message": "PDF not available. Use /api/generate/{deed_type} to regenerate."
+        }

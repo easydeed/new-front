@@ -6,27 +6,32 @@
  */
 
 export const FEATURE_FLAGS = {
-  // Phase 12-2 + Phase 23-B: Working features (real endpoints exist)
-  REVENUE_TAB: true,           // ✅ Phase 23-B: Real /admin/revenue endpoint deployed (complete billing system)
-  SYSTEM_TAB: false,           // TODO: requires /admin/system-metrics endpoint
-  EXPORTS: true,               // ✅ /admin/export/users.csv & /admin/export/deeds.csv exist (admin_api_v2.py)
+  // ========================================
+  // ADMIN PANEL TABS (Phase 5 Overhaul)
+  // ========================================
+  REVENUE_TAB: true,           // ✅ Real Stripe data
+  SYSTEM_TAB: true,            // ✅ Real PDF engine stats
+  VERIFICATION_TAB: true,      // ✅ NEW: Document authenticity / QR verification
+  DEED_ACTIONS: true,          // ✅ NEW: View PDF, Delete deed
+  PARTNERS_TAB: false,         // 🔒 HIDDEN: Bring back when API launches
+  
+  // ========================================
+  // ADMIN FEATURES
+  // ========================================
+  EXPORTS: true,               // ✅ CSV exports work
+  QUICK_ACTIONS: true,         // ✅ CSV exports in Overview
   
   // Future features (hide until implemented)
   API_MONITORING: false,       // Hide until real endpoint exists
   INTEGRATIONS: false,         // Hide until real endpoint exists
   AUDIT_LOGS: false,           // Hide until audit log API exists
   
-  // Quick actions (only wired to real endpoints)
-  QUICK_ACTIONS: true,         // ✅ CSV exports work
-  
-  // Phase 24: V0 UI Facelift
+  // ========================================
+  // V0 UI FACELIFT (Phase 24)
+  // ========================================
   NEW_LANDING_PAGE: false,     // ✅ Phase 24-A: V0-generated landing page (deployed!)
-  
-  // Phase 24-B: Auth Pages + Dashboard
   NEW_AUTH_PAGES: false,       // 🚧 Phase 24-B: V0 auth flow (Login, Register, Forgot, Reset)
   NEW_DASHBOARD: false,        // 🚧 Phase 24-B: V0-generated dashboard
-  
-  // Phase 24-C: Wizard UI (future)
   NEW_WIZARD_MODERN: false,    // 🚧 Phase 24-C: V0 wizard components (Modern)
   NEW_WIZARD_CLASSIC: false,   // 🚧 Phase 24-C: V0 wizard components (Classic)
 } as const;

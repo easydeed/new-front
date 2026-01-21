@@ -209,7 +209,7 @@ export default function Dashboard() {
                         <div className="flex flex-col items-center gap-3">
                           <FileText className="w-12 h-12 text-gray-300" />
                           <p>No recent activity.</p>
-                          <a href="/create-deed-v2" className="text-[#7C4DFF] hover:underline font-semibold">
+                          <a href="/deed-builder" className="text-[#7C4DFF] hover:underline font-semibold">
                             Create your first deed
                           </a>
                         </div>
@@ -320,7 +320,7 @@ function ResumeDraftBanner() {
         </p>
       </div>
       <a
-        href="/create-deed-v2"
+        href="/deed-builder"
         className="bg-[#7C4DFF] hover:bg-[#6A3FE6] text-white px-6 py-3 rounded-lg font-semibold transition-colors w-full md:w-auto text-center"
       >
         Continue
