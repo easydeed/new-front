@@ -2,7 +2,39 @@
    DeedPro Admin - Professional Light Theme
    ======================================== */
 
-/* Shell / Layout */
+/* Content Area (inside sidebar layout) */
+.admin-content {
+  padding: 32px 40px;
+  color: var(--dp-text);
+  background: var(--dp-bg);
+  min-height: 100vh;
+}
+
+/* Page Header */
+.admin-page-header {
+  margin-bottom: 32px;
+}
+
+.admin-page-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--dp-text);
+  margin: 0 0 4px 0;
+  letter-spacing: -0.02em;
+}
+
+.admin-page-description {
+  font-size: 15px;
+  color: var(--dp-text-dim);
+  margin: 0;
+}
+
+/* Page Content */
+.admin-page-content {
+  /* Content wrapper */
+}
+
+/* Legacy Shell (for backwards compat) */
 .admin-shell {
   padding: 32px 40px;
   color: var(--dp-text);
@@ -16,38 +48,13 @@
 .hstack { display: flex; gap: 12px; align-items: center; }
 .vstack { display: flex; flex-direction: column; gap: 16px; }
 
-/* Tab Navigation */
+/* Tab Navigation (legacy - now using sidebar) */
 .tabs {
-  display: flex;
-  gap: 4px;
-  margin: 16px 0 28px;
-  padding: 4px;
-  background: var(--dp-bg-subtle);
-  border-radius: var(--dp-radius);
-  width: fit-content;
+  display: none; /* Hidden - using sidebar navigation */
 }
 
 .tab {
-  padding: 10px 20px;
-  border: none;
-  border-radius: var(--dp-radius-sm);
-  background: transparent;
-  color: var(--dp-text-dim);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.tab:hover {
-  color: var(--dp-text);
-  background: rgba(0, 0, 0, 0.03);
-}
-
-.tab[aria-selected="true"] {
-  background: var(--dp-panel);
-  color: var(--dp-text);
-  box-shadow: var(--dp-shadow);
+  display: none;
 }
 
 /* Grid Layouts */
