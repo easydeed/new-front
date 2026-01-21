@@ -44,6 +44,8 @@ new-front/
 │   └── requirements.txt
 │
 ├── templates/                # Deed document templates (Jinja2)
+│   ├── _partials/           # Reusable template partials
+│   │   └── notary_acknowledgment.jinja2  # Full-page notary (Page 2)
 │   ├── grant_deed_ca/       # Grant Deed template
 │   ├── quitclaim_deed_ca/   # Quitclaim Deed template
 │   ├── interspousal_transfer_ca/  # Interspousal Transfer
@@ -380,6 +382,8 @@ pdf = HTML(string=html).write_pdf()
 ### Template Location
 ```
 templates/
+├── _partials/
+│   └── notary_acknowledgment.jinja2  # Full-page notary (Page 2)
 ├── grant_deed_ca/
 │   └── index.jinja2
 ├── quitclaim_deed_ca/
@@ -391,6 +395,68 @@ templates/
 └── tax_deed_ca/
     └── index.jinja2
 ```
+
+---
+
+## 📝 Notary Acknowledgment (Page 2)
+
+### Overview
+All deed templates include a **California All-Purpose Acknowledgment** as a separate page (CC § 1189).
+
+### Structure
+```
+Page 1: Deed content + inline notary section
+Page 2 (optional): Exhibit A (legal description > 600 chars)
+Final Page: Full Notary Acknowledgment (notary_acknowledgment.jinja2)
+```
+
+### Template Location
+```
+templates/_partials/notary_acknowledgment.jinja2
+```
+
+### Integration in Deed Templates
+```jinja2
+{# At end of deed template, before </body> #}
+{% set document_title = 'Grant Deed' %}
+{% include '_partials/notary_acknowledgment.jinja2' %}
+```
+
+### Required Variables
+| Variable | Required | Example | Purpose |
+|----------|----------|---------|---------|
+| `county` | Yes | `"Los Angeles"` | Pre-fills venue |
+| `grantors_text` | Yes | `"JOHN SMITH"` | Pre-fills signer names |
+| `document_title` | No | `"Grant Deed"` | Optional section |
+| `execution_date` | No | `"January 21, 2026"` | Optional section |
+| `page_count` | No | `2` | Optional section |
+| `document_id` | No | `"DOC-2026-A7X9K"` | QR verification (Phase 4) |
+| `qr_code_data` | No | `"data:image/png;base64,..."` | QR code image (Phase 4) |
+
+### Notary Page Sections
+1. **Disclaimer Box** — Required legal text per CC § 1189
+2. **Title** — "California All-Purpose Acknowledgment"
+3. **Venue** — State of California / County of [county]
+4. **Acknowledgment Body** — With signer names
+5. **Certification** — Under penalty of perjury
+6. **Signature/Seal** — Signature line + 2.25" × 2.25" seal area
+7. **Optional Section** — Document title, date, page count
+8. **QR Verification** — Future Phase 4 feature
+
+### CSS Notes
+- `page-break-before: always` forces new page
+- Works with both WeasyPrint and PDFShift
+- Explicit widths in inches (not percentages)
+- 2.25" × 2.25" notary seal area
+
+### Template-Specific Document Titles
+| Deed Type | Document Title |
+|-----------|---------------|
+| Grant Deed | `'Grant Deed'` |
+| Quitclaim Deed | `'Quitclaim Deed'` |
+| Interspousal Transfer | `'Interspousal Transfer Deed'` |
+| Warranty Deed | `'Warranty Deed'` |
+| Tax Deed | `'Tax Deed'` |
 
 ---
 

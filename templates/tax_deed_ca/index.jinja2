@@ -189,5 +189,10 @@
         {% if apn %}<div class="exhibit-apn"><span class="apn-label">APN:</span> <span class="apn-value">{{ apn }}</span></div>{% endif %}
     </div>
     {% endif %}
+
+    {# Note: Tax Deeds are typically government-issued and use attestation.
+       The notary page is included for optional use if needed. #}
+    {% set document_title = 'Tax Deed' %}
+    {% include '_partials/notary_acknowledgment.jinja2' %}
 </body>
 </html>

@@ -217,5 +217,9 @@
         {% if apn %}<div class="exhibit-apn"><span class="apn-label">APN:</span> <span class="apn-value">{{ apn }}</span></div>{% endif %}
     </div>
     {% endif %}
+
+    {# PAGE 2 (or 3): CALIFORNIA ALL-PURPOSE ACKNOWLEDGMENT - Civil Code § 1189 #}
+    {% set document_title = 'Warranty Deed' %}
+    {% include '_partials/notary_acknowledgment.jinja2' %}
 </body>
 </html>
