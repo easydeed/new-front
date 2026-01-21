@@ -345,11 +345,15 @@ html = template.render(deed_data)
 pdf = HTML(string=html).write_pdf()
 ```
 
-### PDFShift (Available but Not Primary)
-- Service exists at `backend/services/pdfshift_service.py`
-- `pdf_engine.py` supports it with fallback to WeasyPrint
-- **NOT configured in `render.yaml`** (no `PDFSHIFT_API_KEY` env var)
-- Most routes still use direct WeasyPrint calls
+### PDFShift (Now Primary with Auto-Fallback)
+- Service at `backend/services/pdfshift_service.py`
+- `pdf_engine.py` auto-selects PDFShift when `PDFSHIFT_API_KEY` is configured
+- **Environment variables in Render:**
+  - `PDFSHIFT_API_KEY` — API key from pdfshift.io
+  - `USE_PDFSHIFT=true` — Feature flag (enabled)
+  - `PDF_ENGINE=auto` — Auto-selects best engine
+- Falls back to WeasyPrint if PDFShift fails or API key missing
+- All deed generation endpoints now use `render_pdf_async()`
 
 ### Template Variables (All Deed Types)
 ```python
@@ -843,8 +847,8 @@ git push origin main
 ### PDF Engine Status
 | Engine | Status | Used In |
 |--------|--------|---------|
-| WeasyPrint | **Primary** | `main.py` (line 2799+), `api/generate_deed.py` |
-| PDFShift | **Available** | `pdf_engine.py`, `services/pdfshift_service.py` |
+| PDFShift | **Primary** (when API key configured) | All endpoints via `pdf_engine.render_pdf_async()` |
+| WeasyPrint | **Fallback** | Auto-fallback if PDFShift fails |
 
 ---
 
