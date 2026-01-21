@@ -11,11 +11,17 @@ new-front/
 │   ├── src/
 │   │   ├── app/             # App Router pages & API routes
 │   │   ├── components/      # React components
-│   │   ├── contexts/        # React contexts (AIAssist, Auth)
-│   │   ├── features/        # Feature modules (builder, wizard, partners)
+│   │   │   ├── builder/     # Deed builder components
+│   │   │   │   └── sections/  # PropertySection, VestingSection, etc.
+│   │   │   └── ui/          # Reusable UI components
+│   │   ├── contexts/        # React contexts (AIAssist, Auth, Sidebar)
+│   │   ├── features/        # Feature modules
+│   │   │   ├── builder/     # DeedBuilder main component
+│   │   │   ├── wizard/      # Wizard 2.0 (3-step flow)
+│   │   │   └── partners/    # Industry Partners CRUD
 │   │   ├── hooks/           # Custom React hooks
 │   │   ├── lib/             # Utilities & API helpers
-│   │   ├── services/        # Frontend services
+│   │   ├── services/        # Frontend services (AI assistant)
 │   │   ├── types/           # TypeScript type definitions
 │   │   └── utils/           # Utility functions
 │   ├── next.config.js
@@ -26,22 +32,26 @@ new-front/
 │   ├── api/                 # API route modules
 │   ├── models/              # Pydantic models & deed templates
 │   ├── routers/             # FastAPI routers
-│   ├── services/            # External integrations (SiteX, TitlePoint)
+│   ├── services/            # External integrations
+│   │   ├── sitex_service.py     # SiteX property lookup
+│   │   ├── titlepoint_service.py # TitlePoint backup
+│   │   └── pdfshift_service.py  # PDFShift (available but not primary)
 │   ├── templates/           # Jinja2 PDF templates
-│   ├── main.py              # FastAPI app entry point
+│   ├── main.py              # FastAPI app entry point (~3000 lines)
 │   ├── auth.py              # JWT authentication
 │   ├── database.py          # PostgreSQL with psycopg2
+│   ├── pdf_engine.py        # PDF rendering engine
 │   └── requirements.txt
 │
 ├── templates/                # Deed document templates (Jinja2)
-│   ├── grant_deed_ca/
-│   ├── quitclaim_deed_ca/
-│   ├── interspousal_transfer_ca/
-│   ├── tax_deed_ca/
-│   └── warranty_deed_ca/
+│   ├── grant_deed_ca/       # Grant Deed template
+│   ├── quitclaim_deed_ca/   # Quitclaim Deed template
+│   ├── interspousal_transfer_ca/  # Interspousal Transfer
+│   ├── tax_deed_ca/         # Tax Deed template
+│   └── warranty_deed_ca/    # Warranty Deed template
 │
+├── AiTools/                  # AI enhancement components (source files)
 ├── docs/                     # Project documentation
-├── AiTools/                  # AI enhancement components (integrated)
 └── render.yaml               # Render deployment config
 ```
 
@@ -57,10 +67,11 @@ new-front/
 | **TypeScript** | 5.8.3 | Type safety |
 | **Tailwind CSS** | 3.4.18 | Styling |
 | **Zustand** | 4.5.5 | Global state management |
-| **Framer Motion** | 12.26.2 | Animations |
+| **Framer Motion** | 12.26.2 | Animations (optional) |
 | **Zod** | 3.25.76 | Schema validation |
 | **Sonner** | 2.0.7 | Toast notifications |
 | **Lucide React** | 0.546.0 | Icons |
+| **@types/google.maps** | Latest | Google Maps TypeScript types |
 
 ### Backend
 | Technology | Version | Purpose |
@@ -70,11 +81,54 @@ new-front/
 | **PostgreSQL** | Latest | Database (via Render) |
 | **psycopg2** | Latest | PostgreSQL adapter |
 | **Jinja2** | Latest | PDF template rendering |
-| **WeasyPrint** | Latest | HTML to PDF conversion |
+| **WeasyPrint** | Latest | HTML to PDF (primary) |
 | **Jose** | Latest | JWT handling |
 | **Passlib/bcrypt** | Latest | Password hashing |
 | **httpx** | Latest | Async HTTP client (SiteX) |
 | **Stripe** | Latest | Payment processing |
+
+---
+
+## 🎨 Design System
+
+### Brand Colors
+| Name | Value | Usage |
+|------|-------|-------|
+| **Primary Brand** | `#7C4DFF` | Main buttons, active states |
+| **Brand Hover** | `#6a3de8` | Button hover |
+| **Brand Active** | `#5b32d1` | Button pressed |
+| **Accent** | `#F57C00` | Subtle highlights (user preference) |
+| **Violet AI** | `#8B5CF6` | AI features, suggestions |
+| **Success** | `#10B981` | Completed states |
+| **Warning** | `#F59E0B` | Warnings |
+| **Error** | `#EF4444` | Errors |
+
+### Tailwind Config
+```js
+// tailwind.config.js
+colors: {
+  brand: {
+    50: '#F5F3FF',
+    100: '#EDE9FE',
+    500: '#7C4DFF',  // Primary
+    600: '#6a3de8',  // Hover
+    700: '#5b32d1',  // Active
+  }
+}
+```
+
+### Layout Preferences
+- Wide layout using full space (not boxed)
+- Subtle use of accent color
+- Consistent styling across reports
+
+### UI Components (`frontend/src/components/ui/`)
+- `button.tsx` — Button variants (primary, secondary, ghost, danger)
+- `card.tsx` — Card component
+- `input.tsx` — Form inputs
+- `badge.tsx` — Status badges
+- `Skeleton.tsx` — Loading state skeletons
+- `ConfirmDialog.tsx` — Replacement for browser `confirm()`
 
 ---
 
@@ -90,48 +144,330 @@ new-front/
 ```typescript
 import { AuthManager } from '@/utils/auth';
 
-// Store auth
 AuthManager.setAuth(token, user);
-
-// Get token
 const token = AuthManager.getToken();
-
-// Check auth
 if (AuthManager.isAuthenticated()) { ... }
-
-// Logout
 AuthManager.logout();
-
-// Check admin
 if (AuthManager.isAdmin()) { ... }
 ```
 
+### Token Storage Locations
+- `localStorage.getItem('access_token')` — Primary
+- `localStorage.getItem('token')` — Fallback
+
 ### Backend Auth (`backend/auth.py`)
 ```python
-from auth import get_current_user_id, get_current_admin, verify_token
+from auth import get_current_user_id, get_current_admin
 
-# Protect routes
 @app.get("/protected")
 async def protected_route(user_id: int = Depends(get_current_user_id)):
     ...
+```
 
-# Admin-only routes
-@app.get("/admin")
-async def admin_route(admin: str = Depends(get_current_admin)):
-    ...
+---
+
+## 🏗 Deed Builder Architecture
+
+### Two-Panel Layout
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  [←] Exit    Grant Deed              [AI Assist toggle]  [? Help]  │
+├─────────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────┐  ┌───────────────────────────────────────┐ │
+│  │   INPUT PANEL       │  │       LIVE DEED PREVIEW               │ │
+│  │   (420px fixed)     │  │       (Flexible width)                │ │
+│  │                     │  │                                       │ │
+│  │  • Property         │  │  • Actual deed document               │ │
+│  │  • Grantor          │  │  • Updates in real-time               │ │
+│  │  • Grantee          │  │  • Highlights active section          │ │
+│  │  • Vesting          │  │                                       │ │
+│  │  • Transfer Tax     │  │                                       │ │
+│  │  • Recording Info   │  │                                       │ │
+│  │                     │  │                                       │ │
+│  │  [Generate Button]  │  │                                       │ │
+│  └─────────────────────┘  └───────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Key Components
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `DeedBuilder` | `features/builder/DeedBuilder.tsx` | Main wrapper with AIAssistProvider |
+| `BuilderHeader` | `components/builder/BuilderHeader.tsx` | Header with AI toggle |
+| `InputPanel` | `components/builder/InputPanel.tsx` | Left panel with sections |
+| `PreviewPanel` | `components/builder/PreviewPanel.tsx` | Live deed preview |
+| `InputSection` | `components/builder/InputSection.tsx` | Accordion section wrapper |
+
+### Section Components (`components/builder/sections/`)
+| Section | Purpose | AI Features |
+|---------|---------|-------------|
+| `PropertySection` | Address search, SiteX lookup, Google autocomplete | Auto-fills APN, legal description |
+| `GrantorSection` | Current owner name | Pre-filled from SiteX |
+| `GranteeSection` | New owner name | Same-name warning |
+| `VestingSection` | How title will be held | AI suggestions based on grantee count |
+| `TransferTaxSection` | DTT calculation or exemption | Auto-exempt for interspousal |
+| `RecordingSection` | Requested by, return to | Partners dropdown |
+
+---
+
+## 🧙 Wizard 2.0 (Alternative Flow)
+
+### 3-Step Flow (vs old 5-step)
+```
+Step 1: Deed Type + Property    (~15 seconds)
+    ↓
+Step 2: Smart Confirm           (~30 seconds)
+    ↓
+Step 3: Generate + Success      (~10 seconds)
+
+TOTAL: ~55 seconds
+```
+
+### Components
+| Component | Purpose |
+|-----------|---------|
+| `DeedTypePropertyStep` | Combined deed type + property search |
+| `SmartConfirmScreen` | One screen with all fields |
+| `SuccessScreen` | Post-generation actions |
+
+---
+
+## 🧠 AI Assistance
+
+### Context Provider (`frontend/src/contexts/AIAssistContext.tsx`)
+```typescript
+import { useAIAssist, AIAssistProvider } from '@/contexts/AIAssistContext';
+
+const { enabled, toggle } = useAIAssist();
+
+// Wrap in DeedBuilder
+<AIAssistProvider>
+  <DeedBuilder />
+</AIAssistProvider>
+```
+
+### AI Toggle Behavior
+- **ON (default)**: Violet button, shows suggestions
+- **OFF**: Gray button, hides all AI features
+- Persisted to `localStorage` (`deedpro_ai_assist_enabled`)
+
+### AI Helpers (`frontend/src/lib/ai-helpers.ts`)
+```typescript
+import { 
+  getVestingSuggestion, 
+  getTransferTaxSuggestion, 
+  validateDeedData,
+  analyzePropertyContext,
+} from '@/lib/ai-helpers';
+
+// Get vesting suggestion based on grantee patterns
+const suggestion = getVestingSuggestion(grantee, deedType, currentVesting);
+
+// Validate before generate
+const issues = validateDeedData(state);
+// Returns: { level: 'error'|'warning'|'info', message, field, section }
+```
+
+### AI Components
+| Component | Purpose |
+|-----------|---------|
+| `AIToggle` | Toggle button in header |
+| `AISuggestion` | Dismissible suggestion card |
+| `AIApplied` | "AI applied this" indicator |
+| `AIHint` | Subtle inline hint |
+| `ValidationPanel` | Pre-generate validation display |
+
+### Backend AI Service
+```python
+# Environment variable required
+OPENAI_API_KEY=<key>
+
+# Endpoint
+POST /api/ai/suggest-defaults
+```
+
+---
+
+## 🏠 Property Search (SiteX Integration)
+
+### Frontend Flow (`PropertySection.tsx`)
+1. User types address → Google Places autocomplete
+2. User selects suggestion → fills input + shows "Search" button
+3. User clicks Search → calls `/api/property/search-v2`
+4. Backend returns property data or multi-match options
+
+### Backend Service (`backend/services/sitex_service.py`)
+```python
+from services.sitex_service import sitex_service
+
+result = await sitex_service.search_property(
+    address="123 Main St",
+    city="Los Angeles",
+    state="CA",
+    zip_code="90001"
+)
+
+if result.status == "success":
+    property_data = result.data
+elif result.status == "multi_match":
+    matches = result.matches
 ```
 
 ### Environment Variables
-- `JWT_SECRET_KEY` — Backend JWT signing key (REQUIRED)
+```bash
+SITEX_BASE_URL=<url>
+SITEX_CLIENT_ID=<id>
+SITEX_CLIENT_SECRET=<secret>
+SITEX_FEED_ID=<feed>
+```
+
+### Google Maps Setup
+```typescript
+// In layout.tsx
+<Script
+  src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
+  strategy="afterInteractive"
+/>
+```
+
+---
+
+## 📄 PDF Generation
+
+### Current Engine: WeasyPrint (Primary)
+```python
+from weasyprint import HTML
+
+template = env.get_template(f'{deed_type}_ca/index.jinja2')
+html = template.render(deed_data)
+pdf = HTML(string=html).write_pdf()
+```
+
+### PDFShift (Available but Not Primary)
+- Service exists at `backend/services/pdfshift_service.py`
+- `pdf_engine.py` supports it with fallback to WeasyPrint
+- **NOT configured in `render.yaml`** (no `PDFSHIFT_API_KEY` env var)
+- Most routes still use direct WeasyPrint calls
+
+### Template Variables (All Deed Types)
+```python
+{
+    'requested_by': str,
+    'title_company': str,
+    'return_to': {'name', 'company', 'address1', 'city', 'state', 'zip'},
+    'apn': str,
+    'title_order_no': str,
+    'escrow_no': str,
+    'county': str,
+    'grantors_text': str,  # Semicolon-separated for multiple
+    'grantees_text': str,
+    'legal_description': str,
+    'execution_date': str,
+    'now': datetime.now,  # Function for default date
+}
+```
+
+### DTT Variables (Grant, Quitclaim, Warranty)
+```python
+'dtt': {
+    'amount': str,          # "550.00"
+    'basis': str,           # "full" or "less_liens"
+    'area_type': str,       # "unincorporated" or "city"
+    'city_name': str,       # City name if applicable
+}
+```
+
+### Template Location
+```
+templates/
+├── grant_deed_ca/
+│   └── index.jinja2
+├── quitclaim_deed_ca/
+│   └── index.jinja2
+├── interspousal_transfer_ca/
+│   └── index.jinja2
+├── warranty_deed_ca/
+│   └── index.jinja2
+└── tax_deed_ca/
+    └── index.jinja2
+```
+
+---
+
+## 👥 Industry Partners
+
+### Context (`frontend/src/features/partners/PartnersContext.tsx`)
+```typescript
+import { usePartners, PartnersProvider } from '@/features/partners/PartnersContext';
+
+const { partners, loading, reload, create } = usePartners();
+// partners: PartnerOption[] with { id, label, category }
+```
+
+### Interface
+```typescript
+interface PartnerOption {
+  id: string;
+  label: string;        // Display name
+  category: string;     // 'title_company', 'escrow_company', etc.
+  company_name?: string;
+  contact_name?: string;
+}
+```
+
+### Usage in RecordingSection
+```typescript
+<select value={requestedBy} onChange={handleChange}>
+  {partners.map((partner) => (
+    <option key={partner.id} value={partner.label}>
+      {partner.label}
+    </option>
+  ))}
+</select>
+```
+
+### Backend Endpoints
+- `GET /api/partners/selectlist/` — List for dropdown
+- `POST /api/partners` — Create new partner
+- `PUT /api/partners/{id}` — Update partner
+- `DELETE /api/partners/{id}` — Delete partner
+
+---
+
+## 🔗 Sharing & Approval Workflow
+
+### Share Flow
+1. EO shares deed via email
+2. Recipient gets link: `/approve/{token}`
+3. Recipient can view PDF, approve, or request changes
+4. EO receives notification
+
+### Share Statuses
+- `sent` — Initial state
+- `viewed` — Recipient opened the link
+- `approved` — Recipient approved
+- `rejected` — Recipient requested changes
+- `revoked` — EO cancelled share
+- `expired` — Link expired
+
+### Configurable Expiration
+```typescript
+// Default: 7 days (was 24 hours)
+expires_in_hours: 24 | 72 | 168 | 336 | 720
+```
+
+### Structured Feedback (Rejection)
+```json
+{
+  "issues": ["grantor_name", "vesting", "other"],
+  "comments": "The grantor name is misspelled",
+  "timestamp": "2026-01-21T10:00:00Z"
+}
+```
 
 ---
 
 ## 🗄 Database
-
-### Connection
-- **Type**: PostgreSQL (hosted on Render)
-- **ORM**: None — uses raw `psycopg2` with `RealDictCursor`
-- **Connection String**: `DATABASE_URL` environment variable
 
 ### Core Tables
 ```sql
@@ -141,26 +477,32 @@ users (id, email, first_name, last_name, username, city, country, created_at)
 -- Deeds
 deeds (id, user_id, deed_type, property_address, apn, county, 
        legal_description, grantor_name, grantee_name, vesting, 
-       requested_by, status, created_at)
+       requested_by, status, pdf_data, created_at)
 
--- User Profiles (AI defaults)
+-- Deed Shares
+deed_shares (id, deed_id, owner_user_id, recipient_email, recipient_name,
+             token, status, viewed_at, expires_at, created_at)
+
+-- Partners
+partners (id, organization_id, category, company_name, contact_name,
+          email, phone, address_line1, city, state, postal_code, is_active)
+
+-- User Profiles
 user_profiles (user_id, company_name, business_address, license_number, 
                role, default_county, preferred_deed_type)
 
--- Property Cache (SiteX/TitlePoint data)
+-- Property Cache
 property_cache (id, user_id, property_address, legal_description, apn, county)
-property_cache_tp (id, user_id, address, data JSONB, created_at)
 ```
 
-### Database Access Pattern
+### Connection
 ```python
-from database import get_db_connection, create_deed, get_user_deeds
+from database import get_db_connection
 
-# Direct queries
 conn = get_db_connection()
-cursor = conn.cursor()
+cursor = conn.cursor()  # Returns RealDictCursor
 cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
-user = cursor.fetchone()  # Returns dict thanks to RealDictCursor
+user = cursor.fetchone()  # Returns dict
 ```
 
 ---
@@ -168,41 +510,26 @@ user = cursor.fetchone()  # Returns dict thanks to RealDictCursor
 ## 🌐 API Architecture
 
 ### Frontend Proxy Pattern
-Frontend API routes (`/app/api/*`) proxy requests to the Python backend:
+Frontend API routes proxy to Python backend:
 
 ```typescript
-// frontend/src/app/api/deeds/create/route.ts
-const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com';
+// frontend/src/app/api/property/search-v2/route.ts
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function POST(req: NextRequest) {
-  const payload = await req.json();
-  const authHeader = req.headers.get('authorization');
-  
-  const resp = await fetch(`${BACKEND_BASE_URL}/deeds`, {
+  const resp = await fetch(`${BACKEND_URL}/api/property/search-v2`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...(authHeader ? { Authorization: authHeader } : {}),
+      'Authorization': req.headers.get('authorization') || '',
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(await req.json()),
   });
-  
   return NextResponse.json(await resp.json());
 }
 ```
 
-### API Client Helper (`frontend/src/lib/api.ts`)
-```typescript
-import { apiGet, apiPost, API_URL } from '@/lib/api';
-
-// GET request
-const data = await apiGet('/users/me', token);
-
-// POST request
-const result = await apiPost('/deeds', payload, token);
-```
-
-### Backend Routes (main.py)
+### Key Backend Routes (`main.py`)
 | Route | Method | Purpose |
 |-------|--------|---------|
 | `/api/auth/login` | POST | User login |
@@ -212,120 +539,50 @@ const result = await apiPost('/deeds', payload, token);
 | `/api/property/search-v2` | POST | SiteX property lookup |
 | `/api/generate/grant-deed-ca` | POST | Generate Grant Deed PDF |
 | `/api/ai/suggest-defaults` | POST | AI field suggestions |
-| `/admin/*` | Various | Admin endpoints |
+| `/api/partners` | CRUD | Partner management |
+| `/approve/{token}` | GET/POST | Sharing approval |
+| `/shared-deeds/{id}/resend` | POST | Resend reminder |
 
 ---
 
-## 🏠 Property Search (SiteX Integration)
+## 🚀 Deployment
 
-### Service (`backend/services/sitex_service.py`)
-```python
-from services.sitex_service import sitex_service
-
-# Search by address
-result = await sitex_service.search_property(
-    address="123 Main St",
-    city="Los Angeles",
-    state="CA",
-    zip_code="90001"
-)
-
-if result.status == "success":
-    property_data = result.data  # PropertyData object
-elif result.status == "multi_match":
-    matches = result.matches  # List[PropertyMatch]
-```
+### Hosting
+| Service | Platform | URL |
+|---------|----------|-----|
+| **Frontend** | Vercel | `deedpro-frontend-new.vercel.app` |
+| **Main API** | Render | `deedpro-main-api.onrender.com` |
+| **External API** | Render | `deedpro-external-api.onrender.com` |
+| **Database** | Render PostgreSQL | (internal) |
 
 ### Environment Variables
-- `SITEX_BASE_URL` — API base URL
-- `SITEX_CLIENT_ID` — OAuth client ID
-- `SITEX_CLIENT_SECRET` — OAuth client secret
-- `SITEX_FEED_ID` — Feed identifier
 
-### Frontend Property Search (`frontend/src/components/builder/sections/PropertySection.tsx`)
-- Uses Google Places for autocomplete
-- Sends address to `/api/property/search-v2`
-- Handles multi-match scenarios
-
----
-
-## 📄 PDF Generation
-
-### Flow
-1. Frontend sends deed data to `/api/generate/{deed-type}-ca`
-2. Backend loads Jinja2 template from `templates/{deed_type}_ca/index.jinja2`
-3. Template rendered to HTML
-4. WeasyPrint converts HTML → PDF
-5. PDF returned as binary response
-
-### Template Location
-```
-templates/
-├── grant_deed_ca/
-│   ├── index.jinja2           # Main template
-│   ├── header_return_block.jinja2
-│   ├── body_deed.jinja2
-│   └── footer_execution_notary.jinja2
-├── quitclaim_deed_ca/
-│   └── index.jinja2
-├── interspousal_transfer_ca/
-│   └── index.jinja2
-└── ...
+#### Frontend (Vercel)
+```bash
+NEXT_PUBLIC_API_URL=https://deedpro-main-api.onrender.com
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=<key>
+NEXT_PUBLIC_GOOGLE_API_KEY=<key>  # Fallback
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=<key>
 ```
 
-### Backend Generation (`backend/pdf_engine.py` / `main.py`)
-```python
-from jinja2 import Environment, FileSystemLoader
-from weasyprint import HTML
-
-env = Environment(loader=FileSystemLoader('templates'))
-template = env.get_template(f'{deed_type}_ca/index.jinja2')
-html = template.render(deed_data)
-pdf = HTML(string=html).write_pdf()
+#### Backend (Render)
+```bash
+DATABASE_URL=<postgres_url>
+JWT_SECRET_KEY=<secret>
+SITEX_CLIENT_ID=<id>
+SITEX_CLIENT_SECRET=<secret>
+SITEX_FEED_ID=<feed>
+STRIPE_SECRET_KEY=<key>
+OPENAI_API_KEY=<key>
+PDFSHIFT_API_KEY=<key>  # Available but not primary
+ALLOWED_ORIGINS=https://deedpro-frontend-new.vercel.app
 ```
 
----
-
-## 🧠 AI Assistance
-
-### Context (`frontend/src/contexts/AIAssistContext.tsx`)
-```typescript
-import { useAIAssist, AIAssistProvider } from '@/contexts/AIAssistContext';
-
-// In component
-const { enabled, toggle } = useAIAssist();
-
-// Wrap app
-<AIAssistProvider>
-  <DeedBuilder />
-</AIAssistProvider>
-```
-
-### Helpers (`frontend/src/lib/ai-helpers.ts`)
-```typescript
-import { 
-  getVestingSuggestion, 
-  getTransferTaxSuggestion, 
-  validateDeedData 
-} from '@/lib/ai-helpers';
-
-// Get vesting suggestion
-const suggestion = getVestingSuggestion(grantee, deedType, currentVesting);
-
-// Get DTT suggestion
-const dttSuggestion = getTransferTaxSuggestion(deedType, grantor, grantee);
-
-// Validate deed data
-const issues = validateDeedData(state);
-```
-
-### Backend AI (`backend/ai_assist.py`)
-```python
-from ai_assist import ai_router, suggest_defaults, validate_deed_data
-
-# Router included in main.py
-app.include_router(ai_router)
-```
+### Deployment Workflow
+1. Push to `main` branch
+2. Vercel auto-deploys frontend
+3. Render auto-deploys backend
+4. **Test on production only** (no local testing)
 
 ---
 
@@ -335,7 +592,6 @@ app.include_router(ai_router)
 ```typescript
 import { useWizardStore } from '@/store';
 
-// In component
 const { docType, setDocType, data, setData, reset } = useWizardStore();
 ```
 
@@ -376,124 +632,6 @@ export interface DTTData {
 
 ---
 
-## 🚀 Deployment
-
-### Hosting
-| Service | Platform | URL |
-|---------|----------|-----|
-| **Frontend** | Vercel | `deedpro-frontend-new.vercel.app` |
-| **Main API** | Render | `deedpro-main-api.onrender.com` |
-| **External API** | Render | `deedpro-external-api.onrender.com` |
-| **Database** | Render PostgreSQL | (internal) |
-
-### Environment Variables
-
-#### Frontend (Vercel)
-```bash
-NEXT_PUBLIC_API_URL=https://deedpro-main-api.onrender.com
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=<key>
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=<key>
-NEXT_PUBLIC_AI_ASSISTANCE_ENABLED=true
-```
-
-#### Backend (Render)
-```bash
-DATABASE_URL=<postgres_url>
-JWT_SECRET_KEY=<secret>
-SITEX_CLIENT_ID=<id>
-SITEX_CLIENT_SECRET=<secret>
-SITEX_FEED_ID=<feed>
-STRIPE_SECRET_KEY=<key>
-OPENAI_API_KEY=<key>
-ALLOWED_ORIGINS=https://deedpro-frontend-new.vercel.app
-```
-
-### Deployment Workflow
-1. Push to `main` branch
-2. Vercel auto-deploys frontend
-3. Render auto-deploys backend
-4. Test on production (no local testing)
-
----
-
-## 📁 Key Files Reference
-
-### Frontend
-| File | Purpose |
-|------|---------|
-| `app/layout.tsx` | Root layout with Google Maps script |
-| `features/builder/DeedBuilder.tsx` | Main deed builder component |
-| `components/builder/InputPanel.tsx` | Left panel with form sections |
-| `components/builder/PreviewPanel.tsx` | Right panel with deed preview |
-| `components/builder/sections/*.tsx` | Individual form sections |
-| `components/Sidebar.tsx` | Main navigation sidebar |
-| `lib/api.ts` | API client helper |
-| `lib/ai-helpers.ts` | AI suggestion logic |
-| `utils/auth.ts` | AuthManager class |
-| `contexts/AIAssistContext.tsx` | AI toggle state |
-| `types/builder.ts` | TypeScript interfaces |
-
-### Backend
-| File | Purpose |
-|------|---------|
-| `main.py` | FastAPI app with all routes |
-| `auth.py` | JWT authentication |
-| `database.py` | PostgreSQL functions |
-| `services/sitex_service.py` | SiteX property lookup |
-| `services/titlepoint_service.py` | TitlePoint integration |
-| `models/property_data.py` | Property data models |
-| `api/property_endpoints.py` | Property search routes |
-| `api/generate_deed.py` | PDF generation routes |
-
----
-
-## 🎨 Design System
-
-### Colors
-| Name | Value | Usage |
-|------|-------|-------|
-| Primary/Accent | `#F57C00` | Buttons, highlights (subtle) |
-| Violet AI | `#8B5CF6` | AI features, suggestions |
-| Success | `#10B981` | Completed states |
-| Warning | `#F59E0B` | Warnings |
-| Error | `#EF4444` | Errors |
-
-### Layout Preferences
-- Wide layout using full space (not boxed)
-- Subtle use of accent color
-- Consistent styling across reports
-
-### UI Components (`frontend/src/components/ui/`)
-- `button.tsx` — Button variants
-- `card.tsx` — Card component
-- `input.tsx` — Form inputs
-- `badge.tsx` — Status badges
-- `Skeleton.tsx` — Loading states
-
----
-
-## 🧪 Testing
-
-### Frontend
-```bash
-cd frontend
-npm run test              # Jest unit tests
-npm run cypress:open      # E2E tests (Cypress)
-```
-
-### Backend
-```bash
-cd backend
-pytest                    # Run all tests
-python test_sitex_direct.py  # Test SiteX integration
-```
-
-### Production Testing
-- Always test on production Render/Vercel
-- No local development server testing
-
----
-
 ## 📋 Feature Flags (`frontend/src/config/featureFlags.ts`)
 ```typescript
 export const FEATURE_FLAGS = {
@@ -508,19 +646,56 @@ export const FEATURE_FLAGS = {
 
 ---
 
+## 📁 Key Files Reference
+
+### Frontend
+| File | Purpose |
+|------|---------|
+| `app/layout.tsx` | Root layout with Google Maps script |
+| `app/deed-builder/[type]/page.tsx` | Deed builder route |
+| `features/builder/DeedBuilder.tsx` | Main builder with AIAssistProvider |
+| `components/builder/InputPanel.tsx` | Left panel with form sections |
+| `components/builder/PreviewPanel.tsx` | Right panel with deed preview |
+| `components/builder/sections/*.tsx` | Individual form sections |
+| `components/builder/AIToggle.tsx` | AI toggle button |
+| `components/builder/AISuggestion.tsx` | AI suggestion cards |
+| `components/builder/ValidationPanel.tsx` | Pre-generate validation |
+| `components/Sidebar.tsx` | Main navigation |
+| `contexts/AIAssistContext.tsx` | AI toggle state |
+| `lib/api.ts` | API client helper |
+| `lib/ai-helpers.ts` | AI suggestion logic |
+| `utils/auth.ts` | AuthManager class |
+| `types/builder.ts` | TypeScript interfaces |
+
+### Backend
+| File | Purpose |
+|------|---------|
+| `main.py` | FastAPI app with all routes (~3000 lines) |
+| `auth.py` | JWT authentication |
+| `database.py` | PostgreSQL functions |
+| `pdf_engine.py` | PDF rendering (WeasyPrint + PDFShift support) |
+| `services/sitex_service.py` | SiteX property lookup |
+| `services/titlepoint_service.py` | TitlePoint integration |
+| `services/pdfshift_service.py` | PDFShift service (available) |
+| `models/property_data.py` | Property data models |
+| `api/property_endpoints.py` | Property search routes |
+| `api/generate_deed.py` | PDF generation routes |
+
+---
+
 ## 🔗 External Integrations
 
 ### Google Maps (Places API)
 - Loaded via `<Script>` in `layout.tsx`
 - Used for address autocomplete in PropertySection
-- Keys: `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
+- Keys: `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` or `NEXT_PUBLIC_GOOGLE_API_KEY`
 
 ### Stripe
 - Payment processing for subscriptions
 - Keys: `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 
 ### SiteX (Property Data)
-- Property search and enrichment
+- Primary property search and enrichment
 - OAuth2 authentication
 - Keys: `SITEX_CLIENT_ID`, `SITEX_CLIENT_SECRET`, `SITEX_FEED_ID`
 
@@ -529,18 +704,40 @@ export const FEATURE_FLAGS = {
 - SOAP API integration
 - Used as fallback for SiteX
 
+### OpenAI
+- AI suggestions and validation
+- Key: `OPENAI_API_KEY`
+
+### PDFShift
+- Chrome headless PDF rendering (available)
+- Key: `PDFSHIFT_API_KEY` (needs to be configured)
+
+---
+
+## 🧪 Testing
+
+### Production Testing Only
+- Always test on production Render/Vercel
+- No local development server testing
+- Use browser tools to verify deployment
+
+### Frontend Testing (if needed)
+```bash
+cd frontend
+npm run test              # Jest unit tests
+npm run cypress:open      # E2E tests
+```
+
+### Backend Testing (if needed)
+```bash
+cd backend
+pytest
+python test_sitex_direct.py
+```
+
 ---
 
 ## 📞 Quick Commands
-
-### Development
-```bash
-# Frontend
-cd frontend && npm run dev
-
-# Backend
-cd backend && uvicorn main:app --reload
-```
 
 ### Git Workflow
 ```bash
@@ -551,18 +748,37 @@ git push origin main
 ```
 
 ### Check Deployments
-- Vercel: Check Vercel dashboard or use MCP tools
-- Render: Check Render dashboard or use MCP tools
+- Vercel: Use MCP tools (`list_deployments`, `get_deployment`)
+- Render: Use MCP tools or dashboard
 
 ---
 
 ## 📚 Additional Documentation
 
-- `docs/wizard/ARCHITECTURE.md` — Wizard architecture
-- `docs/wizard/SITEX_FIELD_MAPPING.md` — SiteX field mappings
-- `docs/backend/PDF_GENERATION_SYSTEM.md` — PDF generation
-- `docs/backend/ROUTES.md` — API routes reference
-- `docs/ONBOARDING_NEW_AGENTS.md` — For new AI agents
+| Document | Purpose |
+|----------|---------|
+| `docs/wizard/ARCHITECTURE.md` | Wizard architecture |
+| `docs/wizard/SITEX_FIELD_MAPPING.md` | SiteX field mappings |
+| `docs/backend/PDF_GENERATION_SYSTEM.md` | PDF generation |
+| `docs/backend/ROUTES.md` | API routes reference |
+| `docs/ONBOARDING_NEW_AGENTS.md` | For new AI agents |
+| `GOOGLE_MAPS_SETUP.md` | Google Maps configuration |
+| `PROPERTY_SECTION_FLOW.md` | Property search flow |
+
+---
+
+## 🔄 Migration Notes
+
+### Template Migration
+- New templates in `templates/new_templates/` designed for PDFShift
+- Current templates in `templates/{deed_type}_ca/` use WeasyPrint
+- CSS Grid layouts fall back to block display in WeasyPrint
+
+### PDF Engine Status
+| Engine | Status | Used In |
+|--------|--------|---------|
+| WeasyPrint | **Primary** | `main.py` (line 2799+), `api/generate_deed.py` |
+| PDFShift | **Available** | `pdf_engine.py`, `services/pdfshift_service.py` |
 
 ---
 
