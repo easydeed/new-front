@@ -71,6 +71,7 @@ async def get_api_key(
             )
         
         api_key_id, key_hash, name, org_id, scopes, rate_hour, rate_day, is_active, is_test = row
+        api_key_id = str(api_key_id)  # Convert UUID to string for JSON serialization
         
         # Validate hash
         if not validate_api_key(full_key, key_hash):

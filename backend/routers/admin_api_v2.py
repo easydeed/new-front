@@ -391,9 +391,10 @@ def create_api_key(
     
     conn = get_db_connection()
     with conn.cursor() as cur:
+        # Use gen_random_uuid() for UUID id
         cur.execute("""
-            INSERT INTO api_keys (key_prefix, key_hash, name, is_test, rate_limit_hour, rate_limit_day, created_by_email)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO api_keys (id, key_prefix, key_hash, name, is_test, rate_limit_hour, rate_limit_day, created_by_email, is_active, created_at)
+            VALUES (gen_random_uuid(), %s, %s, %s, %s, %s, %s, %s, true, NOW())
             RETURNING id, created_at
         """, (key_prefix, key_hash, name, is_test, rate_limit_hour, rate_limit_day, admin))
         
@@ -403,7 +404,7 @@ def create_api_key(
         return {
             "success": True,
             "api_key": {
-                "id": row['id'],
+                "id": str(row['id']),  # UUID to string
                 "key": full_key,  # Only shown once!
                 "key_prefix": key_prefix,
                 "name": name,
@@ -418,7 +419,7 @@ def create_api_key(
 
 @router.get("/api-keys/{key_id}")
 def get_api_key(
-    key_id: int,
+    key_id: str,  # UUID as string
     admin=Depends(get_current_admin)
 ):
     """Get API key details and usage statistics."""
@@ -475,7 +476,7 @@ def get_api_key(
 
 @router.patch("/api-keys/{key_id}")
 def update_api_key(
-    key_id: int,
+    key_id: str,  # UUID as string
     name: Optional[str] = Body(None, embed=True),
     is_active: Optional[bool] = Body(None, embed=True),
     rate_limit_hour: Optional[int] = Body(None, embed=True),
@@ -526,7 +527,7 @@ def update_api_key(
 
 @router.delete("/api-keys/{key_id}")
 def delete_api_key(
-    key_id: int,
+    key_id: str,  # UUID as string
     admin=Depends(get_current_admin)
 ):
     """Deactivate (soft delete) an API key."""
