@@ -151,6 +151,9 @@ export function TransferTaxSection({
 
   if (!value) return null
 
+  // General AI guidance when no specific suggestion exists
+  const showGeneralGuidance = aiEnabled && !suggestion && !value.isExempt && !suggestionDismissed
+
   return (
     <div className="space-y-4">
       {/* AI Applied Message (for auto-applied high-confidence suggestions) */}
@@ -168,6 +171,15 @@ export function TransferTaxSection({
             onDismiss={() => setSuggestionDismissed(true)}
           />
         )}
+
+      {/* General AI Guidance (when AI is on but no specific suggestion) */}
+      {showGeneralGuidance && (
+        <AISuggestion
+          message={`For a ${deedType.replace(/-/g, ' ')}, tax is typically calculated on the full transfer value. Mark as exempt only if a valid R&T code applies.`}
+          variant="info"
+          onDismiss={() => setSuggestionDismissed(true)}
+        />
+      )}
 
       {/* Exempt Toggle */}
       <div className="flex gap-4">

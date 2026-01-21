@@ -92,6 +92,9 @@ export function VestingSection({ value, onChange, granteeCount, deedType, grante
     onChange(newValue)
   }
 
+  // Show general guidance when AI is enabled but no specific suggestion
+  const showGeneralGuidance = aiEnabled && !suggestion && !value && granteeCount > 0
+
   return (
     <div className="space-y-4">
       {/* AI Suggestion (only show if no value selected and suggestion exists) */}
@@ -100,6 +103,20 @@ export function VestingSection({ value, onChange, granteeCount, deedType, grante
           message={suggestion.reason}
           action={`Use "${suggestion.label}"`}
           onApply={handleApplySuggestion}
+        />
+      )}
+
+      {/* General AI Guidance when no specific suggestion */}
+      {showGeneralGuidance && (
+        <AISuggestion
+          message={granteeCount === 1 
+            ? "For a single grantee, select their marital status. Use 'sole and separate' if married but taking title individually."
+            : granteeCount === 2
+              ? "For two grantees, choose based on relationship: married couples often use community property or joint tenants."
+              : "For multiple grantees, joint tenants provides survivorship rights; tenants in common allows separate shares."
+          }
+          variant="info"
+          onDismiss={() => setSuggestionApplied(true)}
         />
       )}
 
