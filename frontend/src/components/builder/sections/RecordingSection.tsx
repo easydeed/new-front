@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Building2 } from 'lucide-react';
+import { Building2, Plus } from 'lucide-react';
 import { usePartners } from '@/features/partners/PartnersContext';
 import { useAIAssist } from '@/contexts/AIAssistContext';
 import { AISuggestion } from '../AISuggestion';
+import { AddPartnerModal, PartnerFormData } from '@/components/modals/AddPartnerModal';
 
 interface RecordingSectionProps {
   requestedBy: string;
@@ -17,7 +18,8 @@ interface RecordingSectionProps {
 export function RecordingSection({ requestedBy, returnTo, titleOrderNo, escrowNo, onChange }: RecordingSectionProps) {
   const { enabled: aiEnabled } = useAIAssist();
   const [guidanceDismissed, setGuidanceDismissed] = useState(false);
-  const { partners } = usePartners();
+  const [showAddModal, setShowAddModal] = useState(false);
+  const { partners, create: createPartner } = usePartners();
   
   useEffect(() => {
     if (!requestedBy && partners.length > 0) {
@@ -30,6 +32,49 @@ export function RecordingSection({ requestedBy, returnTo, titleOrderNo, escrowNo
       }
     }
   }, [partners, requestedBy, onChange]);
+
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    
+    if (value === '__ADD_NEW__') {
+      setShowAddModal(true);
+      return;
+    }
+    
+    onChange({ requestedBy: value });
+    const partner = partners.find(p => p.label === value);
+    if (partner) {
+      localStorage.setItem('lastPartnerUsed', partner.id);
+    }
+  };
+
+  const handlePartnerCreated = async (formData: PartnerFormData) => {
+    try {
+      // Create the partner
+      const newPartner = await createPartner({
+        company_name: formData.company_name,
+        contact_name: formData.contact_name,
+        category: formData.category,
+        email: formData.email,
+        phone: formData.phone,
+        address_line1: formData.address_line1,
+        city: formData.city,
+        state: formData.state,
+        postal_code: formData.postal_code,
+        role: 'title_officer',
+      });
+      
+      // Auto-select the new partner (use company_name as the label)
+      if (newPartner?.company_name) {
+        onChange({ requestedBy: newPartner.company_name });
+        localStorage.setItem('lastPartnerUsed', newPartner.id);
+      }
+      
+      setShowAddModal(false);
+    } catch (error) {
+      console.error('Failed to create partner:', error);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -50,13 +95,7 @@ export function RecordingSection({ requestedBy, returnTo, titleOrderNo, escrowNo
           <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <select
             value={requestedBy}
-            onChange={(e) => {
-              onChange({ requestedBy: e.target.value });
-              const partner = partners.find(p => p.label === e.target.value);
-              if (partner) {
-                localStorage.setItem('lastPartnerUsed', partner.id);
-              }
-            }}
+            onChange={handleSelectChange}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 appearance-none bg-white"
           >
             <option value="">Select partner...</option>
@@ -65,9 +104,26 @@ export function RecordingSection({ requestedBy, returnTo, titleOrderNo, escrowNo
                 {partner.label}
               </option>
             ))}
+            <option value="__ADD_NEW__" className="text-brand-600 font-medium">
+              ➕ Add New Partner
+            </option>
           </select>
         </div>
+        
+        {/* Helper text for empty state */}
+        {partners.length === 0 && (
+          <p className="mt-1 text-xs text-gray-500">
+            No partners yet. Select "➕ Add New Partner" to create one.
+          </p>
+        )}
       </div>
+
+      {/* Add Partner Modal */}
+      <AddPartnerModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSave={handlePartnerCreated}
+      />
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">

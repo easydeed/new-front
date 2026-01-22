@@ -69,14 +69,22 @@
             margin-bottom: 0.12in;
         }
 
+        /* Right column container for recorder box + reference numbers */
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
         .recorder-space {
+            width: 3.5in;
             border: 2px solid #000;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
             padding-top: 0.15in;
-            min-height: 2.5in;  /* Increased for better recorder space */
+            min-height: 2.5in;
         }
 
         .recorder-space-label {
@@ -88,19 +96,46 @@
             font-weight: bold;
         }
 
-        /* Reference Line */
-        .reference-line {
-            display: flex;
-            justify-content: flex-end;
-            gap: 0.4in;
+        /* Reference Numbers - below recorder box */
+        .reference-numbers {
+            margin-top: 0.12in;
+            text-align: right;
             font-size: 10pt;
-            margin-bottom: 0.1in;
-            padding-bottom: 0.08in;
-            border-bottom: 1px solid #000;
         }
 
-        .reference-item { white-space: nowrap; }
-        .reference-label { font-weight: bold; }
+        .ref-line {
+            margin-bottom: 0.05in;
+            display: flex;
+            justify-content: flex-end;
+            align-items: baseline;
+            gap: 0.08in;
+        }
+
+        .ref-label {
+            font-weight: normal;
+            font-size: 10pt;
+        }
+
+        .ref-value {
+            display: inline-block;
+            min-width: 1.5in;
+            border-bottom: 1pt solid #000;
+            text-align: left;
+            padding-left: 0.05in;
+            font-size: 10pt;
+        }
+
+        .ref-value.monospace {
+            font-family: "Courier New", Courier, monospace;
+            letter-spacing: 0.5px;
+        }
+
+        /* Horizontal separator line */
+        .separator-line {
+            border-bottom: 1px solid #000;
+            margin-bottom: 0.1in;
+            padding-bottom: 0.08in;
+        }
 
         /* Document Title */
         .deed-title {
@@ -461,6 +496,7 @@
 
         <!-- HEADER -->
         <div class="header-grid">
+            <!-- Left Column: Recording Information -->
             <div class="recording-info">
                 <div class="recording-info-label">Recording Requested By:</div>
                 <div class="recording-info-value">
@@ -488,37 +524,46 @@
                 </div>
 
                 <div class="recording-info-label">Mail Tax Statements To:</div>
-                <div class="recording-info-value">
+                <div class="recording-info-value" style="margin-bottom: 0;">
                     {% if mail_tax_to %}{{ mail_tax_to }}{% else %}Same as above{% endif %}
                 </div>
             </div>
 
-            <div class="recorder-space">
-                <div class="recorder-space-label">
-                    Space Above This Line<br>
-                    For Recorder's Use Only
+            <!-- Right Column: Recorder Box + Reference Numbers -->
+            <div class="right-column">
+                <div class="recorder-space">
+                    <div class="recorder-space-label">
+                        Space Above This Line<br>
+                        For Recorder's Use Only
+                    </div>
+                </div>
+                
+                <!-- Reference Numbers - Right aligned, below recorder box -->
+                <div class="reference-numbers">
+                    {% if title_order_no %}
+                    <div class="ref-line">
+                        <span class="ref-label">Order No.:</span>
+                        <span class="ref-value">{{ title_order_no }}</span>
+                    </div>
+                    {% endif %}
+                    {% if escrow_no %}
+                    <div class="ref-line">
+                        <span class="ref-label">Escrow No.:</span>
+                        <span class="ref-value">{{ escrow_no }}</span>
+                    </div>
+                    {% endif %}
+                    {% if apn %}
+                    <div class="ref-line">
+                        <span class="ref-label">APN:</span>
+                        <span class="ref-value monospace">{{ apn }}</span>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
 
-        <!-- REFERENCE LINE -->
-        <div class="reference-line">
-            {% if apn %}
-                <span class="reference-item">
-                    <span class="reference-label">APN:</span> {{ apn }}
-                </span>
-            {% endif %}
-            {% if title_order_no %}
-                <span class="reference-item">
-                    <span class="reference-label">Order No:</span> {{ title_order_no }}
-                </span>
-            {% endif %}
-            {% if escrow_no %}
-                <span class="reference-item">
-                    <span class="reference-label">Escrow No:</span> {{ escrow_no }}
-                </span>
-            {% endif %}
-        </div>
+        <!-- Horizontal separator line -->
+        <div class="separator-line"></div>
 
         <!-- DOCUMENT TITLE -->
         <h1 class="deed-title">Quitclaim Deed</h1>

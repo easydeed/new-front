@@ -161,6 +161,33 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
   const inputRef = useRef<HTMLInputElement>(null)
   const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
+  
+  // Track dropdown position for fixed positioning
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
+  
+  // Update dropdown position when showing suggestions
+  useEffect(() => {
+    if (showSuggestions && inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect()
+      setDropdownPosition({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width
+      })
+    }
+  }, [showSuggestions, suggestions])
+  
+  // Close dropdown on scroll to avoid positioning issues
+  useEffect(() => {
+    const handleScroll = () => {
+      if (showSuggestions) {
+        setShowSuggestions(false)
+      }
+    }
+    
+    window.addEventListener('scroll', handleScroll, true)
+    return () => window.removeEventListener('scroll', handleScroll, true)
+  }, [showSuggestions])
 
   // Check if Google Maps is loaded
   useEffect(() => {
@@ -530,10 +557,18 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
           </button>
         )}
 
-        {/* Google Autocomplete Suggestions */}
-        {showSuggestions && suggestions.length > 0 && !addressSelected && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-[100] max-h-80 overflow-y-auto">
-            {suggestions.map((prediction) => (
+        {/* Google Autocomplete Suggestions - Fixed position to escape scroll containers */}
+        {showSuggestions && suggestions.length > 0 && !addressSelected && dropdownPosition.width > 0 && (
+          <div 
+            className="fixed bg-white border border-gray-200 rounded-lg shadow-xl z-[9999]"
+            style={{
+              top: dropdownPosition.top,
+              left: dropdownPosition.left,
+              width: dropdownPosition.width,
+              maxHeight: '320px',
+            }}
+          >
+            {suggestions.slice(0, 5).map((prediction) => (
               <button
                 key={prediction.place_id}
                 type="button"
@@ -546,10 +581,10 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
               >
                 <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
                 <div className="min-w-0">
-                  <p className="font-medium text-gray-900 truncate">
+                  <p className="font-medium text-gray-900">
                     {prediction.structured_formatting.main_text}
                   </p>
-                  <p className="text-sm text-gray-500 truncate">
+                  <p className="text-sm text-gray-500">
                     {prediction.structured_formatting.secondary_text}
                   </p>
                 </div>

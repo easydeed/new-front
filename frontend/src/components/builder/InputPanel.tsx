@@ -98,8 +98,8 @@ export function InputPanel({
         </div>
       </div>
 
-      {/* Sections */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      {/* Sections - overflow-visible allows dropdowns to extend outside */}
+      <div className="flex-1 p-4 space-y-3 overflow-visible" style={{ overflowY: 'auto', overscrollBehavior: 'contain' }}>
         <InputSection
           id="property"
           title="Property"

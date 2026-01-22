@@ -117,55 +117,35 @@
             line-height: 1.6;
         }
 
-        /* Right column container for recorder box + reference numbers */
-        .right-column {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-        }
-
-        /* Reference numbers below recorder box */
-        .reference-numbers {
-            margin-top: 0.12in;
-            text-align: right;
-            font-size: 10pt;
-        }
-
-        .ref-line {
-            margin-bottom: 0.05in;
-            display: flex;
-            justify-content: flex-end;
-            align-items: baseline;
-            gap: 0.08in;
-        }
-
-        .ref-label {
-            font-weight: normal;
-            font-size: 10pt;
-        }
-
-        .ref-value {
-            display: inline-block;
-            min-width: 1.5in;
-            border-bottom: 1pt solid #000;
-            text-align: left;
-            padding-left: 0.05in;
-            font-size: 10pt;
-        }
-
-        .ref-value.monospace {
-            font-family: "Courier New", Courier, monospace;
-            letter-spacing: 0.5px;
-        }
-
         /* --------------------------------------------------------------------------
-           HORIZONTAL SEPARATOR LINE
+           REFERENCE LINE - APN, Title Order, Escrow
            -------------------------------------------------------------------------- */
 
         .reference-section {
             border-bottom: 1.5pt solid #000;
             padding: 0.08in 0;
             margin-bottom: 0.15in;
+        }
+
+        .reference-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 0.25in;
+            font-size: 10pt;
+        }
+
+        .reference-primary {
+            display: flex;
+            align-items: baseline;
+            gap: 0.08in;
+        }
+
+        .reference-secondary {
+            display: flex;
+            gap: 0.35in;
+            flex-wrap: wrap;
         }
 
         .ref-item {
@@ -543,7 +523,6 @@
              ================================================================ -->
 
         <header class="header-section">
-            <!-- Left Column: Recording Information -->
             <div class="recording-info">
                 <div class="recording-label">Recording Requested By:</div>
                 <div class="recording-value">
@@ -571,50 +550,48 @@
                 </div>
 
                 <div class="recording-label">Mail Tax Statements To:</div>
-                <div class="recording-value" style="margin-bottom: 0;">
+                <div class="recording-value">
                     {{ mail_tax_to or 'Same as above' }}
                 </div>
             </div>
 
-            <!-- Right Column: Recorder Box + Reference Numbers -->
-            <div class="right-column">
-                <div class="recorder-box">
-                    <div class="recorder-label">
-                        Space Above This Line<br>
-                        For Recorder's Use Only
-                    </div>
-                </div>
-                
-                <!-- Reference Numbers - Right aligned, below recorder box -->
-                <div class="reference-numbers">
-                    {% if title_order_no %}
-                    <div class="ref-line">
-                        <span class="ref-label">Order No.:</span>
-                        <span class="ref-value">{{ title_order_no }}</span>
-                    </div>
-                    {% endif %}
-                    {% if escrow_no %}
-                    <div class="ref-line">
-                        <span class="ref-label">Escrow No.:</span>
-                        <span class="ref-value">{{ escrow_no }}</span>
-                    </div>
-                    {% endif %}
-                    {% if apn %}
-                    <div class="ref-line">
-                        <span class="ref-label">APN:</span>
-                        <span class="ref-value monospace">{{ apn }}</span>
-                    </div>
-                    {% endif %}
+            <div class="recorder-box">
+                <div class="recorder-label">
+                    Space Above This Line<br>
+                    For Recorder's Use Only
                 </div>
             </div>
         </header>
 
         <!-- ================================================================
-             HORIZONTAL LINE - Separates header from deed content
+             REFERENCE LINE - APN, Title Order, Escrow
              ================================================================ -->
 
         <div class="reference-section">
-            <!-- Empty reference section creates the horizontal line -->
+            <div class="reference-row">
+                <div class="reference-primary">
+                    {% if apn %}
+                    <span class="ref-label">APN:</span>
+                    <span class="ref-value monospace">{{ apn }}</span>
+                    {% endif %}
+                </div>
+                
+                <div class="reference-secondary">
+                    {% if title_order_no %}
+                    <span class="ref-item">
+                        <span class="ref-label">Title Order:</span>
+                        <span class="ref-value">{{ title_order_no }}</span>
+                    </span>
+                    {% endif %}
+                    
+                    {% if escrow_no %}
+                    <span class="ref-item">
+                        <span class="ref-label">Escrow:</span>
+                        <span class="ref-value">{{ escrow_no }}</span>
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
         </div>
 
         <!-- ================================================================
