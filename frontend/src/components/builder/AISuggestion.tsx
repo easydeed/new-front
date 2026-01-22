@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Sparkles, X, ChevronRight, HelpCircle, ChevronDown, ChevronUp } from "lucide-react"
+import { useState } from "react"
+import { Sparkles, X, ChevronRight, HelpCircle } from "lucide-react"
 import { useAIAssist } from "@/contexts/AIAssistContext"
 
 interface AISuggestionProps {
@@ -23,24 +23,14 @@ export function AISuggestion({
 }: AISuggestionProps) {
   const { enabled } = useAIAssist()
   const [dismissed, setDismissed] = useState(false)
-  const [visible, setVisible] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
-
-  // Animate in on mount
-  useEffect(() => {
-    const timer = setTimeout(() => setVisible(true), 50)
-    return () => clearTimeout(timer)
-  }, [])
 
   // Don't show if AI is disabled or dismissed
   if (!enabled || dismissed) return null
 
   const handleDismiss = () => {
-    setVisible(false)
-    setTimeout(() => {
-      setDismissed(true)
-      onDismiss?.()
-    }, 200)
+    setDismissed(true)
+    onDismiss?.()
   }
 
   // Consistent green styling for all AI guidance
@@ -57,14 +47,7 @@ export function AISuggestion({
 
   return (
     <div 
-      className={`
-        ${styles.bg} border ${styles.border} rounded-lg mb-3 overflow-hidden
-        transform transition-all duration-300 ease-out
-        ${visible 
-          ? 'opacity-100 translate-y-0' 
-          : 'opacity-0 -translate-y-2'
-        }
-      `}
+      className={`${styles.bg} border ${styles.border} rounded-lg mb-3 overflow-hidden`}
     >
       <div className="flex items-start gap-2 p-3">
         <Sparkles className={`w-4 h-4 ${styles.icon} mt-0.5 flex-shrink-0 animate-pulse`} />
@@ -128,23 +111,11 @@ export function AISuggestion({
 // Auto-applied suggestion (just shows explanation, no action button)
 export function AIApplied({ message }: { message: string }) {
   const { enabled } = useAIAssist()
-  const [visible, setVisible] = useState(false)
-
-  useEffect(() => {
-    const timer = setTimeout(() => setVisible(true), 50)
-    return () => clearTimeout(timer)
-  }, [])
 
   if (!enabled) return null
 
   return (
-    <div 
-      className={`
-        flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg mb-3
-        transform transition-all duration-300 ease-out
-        ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}
-      `}
-    >
+    <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg mb-3">
       <Sparkles className="w-4 h-4 flex-shrink-0 animate-pulse" />
       <span>{message}</span>
     </div>
@@ -154,23 +125,11 @@ export function AIApplied({ message }: { message: string }) {
 // Inline hint (very subtle, no dismiss)
 export function AIHint({ message }: { message: string }) {
   const { enabled } = useAIAssist()
-  const [visible, setVisible] = useState(false)
-
-  useEffect(() => {
-    const timer = setTimeout(() => setVisible(true), 100)
-    return () => clearTimeout(timer)
-  }, [])
 
   if (!enabled) return null
 
   return (
-    <p 
-      className={`
-        flex items-center gap-1.5 text-xs text-emerald-600 mt-1
-        transition-all duration-300 ease-out
-        ${visible ? 'opacity-100' : 'opacity-0'}
-      `}
-    >
+    <p className="flex items-center gap-1.5 text-xs text-emerald-600 mt-1">
       <Sparkles className="w-3 h-3" />
       {message}
     </p>

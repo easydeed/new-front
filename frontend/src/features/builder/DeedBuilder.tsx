@@ -98,11 +98,11 @@ function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
   };
 
   return (
-    <div className="h-screen max-h-screen flex flex-col bg-gray-100 overflow-hidden">
+    <div className="h-screen flex flex-col bg-gray-100">
       <BuilderHeader deedType={DEED_LABELS[deedType] || deedType} />
 
-      <div className="flex-1 flex overflow-hidden min-h-0">
-        <div className="w-[420px] flex-shrink-0 border-r border-gray-300 overflow-hidden">
+      <div className="flex-1 flex overflow-hidden">
+        <div className="w-[420px] flex-shrink-0 border-r border-gray-300">
           <InputPanel
             state={state}
             onChange={handleChange}
@@ -113,7 +113,7 @@ function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
           />
         </div>
 
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1">
           <PreviewPanel state={state} activeSection={expandedSection} />
         </div>
       </div>
