@@ -111,9 +111,8 @@ export function InputSection({
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            style={{ overflow: 'hidden' }}
           >
-            <div className="p-4 pt-2 border-t border-gray-100 bg-white">
+            <div className="p-4 pt-2 border-t border-gray-100 bg-white overflow-visible">
               {children}
             </div>
           </motion.div>

@@ -532,7 +532,7 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
 
         {/* Google Autocomplete Suggestions */}
         {showSuggestions && suggestions.length > 0 && !addressSelected && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-[100] max-h-80 overflow-y-auto">
             {suggestions.map((prediction) => (
               <button
                 key={prediction.place_id}
