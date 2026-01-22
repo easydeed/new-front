@@ -104,13 +104,14 @@ export function InputSection({
         </motion.div>
       </button>
 
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {isExpanded && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            style={{ overflow: 'hidden' }}
           >
             <div className="p-4 pt-2 border-t border-gray-100 bg-white">
               {children}
