@@ -53,10 +53,10 @@ class PartnerUpdate(BaseModel):
 
 # Helper function to get user's organization
 def get_user_organization(user_id: int) -> str:
-    """Get organization_id for user (defaults to 'default-org')"""
-    # For now, all users belong to 'default-org'
-    # Later: Query from users table when organization_id column exists
-    return 'default-org'
+    """Get organization_id for user - uses user_id as unique org for data isolation"""
+    # SECURITY FIX: Each user gets their own "organization" based on user_id
+    # This prevents data leaking between users
+    return f'user-{user_id}'
 
 
 @router.get("", response_model=List[Dict])
@@ -64,7 +64,7 @@ async def list_my_partners(
     active_only: bool = True,
     user_id: int = Depends(get_current_user_id)
 ):
-    """List all partners for current user's organization"""
+    """List all partners for current user (user-scoped, not shared)"""
     try:
         organization_id = get_user_organization(user_id)
         partners = list_partners(organization_id, active_only)

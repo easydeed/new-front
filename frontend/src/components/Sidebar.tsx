@@ -2,13 +2,22 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthManager } from '../utils/auth';
-import { Home, FileText, FolderOpen, Users, UserPlus, Settings, Smartphone, Shield, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Home, FileText, FolderOpen, Users, UserPlus, Settings, Shield, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check admin status on mount
+  useEffect(() => {
+    // Check role from stored user data or JWT
+    const user = AuthManager.getUser();
+    const role = user?.role?.toLowerCase().trim() || '';
+    setIsAdmin(['admin', 'administrator', 'superadmin', 'super_admin', 'owner'].includes(role));
+  }, []);
 
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
@@ -19,6 +28,7 @@ export default function Sidebar() {
     window.location.href = '/login';
   };
 
+  // Base nav items (shown to all users)
   const navItems = [
     { href: '/dashboard', icon: Home, label: 'Dashboard' },
     { href: '/deed-builder', icon: FileText, label: 'Create Deed' },
@@ -26,9 +36,13 @@ export default function Sidebar() {
     { href: '/shared-deeds', icon: Users, label: 'Shared Deeds' },
     { href: '/partners', icon: UserPlus, label: 'Partners' },
     { href: '/account-settings', icon: Settings, label: 'Settings' },
-    { href: '/mobile', icon: Smartphone, label: 'Mobile' },
-    { href: '/admin-honest-v2', icon: Shield, label: 'Admin' },
+    // Admin link - only added if user is admin (see below)
   ];
+
+  // Add admin link only for admin users
+  if (isAdmin) {
+    navItems.push({ href: '/admin', icon: Shield, label: 'Admin' });
+  }
 
   const isActive = (href: string) => {
     if (href === '/dashboard') {
@@ -85,15 +99,16 @@ export default function Sidebar() {
               <Link
                 href={item.href}
                 className={`
-                  flex items-center gap-3 px-3 py-3.5 rounded-lg font-medium transition-all duration-200
+                  flex items-center gap-3 px-3 py-3.5 rounded-lg font-medium 
+                  transition-all duration-200 ease-out
                   ${active 
-                    ? 'bg-[#7C4DFF]/10 text-[#7C4DFF] border-r-2 border-[#7C4DFF]' 
-                    : 'text-gray-700 hover:bg-[#7C4DFF]/10 hover:text-[#7C4DFF]'
+                    ? 'bg-[#7C4DFF]/15 text-[#7C4DFF] border-l-3 border-[#7C4DFF] shadow-sm' 
+                    : 'text-gray-700 hover:bg-[#7C4DFF]/10 hover:text-[#7C4DFF] hover:translate-x-1'
                   }
                 `}
                 title={isCollapsed ? item.label : ''}
               >
-                <Icon className={`w-5 h-5 flex-shrink-0 ${active ? 'text-[#7C4DFF]' : ''}`} />
+                <Icon className={`w-5 h-5 flex-shrink-0 transition-transform ${active ? 'text-[#7C4DFF] scale-110' : ''}`} />
                 {!isCollapsed && (
                   <span className="text-base">{item.label}</span>
                 )}

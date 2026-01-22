@@ -449,48 +449,59 @@ function BillingTab({
       {/* Payment Methods */}
       <div>
         <h3 className="text-xl font-bold text-slate-800 mb-6">Payment Methods</h3>
-        <div className="bg-white border border-slate-200 rounded-xl p-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-8 bg-blue-600 rounded flex items-center justify-center text-white text-xs font-bold">
-              VISA
-            </div>
-            <div>
-              <div className="font-medium text-slate-800">•••• •••• •••• 4242</div>
-              <div className="text-sm text-slate-500">Expires 12/26</div>
-            </div>
+        {currentPlan === "starter" ? (
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 text-center">
+            <CreditCard className="w-12 h-12 mx-auto mb-3 text-slate-400" />
+            <p className="text-slate-600 mb-4">No payment method on file</p>
+            <p className="text-sm text-slate-500">Add a payment method when you upgrade to a paid plan.</p>
           </div>
-          <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">Default</span>
-        </div>
-        <button className="mt-4 px-6 py-3 border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium rounded-lg transition-colors">
-          + Add Payment Method
-        </button>
+        ) : (
+          <>
+            <div className="bg-white border border-slate-200 rounded-xl p-6">
+              <p className="text-slate-600 mb-4">
+                Your payment methods are managed through our secure billing portal.
+              </p>
+              <button
+                onClick={onManageSubscription}
+                disabled={saving}
+                className="px-6 py-3 bg-[#7C4DFF] hover:bg-[#6a3de8] text-white font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  "Manage Payment Methods"
+                )}
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Billing History */}
       <div>
         <h3 className="text-xl font-bold text-slate-800 mb-6">Billing History</h3>
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Date</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Description</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Amount</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b border-slate-100 hover:bg-slate-50">
-                <td className="py-3 px-4 text-sm text-slate-600">11/01/2025</td>
-                <td className="py-3 px-4 text-sm text-slate-800">Professional Plan - Monthly</td>
-                <td className="py-3 px-4 text-sm text-slate-800 font-medium">$29.00</td>
-                <td className="py-3 px-4">
-                  <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">Paid</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        {currentPlan === "starter" ? (
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 text-center">
+            <p className="text-slate-600">No billing history yet.</p>
+            <p className="text-sm text-slate-500 mt-1">Your invoices will appear here once you upgrade to a paid plan.</p>
+          </div>
+        ) : (
+          <div className="bg-white border border-slate-200 rounded-xl p-6">
+            <p className="text-slate-600 mb-4">
+              View and download your invoices from the billing portal.
+            </p>
+            <button
+              onClick={onManageSubscription}
+              disabled={saving}
+              className="px-6 py-3 border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium rounded-lg transition-colors disabled:opacity-50"
+            >
+              View Billing History
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
