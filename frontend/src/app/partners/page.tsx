@@ -126,271 +126,225 @@ export default function PartnersPage() {
   }
 
   return (
-    <div className="app-container">
+    <div className="flex bg-gray-50 min-h-screen">
       <Sidebar />
-      <div className="main-content">
-        <div className="wizard-container">
+      <main className="flex-1 p-4 md:p-8 overflow-auto">
+        <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            marginBottom: '1.5rem' 
-          }}>
+          <div className="flex justify-between items-center mb-6">
             <div>
-              <h1 style={{ margin: 0 }}>Industry Partners</h1>
-              <div style={{ color: 'var(--gray-600)', marginTop: '0.25rem', fontSize: '0.9rem' }}>
+              <h1 className="text-2xl font-bold text-gray-900">Industry Partners</h1>
+              <p className="text-gray-500 mt-1">
                 {items.length} partner{items.length !== 1 ? 's' : ''}
-              </div>
+              </p>
             </div>
             <button 
-              className="btn-primary" 
+              className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors" 
               onClick={() => { 
                 setEditing(blank()); 
                 setShowForm(true); 
               }}
             >
-              ➕ Add New Partner
+              <span>➕</span> Add New Partner
             </button>
           </div>
 
           {/* Edit Form (when active) */}
           {showForm && editing && (
-            <div className="card" style={{ marginBottom: '1.5rem' }}>
-              <div className="card-body">
-                <h3 style={{ marginTop: 0 }}>{editing.id ? 'Edit Partner' : 'New Partner'}</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--gray-700)', marginBottom: '0.25rem' }}>
-                      Company Name *
-                    </label>
-                    <input 
-                      value={editing.company_name || ''} 
-                      onChange={e => setEditing({...editing, company_name: e.target.value})} 
-                      style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--gray-300)' }} 
-                      placeholder="Pacific Coast Title"
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--gray-700)', marginBottom: '0.25rem' }}>
-                      Contact Name
-                    </label>
-                    <input 
-                      value={editing.contact_name || ''} 
-                      onChange={e => setEditing({...editing, contact_name: e.target.value})} 
-                      style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--gray-300)' }} 
-                      placeholder="John Smith"
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--gray-700)', marginBottom: '0.25rem' }}>
-                      Email
-                    </label>
-                    <input 
-                      value={editing.email || ''} 
-                      onChange={e => setEditing({...editing, email: e.target.value})} 
-                      style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--gray-300)' }} 
-                      placeholder="john@pct.com"
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--gray-700)', marginBottom: '0.25rem' }}>
-                      Phone
-                    </label>
-                    <input 
-                      value={editing.phone || ''} 
-                      onChange={e => setEditing({...editing, phone: e.target.value})} 
-                      style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--gray-300)' }} 
-                      placeholder="(555) 123-4567"
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--gray-700)', marginBottom: '0.25rem' }}>
-                      Category
-                    </label>
-                    <select 
-                      value={editing.category || 'title_company'} 
-                      onChange={e => setEditing({...editing, category: e.target.value})} 
-                      style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--gray-300)' }}
-                    >
-                      {CATEGORIES.map(c => <option key={c} value={c}>{c.replace('_',' ')}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--gray-700)', marginBottom: '0.25rem' }}>
-                      Role
-                    </label>
-                    <select 
-                      value={editing.role || 'title_officer'} 
-                      onChange={e => setEditing({...editing, role: e.target.value})} 
-                      style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--gray-300)' }}
-                    >
-                      {ROLES.map(r => <option key={r} value={r}>{r.replace('_',' ')}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div style={{ marginTop: '1rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--gray-700)', marginBottom: '0.25rem' }}>
-                    Notes
-                  </label>
-                  <textarea 
-                    value={editing.notes || ''} 
-                    onChange={e => setEditing({...editing, notes: e.target.value})} 
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--gray-300)', minHeight: '80px' }} 
-                    placeholder="Additional notes..."
+            <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">{editing.id ? 'Edit Partner' : 'New Partner'}</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Company Name *</label>
+                  <input 
+                    value={editing.company_name || ''} 
+                    onChange={e => setEditing({...editing, company_name: e.target.value})} 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Pacific Coast Title"
                   />
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                  <button className="btn-primary" onClick={() => save(editing)}>
-                    {editing.id ? '💾 Update' : '➕ Create'}
-                  </button>
-                  {editing.id && (
-                    <button 
-                      className="btn" 
-                      onClick={() => del(editing.id!)}
-                      style={{ background: '#ef4444', color: 'white' }}
-                    >
-                      🗑️ Delete
-                    </button>
-                  )}
-                  <button className="btn" onClick={() => { setEditing(null); setShowForm(false); }}>
-                    ✖️ Cancel
-                  </button>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Contact Name</label>
+                  <input 
+                    value={editing.contact_name || ''} 
+                    onChange={e => setEditing({...editing, contact_name: e.target.value})} 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="John Smith"
+                  />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input 
+                    value={editing.email || ''} 
+                    onChange={e => setEditing({...editing, email: e.target.value})} 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="john@pct.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                  <input 
+                    value={editing.phone || ''} 
+                    onChange={e => setEditing({...editing, phone: e.target.value})} 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <select 
+                    value={editing.category || 'title_company'} 
+                    onChange={e => setEditing({...editing, category: e.target.value})} 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    {CATEGORIES.map(c => <option key={c} value={c}>{c.replace('_',' ')}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                  <select 
+                    value={editing.role || 'title_officer'} 
+                    onChange={e => setEditing({...editing, role: e.target.value})} 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    {ROLES.map(r => <option key={r} value={r}>{r.replace('_',' ')}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                <textarea 
+                  value={editing.notes || ''} 
+                  onChange={e => setEditing({...editing, notes: e.target.value})} 
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[80px]"
+                  placeholder="Additional notes..."
+                />
+              </div>
+              <div className="flex gap-2 mt-4">
+                <button 
+                  className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  onClick={() => save(editing)}
+                >
+                  {editing.id ? '💾 Update' : '➕ Create'}
+                </button>
+                {editing.id && (
+                  <button 
+                    className="inline-flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition-colors"
+                    onClick={() => del(editing.id!)}
+                  >
+                    🗑️ Delete
+                  </button>
+                )}
+                <button 
+                  className="inline-flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                  onClick={() => { setEditing(null); setShowForm(false); }}
+                >
+                  ✖️ Cancel
+                </button>
               </div>
             </div>
           )}
 
           {/* Partners Table */}
-          <div className="card">
-            <div className="card-body">
-              <div className="table-responsive">
-                <table className="table w-100 table-striped">
-                  <thead>
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Company</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Contact</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Category</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Role</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Phone</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Added</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {loading && (
                     <tr>
-                      <th>Company</th>
-                      <th>Contact</th>
-                      <th>Category</th>
-                      <th>Role</th>
-                      <th>Email</th>
-                      <th>Phone</th>
-                      <th>Added</th>
-                      <th>Actions</th>
+                      <td colSpan={8} className="text-center py-8 text-gray-500">
+                        Loading partners...
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {loading && (
-                      <tr>
-                        <td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-600)' }}>
-                          Loading partners...
-                        </td>
-                      </tr>
-                    )}
-                    {!loading && items.length === 0 && (
-                      <tr>
-                        <td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-600)' }}>
-                          No partners yet. Click "Add New Partner" to get started.
-                        </td>
-                      </tr>
-                    )}
-                    {!loading && items.map((p) => (
-                      <tr key={p.id}>
-                        <td style={{ fontWeight: '500' }}>{p.company_name}</td>
-                        <td>{p.contact_name || '—'}</td>
-                        <td>{getCategoryBadge(p.category)}</td>
-                        <td>
-                          <span style={{ fontSize: '0.875rem', color: 'var(--gray-600)' }}>
-                            {p.role?.replace('_',' ')}
-                          </span>
-                        </td>
-                        <td>
-                          {p.email ? (
-                            <a href={`mailto:${p.email}`} style={{ color: 'var(--primary)', textDecoration: 'none' }}>
-                              {p.email}
-                            </a>
-                          ) : '—'}
-                        </td>
-                        <td>{p.phone || '—'}</td>
-                        <td>
-                          <span style={{ fontSize: '0.875rem', color: 'var(--gray-600)' }}>
-                            {p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}
-                          </span>
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            <button 
-                              className="btn btn-sm" 
-                              onClick={() => { 
-                                setEditing(p); 
-                                setShowForm(true); 
-                              }}
-                              style={{ 
-                                padding: '0.25rem 0.75rem', 
-                                fontSize: '0.875rem',
-                                background: 'var(--primary)',
-                                color: 'white'
-                              }}
-                            >
-                              ✏️ Edit
-                            </button>
-                            <button 
-                              className="btn btn-sm" 
-                              onClick={() => del(p.id)}
-                              style={{ 
-                                padding: '0.25rem 0.75rem', 
-                                fontSize: '0.875rem',
-                                background: '#ef4444',
-                                color: 'white'
-                              }}
-                            >
-                              🗑️ Delete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  )}
+                  {!loading && items.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="text-center py-8 text-gray-500">
+                        No partners yet. Click "Add New Partner" to get started.
+                      </td>
+                    </tr>
+                  )}
+                  {!loading && items.map((p) => (
+                    <tr key={p.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 font-medium text-gray-900">{p.company_name}</td>
+                      <td className="px-6 py-4 text-gray-600">{p.contact_name || '—'}</td>
+                      <td className="px-6 py-4">{getCategoryBadge(p.category)}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{p.role?.replace('_',' ')}</td>
+                      <td className="px-6 py-4">
+                        {p.email ? (
+                          <a href={`mailto:${p.email}`} className="text-blue-600 hover:underline">
+                            {p.email}
+                          </a>
+                        ) : '—'}
+                      </td>
+                      <td className="px-6 py-4 text-gray-600">{p.phone || '—'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex gap-2">
+                          <button 
+                            className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors"
+                            onClick={() => { 
+                              setEditing(p); 
+                              setShowForm(true); 
+                            }}
+                          >
+                            ✏️ Edit
+                          </button>
+                          <button 
+                            className="text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition-colors"
+                            onClick={() => del(p.id)}
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
 
           {/* Stats Card */}
           {items.length > 0 && (
-            <div className="card" style={{ marginTop: '1.5rem' }}>
-              <div className="card-body">
-                <h4 style={{ marginTop: 0 }}>Quick Stats</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                  <div>
-                    <div style={{ fontSize: '0.875rem', color: 'var(--gray-600)' }}>Total Partners</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: '600', color: 'var(--primary)' }}>
-                      {items.length}
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.875rem', color: 'var(--gray-600)' }}>Title Companies</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: '600', color: '#3b82f6' }}>
-                      {items.filter(p => p.category === 'title_company').length}
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.875rem', color: 'var(--gray-600)' }}>Real Estate</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: '600', color: '#10b981' }}>
-                      {items.filter(p => p.category === 'real_estate').length}
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.875rem', color: 'var(--gray-600)' }}>Lenders</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: '600', color: '#f59e0b' }}>
-                      {items.filter(p => p.category === 'lender').length}
-                    </div>
-                  </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-6 mt-6">
+              <h4 className="text-lg font-semibold text-gray-900 mb-4">Quick Stats</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="text-sm text-gray-500">Total Partners</div>
+                  <div className="text-2xl font-bold text-blue-600">{items.length}</div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="text-sm text-gray-500">Title Companies</div>
+                  <div className="text-2xl font-bold text-blue-500">{items.filter(p => p.category === 'title_company').length}</div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="text-sm text-gray-500">Real Estate</div>
+                  <div className="text-2xl font-bold text-emerald-500">{items.filter(p => p.category === 'real_estate').length}</div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="text-sm text-gray-500">Lenders</div>
+                  <div className="text-2xl font-bold text-amber-500">{items.filter(p => p.category === 'lender').length}</div>
                 </div>
               </div>
             </div>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }
