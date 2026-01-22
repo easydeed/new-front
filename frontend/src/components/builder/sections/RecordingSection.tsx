@@ -9,10 +9,12 @@ import { AISuggestion } from '../AISuggestion';
 interface RecordingSectionProps {
   requestedBy: string;
   returnTo: string;
-  onChange: (updates: { requestedBy?: string; returnTo?: string }) => void;
+  titleOrderNo?: string;
+  escrowNo?: string;
+  onChange: (updates: { requestedBy?: string; returnTo?: string; titleOrderNo?: string; escrowNo?: string }) => void;
 }
 
-export function RecordingSection({ requestedBy, returnTo, onChange }: RecordingSectionProps) {
+export function RecordingSection({ requestedBy, returnTo, titleOrderNo, escrowNo, onChange }: RecordingSectionProps) {
   const { enabled: aiEnabled } = useAIAssist();
   const [guidanceDismissed, setGuidanceDismissed] = useState(false);
   const { partners } = usePartners();
@@ -90,6 +92,34 @@ export function RecordingSection({ requestedBy, returnTo, onChange }: RecordingS
             />
             <span className="text-sm text-gray-700">Grantee</span>
           </label>
+        </div>
+      </div>
+
+      {/* Reference Numbers */}
+      <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-200">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Title Order No.
+          </label>
+          <input
+            type="text"
+            value={titleOrderNo || ''}
+            onChange={(e) => onChange({ titleOrderNo: e.target.value })}
+            placeholder="TC-2026-12345"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Escrow No.
+          </label>
+          <input
+            type="text"
+            value={escrowNo || ''}
+            onChange={(e) => onChange({ escrowNo: e.target.value })}
+            placeholder="ESC-789456"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 text-sm"
+          />
         </div>
       </div>
     </div>

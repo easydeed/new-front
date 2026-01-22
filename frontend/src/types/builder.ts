@@ -28,5 +28,7 @@ export interface DeedBuilderState {
   dtt: DTTData | null;
   requestedBy: string;
   returnTo: string;
+  titleOrderNo?: string;
+  escrowNo?: string;
 }
 

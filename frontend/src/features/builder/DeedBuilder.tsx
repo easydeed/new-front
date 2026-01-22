@@ -36,6 +36,8 @@ function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
     dtt: null,
     requestedBy: '',
     returnTo: '',
+    titleOrderNo: '',
+    escrowNo: '',
   });
 
   const [expandedSection, setExpandedSection] = useState('property');
@@ -60,6 +62,8 @@ function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
         vesting: state.vesting,
         requested_by: state.requestedBy,
         return_to: state.returnTo === 'grantee' ? state.grantee : state.requestedBy,
+        title_order_no: state.titleOrderNo || '',
+        escrow_no: state.escrowNo || '',
         dtt: {
           transfer_value: state.dtt?.transferValue?.replace(/[^0-9]/g, '') || '',
           is_exempt: state.dtt?.isExempt || false,

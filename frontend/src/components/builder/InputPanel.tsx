@@ -199,6 +199,8 @@ export function InputPanel({
           <RecordingSection
             requestedBy={state.requestedBy}
             returnTo={state.returnTo}
+            titleOrderNo={state.titleOrderNo}
+            escrowNo={state.escrowNo}
             onChange={(updates) => onChange(updates)}
           />
         </InputSection>
