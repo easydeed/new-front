@@ -28,7 +28,7 @@ class SiteXConfig:
     """Centralized SiteX configuration"""
     
     def __init__(self):
-        self.base_url = os.getenv("SITEX_BASE_URL", "https://api.bkiconnect.com").rstrip('/')
+        self.base_url = os.getenv("SITEX_BASE_URL", "https://api.uat.bkitest.com").rstrip('/')
         self.client_id = os.getenv("SITEX_CLIENT_ID")
         self.client_secret = os.getenv("SITEX_CLIENT_SECRET")
         self.feed_id = os.getenv("SITEX_FEED_ID")

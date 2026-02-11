@@ -64,7 +64,7 @@ Production-grade MLS/property data client with OAuth2 authentication, thread-saf
 ### Configuration Required
 
 ```env
-SITEX_BASE_URL=https://api.bkiconnect.com
+SITEX_BASE_URL=https://api.uat.bkitest.com
 SITEX_CLIENT_ID=your_client_id
 SITEX_CLIENT_SECRET=your_client_secret
 SITEX_FEED_ID=your_feed_id
