@@ -6,8 +6,13 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Sidebar from "@/components/Sidebar"
 import { FileText, ArrowRight, AlertCircle, RotateCw, FileX, Sparkles, CheckCircle } from "lucide-react"
-// ✅ PHASE 24-E: Fixed import path to actual location
-import { WIZARD_DRAFT_KEY_MODERN, WIZARD_DRAFT_KEY_CLASSIC } from "@/features/wizard/mode/bridge/persistenceKeys"
+
+// Inlined from features/wizard/mode/bridge/ (the wizard draft-key module) so
+// this picker no longer depends on the wizard folder. The wizard and its other
+// importers are scheduled for deletion in a later commit; that module will be
+// removed with them at that time.
+const WIZARD_DRAFT_KEY_MODERN = 'deedWizardDraft_modern'
+const WIZARD_DRAFT_KEY_CLASSIC = 'deedWizardDraft_classic'
 
 interface DocumentType {
   label: string
