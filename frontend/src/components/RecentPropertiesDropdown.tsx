@@ -7,7 +7,7 @@ import {
   removeRecentProperty,
   getTimeAgo,
   type RecentProperty,
-} from "@/features/wizard/services/recentProperties"
+} from "@/services/recentProperties"
 
 interface RecentPropertiesDropdownProps {
   /** Called when a recent property is selected */

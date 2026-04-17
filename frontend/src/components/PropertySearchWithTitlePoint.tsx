@@ -26,8 +26,8 @@ import type { PropertyData, PropertySearchProps, GoogleAutocompletePrediction, E
 import PropertyMatchPicker from "./PropertyMatchPicker"
 import { EnrichmentStatus } from "./EnrichmentStatus"
 import RecentPropertiesDropdown from "./RecentPropertiesDropdown"
-import { prefillFromEnrichment, normalizePropertyResponse } from "@/features/wizard/services/propertyPrefill"
-import type { RecentProperty } from "@/features/wizard/services/recentProperties"
+import { prefillFromEnrichment, normalizePropertyResponse } from "@/services/propertyPrefill"
+import type { RecentProperty } from "@/services/recentProperties"
 
 /**
  * Property match from multi-match SiteX response
