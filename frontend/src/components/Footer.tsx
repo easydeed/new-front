@@ -31,7 +31,7 @@ export default function Footer() {
             <h4 className="font-semibold mb-4">Platform</h4>
             <ul className="space-y-2 text-slate-300">
               <li><a href="/dashboard" className="hover:text-white transition-colors">Dashboard</a></li>
-              <li><a href="/create-deed" className="hover:text-white transition-colors">Create Deed</a></li>
+              <li><a href="/deed-builder" className="hover:text-white transition-colors">Create Deed</a></li>
               <li><a href="/past-deeds" className="hover:text-white transition-colors">Document History</a></li>
               <li><a href="/shared-deeds" className="hover:text-white transition-colors">Collaboration</a></li>
               <li><a href="/account-settings" className="hover:text-white transition-colors">Account Settings</a></li>

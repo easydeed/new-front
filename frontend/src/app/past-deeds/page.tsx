@@ -85,7 +85,7 @@ export default function PastDeedsPageV0() {
   }
 
   const handleContinue = (deed: Deed) => {
-    router.push(`/create-deed/${deed.deed_type.toLowerCase().replace(" ", "-")}`)
+    router.push(`/deed-builder/${deed.deed_type.toLowerCase().replace(" ", "-")}`)
   }
 
   const handleDownload = (deed: Deed) => {
@@ -230,7 +230,7 @@ export default function PastDeedsPageV0() {
                 </span>
               </div>
               <button
-                onClick={() => router.push("/create-deed")}
+                onClick={() => router.push("/deed-builder")}
                 className="flex items-center gap-2 px-6 py-3 bg-[#7C4DFF] hover:bg-[#6a3de8] text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
               >
                 <Plus className="w-5 h-5" />
@@ -279,7 +279,7 @@ export default function PastDeedsPageV0() {
                 <h3 className="text-2xl font-semibold text-slate-700 mb-2">No deeds yet</h3>
                 <p className="text-slate-500 mb-6">Create your first deed to get started</p>
                 <button
-                  onClick={() => router.push("/create-deed")}
+                  onClick={() => router.push("/deed-builder")}
                   className="px-8 py-4 bg-[#7C4DFF] hover:bg-[#6a3de8] text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all"
                 >
                   Create Your First Deed

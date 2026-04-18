@@ -229,7 +229,7 @@ export default function DeedPreviewPage() {
   // Edit handler
   const handleEdit = () => {
     const modeParam = mode === 'modern' ? '?mode=modern' : '';
-    router.push(`/create-deed/${deed?.deed_type}${modeParam}`);
+    router.push(`/deed-builder/${deed?.deed_type}${modeParam}`);
   };
 
   // Loading state
@@ -460,7 +460,7 @@ export default function DeedPreviewPage() {
 
       {/* Footer */}
       <footer className="preview-footer">
-        <button onClick={() => router.push(`/create-deed${mode === 'modern' ? '?mode=modern' : ''}`)} className="btn-link">
+        <button onClick={() => router.push(`/deed-builder${mode === 'modern' ? '?mode=modern' : ''}`)} className="btn-link">
           Create Another Deed
         </button>
         <span className="footer-divider">•</span>

@@ -138,7 +138,7 @@ export default function Pricing({ pricing = [] }: PricingProps) {
                   if (plan.name.toLowerCase() === "business") {
                     router.push('/api-key-request');
                   } else if (plan.name.toLowerCase() === "solo") {
-                    router.push('/create-deed');
+                    router.push('/deed-builder');
                   } else {
                     router.push('/login?plan=' + plan.name.toLowerCase());
                   }
@@ -165,7 +165,7 @@ export default function Pricing({ pricing = [] }: PricingProps) {
           </p>
           <div className="flex gap-3 justify-center flex-wrap">
             <button 
-              onClick={() => router.push('/create-deed')}
+              onClick={() => router.push('/deed-builder')}
               className="bg-gentle-indigo text-white px-6 py-3 rounded-xl text-sm font-medium hover:bg-blue-600 transition-colors"
             >
               Try AI Wizard Free

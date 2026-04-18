@@ -399,7 +399,7 @@ export default function TeamDashboard() {
                     title: 'Start Team Deed',
                     description: 'Create deed with AI collaboration',
                     icon: '✨',
-                    action: () => router.push('/create-deed?team=true')
+                    action: () => router.push('/deed-builder?team=true')
                   },
                   {
                     title: 'View Shared Cache',

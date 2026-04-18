@@ -101,7 +101,7 @@ export default function MobileApp() {
       title: 'Create Deed',
       icon: '📄',
       description: 'AI-powered creation',
-      action: () => router.push('/create-deed'),
+      action: () => router.push('/deed-builder'),
       color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
     },
     {

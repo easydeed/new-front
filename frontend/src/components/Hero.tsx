@@ -69,7 +69,7 @@ export default function Hero() {
         {/* Enhanced CTA buttons */}
         <div className="flex gap-3 flex-wrap justify-center lg:justify-start mb-8">
           <a 
-            href="/create-deed" 
+            href="/deed-builder"
             className="bg-gentle-indigo text-white px-6 py-3 rounded-xl shadow-elevated text-sm font-medium flex items-center gap-2"
           >
             <Sparkles className="h-5 w-5" />

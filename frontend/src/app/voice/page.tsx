@@ -172,7 +172,7 @@ export default function VoiceInterface() {
         intent: 'create_deed',
         data: { deed_type: deedType, address: address },
         response: `Creating a ${deedType} for ${address || 'the specified property'}. Taking you to the deed wizard now.`,
-        action: () => router.push(`/create-deed?type=${deedType}&address=${encodeURIComponent(address || '')}`)
+        action: () => router.push(`/deed-builder?type=${deedType}&address=${encodeURIComponent(address || '')}`)
       };
     }
 
