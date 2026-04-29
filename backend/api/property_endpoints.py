@@ -2,6 +2,7 @@
 Property integration API endpoints for Google Places, SiteX Data, and TitlePoint
 """
 import json
+import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
@@ -10,6 +11,8 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 
 from auth import get_current_user_id
+
+logger = logging.getLogger(__name__)
 
 # PHASE 14-C: Performance optimizations
 try:
@@ -1177,6 +1180,12 @@ class PropertySearchRequestV2(BaseModel):
         populate_by_name = True
 
 
+class PropertyResolveMatchRequest(BaseModel):
+    """Resolve a SiteX multi-match candidate by FIPS + APN"""
+    fips: str = Field(..., min_length=1)
+    apn: str = Field(..., min_length=1)
+
+
 @router.post("/search-v2")
 async def property_search_v2(
     request: PropertySearchRequestV2,
@@ -1220,6 +1229,28 @@ async def property_search_v2(
         
         elapsed = time.time() - start_time
         print(f"⏱️  Property search v2 took {elapsed:.2f}s - status: {result.status}")
+
+        if result.status == "multi_match":
+            match_count = len(result.matches or [])
+            response_payload = {
+                "status": "multi_match",
+                "message": "Multiple properties found. Please select one.",
+                "data": None,
+                "matches": [match.dict() for match in (result.matches or [])],
+                "match_count": match_count,
+            }
+            logger.info(f"SiteX search-v2 multi_match returned {match_count} matches")
+
+            background_tasks.add_task(
+                log_api_usage,
+                user_id,
+                "sitex_v2",
+                "property_search",
+                request.dict(),
+                response_payload
+            )
+
+            return response_payload
         
         # Non-blocking logging
         background_tasks.add_task(
@@ -1256,8 +1287,7 @@ async def property_search_v2(
 
 @router.post("/resolve-match")
 async def resolve_property_match(
-    fips: str,
-    apn: str,
+    request: PropertyResolveMatchRequest,
     background_tasks: BackgroundTasks,
     user_id: str = Depends(get_current_user_id)
 ):
@@ -1270,8 +1300,8 @@ async def resolve_property_match(
         from services.sitex_service import sitex_service
         
         result = await sitex_service.search_by_fips_apn(
-            fips=fips,
-            apn=apn,
+            fips=request.fips,
+            apn=request.apn,
             client_ref=f"user:{user_id}"
         )
         
@@ -1281,7 +1311,7 @@ async def resolve_property_match(
             user_id, 
             "sitex_v2", 
             "resolve_match", 
-            {"fips": fips, "apn": apn},
+            request.dict(),
             result.dict() if result else None
         )
         

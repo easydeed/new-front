@@ -332,6 +332,11 @@ class SiteXService:
                     url,
                     headers={"Authorization": f"Bearer {token}"}
                 )
+                if response.status_code == 300:
+                    data = response.json()
+                    if data.get("Feed") or data.get("Locations"):
+                        return data
+
                 response.raise_for_status()
                 return response.json()
                 
@@ -354,14 +359,15 @@ class SiteXService:
     
     def _is_multi_match(self, data: Dict) -> bool:
         """Check if response contains multiple matches"""
-        # Check for Locations array (multi-match indicator)
+        # SiteX returns status 300 with Locations[] and Feed null for user selection.
         locations = data.get("Locations", [])
-        if locations and len(locations) > 1:
+        feed = data.get("Feed")
+        if locations and not feed:
             return True
         
         # Check MatchCode
         match_code = data.get("MatchCode", "")
-        if match_code in ("M", "MULTI"):
+        if match_code in ("M", "MULTI") and not feed:
             return True
         
         return False
@@ -384,16 +390,24 @@ class SiteXService:
         locations = data.get("Locations", [])
         
         matches = []
-        for loc in locations[:10]:  # Limit to 10 matches
+        for loc in locations:
+            owner = self._get_nested(loc, ["OwnerName", "PrimaryOwnerName"]) or ""
+            use_code_description = self._get_nested(loc, ["UseCodeDescription", "PropertyType"]) or ""
+            zip_code = str(self._get_nested(loc, ["SiteZip", "Zip", "zipCode"]) or "")[:5]
             matches.append(PropertyMatch(
                 address=self._get_nested(loc, ["SiteAddress", "Address", "addr"]) or "",
                 city=self._get_nested(loc, ["SiteCity", "City", "city"]) or "",
                 state=self._get_nested(loc, ["SiteState", "State"]) or "CA",
-                zip_code=str(self._get_nested(loc, ["SiteZip", "Zip", "zipCode"]) or "")[:5],
+                zip_code=zip_code,
+                zip=zip_code,
                 apn=self._get_nested(loc, ["APN", "apn", "ParcelNumber"]) or "",
                 fips=self._get_nested(loc, ["FIPS", "fips", "FipsCode"]) or "",
-                owner_name=self._get_nested(loc, ["OwnerName", "PrimaryOwnerName"]) or "",
-                property_type=self._get_nested(loc, ["PropertyType", "UseCodeDescription"]),
+                owner_name=owner,
+                property_type=use_code_description,
+                unit_type=self._get_nested(loc, ["UnitType", "unitType"]),
+                unit_number=self._get_nested(loc, ["UnitNumber", "unitNumber", "Unit", "unit"]),
+                owner=owner,
+                use_code_description=use_code_description,
             ))
         
         return matches

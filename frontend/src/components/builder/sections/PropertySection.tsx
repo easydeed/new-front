@@ -38,54 +38,64 @@ function PropertySkeleton() {
   )
 }
 
-// Unit picker for condos/multi-unit properties
-interface UnitPickerProps {
-  units: Array<{
-    address: string
-    unit: string
-    apn: string
-  }>
-  onSelect: (unit: { address: string; unit: string; apn: string }) => void
-  onBack: () => void
+interface PropertyMatchCandidate {
+  address: string
+  city?: string
+  state?: string
+  zip_code?: string
+  zip?: string
+  unit_type?: string
+  unit_number?: string
+  apn: string
+  fips: string
+  owner?: string
+  owner_name?: string
+  use_code_description?: string
+  property_type?: string
+}
+
+interface PropertyMatchListProps {
+  matches: PropertyMatchCandidate[]
+  totalCount: number
+  onSelect: (match: PropertyMatchCandidate) => void
   buildingAddress: string
 }
 
-function UnitPicker({ units, onSelect, onBack, buildingAddress }: UnitPickerProps) {
+function PropertyMatchList({ matches, totalCount, onSelect, buildingAddress }: PropertyMatchListProps) {
+  const visibleMatches = matches.slice(0, 25)
+
   return (
-    <div className="space-y-4">
+    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-gray-500">Multiple units found at:</p>
+          <p className="text-sm font-medium text-emerald-700">✨ Multiple properties found</p>
           <p className="font-medium text-gray-900">{buildingAddress}</p>
+          {totalCount > 25 && (
+            <p className="text-sm text-emerald-700">
+              Showing 25 of {totalCount} — refine search for fewer results
+            </p>
+          )}
         </div>
-        <button
-          onClick={onBack}
-          className="text-sm text-gray-500 hover:text-gray-700"
-        >
-          Change address
-        </button>
       </div>
 
-      <div className="border border-gray-200 rounded-lg overflow-hidden">
-        <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
-          <p className="text-sm font-medium text-gray-700">
-            Select a unit ({units.length} units)
-          </p>
-        </div>
-        <div className="max-h-64 overflow-y-auto">
-          {units.map((unit, index) => (
+      <div className="border border-emerald-200 rounded-lg overflow-hidden bg-white">
+        <div className="max-h-80 overflow-y-auto">
+          {visibleMatches.map((match, index) => (
             <button
-              key={unit.apn || index}
-              onClick={() => onSelect(unit)}
-              className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
+              key={`${match.fips}-${match.apn}-${index}`}
+              onClick={() => onSelect(match)}
+              className="w-full flex items-center justify-between px-4 py-3 hover:bg-emerald-50 border-b border-emerald-100 last:border-b-0 transition-colors"
             >
               <div className="flex items-center gap-3">
                 <Building2 className="w-5 h-5 text-gray-400" />
                 <div className="text-left">
-                  <p className="font-medium text-gray-900">
-                    {unit.unit || `Unit ${index + 1}`}
+                  <p className="font-medium text-gray-900">{match.address}</p>
+                  <p className="text-sm text-gray-600">
+                    {match.owner || match.owner_name || "Owner unavailable"}
                   </p>
-                  <p className="text-sm text-gray-500">APN: {unit.apn}</p>
+                  <p className="text-sm text-gray-500">
+                    APN: {match.apn} · {match.use_code_description || match.property_type || "Property type unavailable"}
+                  </p>
                 </div>
               </div>
               <ChevronRight className="w-5 h-5 text-gray-400" />
@@ -150,7 +160,8 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
   const [error, setError] = useState<string | null>(null)
   const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
-  const [multipleUnits, setMultipleUnits] = useState<Array<{ address: string; unit: string; apn: string }> | null>(null)
+  const [propertyMatches, setPropertyMatches] = useState<PropertyMatchCandidate[] | null>(null)
+  const [propertyMatchCount, setPropertyMatchCount] = useState(0)
   const [selectedBuildingAddress, setSelectedBuildingAddress] = useState("")
   const [isGoogleLoaded, setIsGoogleLoaded] = useState(false)
   
@@ -269,6 +280,8 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
     setSelectedBuildingAddress(address)
     setAddressSelected(true) // Prevent re-triggering autocomplete
     setSelectedParsedAddress(parsed)
+    setPropertyMatches(null)
+    setPropertyMatchCount(0)
     setError(null)
   }
 
@@ -281,7 +294,8 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
     
     setIsLoadingProperty(true)
     setError(null)
-    setMultipleUnits(null)
+    setPropertyMatches(null)
+    setPropertyMatchCount(0)
 
     try {
       const token = localStorage.getItem('access_token') || localStorage.getItem('token')
@@ -330,13 +344,9 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
         onChange(propertyData)
         onComplete()
         
-      } else if ((result.status === 'multi_match' || result.status === 'multiple_matches') && result.matches?.length > 0) {
-        // Multiple units found (condo building)
-        setMultipleUnits(result.matches.map((match: { address?: string; unit?: string; unit_number?: string; apn?: string }) => ({
-          address: match.address || searchQuery,
-          unit: match.unit || match.unit_number || '',
-          apn: match.apn || '',
-        })))
+      } else if (result.status === 'multi_match' && result.matches?.length > 0) {
+        setPropertyMatches(result.matches)
+        setPropertyMatchCount(result.match_count || result.matches.length)
         
       } else if (result.status === 'not_found') {
         setError("Property not found in county records. Please verify the address.")
@@ -351,23 +361,23 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
     }
   }
 
-  // Handle unit selection for condos
-  const handleSelectUnit = async (unit: { address: string; unit: string; apn: string }) => {
+  // Resolve the selected SiteX multi-match candidate.
+  const handleSelectMatch = async (match: PropertyMatchCandidate) => {
     setIsLoadingProperty(true)
-    setMultipleUnits(null)
+    setPropertyMatches(null)
+    setPropertyMatchCount(0)
 
     try {
       const token = localStorage.getItem('access_token') || localStorage.getItem('token')
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (token) headers['Authorization'] = `Bearer ${token}`
       
-      // Fetch specific unit by APN - use the correct field names
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/property/search-v2`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/property/resolve-match`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ 
-          address: unit.address,
-          apn: unit.apn 
+        body: JSON.stringify({
+          fips: match.fips,
+          apn: match.apn,
         }),
       })
 
@@ -379,15 +389,15 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
       const result = await response.json()
 
       if (result.status === 'success' && result.data) {
-        const propertyData = mapSiteXResponse(result.data, `${selectedBuildingAddress} ${unit.unit}`)
+        const propertyData = mapSiteXResponse(result.data, match.address || selectedBuildingAddress)
         onChange(propertyData)
         onComplete()
       } else {
-        setError('Failed to fetch unit details. Please try again.')
+        setError('Failed to fetch property details. Please try again.')
       }
     } catch (err) {
-      console.error('Unit fetch error:', err)
-      setError('Failed to fetch unit details. Please try again.')
+      console.error('Match resolution error:', err)
+      setError('Failed to fetch property details. Please try again.')
     } finally {
       setIsLoadingProperty(false)
     }
@@ -420,7 +430,8 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
   // Reset to search
   const handleReset = () => {
     setSearchQuery("")
-    setMultipleUnits(null)
+    setPropertyMatches(null)
+    setPropertyMatchCount(0)
     setError(null)
     setAddressSelected(false)
     setSelectedParsedAddress(null)
@@ -434,6 +445,8 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
     setSearchQuery(newValue)
     setAddressSelected(false) // User is typing, allow autocomplete
     setSelectedParsedAddress(null)
+    setPropertyMatches(null)
+    setPropertyMatchCount(0)
     setError(null)
   }
 
@@ -483,20 +496,6 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
   // ─────────────────────────────────────────────────────────────────
   if (isLoadingProperty) {
     return <PropertySkeleton />
-  }
-
-  // ─────────────────────────────────────────────────────────────────
-  // RENDER: Multiple units (condo picker)
-  // ─────────────────────────────────────────────────────────────────
-  if (multipleUnits && multipleUnits.length > 0) {
-    return (
-      <UnitPicker
-        units={multipleUnits}
-        onSelect={handleSelectUnit}
-        onBack={handleReset}
-        buildingAddress={selectedBuildingAddress}
-      />
-    )
   }
 
   // ─────────────────────────────────────────────────────────────────
@@ -599,6 +598,15 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}
         </div>
+      )}
+
+      {propertyMatches && propertyMatches.length > 0 && (
+        <PropertyMatchList
+          matches={propertyMatches}
+          totalCount={propertyMatchCount}
+          onSelect={handleSelectMatch}
+          buildingAddress={selectedBuildingAddress}
+        />
       )}
 
       <p className="text-sm text-gray-500">
