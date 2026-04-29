@@ -80,7 +80,7 @@ class SiteXTokenManager:
         basic_auth = base64.b64encode(credentials.encode()).decode()
         
         try:
-            async with httpx.AsyncClient(timeout=20.0) as client:
+            async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
                     self.config.token_url,
                     headers={
@@ -327,7 +327,7 @@ class SiteXService:
         url = f"{self.config.base_url}{path}?{urlencode(params)}"
         
         try:
-            async with httpx.AsyncClient(timeout=self._search_timeout) as client:
+            async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.get(
                     url,
                     headers={"Authorization": f"Bearer {token}"}
