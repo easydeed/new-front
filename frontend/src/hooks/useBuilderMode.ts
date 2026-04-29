@@ -8,8 +8,7 @@ export function useBuilderMode() {
   const pathname = usePathname();
   const { setHidden } = useSidebar();
   
-  const isBuilderRoute = pathname?.includes('/deed-builder') || 
-                         pathname?.includes('/create-deed/');
+  const isBuilderRoute = pathname?.includes('/deed-builder');
 
   useEffect(() => {
     if (isBuilderRoute) {

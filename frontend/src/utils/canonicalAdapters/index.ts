@@ -6,7 +6,7 @@ import { toCanonical as taxDeed } from './taxDeed';
 
 export function toCanonicalFor(docType: string, state: any) {
   // ✅ PHASE 19 FIX: Use CANONICAL docType format (grant_deed, quitclaim, etc.)
-  // ModernEngine passes canonical format from canonicalFromUrlParam()
+  // Callers pass canonical format (slugs normalized via DeedBuilder routing).
   switch (docType) {
     case 'grant_deed':
     case 'grant-deed':

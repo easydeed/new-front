@@ -1,10 +1,10 @@
 import { redirect } from 'next/navigation';
 
 // Legacy wizard entry route. DeedBuilder at /deed-builder/[type] is the
-// canonical URL. This file used to mount WizardHost + manage draft-clearing
-// on ?fresh=true; now it server-redirects, preserving both the docType slug
-// and any query string so callers (e.g. ?fresh=true, ?mode=modern) keep the
-// same URL shape on the new route.
+// canonical URL. This file used to mount the legacy wizard + manage
+// draft-clearing on ?fresh=true; now it server-redirects, preserving both
+// the docType slug and any query string so callers (e.g. ?fresh=true) keep
+// the same URL shape on the new route.
 interface PageProps {
   params: Promise<{ docType: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;

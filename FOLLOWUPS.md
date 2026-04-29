@@ -40,3 +40,35 @@ The legacy `/create-deed/[docType]` page used to clear `deedWizardDraft_modern` 
 ### Landing-page dead-end audit was high-yield
 
 The `/create-deed` → `/deed-builder` sweep touched 14 links across 10 files (StickyActionBar, escrow Hero, main Hero, Footer, Pricing, past-deeds, voice, mobile, team, deeds/[id]/preview). Several of those are primary conversion paths. Useful signal that future route-rename work should always run the same grep before finalizing.
+
+## From: "Remove legacy wizard implementations; DeedBuilder is the single deed creation UI"
+
+### Resolved by this commit
+
+The four FOLLOWUPS entries above under *"Redirect legacy /create-deed routes to /deed-builder"* are addressed:
+
+- **Middleware `/create-deed` removal**: dropped from `protectedRoutes`. ✅ done in this commit.
+- **Middleware `/deed-builder` addition**: added to `protectedRoutes`. ✅ done in this commit.
+- **`?mode=modern` rewrite branch removal**: entire branch deleted (modeCookie read, wantsModern, hasModeParam, isPreview regex, isWizardRoute regex, the searchParams.set call, the NextResponse.rewrite call, the "preserve mode param" parenthetical in the loginUrl comment). ✅ done in this commit.
+- **`useBuilderMode` `'/create-deed/'` branch removal**: dropped from the pathname include check. ✅ done in this commit.
+
+The `?fresh=true` draft-clearing entry above is now moot — wizard draft storage no longer exists. DeedBuilder has its own state model. The query param forwards harmlessly through the redirect page; if DeedBuilder ever wants to honor it for draft-reset semantics, that's net-new behavior, not a regression.
+
+### Cypress e2e tests reference deleted routes and dying-wizard UI semantics
+
+After deleting the wizard, the e2e suite still references `/create-deed` URL paths and tests wizard-specific UI flows that no longer exist:
+
+- [cypress/e2e/accessibility-compliance.cy.js](cypress/e2e/accessibility-compliance.cy.js) — 14 references; mostly `cy.visit('/create-deed')` and `cy.visit('/create-deed/grant-deed')` for accessibility scans. These visits will follow redirects to `/deed-builder` and the underlying a11y assertions will run against DeedBuilder. Tests that assert page titles like `/create.*deed|wizard/i` (line 286) may need updating but are flexible enough to potentially still match.
+- [cypress/e2e/wizard-regression-pack.cy.js](cypress/e2e/wizard-regression-pack.cy.js) — entire file is a wizard-specific regression pack. Tests code that no longer exists. The `cy.url().should('include', '/create-deed')` assertion at line 97 will fail outright after the redirect lands the user at `/deed-builder`. Recommended: delete the file in the cleanup commit; rewrite as a DeedBuilder regression suite separately if desired.
+- [cypress/e2e/debug-simple.cy.js](cypress/e2e/debug-simple.cy.js) — 3 references; debug script that probes "what text is on the create-deed page." Likely safe to delete or repoint.
+- [cypress/support/commands.js](cypress/support/commands.js) — login helper that visits `/create-deed` and asserts URL includes `/create-deed/grant-deed`. The URL assertion at line 70 will fail after the redirect. This is a shared command used by other tests, so updating it is high-leverage.
+
+**CI signal during the gap**: e2e CI may show failures until this cleanup lands. These failures are expected fallout from this commit, not regressions in the surviving DeedBuilder code. The wizard tests were already testing dead semantics; their CI signal was meaningless. Deserves its own dedicated commit ("Update e2e tests for DeedBuilder-only world") so the test-rewrite work doesn't get lumped into the wizard-deletion blame.
+
+### Comment substring cleanup in surviving files
+
+Two surviving files contained stale comment substrings referencing now-deleted code:
+- [frontend/src/app/create-deed/[docType]/page.tsx](frontend/src/app/create-deed/[docType]/page.tsx) — comment mentioned `WizardHost` and `?mode=modern`. Both updated inline.
+- [frontend/src/utils/canonicalAdapters/index.ts](frontend/src/utils/canonicalAdapters/index.ts) — comment mentioned `ModernEngine` and `canonicalFromUrlParam()`. Updated inline to describe the surviving caller pattern.
+
+These were cleaned under the prompt's "remove dead imports or unused references only" rule. No behavior change.
