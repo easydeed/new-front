@@ -120,6 +120,25 @@ interface ParsedAddress {
   city: string
   state: string
   zip: string
+  county: string
+}
+
+function parseGooglePlace(place: google.maps.places.PlaceResult, fallbackAddress: string): ParsedAddress {
+  const components = place.address_components || []
+  const getComponent = (type: string, useShortName = false) => {
+    const component = components.find((item) => item.types.includes(type))
+    return useShortName ? component?.short_name || "" : component?.long_name || ""
+  }
+
+  const streetNumber = getComponent("street_number")
+  const route = getComponent("route")
+  const street = [streetNumber, route].filter(Boolean).join(" ") || fallbackAddress
+  const city = getComponent("locality") || getComponent("sublocality_level_1")
+  const state = getComponent("administrative_area_level_1", true) || "CA"
+  const zip = getComponent("postal_code")
+  const county = getComponent("administrative_area_level_2").replace(/\s+County$/i, "")
+
+  return { street, city, state, zip, county }
 }
 
 function parseGoogleAddress(fullAddress: string): ParsedAddress {
@@ -149,7 +168,7 @@ function parseGoogleAddress(fullAddress: string): ParsedAddress {
     street = fullAddress
   }
   
-  return { street, city, state, zip }
+  return { street, city, state, zip, county: "" }
 }
 
 export function PropertySection({ value, onChange, onComplete }: PropertySectionProps) {
@@ -171,6 +190,7 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
   
   const inputRef = useRef<HTMLInputElement>(null)
   const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null)
+  const placesService = useRef<google.maps.places.PlacesService | null>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
   
   // Track dropdown position for fixed positioning
@@ -205,6 +225,7 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
     const checkGoogle = () => {
       if (typeof window !== 'undefined' && window.google?.maps?.places) {
         autocompleteService.current = new google.maps.places.AutocompleteService()
+        placesService.current = new google.maps.places.PlacesService(document.createElement("div"))
         setIsGoogleLoaded(true)
       }
     }
@@ -270,9 +291,34 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
   }, [])
 
   // Handle address selection from Google autocomplete
-  const handleSelectAddress = (prediction: google.maps.places.AutocompletePrediction) => {
-    const address = prediction.description
-    const parsed = parseGoogleAddress(address)
+  const handleSelectAddress = async (prediction: google.maps.places.AutocompletePrediction) => {
+    let address = prediction.description
+    let parsed = parseGoogleAddress(address)
+
+    if (placesService.current && prediction.place_id) {
+      try {
+        const place = await new Promise<google.maps.places.PlaceResult>((resolve, reject) => {
+          placesService.current?.getDetails(
+            {
+              placeId: prediction.place_id,
+              fields: ["address_components", "formatted_address", "geometry"],
+            },
+            (placeResult, status) => {
+              if (status === google.maps.places.PlacesServiceStatus.OK && placeResult) {
+                resolve(placeResult)
+              } else {
+                reject(new Error(status))
+              }
+            }
+          )
+        })
+
+        address = place.formatted_address || prediction.description
+        parsed = parseGooglePlace(place, prediction.description)
+      } catch (err) {
+        console.warn("Google place details lookup failed:", err)
+      }
+    }
     
     setSearchQuery(address)
     setShowSuggestions(false)
@@ -311,10 +357,15 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
         address: selectedParsedAddress.street,  // Backend expects "address" as street
         city: selectedParsedAddress.city || undefined,
         state: selectedParsedAddress.state || 'CA',
-        zip: selectedParsedAddress.zip || undefined,
+        zip_code: selectedParsedAddress.zip || undefined,
       }
       
-      console.log('Property search payload:', payload)
+      console.log("Property search payload:", {
+        address: payload.address,
+        city: payload.city,
+        state: payload.state,
+        zip_code: payload.zip_code,
+      })
       
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/property/search-v2`, {
         method: 'POST',
