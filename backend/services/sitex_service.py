@@ -137,8 +137,8 @@ class SiteXService:
         self._cache_ttl = timedelta(hours=1)
         self._search_timeout = 30.0
         
-        # Strict residential search options
-        self.default_options = "search_exclude_nonres=Y|search_strict=Y"
+        # Residential search option used by the known-working SiteX integration.
+        self.default_options = "search_exclude_nonres=Y"
     
     def is_configured(self) -> bool:
         """Check if SiteX credentials are properly configured"""
@@ -167,15 +167,9 @@ class SiteXService:
         Returns:
             PropertySearchResult with status, data, or matches
         """
-        # Build last_line from components
-        last_line_parts = []
-        if city:
-            last_line_parts.append(city)
-        if state:
-            last_line_parts.append(state)
-        if zip_code:
-            last_line_parts.append(zip_code)
-        last_line = ", ".join(last_line_parts) if last_line_parts else f"{state}"
+        # SiteX expects lastLine as "city, state ZIP".
+        state_zip = " ".join(part for part in [state, zip_code] if part)
+        last_line = f"{city}, {state_zip}" if city and state_zip else (city or state_zip or state)
         
         # Check cache
         cache_key = self._make_cache_key(address, city, state, zip_code)
@@ -302,6 +296,13 @@ class SiteXService:
             "feedId": self.config.feed_id,
             "options": self.default_options,
         }
+        logger.info(
+            f"SiteX search call: addr={params.get('addr')!r} "
+            f"lastLine={params.get('lastLine')!r} "
+            f"feedId={params.get('feedId')!r} "
+            f"options={params.get('options')!r} "
+            f"clientReference={params.get('clientReference')!r}"
+        )
         return await self._get("/realestatedata/search", params)
     
     async def _search_fips_apn(
