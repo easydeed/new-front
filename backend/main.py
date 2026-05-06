@@ -2743,16 +2743,9 @@ def create_payment_method_endpoint(payment_method: PaymentMethodCreate):
 @app.get("/payment-methods")
 def list_payment_methods_endpoint():
     """List all payment methods for current user"""
-    # Placeholder data
+    # TODO: Replace with real Stripe paymentMethods.list() call when Stripe integration is wired
     return {
-        "payment_methods": [
-            {
-                "id": "pm_1234567890",
-                "card_brand": "visa",
-                "last_four": "1234",
-                "is_default": True
-            }
-        ]
+        "payment_methods": []
     }
 
 @app.delete("/payment-methods/{payment_method_id}")
