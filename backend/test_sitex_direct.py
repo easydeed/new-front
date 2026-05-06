@@ -1,19 +1,19 @@
 """
-Direct SiteX test with hardcoded credentials
+Direct SiteX test using credentials from environment variables.
 """
 import asyncio
 import json
 import os
 
-# Set credentials directly
-os.environ['SITEX_BASE_URL'] = 'https://api.bkiconnect.com'
-os.environ['SITEX_CLIENT_ID'] = 'uB23bszvfw2GJiZyjqCUNdZvaANG2knrVuHkpv5DXGTIMZx7'
-os.environ['SITEX_CLIENT_SECRET'] = 'mTwRekGDIEmjzgfkGy9oomgqwJagN4kBIG1KVKGZInPsLFt8hD82LDG1EYnT6jr1'
-os.environ['SITEX_FEED_ID'] = '100001'
-
 from services.sitex_service import SiteXService
 
+REQUIRED_ENV = ("SITEX_CLIENT_ID", "SITEX_CLIENT_SECRET", "SITEX_FEED_ID")
+
 async def test():
+    missing = [name for name in REQUIRED_ENV if not os.getenv(name)]
+    if missing:
+        raise RuntimeError(f"Missing required SiteX environment variables: {', '.join(missing)}")
+
     print("=" * 80)
     print("SiteX API Direct Test")
     print("=" * 80)
