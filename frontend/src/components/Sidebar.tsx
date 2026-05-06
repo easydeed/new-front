@@ -13,10 +13,7 @@ export default function Sidebar() {
 
   // Check admin status on mount
   useEffect(() => {
-    // Check role from stored user data or JWT
-    const user = AuthManager.getUser();
-    const role = user?.role?.toLowerCase().trim() || '';
-    setIsAdmin(['admin', 'administrator', 'superadmin', 'super_admin', 'owner'].includes(role));
+    setIsAdmin(AuthManager.isAdmin());
   }, []);
 
   const toggleSidebar = () => {

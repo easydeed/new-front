@@ -116,8 +116,24 @@ export class AuthManager {
    * Check if user is an admin
    */
   static isAdmin(): boolean {
-    const user = this.getUser();
-    return user?.role === 'admin';
+    const adminRoles = ['admin', 'administrator', 'superadmin', 'super_admin'];
+    const token = this.getToken();
+    let role: string | null = null;
+
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        role = payload.role || null;
+      } catch {
+        role = null;
+      }
+    }
+
+    if (!role) {
+      role = this.getUser()?.role || null;
+    }
+
+    return adminRoles.includes(role?.toLowerCase().trim() || '');
   }
 
   /**
