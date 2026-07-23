@@ -116,10 +116,29 @@ async def register_user(user: UserRegister = Body(...)):
             # Don't fail registration if notification fails
             print(f"[Phase 7] ⚠️ Admin notification error (non-blocking): {notif_error}")
 
+        # F2: mint the session at registration so signup lands in the app
+        # logged in. Claims are identical to /users/login's token (sub, email,
+        # role) — same storage contract on the client, no fourth pattern.
+        access_token = create_access_token(
+            data={
+                "sub": str(new_user_id),
+                "email": user.email.lower(),
+                "role": user.role or "user"
+            }
+        )
+
         return {
             "message": "User registered successfully",
             "email": user.email,
-            "plan": "free"
+            "plan": "free",
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": {
+                "id": new_user_id,
+                "email": user.email.lower(),
+                "full_name": user.full_name,
+                "plan": "free"
+            }
         }
 
     except psycopg2.IntegrityError as ie:
