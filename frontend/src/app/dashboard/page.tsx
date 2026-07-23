@@ -19,11 +19,12 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [userName, setUserName] = useState<string>("")
   const [recentDeeds, setRecentDeeds] = useState<any[]>([])
+  const [deedsError, setDeedsError] = useState<string | null>(null)
   const [summary, setSummary] = useState<{
     total: number
     completed: number
-    in_progress: number
-    pending: number
+    drafts: number
+    month: number
   } | null>(null)
   const router = useRouter()
 
@@ -100,8 +101,8 @@ export default function Dashboard() {
           setSummary({
             total: data.total || 0,
             completed: data.completed || 0,
-            in_progress: data.in_progress || 0,
-            pending: data.pending || data.shared || 0,
+            drafts: data.drafts || 0,
+            month: data.month || 0,
           })
         } else {
           // Fallback: calculate from deeds list
@@ -111,11 +112,14 @@ export default function Dashboard() {
           if (list.ok) {
             const data = await list.json()
             const deeds = Array.isArray(data.deeds) ? data.deeds : []
+            const monthStart = new Date()
+            monthStart.setDate(1)
+            monthStart.setHours(0, 0, 0, 0)
             setSummary({
               total: deeds.length,
               completed: deeds.filter((d: any) => d.status === "completed").length,
-              in_progress: deeds.filter((d: any) => d.status === "draft" || d.status === "in_progress").length,
-              pending: deeds.filter((d: any) => d.status === "shared" || d.status === "pending").length,
+              drafts: deeds.filter((d: any) => d.status !== "completed").length,
+              month: deeds.filter((d: any) => d.created_at && new Date(d.created_at) >= monthStart).length,
             })
           }
         }
@@ -144,9 +148,16 @@ export default function Dashboard() {
       if (response.ok) {
         const data = await response.json()
         setRecentDeeds(data.deeds || [])
+        setDeedsError(null)
+      } else {
+        // F4: a failed load used to render as the "welcome, create your
+        // first deed" empty state — say what actually happened instead.
+        const data = await response.json().catch(() => ({}))
+        setDeedsError(data.detail || `Couldn't load your deeds (${response.status})`)
       }
     } catch (error) {
       console.error("Error fetching recent deeds:", error)
+      setDeedsError("Couldn't load your deeds. Check your connection and try again.")
     }
   }
 
@@ -208,15 +219,15 @@ export default function Dashboard() {
                 color="purple"
               />
               <StatCard
-                label="In Progress"
-                value={summary?.in_progress ?? 0}
+                label="Drafts"
+                value={summary?.drafts ?? 0}
                 icon={<Clock className="w-5 h-5" />}
                 color="yellow"
               />
               <StatCard
-                label="Pending Review"
-                value={summary?.pending ?? 0}
-                icon={<Send className="w-5 h-5" />}
+                label="This Month"
+                value={summary?.month ?? 0}
+                icon={<TrendingUp className="w-5 h-5" />}
                 color="blue"
               />
               <StatCard
@@ -239,8 +250,19 @@ export default function Dashboard() {
             </button>
           )}
 
-          {/* Recent Activity or Empty State */}
-          {hasDeeds ? (
+          {/* Recent Activity, load error, or Empty State */}
+          {deedsError ? (
+            <div className="bg-white rounded-2xl shadow-sm border border-red-200 p-8 text-center">
+              <p className="text-red-700 font-medium mb-1">Couldn&apos;t load your deeds</p>
+              <p className="text-sm text-gray-500 mb-4">{deedsError}</p>
+              <button
+                onClick={() => fetchRecentDeeds()}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          ) : hasDeeds ? (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
               <div className="p-4 md:p-6 border-b border-gray-100">
                 <div className="flex items-center gap-2">
@@ -310,7 +332,31 @@ function StatCard({
 // Deed Row Component
 function DeedRow({ deed }: { deed: any }) {
   const router = useRouter()
-  
+
+  // pdf_url is a backend-relative authenticated path — window.open can't
+  // reach it; fetch the stored PDF as a blob like Past Deeds does.
+  const handleDownload = async () => {
+    try {
+      const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
+      const token = localStorage.getItem("access_token")
+      const response = await fetch(`${api}/deeds/${deed.id}/download`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!response.ok) throw new Error("Download failed")
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `${deed.deed_type || "Deed"}_${deed.id}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (err) {
+      console.error("Download error:", err)
+    }
+  }
+
   const getStatusStyle = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'completed':
@@ -393,8 +439,8 @@ function DeedRow({ deed }: { deed: any }) {
         {/* Actions */}
         <div className="flex items-center gap-1">
           {deed.status === 'completed' && deed.pdf_url && (
-            <button 
-              onClick={() => window.open(deed.pdf_url, '_blank')}
+            <button
+              onClick={handleDownload}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
               title="Download PDF"
             >
@@ -402,9 +448,10 @@ function DeedRow({ deed }: { deed: any }) {
             </button>
           )}
           {deed.status === 'completed' && (
-            <button 
+            <button
+              onClick={() => router.push('/past-deeds')}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
-              title="Share"
+              title="Share from Past Deeds"
             >
               <Share2 className="w-4 h-4" />
             </button>

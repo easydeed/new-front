@@ -147,7 +147,7 @@ def list_deeds_endpoint(user_id: int = Depends(get_current_user_id)):
         with db.conn.cursor() as cur:
             cur.execute("""
                 SELECT id, deed_type, property_address, grantor_name, grantee_name,
-                       created_at, updated_at
+                       county, status, pdf_url, created_at, updated_at
                 FROM deeds
                 WHERE user_id = %s AND COALESCE(status, '') <> 'deleted'
                 ORDER BY created_at DESC
@@ -155,19 +155,21 @@ def list_deeds_endpoint(user_id: int = Depends(get_current_user_id)):
 
             deeds = cur.fetchall()
 
-            # Format deeds for frontend (Phase 6-1: Fixed field names to match frontend)
+            # F4: real column values under the schema's own names — the row
+            # used to hardcode status "completed" and rename fields (bug #11).
             formatted_deeds = []
             for deed in deeds:
                 formatted_deeds.append({
                     "id": deed[0],
                     "deed_type": deed[1],
-                    "property": deed[2],  # Frontend expects 'property' not 'address'
-                    "grantor": deed[3],
-                    "grantee": deed[4],
-                    "created_at": deed[5].strftime("%Y-%m-%d") if deed[5] else None,  # Frontend expects 'created_at' not 'date'
-                    "updated_at": deed[6].strftime("%Y-%m-%d") if deed[6] else None,  # Add updated_at
-                    "status": "completed",  # Default status - you can add a status column later
-                    "recorded": False  # Default - you can add a recorded column later
+                    "property_address": deed[2],
+                    "grantor_name": deed[3],
+                    "grantee_name": deed[4],
+                    "county": deed[5],
+                    "status": deed[6] or "draft",
+                    "pdf_url": deed[7],
+                    "created_at": deed[8].strftime("%Y-%m-%d") if deed[8] else None,
+                    "updated_at": deed[9].strftime("%Y-%m-%d") if deed[9] else None,
                 })
 
             return {"deeds": formatted_deeds}
@@ -188,12 +190,14 @@ def deeds_summary(user_id: int = Depends(get_current_user_id)) -> Dict[str, int]
             raise HTTPException(status_code=500, detail="Database connection not available")
 
         with db.conn.cursor() as cur:
-            # Query for status counts
+            # F4: real status counts. Vocabulary matches the admin tab:
+            # a deed is 'completed' (stored PDF) or it's a draft — the old
+            # query counted every deed as completed and hardcoded 0 drafts.
             cur.execute("""
                 SELECT
                     COUNT(*) as total,
-                    COUNT(*) FILTER (WHERE deed_type IS NOT NULL) as completed,
-                    0 as in_progress
+                    COUNT(*) FILTER (WHERE status = 'completed') as completed,
+                    COUNT(*) FILTER (WHERE COALESCE(status, 'draft') <> 'completed') as drafts
                 FROM deeds
                 WHERE user_id = %s AND COALESCE(status, '') <> 'deleted'
             """, (user_id,))
@@ -201,7 +205,7 @@ def deeds_summary(user_id: int = Depends(get_current_user_id)) -> Dict[str, int]
             row = cur.fetchone()
             total = row[0] if row else 0
             completed = row[1] if row else 0
-            in_progress = row[2] if row else 0
+            drafts = row[2] if row else 0
 
             # Query for deeds created this month
             cur.execute("""
@@ -217,7 +221,7 @@ def deeds_summary(user_id: int = Depends(get_current_user_id)) -> Dict[str, int]
             return {
                 "total": total,
                 "completed": completed,
-                "in_progress": in_progress,
+                "drafts": drafts,
                 "month": month
             }
 

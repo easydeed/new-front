@@ -10,10 +10,9 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 
 interface Deed {
   id: number
-  property: string
+  property_address: string
   deed_type: string
   status: "completed" | "draft" | "in_progress"
-  progress: number
   created_at: string
   updated_at: string
   pdf_url?: string
@@ -315,7 +314,6 @@ export default function PastDeedsPageV0() {
                       <th className="text-left py-4 px-6 text-sm font-semibold text-slate-700">Property</th>
                       <th className="text-left py-4 px-6 text-sm font-semibold text-slate-700">Deed Type</th>
                       <th className="text-left py-4 px-6 text-sm font-semibold text-slate-700">Status</th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-slate-700">Progress</th>
                       <th className="text-left py-4 px-6 text-sm font-semibold text-slate-700">Created</th>
                       <th className="text-left py-4 px-6 text-sm font-semibold text-slate-700">Updated</th>
                       <th className="text-left py-4 px-6 text-sm font-semibold text-slate-700">Actions</th>
@@ -329,22 +327,9 @@ export default function PastDeedsPageV0() {
                           index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
                         }`}
                       >
-                        <td className="py-4 px-6 font-medium text-slate-800">{deed.property}</td>
+                        <td className="py-4 px-6 font-medium text-slate-800">{deed.property_address}</td>
                         <td className="py-4 px-6 text-slate-600">{deed.deed_type}</td>
                         <td className="py-4 px-6">{getStatusBadge(deed.status)}</td>
-                        <td className="py-4 px-6">
-                          <div className="flex items-center gap-3">
-                            <div className="w-20 h-2 bg-slate-200 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full rounded-full transition-all ${
-                                  deed.progress === 100 ? "bg-green-500" : "bg-[#7C4DFF]"
-                                }`}
-                                style={{ width: `${deed.progress}%` }}
-                              />
-                            </div>
-                            <span className="text-sm text-slate-600 font-medium">{deed.progress}%</span>
-                          </div>
-                        </td>
                         <td className="py-4 px-6 text-sm text-slate-600">{formatDate(deed.created_at)}</td>
                         <td className="py-4 px-6 text-sm text-slate-600">{formatDate(deed.updated_at)}</td>
                         <td className="py-4 px-6">
