@@ -94,12 +94,15 @@ def build_context_from_row(row):
     }
 
 
-def render_deed_pdf(row) -> bytes:
+def render_deed_html(row) -> str:
     template_name = TEMPLATE_BY_DEED_TYPE.get(
         (row.get("deed_type") or "").strip().lower(), DEFAULT_TEMPLATE
     )
-    html = _env.get_template(template_name).render(**build_context_from_row(row))
-    return render_pdf(html)
+    return _env.get_template(template_name).render(**build_context_from_row(row))
+
+
+def render_deed_pdf(row) -> bytes:
+    return render_pdf(render_deed_html(row))
 
 
 def ensure_deed_pdfs_table(conn):

@@ -77,3 +77,43 @@ def test_render_produces_pdf_bytes_for_every_mapped_deed_type():
         pdf = render_deed_pdf(minimal_row(deed_type=deed_type))
         assert pdf[:5] == b"%PDF-", f"{deed_type} did not render a PDF"
         assert len(pdf) > 1000
+
+
+# ── Ticket N: California all-purpose acknowledgment page (CC §1189) ──
+
+VERBATIM_1189 = (
+    "A notary public or other officer completing this certificate verifies only "
+    "the identity of the individual who signed the document to which this "
+    "certificate is attached, and not the truthfulness, accuracy, or validity "
+    "of that document."
+)
+
+
+def _normalized(html):
+    import re as _re
+    return _re.sub(r"\s+", " ", html)
+
+
+def test_acknowledgment_page_on_all_five_deed_types():
+    from services.deed_pdf import render_deed_html
+    for deed_type in ("grant-deed", "quitclaim-deed", "interspousal-transfer",
+                      "warranty-deed", "tax-deed"):
+        html = render_deed_html(minimal_row(deed_type=deed_type))
+        assert "California All-Purpose Acknowledgment" in html, deed_type
+        # CC 1189(a)(8): the disclaimer must appear verbatim (whitespace-normalized).
+        assert VERBATIM_1189 in _normalized(html), deed_type
+        assert "County of" in html, deed_type
+
+
+def test_acknowledgment_body_is_blank_except_county():
+    """We generate the form, never its contents: the notary's certificate
+    fields (date, notary name, signer name) must be blank lines; only the
+    venue county pre-fills from builder state."""
+    from services.deed_pdf import render_deed_html
+    html = render_deed_html(minimal_row())
+    ack = html[html.index("California All-Purpose Acknowledgment"):]
+    body = ack[ack.index("personally appeared"):ack.index("who proved")]
+    assert "JOHN DOE" not in body  # signer name never pre-filled
+    assert "____" in body          # blank line present for the notary
+    venue = ack[ack.index("County of"):ack.index("County of") + 200]
+    assert "Los Angeles" in venue  # county pre-fills from builder state
