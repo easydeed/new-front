@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { MapPin, Search, Check, Loader2, AlertCircle, Building2, ChevronRight, Pencil, ShieldCheck } from "lucide-react"
+import { MapPin, Search, Loader2, AlertCircle, Building2, ChevronRight } from "lucide-react"
 import type { PropertyData, PropertyProvenance, Sourced } from "@/types/builder"
 import { useAIAssist } from "@/contexts/AIAssistContext"
 import { AISuggestion } from "../AISuggestion"
@@ -581,30 +581,18 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
 
     return (
       <div className="space-y-4">
-        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-2 text-emerald-700 font-medium mb-1">
-                <Check className="w-4 h-4" />
-                Property Found
-              </div>
-              <p className="font-semibold text-gray-900">{value.address}</p>
-              <p className="text-sm text-gray-600 mt-1">{value.county} County</p>
-            </div>
-            <button
-              onClick={handleReset}
-              className="text-sm text-gray-500 hover:text-gray-700"
-            >
-              Change
-            </button>
+        {/* F5: no celebration banner — just the address and the way out. */}
+        <div className="flex items-start justify-between gap-3 pb-3 border-b border-gray-200">
+          <div className="min-w-0">
+            <p className="font-semibold text-gray-900 break-words">{value.address}</p>
+            <p className="text-sm text-gray-600 mt-0.5">{value.county} County</p>
           </div>
-        </div>
-
-        <div className="space-y-1">
-          <p className="text-sm text-gray-600">
-            Review the data pulled from county records. Confirm each value or edit it
-            before continuing — your confirmation is recorded.
-          </p>
+          <button
+            onClick={handleReset}
+            className="text-sm text-gray-500 hover:text-gray-700 flex-shrink-0"
+          >
+            Change
+          </button>
         </div>
 
         <div className="space-y-3">
@@ -632,7 +620,7 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
         {!allConfirmed && (
           <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            Confirm all SiteX-sourced fields above to verify the property data.
+            Confirm each county-record field above to verify the property data.
           </div>
         )}
       </div>
@@ -681,26 +669,27 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
             }
           }}
           placeholder="Start typing an address..."
-          className={`w-full pl-12 pr-28 py-3 border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors ${
+          className={`w-full pl-12 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors ${
             addressSelected ? 'border-brand-500 bg-brand-50/30' : 'border-gray-300'
           }`}
           autoFocus
           autoComplete="off"
         />
-        
-        {/* Search button - only show when address is selected */}
+
+        {/* F5: Search sits below the input — the old overlay button plus
+            pr-28 hid the end of the address in the 420px panel. */}
         {addressSelected && (
-          <button 
+          <button
             type="button"
             onClick={(e) => {
               e.preventDefault()
               e.stopPropagation()
               fetchPropertyData()
             }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5 bg-brand-500 text-white px-3 py-1.5 rounded-md hover:bg-brand-600 transition-colors"
+            className="mt-2 w-full flex items-center justify-center gap-1.5 bg-brand-500 text-white px-3 py-2.5 rounded-lg hover:bg-brand-600 transition-colors"
           >
             <Search className="w-4 h-4" />
-            <span className="text-sm font-medium">Search</span>
+            <span className="text-sm font-medium">Search property records</span>
           </button>
         )}
 
