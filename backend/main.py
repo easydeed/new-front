@@ -253,7 +253,6 @@ async def metrics_middleware(request: Request, call_next):
 
 # Stripe configuration
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
 
 # Database connection with auto-reconnect support
 DB_URL = os.getenv("DATABASE_URL") or os.getenv("DB_URL")
@@ -776,65 +775,9 @@ async def upgrade_plan(req: UpgradeRequest, user_id: int = Depends(get_current_u
 # STRIPE WEBHOOK & PAYMENT ENDPOINTS
 # ============================================================================
 
-@app.post("/payments/webhook")
-async def stripe_webhook(request: Request):
-    """Handle Stripe webhook events"""
-    payload = await request.body()
-    sig_header = request.headers.get("stripe-signature")
-    
-    if not webhook_secret:
-        raise HTTPException(status_code=500, detail="Webhook secret not configured")
-    
-    try:
-        event = stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid payload")
-    except stripe.error.SignatureVerificationError:
-        raise HTTPException(status_code=400, detail="Invalid signature")
-    
-    try:
-        if event['type'] == 'checkout.session.completed':
-            session = event['data']['object']
-            user_id = int(session['client_reference_id'])
-            plan = session['metadata']['plan']
-            
-            # Update user plan in database
-            if conn:
-                with conn.cursor() as cur:
-                    cur.execute("UPDATE users SET plan = %s WHERE id = %s", (plan, user_id))
-                    conn.commit()
-        
-        elif event['type'] == 'invoice.payment_succeeded':
-            invoice = event['data']['object']
-            customer_id = invoice['customer']
-            
-            # Update subscription status
-            if conn:
-                with conn.cursor() as cur:
-                    cur.execute("""
-                        UPDATE users SET updated_at = CURRENT_TIMESTAMP 
-                        WHERE stripe_customer_id = %s
-                    """, (customer_id,))
-                    conn.commit()
-        
-        elif event['type'] == 'customer.subscription.deleted':
-            subscription = event['data']['object']
-            customer_id = subscription['customer']
-            
-            # Downgrade to free plan
-            if conn:
-                with conn.cursor() as cur:
-                    cur.execute("""
-                        UPDATE users SET plan = 'free' 
-                        WHERE stripe_customer_id = %s
-                    """, (customer_id,))
-                    conn.commit()
-        
-        return {"status": "success"}
-        
-    except Exception as e:
-        print(f"Webhook error: {str(e)}")
-        raise HTTPException(status_code=500, detail="Webhook processing failed")
+# NOTE: POST /payments/webhook is handled by phase23_billing/router_webhook.py
+# (registered first in include_billing_routers). The legacy inline handler that
+# lived here was shadowed/dead; its users.plan sync logic has been ported there.
 
 @app.post("/payments/create-portal-session")
 async def create_portal_session(user_id: int = Depends(get_current_user_id)):
