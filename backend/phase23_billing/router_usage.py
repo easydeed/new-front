@@ -3,7 +3,13 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from .deps import get_db, get_settings
 
-router = APIRouter(prefix="/usage", tags=["usage"])
+from auth import get_current_admin
+
+# Locked down with bug #7: these metering endpoints (including billable-event
+# injection via POST /events) had no auth. No known caller uses them over
+# HTTP; internal metering calls the service functions directly.
+router = APIRouter(prefix="/usage", tags=["usage"],
+                   dependencies=[Depends(get_current_admin)])
 
 @router.post("/events")
 def log_event(event_type: str, user_id: int | None = None, api_key_prefix: str | None = None, billable: bool = False, cost_units: int = 1, unit_price_cents: int | None = None, resource_id: int | None = None, db: Session = Depends(get_db)):

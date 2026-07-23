@@ -5,16 +5,16 @@ import csv, io
 
 from .deps import get_db
 from .services.revenue import get_revenue_overview, monthly_breakdown, mrr_arr
+from auth import get_current_admin
 
-router = APIRouter(prefix="/admin", tags=["admin-billing"])
-
-def require_admin():
-    # TODO: wire to real RBAC
-    return True
+# Bug #7 fix: real admin JWT enforcement at the router level — the previous
+# require_admin() was a `return True` stub (the same disease as the original
+# verify_admin(), PR #17).
+router = APIRouter(prefix="/admin", tags=["admin-billing"],
+                   dependencies=[Depends(get_current_admin)])
 
 @router.get("/revenue")
 def revenue(db: Session = Depends(get_db)):
-    require_admin()
     return {
         "overview": get_revenue_overview(db),
         "monthly_breakdown": monthly_breakdown(db),
@@ -23,7 +23,6 @@ def revenue(db: Session = Depends(get_db)):
 
 @router.get("/invoices")
 def list_invoices(limit: int = 100, db: Session = Depends(get_db)):
-    require_admin()
     rows = db.execute(text("""
         SELECT id, invoice_number, status, total_cents, amount_due_cents, invoice_pdf_url, billing_period_start, billing_period_end, created_at
         FROM invoices ORDER BY id DESC LIMIT :lim
@@ -41,7 +40,6 @@ def list_invoices(limit: int = 100, db: Session = Depends(get_db)):
 
 @router.get("/payments")
 def list_payments(limit: int = 200, db: Session = Depends(get_db)):
-    require_admin()
     rows = db.execute(text("""
         SELECT id, invoice_id, user_id, amount_cents, currency, status, stripe_fee_cents, net_amount_cents, created_at
         FROM payment_history ORDER BY id DESC LIMIT :lim
@@ -54,7 +52,6 @@ def list_payments(limit: int = 200, db: Session = Depends(get_db)):
 
 @router.get("/exports/payments.csv")
 def export_payments_csv(db: Session = Depends(get_db)):
-    require_admin()
     buf = io.StringIO()
     wr = csv.writer(buf)
     wr.writerow(["id","invoice_id","user_id","amount_cents","currency","status","stripe_fee_cents","net_amount_cents","created_at"])
