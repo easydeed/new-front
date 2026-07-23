@@ -1,0 +1,95 @@
+{
+  "1_login": {
+    "login_keys": [
+      "access_token",
+      "token_type",
+      "user"
+    ],
+    "login_status": 200,
+    "register_status": 200,
+    "token_issued": true,
+    "token_type": "bearer"
+  },
+  "2_deed_save": {
+    "deed_type": "grant-deed",
+    "grantor_name": "BASE GRANTOR",
+    "metadata_has": [
+      "dtt",
+      "escrow_no",
+      "provenance",
+      "return_to",
+      "source",
+      "title_order_no"
+    ],
+    "pdf_url_set": true,
+    "returned_keys": [
+      "apn",
+      "county",
+      "created_at",
+      "deed_type",
+      "grantee_name",
+      "grantor_name",
+      "id",
+      "legal_description",
+      "metadata",
+      "owner_type",
+      "pdf_url",
+      "property_address",
+      "requested_by",
+      "sales_price",
+      "status",
+      "updated_at",
+      "user_id",
+      "vesting"
+    ],
+    "status": 200
+  },
+  "3_deed_detail": {
+    "keys": [
+      "apn",
+      "county",
+      "created_at",
+      "deed_type",
+      "grantee_name",
+      "grantor_name",
+      "id",
+      "legal_description",
+      "metadata",
+      "owner_type",
+      "pdf_url",
+      "property_address",
+      "requested_by",
+      "role",
+      "sales_price",
+      "status",
+      "updated_at",
+      "user_id",
+      "vesting"
+    ],
+    "property_address": "123 Baseline St, Los Angeles, CA 90001",
+    "status": 200
+  },
+  "4_download": {
+    "content_type": "application/pdf",
+    "is_pdf": true,
+    "over_1kb": true,
+    "status": 200
+  },
+  "5_share_create": {
+    "keys": [
+      "email_sent",
+      "message",
+      "shared_deed",
+      "success"
+    ],
+    "status": 200,
+    "success": true
+  },
+  "6_stripe_webhook": {
+    "body": {
+      "ok": true
+    },
+    "plan_after": "professional",
+    "status": 200
+  }
+}
