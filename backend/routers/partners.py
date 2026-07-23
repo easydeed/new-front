@@ -98,6 +98,32 @@ async def create_my_partner(
         raise HTTPException(status_code=500, detail=f"Failed to create partner: {str(e)}")
 
 
+# Registered BEFORE /{partner_id}: a slash-less /partners/selectlist must
+# never match the id route ('selectlist'::uuid cast). The proxy's trailing
+# slash is no longer load-bearing.
+@router.get("/selectlist/", response_model=List[Dict])
+@router.get("/selectlist", response_model=List[Dict], include_in_schema=False)
+async def get_partners_selectlist(
+    user_id: int = Depends(get_current_user_id)
+):
+    """Get simplified partner list for dropdowns (id, name, category)"""
+    try:
+        organization_id = get_user_organization(user_id)
+        partners = list_partners(organization_id, active_only=True)
+
+        # Simplify for dropdown
+        return [
+            {
+                'id': p['id'],
+                'name': p['company_name'],
+                'category': p.get('category', 'other')
+            }
+            for p in partners
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get partners: {str(e)}")
+
+
 @router.get("/{partner_id}", response_model=Dict)
 async def get_my_partner(
     partner_id: str,
@@ -163,25 +189,3 @@ async def delete_my_partner(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to delete partner: {str(e)}")
-
-
-@router.get("/selectlist/", response_model=List[Dict])
-async def get_partners_selectlist(
-    user_id: int = Depends(get_current_user_id)
-):
-    """Get simplified partner list for dropdowns (id, name, category)"""
-    try:
-        organization_id = get_user_organization(user_id)
-        partners = list_partners(organization_id, active_only=True)
-        
-        # Simplify for dropdown
-        return [
-            {
-                'id': p['id'],
-                'name': p['company_name'],
-                'category': p.get('category', 'other')
-            }
-            for p in partners
-        ]
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get partners: {str(e)}")
