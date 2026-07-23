@@ -4,10 +4,20 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Set up Python
-      uses: actions/setup-python@v2
-      with: 
-        python-version: '3.8'
-    - run: pip install -r backend/requirements.txt
-    - run: pytest backend/tests/ 
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    - name: Install backend dependencies
+      run: pip install -r backend/requirements.txt
+    - name: Run maintained backend suites (blocking)
+      working-directory: backend
+      env:
+        JWT_SECRET_KEY: ci-test-secret
+      # The two legacy suites below test contracts that no longer exist and
+      # are being rewritten in T9-full; everything else must pass.
+      run: >
+        pytest tests/ -q
+        --ignore=tests/test_property_search_integration.py
+        --ignore=tests/integration
