@@ -42,14 +42,22 @@ export type DeedRow = {
   deed_type: string;
   status: string;
   property_address?: string;
+  apn?: string;
+  county?: string;
   created_at?: string;
   updated_at?: string;
   user_id?: number;
+  user_email?: string;
 };
 
 export type UserDetail = UserRow & {
   stripe_customer_id?: string;
   deeds?: DeedRow[];
+  company_name?: string;
+  phone?: string;
+  state?: string;
+  verified?: boolean;
+  deed_stats?: { total: number; completed: number; drafts: number };
 };
 
 // Phase 23-B: Complete revenue data structure
@@ -129,23 +137,15 @@ export const AdminApi = {
   
   getUser: (id: number) => http<UserDetail>(`/admin/users/${id}/real`),
 
-  // Deeds Management  
-  searchDeeds: async (page = 1, limit = 25, search = '', status = '') => {
-    // Phase 23-B Fix: Use /admin/deeds (not /admin/deeds/search)
-    // Backend returns { deeds: [], total } but frontend expects { items: [], total }
+  // Deeds Management — /admin/deeds/search is the real endpoint: honest
+  // statuses (draft/completed/deleted) and a working status + user filter.
+  // (Its predecessor /admin/deeds hardcoded every status to "completed".)
+  searchDeeds: (page = 1, limit = 25, search = '', status = '', userId?: number) => {
     const qs = new URLSearchParams({ page: String(page), limit: String(limit) });
     if (search) qs.set('search', search);
     if (status) qs.set('status', status);
-    
-    const response = await http<{ deeds: DeedRow[]; total: number; page: number; limit: number }>(`/admin/deeds?${qs.toString()}`);
-    
-    // Transform backend response to match frontend Paged<T> type
-    return {
-      items: response.deeds,
-      total: response.total,
-      page: response.page || page,
-      limit: response.limit || limit
-    };
+    if (userId != null) qs.set('user_id', String(userId));
+    return http<Paged<DeedRow>>(`/admin/deeds/search?${qs.toString()}`);
   },
   
   getDeed: (id: number) => http<DeedRow>(`/admin/deeds/${id}`),
@@ -185,10 +185,6 @@ export const AdminApi = {
       method: 'DELETE'
     }),
   
-  resetUserPassword: (id: number) =>
-    http<{success: boolean; message: string; email: string}>(`/admin/users/${id}/reset-password`, {
-      method: 'POST'
-    }),
 };
 
 /**

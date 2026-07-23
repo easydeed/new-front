@@ -61,6 +61,7 @@ def ensure_schema(db_url):
         "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS pdf_url VARCHAR(500)",
         "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'",
         "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS requested_by VARCHAR(255)",
+        "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP",
         """CREATE TABLE IF NOT EXISTS deed_shares (
             id SERIAL PRIMARY KEY,
             deed_id INT NOT NULL,

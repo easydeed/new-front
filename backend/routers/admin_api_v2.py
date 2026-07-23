@@ -100,10 +100,11 @@ def admin_deeds_search(
     limit: int = Query(50, ge=1, le=200),
     search: Optional[str] = None,
     status: Optional[str] = None,
+    user_id: Optional[int] = None,
     admin=Depends(get_current_admin)
 ):
     """
-    Paginated, searchable deeds list.
+    Paginated, searchable deeds list (per-user via user_id).
     """
     offset = (page - 1) * limit
     conn = get_db_connection()
@@ -122,6 +123,9 @@ def admin_deeds_search(
         if status:
             where.append("LOWER(d.status) = %s")
             params.append(status.lower())
+        if user_id is not None:
+            where.append("d.user_id = %s")
+            params.append(user_id)
 
         where_sql = f"WHERE {' AND '.join(where)}" if where else ""
         cur.execute(f"SELECT COUNT(*) as count FROM deeds d {where_sql}", params)
@@ -241,31 +245,8 @@ def admin_delete_user(user_id: int, admin=Depends(get_current_admin)):
         
         return {"success": True, "message": "User deleted successfully"}
 
-@router.post("/users/{user_id}/reset-password")
-def admin_reset_user_password(user_id: int, admin=Depends(get_current_admin)):
-    """Send password reset email - Phase 12-3"""
-    conn = get_db_connection()
-    with conn.cursor() as cur:
-        cur.execute("SELECT email FROM users WHERE id = %s", (user_id,))
-        row = cur.fetchone()
-        if not row:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        email = row['email']
-        
-        # TODO: Integrate with AuthOverhaul email service
-        # For now, return success message
-        
-        return {
-            "success": True, 
-            "message": f"Password reset email sent to {email}",
-            "email": email
-        }
-
-
-# ============================================================================
-# PHASE 5: DEED ACTIONS (View PDF, Delete)
-# ============================================================================
+# (reset-password endpoint removed — it returned success without sending
+# anything. Ledger: wire real reset when email infra is decided.)
 
 @router.delete("/deeds/{deed_id}")
 def admin_delete_deed(deed_id: int, admin=Depends(get_current_admin)):

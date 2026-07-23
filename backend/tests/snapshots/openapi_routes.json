@@ -13,10 +13,6 @@
  ],
  [
   "DELETE",
-  "/admin/users/{user_id}"
- ],
- [
-  "DELETE",
   "/deeds/{deed_id}"
  ],
  [
@@ -29,10 +25,6 @@
  ],
  [
   "GET",
-  "/admin/analytics"
- ],
- [
-  "GET",
   "/admin/api-keys"
  ],
  [
@@ -42,10 +34,6 @@
  [
   "GET",
   "/admin/dashboard"
- ],
- [
-  "GET",
-  "/admin/deeds"
  ],
  [
   "GET",
@@ -90,14 +78,6 @@
  [
   "GET",
   "/admin/revenue"
- ],
- [
-  "GET",
-  "/admin/revenue"
- ],
- [
-  "GET",
-  "/admin/system-health"
  ],
  [
   "GET",
@@ -321,10 +301,6 @@
  ],
  [
   "POST",
-  "/admin/users/{user_id}/reset-password"
- ],
- [
-  "POST",
   "/admin/verification/documents/{short_code}/revoke"
  ],
  [
@@ -446,10 +422,6 @@
  [
   "PUT",
   "/admin/partners/{partner_id}/toggle-active"
- ],
- [
-  "PUT",
-  "/admin/users/{user_id}"
  ],
  [
   "PUT",
