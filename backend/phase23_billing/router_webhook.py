@@ -26,7 +26,22 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 
     # --- Checkout completed ---
     if etype == "checkout.session.completed":
-        # If metadata contains user_id or subscription id, you can store it
+        # Apply the purchased plan to the user. Ported from the legacy inline
+        # webhook this router shadows — without this, paid upgrades never
+        # change users.plan. /users/upgrade sets client_reference_id and
+        # metadata={plan, user_id} on the checkout session.
+        sess = obj
+        user_id = sess.get("client_reference_id") or (sess.get("metadata") or {}).get("user_id")
+        plan = (sess.get("metadata") or {}).get("plan")
+        try:
+            uid = int(user_id) if user_id is not None else None
+        except (TypeError, ValueError):
+            uid = None
+        if uid is not None and plan:
+            db.execute(text(
+                "UPDATE users SET plan = :plan, updated_at = now() WHERE id = :uid"
+            ), {"plan": plan, "uid": uid})
+            db.commit()
         return {"ok": True}
 
     # --- Subscription lifecycle (assumes 'subscriptions' table exists) ---
@@ -46,6 +61,12 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             "mrr": (sub.get("items", {}).get("data",[{}])[0].get("price",{}).get("unit_amount") or 0),
             "sid": sub.get("id")
         })
+        if etype == "customer.subscription.deleted" and sub.get("customer"):
+            # Ported from the legacy webhook: a cancelled subscription
+            # downgrades the user back to the free plan.
+            db.execute(text(
+                "UPDATE users SET plan = 'free', updated_at = now() WHERE stripe_customer_id = :cust"
+            ), {"cust": sub.get("customer")})
         db.commit()
         return {"ok": True}
 
