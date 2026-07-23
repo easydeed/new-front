@@ -121,24 +121,7 @@ def create_tables():
             )
         """)
         
-        # Create property_cache_tp table for TitlePoint data caching (separate from suggestions cache)
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS property_cache_tp (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-                address TEXT NOT NULL,
-                data JSONB NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(user_id, address)
-            )
-        """)
-        
-        # Index for faster TitlePoint cache lookups
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS idx_property_cache_tp_user_address 
-            ON property_cache_tp(user_id, address)
-        """)
-        
+        # T6/T7: property_cache_tp creation removed (table dead, dropped)
         conn.commit()
         cursor.close()
         conn.close()
