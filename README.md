@@ -15,7 +15,6 @@ California deed-generation platform: a Next.js builder UI over a FastAPI backend
 | `docs/` | [ARCHITECTURE](docs/ARCHITECTURE.md) · [API](docs/API.md) · [DATA_MODEL](docs/DATA_MODEL.md) · [SiteX integration](docs/skills/sitex-integration.md) |
 | `docs/_archive/` | All pre-2026-07 documentation, moved unmodified. Historical only — do not treat as guidance |
 | `scripts/`, `tests/` | ops scripts; root pytest for the wizard API |
-| `AiTools/`, `v0-builder/`, `v0-prompts/`, `fixtemp/`, root `*.tsx` | **orphans** — not imported by the app (see ARCHITECTURE.md) |
 
 ## Quickstart
 

@@ -23,7 +23,7 @@ CI (`.github/workflows/`): `ci.yml` builds frontend + runs pytest with all steps
 
 The live builder is `frontend/src/features/builder/DeedBuilder.tsx`, reached via `/deed-builder/[type]` (`frontend/src/app/deed-builder/[type]/page.tsx`). The older `/create-deed/[docType]` route is now only a server redirect to `/deed-builder`.
 
-**State is a single `useState` — there is no store.** `zustand` appears in `frontend/package.json` but is imported nowhere under `frontend/src`; there is no reducer and no context holding form data.
+**State is a single `useState` — there is no store.** There is no reducer and no context holding form data (an unused `zustand` dependency was removed 2026-07-23).
 
 ```tsx
 // DeedBuilder.tsx:30-48
@@ -37,12 +37,29 @@ Cross-cutting contexts are limited to `AIAssistProvider` (AI toggle/suggestions)
 
 ## Provenance model
 
-**There is no typed provenance.** No `Sourced<T>` wrapper or per-field `source` discriminator exists anywhere in live code (`grep Sourced frontend/` → 0 matches). `PropertyData` (`frontend/src/types/builder.ts:1-10`) is a flat interface.
+Field-level provenance landed on `main` 2026-07-23 (commit `270425a`), defined in `frontend/src/types/builder.ts`:
 
-Provenance is conveyed at the UI layer only, in `PropertySection`:
-- `POST /api/property/search-v2` (SiteX-backed) results are mapped into `PropertyData` via `mapSiteXResponse` (`PropertySection.tsx:458-479`); multi-match results resolve through `POST /api/property/resolve-match` with `{fips, apn}`.
-- A successful lookup renders a "Property Found … pulled from county records" panel (`PropertySection.tsx:507-529`), and the section headers carry static badges — Property: "Auto-filled", Grantor: "From Records" (`InputPanel.tsx:110,126`).
-- Once a field is populated, nothing records whether the user later edited it.
+```ts
+export type FieldSource = 'sitex' | 'google' | 'user' | 'titlepoint';
+export type FieldStatus = 'candidate' | 'confirmed';
+
+export interface Sourced<T> {
+  value: T;
+  source: FieldSource;
+  status: FieldStatus;
+  confirmedAt?: string; // ISO timestamp, set when status becomes 'confirmed'
+}
+```
+
+`PropertyData` carries an optional `provenance?: PropertyProvenance` holding `Sourced<string>` entries for the three legally sensitive fields — `apn`, `legalDescription`, `owner`. It is deliberately optional: the generation payload keeps reading the bare value fields, so the PDF path is untouched by provenance.
+
+The workflow lives in `PropertySection.tsx`:
+- `POST /api/property/search-v2` (SiteX-backed) results — including the multi-match `POST /api/property/resolve-match` path — arrive wrapped as `{ source: 'sitex', status: 'candidate' }` (`PropertySection.tsx:602-622`).
+- Each tracked field renders as a `ConfirmableField` (`PropertySection.tsx:186`): the escrow officer either **confirms** it (status flips to `confirmed` with an ISO `confirmedAt` stamp, `PropertySection.tsx:650-661`) or **edits** it (source becomes `'user'`, confirmed immediately, `PropertySection.tsx:665-682`).
+- `provenanceFor` (`PropertySection.tsx:686-690`) backfills a `{source:'sitex', status:'candidate'}` wrapper for data loaded without provenance, so older drafts still work.
+- The governing rule, from the type's doc comment: *the system suggests; the officer confirms; AI/auto-fill never silently writes a confirmed legal value.*
+
+`PropertySection` computes `allConfirmed` across the three tracked fields (`PropertySection.tsx:697-699`); the generation gate does **not** yet consume it — wiring confirmation into the gate is the planned Ticket B work.
 
 ## Generation gate
 
@@ -53,7 +70,7 @@ Generation is gated by a **6-of-6 section completion count** in `frontend/src/co
 
 A richer validator exists (`validateDeedData` in `frontend/src/lib/ai-helpers.ts:284-378`, consumed by `frontend/src/components/builder/ValidationPanel.tsx`) but **`ValidationPanel` is not rendered by anything** — it is absent from `builder/index.ts` and has no importers, so it does not gate generation today.
 
-On generate, `DeedBuilder.handleGenerate` (`DeedBuilder.tsx:54-95`) maps state to snake_case and does `POST /api/deeds/generate` (relative URL) with a `Bearer` token from `localStorage`. **Caveat:** no `frontend/src/app/api/deeds/generate/route.ts` exists in the repo — only `api/deeds/create` (which proxies to backend `POST /deeds`) and per-doc-type proxies under `frontend/src/app/api/generate/*` (which forward to the backend generate endpoints, defaulting to `http://localhost:8000`).
+On generate, `DeedBuilder.handleGenerate` (`DeedBuilder.tsx:54-95`) maps state to snake_case and does `POST /api/deeds/generate` (relative URL) with a `Bearer` token from `localStorage`. The route handler `frontend/src/app/api/deeds/generate/route.ts` (added 2026-07-23, PR #17 — it was missing, which silently broke deed persistence) maps the builder payload to the backend `DeedCreate` shape and forwards to `POST /deeds`. Per-doc-type PDF proxies live under `frontend/src/app/api/generate/*`. Confirmation state from the provenance model (`allConfirmed` in `PropertySection`) is not yet part of this gate. **Still open:** the success page's PDF download calls the stubbed `GET /deeds/{id}/download` — wiring deed-record → PDF is Phase 3 item #1.
 
 ## Auth flow
 
@@ -70,8 +87,9 @@ Feature flags are consistently **off** in deployed config: `DYNAMIC_WIZARD_ENABL
 
 ## Known structural quirks (facts from code, kept here so agents don't rediscover them)
 
-- `verify_admin()` in `backend/main.py:478-492` is a deprecated stub that always returns `True`; the eleven `/admin/*` endpoints defined inline in `main.py` are effectively unauthenticated. `backend/routers/admin_api_v2.py` uses the real `Depends(get_current_admin)`.
+- ~~`verify_admin()` stub~~ **Fixed 2026-07-23 (PR #17):** the always-true `verify_admin()` stub was deleted and all eleven inline `/admin/*` endpoints in `main.py` now enforce `dependencies=[Depends(get_current_admin)]` — the same real JWT role check used by `routers/admin_api_v2.py`.
 - Route shadowing: `backend/phase23_billing` routers register first (`main.py:46`) and shadow `main.py`'s own `POST /payments/webhook` and `GET /admin/revenue`; `POST /api/ai/assist` is registered by two different routers (first wins).
 - Two parallel deed-sharing systems coexist: `shared_deeds` (+`sharing_activity_log`, served by `main.py /shared-deeds`) and `deed_shares` (+`deed_share_activity`, served by `routers/shares_enhanced.py`).
 - The `api/property_search.py` router mount is commented out (`main.py:78-87`); its routes are unreachable.
-- Orphan code not imported by anything live: repo-root `PropertySection.tsx`/`VestingSection.tsx`/`TransferTaxSection.tsx`/`ValidationPanel.tsx`, `AiTools/`, `v0-builder/`, `v0-prompts/`, `fixtemp/`, the empty nested `new-front/`, and `schedule-builder-ui.zip`. The live copies live under `frontend/src/`.
+- ~~Orphan code~~ **Removed 2026-07-23 (PR #18):** the repo-root orphan components, `AiTools/`, `v0-builder/`, `v0-prompts/`, `fixtemp/`, template backups, and ~45 loose backend scripts were deleted (1,222 files). The live builder components are under `frontend/src/components/builder/`.
+- The frontend has ~116 pre-existing TypeScript errors; builds pass only because `next.config` sets `ignoreBuildErrors: true` (and `ignoreDuringBuilds: true` for ESLint). The backend test suite in `backend/tests/` is stale — it mocks methods that no longer exist (e.g. `SiteXService.search_address`) — and `test.yml` pins Python 3.8, which cannot install `requirements.txt`. Rebuilding honest CI is Phase 4 of the simplification plan.

@@ -14,7 +14,6 @@ Two FastAPI apps ship from `backend/`:
 |---|---|
 | U | `Depends(get_current_user_id)` — user JWT (HS256, `backend/auth.py`) |
 | A | `Depends(get_current_admin)` — JWT with admin role (real enforcement) |
-| A(stub) | guarded only by `verify_admin()` (`main.py:478`), **which always returns `True` — effectively unauthenticated** |
 | KEY | API key (`Authorization: Bearer dp_pk_…`, hashed lookup + scopes + rate limits, `routers/api_v1/router.py`) |
 | TOKEN | capability token in the URL path |
 | PUB | no auth |
@@ -31,7 +30,7 @@ Two FastAPI apps ship from `backend/`:
 | POST | `/users/upgrade` | U | Stripe plan upgrade (732) |
 | POST | `/payments/webhook` | PUB | Stripe webhook (799) — **shadowed by the phase23 router's identical path** |
 | POST | `/payments/create-portal-session` | U | Stripe billing portal (859) |
-| GET | `/admin/dashboard`, `/admin/users`, `/admin/users/{id}`, `/admin/deeds`, `/admin/revenue`*, `/admin/analytics`, `/admin/system-health`, `/admin/system/overview`, `/admin/system-metrics`; PUT/DELETE `/admin/users/{id}` | A(stub) | admin metrics & user management (942–1591). *`/admin/revenue` is shadowed by phase23. |
+| GET | `/admin/dashboard`, `/admin/users`, `/admin/users/{id}`, `/admin/deeds`, `/admin/revenue`*, `/admin/analytics`, `/admin/system-health`, `/admin/system/overview`, `/admin/system-metrics`; PUT/DELETE `/admin/users/{id}` | A | admin metrics & user management (942–1591). Real admin JWT enforced since 2026-07-23 (PR #17; previously guarded by an always-true stub). *`/admin/revenue` is shadowed by phase23. |
 | POST | `/users` / GET `/users/{email}` | PUB | create/fetch user, no auth (1610, 1632) |
 | GET | `/user/me` | U | current user (1640) |
 | POST | `/deeds` | U | create deed (1686) |
@@ -91,9 +90,9 @@ Auth: API key + HMAC (`external_api/security/`), per-key rate limiting.
 
 ## Frontend proxy routes (`frontend/src/app/api/`)
 
-Next.js route handlers that forward to the backend (default `http://localhost:8000` for the generate proxies, `NEXT_PUBLIC_API_URL` elsewhere): `api/generate/{grant-deed-ca,grant-deed-ca-pixel,quitclaim-deed-ca,interspousal-transfer-ca,warranty-deed-ca,tax-deed-ca}`, `api/deeds/create` (→ backend `POST /deeds`), `api/deeds/[id]`, `api/partners/selectlist`. **Note:** the builder posts to `/api/deeds/generate`, which has no route handler in the repo (see `docs/ARCHITECTURE.md`).
+Next.js route handlers that forward to the backend (default `http://localhost:8000` for the generate proxies, `NEXT_PUBLIC_API_URL` elsewhere): `api/generate/{grant-deed-ca,grant-deed-ca-pixel,quitclaim-deed-ca,interspousal-transfer-ca,warranty-deed-ca,tax-deed-ca}`, `api/deeds/create` (→ backend `POST /deeds`), `api/deeds/generate` (the builder's save path, added 2026-07-23 in PR #17 — maps the builder payload to `DeedCreate` and forwards to backend `POST /deeds`), `api/deeds/[id]`, `api/partners/selectlist`.
 
-## Security notes (verified in code, flagged for remediation)
+## Security notes (verified in code)
 
-- `verify_admin()` always returns `True` (`main.py:490`): every inline `/admin/*` route in `main.py` is effectively public. Use `routers/admin_api_v2.py` semantics (`Depends(get_current_admin)`) as the model for fixing.
-- The placeholder endpoints marked PUB above (deed status/recipients/delete/download, payment-methods, subscriptions, `/generate-deed`, `/users`, `/users/{email}`) perform no authentication.
+- ~~`verify_admin()` always returns `True`~~ **Fixed 2026-07-23 (PR #17):** the stub was deleted and every inline `/admin/*` route now enforces `dependencies=[Depends(get_current_admin)]`.
+- Still open: the placeholder endpoints marked PUB above (deed status/recipients/delete/download, payment-methods, subscriptions, `/generate-deed`, `/users`, `/users/{email}`) perform no authentication. Deleting or authenticating them is Phase 3 of the simplification plan.

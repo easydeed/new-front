@@ -5,9 +5,28 @@
 
 ## Frontend types (`frontend/src/types/builder.ts`)
 
-These three interfaces are the entire typed surface of the deed builder:
+The typed surface of the deed builder, including the field-level provenance model added 2026-07-23 (commit `270425a`):
 
 ```ts
+export type FieldSource = 'sitex' | 'google' | 'user' | 'titlepoint';
+export type FieldStatus = 'candidate' | 'confirmed';
+
+export interface Sourced<T> {
+  value: T;
+  source: FieldSource;
+  status: FieldStatus;
+  confirmedAt?: string; // ISO timestamp, set when status becomes 'confirmed'
+}
+
+// Provenance for the SiteX-sourced PropertyData fields. Kept alongside the
+// bare values so the deed PDF/generation path (which reads property.apn etc.)
+// is unchanged.
+export interface PropertyProvenance {
+  apn?: Sourced<string>;
+  legalDescription?: Sourced<string>;
+  owner?: Sourced<string>;
+}
+
 export interface PropertyData {
   address: string;
   city: string;
@@ -17,6 +36,7 @@ export interface PropertyData {
   apn: string;
   legalDescription: string;
   owner?: string;
+  provenance?: PropertyProvenance; // optional so existing callers keep working
 }
 
 export interface DTTData {                 // documentary transfer tax
@@ -43,7 +63,7 @@ export interface DeedBuilderState {
 }
 ```
 
-**`Sourced<T>` does not exist.** Older documentation described a per-field provenance wrapper; there is no such type anywhere in live code (zero grep hits under `frontend/`). `PropertyData` is flat — field origin (SiteX lookup vs. manual entry) is not recorded in data, only implied by UI badges in `PropertySection` (`mapSiteXResponse`, `PropertySection.tsx:458-479`). A stale copy of these same types (minus `titleOrderNo`/`escrowNo`) sits in the orphan `v0-builder/extracted/` tree.
+**How provenance flows:** SiteX search results (including the multi-match resolve path) enter `PropertyData.provenance` as `{source: 'sitex', status: 'candidate'}` (`PropertySection.tsx:602-622`). The escrow officer then acts on each tracked field through the `ConfirmableField` UI: confirming flips it to `confirmed` and stamps `confirmedAt`; editing rewrites it as `{source: 'user', status: 'confirmed'}` immediately (`PropertySection.tsx:650-682`). Data loaded without provenance is backfilled as a sitex candidate by `provenanceFor` (`PropertySection.tsx:686-690`). The bare `PropertyData` fields remain the source of truth for the generation payload; provenance is the confirmation audit layer on top. The design rule: the system suggests, the officer confirms — auto-fill never silently produces a confirmed legal value.
 
 ## Backend render-context models (`backend/models/`)
 
