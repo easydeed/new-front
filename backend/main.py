@@ -168,25 +168,10 @@ except ImportError as e:
 except Exception as e:
     print(f"❌ Phase 7.5: Error loading Notifications: {e}")
 
-# PHASE 7.5: Enhanced Deed Sharing (gap-plan)
-try:
-    from routers.shares_enhanced import router as shares_enhanced_router
-    app.include_router(shares_enhanced_router, prefix="/deeds", tags=["Deed Sharing"])
-    print("✅ Phase 7.5: Enhanced sharing system loaded (feature flag: SHARING_ENABLED)")
-except ImportError as e:
-    print(f"⚠️ Phase 7.5: Enhanced sharing not available: {e}")
-except Exception as e:
-    print(f"❌ Phase 7.5: Error loading Enhanced sharing: {e}")
-
-# REJECTION BUNDLE: Feedback API for rejected shares
-try:
-    from routers.deed_share_feedback import router as feedback_router
-    app.include_router(feedback_router, prefix="/deed-shares", tags=["Deed Sharing Feedback"])
-    print("✅ Rejection Bundle: Feedback API loaded (view comments on rejected deeds)")
-except ImportError as e:
-    print(f"⚠️ Rejection Bundle: Feedback API not available: {e}")
-except Exception as e:
-    print(f"❌ Rejection Bundle: Error loading Feedback API: {e}")
+# T3: the flag-gated "enhanced sharing" and "/deed-shares feedback" routers
+# were removed — no frontend consumer ever called them. The live sharing
+# stack is the /shared-deeds + /approve/{token} endpoints below (deed_shares
+# table), which now also serve feedback and revoke.
 
 # PATCH 5: Industry Partners API (Full Stack - org-scoped with admin)
 try:
@@ -2165,53 +2150,85 @@ def resend_approval_email(shared_deed_id: int, user_id: int = Depends(get_curren
         print(f"[Sharing] ❌ Resend error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.delete("/shared-deeds/{shared_deed_id}")
-def revoke_shared_deed(shared_deed_id: int, user_id: int = Depends(get_current_user_id)):
-    """Revoke access to a shared deed - Phase 6-2: Real DB implementation"""
+def _revoke_deed_share(shared_deed_id: int, user_id: int):
+    """Revoke a share in deed_shares (the live sharing table) with owner check.
+
+    T3 fix: the previous implementation targeted the legacy shared_deeds
+    table, which the live sharing stack never writes — revoke silently
+    no-op'd. Every other sharing endpoint uses deed_shares.
+    """
     if not conn:
         raise HTTPException(status_code=500, detail="Database connection not available")
-    
     try:
         with conn.cursor() as cur:
-            # Verify the user owns this shared deed
             cur.execute("""
-                SELECT shared_by FROM shared_deeds 
+                SELECT owner_user_id FROM deed_shares
                 WHERE id = %s
             """, (shared_deed_id,))
-            
             row = cur.fetchone()
             if not row:
                 raise HTTPException(status_code=404, detail="Shared deed not found")
-            
             if row[0] != user_id:
                 raise HTTPException(status_code=403, detail="You don't have permission to revoke this share")
-            
-            # Mark as revoked
+
             cur.execute("""
-                UPDATE shared_deeds 
-                SET status = 'revoked', revoked_at = CURRENT_TIMESTAMP
+                UPDATE deed_shares
+                SET status = 'revoked', updated_at = CURRENT_TIMESTAMP
                 WHERE id = %s
             """, (shared_deed_id,))
-            
             conn.commit()
-            
-            return {
-                "success": True,
-                "message": f"Access to shared deed {shared_deed_id} has been revoked"
-            }
-            
+
+        return {
+            "success": True,
+            "message": f"Access to shared deed {shared_deed_id} has been revoked"
+        }
     except HTTPException:
         raise
     except Exception as e:
-        conn.rollback()  # Phase 14-B: Prevent transaction cascade failures
+        conn.rollback()
         print(f"Error revoking shared deed: {e}")
-        # Graceful degradation: return success if table doesn't exist yet
-        if "does not exist" in str(e):
-            return {
-                "success": True,
-                "message": "Sharing feature is being set up"
-            }
         raise HTTPException(status_code=500, detail=f"Failed to revoke shared deed: {str(e)}")
+
+@app.delete("/shared-deeds/{shared_deed_id}")
+def revoke_shared_deed(shared_deed_id: int, user_id: int = Depends(get_current_user_id)):
+    """Revoke access to a shared deed."""
+    return _revoke_deed_share(shared_deed_id, user_id)
+
+@app.post("/shared-deeds/{shared_deed_id}/revoke")
+def revoke_shared_deed_post(shared_deed_id: int, user_id: int = Depends(get_current_user_id)):
+    """Revoke access to a shared deed (the route the Shared Deeds UI calls)."""
+    return _revoke_deed_share(shared_deed_id, user_id)
+
+@app.get("/shared-deeds/{shared_deed_id}/feedback")
+def get_shared_deed_feedback(shared_deed_id: int, user_id: int = Depends(get_current_user_id)):
+    """Return recipient feedback for a share (owner-only). Called by the
+    Shared Deeds UI; feedback is written by the public rejection flow."""
+    if not conn:
+        raise HTTPException(status_code=500, detail="Database connection not available")
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT feedback, feedback_at, feedback_by, owner_user_id
+                FROM deed_shares
+                WHERE id = %s
+            """, (shared_deed_id,))
+            row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Shared deed not found")
+        feedback, feedback_at, feedback_by, owner_user_id = row
+        if owner_user_id != user_id:
+            raise HTTPException(status_code=403, detail="You don't have permission to view this feedback")
+        return {
+            "feedback": feedback or "",
+            "feedback_at": feedback_at.isoformat() if feedback_at else None,
+            "feedback_by": feedback_by,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        print(f"Error fetching share feedback: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch feedback")
 
 # Public approval endpoint (for recipients)
 @app.get("/approve/{approval_token}")

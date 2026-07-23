@@ -175,45 +175,8 @@ def send_deed_completion_notification(user_email: str, user_name: str, deed_type
     return send_email(user_email, subject, html)
 
 
-def log_share_activity(
-    conn,
-    share_id: int,
-    activity_type: str,
-    actor_email: str = None,
-    metadata: dict = None
-) -> Optional[int]:
-    """
-    Log sharing activity for audit trail.
-    
-    Args:
-        conn: Database connection
-        share_id: ID of the deed_share
-        activity_type: One of 'created', 'viewed', 'reminded', 'approved', 'rejected', 'revoked', 'expired'
-        actor_email: Email of the person performing the action
-        metadata: Optional JSON metadata
-    
-    Returns:
-        Activity log ID or None if failed
-    """
-    import json
-    
-    try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO deed_share_activity (share_id, activity_type, actor_email, metadata)
-                VALUES (%s, %s, %s, %s)
-                RETURNING id
-            """, (share_id, activity_type, actor_email, json.dumps(metadata) if metadata else None))
-            result = cur.fetchone()
-            conn.commit()
-            activity_id = result[0] if result else None
-            logger.info(f"[Activity] Logged {activity_type} for share {share_id}")
-            return activity_id
-    except Exception as e:
-        logger.warning(f"[Activity] Failed to log {activity_type} for share {share_id}: {e}")
-        # Don't fail - activity logging is non-critical
-        return None
-
+# T3: log_share_activity removed — it was the only writer of the
+# deed_share_activity table and was never called anywhere.
 
 def render_approval_email(owner_name: str, deed_type: str, property_address: str, reviewer_email: str, view_link: str) -> str:
     """Render HTML email for deed approval notification."""
