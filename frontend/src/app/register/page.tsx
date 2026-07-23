@@ -6,6 +6,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Eye, EyeOff, CheckCircle2, Zap, Shield } from "lucide-react"
+import { AuthManager } from "@/utils/auth"
 
 const states = [
   { code: "AL", name: "Alabama" },
@@ -176,7 +177,17 @@ export default function RegisterPage() {
       )
 
       if (response.ok) {
-        router.push(`/login?registered=true&email=${encodeURIComponent(formData.email)}`)
+        // F2: register now returns a session token (same claims as login) —
+        // store it exactly like login does and land in the app signed in.
+        const data = await response.json()
+        const token = data.access_token
+        if (token) {
+          AuthManager.setAuth(token, data.user)
+          router.push("/dashboard")
+        } else {
+          // Backend without F2 yet: fall back to the old login hand-off.
+          router.push(`/login?registered=true&email=${encodeURIComponent(formData.email)}`)
+        }
       } else {
         const errorData = await response.json()
         setError(errorData.detail || "Registration failed. Please try again.")
