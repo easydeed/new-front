@@ -92,7 +92,7 @@ def _table_exists(cur, name):
 
 def run_flows():
     from fastapi.testclient import TestClient
-    from main import app, conn
+    from main import app  # T8: conn moved to db.py (was imported here unused)
     client = TestClient(app)
     results = {}
 
