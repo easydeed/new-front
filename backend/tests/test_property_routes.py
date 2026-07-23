@@ -25,3 +25,18 @@ def test_legacy_google_era_endpoints_are_gone():
     assert "/api/property/search-history" not in paths
     assert "/api/property/cached-properties" not in paths
     assert "/api/property/search-legacy" not in paths
+
+
+def test_titlepoint_endpoints_are_gone():
+    # T6: the TitlePoint stack was torn down; the proven method lives in
+    # docs/skills/titlepoint-integration.md for the future rebuild.
+    paths = {p for _, p in routes()}
+    assert "/api/property/test/titlepoint-tax" not in paths
+    assert "/api/property/test/titlepoint-property" not in paths
+    assert "/api/property/test/titlepoint-credentials" not in paths
+
+
+def test_titlepoint_modules_are_gone():
+    import importlib.util
+    assert importlib.util.find_spec("services.titlepoint_service") is None
+    assert importlib.util.find_spec("title_point_integration") is None

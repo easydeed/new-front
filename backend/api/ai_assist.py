@@ -18,7 +18,6 @@ router = APIRouter()
 
 # Configuration from environment
 AI_ASSIST_TIMEOUT = int(os.getenv("AI_ASSIST_TIMEOUT", "15"))
-TITLEPOINT_TIMEOUT = int(os.getenv("TITLEPOINT_TIMEOUT", "10"))
 MAX_CONCURRENT_REQUESTS = int(os.getenv("MAX_CONCURRENT_REQUESTS", "5"))
 
 

@@ -17,13 +17,11 @@ logger = logging.getLogger(__name__)
 try:
     from services.google_places_service import GooglePlacesService
     from services.sitex_service import SiteXService
-    from services.titlepoint_service import TitlePointService
     SERVICES_AVAILABLE = True
 except ImportError as e:
     print(f"Property services not available: {e}")
     GooglePlacesService = None
     SiteXService = None
-    TitlePointService = None
     SERVICES_AVAILABLE = False
 
 
@@ -62,15 +60,14 @@ def get_db_connection():
 # Service instances
 google_service = None
 sitex_service = None
-titlepoint_service = None
 
 def get_services():
     """Initialize services lazily - returns None if services not available"""
-    global google_service, sitex_service, titlepoint_service
+    global google_service, sitex_service
     
     if not SERVICES_AVAILABLE:
-        return None, None, None
-    
+        return None, None
+
     try:
         if not google_service and GooglePlacesService:
             google_service = GooglePlacesService()
@@ -85,14 +82,7 @@ def get_services():
         print(f"SiteX service unavailable: {e}")
         sitex_service = None
     
-    try:
-        if not titlepoint_service and TitlePointService:
-            titlepoint_service = TitlePointService()
-    except Exception as e:
-        print(f"TitlePoint service unavailable: {e}")
-        titlepoint_service = None
-    
-    return google_service, sitex_service, titlepoint_service
+    return google_service, sitex_service
 
 
 # T7: legacy Google-era endpoints (/validate, /search-history,
@@ -125,184 +115,9 @@ async def log_api_usage(user_id: str, service: str, method: str, request_data: D
         print(f"API logging failed: {e}")
 
 
-# Diagnostic test endpoints for TitlePoint flows
-class TitlePointTestRequest(BaseModel):
-    """Test request for individual TitlePoint flows"""
-    apn: Optional[str] = None
-    address: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = "CA"
-    county: Optional[str] = None
-    fips: Optional[str] = None
-    
-@router.post("/test/titlepoint-tax")
-async def test_titlepoint_tax_flow(
-    request: TitlePointTestRequest,
-    user_id: str = Depends(get_current_user_id)
-):
-    """
-    Test TitlePoint Tax flow (Method 3) with APN
-    Endpoint: CreateService3 with TitlePoint.Geo.Tax
-    """
-    try:
-        from services.titlepoint_service import TitlePointService
-        
-        if not request.apn:
-            raise HTTPException(status_code=400, detail="APN is required for Tax flow test")
-        if not request.county:
-            raise HTTPException(status_code=400, detail="County is required for Tax flow test")
-            
-        service = TitlePointService()
-        
-        print(f"🧪 Testing TitlePoint Tax Flow")
-        print(f"📋 APN: {request.apn}, County: {request.county}, State: {request.state}")
-        
-        # Test CreateService3 for Tax
-        import os
-        query = {
-            "userID": service.user_id,
-            "password": service.password,
-            "serviceType": os.getenv("TAX_SEARCH_SERVICE_TYPE", "TitlePoint.Geo.Tax"),
-            "parameters": f"Tax.APN={request.apn};General.AutoSearchTaxes=true;General.AutoSearchProperty=false",
-            "state": request.state,
-            "county": service._normalize_county(request.county),
-        }
-        
-        request_id = await service._create_service_get(service.tax_create_service_endpoint, query)
-        
-        return {
-            "success": True,
-            "flow": "Tax (Method 3)",
-            "request_id": request_id,
-            "apn": request.apn,
-            "county": request.county,
-            "message": f"CreateService3 successful - RequestID: {request_id}"
-        }
-        
-    except Exception as e:
-        return {
-            "success": False,
-            "flow": "Tax (Method 3)",
-            "error": str(e),
-            "apn": request.apn,
-            "county": request.county
-        }
-
-@router.post("/test/titlepoint-property")
-async def test_titlepoint_property_flow(
-    request: TitlePointTestRequest,
-    user_id: str = Depends(get_current_user_id)
-):
-    """
-    Test TitlePoint Property flow (Method 4) with Address
-    Endpoint: CreateService3 with TitlePoint.Geo.Property
-    """
-    try:
-        from services.titlepoint_service import TitlePointService
-        
-        if not request.address:
-            raise HTTPException(status_code=400, detail="Address is required for Property flow test")
-        if not request.city:
-            raise HTTPException(status_code=400, detail="City is required for Property flow test")
-        if not request.county:
-            raise HTTPException(status_code=400, detail="County is required for Property flow test")
-            
-        service = TitlePointService()
-        
-        print(f"🧪 Testing TitlePoint Property Flow")
-        print(f"📋 Address: {request.address}, City: {request.city}, County: {request.county}")
-        
-        # Test CreateService3 for Property (corrected service type)
-        import os
-        parameters = (
-            f"Address1={request.address};City={request.city};"
-            f"PropertyAutoRun=True;IncludeTax=True;"
-            f"LvLookup=Address"
-        )
-        
-        query = {
-            "userID": service.user_id,
-            "password": service.password,
-            "serviceType": os.getenv("SERVICE_TYPE", "TitlePoint.Geo.Property"),
-            "parameters": parameters,
-            "state": request.state,
-            "county": service._normalize_county(request.county),
-        }
-        
-        if request.fips:
-            query["fipsCode"] = request.fips
-        
-        request_id = await service._create_service_get(service.create_service_endpoint, query)
-        
-        return {
-            "success": True,
-            "flow": "Property (Method 4)",
-            "request_id": request_id,
-            "address": request.address,
-            "city": request.city,
-            "county": request.county,
-            "fips": request.fips,
-            "message": f"CreateService3 successful - RequestID: {request_id}"
-        }
-        
-    except Exception as e:
-        return {
-            "success": False,
-            "flow": "Property (Method 4)",
-            "error": str(e),
-            "address": request.address,
-            "city": request.city,
-            "county": request.county
-        }
-
-@router.post("/test/titlepoint-credentials")
-async def test_titlepoint_credentials(user_id: str = Depends(get_current_user_id)):
-    """
-    Test TitlePoint credentials and basic connectivity
-    """
-    try:
-        from services.titlepoint_service import TitlePointService
-        
-        service = TitlePointService()
-        
-        print(f"🔐 Testing TitlePoint Credentials")
-        print(f"👤 User ID: {service.user_id}")
-        print(f"🔗 Endpoint: {service.create_service_endpoint}")
-        
-        # Simple test with minimal valid parameters  
-        query = {
-            "userID": service.user_id,
-            "password": service.password,
-            "serviceType": "TitlePoint.Geo.LegalVesting",
-            "parameters": "Test=true",
-            "state": "CA",
-            "county": "Los Angeles",
-        }
-        
-        # Just test the HTTP call without expecting valid data
-        import httpx
-        from urllib.parse import urlencode
-        
-        url = f"{service.create_service_endpoint}?{urlencode(query)}"
-        async with httpx.AsyncClient(timeout=service.timeout) as client:
-            response = await client.get(url, headers={"Accept": "text/xml, application/xml"})
-        
-        return {
-            "success": True,
-            "status_code": response.status_code,
-            "credentials_valid": response.status_code != 401,
-            "response_sample": response.text[:500],
-            "endpoint": service.create_service_endpoint,
-            "user_id": service.user_id
-        }
-        
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "message": "Failed to test TitlePoint credentials"
-        }
-
+# T6: the /test/titlepoint-* diagnostic endpoints were removed with the
+# TitlePoint stack. See docs/skills/titlepoint-integration.md for the proven
+# method when the integration is rebuilt.
 
 class PropertySearchRequestV2(BaseModel):
     """Enhanced request model for property search v2"""
