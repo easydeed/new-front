@@ -67,29 +67,34 @@ export function SuccessContent() {
     fetchDeed();
   }, [deedId]);
 
-  const handlePreview = () => {
-    if (deed?.pdf_url) {
-      window.open(deed.pdf_url, '_blank');
+  // The PDF is stored server-side and served by the authenticated download
+  // endpoint, so every action fetches it as a blob (a bare pdf_url can't
+  // carry the Authorization header).
+  const fetchPdfBlobUrl = async (): Promise<string | null> => {
+    if (!deedId) return null;
+    const api = process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com';
+    const token = localStorage.getItem('access_token') || localStorage.getItem('token');
+    const response = await fetch(`${api}/deeds/${deedId}/download`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    return window.URL.createObjectURL(blob);
+  };
+
+  const handlePreview = async () => {
+    const url = await fetchPdfBlobUrl();
+    if (url) {
+      window.open(url, '_blank');
     } else {
       toast.error('PDF not available for preview');
     }
   };
 
   const handleDownload = async () => {
-    if (!deedId) return;
-    
     try {
-      const api = process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com';
-      const response = await fetch(`${api}/deeds/${deedId}/download`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-        },
-      });
-      
-      if (!response.ok) throw new Error('Download failed');
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const url = await fetchPdfBlobUrl();
+      if (!url) throw new Error('Download failed');
       const a = document.createElement('a');
       a.href = url;
       a.download = `${DEED_LABELS[type] || 'Deed'}_${deedId}.pdf`;
@@ -97,23 +102,17 @@ export function SuccessContent() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
       toast.success('PDF downloaded successfully!');
     } catch (err) {
-      // Fallback to direct URL if download endpoint fails
-      if (deed?.pdf_url) {
-        window.open(deed.pdf_url, '_blank');
-        toast.success('PDF opened in new tab');
-      } else {
-        console.error('Download error:', err);
-        toast.error('Failed to download PDF');
-      }
+      console.error('Download error:', err);
+      toast.error('Failed to download PDF');
     }
   };
 
   const handlePrint = async () => {
-    if (deed?.pdf_url) {
-      const printWindow = window.open(deed.pdf_url, '_blank');
+    const url = await fetchPdfBlobUrl();
+    if (url) {
+      const printWindow = window.open(url, '_blank');
       if (printWindow) {
         printWindow.onload = () => {
           setTimeout(() => printWindow.print(), 500);
