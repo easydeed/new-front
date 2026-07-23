@@ -90,6 +90,13 @@ def create_tables():
             )
         """)
         
+        # F3: server-truth onboarding flag (additive, idempotent — this runs
+        # at startup, which is how this schema is managed).
+        cursor.execute("""
+            ALTER TABLE user_profiles
+            ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN DEFAULT FALSE
+        """)
+
         # Create property_cache table for intelligent suggestions
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS property_cache (

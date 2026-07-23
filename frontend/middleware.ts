@@ -24,6 +24,7 @@ function isDeedProToken(token: string): boolean {
 // Define protected routes that require authentication
 const protectedRoutes = [
   '/dashboard',
+  '/onboarding',
   '/deed-builder',
   '/past-deeds',
   '/shared-deeds',
