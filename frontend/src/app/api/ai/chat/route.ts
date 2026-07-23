@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     // Proxy to backend AI assist endpoint
-    const response = await fetch(`${BACKEND_URL}/api/ai-assist/chat`, {
+    const response = await fetch(`${BACKEND_URL}/api/ai/chat`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
