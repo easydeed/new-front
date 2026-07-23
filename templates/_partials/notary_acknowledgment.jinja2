@@ -296,10 +296,13 @@
     <!-- ACKNOWLEDGMENT BODY -->
     <div class="notary-body">
         <p>
-            On <span class="notary-field short">____________________</span> before me, 
-            <span class="notary-field long">________________________________________</span>, 
-            a Notary Public, personally appeared 
-            <span class="notary-field extra-long">{{ grantors_text or '____________________________________________' }}</span>,
+            {# Ticket N: the certificate body is the NOTARY's to complete — we
+               generate the form, never its contents. Only the venue county
+               pre-fills; the signer name line stays blank. #}
+            On <span class="notary-field short">____________________</span> before me,
+            <span class="notary-field long">________________________________________</span>,
+            a Notary Public, personally appeared
+            <span class="notary-field extra-long">____________________________________________</span>,
         </p>
         <p>
             who proved to me on the basis of satisfactory evidence to be the person(s) whose name(s) 
