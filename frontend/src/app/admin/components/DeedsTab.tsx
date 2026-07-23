@@ -1,8 +1,13 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { AdminApi, DeedRow } from '@/lib/adminApi';
 
 export default function DeedsTab(){
+  // Per-user view: /admin?tab=deeds&user=<id> (linked from the user detail page)
+  const searchParams = useSearchParams();
+  const userParam = searchParams.get('user');
+  const userId = userParam ? Number(userParam) : undefined;
   const [rows, setRows] = useState<DeedRow[]>([]);
   const [page, setPage] = useState(1);
   const [limit] = useState(25);
@@ -15,7 +20,7 @@ export default function DeedsTab(){
   async function load(){
     setLoading(true);
     try{
-      const res = await AdminApi.searchDeeds(page, limit, search, status);
+      const res = await AdminApi.searchDeeds(page, limit, search, status, userId);
       setRows(res.items); setTotal(res.total);
     }finally{
       setLoading(false);
@@ -36,8 +41,12 @@ export default function DeedsTab(){
           <select className="select" value={status} onChange={e=>setStatus(e.target.value)}>
             <option value="">All</option>
             <option value="completed">Completed</option>
-            <option value="draft">Draft</option>
+            <option value="draft">Draft (pending)</option>
+            <option value="deleted">Deleted</option>
           </select>
+          {userId != null && (
+            <span style={{fontSize:13, opacity:.7}}>Filtered to user #{userId}</span>
+          )}
         </div>
         <div className="hstack">
           <div style={{opacity:.7, fontSize:13}}>

@@ -137,7 +137,10 @@ def store_deed_pdf(conn, deed_id: int, pdf_bytes: bytes) -> str:
         cur.execute("""
             UPDATE deeds
             SET pdf_url = %s,
-                metadata = COALESCE(metadata, '{}'::jsonb) || %s::jsonb
+                metadata = COALESCE(metadata, '{}'::jsonb) || %s::jsonb,
+                status = CASE WHEN COALESCE(status, '') = 'deleted'
+                              THEN status ELSE 'completed' END,
+                completed_at = COALESCE(completed_at, CURRENT_TIMESTAMP)
             WHERE id = %s
         """, (f"/deeds/{deed_id}/download", stamp, deed_id))
         conn.commit()

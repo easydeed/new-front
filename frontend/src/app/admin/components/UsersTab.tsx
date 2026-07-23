@@ -107,7 +107,7 @@ export default function UsersTab(){
                 className="button" 
                 onClick={()=>{
                   setModal(null);
-                  router.push(`/admin-honest-v2/users/${modal.id}`);
+                  router.push(`/admin/users/${modal.id}`);
                 }}
               >
                 Edit User →

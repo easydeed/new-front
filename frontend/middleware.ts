@@ -29,7 +29,6 @@ const protectedRoutes = [
   '/shared-deeds',
   '/account-settings',
   '/admin',
-  '/admin-honest-v2',
   '/team',
   '/security',
   '/api-key-request'

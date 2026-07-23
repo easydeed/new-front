@@ -12,7 +12,7 @@ import './styles/tokens.css';
 import './styles/admin-honest.css';
 
 // Tab configuration
-const TABS: Record<string, { title: string; description: string; component: () => JSX.Element }> = {
+const TABS: Record<string, { title: string; description: string; component: () => React.JSX.Element }> = {
   overview: { 
     title: 'Overview', 
     description: 'Key metrics and quick actions',

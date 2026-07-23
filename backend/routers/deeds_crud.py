@@ -97,6 +97,12 @@ def create_deed_endpoint(deed: DeedCreate, user_id: int = Depends(get_current_us
             print(f"[T2] Stored PDF for deed {new_deed['id']} (sha256 {digest[:12]}…)")
     except Exception as pdf_error:
         print(f"[T2] PDF generation failed for deed {new_deed.get('id')} (non-blocking): {pdf_error}")
+        # A failed UPDATE mid-transaction would poison the shared connection
+        # ("current transaction is aborted") for every subsequent request.
+        try:
+            db.conn.rollback()
+        except Exception:
+            pass
 
     # Phase 7: Send deed completion notification
     try:

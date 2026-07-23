@@ -59,23 +59,14 @@ export default function UserDetailPage() {
     setError('');
     try {
       await AdminApi.deleteUser(userId);
-      router.push('/admin-honest-v2?tab=users');
+      router.push('/admin?tab=users');
     } catch (err: any) {
       setError(err.message || 'Failed to delete user');
     }
   }
   
-  // Handle reset password
-  async function handleResetPassword() {
-    setError('');
-    try {
-      const res = await AdminApi.resetUserPassword(userId);
-      alert(`✅ Password reset email sent to ${res.email}`);
-    } catch (err: any) {
-      setError(err.message || 'Failed to send reset email');
-    }
-  }
-  
+  // without sending anything. Ledger: wire real reset when email infra lands.)
+
   // Handle suspend/unsuspend
   async function handleSuspend() {
     if (!user) return;
@@ -115,7 +106,7 @@ export default function UserDetailPage() {
         <div className="card" style={{textAlign: 'center', padding: 40}}>
           <h2 style={{fontSize: 20, marginBottom: 16}}>User Not Found</h2>
           <p style={{opacity: 0.7, marginBottom: 24}}>The user with ID {userId} does not exist.</p>
-          <button className="button" onClick={() => router.push('/admin-honest-v2?tab=users')}>
+          <button className="button" onClick={() => router.push('/admin?tab=users')}>
             Go Back
           </button>
         </div>
@@ -128,7 +119,10 @@ export default function UserDetailPage() {
       {/* Header */}
       <div className="hstack" style={{justifyContent: 'space-between', marginBottom: 16, alignItems: 'flex-start'}}>
         <div>
-          <button className="button ghost" onClick={() => router.push('/admin-honest-v2?tab=users')}>
+          <button className="button ghost" onClick={() => router.push(`/admin?tab=deeds&user=${userId}`)}>
+            View deeds
+          </button>
+          <button className="button ghost" onClick={() => router.push('/admin?tab=users')}>
             ← Back to Users
           </button>
           <h1 style={{fontSize: 24, fontWeight: 700, marginTop: 12}}>
@@ -140,7 +134,6 @@ export default function UserDetailPage() {
           {!isEditing ? (
             <>
               <button className="button" onClick={() => setIsEditing(true)}>Edit</button>
-              <button className="button ghost" onClick={handleResetPassword}>Reset Password</button>
               <button 
                 className="button" 
                 style={{
