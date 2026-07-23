@@ -55,4 +55,8 @@ App at http://localhost:3000. Register/login stores a JWT (localStorage + cookie
 - **External partner API** → Render `deedpro-external-api`: `uvicorn external_api.app:app`
 - **DB** → Render Postgres `deedpro-db`
 
-CI in `.github/workflows/` (note: `ci.yml` steps are non-blocking `|| true`; `test.yml` still pins Python 3.8 vs. the 3.11 runtime).
+CI in `.github/workflows/` — blocking: backend tests (incl. the OpenAPI route contract), frontend build, plus a non-blocking `tsc` report job.
+
+## For agents & contributors
+
+All agent work in this repo — from any tool — is governed by [`docs/EXECUTION_POLICY.md`](docs/EXECUTION_POLICY.md). Read it before executing any ticket.

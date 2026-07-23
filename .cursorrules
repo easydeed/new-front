@@ -1,0 +1,19 @@
+# Cursor agent rules — digest only
+
+Read docs/EXECUTION_POLICY.md before executing any ticket. It is the single
+canonical policy; do not rely on this digest alone.
+
+- Tier 1: free inside a ticket; re-run every gate yourself before reporting.
+- Tier 2: continue to the next approved ticket ONLY if the finished one had
+  zero deviations, zero discoveries, and all gates green; otherwise stop
+  and report. When in doubt, treat it as Tier 3.
+- Tier 3 (owner-only): DROP TABLE / irreversible data operations;
+  credentials (Render env vars only — never commit or paste them);
+  deploy-topology changes; production click-throughs; anything touching
+  money or customer communication.
+- Flag letter-vs-intent deviations and hold for review; never silently
+  decide them either way.
+- Never weaken CI (no `|| true`); keep the OpenAPI route contract and
+  six-flow baseline green without re-recording; tsc error count (114) may
+  only go down. Legal choices are never auto-applied — suggest, confirm,
+  record.
