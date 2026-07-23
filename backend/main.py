@@ -21,7 +21,7 @@ from database import (
     get_user_profile, update_user_profile, get_cached_property, 
     cache_property_data, get_recent_properties
 )
-from ai_assist import ai_router, suggest_defaults, validate_deed_data
+from ai_assist import suggest_defaults, validate_deed_data
 from auth import (
     get_password_hash, verify_password, create_access_token, 
     get_current_user_id, get_current_user_email, AuthUtils, get_current_admin
@@ -50,8 +50,9 @@ except ImportError as e:
 except Exception as e:
     print(f"❌ Error loading Phase 23-B billing endpoints: {e}")
 
-# Include AI assistance router
-app.include_router(ai_router)
+# T4: the legacy no-auth ai_router (root ai_assist.py) was removed — its
+# POST /api/ai/assist shadowed api/ai_assist.py's and had no consumers.
+# /api/ai/* is owned solely by api/ai_assist.py (mounted below).
 
 # Include Property Integration API router
 try:
@@ -129,14 +130,8 @@ except ImportError as e:
 except Exception as e:
     print(f"❌ Error loading document types endpoints: {e}")
 
-try:
-    from routers.ai import router as ai_router_v3
-    app.include_router(ai_router_v3, prefix="/api/ai", tags=["AI Services"])
-    print("✅ AI services endpoints loaded successfully")
-except ImportError as e:
-    print(f"⚠️ AI services endpoints not available: {e}")
-except Exception as e:
-    print(f"❌ Error loading AI services endpoints: {e}")
+# T4: routers/ai.py removed (chain-of-title / profile-request) — no frontend
+# consumers; called TitlePoint's SOAP endpoint directly, bypassing the service.
 
 # AUTH HARDENING: Password reset, email verification, refresh tokens
 try:
