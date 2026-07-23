@@ -22,6 +22,12 @@ export async function POST(req: NextRequest) {
       vesting: payload.vesting || null,
       requested_by: payload.requested_by || null,
       source: 'deed-builder',
+      // Persisted into deeds.metadata so the stored PDF renders the full
+      // document (DTT declaration, reference numbers, mail-to).
+      dtt: payload.dtt || null,
+      title_order_no: payload.title_order_no || null,
+      escrow_no: payload.escrow_no || null,
+      return_to: payload.return_to || null,
     };
 
     const authHeader = req.headers.get('authorization');

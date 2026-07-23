@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, HTTPException, Depends, Query, Request, Body
+from fastapi import FastAPI, HTTPException, Depends, Query, Request, Body, Response
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field, field_validator
@@ -262,6 +262,14 @@ else:
     conn = None
     print("Warning: No database connection URL found")
 
+# T2: make sure the stored-PDF table exists (idempotent; no Alembic in this repo)
+if conn:
+    try:
+        from services.deed_pdf import ensure_deed_pdfs_table
+        ensure_deed_pdfs_table(conn)
+    except Exception as _pdf_table_error:
+        print(f"Warning: could not ensure deed_pdfs table: {_pdf_table_error}")
+
 def get_db_connection():
     """Get database connection, reconnecting if necessary"""
     global conn
@@ -400,7 +408,13 @@ class DeedCreate(BaseModel):
     vesting: Optional[str] = Field(default=None)
     requested_by: Optional[str] = Field(default=None, description="Person/company requesting the deed (e.g., escrow officer)")
     source: Optional[str] = Field(default=None, description="Data source tracking (e.g., 'modern-canonical', 'classic')")
-    
+    # T2: extras persisted into deeds.metadata so the stored PDF can render
+    # the complete document (DTT declaration, reference numbers, mail-to).
+    dtt: Optional[Dict] = Field(default=None, description="Documentary transfer tax details from the builder")
+    title_order_no: Optional[str] = Field(default=None)
+    escrow_no: Optional[str] = Field(default=None)
+    return_to: Optional[str] = Field(default=None, description="Mail-to name for the recorded deed")
+
     class Config:
         extra = "ignore"  # Ignore extra fields from frontend
 
@@ -1609,10 +1623,22 @@ def create_deed_endpoint(deed: DeedCreate, user_id: int = Depends(get_current_us
     print(f"[Backend /deeds] source: {deed_data.get('source', 'unknown')}")
     
     new_deed = create_deed(user_id, deed_data)
-    
+
     if not new_deed:
         print(f"[Backend /deeds] ❌ create_deed returned None!")
         raise HTTPException(status_code=500, detail="Failed to create deed - check backend logs")
+
+    # T2: render the deed's PDF once at generation time and store it.
+    # Non-blocking — if rendering fails the deed record still saves, and
+    # /download will retry the render on first request.
+    try:
+        from services.deed_pdf import generate_and_store
+        if conn:
+            digest = generate_and_store(conn, new_deed)
+            new_deed["pdf_url"] = f"/deeds/{new_deed['id']}/download"
+            print(f"[T2] Stored PDF for deed {new_deed['id']} (sha256 {digest[:12]}…)")
+    except Exception as pdf_error:
+        print(f"[T2] PDF generation failed for deed {new_deed.get('id')} (non-blocking): {pdf_error}")
     
     # Phase 7: Send deed completion notification
     try:
@@ -2602,13 +2628,48 @@ def delete_deed_endpoint(deed_id: int):
     return {"message": f"Deed {deed_id} deleted successfully"}
 
 @app.get("/deeds/{deed_id}/download")
-def download_deed_endpoint(deed_id: int):
-    """Generate and download deed document"""
-    # In production, generate PDF and return file
-    return {
-        "download_url": f"https://api.deedpro.io/files/deed_{deed_id}.pdf",
-        "expires_at": "2024-02-01T12:00:00Z"
-    }
+def download_deed_endpoint(deed_id: int, user_id: int = Depends(get_current_user_id)):
+    """Stream the stored deed PDF; render+store on first request for legacy rows."""
+    if not conn:
+        raise HTTPException(status_code=500, detail="Database connection not available")
+    try:
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("""
+            SELECT d.*, u.role
+            FROM deeds d
+            LEFT JOIN users u ON u.id = %s
+            WHERE d.id = %s AND (d.user_id = %s OR u.role = 'admin')
+        """, (user_id, deed_id, user_id))
+        deed = cursor.fetchone()
+        cursor.close()
+
+        if not deed:
+            raise HTTPException(status_code=404, detail="Deed not found")
+
+        with conn.cursor() as cur:
+            cur.execute("SELECT pdf_data FROM deed_pdfs WHERE deed_id = %s", (deed_id,))
+            stored = cur.fetchone()
+
+        if stored and stored[0]:
+            pdf_bytes = bytes(stored[0])
+        else:
+            # Legacy row saved before the stored-PDF pipeline: render now,
+            # store, and serve — subsequent downloads hit the stored copy.
+            from services.deed_pdf import render_deed_pdf, store_deed_pdf
+            pdf_bytes = render_deed_pdf(dict(deed))
+            store_deed_pdf(conn, deed_id, pdf_bytes)
+
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="deed_{deed_id}.pdf"'},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error downloading deed {deed_id}: {e}")
+        conn.rollback()
+        raise HTTPException(status_code=500, detail="Failed to generate deed PDF")
 
 # Payment endpoints
 @app.post("/payment-methods")

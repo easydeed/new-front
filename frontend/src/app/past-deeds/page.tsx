@@ -88,10 +88,27 @@ export default function PastDeedsPageV0() {
     router.push(`/deed-builder/${deed.deed_type.toLowerCase().replace(" ", "-")}`)
   }
 
-  const handleDownload = (deed: Deed) => {
-    if (deed.pdf_url) {
-      window.open(deed.pdf_url, "_blank")
-    } else {
+  const handleDownload = async (deed: Deed) => {
+    // The stored PDF is served by the authenticated download endpoint; fetch
+    // it as a blob since window.open can't carry the Authorization header.
+    try {
+      const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
+      const token = localStorage.getItem("access_token") || localStorage.getItem("token")
+      const response = await fetch(`${api}/deeds/${deed.id}/download`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!response.ok) throw new Error("Download failed")
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `${deed.deed_type || "Deed"}_${deed.id}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (err) {
+      console.error("Download error:", err)
       toast.error("PDF not available for this deed")
     }
   }

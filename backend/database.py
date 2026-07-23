@@ -1,3 +1,4 @@
+import json
 import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -215,14 +216,22 @@ def create_deed(user_id, deed_data):
                 print(f"[Database.create_deed] deed_data: {deed_data}")
                 return None
         
+        # T2: persist the builder extras (DTT, reference numbers, mail-to)
+        # into metadata JSONB so the stored PDF can render the full document.
+        extras = {
+            key: deed_data.get(key)
+            for key in ('dtt', 'title_order_no', 'escrow_no', 'return_to', 'source')
+            if deed_data.get(key)
+        }
+
         cursor.execute("""
-            INSERT INTO deeds (user_id, deed_type, property_address, apn, county, 
-                             legal_description, owner_type, sales_price, 
-                             grantor_name, grantee_name, vesting, requested_by)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO deeds (user_id, deed_type, property_address, apn, county,
+                             legal_description, owner_type, sales_price,
+                             grantor_name, grantee_name, vesting, requested_by, metadata)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
             RETURNING *
         """, (
-            user_id, 
+            user_id,
             deed_data.get('deed_type'),
             deed_data.get('property_address') or 'Unknown',  # Fallback for empty string
             deed_data.get('apn'),
@@ -233,7 +242,8 @@ def create_deed(user_id, deed_data):
             deed_data.get('grantor_name'),  # Phase 11 Fix: Add grantor field
             deed_data.get('grantee_name'),
             deed_data.get('vesting'),
-            deed_data.get('requested_by')  # Phase 16: Add requested_by field
+            deed_data.get('requested_by'),  # Phase 16: Add requested_by field
+            json.dumps(extras)
         ))
         
         deed = cursor.fetchone()
