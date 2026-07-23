@@ -284,6 +284,10 @@
   "/admin/api-keys/{key_id}"
  ],
  [
+  "PATCH",
+  "/users/profile"
+ ],
+ [
   "POST",
   "/admin/api-keys"
  ],

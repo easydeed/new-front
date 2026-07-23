@@ -82,6 +82,12 @@ def ensure_schema(db_url):
     cur.execute("DELETE FROM deed_shares")
     cur.execute("DELETE FROM deed_pdfs") if _table_exists(cur, "deed_pdfs") else None
     cur.execute("DELETE FROM deeds")
+    # user_profiles references users (F3 onboarding writes it) — clear the
+    # baseline user's row first or the users delete hits the FK.
+    cur.execute(
+        "DELETE FROM user_profiles WHERE user_id IN (SELECT id FROM users WHERE email = %s)",
+        (BASELINE_EMAIL,),
+    )
     cur.execute("DELETE FROM users WHERE email = %s", (BASELINE_EMAIL,))
     conn.close()
 

@@ -257,7 +257,25 @@ async def get_user_profile_endpoint(user_id: int = Depends(get_current_user_id))
             """, (user[8],))  # user[8] is plan
             limits = cur.fetchone()
 
+        # F3: server-truth onboarding state — the dashboard gate reads these
+        # from this response, never from localStorage alone (bug #10).
+        with db.conn.cursor() as cur:
+            cur.execute("""
+                SELECT default_county, onboarding_completed
+                FROM user_profiles WHERE user_id = %s
+            """, (user_id,))
+            prof = cur.fetchone()
+        with db.conn.cursor() as cur:
+            cur.execute("""
+                SELECT COUNT(*) FROM deeds
+                WHERE user_id = %s AND COALESCE(status, '') != 'deleted'
+            """, (user_id,))
+            total_deeds = cur.fetchone()[0]
+
         return {
+            "default_county": prof[0] if prof else None,
+            "onboarding_completed": bool(prof[1]) if prof else False,
+            "total_deeds": total_deeds,
             "id": user[0],
             "email": user[1],
             "full_name": user[2],
@@ -283,6 +301,49 @@ async def get_user_profile_endpoint(user_id: int = Depends(get_current_user_id))
     except Exception as e:
         db.conn.rollback()  # Phase 14-B: Prevent transaction cascade failures
         raise HTTPException(status_code=500, detail=f"Failed to get profile: {str(e)}")
+
+class ProfilePatch(BaseModel):
+    default_county: Optional[str] = None
+    onboarding_completed: Optional[bool] = None
+
+@router.patch("/users/profile")
+async def patch_user_profile(
+    patch: ProfilePatch = Body(...),
+    user_id: int = Depends(get_current_user_id)
+):
+    """Partial profile update (F3 — the endpoint onboarding used to PATCH
+    didn't exist, bug #9). Only touches the fields provided; unlike
+    POST /users/profile/enhanced it never clobbers unspecified columns."""
+    if patch.default_county is None and patch.onboarding_completed is None:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    conn = None
+    try:
+        conn = db.get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO user_profiles (user_id, default_county, onboarding_completed)
+                VALUES (%s, %s, COALESCE(%s, FALSE))
+                ON CONFLICT (user_id) DO UPDATE SET
+                    default_county = COALESCE(EXCLUDED.default_county,
+                                              user_profiles.default_county),
+                    onboarding_completed = COALESCE(%s,
+                                              user_profiles.onboarding_completed),
+                    updated_at = CURRENT_TIMESTAMP
+            """, (user_id, patch.default_county, patch.onboarding_completed,
+                  patch.onboarding_completed))
+            conn.commit()
+        return {
+            "status": "updated",
+            "default_county": patch.default_county,
+            "onboarding_completed": patch.onboarding_completed,
+        }
+    except Exception as e:
+        try:
+            if conn and not conn.closed:
+                conn.rollback()
+        except Exception as rollback_error:
+            print(f"[PROFILE PATCH ROLLBACK ERROR] {rollback_error}")
+        raise HTTPException(status_code=500, detail=f"Profile update failed: {str(e)}")
 
 @router.post("/users/upgrade")
 async def upgrade_plan(req: UpgradeRequest, user_id: int = Depends(get_current_user_id)):
