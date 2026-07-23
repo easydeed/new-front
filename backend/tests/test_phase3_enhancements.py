@@ -16,13 +16,8 @@ from routers.deeds import (
     sanitize_template_context,
     log_deed_generation
 )
-from api.ai_assist import (
-    handle_prompt,
-    handle_button_prompt,
-    handle_custom_prompt,
-    handle_multi_document_generation,
-    analyze_custom_prompt
-)
+# T4: the api.ai_assist orchestration handlers these tests covered were
+# removed with the TitlePoint-coupled AI routes; their tests went with them.
 from models.grant_deed import GrantDeedRenderContext
 
 
@@ -107,160 +102,8 @@ class TestGrantDeedGeneration:
             assert "1.5" in call_args
 
 
-class TestAIAssistOrchestration:
-    """Test suite for AI assist orchestration enhancements"""
-    
-    @pytest.mark.asyncio
-    async def test_handle_prompt_timeout_protection(self):
-        """Test that AI assist requests respect timeout limits"""
-        mock_request = Mock()
-        mock_request.type = "vesting"
-        mock_request.docType = "grant_deed"
-        mock_request.timeout = 1  # 1 second timeout
-        mock_request.verifiedData = {"address": "123 Main St"}
-        mock_request.currentData = {}
-        
-        mock_user = {"id": "test_user"}
-        
-        # Mock a slow TitlePoint service
-        with patch('api.ai_assist.handle_button_prompt') as mock_handler:
-            async def slow_handler(*args):
-                await asyncio.sleep(2)  # Longer than timeout
-                return Mock(success=True, data={})
-            
-            mock_handler.side_effect = slow_handler
-            
-            # This should timeout
-            result = await handle_prompt(mock_request, mock_user)
-            
-            assert result.success is False
-            assert "timed out" in result.error.lower()
-            assert result.duration is not None
-            assert result.request_id is not None
-    
-    @pytest.mark.asyncio
-    async def test_analyze_custom_prompt(self):
-        """Test custom prompt analysis"""
-        prompt = "Show me the vesting information and chain of title for this property"
-        doc_type = "grant_deed"
-        request_id = "test_123"
-        
-        result = await analyze_custom_prompt(prompt, doc_type, request_id)
-        
-        assert isinstance(result, dict)
-        assert "actions" in result
-        assert "confidence" in result
-        assert "interpretation" in result
-        
-        # Should detect vesting and chain_of_title actions
-        actions = result["actions"]
-        assert "vesting" in actions
-        assert "chain_of_title" in actions
-    
-    @pytest.mark.asyncio
-    async def test_multi_document_generation(self):
-        """Test multi-document generation orchestration"""
-        mock_request = Mock()
-        mock_request.documents = [
-            {
-                "doc_type": "grant_deed",
-                "prompt_type": "vesting",
-                "data": {"address": "123 Main St"}
-            },
-            {
-                "doc_type": "quit_claim",
-                "prompt_type": "all",
-                "data": {"address": "456 Oak Ave"}
-            }
-        ]
-        mock_request.shared_data = {"county": "Los Angeles"}
-        mock_request.user_preferences = {}
-        
-        mock_user = {"id": "test_user"}
-        
-        # Mock the individual prompt handlers
-        with patch('api.ai_assist.handle_button_prompt') as mock_handler:
-            mock_handler.return_value = Mock(
-                success=True,
-                data={"test": "data"},
-                error=None
-            )
-            
-            result = await handle_multi_document_generation(mock_request, mock_user)
-            
-            assert result.success is True
-            assert len(result.results) == 2
-            assert result.total_duration is not None
-            assert len(result.errors) == 0
-            
-            # Verify both documents were processed
-            assert result.results[0]["document_type"] == "grant_deed"
-            assert result.results[1]["document_type"] == "quit_claim"
-
-
-class TestPerformanceAndMonitoring:
-    """Test suite for performance monitoring and metrics"""
-    
-    @pytest.mark.asyncio
-    async def test_request_id_generation(self):
-        """Test that request IDs are properly generated and tracked"""
-        mock_request = Mock()
-        mock_request.type = "vesting"
-        mock_request.docType = "grant_deed"
-        mock_request.timeout = None
-        mock_request.verifiedData = {}
-        mock_request.currentData = {}
-        
-        mock_user = {"id": "test_user_123"}
-        
-        with patch('api.ai_assist.handle_button_prompt') as mock_handler:
-            mock_handler.return_value = Mock(success=True, data={}, error=None)
-            
-            result = await handle_prompt(mock_request, mock_user)
-            
-            assert result.request_id is not None
-            assert "ai_assist_test_user_123" in result.request_id
-            assert result.duration is not None
-            assert result.duration >= 0
-    
-    def test_environment_configuration(self):
-        """Test that environment variables are properly loaded"""
-        import os
-        from api.ai_assist import AI_ASSIST_TIMEOUT, TITLEPOINT_TIMEOUT, MAX_CONCURRENT_REQUESTS
-        
-        # These should have default values even if env vars aren't set
-        assert isinstance(AI_ASSIST_TIMEOUT, int)
-        assert isinstance(TITLEPOINT_TIMEOUT, int)
-        assert isinstance(MAX_CONCURRENT_REQUESTS, int)
-        
-        assert AI_ASSIST_TIMEOUT > 0
-        assert TITLEPOINT_TIMEOUT > 0
-        assert MAX_CONCURRENT_REQUESTS > 0
-
-
 class TestErrorHandlingAndResilience:
     """Test suite for error handling and system resilience"""
-    
-    @pytest.mark.asyncio
-    async def test_titlepoint_service_failure_handling(self):
-        """Test graceful handling of TitlePoint service failures"""
-        mock_request = Mock()
-        mock_request.type = "vesting"
-        mock_request.docType = "grant_deed"
-        mock_request.verifiedData = {"address": "123 Main St"}
-        mock_request.currentData = {}
-        
-        mock_user = {"id": "test_user"}
-        request_id = "test_123"
-        
-        # Mock TitlePoint service to raise an exception
-        with patch('api.ai_assist.TitlePointService') as mock_service:
-            mock_service.return_value.get_vesting_info.side_effect = Exception("TitlePoint unavailable")
-            
-            result = await handle_button_prompt(mock_request, mock_user, request_id)
-            
-            assert result.success is False
-            assert "Failed to fetch vesting data" in result.error
     
     @pytest.mark.asyncio
     async def test_template_rendering_error_handling(self):
@@ -269,7 +112,8 @@ class TestErrorHandlingAndResilience:
             grantors_text="Test Grantor",
             grantees_text="Test Grantee",
             legal_description="Test Description",
-            county="Test County"
+            county="Test County",
+            apn="123-456-789"  # strict validation requires APN before render
         )
         
         mock_user_id = "test_user"
@@ -282,7 +126,7 @@ class TestErrorHandlingAndResilience:
                 await generate_grant_deed_ca(ctx, mock_user_id)
             
             assert exc_info.value.status_code == 500
-            assert "Template error" in str(exc_info.value.detail)
+            assert "generation failed" in str(exc_info.value.detail)
 
 
 if __name__ == "__main__":
