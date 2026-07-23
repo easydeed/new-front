@@ -474,26 +474,6 @@ class PlanLimits(BaseModel):
     integrations_enabled: bool
     priority_support: bool
 
-# Admin verification from JWT token
-def verify_admin():
-    """Verify admin access from Authorization header JWT token"""
-    from fastapi import Request
-    from starlette.requests import Request as StarletteRequest
-    import jwt
-    
-    # Get the current request context
-    try:
-        from starlette.concurrency import run_in_threadpool
-        import contextvars
-        # This is a simplified check - proper implementation uses Depends()
-        # For endpoints using verify_admin(), migrate to use Depends(get_current_admin)
-        return True  # Keep True for now but log warning
-    except Exception:
-        return True  # Fallback to True to not break existing endpoints
-    
-# NOTE: Endpoints should migrate to use Depends(get_current_admin) from auth.py
-# for proper JWT-based admin verification. verify_admin() is deprecated.
-
 # Health check
 @app.get("/health")
 def health():
@@ -939,12 +919,9 @@ def check_plan_limits(user_id: int, action: str = "deed_creation") -> dict:
 # ADMIN ENDPOINTS - Platform Management
 # ============================================================================
 
-@app.get("/admin/dashboard")
+@app.get("/admin/dashboard", dependencies=[Depends(get_current_admin)])
 def admin_dashboard():
     """Get admin dashboard overview with key metrics"""
-    if not verify_admin():
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
     try:
         if not conn:
             raise HTTPException(status_code=500, detail="Database connection not available")
@@ -1040,7 +1017,7 @@ def admin_dashboard():
         print(f"Error fetching admin dashboard: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch dashboard data: {str(e)}")
 
-@app.get("/admin/users")
+@app.get("/admin/users", dependencies=[Depends(get_current_admin)])
 def admin_list_all_users(
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=100),
@@ -1048,9 +1025,6 @@ def admin_list_all_users(
     status: Optional[str] = None
 ):
     """List all users with pagination and filtering"""
-    if not verify_admin():
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
     # Query real user data from database
     try:
         if not conn:
@@ -1146,12 +1120,9 @@ def admin_list_all_users(
         print(f"Error fetching admin users: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch users: {str(e)}")
 
-@app.get("/admin/users/{user_id}")
+@app.get("/admin/users/{user_id}", dependencies=[Depends(get_current_admin)])
 def admin_get_user_details(user_id: int):
     """Get detailed information about a specific user - Phase 6-2: Real data"""
-    if not verify_admin():
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
     if not conn:
         raise HTTPException(status_code=500, detail="Database connection not available")
     
@@ -1227,12 +1198,9 @@ def admin_get_user_details(user_id: int):
         print(f"Error fetching user details: {e}")
         raise HTTPException(status_code=500, detail=f"Error fetching user details: {str(e)}")
 
-@app.put("/admin/users/{user_id}")
+@app.put("/admin/users/{user_id}", dependencies=[Depends(get_current_admin)])
 def admin_update_user(user_id: int, user_update: AdminUserUpdate):
     """Update user information (admin only)"""
-    if not verify_admin():
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
     # In production, update user in database
     return {
         "success": True,
@@ -1240,19 +1208,16 @@ def admin_update_user(user_id: int, user_update: AdminUserUpdate):
         "updated_fields": user_update.dict(exclude_unset=True)
     }
 
-@app.delete("/admin/users/{user_id}")
+@app.delete("/admin/users/{user_id}", dependencies=[Depends(get_current_admin)])
 def admin_delete_user(user_id: int):
     """Delete/deactivate a user (admin only)"""
-    if not verify_admin():
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
     # In production, soft delete or deactivate user
     return {
         "success": True,
         "message": f"User {user_id} has been deactivated"
     }
 
-@app.get("/admin/deeds")
+@app.get("/admin/deeds", dependencies=[Depends(get_current_admin)])
 def admin_list_all_deeds(
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=100),
@@ -1260,9 +1225,6 @@ def admin_list_all_deeds(
     user_id: Optional[int] = None
 ):
     """List all deeds across all users"""
-    if not verify_admin():
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
     # Query real deed data from database
     try:
         if not conn:
@@ -1337,12 +1299,9 @@ def admin_list_all_deeds(
         print(f"Error fetching admin deeds: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch deeds: {str(e)}")
 
-@app.get("/admin/revenue")
+@app.get("/admin/revenue", dependencies=[Depends(get_current_admin)])
 def admin_revenue_analytics():
     """Get real revenue analytics from Stripe"""
-    if not verify_admin():
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
     try:
         # Calculate time ranges
         now = datetime.now()
@@ -1429,12 +1388,9 @@ def admin_revenue_analytics():
         print(f"Revenue analytics error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch revenue data: {str(e)}")
 
-@app.get("/admin/analytics")
+@app.get("/admin/analytics", dependencies=[Depends(get_current_admin)])
 def admin_platform_analytics():
     """Get comprehensive platform analytics"""
-    if not verify_admin():
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
     analytics_data = {
         "user_metrics": {
             "total_users": 1247,
@@ -1470,12 +1426,9 @@ def admin_platform_analytics():
     
     return analytics_data
 
-@app.get("/admin/system-health")
+@app.get("/admin/system-health", dependencies=[Depends(get_current_admin)])
 def admin_system_health():
     """Get system health and status information"""
-    if not verify_admin():
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
     health_data = {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
@@ -1499,12 +1452,9 @@ def admin_system_health():
     return health_data
 
 
-@app.get("/admin/system/overview")
+@app.get("/admin/system/overview", dependencies=[Depends(get_current_admin)])
 def admin_system_overview():
     """Get system overview with real health checks and PDF stats - Phase 5D"""
-    if not verify_admin():
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
     # Check database health
     db_status = "down"
     db_latency = 0
@@ -1585,12 +1535,9 @@ def admin_system_overview():
         "pdf_stats": pdf_stats
     }
 
-@app.get("/admin/system-metrics")
+@app.get("/admin/system-metrics", dependencies=[Depends(get_current_admin)])
 def admin_system_metrics():
     """Get real-time system metrics - Phase 6-2: Real monitoring data"""
-    if not verify_admin():
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
     reqs = METRICS.get('requests_total', 0)
     lat_sum = METRICS.get('latency_ms_sum', 0)
     avg_ms = int(lat_sum / reqs) if reqs else 0

@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { MapPin, Search, Check, Loader2, AlertCircle, Building2, ChevronRight } from "lucide-react"
-import type { PropertyData } from "@/types/builder"
+import { MapPin, Search, Check, Loader2, AlertCircle, Building2, ChevronRight, Pencil, ShieldCheck } from "lucide-react"
+import type { PropertyData, PropertyProvenance, Sourced } from "@/types/builder"
 import { useAIAssist } from "@/contexts/AIAssistContext"
 import { AISuggestion } from "../AISuggestion"
 
@@ -169,6 +169,133 @@ function parseGoogleAddress(fullAddress: string): ParsedAddress {
   }
   
   return { street, city, state, zip, county: "" }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Suggest → confirm → record: one SiteX-sourced field the officer must
+// confirm or edit before it is treated as authorized.
+// ─────────────────────────────────────────────────────────────────
+interface ConfirmableFieldProps {
+  label: string
+  field: Sourced<string>
+  multiline?: boolean
+  onConfirm: () => void
+  onEdit: (newValue: string) => void
+}
+
+function ConfirmableField({ label, field, multiline, onConfirm, onEdit }: ConfirmableFieldProps) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [draft, setDraft] = useState(field.value)
+
+  const isConfirmed = field.status === 'confirmed'
+  const isUserSourced = field.source === 'user'
+
+  const startEdit = () => {
+    setDraft(field.value)
+    setIsEditing(true)
+  }
+
+  const saveEdit = () => {
+    onEdit(draft)
+    setIsEditing(false)
+  }
+
+  return (
+    <div
+      className={`p-3 rounded-lg border ${
+        isConfirmed ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'
+      }`}
+    >
+      <div className="flex items-center justify-between mb-1">
+        <label className="text-sm font-medium text-gray-700">{label}</label>
+        {isConfirmed ? (
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            {isUserSourced ? 'Edited & confirmed' : 'Confirmed'}
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700">
+            <AlertCircle className="w-3.5 h-3.5" />
+            From SiteX — needs confirmation
+          </span>
+        )}
+      </div>
+
+      {isEditing ? (
+        <div className="space-y-2">
+          {multiline ? (
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              rows={3}
+              className="w-full p-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              autoFocus
+            />
+          ) : (
+            <input
+              type="text"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              className="w-full p-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              autoFocus
+            />
+          )}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={saveEdit}
+              className="inline-flex items-center gap-1 bg-brand-500 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-brand-600"
+            >
+              <Check className="w-4 h-4" />
+              Save &amp; confirm
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsEditing(false)}
+              className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <p
+            className={`text-sm text-gray-900 break-words ${
+              multiline ? 'max-h-32 overflow-y-auto' : ''
+            }`}
+          >
+            {field.value || <span className="text-gray-400 italic">No value</span>}
+          </p>
+          <div className="flex items-center gap-2 mt-2">
+            {!isConfirmed && (
+              <button
+                type="button"
+                onClick={onConfirm}
+                className="inline-flex items-center gap-1 bg-emerald-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-emerald-700"
+              >
+                <Check className="w-4 h-4" />
+                Confirm
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={startEdit}
+              className="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 px-2 py-1.5"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              Edit
+            </button>
+          </div>
+          {isConfirmed && field.confirmedAt && (
+            <p className="text-xs text-gray-400 mt-1">
+              Confirmed {new Date(field.confirmedAt).toLocaleString()}
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  )
 }
 
 export function PropertySection({ value, onChange, onComplete }: PropertySectionProps) {
@@ -467,16 +594,35 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
     primary_owner?: { full_name?: string };
     secondary_owner?: { full_name?: string };
     owner_name?: string;
-  }, fallbackAddress: string): PropertyData => ({
-    address: data.address || fallbackAddress,
-    city: data.city || '',
-    county: data.county || '',
-    state: data.state || 'California',
-    zip: data.zip_code || data.zip || '',
-    apn: data.apn || '',
-    legalDescription: data.legal_description || '',
-    owner: data.owner_name || formatOwnerName(data.primary_owner, data.secondary_owner),
-  })
+  }, fallbackAddress: string): PropertyData => {
+    const apn = data.apn || ''
+    const legalDescription = data.legal_description || ''
+    const owner = data.owner_name || formatOwnerName(data.primary_owner, data.secondary_owner)
+
+    // SiteX-sourced legal values arrive as unverified candidates. The officer
+    // must confirm (or edit) each one before it counts as authorized.
+    const candidate = (value: string): Sourced<string> => ({
+      value,
+      source: 'sitex',
+      status: 'candidate',
+    })
+
+    return {
+      address: data.address || fallbackAddress,
+      city: data.city || '',
+      county: data.county || '',
+      state: data.state || 'California',
+      zip: data.zip_code || data.zip || '',
+      apn,
+      legalDescription,
+      owner,
+      provenance: {
+        apn: candidate(apn),
+        legalDescription: candidate(legalDescription),
+        owner: candidate(owner),
+      },
+    }
+  }
 
   // Reset to search
   const handleReset = () => {
@@ -501,10 +647,57 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
     setError(null)
   }
 
+  // Confirm a single SiteX-sourced field: flip to confirmed, stamp the time.
+  const confirmField = (key: keyof PropertyProvenance) => {
+    if (!value) return
+    const existing = value.provenance?.[key]
+    if (!existing) return
+    onChange({
+      ...value,
+      provenance: {
+        ...value.provenance,
+        [key]: { ...existing, status: 'confirmed', confirmedAt: new Date().toISOString() },
+      },
+    })
+  }
+
+  // Edit a SiteX-sourced field: this is the officer's authorized value, so it
+  // becomes source 'user' and is confirmed immediately. Keep the bare value
+  // field (read by the generation payload) in sync.
+  const editField = (key: keyof PropertyProvenance, newValue: string) => {
+    if (!value) return
+    onChange({
+      ...value,
+      [key]: newValue,
+      provenance: {
+        ...value.provenance,
+        [key]: {
+          value: newValue,
+          source: 'user',
+          status: 'confirmed',
+          confirmedAt: new Date().toISOString(),
+        },
+      },
+    })
+  }
+
+  // Provenance fallback for properties loaded before this model existed
+  // (e.g. an initialProperty passed in without provenance).
+  const provenanceFor = (key: keyof PropertyProvenance): Sourced<string> => {
+    const existing = value?.provenance?.[key]
+    if (existing) return existing
+    const bare = (key === 'apn' ? value?.apn : key === 'legalDescription' ? value?.legalDescription : value?.owner) || ''
+    return { value: bare, source: 'sitex', status: 'candidate' }
+  }
+
   // ─────────────────────────────────────────────────────────────────
   // RENDER: Property loaded successfully
   // ─────────────────────────────────────────────────────────────────
   if (value?.address) {
+    const allConfirmed = (['apn', 'legalDescription', 'owner'] as const).every(
+      (k) => provenanceFor(k).status === 'confirmed'
+    )
+
     return (
       <div className="space-y-4">
         <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
@@ -515,9 +708,7 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
                 Property Found
               </div>
               <p className="font-semibold text-gray-900">{value.address}</p>
-              <p className="text-sm text-gray-600 mt-1">
-                APN: {value.apn} · {value.county} County
-              </p>
+              <p className="text-sm text-gray-600 mt-1">{value.county} County</p>
             </div>
             <button
               onClick={handleReset}
@@ -528,14 +719,39 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
           </div>
         </div>
 
-        {value.legalDescription && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Legal Description
-            </label>
-            <div className="p-3 bg-gray-50 rounded-lg text-sm text-gray-600 max-h-32 overflow-y-auto">
-              {value.legalDescription}
-            </div>
+        <div className="space-y-1">
+          <p className="text-sm text-gray-600">
+            Review the data pulled from county records. Confirm each value or edit it
+            before continuing — your confirmation is recorded.
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          <ConfirmableField
+            label="APN"
+            field={provenanceFor('apn')}
+            onConfirm={() => confirmField('apn')}
+            onEdit={(v) => editField('apn', v)}
+          />
+          <ConfirmableField
+            label="Current Owner"
+            field={provenanceFor('owner')}
+            onConfirm={() => confirmField('owner')}
+            onEdit={(v) => editField('owner', v)}
+          />
+          <ConfirmableField
+            label="Legal Description"
+            field={provenanceFor('legalDescription')}
+            multiline
+            onConfirm={() => confirmField('legalDescription')}
+            onEdit={(v) => editField('legalDescription', v)}
+          />
+        </div>
+
+        {!allConfirmed && (
+          <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            Confirm all SiteX-sourced fields above to verify the property data.
           </div>
         )}
       </div>
