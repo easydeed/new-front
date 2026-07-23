@@ -338,7 +338,7 @@ function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
 }
 
 const SOURCE_LABELS: Record<string, string> = {
-  sitex: 'From SiteX (county records)',
+  sitex: 'From county records',
   google: 'From Google',
   titlepoint: 'From TitlePoint',
   user: 'Entered by you',

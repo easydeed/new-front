@@ -50,7 +50,7 @@ export function ConfirmableField({ label, field, multiline, onConfirm, onEdit }:
         ) : (
           <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700">
             <AlertCircle className="w-3.5 h-3.5" />
-            From SiteX — needs confirmation
+            From county records — confirm
           </span>
         )}
       </div>
