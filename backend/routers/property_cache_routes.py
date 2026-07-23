@@ -1,9 +1,6 @@
 """Property cache + AI deed-suggestion endpoints (T8 split — moved verbatim from main.py).
 
-NOTE on ``get_user_profile``: in the pre-split main.py the /users/profile
-route handler shadowed the ``database.get_user_profile`` import, so these
-endpoints called the route handler (a coroutine function) rather than the
-database helper. That handler now lives in routers.users_auth and is
+get_user_profile here is the real database helper (name-shadowing fixed).
 imported from there to preserve the exact pre-split behavior.
 """
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
@@ -12,7 +9,7 @@ import db  # noqa: F401  (kept for parity with the other split routers)
 from ai_assist import suggest_defaults, validate_deed_data
 from auth import get_current_user_id
 from database import get_cached_property, cache_property_data, get_recent_properties
-from routers.users_auth import get_user_profile
+from database import get_user_profile
 
 router = APIRouter()
 

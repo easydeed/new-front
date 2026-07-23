@@ -1,9 +1,8 @@
 """User auth/profile/billing-session endpoints (T8 split — moved verbatim from main.py).
 
 NOTE: the /users/profile handler below is intentionally named
-``get_user_profile`` and (exactly as in the pre-split main.py) shadows the
-``database.get_user_profile`` import for everything defined after it —
-including the /users/profile/enhanced endpoints. Do not "fix" this here;
+the route handler was renamed get_user_profile_endpoint so it no longer
+shadows the database.get_user_profile helper (name-shadowing fix).
 it is the preserved pre-split behavior.
 """
 import os
@@ -213,7 +212,7 @@ async def login_user(credentials: UserLogin = Body(...)):
         raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
 
 @router.get("/users/profile")
-async def get_user_profile(user_id: int = Depends(get_current_user_id)):
+async def get_user_profile_endpoint(user_id: int = Depends(get_current_user_id)):
     """Get current user's profile information"""
     try:
         if not db.conn:
