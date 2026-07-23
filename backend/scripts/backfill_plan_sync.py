@@ -15,8 +15,13 @@ Render shell):
                                                             # paid-plan users
                                                             # with no active sub
 
-Plan mapping comes from STRIPE_PROFESSIONAL_PRICE_ID / STRIPE_ENTERPRISE_PRICE_ID
-(the same env vars /users/upgrade uses).
+Plan mapping is self-sufficient — no extra env vars required. For each active
+subscription the script derives the plan from, in order: the optional
+STRIPE_*_PRICE_ID env vars if present, the price's metadata.plan / nickname,
+then the Stripe product's metadata.plan / name (matched against the known
+plan tokens 'professional' / 'enterprise'). Prices it cannot confidently map
+are listed in an "UNMAPPED — needs owner decision" section of the report
+instead of blocking the run.
 """
 import argparse
 import os
@@ -40,26 +45,61 @@ def main():
     if not db_url or not stripe.api_key:
         sys.exit("DATABASE_URL and STRIPE_SECRET_KEY are required")
 
+    KNOWN_PLANS = ("professional", "enterprise")
+
+    # Optional env override, same vars /users/upgrade uses — fine if absent.
     price_to_plan = {}
     for env_var, plan in (("STRIPE_PROFESSIONAL_PRICE_ID", "professional"),
                           ("STRIPE_ENTERPRISE_PRICE_ID", "enterprise")):
         price_id = os.getenv(env_var)
         if price_id:
             price_to_plan[price_id] = plan
-    if not price_to_plan:
-        sys.exit("No STRIPE_*_PRICE_ID env vars set — cannot map prices to plans")
+
+    product_cache = {}
+
+    def plan_token(*texts):
+        """Return the first known plan whose name appears in any given text."""
+        for text in texts:
+            lowered = (text or "").lower()
+            for plan in KNOWN_PLANS:
+                if plan in lowered:
+                    return plan
+        return None
+
+    def resolve_plan(price):
+        """Derive a plan name for a Stripe price without requiring env config."""
+        if not price:
+            return None
+        if price.get("id") in price_to_plan:
+            return price_to_plan[price["id"]]
+        plan = plan_token((price.get("metadata") or {}).get("plan"),
+                          price.get("nickname"), price.get("lookup_key"))
+        if plan:
+            return plan
+        product_id = price.get("product")
+        if isinstance(product_id, str):
+            if product_id not in product_cache:
+                try:
+                    product_cache[product_id] = stripe.Product.retrieve(product_id)
+                except Exception:
+                    product_cache[product_id] = {}
+            product = product_cache[product_id]
+            return plan_token((product.get("metadata") or {}).get("plan"),
+                              product.get("name"))
+        return None
 
     # Authoritative state: every active/trialing subscription in Stripe.
     expected = {}  # stripe_customer_id -> (plan, subscription created datetime)
-    unknown_prices = set()
+    unmapped = {}  # price_id -> example (nickname/product hint, customer)
     for status in ("active", "trialing"):
         for sub in stripe.Subscription.list(status=status, limit=100).auto_paging_iter():
             items = sub.get("items", {}).get("data", [])
-            price_id = items[0]["price"]["id"] if items else None
-            plan = price_to_plan.get(price_id)
+            price = items[0].get("price") if items else None
+            plan = resolve_plan(price)
             if plan is None:
-                if price_id:
-                    unknown_prices.add(price_id)
+                if price:
+                    unmapped[price.get("id")] = (price.get("nickname") or price.get("product"),
+                                                 sub.get("customer"))
                 continue
             created = datetime.fromtimestamp(sub["created"], tz=timezone.utc)
             customer = sub["customer"]
@@ -76,6 +116,7 @@ def main():
         """)
         rows = cur.fetchall()
 
+    unmapped_customers = {cust for _, cust in unmapped.values() if cust}
     matched_customers = set()
     for user_id, email, current_plan, customer_id in rows:
         if customer_id in expected:
@@ -83,6 +124,10 @@ def main():
             expected_plan, sub_created = expected[customer_id]
             if current_plan != expected_plan:
                 missed_upgrades.append((user_id, email, current_plan, expected_plan, sub_created))
+        elif customer_id in unmapped_customers:
+            # Has an active subscription on a price we couldn't map — never
+            # treat as a downgrade candidate; surfaced in the UNMAPPED section.
+            continue
         elif current_plan not in ("free", None):
             downgrade_candidates.append((user_id, email, current_plan))
 
@@ -101,8 +146,11 @@ def main():
     print(f"DOWNGRADE CANDIDATES (paid plan, no active Stripe subscription): {len(downgrade_candidates)}")
     for user_id, email, cur_p in downgrade_candidates:
         print(f"  user {user_id} <{email}>: '{cur_p}' -> 'free'")
-    if unknown_prices:
-        print(f"\nWARNING: subscriptions on unmapped price IDs (ignored): {sorted(unknown_prices)}")
+    if unmapped:
+        print(f"\nUNMAPPED — needs owner decision ({len(unmapped)} price(s); these "
+              f"subscriptions were skipped and their users protected from downgrade):")
+        for price_id, (hint, customer) in sorted(unmapped.items()):
+            print(f"  price {price_id} (hint: {hint}) — e.g. customer {customer}")
     if orphan_customers:
         print(f"WARNING: {len(orphan_customers)} paying Stripe customers have no matching "
               f"users.stripe_customer_id row: {sorted(orphan_customers)}")
