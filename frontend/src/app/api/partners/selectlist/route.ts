@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const API_BASE = process.env.BACKEND_BASE_URL || process.env.NEXT_PUBLIC_BACKEND_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com';
+import { PARTNERS_BACKEND as API_BASE } from '../_backend';
 
 export async function GET(req: NextRequest) {
   try {
@@ -31,16 +31,13 @@ export async function GET(req: NextRequest) {
     // Get response text
     const text = await res.text();
     
-    // If backend returns error, return empty array to unblock UI
+    // Bug #12b fix: forward the real failure — a swallowed error rendered
+    // identically to "no partners yet" and hid the actual cause.
     if (!res.ok) {
-      console.error(`[partners/selectlist] Backend error ${res.status}`);
-      return NextResponse.json([], { 
-        status: 200,
-        headers: { 
-          'content-type': 'application/json',
-          'x-partners-fallback': 'true',
-        }
-      });
+      console.error(`[partners/selectlist] Backend error ${res.status}: ${text.slice(0, 200)}`);
+      let body: unknown;
+      try { body = JSON.parse(text); } catch { body = { detail: text || `Backend returned ${res.status}` }; }
+      return NextResponse.json(body, { status: res.status });
     }
     
     // Parse response
@@ -49,13 +46,7 @@ export async function GET(req: NextRequest) {
       data = JSON.parse(text);
     } catch (parseError) {
       console.error('[partners/selectlist] JSON parse error');
-      return NextResponse.json([], { 
-        status: 200,
-        headers: { 
-          'content-type': 'application/json',
-          'x-partners-fallback': 'parse-error'
-        }
-      });
+      return NextResponse.json({ detail: 'Invalid response from partners backend' }, { status: 502 });
     }
     
     // Success - return the data
@@ -70,14 +61,6 @@ export async function GET(req: NextRequest) {
     
   } catch (e: any) {
     console.error('[partners/selectlist] Exception:', e.message);
-    
-    // Return empty array on exception to unblock UI
-    return NextResponse.json([], { 
-      status: 200,
-      headers: { 
-        'content-type': 'application/json',
-        'x-partners-fallback': 'exception',
-      }
-    });
+    return NextResponse.json({ detail: `Partners proxy error: ${e.message}` }, { status: 502 });
   }
 }

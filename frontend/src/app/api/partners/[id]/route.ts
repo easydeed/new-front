@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { PARTNERS_BACKEND } from '../_backend';
 
 export async function PUT(
   request: NextRequest,
@@ -15,7 +16,7 @@ export async function PUT(
     const authHeader = request.headers.get('authorization');
     const { id } = params;
     
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com';
+    const backendUrl = PARTNERS_BACKEND;
     const res = await fetch(`${backendUrl}/partners/${id}`, {
       method: 'PUT',
       headers: {
@@ -55,7 +56,7 @@ export async function DELETE(
     const authHeader = request.headers.get('authorization');
     const { id } = params;
     
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com';
+    const backendUrl = PARTNERS_BACKEND;
     const res = await fetch(`${backendUrl}/partners/${id}`, {
       method: 'DELETE',
       headers: {

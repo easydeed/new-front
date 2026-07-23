@@ -19,7 +19,7 @@ export function RecordingSection({ requestedBy, returnTo, titleOrderNo, escrowNo
   const { enabled: aiEnabled } = useAIAssist();
   const [guidanceDismissed, setGuidanceDismissed] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const { partners, create: createPartner } = usePartners();
+  const { partners, create: createPartner, error: partnersError, refresh: refreshPartners } = usePartners();
   
   useEffect(() => {
     if (!requestedBy && partners.length > 0) {
@@ -110,12 +110,24 @@ export function RecordingSection({ requestedBy, returnTo, titleOrderNo, escrowNo
           </select>
         </div>
         
-        {/* Helper text for empty state */}
-        {partners.length === 0 && (
+        {/* Bug #12b: a failed partners fetch used to render exactly like an
+            empty list. Failures now surface with a retry. */}
+        {partnersError ? (
+          <div className="mt-1 flex items-center gap-2 text-xs text-red-600">
+            <span>Couldn&apos;t load your partners: {partnersError}</span>
+            <button
+              type="button"
+              onClick={() => refreshPartners()}
+              className="underline font-medium hover:text-red-800"
+            >
+              Retry
+            </button>
+          </div>
+        ) : partners.length === 0 ? (
           <p className="mt-1 text-xs text-gray-500">
-            No partners yet. Select "➕ Add New Partner" to create one.
+            No partners yet. Select &quot;➕ Add New Partner&quot; to create one.
           </p>
-        )}
+        ) : null}
       </div>
 
       {/* Add Partner Modal */}

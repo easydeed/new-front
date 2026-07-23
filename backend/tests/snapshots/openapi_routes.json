@@ -213,6 +213,10 @@
  ],
  [
   "GET",
+  "/partners/selectlist"
+ ],
+ [
+  "GET",
   "/partners/selectlist/"
  ],
  [

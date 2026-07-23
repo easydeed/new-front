@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { PARTNERS_BACKEND } from './_backend';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,7 +13,7 @@ export async function POST(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
     
     // Proxy to backend
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com';
+    const backendUrl = PARTNERS_BACKEND;
     const res = await fetch(`${backendUrl}/partners`, {
       method: 'POST',
       headers: {
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const activeOnly = searchParams.get('active_only') || 'true';
     
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com';
+    const backendUrl = PARTNERS_BACKEND;
     const res = await fetch(`${backendUrl}/partners?active_only=${activeOnly}`, {
       method: 'GET',
       headers: {
