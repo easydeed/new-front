@@ -10,12 +10,17 @@ import { PreviewPanel } from '@/components/builder/PreviewPanel';
 import { useBuilderMode } from '@/hooks/useBuilderMode';
 import { DeedBuilderState, PropertyData, Sourced } from '@/types/builder';
 import {
-  CandidateField,
   MaterialFieldKey,
+  buildPreflightOverridesPayload,
   buildProvenancePayload,
   collectCandidateFields,
 } from '@/lib/provenance';
-import { isDttSuggestionPending } from '@/lib/dttSuggestions';
+import {
+  evaluateRecorderPreflight,
+  evaluateSubstantive,
+  unresolvedPreflight,
+} from '@/lib/deedValidation';
+import { ValidationPanel } from '@/components/builder/ValidationPanel';
 
 interface DeedBuilderProps {
   deedType: string;
@@ -57,15 +62,21 @@ function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
     setState(prev => ({ ...prev, ...updates }));
   }, []);
 
-  // The generation gate: material sourced data fields (apn, legal
-  // description, owner, grantor) still in 'candidate' status block
-  // generation until confirmed. The gate sits in front of the save →
-  // render → store pipeline: a gated deed never renders, never hashes.
-  const [confirmationNeeded, setConfirmationNeeded] = useState<CandidateField[] | null>(null);
-  // Ticket TT: an undecided DTT suggestion is surfaced in the panel as a
-  // decision to make (with a link back to the section) — NEVER a
-  // confirm-all item. Confirm-all must never accept a legal choice.
-  const [dttNotePending, setDttNotePending] = useState(false);
+  // The generation gate (Tickets B + TT + V): sits in front of the save →
+  // render → store pipeline — a gated deed never renders, never hashes.
+  // Three groups, three doctrines:
+  //   1. Candidate DATA fields — confirmable (confirm-all allowed).
+  //   2. Substantive readiness — must be completed; hard block, fix links.
+  //      (Ticket V: an undecided DTT suggestion fails 'Transfer tax decided'
+  //      here — a decision to make, never a confirm-all item.)
+  //   3. Recorder preflight — formatting warnings, explicitly overridable;
+  //      overrides are recorded in metadata like other confirmations.
+  const [gateOpen, setGateOpen] = useState(false);
+
+  const gateBlocked = (s: DeedBuilderState): boolean =>
+    collectCandidateFields(s).length > 0 ||
+    evaluateSubstantive(s).some((c) => !c.ok) ||
+    unresolvedPreflight(s).length > 0;
 
   const stampConfirmed = (s: DeedBuilderState, keys: MaterialFieldKey[]): DeedBuilderState => {
     let next = s;
@@ -104,11 +115,8 @@ function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
   };
 
   const handleGenerate = () => {
-    const candidates = collectCandidateFields(state);
-    const dttPending = isDttSuggestionPending(state);
-    if (candidates.length > 0 || dttPending) {
-      setConfirmationNeeded(candidates);
-      setDttNotePending(dttPending);
+    if (gateBlocked(state)) {
+      setGateOpen(true);
       return;
     }
     performGenerate(state);
@@ -117,32 +125,33 @@ function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
   const handleConfirmField = (key: MaterialFieldKey) => {
     const next = stampConfirmed(state, [key]);
     setState(next);
-    const remaining = collectCandidateFields(next);
-    if (remaining.length > 0) {
-      setConfirmationNeeded(remaining);
-    } else {
-      setConfirmationNeeded(null);
-      setDttNotePending(false);
+    if (!gateBlocked(next)) {
+      setGateOpen(false);
       performGenerate(next);
     }
   };
 
   const handleConfirmAll = () => {
-    if (!confirmationNeeded) return;
-    // Stamps DATA fields only. A pending DTT suggestion is deliberately left
-    // untouched — generating without deciding means the deed carries only
-    // what the officer entered, never the unaccepted proposal.
-    const next = stampConfirmed(state, confirmationNeeded.map((c) => c.key));
+    // Stamps DATA fields only — never a substantive item, never a legal
+    // choice, never a preflight override.
+    const next = stampConfirmed(state, collectCandidateFields(state).map((c) => c.key));
     setState(next);
-    setConfirmationNeeded(null);
-    setDttNotePending(false);
-    performGenerate(next);
+    if (!gateBlocked(next)) {
+      setGateOpen(false);
+      performGenerate(next);
+    }
   };
 
-  const handleReviewTransferTax = () => {
-    setConfirmationNeeded(null);
-    setDttNotePending(false);
-    setExpandedSection('transferTax');
+  const handleOverridePreflight = (id: string) => {
+    setState((prev) => ({
+      ...prev,
+      preflightOverrides: { ...prev.preflightOverrides, [id]: new Date().toISOString() },
+    }));
+  };
+
+  const handleNavigateFromGate = (sectionId: string) => {
+    setGateOpen(false);
+    setExpandedSection(sectionId);
   };
 
   const performGenerate = async (genState: DeedBuilderState) => {
@@ -173,7 +182,12 @@ function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
         },
         // Who-confirmed-what-when, persisted into deeds.metadata.provenance
         // alongside the stored PDF's hash.
-        provenance: buildProvenancePayload(genState),
+        provenance: {
+          ...buildProvenancePayload(genState),
+          ...(buildPreflightOverridesPayload(genState)
+            ? { preflight_overrides: buildPreflightOverridesPayload(genState) }
+            : {}),
+        },
       };
 
       const response = await fetch('/api/deeds/generate', {
@@ -225,86 +239,100 @@ function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
 
       {/* Generation gate: unconfirmed material fields must be confirmed
           before the deed renders and freezes as an immutable PDF. */}
-      {confirmationNeeded && (confirmationNeeded.length > 0 || dttNotePending) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-lg bg-white rounded-xl shadow-2xl p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-1">
-              {confirmationNeeded.length > 0
-                ? `${confirmationNeeded.length} field${confirmationNeeded.length === 1 ? '' : 's'} need${confirmationNeeded.length === 1 ? 's' : ''} confirmation`
-                : 'Transfer tax decision pending'}
-            </h2>
-            {confirmationNeeded.length > 0 && (
+      {gateOpen && (() => {
+        const candidates = collectCandidateFields(state);
+        const substantive = evaluateSubstantive(state);
+        const preflight = evaluateRecorderPreflight(state);
+        const overrides = state.preflightOverrides ?? {};
+        const substantiveBlocked = substantive.some((c) => !c.ok);
+        const preflightBlocked = unresolvedPreflight(state).length > 0;
+        const primaryLabel = candidates.length > 0 ? 'Confirm all & generate' : 'Generate';
+        const primaryDisabled = substantiveBlocked || (candidates.length === 0 && preflightBlocked);
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-xl bg-white rounded-xl shadow-2xl p-6 max-h-[85vh] overflow-y-auto">
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">Ready to generate?</h2>
               <p className="text-sm text-gray-500 mb-4">
-                These values were pulled from external records. Confirm each one is
-                correct before the deed is generated — the generated document is final.
+                The generated document is final and stored immutably. Resolve the
+                items below first.
               </p>
-            )}
 
-            {/* Ticket TT: a pending legal-choice suggestion is a DECISION,
-                not a confirmable value — link back to the section only. */}
-            {dttNotePending && (
-              <div className="p-3 mb-3 rounded-lg border-2 border-dashed border-violet-300 bg-violet-50">
-                <p className="text-sm text-gray-900 font-medium">
-                  A suggested transfer-tax exemption is awaiting your decision.
-                </p>
-                <p className="text-xs text-gray-600 mt-1">
-                  It will not be applied unless you accept it in the Transfer Tax
-                  section. Generating now uses only what you entered.
-                </p>
-                <button
-                  type="button"
-                  onClick={handleReviewTransferTax}
-                  className="mt-2 text-sm font-medium text-violet-700 hover:text-violet-900 underline"
-                >
-                  Review transfer tax section
-                </button>
-              </div>
-            )}
+              <ValidationPanel
+                substantive={substantive}
+                preflight={preflight}
+                overrides={overrides}
+                onOverride={handleOverridePreflight}
+                onNavigate={handleNavigateFromGate}
+              />
 
-            <div className="space-y-3 max-h-72 overflow-y-auto">
-              {confirmationNeeded.map(({ key, label, field }) => (
-                <div key={key} className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium text-amber-700 uppercase tracking-wide">
-                        {label} · {SOURCE_LABELS[field.source] || field.source}
-                      </p>
-                      <p className="text-sm text-gray-900 break-words">{field.value}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleConfirmField(key)}
-                      className="flex-shrink-0 bg-emerald-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-emerald-700"
-                    >
-                      Confirm
-                    </button>
+              {candidates.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">
+                    External data awaiting confirmation
+                  </h3>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {candidates.map(({ key, label, field }) => (
+                      <div key={key} className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium text-amber-700 uppercase tracking-wide">
+                              {label} · {SOURCE_LABELS[field.source] || field.source}
+                            </p>
+                            <p className="text-sm text-gray-900 break-words">{field.value}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleConfirmField(key)}
+                            className="flex-shrink-0 bg-emerald-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-emerald-700"
+                          >
+                            Confirm
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
+              )}
 
-            <div className="flex items-center justify-end gap-3 mt-5">
-              <button
-                type="button"
-                onClick={() => {
-                  setConfirmationNeeded(null);
-                  setDttNotePending(false);
-                }}
-                className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmAll}
-                className="bg-[#7C4DFF] hover:bg-[#6a3de8] text-white px-4 py-2 rounded-lg text-sm font-semibold"
-              >
-                {confirmationNeeded.length > 0 ? 'Confirm all & generate' : 'Generate as entered'}
-              </button>
+              <div className="flex items-center justify-end gap-3 mt-5">
+                <button
+                  type="button"
+                  onClick={() => setGateOpen(false)}
+                  className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={primaryDisabled}
+                  onClick={() => {
+                    if (candidates.length > 0) {
+                      handleConfirmAll();
+                    } else if (!gateBlocked(state)) {
+                      setGateOpen(false);
+                      performGenerate(state);
+                    }
+                  }}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold text-white ${
+                    primaryDisabled
+                      ? 'bg-gray-300 cursor-not-allowed'
+                      : 'bg-[#7C4DFF] hover:bg-[#6a3de8]'
+                  }`}
+                  title={
+                    substantiveBlocked
+                      ? 'Complete the substantive items first'
+                      : preflightBlocked && candidates.length === 0
+                        ? 'Fix or override the preflight items first'
+                        : undefined
+                  }
+                >
+                  {primaryLabel}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

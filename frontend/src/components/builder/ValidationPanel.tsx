@@ -1,154 +1,130 @@
 "use client"
 
-import { CheckCircle, AlertCircle, AlertTriangle, Info } from "lucide-react"
-import { useAIAssist } from "@/contexts/AIAssistContext"
-import { validateDeedData, type ValidationIssue } from "@/lib/ai-helpers"
-import type { DeedBuilderState } from "@/types/builder"
+// Ticket V: two-stage pre-generate checklist. Substantive readiness and
+// recorder preflight are DIFFERENT QUESTIONS rendered as distinct, labeled
+// sections — never conflate recorder acceptance with legal sufficiency.
+// Copy here must not imply legal validity.
+import { AlertTriangle, ArrowRight, CheckCircle, ShieldAlert } from "lucide-react"
+import type { CheckResult } from "@/lib/deedValidation"
 
 interface ValidationPanelProps {
-  state: DeedBuilderState
-  onJumpToSection?: (section: string) => void
+  substantive: CheckResult[]
+  preflight: CheckResult[]
+  overrides: Record<string, string>
+  onOverride: (id: string) => void
+  onNavigate: (sectionId: string) => void
 }
 
-export function ValidationPanel({ state, onJumpToSection }: ValidationPanelProps) {
-  const { enabled: aiEnabled } = useAIAssist()
-
-  // Don't show validation if AI is disabled
-  if (!aiEnabled) return null
-
-  const issues = validateDeedData(state)
-
-  const errors = issues.filter((i) => i.level === "error")
-  const warnings = issues.filter((i) => i.level === "warning")
-  const infos = issues.filter((i) => i.level === "info")
-
-  // All good!
-  if (issues.length === 0) {
-    return (
-      <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg mb-3">
-        <CheckCircle className="w-4 h-4" />
-        <span>All sections look good</span>
-      </div>
-    )
-  }
-
+function CheckRow({
+  check,
+  overriddenAt,
+  onOverride,
+  onNavigate,
+  overridable,
+}: {
+  check: CheckResult
+  overriddenAt?: string
+  onOverride?: (id: string) => void
+  onNavigate: (sectionId: string) => void
+  overridable: boolean
+}) {
+  const resolved = check.ok || !!overriddenAt
   return (
-    <div className="space-y-2 mb-3">
-      {/* Errors - Red */}
-      {errors.map((issue, i) => (
-        <ValidationItem
-          key={`error-${i}`}
-          issue={issue}
-          icon={<AlertCircle className="w-4 h-4 text-red-500" />}
-          bgColor="bg-red-50"
-          borderColor="border-red-200"
-          textColor="text-red-800"
-          subtextColor="text-red-600"
-          onJump={onJumpToSection}
-        />
-      ))}
-
-      {/* Warnings - Amber */}
-      {warnings.map((issue, i) => (
-        <ValidationItem
-          key={`warning-${i}`}
-          issue={issue}
-          icon={<AlertTriangle className="w-4 h-4 text-amber-500" />}
-          bgColor="bg-amber-50"
-          borderColor="border-amber-200"
-          textColor="text-amber-800"
-          subtextColor="text-amber-600"
-          onJump={onJumpToSection}
-        />
-      ))}
-
-      {/* Info - Blue */}
-      {infos.map((issue, i) => (
-        <ValidationItem
-          key={`info-${i}`}
-          issue={issue}
-          icon={<Info className="w-4 h-4 text-blue-500" />}
-          bgColor="bg-blue-50"
-          borderColor="border-blue-200"
-          textColor="text-blue-800"
-          subtextColor="text-blue-600"
-          onJump={onJumpToSection}
-        />
-      ))}
+    <div
+      className={`flex items-start justify-between gap-3 px-3 py-2 rounded-md ${
+        check.ok ? "bg-emerald-50" : overriddenAt ? "bg-gray-50" : overridable ? "bg-yellow-50" : "bg-red-50"
+      }`}
+    >
+      <div className="min-w-0">
+        <div className="flex items-center gap-1.5">
+          {resolved ? (
+            <CheckCircle className={`w-4 h-4 ${check.ok ? "text-emerald-600" : "text-gray-400"}`} />
+          ) : overridable ? (
+            <AlertTriangle className="w-4 h-4 text-yellow-600" />
+          ) : (
+            <ShieldAlert className="w-4 h-4 text-red-600" />
+          )}
+          <span className="text-sm font-medium text-gray-900">{check.label}</span>
+          {overriddenAt && (
+            <span className="text-xs text-gray-500">
+              overridden {new Date(overriddenAt).toLocaleString()}
+            </span>
+          )}
+        </div>
+        {!resolved && check.detail && (
+          <p className="text-xs text-gray-600 mt-0.5">{check.detail}</p>
+        )}
+      </div>
+      {!resolved && (
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {check.sectionId && (
+            <button
+              type="button"
+              onClick={() => onNavigate(check.sectionId!)}
+              className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-800"
+            >
+              Fix <ArrowRight className="w-3 h-3" />
+            </button>
+          )}
+          {overridable && onOverride && (
+            <button
+              type="button"
+              onClick={() => onOverride(check.id)}
+              className="text-xs font-medium text-yellow-800 border border-yellow-400 rounded px-2 py-1 hover:bg-yellow-100"
+              title="Proceed despite this formatting warning; your override is recorded with the deed."
+            >
+              Override
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
 
-interface ValidationItemProps {
-  issue: ValidationIssue
-  icon: React.ReactNode
-  bgColor: string
-  borderColor: string
-  textColor: string
-  subtextColor: string
-  onJump?: (section: string) => void
-}
-
-function ValidationItem({
-  issue,
-  icon,
-  bgColor,
-  borderColor,
-  textColor,
-  subtextColor,
-  onJump,
-}: ValidationItemProps) {
+export function ValidationPanel({
+  substantive,
+  preflight,
+  overrides,
+  onOverride,
+  onNavigate,
+}: ValidationPanelProps) {
   return (
-    <button
-      onClick={() => onJump?.(issue.section)}
-      className={`
-        w-full flex items-start gap-2 p-2 ${bgColor} border ${borderColor} rounded-lg text-sm text-left
-        hover:opacity-90 transition-opacity
-      `}
-    >
-      <div className="mt-0.5 flex-shrink-0">{icon}</div>
-      <div className="flex-1 min-w-0">
-        <p className={`font-medium ${textColor}`}>{issue.message}</p>
-        {issue.suggestion && <p className={subtextColor}>{issue.suggestion}</p>}
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">
+          Substantive readiness
+        </h3>
+        <div className="space-y-1.5">
+          {substantive.map((c) => (
+            <CheckRow key={c.id} check={c} onNavigate={onNavigate} overridable={false} />
+          ))}
+        </div>
       </div>
-    </button>
+
+      <div>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">
+          Recorder preflight (formatting)
+        </h3>
+        <div className="space-y-1.5">
+          {preflight.map((c) => (
+            <CheckRow
+              key={c.id}
+              check={c}
+              overriddenAt={overrides[c.id]}
+              onOverride={onOverride}
+              onNavigate={onNavigate}
+              overridable
+            />
+          ))}
+        </div>
+      </div>
+
+      <p className="text-[11px] text-gray-400 leading-snug">
+        These checks verify document completeness and common recorder formatting
+        conventions. They are not legal advice, and passing them does not
+        determine the legal validity or effect of the transfer.
+      </p>
+    </div>
   )
 }
-
-// Compact version - just shows count
-export function ValidationSummary({ state }: { state: DeedBuilderState }) {
-  const { enabled: aiEnabled } = useAIAssist()
-
-  if (!aiEnabled) return null
-
-  const issues = validateDeedData(state)
-  const errors = issues.filter((i) => i.level === "error").length
-  const warnings = issues.filter((i) => i.level === "warning").length
-
-  if (errors === 0 && warnings === 0) {
-    return (
-      <span className="flex items-center gap-1 text-xs text-emerald-600">
-        <CheckCircle className="w-3 h-3" />
-        Ready
-      </span>
-    )
-  }
-
-  return (
-    <span className="flex items-center gap-2 text-xs">
-      {errors > 0 && (
-        <span className="flex items-center gap-1 text-red-600">
-          <AlertCircle className="w-3 h-3" />
-          {errors}
-        </span>
-      )}
-      {warnings > 0 && (
-        <span className="flex items-center gap-1 text-amber-600">
-          <AlertTriangle className="w-3 h-3" />
-          {warnings}
-        </span>
-      )}
-    </span>
-  )
-}
-
