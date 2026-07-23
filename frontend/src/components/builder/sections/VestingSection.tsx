@@ -5,13 +5,19 @@ import { HelpCircle } from "lucide-react"
 import { useAIAssist } from "@/contexts/AIAssistContext"
 import { AISuggestion, AIHint } from "../AISuggestion"
 import { getVestingSuggestion, type VestingSuggestion } from "@/lib/ai-helpers"
+import { Scale, ShieldCheck, X } from "lucide-react"
+import type { LegalChoiceRecord } from "@/types/builder"
 
 interface VestingSectionProps {
   value: string
-  onChange: (vesting: string) => void
+  /** Legal-choice rule: onChange carries the officer's recorded instruction
+   *  when the change is an officer action (accepting the proposal or choosing
+   *  manually). Vesting is never auto-applied. */
+  onChange: (vesting: string, decision?: LegalChoiceRecord) => void
   granteeCount: number
   deedType: string
   grantee: string
+  decision?: LegalChoiceRecord
 }
 
 const VESTING_OPTIONS = [
@@ -39,7 +45,7 @@ const VESTING_EXPLANATIONS: Record<string, string> = {
   "trustee": "Property held by trustee for trust beneficiaries",
 }
 
-export function VestingSection({ value, onChange, granteeCount, deedType, grantee }: VestingSectionProps) {
+export function VestingSection({ value, onChange, granteeCount, deedType, grantee, decision }: VestingSectionProps) {
   const { enabled: aiEnabled } = useAIAssist()
   const [showCustom, setShowCustom] = useState(false)
   const [customValue, setCustomValue] = useState("")
@@ -69,10 +75,25 @@ export function VestingSection({ value, onChange, granteeCount, deedType, grante
     return null
   }, [value, aiEnabled])
 
-  // Handle suggestion application
+  // Any manual selection is the officer's instruction: record source 'user'.
+  const manual = (vesting: string) => {
+    onChange(vesting, {
+      source: "user",
+      status: "confirmed",
+      confirmedAt: new Date().toISOString(),
+    })
+  }
+
+  // Accepting the proposal records it as the authorized instruction, with
+  // the basis text the officer was shown.
   const handleApplySuggestion = () => {
     if (suggestion) {
-      onChange(suggestion.value)
+      onChange(suggestion.value, {
+        source: "ai_suggested",
+        status: "confirmed",
+        confirmedAt: new Date().toISOString(),
+        basis: suggestion.reason,
+      })
       setSuggestionApplied(true)
     }
   }
@@ -89,7 +110,7 @@ export function VestingSection({ value, onChange, granteeCount, deedType, grante
 
   const handleCustomChange = (newValue: string) => {
     setCustomValue(newValue)
-    onChange(newValue)
+    manual(newValue)
   }
 
   // Show general guidance when AI is enabled but no specific suggestion
@@ -97,13 +118,46 @@ export function VestingSection({ value, onChange, granteeCount, deedType, grante
 
   return (
     <div className="space-y-4">
-      {/* AI Suggestion (only show if no value selected and suggestion exists) */}
+      {/* PROPOSED vesting — visually distinct from an applied value.
+          Nothing is written to the deed until the officer accepts. */}
       {suggestion && !value && !suggestionApplied && (
-        <AISuggestion
-          message={suggestion.reason}
-          action={`Use "${suggestion.label}"`}
-          onApply={handleApplySuggestion}
-        />
+        <div className="p-4 rounded-lg border-2 border-dashed border-violet-300 bg-violet-50">
+          <div className="flex items-center justify-between mb-1">
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-700 uppercase tracking-wide">
+              <Scale className="w-3.5 h-3.5" />
+              Proposed — not applied
+            </span>
+          </div>
+          <p className="text-sm font-semibold text-gray-900">&quot;{suggestion.value}&quot;</p>
+          <p className="text-sm text-gray-700 mt-1">{suggestion.reason}</p>
+          <div className="flex items-center gap-2 mt-3">
+            <button
+              type="button"
+              onClick={handleApplySuggestion}
+              className="inline-flex items-center gap-1 bg-violet-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-violet-700"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              Accept &amp; apply
+            </button>
+            <button
+              type="button"
+              onClick={() => setSuggestionApplied(true)}
+              className="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 px-2 py-1.5"
+            >
+              <X className="w-3.5 h-3.5" />
+              Dismiss — I&apos;ll choose manually
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Recorded instruction indicator */}
+      {decision?.source === "ai_suggested" && value && (
+        <div className="flex items-center gap-2 text-sm text-violet-700 bg-violet-50 border border-violet-200 px-3 py-2 rounded-lg">
+          <ShieldCheck className="w-4 h-4" />
+          Vesting accepted by you
+          {decision.confirmedAt ? ` · ${new Date(decision.confirmedAt).toLocaleString()}` : ""}
+        </div>
       )}
 
       {/* General AI Guidance when no specific suggestion */}
@@ -148,7 +202,7 @@ export function VestingSection({ value, onChange, granteeCount, deedType, grante
                 value={option.value}
                 checked={value === option.value}
                 onChange={(e) => {
-                  onChange(e.target.value)
+                  manual(e.target.value)
                   setShowCustom(false)
                 }}
                 className="w-4 h-4 text-brand-500 focus:ring-brand-500"

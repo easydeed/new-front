@@ -158,7 +158,10 @@ export function InputPanel({
         >
           <VestingSection
             value={state.vesting}
-            onChange={(vesting) => onChange({ vesting })}
+            onChange={(vesting, vestingDecision) =>
+              onChange(vestingDecision ? { vesting, vestingDecision } : { vesting })
+            }
+            decision={state.vestingDecision}
             granteeCount={countGrantees(state.grantee)}
             deedType={state.deedType}
             grantee={state.grantee}
