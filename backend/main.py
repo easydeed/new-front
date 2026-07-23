@@ -1089,7 +1089,7 @@ def admin_get_user_details(user_id: int):
                     COUNT(*) FILTER (WHERE deed_type IS NOT NULL) as completed_deeds,
                     0 as draft_deeds
                 FROM deeds 
-                WHERE user_id = %s
+                WHERE user_id = %s AND COALESCE(status, '') <> 'deleted'
             """, (user_id,))
             
             deed_stats = cur.fetchone()
@@ -1492,35 +1492,12 @@ def admin_system_metrics():
 # USER ENDPOINTS - Regular User Operations
 # ============================================================================
 
-@app.post("/users")
-def create_user_endpoint(user: UserCreate):
-    """Create a new user"""
-    # Check if user already exists
-    existing_user = get_user_by_email(user.email)
-    if existing_user:
-        raise HTTPException(status_code=400, detail="User with this email already exists")
-    
-    new_user = create_user(
-        email=user.email,
-        first_name=user.first_name,
-        last_name=user.last_name,
-        username=user.username,
-        city=user.city,
-        country=user.country
-    )
-    
-    if not new_user:
-        raise HTTPException(status_code=500, detail="Failed to create user")
-    
-    return new_user
+# T5: unauthenticated placeholder endpoints removed (payment-methods,
+# subscriptions, deed status/recipients, bare property search, inline
+# generate-deed and preview, POST /users, GET /users/{email}) — all
+# returned fake data and had zero frontend consumers.
 
-@app.get("/users/{email}")
-def get_user_endpoint(email: str):
-    """Get user by email"""
-    user = get_user_by_email(email)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
+
 
 @app.get("/user/me")
 def get_current_user(user_id: int = Depends(get_current_user_id)):
@@ -1663,10 +1640,10 @@ def list_deeds_endpoint(user_id: int = Depends(get_current_user_id)):
         
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT id, deed_type, property_address, grantor_name, grantee_name, 
+                SELECT id, deed_type, property_address, grantor_name, grantee_name,
                        created_at, updated_at
-                FROM deeds 
-                WHERE user_id = %s 
+                FROM deeds
+                WHERE user_id = %s AND COALESCE(status, '') <> 'deleted'
                 ORDER BY created_at DESC
             """, (user_id,))
             
@@ -1712,7 +1689,7 @@ def deeds_summary(user_id: int = Depends(get_current_user_id)) -> Dict[str, int]
                     COUNT(*) FILTER (WHERE deed_type IS NOT NULL) as completed,
                     0 as in_progress
                 FROM deeds 
-                WHERE user_id = %s
+                WHERE user_id = %s AND COALESCE(status, '') <> 'deleted'
             """, (user_id,))
             
             row = cur.fetchone()
@@ -1724,7 +1701,7 @@ def deeds_summary(user_id: int = Depends(get_current_user_id)) -> Dict[str, int]
             cur.execute("""
                 SELECT COUNT(*) 
                 FROM deeds 
-                WHERE user_id = %s 
+                WHERE user_id = %s AND COALESCE(status, '') <> 'deleted' 
                 AND created_at >= date_trunc('month', CURRENT_DATE)
             """, (user_id,))
             
@@ -1779,7 +1756,7 @@ def list_available_deeds_for_sharing(user_id: int = Depends(get_current_user_id)
             cur.execute("""
                 SELECT id, property_address, deed_type
                 FROM deeds 
-                WHERE user_id = %s 
+                WHERE user_id = %s AND COALESCE(status, '') <> 'deleted' 
                 ORDER BY created_at DESC
             """, (user_id,))
             
@@ -1831,15 +1808,6 @@ def get_deed_endpoint(deed_id: int, user_id: int = Depends(get_current_user_id))
         conn.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to fetch deed: {str(e)}")
 
-@app.put("/deeds/{deed_id}/status")
-def update_deed_status(deed_id: int, status: str):
-    """Update deed status"""
-    # Placeholder for updating deed status
-    valid_statuses = ["draft", "completed", "pending", "recorded"]
-    if status not in valid_statuses:
-        raise HTTPException(status_code=400, detail="Invalid status")
-    
-    return {"message": f"Deed {deed_id} status updated to {status}"}
 
 # Shared Deeds endpoints
 @app.post("/shared-deeds")
@@ -2609,36 +2577,34 @@ def get_shared_deed_pdf(approval_token: str):
 
 
 # Recipients endpoints (from previous implementation)
-@app.post("/deeds/{deed_id}/recipients")
-def save_recipients_endpoint(deed_id: int, recipients_data: RecipientsCreate):
-    """Save recipients for a deed"""
-    # In production, save to database and send emails
-    return {
-        "success": True,
-        "message": f"Recipients added successfully for deed {deed_id}",
-        "recipients_count": len(recipients_data.recipients)
-    }
 
-@app.get("/deeds/{deed_id}/recipients")
-def get_recipients_endpoint(deed_id: int):
-    """Get recipients for a deed"""
-    # Placeholder data
-    sample_recipients = [
-        {"name": "John Smith", "email": "john@titleco.com", "role": "title_officer"},
-        {"name": "Jane Doe", "email": "jane@lender.com", "role": "lender"},
-        {"name": "Bob Wilson", "email": "bob@escrow.com", "role": "escrow_officer"}
-    ]
-    
-    return {
-        "success": True,
-        "recipients": sample_recipients
-    }
 
 @app.delete("/deeds/{deed_id}")
-def delete_deed_endpoint(deed_id: int):
-    """Delete a deed"""
-    # In production, soft delete or permanent delete based on business rules
-    return {"message": f"Deed {deed_id} deleted successfully"}
+def delete_deed_endpoint(deed_id: int, user_id: int = Depends(get_current_user_id)):
+    """Soft-delete a deed (owner only): status='deleted', hidden from lists,
+    row and stored PDF retained in the database (T5 owner decision)."""
+    if not conn:
+        raise HTTPException(status_code=500, detail="Database connection not available")
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT user_id FROM deeds WHERE id = %s", (deed_id,))
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Deed not found")
+            if row[0] != user_id:
+                raise HTTPException(status_code=403, detail="You don't have permission to delete this deed")
+            cur.execute("""
+                UPDATE deeds SET status = 'deleted', updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+            """, (deed_id,))
+            conn.commit()
+        return {"success": True, "message": f"Deed {deed_id} deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        print(f"Error deleting deed {deed_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete deed")
 
 @app.get("/deeds/{deed_id}/download")
 def download_deed_endpoint(deed_id: int, user_id: int = Depends(get_current_user_id)):
@@ -2685,260 +2651,18 @@ def download_deed_endpoint(deed_id: int, user_id: int = Depends(get_current_user
         raise HTTPException(status_code=500, detail="Failed to generate deed PDF")
 
 # Payment endpoints
-@app.post("/payment-methods")
-def create_payment_method_endpoint(payment_method: PaymentMethodCreate):
-    """Add a new payment method via Stripe"""
-    try:
-        # Get the payment method from Stripe
-        stripe_pm = stripe.PaymentMethod.retrieve(payment_method.payment_method_id)
-        
-        # In production, get user_id from JWT token and save to database
-        user_id = 1  # Placeholder
-        
-        return {
-            "id": stripe_pm.id,
-            "card_brand": stripe_pm.card.brand,
-            "last_four": stripe_pm.card.last4,
-            "is_default": payment_method.set_as_default
-        }
-    except stripe.error.StripeError as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
-@app.get("/payment-methods")
-def list_payment_methods_endpoint():
-    """List all payment methods for current user"""
-    # TODO: Replace with real Stripe paymentMethods.list() call when Stripe integration is wired
-    return {
-        "payment_methods": []
-    }
 
-@app.delete("/payment-methods/{payment_method_id}")
-def delete_payment_method_endpoint(payment_method_id: str):
-    """Remove a payment method"""
-    try:
-        # Detach from Stripe
-        stripe.PaymentMethod.detach(payment_method_id)
-        # Would also remove from database in production
-        return {"message": "Payment method removed successfully"}
-    except stripe.error.StripeError as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
 # Subscription endpoints
-@app.post("/subscriptions")
-def create_subscription_endpoint():
-    """Create a new subscription"""
-    # Placeholder for Stripe subscription creation
-    return {
-        "subscription_id": "sub_1234567890",
-        "status": "active",
-        "plan": "pro"
-    }
 
-@app.get("/subscriptions")
-def get_subscription_endpoint():
-    """Get current user's subscription"""
-    # Placeholder data
-    return {
-        "subscription_id": "sub_1234567890",
-        "status": "active",
-        "plan": "pro",
-        "current_period_end": "2024-02-01"
-    }
 
 # Property search endpoint (placeholder)
-@app.get("/property/search")
-def search_property_endpoint(address: str):
-    """Search for property information"""
-    # Placeholder - would integrate with property data API
-    return {
-        "results": [
-            {
-                "address": address,
-                "apn": "123-456-789",
-                "county": "Los Angeles",
-                "city": "Los Angeles",
-                "legal_description": "Lot 1, Block 2, Tract 12345"
-            }
-        ]
-    }
 
 # Enhanced deed preview endpoint with AI suggestions
-@app.post("/generate-deed-preview")
-async def generate_deed_preview(deed: DeedData, user_id: int = Depends(get_current_user_id)):
-    """Generate HTML preview of deed with AI-enhanced suggestions and validation"""
-    try:
-        # Debug: Check the incoming data structure
-        print(f"DEBUG: Received deed object type: {type(deed)}")
-        print(f"DEBUG: deed.data type: {type(deed.data)}")
-        print(f"DEBUG: deed.deed_type: {deed.deed_type}")
-        
-        # Ensure we have proper data structure
-        if not isinstance(deed.data, dict):
-            raise ValueError(f"Invalid deed.data type: {type(deed.data)}, expected dict")
-        
-        deed_data = deed.data
-        deed_type = deed.deed_type
-        
-        # Initialize AI data to prevent issues
-        ai_suggestions = {}
-        validation = {'is_valid': True, 'warnings': [], 'suggestions': []}
-        profile = None
-        cached_property = None
-        
-        try:
-            # Get user profile (wrapped in try-catch to prevent blocking the main flow)
-            profile = get_user_profile(user_id)
-        except Exception as profile_error:
-            print(f"DEBUG: Profile fetch failed: {profile_error}")
-        
-        try:
-            # Look for cached property data if address is provided
-            if deed_data.get('propertySearch'):
-                cached_property = get_cached_property(user_id, deed_data['propertySearch'])
-        except Exception as cache_error:
-            print(f"DEBUG: Property cache fetch failed: {cache_error}")
-        
-        try:
-            # Prepare user data for AI suggestions
-            user_data = {
-                'profile': profile,
-                'cached_property': cached_property
-            }
-            
-            # Generate AI suggestions and validation (with fallbacks)
-            ai_suggestions = suggest_defaults(user_data, deed_data)
-            validation = validate_deed_data(deed_data, deed_type)
-        except Exception as ai_error:
-            print(f"DEBUG: AI processing failed: {ai_error}")
-            # Continue without AI suggestions
-        
-        # Merge AI suggestions with existing data (don't override user input)
-        enhanced_data = {**ai_suggestions, **deed_data}  # User data takes precedence
-        
-        # Get the template for the specified deed type
-        try:
-            template = env.get_template(f"{deed_type}.html")
-        except Exception as template_error:
-            print(f"DEBUG: Template loading failed: {template_error}")
-            # Try to list available templates
-            try:
-                import os
-                available_templates = os.listdir(template_dir)
-                print(f"DEBUG: Available templates: {available_templates}")
-            except:
-                pass
-            raise HTTPException(status_code=500, detail=f"Template not found: {deed_type}.html")
-        
-        # Recorder profile + tax computations
-        county = enhanced_data.get("county") or enhanced_data.get("County")
-        city = enhanced_data.get("city") or enhanced_data.get("City")
-        sales_price = enhanced_data.get("sales_price") or enhanced_data.get("salesPrice") or enhanced_data.get("consideration")
-        tax = compute_doc_transfer_tax(sales_price, county, city)
-
-        # Auto Exhibit A if legal is long
-        legal = enhanced_data.get("legal_description") or enhanced_data.get("legalDescription")
-        attach_exhibit = needs_exhibit_a(legal)
-
-        if "transfer_tax" not in enhanced_data:
-            enhanced_data["transfer_tax"] = tax
-        else:
-            # Merge exemption/code fields through for template usage
-            existing = enhanced_data.get("transfer_tax") or {}
-            merged = {**tax, **existing}
-            enhanced_data["transfer_tax"] = merged
-        if "attach_exhibit_a" not in enhanced_data:
-            enhanced_data["attach_exhibit_a"] = attach_exhibit
-        if "exhibit_label" not in enhanced_data:
-            enhanced_data["exhibit_label"] = "Exhibit A - Legal Description"
-
-        # Apply page margins from recorder profile if available
-        profile = RECORDER_PROFILES.get((county or "").strip()) or RECORDER_PROFILES.get("Los Angeles")
-        if profile:
-            if "page_margin_top" not in enhanced_data:
-                enhanced_data["page_margin_top"] = f"{profile.get('top_margin_in', 1.0)}in"
-            if "page_margin_left" not in enhanced_data:
-                enhanced_data["page_margin_left"] = f"{profile.get('left_margin_in', 1.0)}in"
-            if "page_margin_right" not in enhanced_data:
-                enhanced_data["page_margin_right"] = f"{profile.get('right_margin_in', 1.0)}in"
-            if "page_margin_bottom" not in enhanced_data:
-                enhanced_data["page_margin_bottom"] = f"{profile.get('bottom_margin_in', 1.0)}in"
-
-        # Render HTML with enhanced data
-        html_content = template.render(enhanced_data)
-        
-        # Return HTML with AI suggestions and validation
-        return {
-            "html": html_content,
-            "deed_type": deed_type,
-            "status": "preview_ready",
-            "ai_suggestions": ai_suggestions,
-            "validation": validation,
-            "user_profile_applied": bool(profile)
-        }
-        
-    except Exception as e:
-        print(f"DEBUG: Full error details: {type(e).__name__}: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Deed preview failed: {str(e)}")
 
 # Optional: Full deed generation endpoint with PDF
-@app.post("/generate-deed")
-async def generate_deed(deed: DeedData):
-    """Generate pixel-perfect HTML and PDF deed using Jinja2 templates and WeasyPrint"""
-    try:
-        # Get the template for the specified deed type
-        template = env.get_template(f"{deed.deed_type}.html")
-        
-        # Recorder profile + tax computations
-        data = dict(deed.data)
-        county = data.get("county") or data.get("County")
-        city = data.get("city") or data.get("City")
-        sales_price = data.get("sales_price") or data.get("salesPrice") or data.get("consideration")
-        tax = compute_doc_transfer_tax(sales_price, county, city)
-        legal = data.get("legal_description") or data.get("legalDescription")
-        attach_exhibit = needs_exhibit_a(legal)
-        if "transfer_tax" not in data:
-            data["transfer_tax"] = tax
-        else:
-            existing = data.get("transfer_tax") or {}
-            merged = {**tax, **existing}
-            data["transfer_tax"] = merged
-        if "attach_exhibit_a" not in data:
-            data["attach_exhibit_a"] = attach_exhibit
-        if "exhibit_label" not in data:
-            data["exhibit_label"] = "Exhibit A - Legal Description"
 
-        # Apply page margins from recorder profile if available
-        profile = RECORDER_PROFILES.get((county or "").strip()) or RECORDER_PROFILES.get("Los Angeles")
-        if profile:
-            if "page_margin_top" not in data:
-                data["page_margin_top"] = f"{profile.get('top_margin_in', 1.0)}in"
-            if "page_margin_left" not in data:
-                data["page_margin_left"] = f"{profile.get('left_margin_in', 1.0)}in"
-            if "page_margin_right" not in data:
-                data["page_margin_right"] = f"{profile.get('right_margin_in', 1.0)}in"
-            if "page_margin_bottom" not in data:
-                data["page_margin_bottom"] = f"{profile.get('bottom_margin_in', 1.0)}in"
-
-        # Render HTML with data injection
-        html_content = template.render(data)
-        
-        # Generate PDF using pdf_engine (PDFShift with WeasyPrint fallback)
-        pdf_bytes = await render_pdf_async(html_content)
-            
-        # Return both HTML and PDF
-        return {
-            "html": html_content,
-            "pdf_base64": base64.b64encode(pdf_bytes).decode(),
-            "deed_type": deed.deed_type,
-            "status": "success"
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Deed generation failed: {str(e)}")
-
-# Pricing Management Models
 class PriceUpdate(BaseModel):
     plan_name: str
     price: float

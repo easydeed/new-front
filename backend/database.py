@@ -269,7 +269,7 @@ def get_user_deeds(user_id):
     
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM deeds WHERE user_id = %s ORDER BY created_at DESC", (user_id,))
+        cursor.execute("SELECT * FROM deeds WHERE user_id = %s AND COALESCE(status, '') <> 'deleted' ORDER BY created_at DESC", (user_id,))
         deeds = cursor.fetchall()
         cursor.close()
         conn.close()
