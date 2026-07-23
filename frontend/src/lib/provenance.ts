@@ -84,16 +84,33 @@ export function collectCandidateFields(state: DeedBuilderState): CandidateField[
  * Snapshot of who-confirmed-what-when for the generation payload; persisted
  * into deeds.metadata.provenance next to the stored PDF's hash.
  */
+export interface ProvenanceEntry {
+  source: string;
+  confirmed_at: string | null;
+  code_section?: string;
+  basis?: string;
+}
+
 export function buildProvenancePayload(
   state: DeedBuilderState,
-): Record<string, { source: string; confirmed_at: string | null }> {
-  const payload: Record<string, { source: string; confirmed_at: string | null }> = {};
+): Record<string, ProvenanceEntry> {
+  const payload: Record<string, ProvenanceEntry> = {};
   const keys: MaterialFieldKey[] = [...PROPERTY_KEYS, 'grantor'];
   for (const key of keys) {
     const field = materialFieldProvenance(state, key);
     if (field) {
       payload[key] = { source: field.source, confirmed_at: field.confirmedAt ?? null };
     }
+  }
+  // Legal-choice record (Ticket TT): the officer's transfer-tax instruction,
+  // with the code section and basis exactly as shown when they decided.
+  if (state.dttDecision) {
+    payload.dtt = {
+      source: state.dttDecision.source,
+      confirmed_at: state.dttDecision.confirmedAt ?? null,
+      ...(state.dttDecision.codeSection ? { code_section: state.dttDecision.codeSection } : {}),
+      ...(state.dttDecision.basis ? { basis: state.dttDecision.basis } : {}),
+    };
   }
   return payload;
 }

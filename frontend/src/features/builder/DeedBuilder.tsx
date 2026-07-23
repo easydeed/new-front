@@ -15,6 +15,7 @@ import {
   buildProvenancePayload,
   collectCandidateFields,
 } from '@/lib/provenance';
+import { isDttSuggestionPending } from '@/lib/dttSuggestions';
 
 interface DeedBuilderProps {
   deedType: string;
@@ -61,6 +62,10 @@ function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
   // generation until confirmed. The gate sits in front of the save →
   // render → store pipeline: a gated deed never renders, never hashes.
   const [confirmationNeeded, setConfirmationNeeded] = useState<CandidateField[] | null>(null);
+  // Ticket TT: an undecided DTT suggestion is surfaced in the panel as a
+  // decision to make (with a link back to the section) — NEVER a
+  // confirm-all item. Confirm-all must never accept a legal choice.
+  const [dttNotePending, setDttNotePending] = useState(false);
 
   const stampConfirmed = (s: DeedBuilderState, keys: MaterialFieldKey[]): DeedBuilderState => {
     let next = s;
@@ -100,8 +105,10 @@ function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
 
   const handleGenerate = () => {
     const candidates = collectCandidateFields(state);
-    if (candidates.length > 0) {
+    const dttPending = isDttSuggestionPending(state);
+    if (candidates.length > 0 || dttPending) {
       setConfirmationNeeded(candidates);
+      setDttNotePending(dttPending);
       return;
     }
     performGenerate(state);
@@ -115,16 +122,27 @@ function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
       setConfirmationNeeded(remaining);
     } else {
       setConfirmationNeeded(null);
+      setDttNotePending(false);
       performGenerate(next);
     }
   };
 
   const handleConfirmAll = () => {
     if (!confirmationNeeded) return;
+    // Stamps DATA fields only. A pending DTT suggestion is deliberately left
+    // untouched — generating without deciding means the deed carries only
+    // what the officer entered, never the unaccepted proposal.
     const next = stampConfirmed(state, confirmationNeeded.map((c) => c.key));
     setState(next);
     setConfirmationNeeded(null);
+    setDttNotePending(false);
     performGenerate(next);
+  };
+
+  const handleReviewTransferTax = () => {
+    setConfirmationNeeded(null);
+    setDttNotePending(false);
+    setExpandedSection('transferTax');
   };
 
   const performGenerate = async (genState: DeedBuilderState) => {
@@ -207,16 +225,41 @@ function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
 
       {/* Generation gate: unconfirmed material fields must be confirmed
           before the deed renders and freezes as an immutable PDF. */}
-      {confirmationNeeded && confirmationNeeded.length > 0 && (
+      {confirmationNeeded && (confirmationNeeded.length > 0 || dttNotePending) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-lg bg-white rounded-xl shadow-2xl p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-1">
-              {confirmationNeeded.length} field{confirmationNeeded.length === 1 ? '' : 's'} need{confirmationNeeded.length === 1 ? 's' : ''} confirmation
+              {confirmationNeeded.length > 0
+                ? `${confirmationNeeded.length} field${confirmationNeeded.length === 1 ? '' : 's'} need${confirmationNeeded.length === 1 ? 's' : ''} confirmation`
+                : 'Transfer tax decision pending'}
             </h2>
-            <p className="text-sm text-gray-500 mb-4">
-              These values were pulled from external records. Confirm each one is
-              correct before the deed is generated — the generated document is final.
-            </p>
+            {confirmationNeeded.length > 0 && (
+              <p className="text-sm text-gray-500 mb-4">
+                These values were pulled from external records. Confirm each one is
+                correct before the deed is generated — the generated document is final.
+              </p>
+            )}
+
+            {/* Ticket TT: a pending legal-choice suggestion is a DECISION,
+                not a confirmable value — link back to the section only. */}
+            {dttNotePending && (
+              <div className="p-3 mb-3 rounded-lg border-2 border-dashed border-violet-300 bg-violet-50">
+                <p className="text-sm text-gray-900 font-medium">
+                  A suggested transfer-tax exemption is awaiting your decision.
+                </p>
+                <p className="text-xs text-gray-600 mt-1">
+                  It will not be applied unless you accept it in the Transfer Tax
+                  section. Generating now uses only what you entered.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleReviewTransferTax}
+                  className="mt-2 text-sm font-medium text-violet-700 hover:text-violet-900 underline"
+                >
+                  Review transfer tax section
+                </button>
+              </div>
+            )}
 
             <div className="space-y-3 max-h-72 overflow-y-auto">
               {confirmationNeeded.map(({ key, label, field }) => (
@@ -243,7 +286,10 @@ function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
             <div className="flex items-center justify-end gap-3 mt-5">
               <button
                 type="button"
-                onClick={() => setConfirmationNeeded(null)}
+                onClick={() => {
+                  setConfirmationNeeded(null);
+                  setDttNotePending(false);
+                }}
                 className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2"
               >
                 Cancel
@@ -253,7 +299,7 @@ function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
                 onClick={handleConfirmAll}
                 className="bg-[#7C4DFF] hover:bg-[#6a3de8] text-white px-4 py-2 rounded-lg text-sm font-semibold"
               >
-                Confirm all &amp; generate
+                {confirmationNeeded.length > 0 ? 'Confirm all & generate' : 'Generate as entered'}
               </button>
             </div>
           </div>
