@@ -220,7 +220,7 @@ def create_deed(user_id, deed_data):
         # into metadata JSONB so the stored PDF can render the full document.
         extras = {
             key: deed_data.get(key)
-            for key in ('dtt', 'title_order_no', 'escrow_no', 'return_to', 'source')
+            for key in ('dtt', 'title_order_no', 'escrow_no', 'return_to', 'source', 'provenance')
             if deed_data.get(key)
         }
 

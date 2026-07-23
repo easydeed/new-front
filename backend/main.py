@@ -414,6 +414,7 @@ class DeedCreate(BaseModel):
     title_order_no: Optional[str] = Field(default=None)
     escrow_no: Optional[str] = Field(default=None)
     return_to: Optional[str] = Field(default=None, description="Mail-to name for the recorded deed")
+    provenance: Optional[Dict] = Field(default=None, description="Per-field source + confirmation timestamps (Ticket B)")
 
     class Config:
         extra = "ignore"  # Ignore extra fields from frontend

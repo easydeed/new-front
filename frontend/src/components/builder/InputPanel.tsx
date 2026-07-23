@@ -127,8 +127,9 @@ export function InputPanel({
         >
           <GrantorSection
             value={state.grantor}
-            onChange={(grantor) => onChange({ grantor })}
+            onChange={(grantor, grantorProvenance) => onChange({ grantor, grantorProvenance })}
             suggestedName={state.property?.owner}
+            provenance={state.grantorProvenance}
           />
         </InputSection>
 
