@@ -85,6 +85,12 @@ export interface DeedBuilderState {
   dttDecision?: LegalChoiceRecord;
   /** Officer dismissed the pending DTT suggestion (reject leaves manual entry). */
   dttSuggestionDismissed?: boolean;
+  /**
+   * Recorder-preflight warnings the officer explicitly overrode, id -> ISO
+   * timestamp of the override (Ticket V). Recorded in metadata like other
+   * confirmations.
+   */
+  preflightOverrides?: Record<string, string>;
   requestedBy: string;
   returnTo: string;
   titleOrderNo?: string;

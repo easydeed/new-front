@@ -114,3 +114,20 @@ export function buildProvenancePayload(
   }
   return payload;
 }
+
+/**
+ * Recorder-preflight overrides (Ticket V): id -> {overridden_at}. Included in
+ * the generation payload beside the field/legal-choice records so the stored
+ * deed carries the officer's explicit acknowledgments.
+ */
+export function buildPreflightOverridesPayload(
+  state: DeedBuilderState,
+): Record<string, { overridden_at: string }> | null {
+  const overrides = state.preflightOverrides;
+  if (!overrides || Object.keys(overrides).length === 0) return null;
+  const out: Record<string, { overridden_at: string }> = {};
+  for (const [id, ts] of Object.entries(overrides)) {
+    out[id] = { overridden_at: ts };
+  }
+  return out;
+}
