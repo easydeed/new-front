@@ -8,7 +8,13 @@ import { BuilderHeader } from '@/components/builder/BuilderHeader';
 import { InputPanel } from '@/components/builder/InputPanel';
 import { PreviewPanel } from '@/components/builder/PreviewPanel';
 import { useBuilderMode } from '@/hooks/useBuilderMode';
-import { DeedBuilderState, PropertyData } from '@/types/builder';
+import { DeedBuilderState, PropertyData, Sourced } from '@/types/builder';
+import {
+  CandidateField,
+  MaterialFieldKey,
+  buildProvenancePayload,
+  collectCandidateFields,
+} from '@/lib/provenance';
 
 interface DeedBuilderProps {
   deedType: string;
@@ -31,6 +37,9 @@ function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
     deedType,
     property: initialProperty || null,
     grantor: initialProperty?.owner || '',
+    grantorProvenance: initialProperty?.owner
+      ? { value: initialProperty.owner, source: 'sitex', status: 'candidate' }
+      : undefined,
     grantee: '',
     vesting: '',
     dtt: null,
@@ -47,32 +56,106 @@ function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
     setState(prev => ({ ...prev, ...updates }));
   }, []);
 
-  const handleGenerate = async () => {
+  // The generation gate: material sourced data fields (apn, legal
+  // description, owner, grantor) still in 'candidate' status block
+  // generation until confirmed. The gate sits in front of the save →
+  // render → store pipeline: a gated deed never renders, never hashes.
+  const [confirmationNeeded, setConfirmationNeeded] = useState<CandidateField[] | null>(null);
+
+  const stampConfirmed = (s: DeedBuilderState, keys: MaterialFieldKey[]): DeedBuilderState => {
+    let next = s;
+    for (const key of keys) {
+      // Each field gets its own recorded confirmation timestamp.
+      const confirmedAt = new Date().toISOString();
+      if (key === 'grantor') {
+        next = {
+          ...next,
+          grantorProvenance: {
+            value: next.grantor,
+            source: next.grantorProvenance?.source ?? 'sitex',
+            status: 'confirmed',
+            confirmedAt,
+          },
+        };
+      } else if (next.property) {
+        const existing: Sourced<string> = next.property.provenance?.[key] ?? {
+          value: (next.property[key] ?? '') as string,
+          source: 'sitex',
+          status: 'candidate',
+        };
+        next = {
+          ...next,
+          property: {
+            ...next.property,
+            provenance: {
+              ...next.property.provenance,
+              [key]: { ...existing, status: 'confirmed', confirmedAt },
+            },
+          },
+        };
+      }
+    }
+    return next;
+  };
+
+  const handleGenerate = () => {
+    const candidates = collectCandidateFields(state);
+    if (candidates.length > 0) {
+      setConfirmationNeeded(candidates);
+      return;
+    }
+    performGenerate(state);
+  };
+
+  const handleConfirmField = (key: MaterialFieldKey) => {
+    const next = stampConfirmed(state, [key]);
+    setState(next);
+    const remaining = collectCandidateFields(next);
+    if (remaining.length > 0) {
+      setConfirmationNeeded(remaining);
+    } else {
+      setConfirmationNeeded(null);
+      performGenerate(next);
+    }
+  };
+
+  const handleConfirmAll = () => {
+    if (!confirmationNeeded) return;
+    const next = stampConfirmed(state, confirmationNeeded.map((c) => c.key));
+    setState(next);
+    setConfirmationNeeded(null);
+    performGenerate(next);
+  };
+
+  const performGenerate = async (genState: DeedBuilderState) => {
     setIsGenerating(true);
     try {
       // Build the payload to match backend expectations
       const payload = {
-        doc_type: state.deedType,
-        county: state.property?.county || '',
-        apn: state.property?.apn || '',
-        property_address: state.property?.address || '',
-        legal_description: state.property?.legalDescription || '',
-        grantors_text: state.grantor,
-        grantees_text: state.grantee,
-        vesting: state.vesting,
-        requested_by: state.requestedBy,
-        return_to: state.returnTo === 'grantee' ? state.grantee : state.requestedBy,
-        title_order_no: state.titleOrderNo || '',
-        escrow_no: state.escrowNo || '',
+        doc_type: genState.deedType,
+        county: genState.property?.county || '',
+        apn: genState.property?.apn || '',
+        property_address: genState.property?.address || '',
+        legal_description: genState.property?.legalDescription || '',
+        grantors_text: genState.grantor,
+        grantees_text: genState.grantee,
+        vesting: genState.vesting,
+        requested_by: genState.requestedBy,
+        return_to: genState.returnTo === 'grantee' ? genState.grantee : genState.requestedBy,
+        title_order_no: genState.titleOrderNo || '',
+        escrow_no: genState.escrowNo || '',
         dtt: {
-          transfer_value: state.dtt?.transferValue?.replace(/[^0-9]/g, '') || '',
-          is_exempt: state.dtt?.isExempt || false,
-          exemption_reason: state.dtt?.exemptReason || '',
-          basis: state.dtt?.basis || 'full_value',
-          area_type: state.dtt?.areaType || 'unincorporated',
-          city_name: state.dtt?.cityName || '',
-          calculated_amount: state.dtt?.calculatedAmount || '',
+          transfer_value: genState.dtt?.transferValue?.replace(/[^0-9]/g, '') || '',
+          is_exempt: genState.dtt?.isExempt || false,
+          exemption_reason: genState.dtt?.exemptReason || '',
+          basis: genState.dtt?.basis || 'full_value',
+          area_type: genState.dtt?.areaType || 'unincorporated',
+          city_name: genState.dtt?.cityName || '',
+          calculated_amount: genState.dtt?.calculatedAmount || '',
         },
+        // Who-confirmed-what-when, persisted into deeds.metadata.provenance
+        // alongside the stored PDF's hash.
+        provenance: buildProvenancePayload(genState),
       };
 
       const response = await fetch('/api/deeds/generate', {
@@ -121,9 +204,71 @@ function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
           <PreviewPanel state={state} activeSection={expandedSection} />
         </div>
       </div>
+
+      {/* Generation gate: unconfirmed material fields must be confirmed
+          before the deed renders and freezes as an immutable PDF. */}
+      {confirmationNeeded && confirmationNeeded.length > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-lg bg-white rounded-xl shadow-2xl p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {confirmationNeeded.length} field{confirmationNeeded.length === 1 ? '' : 's'} need{confirmationNeeded.length === 1 ? 's' : ''} confirmation
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              These values were pulled from external records. Confirm each one is
+              correct before the deed is generated — the generated document is final.
+            </p>
+
+            <div className="space-y-3 max-h-72 overflow-y-auto">
+              {confirmationNeeded.map(({ key, label, field }) => (
+                <div key={key} className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-amber-700 uppercase tracking-wide">
+                        {label} · {SOURCE_LABELS[field.source] || field.source}
+                      </p>
+                      <p className="text-sm text-gray-900 break-words">{field.value}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleConfirmField(key)}
+                      className="flex-shrink-0 bg-emerald-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-emerald-700"
+                    >
+                      Confirm
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-end gap-3 mt-5">
+              <button
+                type="button"
+                onClick={() => setConfirmationNeeded(null)}
+                className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmAll}
+                className="bg-[#7C4DFF] hover:bg-[#6a3de8] text-white px-4 py-2 rounded-lg text-sm font-semibold"
+              >
+                Confirm all &amp; generate
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+const SOURCE_LABELS: Record<string, string> = {
+  sitex: 'From SiteX (county records)',
+  google: 'From Google',
+  titlepoint: 'From TitlePoint',
+  user: 'Entered by you',
+};
 
 // Wrap with AIAssistProvider
 export function DeedBuilder(props: DeedBuilderProps) {

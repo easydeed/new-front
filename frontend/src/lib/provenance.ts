@@ -1,0 +1,99 @@
+/**
+ * Generation-time confirmation gate over the material sourced data fields:
+ * apn, legalDescription, owner (property.provenance) and grantor
+ * (state.grantorProvenance). A field still in 'candidate' status blocks
+ * generation until the officer confirms it — nothing unconfirmed may enter
+ * the immutable stored PDF. Legal choices (vesting, transfer tax) gate at
+ * the point of decision, not here.
+ */
+import type { DeedBuilderState, PropertyProvenance, Sourced } from '@/types/builder';
+
+export type MaterialFieldKey = 'apn' | 'legalDescription' | 'owner' | 'grantor';
+
+export interface CandidateField {
+  key: MaterialFieldKey;
+  label: string;
+  field: Sourced<string>;
+}
+
+export const MATERIAL_FIELD_LABELS: Record<MaterialFieldKey, string> = {
+  apn: 'APN',
+  legalDescription: 'Legal Description',
+  owner: 'Current Owner (per county records)',
+  grantor: 'Grantor Name',
+};
+
+const PROPERTY_KEYS: Array<keyof PropertyProvenance> = ['apn', 'legalDescription', 'owner'];
+
+/**
+ * Provenance for one property field. Values without a stamp were loaded
+ * from SiteX before provenance existed — treated as unconfirmed candidates,
+ * matching PropertySection's provenanceFor backfill. Empty fields have
+ * nothing to confirm and return null.
+ */
+export function propertyFieldProvenance(
+  state: DeedBuilderState,
+  key: keyof PropertyProvenance,
+): Sourced<string> | null {
+  const bare = (state.property?.[key] ?? '') as string;
+  if (!bare.trim()) return null;
+  const stamped = state.property?.provenance?.[key];
+  if (stamped) return { ...stamped, value: bare };
+  return { value: bare, source: 'sitex', status: 'candidate' };
+}
+
+/**
+ * Provenance for the grantor. Unstamped non-empty values only occur via the
+ * SiteX owner prefill path (typing always stamps): equal to property.owner
+ * means SiteX candidate; anything else predates stamping and is treated as
+ * user-entered (confirmed on entry, per the provenance rule).
+ */
+export function grantorFieldProvenance(state: DeedBuilderState): Sourced<string> | null {
+  const bare = state.grantor?.trim() ?? '';
+  if (!bare) return null;
+  if (state.grantorProvenance) return { ...state.grantorProvenance, value: state.grantor };
+  if (state.property?.owner && state.grantor === state.property.owner) {
+    return { value: state.grantor, source: 'sitex', status: 'candidate' };
+  }
+  return { value: state.grantor, source: 'user', status: 'confirmed' };
+}
+
+function materialFieldProvenance(
+  state: DeedBuilderState,
+  key: MaterialFieldKey,
+): Sourced<string> | null {
+  return key === 'grantor'
+    ? grantorFieldProvenance(state)
+    : propertyFieldProvenance(state, key);
+}
+
+/** Every material field still awaiting confirmation. Empty array = gate open. */
+export function collectCandidateFields(state: DeedBuilderState): CandidateField[] {
+  const keys: MaterialFieldKey[] = [...PROPERTY_KEYS, 'grantor'];
+  const candidates: CandidateField[] = [];
+  for (const key of keys) {
+    const field = materialFieldProvenance(state, key);
+    if (field && field.status === 'candidate') {
+      candidates.push({ key, label: MATERIAL_FIELD_LABELS[key], field });
+    }
+  }
+  return candidates;
+}
+
+/**
+ * Snapshot of who-confirmed-what-when for the generation payload; persisted
+ * into deeds.metadata.provenance next to the stored PDF's hash.
+ */
+export function buildProvenancePayload(
+  state: DeedBuilderState,
+): Record<string, { source: string; confirmed_at: string | null }> {
+  const payload: Record<string, { source: string; confirmed_at: string | null }> = {};
+  const keys: MaterialFieldKey[] = [...PROPERTY_KEYS, 'grantor'];
+  for (const key of keys) {
+    const field = materialFieldProvenance(state, key);
+    if (field) {
+      payload[key] = { source: field.source, confirmed_at: field.confirmedAt ?? null };
+    }
+  }
+  return payload;
+}

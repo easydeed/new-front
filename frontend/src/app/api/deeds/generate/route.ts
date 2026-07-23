@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
       title_order_no: payload.title_order_no || null,
       escrow_no: payload.escrow_no || null,
       return_to: payload.return_to || null,
+      provenance: payload.provenance || null,
     };
 
     const authHeader = req.headers.get('authorization');

@@ -56,6 +56,13 @@ export interface DeedBuilderState {
   deedType: string;
   property: PropertyData | null;
   grantor: string;
+  /**
+   * Provenance for the grantor name, mirroring property.provenance: SiteX
+   * prefill arrives as a candidate the officer confirms; manual entry is
+   * user-sourced and confirmed on entry. Optional so the bare grantor value
+   * and the generation payload keep working unchanged.
+   */
+  grantorProvenance?: Sourced<string>;
   grantee: string;
   vesting: string;
   dtt: DTTData | null;
