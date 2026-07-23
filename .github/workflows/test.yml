@@ -15,9 +15,19 @@ jobs:
       working-directory: backend
       env:
         JWT_SECRET_KEY: ci-test-secret
-      # The two legacy suites below test contracts that no longer exist and
-      # are being rewritten in T9-full; everything else must pass.
-      run: >
-        pytest tests/ -q
-        --ignore=tests/test_property_search_integration.py
-        --ignore=tests/integration
+      run: pytest tests/ -q
+
+  tsc-report:
+    # Non-blocking type-check report (116 known pre-existing errors; burn-down
+    # is opportunistic — see docs/ARCHITECTURE.md known quirks).
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    - working-directory: frontend
+      run: npm ci
+    - working-directory: frontend
+      run: npx tsc --noEmit | tail -5
