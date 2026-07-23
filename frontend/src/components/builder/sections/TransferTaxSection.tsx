@@ -1,19 +1,28 @@
 "use client"
 
-import { useMemo, useEffect, useState } from "react"
-import { Calculator } from "lucide-react"
+import { useMemo, useEffect } from "react"
+import { Calculator, Scale, ShieldCheck, X } from "lucide-react"
 import { useAIAssist } from "@/contexts/AIAssistContext"
-import { AIApplied, AISuggestion } from "../AISuggestion"
-import { getTransferTaxSuggestion } from "@/lib/ai-helpers"
-import type { DTTData } from "@/types/builder"
+import { AISuggestion } from "../AISuggestion"
+import { detectDttSuggestion } from "@/lib/dttSuggestions"
+import type { DTTData, LegalChoiceRecord } from "@/types/builder"
 
 interface TransferTaxSectionProps {
   value: DTTData | null
-  onChange: (dtt: DTTData) => void
+  /**
+   * Ticket TT: legal-choice rule. onChange carries the officer's recorded
+   * instruction when (and only when) the change IS an officer action —
+   * accepting a proposal or entering values manually. Derived recalculations
+   * and neutral initialization pass no decision.
+   */
+  onChange: (dtt: DTTData, decision?: LegalChoiceRecord) => void
   city?: string
   deedType: string
   grantor: string
   grantee: string
+  decision?: LegalChoiceRecord
+  suggestionDismissed?: boolean
+  onDismissSuggestion: () => void
 }
 
 // Cities with their own DTT rates
@@ -53,49 +62,66 @@ export function TransferTaxSection({
   deedType,
   grantor,
   grantee,
+  decision,
+  suggestionDismissed,
+  onDismissSuggestion,
 }: TransferTaxSectionProps) {
   const { enabled: aiEnabled } = useAIAssist()
-  const [aiAppliedMessage, setAiAppliedMessage] = useState<string | null>(null)
-  const [suggestionDismissed, setSuggestionDismissed] = useState(false)
 
-  // Get AI suggestion
-  const suggestion = useMemo(() => {
-    if (!aiEnabled) return null
-    return getTransferTaxSuggestion(deedType, grantor, grantee)
-  }, [deedType, grantor, grantee, aiEnabled])
+  // Deterministic detection. Proposes only — never writes state.
+  const suggestion = useMemo(
+    () => detectDttSuggestion(deedType, grantor, grantee),
+    [deedType, grantor, grantee]
+  )
+  const suggestionPending = !!suggestion && !decision && !suggestionDismissed
 
-  // Initialize with smart defaults
+  // Neutral initialization only. A legal choice is NEVER auto-applied —
+  // the exemption fields stay unset until the officer explicitly accepts
+  // or enters values manually (the pre-TT auto-apply behavior is removed).
   useEffect(() => {
     if (!value) {
       const isInCity = city && CITIES_WITH_OWN_DTT.some((c) => city.toLowerCase().includes(c))
-
-      // If AI is enabled and we have a high-confidence suggestion, auto-apply
-      if (aiEnabled && suggestion && suggestion.confidence === "high") {
-        onChange({
-          isExempt: suggestion.isExempt,
-          exemptReason: suggestion.exemptReason,
-          transferValue: "",
-          calculatedAmount: "",
-          basis: "full_value",
-          areaType: isInCity ? "city" : "unincorporated",
-          cityName: isInCity ? city : "",
-        })
-        setAiAppliedMessage(suggestion.reason)
-      } else {
-        // Default initialization without AI
-        onChange({
-          isExempt: false,
-          exemptReason: "",
-          transferValue: "",
-          calculatedAmount: "",
-          basis: "full_value",
-          areaType: isInCity ? "city" : "unincorporated",
-          cityName: isInCity ? city : "",
-        })
-      }
+      onChange({
+        isExempt: false,
+        exemptReason: "",
+        transferValue: "",
+        calculatedAmount: "",
+        basis: "full_value",
+        areaType: isInCity ? "city" : "unincorporated",
+        cityName: isInCity ? city : "",
+      })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [city, value === null])
+
+  // Any manual edit is the officer's instruction: record source 'user'.
+  const manual = (dtt: DTTData) => {
+    onChange(dtt, {
+      source: "user",
+      status: "confirmed",
+      confirmedAt: new Date().toISOString(),
+    })
+  }
+
+  const handleAccept = () => {
+    if (!suggestion || !value) return
+    onChange(
+      {
+        ...value,
+        isExempt: suggestion.proposed.isExempt,
+        exemptReason: suggestion.proposed.exemptReason,
+        transferValue: "",
+        calculatedAmount: "",
+      },
+      {
+        source: "ai_suggested",
+        status: "confirmed",
+        confirmedAt: new Date().toISOString(),
+        codeSection: suggestion.codeSection,
+        basis: suggestion.explanation,
+      }
+    )
+  }
 
   // Calculate DTT when values change
   const calculatedAmount = useMemo(() => {
@@ -126,7 +152,7 @@ export function TransferTaxSection({
     return (countyTax + cityTax).toFixed(2)
   }, [value])
 
-  // Update calculated amount when it changes
+  // Derived recalculation — not an officer action, no decision stamp.
   useEffect(() => {
     if (value && calculatedAmount !== value.calculatedAmount) {
       onChange({ ...value, calculatedAmount })
@@ -134,50 +160,63 @@ export function TransferTaxSection({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calculatedAmount])
 
-  // Handle applying AI suggestion manually
-  const handleApplySuggestion = () => {
-    if (suggestion && value) {
-      onChange({
-        ...value,
-        isExempt: suggestion.isExempt,
-        exemptReason: suggestion.exemptReason,
-        transferValue: "",
-        calculatedAmount: "",
-      })
-      setAiAppliedMessage(suggestion.reason)
-      setSuggestionDismissed(true)
-    }
-  }
-
   if (!value) return null
-
-  // General AI guidance when no specific suggestion exists
-  const showGeneralGuidance = aiEnabled && !suggestion && !value.isExempt && !suggestionDismissed
 
   return (
     <div className="space-y-4">
-      {/* AI Applied Message (for auto-applied high-confidence suggestions) */}
-      {aiAppliedMessage && value.isExempt && <AIApplied message={aiAppliedMessage} />}
+      {/* ── PROPOSED treatment — visually distinct from applied/candidate data.
+             Nothing below is written to the deed until Accept is clicked. ── */}
+      {suggestionPending && suggestion && (
+        <div className="p-4 rounded-lg border-2 border-dashed border-violet-300 bg-violet-50">
+          <div className="flex items-center justify-between mb-1">
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-700 uppercase tracking-wide">
+              <Scale className="w-3.5 h-3.5" />
+              Proposed — not applied
+            </span>
+            <span className="text-xs font-mono text-violet-700">{suggestion.codeSection}</span>
+          </div>
+          <p className="text-sm font-semibold text-gray-900">{suggestion.title}</p>
+          <p className="text-sm text-gray-700 mt-1">{suggestion.explanation}</p>
+          <p className="text-xs text-gray-500 mt-2">
+            The exemption is not part of this deed unless you accept it. You remain
+            responsible for the tax treatment.
+          </p>
+          <div className="flex items-center gap-2 mt-3">
+            <button
+              type="button"
+              onClick={handleAccept}
+              className="inline-flex items-center gap-1 bg-violet-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-violet-700"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              Accept &amp; apply {suggestion.codeSection}
+            </button>
+            <button
+              type="button"
+              onClick={onDismissSuggestion}
+              className="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 px-2 py-1.5"
+            >
+              <X className="w-3.5 h-3.5" />
+              Dismiss — I&apos;ll decide manually
+            </button>
+          </div>
+        </div>
+      )}
 
-      {/* AI Suggestion (for medium-confidence, show as dismissible suggestion) */}
-      {suggestion &&
-        suggestion.confidence === "medium" &&
-        !value.isExempt &&
-        !suggestionDismissed && (
-          <AISuggestion
-            message={suggestion.reason}
-            action="Mark as exempt"
-            onApply={handleApplySuggestion}
-            onDismiss={() => setSuggestionDismissed(true)}
-          />
-        )}
+      {/* Recorded instruction indicator */}
+      {decision?.source === "ai_suggested" && value.isExempt && (
+        <div className="flex items-center gap-2 text-sm text-violet-700 bg-violet-50 border border-violet-200 px-3 py-2 rounded-lg">
+          <ShieldCheck className="w-4 h-4" />
+          Exemption {decision.codeSection} accepted by you
+          {decision.confirmedAt ? ` · ${new Date(decision.confirmedAt).toLocaleString()}` : ""}
+        </div>
+      )}
 
-      {/* General AI Guidance (when AI is on but no specific suggestion) */}
-      {showGeneralGuidance && (
+      {/* General AI guidance when there is no confident suggestion */}
+      {aiEnabled && !suggestion && !value.isExempt && !suggestionDismissed && (
         <AISuggestion
-          message={`For a ${deedType.replace(/-/g, ' ')}, documentary transfer tax is typically calculated on the full transfer value.`}
+          message={`For a ${deedType.replace(/-/g, " ")}, documentary transfer tax is typically calculated on the full transfer value.`}
           details="California DTT is $1.10 per $1,000 of transfer value. Some cities add their own tax (e.g., LA adds $4.50/1,000). Common exemptions: R&T 11911 (gift), R&T 11927 (interspousal), R&T 11930 (trust transfer). If the transfer involves no cash exchange (like adding a spouse), it may be exempt."
-          onDismiss={() => setSuggestionDismissed(true)}
+          onDismiss={onDismissSuggestion}
         />
       )}
 
@@ -187,10 +226,7 @@ export function TransferTaxSection({
           <input
             type="radio"
             checked={!value.isExempt}
-            onChange={() => {
-              onChange({ ...value, isExempt: false, exemptReason: "" })
-              setAiAppliedMessage(null)
-            }}
+            onChange={() => manual({ ...value, isExempt: false, exemptReason: "" })}
             className="w-4 h-4 text-brand-500 focus:ring-brand-500"
           />
           <span className="font-medium text-gray-900">Calculate Tax</span>
@@ -199,9 +235,7 @@ export function TransferTaxSection({
           <input
             type="radio"
             checked={value.isExempt}
-            onChange={() => {
-              onChange({ ...value, isExempt: true, transferValue: "", calculatedAmount: "" })
-            }}
+            onChange={() => manual({ ...value, isExempt: true, transferValue: "", calculatedAmount: "" })}
             className="w-4 h-4 text-brand-500 focus:ring-brand-500"
           />
           <span className="font-medium text-gray-900">Exempt</span>
@@ -216,7 +250,7 @@ export function TransferTaxSection({
           </label>
           <select
             value={value.exemptReason}
-            onChange={(e) => onChange({ ...value, exemptReason: e.target.value })}
+            onChange={(e) => manual({ ...value, exemptReason: e.target.value })}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
           >
             <option value="">Select reason...</option>
@@ -243,7 +277,7 @@ export function TransferTaxSection({
                 onChange={(e) => {
                   const raw = e.target.value.replace(/[^0-9]/g, "")
                   const formatted = raw ? parseInt(raw).toLocaleString() : ""
-                  onChange({ ...value, transferValue: formatted })
+                  manual({ ...value, transferValue: formatted })
                 }}
                 placeholder="500,000"
                 className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
@@ -257,7 +291,7 @@ export function TransferTaxSection({
               <input
                 type="radio"
                 checked={value.basis === "full_value"}
-                onChange={() => onChange({ ...value, basis: "full_value" })}
+                onChange={() => manual({ ...value, basis: "full_value" })}
                 className="w-4 h-4 text-brand-500"
               />
               <span className="text-sm text-gray-700">Full value</span>
@@ -266,7 +300,7 @@ export function TransferTaxSection({
               <input
                 type="radio"
                 checked={value.basis === "less_liens"}
-                onChange={() => onChange({ ...value, basis: "less_liens" })}
+                onChange={() => manual({ ...value, basis: "less_liens" })}
                 className="w-4 h-4 text-brand-500"
               />
               <span className="text-sm text-gray-700">Less liens/encumbrances</span>
@@ -279,7 +313,7 @@ export function TransferTaxSection({
               <input
                 type="radio"
                 checked={value.areaType === "city"}
-                onChange={() => onChange({ ...value, areaType: "city" })}
+                onChange={() => manual({ ...value, areaType: "city" })}
                 className="w-4 h-4 text-brand-500"
               />
               <span className="text-sm text-gray-700">
@@ -290,7 +324,7 @@ export function TransferTaxSection({
               <input
                 type="radio"
                 checked={value.areaType === "unincorporated"}
-                onChange={() => onChange({ ...value, areaType: "unincorporated" })}
+                onChange={() => manual({ ...value, areaType: "unincorporated" })}
                 className="w-4 h-4 text-brand-500"
               />
               <span className="text-sm text-gray-700">Unincorporated</span>

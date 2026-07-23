@@ -181,11 +181,16 @@ export function InputPanel({
         >
           <TransferTaxSection
             value={state.dtt}
-            onChange={(dtt) => onChange({ dtt })}
+            onChange={(dtt, dttDecision) =>
+              onChange(dttDecision ? { dtt, dttDecision } : { dtt })
+            }
             city={state.property?.city}
             deedType={state.deedType}
             grantor={state.grantor}
             grantee={state.grantee}
+            decision={state.dttDecision}
+            suggestionDismissed={state.dttSuggestionDismissed}
+            onDismissSuggestion={() => onChange({ dttSuggestionDismissed: true })}
           />
         </InputSection>
 

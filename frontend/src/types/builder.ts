@@ -5,8 +5,23 @@
  * confirms; we record the confirmation. AI/auto-fill never silently writes a
  * confirmed legal value.
  */
-export type FieldSource = 'sitex' | 'google' | 'user' | 'titlepoint';
+export type FieldSource = 'sitex' | 'google' | 'user' | 'titlepoint' | 'ai_suggested';
 export type FieldStatus = 'candidate' | 'confirmed';
+
+/**
+ * Record of a LEGAL CHOICE (e.g. the DTT exemption). The rule differs from
+ * data fields: a legal choice is never auto-applied and never exists in
+ * 'candidate' state inside the deed. The AI may propose; the field stays
+ * unset until the escrow officer explicitly accepts; acceptance IS the
+ * authorized instruction, recorded with the code section and basis shown.
+ */
+export interface LegalChoiceRecord {
+  source: FieldSource;       // 'ai_suggested' (accepted proposal) | 'user' (manual entry)
+  status: 'confirmed';       // legal choices are only ever recorded as confirmed
+  confirmedAt: string;       // ISO timestamp of the officer's action
+  codeSection?: string;      // e.g. 'R&T 11927' — the section proposed/accepted
+  basis?: string;            // the plain-English basis shown to the officer
+}
 
 export interface Sourced<T> {
   value: T;
@@ -66,6 +81,10 @@ export interface DeedBuilderState {
   grantee: string;
   vesting: string;
   dtt: DTTData | null;
+  /** The officer's recorded transfer-tax instruction (Ticket TT). */
+  dttDecision?: LegalChoiceRecord;
+  /** Officer dismissed the pending DTT suggestion (reject leaves manual entry). */
+  dttSuggestionDismissed?: boolean;
   requestedBy: string;
   returnTo: string;
   titleOrderNo?: string;
