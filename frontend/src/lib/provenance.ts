@@ -112,6 +112,14 @@ export function buildProvenancePayload(
       ...(state.dttDecision.basis ? { basis: state.dttDecision.basis } : {}),
     };
   }
+  // Vesting legal-choice record (vesting sibling of Ticket TT).
+  if (state.vestingDecision) {
+    payload.vesting = {
+      source: state.vestingDecision.source,
+      confirmed_at: state.vestingDecision.confirmedAt ?? null,
+      ...(state.vestingDecision.basis ? { basis: state.vestingDecision.basis } : {}),
+    };
+  }
   return payload;
 }
 

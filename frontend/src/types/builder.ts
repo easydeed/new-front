@@ -83,6 +83,8 @@ export interface DeedBuilderState {
   dtt: DTTData | null;
   /** The officer's recorded transfer-tax instruction (Ticket TT). */
   dttDecision?: LegalChoiceRecord;
+  /** The officer's recorded vesting instruction (vesting sibling ticket). */
+  vestingDecision?: LegalChoiceRecord;
   /** Officer dismissed the pending DTT suggestion (reject leaves manual entry). */
   dttSuggestionDismissed?: boolean;
   /**
