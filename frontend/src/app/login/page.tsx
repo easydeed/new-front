@@ -1,12 +1,18 @@
 "use client"
 
+// F6: visual re-implementation from the V0 reference (temp-v0, reference
+// only). Logic contracts preserved: auth check, ?registered banner + email
+// prefill, ?redirect param, admin-role redirect, per-status error copy,
+// AuthManager.setAuth storage. The demo-credentials card stays gated to
+// development builds (the reference showed it unconditionally — that and
+// its dropped admin redirect were bugs in the reference, not the design).
 import type React from "react"
 
 import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { AuthManager } from "../../utils/auth"
-import { Eye, EyeOff, AlertCircle, CheckCircle2, Zap, Copy, Check } from "lucide-react"
+import { Eye, EyeOff, AlertCircle, CheckCircle2, Zap, Copy, Check, ShieldCheck } from "lucide-react"
 
 function LoginContent() {
   const [formData, setFormData] = useState({ email: "", password: "" })
@@ -15,6 +21,7 @@ function LoginContent() {
   const [successMessage, setSuccessMessage] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [copiedField, setCopiedField] = useState<string | null>(null)
+  const [showDemo, setShowDemo] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -68,7 +75,7 @@ function LoginContent() {
           AuthManager.setAuth(token, data.user)
         }
         setSuccessMessage("Login successful! Redirecting...")
-        
+
         // Check if user is admin and redirect accordingly
         let redirectTo = searchParams.get("redirect") || "/dashboard"
         if (token) {
@@ -118,7 +125,7 @@ function LoginContent() {
       passEl.dispatchEvent(new Event("change", { bubbles: true }))
     }
 
-    setSuccessMessage("Credentials filled! Click 'Sign In' above.")
+    setSuccessMessage("Credentials filled! Click 'Sign in' above.")
     setError("")
   }
 
@@ -129,192 +136,219 @@ function LoginContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F9F9F9] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md space-y-8 animate-in fade-in duration-500">
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <Link href="/" className="inline-block">
-            <h1 className="text-4xl font-bold text-[#1F2B37] tracking-tight">DeedPro</h1>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Top brand bar */}
+      <header className="px-4 sm:px-6 lg:px-8 py-5">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5">
+            <span className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center">
+              <ShieldCheck className="w-5 h-5 text-white" />
+            </span>
+            <span className="text-xl font-bold tracking-tight text-gray-900">DeedPro</span>
           </Link>
-          <h2 className="text-2xl font-bold text-[#1F2B37]">Welcome Back</h2>
-          <p className="text-[#6B7280]">Sign in to your account to continue</p>
+          <Link
+            href="/register"
+            className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
+          >
+            Don&apos;t have an account? <span className="text-brand-500">Sign up</span>
+          </Link>
         </div>
+      </header>
 
-        {/* Main Login Card */}
-        <div className="bg-white rounded-2xl shadow-lg border border-[#E5E7EB] p-8 space-y-6">
-          {/* Success Message */}
-          {successMessage && (
-            <div className="flex items-start gap-3 p-4 bg-[#10B981]/10 border border-[#10B981]/20 rounded-lg animate-in slide-in-from-top duration-300">
-              <CheckCircle2 className="w-5 h-5 text-[#10B981] flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-[#10B981] font-medium">{successMessage}</p>
-            </div>
-          )}
+      {/* Centered form column */}
+      <main className="flex-1 flex items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md space-y-6 animate-in fade-in duration-500">
+          {/* Heading */}
+          <div className="space-y-1.5">
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900">Welcome back</h1>
+            <p className="text-[15px] text-gray-500 leading-relaxed">
+              Sign in to continue creating recorder-ready deeds.
+            </p>
+          </div>
 
-          {/* Error Message */}
-          {error && (
-            <div className="flex items-start gap-3 p-4 bg-[#EF4444]/10 border border-[#EF4444]/20 rounded-lg animate-in slide-in-from-top duration-300">
-              <AlertCircle className="w-5 h-5 text-[#EF4444] flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-[#EF4444] font-medium">{error}</p>
-            </div>
-          )}
+          {/* Main Login Card */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-7 space-y-5">
+            {/* Success Message */}
+            {successMessage && (
+              <div className="flex items-start gap-3 p-3.5 bg-success-50 border border-success-500/20 rounded-lg animate-in slide-in-from-top duration-300">
+                <CheckCircle2 className="w-5 h-5 text-success-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-success-600 font-medium">{successMessage}</p>
+              </div>
+            )}
 
-          {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email Field */}
-            <div className="space-y-2">
-              <label htmlFor="email" className="block text-sm font-semibold text-[#1F2B37]">
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-4 py-3 bg-white border border-[#E5E7EB] rounded-lg text-[#1F2B37] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#7C4DFF] focus:border-transparent transition-all"
-                placeholder="you@example.com"
-                required
-                disabled={loading}
-                autoFocus
-              />
-            </div>
+            {/* Error Message */}
+            {error && (
+              <div className="flex items-start gap-3 p-3.5 bg-error-50 border border-error-500/20 rounded-lg animate-in slide-in-from-top duration-300">
+                <AlertCircle className="w-5 h-5 text-error-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-error-600 font-medium">{error}</p>
+              </div>
+            )}
 
-            {/* Password Field */}
-            <div className="space-y-2">
-              <label htmlFor="password" className="block text-sm font-semibold text-[#1F2B37]">
-                Password
-              </label>
-              <div className="relative">
+            {/* Login Form */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Email Field */}
+              <div className="space-y-1.5">
+                <label htmlFor="email" className="block text-sm font-semibold text-gray-900">
+                  Email address
+                </label>
                 <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-4 py-3 pr-12 bg-white border border-[#E5E7EB] rounded-lg text-[#1F2B37] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#7C4DFF] focus:border-transparent transition-all"
-                  placeholder="Enter your password"
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
+                  placeholder="you@company.com"
                   required
                   disabled={loading}
+                  autoFocus
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B7280] hover:text-[#1F2B37] transition-colors"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
               </div>
-            </div>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#7C4DFF] hover:bg-[#6B3FE6] text-white font-semibold py-4 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[#7C4DFF]/20 hover:shadow-xl hover:shadow-[#7C4DFF]/30"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      fill="none"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                  Signing in...
+              {/* Password Field */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="password" className="block text-sm font-semibold text-gray-900">
+                    Password
+                  </label>
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs font-medium text-brand-500 hover:text-brand-600 transition-colors"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="w-full px-4 py-3 pr-12 bg-white border border-gray-200 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
+                    placeholder="Enter your password"
+                    required
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900 transition-colors"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-brand-500 hover:bg-brand-600 text-white font-semibold py-3.5 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    Signing in...
+                  </span>
+                ) : (
+                  "Sign in"
+                )}
+              </button>
+            </form>
+          </div>
+
+          {/* Demo Credentials — dev only, collapsible */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setShowDemo((v) => !v)}
+                className="w-full flex items-center justify-between gap-2 px-5 py-3.5 text-left"
+                aria-expanded={showDemo}
+              >
+                <span className="flex items-center gap-2">
+                  <span className="w-7 h-7 bg-brand-50 rounded-md flex items-center justify-center">
+                    <Zap className="w-4 h-4 text-brand-500" />
+                  </span>
+                  <span className="text-sm font-semibold text-gray-900">Demo credentials</span>
+                  <span className="text-xs text-warning-600 bg-warning-50 px-2 py-0.5 rounded-full">Dev only</span>
                 </span>
-              ) : (
-                "Sign In"
+                <span className="text-xs font-medium text-brand-500">{showDemo ? "Hide" : "Show"}</span>
+              </button>
+
+              {showDemo && (
+                <div className="px-5 pb-5 space-y-3 border-t border-gray-100 pt-4">
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Email</p>
+                    <div className="flex items-center justify-between gap-2 p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                      <code className="text-sm text-gray-900 font-mono">gerardoh@gmail.com</code>
+                      <button
+                        onClick={() => copyToClipboard("gerardoh@gmail.com", "email")}
+                        className="text-gray-500 hover:text-brand-500 transition-colors"
+                        aria-label="Copy email"
+                      >
+                        {copiedField === "email" ? (
+                          <Check className="w-4 h-4 text-success-500" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Password</p>
+                    <div className="flex items-center justify-between gap-2 p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                      <code className="text-sm text-gray-900 font-mono">Test123!</code>
+                      <button
+                        onClick={() => copyToClipboard("Test123!", "password")}
+                        className="text-gray-500 hover:text-brand-500 transition-colors"
+                        aria-label="Copy password"
+                      >
+                        {copiedField === "password" ? (
+                          <Check className="w-4 h-4 text-success-500" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleDemoFill}
+                    className="w-full bg-gray-900 hover:bg-gray-700 text-white font-semibold py-2.5 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-sm"
+                  >
+                    <Zap className="w-4 h-4" />
+                    Fill login form
+                  </button>
+                </div>
               )}
-            </button>
-          </form>
-
-          {/* Links */}
-          <div className="flex items-center justify-between text-sm">
-            <Link href="/forgot-password" className="text-[#7C4DFF] hover:text-[#6B3FE6] font-medium transition-colors">
-              Forgot password?
-            </Link>
-            <Link href="/register" className="text-[#6B7280] hover:text-[#1F2B37] font-medium transition-colors">
-              Don't have an account? <span className="text-[#7C4DFF]">Sign up</span>
-            </Link>
-          </div>
-        </div>
-
-        {/* Demo Credentials Card - Only show in development */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="bg-white rounded-2xl shadow-lg border border-[#E5E7EB] p-6 space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-[#7C4DFF]/10 rounded-lg flex items-center justify-center">
-                <Zap className="w-4 h-4 text-[#7C4DFF]" />
-              </div>
-              <h3 className="font-bold text-[#1F2B37]">Demo Credentials</h3>
-              <span className="ml-auto text-xs text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">Dev only</span>
             </div>
+          )}
 
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-wide">Email</p>
-                <div className="flex items-center justify-between gap-2 p-3 bg-[#F9F9F9] rounded-lg border border-[#E5E7EB]">
-                  <code className="text-sm text-[#1F2B37] font-mono">gerardoh@gmail.com</code>
-                  <button
-                    onClick={() => copyToClipboard("gerardoh@gmail.com", "email")}
-                    className="text-[#6B7280] hover:text-[#7C4DFF] transition-colors"
-                    aria-label="Copy email"
-                  >
-                    {copiedField === "email" ? (
-                      <Check className="w-4 h-4 text-[#10B981]" />
-                    ) : (
-                      <Copy className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-wide">Password</p>
-                <div className="flex items-center justify-between gap-2 p-3 bg-[#F9F9F9] rounded-lg border border-[#E5E7EB]">
-                  <code className="text-sm text-[#1F2B37] font-mono">Test123!</code>
-                  <button
-                    onClick={() => copyToClipboard("Test123!", "password")}
-                    className="text-[#6B7280] hover:text-[#7C4DFF] transition-colors"
-                    aria-label="Copy password"
-                  >
-                    {copiedField === "password" ? (
-                      <Check className="w-4 h-4 text-[#10B981]" />
-                    ) : (
-                      <Copy className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleDemoFill}
-              className="w-full bg-[#1F2B37] hover:bg-[#374151] text-white font-semibold py-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
-            >
-              <Zap className="w-4 h-4" />
-              Fill Login Form
-            </button>
-          </div>
-        )}
-
-        {/* Back to Home */}
-        <div className="text-center">
-          <Link href="/" className="text-sm text-[#6B7280] hover:text-[#1F2B37] font-medium transition-colors">
-            ← Back to Home
-          </Link>
+          {/* Trust footer */}
+          <p className="flex items-center justify-center gap-1.5 text-xs text-gray-400">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            Trusted by escrow &amp; title professionals
+          </p>
         </div>
-      </div>
+      </main>
     </div>
   )
 }
@@ -323,8 +357,8 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#F9F9F9] flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#7C4DFF] border-t-transparent" />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-brand-500 border-t-transparent" />
         </div>
       }
     >

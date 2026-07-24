@@ -1,133 +1,190 @@
 'use client';
 
+// F6: visual re-implementation from the V0 reference (temp-v0, reference
+// only — not merged). Logic contracts preserved: nav items and hrefs,
+// AuthManager.isAdmin() gating, AuthManager.logout(), collapse/expand.
+// Fixed by design: the active accent now renders (the old `border-l-3`
+// class doesn't exist in Tailwind), active matching is exact-plus-subroute
+// instead of bare startsWith, and mobile gets an off-canvas drawer.
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 import { AuthManager } from '../utils/auth';
-import { Home, FileText, FolderOpen, Users, UserPlus, Settings, Shield, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  LayoutDashboard,
+  FilePlus2,
+  Files,
+  Share2,
+  Users,
+  Settings,
+  ShieldCheck,
+  LogOut,
+  Menu,
+  X,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
+
+const NAV_ITEMS = [
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/deed-builder', icon: FilePlus2, label: 'Create Deed' },
+  { href: '/past-deeds', icon: Files, label: 'Past Deeds' },
+  { href: '/shared-deeds', icon: Share2, label: 'Shared Deeds' },
+  { href: '/partners', icon: Users, label: 'Partners' },
+  { href: '/account-settings', icon: Settings, label: 'Settings' },
+];
+
+const ADMIN_ITEM = { href: '/admin', icon: ShieldCheck, label: 'Admin' };
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Check admin status on mount
+  // Check admin status on mount (localStorage isn't available during SSR)
   useEffect(() => {
     setIsAdmin(AuthManager.isAdmin());
   }, []);
-
-  const toggleSidebar = () => {
-    setIsCollapsed(!isCollapsed);
-  };
 
   const handleLogout = () => {
     AuthManager.logout();
     window.location.href = '/login';
   };
 
-  // Base nav items (shown to all users)
-  const navItems = [
-    { href: '/dashboard', icon: Home, label: 'Dashboard' },
-    { href: '/deed-builder', icon: FileText, label: 'Create Deed' },
-    { href: '/past-deeds', icon: FolderOpen, label: 'Past Deeds' },
-    { href: '/shared-deeds', icon: Users, label: 'Shared Deeds' },
-    { href: '/partners', icon: UserPlus, label: 'Partners' },
-    { href: '/account-settings', icon: Settings, label: 'Settings' },
-    // Admin link - only added if user is admin (see below)
-  ];
+  // Active = exact match or a sub-route of the item (so /deed-builder/grant-deed
+  // keeps Create Deed lit without the old prefix over-matching).
+  const isActive = (href: string) =>
+    pathname === href || !!pathname?.startsWith(`${href}/`);
 
-  // Add admin link only for admin users
-  if (isAdmin) {
-    navItems.push({ href: '/admin', icon: Shield, label: 'Admin' });
-  }
+  const items = isAdmin ? [...NAV_ITEMS, ADMIN_ITEM] : NAV_ITEMS;
 
-  const isActive = (href: string) => {
-    if (href === '/dashboard') {
-      return pathname === '/dashboard';
-    }
-    return pathname?.startsWith(href);
-  };
+  const navList = (collapsed: boolean) => (
+    <ul className="flex-1 px-3 py-4 space-y-1 overflow-y-auto" aria-label="Primary">
+      {items.map((item) => {
+        const Icon = item.icon;
+        const active = isActive(item.href);
+        return (
+          <li key={item.href}>
+            <Link
+              href={item.href}
+              onClick={() => setIsMobileOpen(false)}
+              aria-current={active ? 'page' : undefined}
+              title={collapsed ? item.label : undefined}
+              className={`relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                collapsed ? 'justify-center' : ''
+              } ${
+                active
+                  ? 'bg-brand-50 text-brand-600'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+              }`}
+            >
+              <span
+                className={`absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full bg-brand-500 transition-opacity ${
+                  active ? 'opacity-100' : 'opacity-0'
+                }`}
+                aria-hidden="true"
+              />
+              <Icon className="w-5 h-5 flex-shrink-0" />
+              {!collapsed && <span className="truncate">{item.label}</span>}
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
 
-  return (
-    <nav 
-      className={`bg-white border-r border-gray-200 h-screen sticky top-0 flex flex-col transition-all duration-300 ${
-        isCollapsed ? 'w-16' : 'w-64'
+  const brand = (collapsed: boolean) => (
+    <div
+      className={`flex items-center gap-2.5 px-5 py-5 border-b border-gray-100 ${
+        collapsed ? 'justify-center px-0' : ''
       }`}
     >
-      {/* Header */}
-      <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-        {!isCollapsed && (
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#7C4DFF] rounded-lg flex items-center justify-center text-white font-bold text-lg">
-              DP
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-[#1F2B37]">DeedPro</h2>
-            </div>
-          </div>
-        )}
-        {isCollapsed && (
-          <div className="w-10 h-10 bg-[#7C4DFF] rounded-lg flex items-center justify-center text-white font-bold text-lg mx-auto">
-            DP
-          </div>
-        )}
-      </div>
+      <span className="w-9 h-9 rounded-lg bg-brand-500 flex items-center justify-center flex-shrink-0">
+        <ShieldCheck className="w-5 h-5 text-white" />
+      </span>
+      {!collapsed && (
+        <span className="text-xl font-bold tracking-tight text-gray-900">DeedPro</span>
+      )}
+    </div>
+  );
 
-      {/* Toggle Button */}
+  const logoutButton = (collapsed: boolean) => (
+    <div className="px-3 py-4 border-t border-gray-100">
       <button
-        onClick={toggleSidebar}
-        className="absolute -right-3 top-20 bg-white border border-gray-200 rounded-full p-1 hover:bg-gray-50 transition-colors z-10 shadow-sm"
-        title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        onClick={handleLogout}
+        title={collapsed ? 'Logout' : undefined}
+        className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-error-600 hover:bg-error-50 transition-colors w-full ${
+          collapsed ? 'justify-center' : ''
+        }`}
       >
-        {isCollapsed ? (
-          <ChevronRight className="w-4 h-4 text-gray-600" />
-        ) : (
-          <ChevronLeft className="w-4 h-4 text-gray-600" />
-        )}
+        <LogOut className="w-5 h-5 flex-shrink-0" />
+        {!collapsed && <span>Logout</span>}
+      </button>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Mobile: floating menu button (pages lay Sidebar + main in a flex
+          row, so a fixed trigger avoids reflowing every page on mobile) */}
+      <button
+        onClick={() => setIsMobileOpen(true)}
+        className="md:hidden fixed top-4 right-4 z-40 p-2.5 rounded-full bg-white border border-gray-200 shadow-md text-gray-600 hover:text-brand-500 transition-colors"
+        aria-label="Open navigation menu"
+      >
+        <Menu className="w-5 h-5" />
       </button>
 
-      {/* Navigation Links */}
-      <ul className="flex-1 p-2 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const active = isActive(item.href);
-          return (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                className={`
-                  flex items-center gap-3 px-3 py-3.5 rounded-lg font-medium 
-                  transition-all duration-200 ease-out
-                  ${active 
-                    ? 'bg-[#7C4DFF]/15 text-[#7C4DFF] border-l-3 border-[#7C4DFF] shadow-sm' 
-                    : 'text-gray-700 hover:bg-[#7C4DFF]/10 hover:text-[#7C4DFF] hover:translate-x-1'
-                  }
-                `}
-                title={isCollapsed ? item.label : ''}
-              >
-                <Icon className={`w-5 h-5 flex-shrink-0 transition-transform ${active ? 'text-[#7C4DFF] scale-110' : ''}`} />
-                {!isCollapsed && (
-                  <span className="text-base">{item.label}</span>
-                )}
-              </Link>
-            </li>
-          );
-        })}
+      {/* Mobile off-canvas overlay */}
+      {isMobileOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/40 z-40"
+          onClick={() => setIsMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
 
-        {/* Logout Button */}
-        <li className="pt-4 mt-4 border-t border-gray-200">
+      {/* Mobile off-canvas drawer */}
+      <aside
+        className={`md:hidden fixed top-0 left-0 h-full w-72 bg-white z-50 flex flex-col shadow-xl transform transition-transform duration-300 ease-in-out ${
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+        aria-hidden={!isMobileOpen}
+      >
+        <div className="flex items-center justify-between border-b border-gray-100 pr-3">
+          {brand(false)}
           <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-3.5 rounded-lg text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors group w-full"
-            title={isCollapsed ? 'Logout' : ''}
+            onClick={() => setIsMobileOpen(false)}
+            className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+            aria-label="Close navigation menu"
           >
-            <LogOut className="w-5 h-5 flex-shrink-0" />
-            {!isCollapsed && (
-              <span className="font-medium text-base">Logout</span>
-            )}
+            <X className="w-5 h-5" />
           </button>
-        </li>
-      </ul>
-    </nav>
+        </div>
+        {navList(false)}
+        {logoutButton(false)}
+      </aside>
+
+      {/* Desktop sidebar (collapsible icon rail) */}
+      <nav
+        className={`hidden md:flex md:flex-col bg-white border-r border-gray-200 h-screen sticky top-0 transition-all duration-300 ${
+          isCollapsed ? 'w-20' : 'w-64'
+        }`}
+      >
+        <div className="relative">
+          {brand(isCollapsed)}
+          <button
+            onClick={() => setIsCollapsed((v) => !v)}
+            className="absolute -right-3 top-6 w-6 h-6 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-500 hover:text-brand-500 hover:border-brand-500 transition-colors z-10"
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
+        </div>
+        {navList(isCollapsed)}
+        {logoutButton(isCollapsed)}
+      </nav>
+    </>
   );
 }

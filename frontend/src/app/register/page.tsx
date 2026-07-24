@@ -1,11 +1,15 @@
 "use client"
 
+// F6: visual re-implementation from the V0 reference (temp-v0, reference
+// only). Logic contracts preserved: every field, validation rule, and the
+// F2 auto-login success handler (the reference still had the old
+// redirect-to-login flow — a bug in the reference, not a design choice).
 import type React from "react"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Eye, EyeOff, CheckCircle2, Zap, Shield } from "lucide-react"
+import { Eye, EyeOff, ShieldCheck } from "lucide-react"
 import { AuthManager } from "@/utils/auth"
 
 const states = [
@@ -229,45 +233,58 @@ export default function RegisterPage() {
     if (/\d/.test(password)) strength++
     if (/[^a-zA-Z0-9]/.test(password)) strength++
 
-    if (strength <= 2) return { strength, label: "Weak", color: "bg-red-500" }
-    if (strength <= 3) return { strength, label: "Fair", color: "bg-yellow-500" }
+    if (strength <= 2) return { strength, label: "Weak", color: "bg-error-500" }
+    if (strength <= 3) return { strength, label: "Fair", color: "bg-warning-500" }
     if (strength <= 4) return { strength, label: "Good", color: "bg-blue-500" }
-    return { strength, label: "Strong", color: "bg-green-500" }
+    return { strength, label: "Strong", color: "bg-success-500" }
   }
 
   const passwordStrength = getPasswordStrength()
 
+  const inputBase =
+    "w-full px-4 py-3 bg-white border rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
+
   return (
-    <div className="min-h-screen bg-[#F9F9F9] flex flex-col">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Link href="/" className="text-2xl font-bold text-[#1F2B37]">
-            DeedPro
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Top brand bar */}
+      <header className="px-4 sm:px-6 lg:px-8 py-5">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5">
+            <span className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center">
+              <ShieldCheck className="w-5 h-5 text-white" />
+            </span>
+            <span className="text-xl font-bold tracking-tight text-gray-900">DeedPro</span>
+          </Link>
+          <Link href="/login" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">
+            Already have an account? <span className="text-brand-500">Sign in</span>
           </Link>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          {/* Header Section */}
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-[#1F2B37] mb-3">Join DeedPro Today</h1>
-            <p className="text-lg text-gray-600">Start creating professional deeds in seconds</p>
+      {/* Centered form column */}
+      <main className="flex-1 flex items-center justify-center px-4 py-8">
+        <div className="w-full max-w-xl space-y-6 animate-in fade-in duration-500">
+          {/* Heading */}
+          <div className="space-y-1.5">
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900">Create your account</h1>
+            <p className="text-[15px] text-gray-500 leading-relaxed">
+              Set up your workspace to start generating recorder-ready deeds.
+            </p>
           </div>
 
           {/* Registration Form Card */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-12">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-7">
             {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
+              <div className="mb-6 p-3.5 bg-error-50 border border-error-500/20 rounded-lg text-error-600 text-sm font-medium">
+                {error}
+              </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
               {/* Email */}
-              <div>
-                <label htmlFor="email" className="block text-sm font-semibold text-[#1F2B37] mb-2">
-                  Email Address <span className="text-red-500">*</span>
+              <div className="space-y-1.5">
+                <label htmlFor="email" className="block text-sm font-semibold text-gray-900">
+                  Email address <span className="text-error-500">*</span>
                 </label>
                 <input
                   type="email"
@@ -275,19 +292,17 @@ export default function RegisterPage() {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className={`w-full px-4 py-3 border ${
-                    validationErrors.email ? "border-red-500" : "border-gray-300"
-                  } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF] focus:border-transparent transition-all`}
+                  className={`${inputBase} ${validationErrors.email ? "border-error-500" : "border-gray-200"}`}
                   placeholder="you@company.com"
                 />
-                {validationErrors.email && <p className="mt-1 text-sm text-red-500">{validationErrors.email}</p>}
+                {validationErrors.email && <p className="mt-1 text-sm text-error-500">{validationErrors.email}</p>}
               </div>
 
               {/* Password & Confirm Password */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="password" className="block text-sm font-semibold text-[#1F2B37] mb-2">
-                    Password <span className="text-red-500">*</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-1.5">
+                  <label htmlFor="password" className="block text-sm font-semibold text-gray-900">
+                    Password <span className="text-error-500">*</span>
                   </label>
                   <div className="relative">
                     <input
@@ -296,15 +311,16 @@ export default function RegisterPage() {
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
-                      className={`w-full px-4 py-3 border ${
-                        validationErrors.password ? "border-red-500" : "border-gray-300"
-                      } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF] focus:border-transparent transition-all pr-12`}
+                      className={`${inputBase} pr-12 ${
+                        validationErrors.password ? "border-error-500" : "border-gray-200"
+                      }`}
                       placeholder="••••••••"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900 transition-colors"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
                     >
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
@@ -318,18 +334,18 @@ export default function RegisterPage() {
                             style={{ width: `${(passwordStrength.strength / 5) * 100}%` }}
                           />
                         </div>
-                        <span className="text-xs font-medium text-gray-600">{passwordStrength.label}</span>
+                        <span className="text-xs font-medium text-gray-500">{passwordStrength.label}</span>
                       </div>
                     </div>
                   )}
                   {validationErrors.password && (
-                    <p className="mt-1 text-sm text-red-500">{validationErrors.password}</p>
+                    <p className="mt-1 text-sm text-error-500">{validationErrors.password}</p>
                   )}
                 </div>
 
-                <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-semibold text-[#1F2B37] mb-2">
-                    Confirm Password <span className="text-red-500">*</span>
+                <div className="space-y-1.5">
+                  <label htmlFor="confirmPassword" className="block text-sm font-semibold text-gray-900">
+                    Confirm password <span className="text-error-500">*</span>
                   </label>
                   <div className="relative">
                     <input
@@ -338,29 +354,30 @@ export default function RegisterPage() {
                       name="confirmPassword"
                       value={formData.confirmPassword}
                       onChange={handleChange}
-                      className={`w-full px-4 py-3 border ${
-                        validationErrors.confirmPassword ? "border-red-500" : "border-gray-300"
-                      } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF] focus:border-transparent transition-all pr-12`}
+                      className={`${inputBase} pr-12 ${
+                        validationErrors.confirmPassword ? "border-error-500" : "border-gray-200"
+                      }`}
                       placeholder="••••••••"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900 transition-colors"
+                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
                     >
                       {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
                   {validationErrors.confirmPassword && (
-                    <p className="mt-1 text-sm text-red-500">{validationErrors.confirmPassword}</p>
+                    <p className="mt-1 text-sm text-error-500">{validationErrors.confirmPassword}</p>
                   )}
                 </div>
               </div>
 
               {/* Full Name */}
-              <div>
-                <label htmlFor="fullName" className="block text-sm font-semibold text-[#1F2B37] mb-2">
-                  Full Name <span className="text-red-500">*</span>
+              <div className="space-y-1.5">
+                <label htmlFor="fullName" className="block text-sm font-semibold text-gray-900">
+                  Full name <span className="text-error-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -368,28 +385,26 @@ export default function RegisterPage() {
                   name="fullName"
                   value={formData.fullName}
                   onChange={handleChange}
-                  className={`w-full px-4 py-3 border ${
-                    validationErrors.fullName ? "border-red-500" : "border-gray-300"
-                  } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF] focus:border-transparent transition-all`}
+                  className={`${inputBase} ${validationErrors.fullName ? "border-error-500" : "border-gray-200"}`}
                   placeholder="John Smith"
                 />
-                {validationErrors.fullName && <p className="mt-1 text-sm text-red-500">{validationErrors.fullName}</p>}
+                {validationErrors.fullName && <p className="mt-1 text-sm text-error-500">{validationErrors.fullName}</p>}
               </div>
 
               {/* Role & State */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="role" className="block text-sm font-semibold text-[#1F2B37] mb-2">
-                    Professional Role <span className="text-red-500">*</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-1.5">
+                  <label htmlFor="role" className="block text-sm font-semibold text-gray-900">
+                    Professional role <span className="text-error-500">*</span>
                   </label>
                   <select
                     id="role"
                     name="role"
                     value={formData.role}
                     onChange={handleChange}
-                    className={`w-full px-4 py-3 border ${
-                      validationErrors.role ? "border-red-500" : "border-gray-300"
-                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF] focus:border-transparent transition-all bg-white`}
+                    className={`${inputBase} bg-white ${
+                      validationErrors.role ? "border-error-500" : "border-gray-200"
+                    }`}
                   >
                     <option value="">Select your role</option>
                     {roles.map((role) => (
@@ -398,21 +413,21 @@ export default function RegisterPage() {
                       </option>
                     ))}
                   </select>
-                  {validationErrors.role && <p className="mt-1 text-sm text-red-500">{validationErrors.role}</p>}
+                  {validationErrors.role && <p className="mt-1 text-sm text-error-500">{validationErrors.role}</p>}
                 </div>
 
-                <div>
-                  <label htmlFor="state" className="block text-sm font-semibold text-[#1F2B37] mb-2">
-                    State <span className="text-red-500">*</span>
+                <div className="space-y-1.5">
+                  <label htmlFor="state" className="block text-sm font-semibold text-gray-900">
+                    State <span className="text-error-500">*</span>
                   </label>
                   <select
                     id="state"
                     name="state"
                     value={formData.state}
                     onChange={handleChange}
-                    className={`w-full px-4 py-3 border ${
-                      validationErrors.state ? "border-red-500" : "border-gray-300"
-                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF] focus:border-transparent transition-all bg-white`}
+                    className={`${inputBase} bg-white ${
+                      validationErrors.state ? "border-error-500" : "border-gray-200"
+                    }`}
                   >
                     <option value="">Select your state</option>
                     {states.map((state) => (
@@ -421,15 +436,15 @@ export default function RegisterPage() {
                       </option>
                     ))}
                   </select>
-                  {validationErrors.state && <p className="mt-1 text-sm text-red-500">{validationErrors.state}</p>}
+                  {validationErrors.state && <p className="mt-1 text-sm text-error-500">{validationErrors.state}</p>}
                 </div>
               </div>
 
               {/* Company Name & Company Type */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="companyName" className="block text-sm font-semibold text-[#1F2B37] mb-2">
-                    Company Name <span className="text-gray-400 text-xs">(Optional)</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-1.5">
+                  <label htmlFor="companyName" className="block text-sm font-semibold text-gray-900">
+                    Company name <span className="text-gray-400 text-xs font-normal">(Optional)</span>
                   </label>
                   <input
                     type="text"
@@ -437,21 +452,21 @@ export default function RegisterPage() {
                     name="companyName"
                     value={formData.companyName}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF] focus:border-transparent transition-all"
+                    className={`${inputBase} border-gray-200`}
                     placeholder="Your Company LLC"
                   />
                 </div>
 
-                <div>
-                  <label htmlFor="companyType" className="block text-sm font-semibold text-[#1F2B37] mb-2">
-                    Company Type <span className="text-gray-400 text-xs">(Optional)</span>
+                <div className="space-y-1.5">
+                  <label htmlFor="companyType" className="block text-sm font-semibold text-gray-900">
+                    Company type <span className="text-gray-400 text-xs font-normal">(Optional)</span>
                   </label>
                   <select
                     id="companyType"
                     name="companyType"
                     value={formData.companyType}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF] focus:border-transparent transition-all bg-white"
+                    className={`${inputBase} bg-white border-gray-200`}
                   >
                     <option value="">Select company type</option>
                     {companyTypes.map((type) => (
@@ -464,9 +479,9 @@ export default function RegisterPage() {
               </div>
 
               {/* Phone */}
-              <div>
-                <label htmlFor="phone" className="block text-sm font-semibold text-[#1F2B37] mb-2">
-                  Phone Number <span className="text-gray-400 text-xs">(Optional)</span>
+              <div className="space-y-1.5">
+                <label htmlFor="phone" className="block text-sm font-semibold text-gray-900">
+                  Phone number <span className="text-gray-400 text-xs font-normal">(Optional)</span>
                 </label>
                 <input
                   type="tel"
@@ -474,13 +489,13 @@ export default function RegisterPage() {
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7C4DFF] focus:border-transparent transition-all"
+                  className={`${inputBase} border-gray-200`}
                   placeholder="(555) 123-4567"
                 />
               </div>
 
               {/* Checkboxes */}
-              <div className="space-y-3 pt-2">
+              <div className="space-y-3 pt-1">
                 <div className="flex items-start">
                   <input
                     type="checkbox"
@@ -488,22 +503,22 @@ export default function RegisterPage() {
                     name="agreeTerms"
                     checked={formData.agreeTerms}
                     onChange={handleChange}
-                    className="mt-1 h-4 w-4 text-[#7C4DFF] border-gray-300 rounded focus:ring-[#7C4DFF] focus:ring-2"
+                    className="mt-1 h-4 w-4 text-brand-500 border-gray-200 rounded focus:ring-brand-500 focus:ring-2"
                   />
                   <label htmlFor="agreeTerms" className="ml-3 text-sm text-gray-700">
                     I agree to the{" "}
-                    <Link href="/terms" className="text-[#7C4DFF] hover:underline font-medium">
+                    <Link href="/terms" className="text-brand-500 hover:underline font-medium">
                       Terms of Service
                     </Link>{" "}
                     and{" "}
-                    <Link href="/privacy" className="text-[#7C4DFF] hover:underline font-medium">
+                    <Link href="/privacy" className="text-brand-500 hover:underline font-medium">
                       Privacy Policy
                     </Link>
-                    <span className="text-red-500 ml-1">*</span>
+                    <span className="text-error-500 ml-1">*</span>
                   </label>
                 </div>
                 {validationErrors.agreeTerms && (
-                  <p className="ml-7 text-sm text-red-500">{validationErrors.agreeTerms}</p>
+                  <p className="ml-7 text-sm text-error-500">{validationErrors.agreeTerms}</p>
                 )}
 
                 <div className="flex items-start">
@@ -513,7 +528,7 @@ export default function RegisterPage() {
                     name="subscribe"
                     checked={formData.subscribe}
                     onChange={handleChange}
-                    className="mt-1 h-4 w-4 text-[#7C4DFF] border-gray-300 rounded focus:ring-[#7C4DFF] focus:ring-2"
+                    className="mt-1 h-4 w-4 text-brand-500 border-gray-200 rounded focus:ring-brand-500 focus:ring-2"
                   />
                   <label htmlFor="subscribe" className="ml-3 text-sm text-gray-700">
                     Send me product updates and tips via email
@@ -525,56 +540,28 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#7C4DFF] text-white font-semibold py-4 rounded-lg hover:bg-[#6A3FE8] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[#7C4DFF]/20"
+                className="w-full bg-brand-500 text-white font-semibold py-3.5 rounded-lg hover:bg-brand-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
               >
-                {loading ? "Creating Account..." : "Create My Account"}
+                {loading ? "Creating account..." : "Create my account"}
               </button>
 
               {/* Sign In Link */}
-              <p className="text-center text-sm text-gray-600">
+              <p className="text-center text-sm text-gray-500">
                 Already have an account?{" "}
-                <Link href="/login" className="text-[#7C4DFF] hover:underline font-semibold">
+                <Link href="/login" className="text-brand-500 hover:underline font-semibold">
                   Sign in
                 </Link>
               </p>
             </form>
           </div>
 
-          {/* Feature Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-xl p-6 border border-gray-200 text-center">
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle2 className="text-green-600" size={24} />
-              </div>
-              <h3 className="font-bold text-[#1F2B37] mb-2">Free to Start</h3>
-              <p className="text-sm text-gray-600">No credit card required. Start creating deeds immediately.</p>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 border border-gray-200 text-center">
-              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Zap className="text-[#7C4DFF]" size={24} />
-              </div>
-              <h3 className="font-bold text-[#1F2B37] mb-2">AI-Powered</h3>
-              <p className="text-sm text-gray-600">Generate professional deeds in seconds with AI assistance.</p>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 border border-gray-200 text-center">
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="text-blue-600" size={24} />
-              </div>
-              <h3 className="font-bold text-[#1F2B37] mb-2">Secure & Compliant</h3>
-              <p className="text-sm text-gray-600">Bank-level security with state-specific compliance built in.</p>
-            </div>
-          </div>
+          {/* Trust footer */}
+          <p className="flex items-center justify-center gap-1.5 text-xs text-gray-400">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            Bank-level security &middot; State-specific compliance built in
+          </p>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-gray-600">
-          © 2025 DeedPro. All rights reserved.
-        </div>
-      </footer>
     </div>
   )
 }
