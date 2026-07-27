@@ -272,75 +272,74 @@ function LoginContent() {
             </form>
           </div>
 
-          {/* Demo Credentials — dev only, collapsible */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-              <button
-                type="button"
-                onClick={() => setShowDemo((v) => !v)}
-                className="w-full flex items-center justify-between gap-2 px-5 py-3.5 text-left"
-                aria-expanded={showDemo}
-              >
-                <span className="flex items-center gap-2">
-                  <span className="w-7 h-7 bg-brand-50 rounded-md flex items-center justify-center">
-                    <Zap className="w-4 h-4 text-brand-500" />
-                  </span>
-                  <span className="text-sm font-semibold text-gray-900">Demo credentials</span>
-                  <span className="text-xs text-warning-600 bg-warning-50 px-2 py-0.5 rounded-full">Dev only</span>
+          {/* Demo Credentials — always shown, collapsible (owner decision
+              2026-07-27: the V0 design renders these unconditionally so
+              logging in for demos is one click) */}
+          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowDemo((v) => !v)}
+              className="w-full flex items-center justify-between gap-2 px-5 py-3.5 text-left"
+              aria-expanded={showDemo}
+            >
+              <span className="flex items-center gap-2">
+                <span className="w-7 h-7 bg-brand-50 rounded-md flex items-center justify-center">
+                  <Zap className="w-4 h-4 text-brand-500" />
                 </span>
-                <span className="text-xs font-medium text-brand-500">{showDemo ? "Hide" : "Show"}</span>
-              </button>
+                <span className="text-sm font-semibold text-gray-900">Demo credentials</span>
+              </span>
+              <span className="text-xs font-medium text-brand-500">{showDemo ? "Hide" : "Show"}</span>
+            </button>
 
-              {showDemo && (
-                <div className="px-5 pb-5 space-y-3 border-t border-gray-100 pt-4">
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Email</p>
-                    <div className="flex items-center justify-between gap-2 p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                      <code className="text-sm text-gray-900 font-mono">gerardoh@gmail.com</code>
-                      <button
-                        onClick={() => copyToClipboard("gerardoh@gmail.com", "email")}
-                        className="text-gray-500 hover:text-brand-500 transition-colors"
-                        aria-label="Copy email"
-                      >
-                        {copiedField === "email" ? (
-                          <Check className="w-4 h-4 text-success-500" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </button>
-                    </div>
+            {showDemo && (
+              <div className="px-5 pb-5 space-y-3 border-t border-gray-100 pt-4">
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Email</p>
+                  <div className="flex items-center justify-between gap-2 p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                    <code className="text-sm text-gray-900 font-mono">gerardoh@gmail.com</code>
+                    <button
+                      onClick={() => copyToClipboard("gerardoh@gmail.com", "email")}
+                      className="text-gray-500 hover:text-brand-500 transition-colors"
+                      aria-label="Copy email"
+                    >
+                      {copiedField === "email" ? (
+                        <Check className="w-4 h-4 text-success-500" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </button>
                   </div>
-
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Password</p>
-                    <div className="flex items-center justify-between gap-2 p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                      <code className="text-sm text-gray-900 font-mono">Test123!</code>
-                      <button
-                        onClick={() => copyToClipboard("Test123!", "password")}
-                        className="text-gray-500 hover:text-brand-500 transition-colors"
-                        aria-label="Copy password"
-                      >
-                        {copiedField === "password" ? (
-                          <Check className="w-4 h-4 text-success-500" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleDemoFill}
-                    className="w-full bg-gray-900 hover:bg-gray-700 text-white font-semibold py-2.5 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-sm"
-                  >
-                    <Zap className="w-4 h-4" />
-                    Fill login form
-                  </button>
                 </div>
-              )}
-            </div>
-          )}
+
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Password</p>
+                  <div className="flex items-center justify-between gap-2 p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                    <code className="text-sm text-gray-900 font-mono">Test123!</code>
+                    <button
+                      onClick={() => copyToClipboard("Test123!", "password")}
+                      className="text-gray-500 hover:text-brand-500 transition-colors"
+                      aria-label="Copy password"
+                    >
+                      {copiedField === "password" ? (
+                        <Check className="w-4 h-4 text-success-500" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleDemoFill}
+                  className="w-full bg-gray-900 hover:bg-gray-700 text-white font-semibold py-2.5 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-sm"
+                >
+                  <Zap className="w-4 h-4" />
+                  Fill login form
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Trust footer */}
           <p className="flex items-center justify-center gap-1.5 text-xs text-gray-400">
