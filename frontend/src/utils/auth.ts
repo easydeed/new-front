@@ -94,7 +94,12 @@ export class AuthManager {
       // Clear auth data
       localStorage.removeItem(this.TOKEN_KEY);
       localStorage.removeItem(this.USER_KEY);
-      
+
+      // G1: also clear the legacy pre-AuthManager 'token' key. A stale copy
+      // masked the dead read in DeedBuilder for months — logout must not
+      // leave fossil credentials behind to camouflage the next one.
+      localStorage.removeItem('token');
+
       // PATCH4a-FIX: Clear wizard state (both Modern and Classic)
       // This ensures user gets fresh property search on next login
       localStorage.removeItem('deedWizardDraft_modern');
