@@ -194,7 +194,11 @@ function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          // G1: AuthManager stores the session under 'access_token'; the bare
+          // 'token' key is a pre-AuthManager fossil nothing writes anymore.
+          // This was the only call site reading it without the fallback —
+          // every fresh session generated with "Bearer null" (demo blocker).
+          'Authorization': `Bearer ${localStorage.getItem('access_token') || localStorage.getItem('token')}`,
         },
         body: JSON.stringify(payload),
       });
