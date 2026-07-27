@@ -5,41 +5,27 @@
     <title>Grant Deed - California</title>
     <style>
         /* ==========================================================================
-           GRANT DEED - CALIFORNIA
-           DeedPro Professional Template v2.0
-           
-           Features:
-           - CA County Recorder compliant margins
-           - Title Order & Escrow number support
-           - QR code verification footer
-           - Perfect typography hierarchy
-           - Print-optimized layout
+           GRANT DEED — CALIFORNIA (G2 rebuild)
+
+           Geometry mirrors the owner's reference sample of a standard recorded
+           CA Grant Deed plus statute:
+           - Gov. Code §27361.6: recorder's space top-right of page one
+             (open space — no drawn box; a border invites rejection), caption
+             "SPACE ABOVE THIS LINE IS FOR RECORDER'S USE" at its bottom
+             boundary (~2.66" from the page top in the reference).
+           - R&T §11932–11933: DTT declaration opens with
+             "THE UNDERSIGNED GRANTOR(S) DECLARE(S):" and shows the
+             computed-on and unincorporated/City checklines.
+           - Gov. Code §27361.7 reproducibility: recorded pages carry no
+             color, no backgrounds, no branding. The QR/verification block
+             was REMOVED from recorded pages — the capability survives as
+             data (deed_pdfs.sha256 + metadata + the /api/verify portal).
            ========================================================================== */
 
-        /* --------------------------------------------------------------------------
-           PAGE SETUP
-           California Recording Requirements:
-           - Top: Space for recorder stamps (2.5" minimum clear)
-           - Left: 1" for binding
-           - Right: 0.5" minimum
-           - Bottom: 0.5" minimum (we use 0.75" for QR footer)
-           -------------------------------------------------------------------------- */
-        
         @page {
             size: letter;
-            margin: 0.5in 0.5in 0.75in 1in;
+            margin: 0.5in 0.5in 0.6in 0.6in;
         }
-
-        @media print {
-            body {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-        }
-
-        /* --------------------------------------------------------------------------
-           BASE STYLES
-           -------------------------------------------------------------------------- */
 
         * {
             margin: 0;
@@ -49,262 +35,143 @@
 
         body {
             font-family: "Times New Roman", Times, Georgia, serif;
-            font-size: 12pt;
-            line-height: 1.5;
+            font-size: 11pt;
+            line-height: 1.35;
             color: #000;
             background: #fff;
         }
 
-        .deed-page {
-            width: 100%;
-            min-height: 100%;
-            position: relative;
-            padding-bottom: 1.25in; /* Space for footer */
-        }
-
         /* --------------------------------------------------------------------------
-           HEADER SECTION - Recording Info & Recorder Space
-           Recorder space must be minimum 3.5" × 2" per CA requirements
+           PAGE-ONE HEADER — left info column beside the open recorder's space.
+           The vertical rule at 3.4in marks the left boundary of the recorder's
+           space, exactly as on the reference form. The space itself is empty.
            -------------------------------------------------------------------------- */
 
         .header-section {
-            display: grid;
-            grid-template-columns: 1fr 3.5in;
-            gap: 0.25in;
-            margin-bottom: 0.2in;
-            min-height: 2.5in;
+            display: flex;
+            min-height: 1.85in;
         }
 
         .recording-info {
+            width: 3.4in;
+            flex-shrink: 0;
+            border-right: 0.75pt solid #000;
+            padding-right: 0.15in;
             font-size: 10pt;
-            line-height: 1.4;
+            line-height: 1.35;
+        }
+
+        .recorder-space {
+            /* Open space for the recorder — nothing renders here. */
+            flex-grow: 1;
         }
 
         .recording-label {
             font-weight: bold;
             text-transform: uppercase;
-            font-size: 8pt;
-            letter-spacing: 0.5px;
-            color: #000;
-            margin-bottom: 2px;
+            font-size: 9pt;
         }
 
         .recording-value {
-            margin-bottom: 0.15in;
-            min-height: 0.5in;
-        }
-
-        .recorder-box {
-            width: 3.5in;
-            height: 2.5in;
-            border: 2pt solid #000;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            padding-top: 0.25in;
-            background: #fff;
-        }
-
-        .recorder-label {
-            font-family: Arial, Helvetica, sans-serif;
-            font-size: 8pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #000;
-            text-align: center;
-            line-height: 1.6;
-        }
-
-        /* Right column container for recorder box + reference numbers */
-        .right-column {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-        }
-
-        /* Reference numbers below recorder box */
-        .reference-numbers {
-            margin-top: 0.12in;
-            text-align: right;
-            font-size: 10pt;
+            margin-bottom: 0.12in;
+            min-height: 0.35in;
         }
 
         .ref-line {
-            margin-bottom: 0.05in;
-            display: flex;
-            justify-content: flex-end;
-            align-items: baseline;
-            gap: 0.08in;
-        }
-
-        .ref-label {
-            font-weight: normal;
             font-size: 10pt;
         }
 
-        .ref-value {
-            display: inline-block;
-            min-width: 1.5in;
-            border-bottom: 1pt solid #000;
-            text-align: left;
-            padding-left: 0.05in;
+        /* Boundary row: APN left, recorder caption right, rule underneath. */
+        .header-boundary {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            border-bottom: 0.75pt solid #000;
+            padding-bottom: 0.03in;
+            margin-bottom: 0.12in;
+        }
+
+        .apn-ref {
             font-size: 10pt;
         }
 
-        .ref-value.monospace {
-            font-family: "Courier New", Courier, monospace;
-            letter-spacing: 0.5px;
-        }
-
-        /* --------------------------------------------------------------------------
-           HORIZONTAL SEPARATOR LINE
-           -------------------------------------------------------------------------- */
-
-        .reference-section {
-            border-bottom: 1.5pt solid #000;
-            padding: 0.08in 0;
-            margin-bottom: 0.15in;
-        }
-
-        .ref-item {
-            display: flex;
-            align-items: baseline;
-            gap: 0.06in;
-            white-space: nowrap;
-        }
-
-        .ref-label {
+        .recorder-caption {
+            font-size: 7.5pt;
             font-weight: bold;
             text-transform: uppercase;
-            font-size: 9pt;
-            letter-spacing: 0.3px;
-        }
-
-        .ref-value {
-            font-weight: normal;
-        }
-
-        .ref-value.monospace {
-            font-family: "Courier New", Courier, monospace;
-            letter-spacing: 0.5px;
         }
 
         /* --------------------------------------------------------------------------
-           DOCUMENT TITLE
+           TITLE
            -------------------------------------------------------------------------- */
 
         .deed-title {
             text-align: center;
-            font-size: 22pt;
+            font-size: 14pt;
             font-weight: bold;
-            letter-spacing: 4px;
+            letter-spacing: 2px;
             text-transform: uppercase;
-            margin: 0.2in 0 0.25in 0;
-            padding: 0.1in 0;
+            margin: 0.08in 0 0.12in 0;
         }
 
         /* --------------------------------------------------------------------------
-           DOCUMENTARY TRANSFER TAX SECTION
+           DOCUMENTARY TRANSFER TAX DECLARATION — statutory wording, no chrome.
            -------------------------------------------------------------------------- */
 
         .dtt-section {
-            margin: 0.2in 0;
-            padding: 0.15in 0.2in;
-            border: 1.5pt solid #000;
             font-size: 10pt;
             line-height: 1.5;
-            page-break-inside: avoid;
-            background: #fafafa;
+            margin-bottom: 0.15in;
         }
 
-        .dtt-header {
-            font-weight: bold;
-            text-transform: uppercase;
-            font-size: 10pt;
-            letter-spacing: 0.5px;
-            margin-bottom: 0.1in;
-            padding-bottom: 0.05in;
-            border-bottom: 0.5pt solid #ccc;
+        .dtt-lead {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.2in;
         }
 
-        .dtt-amount-line {
-            font-size: 11pt;
-            margin: 0.1in 0;
-        }
-
-        .dtt-amount-value {
-            font-weight: bold;
-            border-bottom: 1pt solid #000;
-            padding: 0 0.15in;
-            min-width: 1.5in;
+        .dtt-amount {
+            border-bottom: 0.75pt solid #000;
+            min-width: 1.6in;
             display: inline-block;
-            text-align: right;
+            text-align: center;
         }
 
-        .dtt-options {
-            margin: 0.1in 0 0.1in 0.15in;
+        .checkline {
+            display: inline-block;
+            width: 0.35in;
+            border-bottom: 0.75pt solid #000;
+            text-align: center;
+            font-weight: bold;
+            margin-right: 0.06in;
         }
 
         .dtt-option {
-            display: flex;
-            align-items: flex-start;
-            gap: 0.1in;
-            margin: 0.06in 0;
-        }
-
-        .checkbox {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 12px;
-            height: 12px;
-            border: 1.5pt solid #000;
-            font-size: 9pt;
-            font-weight: bold;
-            flex-shrink: 0;
-            margin-top: 2px;
-            background: #fff;
-        }
-
-        .checkbox.checked {
-            background: #000;
-            color: #fff;
-        }
-
-        .dtt-area-row {
-            display: flex;
-            gap: 0.4in;
-            margin-top: 0.1in;
-            padding-top: 0.08in;
-            border-top: 0.5pt solid #ddd;
+            margin-left: 0.15in;
         }
 
         .city-field {
-            border-bottom: 1pt solid #000;
-            min-width: 2in;
+            border-bottom: 0.75pt solid #000;
+            min-width: 1.8in;
             display: inline-block;
-            padding: 0 0.1in;
+            text-align: center;
+        }
+
+        .dtt-exempt {
+            margin-left: 0.15in;
         }
 
         /* --------------------------------------------------------------------------
-           DEED BODY - Granting Clause
+           DEED BODY
            -------------------------------------------------------------------------- */
 
         .deed-body {
-            margin: 0.2in 0;
-            text-align: justify;
-            font-size: 12pt;
-            line-height: 1.5;
+            font-size: 11pt;
+            line-height: 1.45;
         }
 
         .deed-body p {
-            margin-bottom: 0.12in;
-        }
-
-        .party-block {
-            margin: 0.15in 0;
+            margin-bottom: 0.08in;
         }
 
         .party-name {
@@ -312,179 +179,76 @@
             text-transform: uppercase;
         }
 
-        .party-label {
-            font-style: normal;
-            font-size: 11pt;
-        }
-
-        .grant-verb {
-            text-transform: uppercase;
-            font-weight: bold;
-            letter-spacing: 0.5px;
-        }
-
-        .county-name {
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
-        /* --------------------------------------------------------------------------
-           LEGAL DESCRIPTION
-           -------------------------------------------------------------------------- */
-
-        .legal-section {
-            margin: 0.2in 0;
-            page-break-inside: avoid;
-        }
-
         .legal-content {
-            font-size: 11pt;
-            line-height: 1.6;
-            text-align: justify;
             white-space: pre-wrap;
-            margin: 0.1in 0;
-            padding: 0.1in;
-            background: #fafafa;
-            border-left: 2pt solid #ddd;
+            margin: 0.08in 0 0.08in 0;
         }
 
         .legal-exhibit-ref {
             font-weight: bold;
-            font-style: italic;
+            margin: 0.08in 0;
         }
 
         .apn-line {
-            margin-top: 0.15in;
-            font-size: 11pt;
-        }
-
-        .apn-label {
-            font-weight: bold;
-        }
-
-        .apn-value {
-            font-family: "Courier New", Courier, monospace;
-            letter-spacing: 1px;
-            font-weight: bold;
+            margin-top: 0.08in;
         }
 
         /* --------------------------------------------------------------------------
-           EXECUTION SECTION - Date & Signatures
+           EXECUTION — date left, signature lines right (reference layout).
            -------------------------------------------------------------------------- */
 
         .execution-section {
-            margin-top: 0.3in;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-top: 0.25in;
             page-break-inside: avoid;
         }
 
         .execution-date {
-            margin-bottom: 0.35in;
-            font-size: 12pt;
-        }
-
-        .date-label {
-            font-weight: bold;
+            padding-top: 0.25in;
         }
 
         .date-value {
-            border-bottom: 1pt solid #000;
-            padding: 0 0.15in;
-            min-width: 2.5in;
+            border-bottom: 0.75pt solid #000;
+            min-width: 1.8in;
             display: inline-block;
+            text-align: center;
         }
 
         .signatures {
-            margin-top: 0.3in;
+            width: 3.4in;
         }
 
         .signature-entry {
-            margin-bottom: 0.45in;
+            margin-bottom: 0.35in;
         }
 
         .signature-line {
-            border-bottom: 1pt solid #000;
-            width: 3.5in;
-            height: 0.4in;
+            border-bottom: 0.75pt solid #000;
+            width: 3.4in;
+            height: 0.35in;
         }
 
         .signature-name {
-            font-size: 11pt;
-            margin-top: 0.05in;
-            text-transform: uppercase;
-            font-weight: 500;
-        }
-
-        .signature-capacity {
             font-size: 10pt;
-            color: #333;
-            font-style: italic;
+            text-transform: uppercase;
         }
 
         /* --------------------------------------------------------------------------
-           QR VERIFICATION FOOTER
+           PAGE-ONE FOOTER — statutory mail-tax directive, nothing else.
            -------------------------------------------------------------------------- */
 
-        .deed-footer {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding-top: 0.1in;
-            border-top: 0.5pt solid #ccc;
-        }
-
-        .verification-row {
-            display: flex;
-            align-items: center;
-            gap: 0.15in;
-        }
-
-        .qr-code {
-            width: 0.7in;
-            height: 0.7in;
-            flex-shrink: 0;
-            border: 0.5pt solid #ddd;
-            padding: 2px;
-        }
-
-        .qr-code img {
-            width: 100%;
-            height: 100%;
-        }
-
-        .verification-text {
-            font-family: Arial, Helvetica, sans-serif;
-            font-size: 8pt;
-            color: #444;
-            line-height: 1.4;
-        }
-
-        .verify-label {
-            font-weight: bold;
-            color: #000;
-            font-size: 8pt;
-        }
-
-        .verify-url {
-            font-family: "Courier New", monospace;
+        .mail-tax-directive {
+            text-align: center;
             font-size: 9pt;
-            color: #7C4DFF;
-            letter-spacing: 0.3px;
-        }
-
-        .verify-meta {
-            font-size: 7pt;
-            color: #888;
-            margin-top: 2px;
-        }
-
-        .deedpro-brand {
-            color: #7C4DFF;
             font-weight: bold;
+            text-transform: uppercase;
+            margin-top: 0.3in;
         }
 
         /* --------------------------------------------------------------------------
-           PAGE BREAK & EXHIBIT
+           EXHIBIT A (legal-description overflow) — plain page.
            -------------------------------------------------------------------------- */
 
         .page-break {
@@ -501,27 +265,25 @@
         }
 
         .exhibit-title {
-            font-size: 16pt;
+            font-size: 14pt;
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 2px;
         }
 
         .exhibit-subtitle {
-            font-size: 12pt;
-            margin-top: 0.1in;
-            font-style: italic;
+            font-size: 11pt;
+            margin-top: 0.08in;
         }
 
         .exhibit-reference {
             font-size: 10pt;
-            margin-top: 0.15in;
-            color: #444;
+            margin-top: 0.12in;
         }
 
         .exhibit-content {
             font-size: 11pt;
-            line-height: 1.6;
+            line-height: 1.5;
             text-align: justify;
             white-space: pre-wrap;
         }
@@ -529,28 +291,43 @@
         .exhibit-apn {
             margin-top: 0.3in;
             font-size: 10pt;
-            border-top: 1pt solid #ccc;
-            padding-top: 0.15in;
         }
 
+        /* The shared acknowledgment partial pads 0.75in inside the @page
+           margins (doubled) and spreads onto two pages. Compress it to a
+           single page via overrides here — the partial itself is shared by
+           four sibling templates and stays untouched. */
+        body .notary-page {
+            padding: 0.1in 0 0 0;
+            font-size: 10.5pt;
+        }
+        body .notary-disclaimer { margin-bottom: 0.2in; }
+        body .notary-subtitle { margin-bottom: 0.15in; }
+        body .notary-venue { margin-bottom: 0.15in; }
+        body .notary-body { margin-bottom: 0.12in; }
+        body .notary-body p { margin-bottom: 0.1in; }
+        body .notary-certification { margin-bottom: 0.15in; }
+        body .notary-witness { margin-bottom: 0.2in; }
+        body .notary-signature-section { margin-bottom: 0.2in; }
+        body .notary-seal-area { width: 2in; height: 2in; }
+        body .notary-divider { margin: 0.15in 0; }
+        body .notary-optional-section { margin-top: 0.15in; }
+        body .notary-optional-row { margin-bottom: 0.08in; }
     </style>
 </head>
 <body>
     <div class="deed-page">
 
         <!-- ================================================================
-             HEADER - Recording Information & Recorder Space
+             PAGE-ONE HEADER — info column + open recorder's space
              ================================================================ -->
 
         <header class="header-section">
-            <!-- Left Column: Recording Information -->
             <div class="recording-info">
                 <div class="recording-label">Recording Requested By:</div>
-                <div class="recording-value">
-                    {{ requested_by or title_company or '' }}
-                </div>
+                <div class="recording-value">{{ requested_by or title_company or '' }}</div>
 
-                <div class="recording-label">When Recorded Mail To:</div>
+                <div class="recording-label">Mail Tax Statements and<br>When Recorded Mail To:</div>
                 <div class="recording-value">
                     {% if return_to %}
                         {% if return_to.get('name') %}{{ return_to.get('name') }}<br>{% endif %}
@@ -570,165 +347,98 @@
                     {% endif %}
                 </div>
 
-                <div class="recording-label">Mail Tax Statements To:</div>
-                <div class="recording-value" style="margin-bottom: 0;">
-                    {{ mail_tax_to or 'Same as above' }}
-                </div>
+                <div class="ref-line">Order No.: {{ title_order_no or '____________________' }}</div>
+                <div class="ref-line">Escrow No.: {{ escrow_no or '____________________' }}</div>
             </div>
 
-            <!-- Right Column: Recorder Box + Reference Numbers -->
-            <div class="right-column">
-                <div class="recorder-box">
-                    <div class="recorder-label">
-                        Space Above This Line<br>
-                        For Recorder's Use Only
-                    </div>
-                </div>
-                
-                <!-- Reference Numbers - Right aligned, below recorder box -->
-                <div class="reference-numbers">
-                    {% if title_order_no %}
-                    <div class="ref-line">
-                        <span class="ref-label">Order No.:</span>
-                        <span class="ref-value">{{ title_order_no }}</span>
-                    </div>
-                    {% endif %}
-                    {% if escrow_no %}
-                    <div class="ref-line">
-                        <span class="ref-label">Escrow No.:</span>
-                        <span class="ref-value">{{ escrow_no }}</span>
-                    </div>
-                    {% endif %}
-                    {% if apn %}
-                    <div class="ref-line">
-                        <span class="ref-label">APN:</span>
-                        <span class="ref-value monospace">{{ apn }}</span>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
+            <div class="recorder-space"><!-- Gov. Code §27361.6 — recorder's use only --></div>
         </header>
 
-        <!-- ================================================================
-             HORIZONTAL LINE - Separates header from deed content
-             ================================================================ -->
-
-        <div class="reference-section">
-            <!-- Empty reference section creates the horizontal line -->
+        <div class="header-boundary">
+            <span class="apn-ref">APN: {{ apn or '____________________' }}</span>
+            <span class="recorder-caption">Space Above This Line Is For Recorder&rsquo;s Use</span>
         </div>
 
         <!-- ================================================================
-             DOCUMENT TITLE
+             TITLE
              ================================================================ -->
 
         <h1 class="deed-title">Grant Deed</h1>
 
         <!-- ================================================================
-             DOCUMENTARY TRANSFER TAX
+             DOCUMENTARY TRANSFER TAX — R&T §11932–11933 declaration
              ================================================================ -->
 
         <div class="dtt-section">
-            <div class="dtt-header">Documentary Transfer Tax Declaration</div>
-            
-            <div class="dtt-amount-line">
-                Documentary Transfer Tax is 
-                <span class="dtt-amount-value">${{ dtt.get('amount', '___________') if dtt else '___________' }}</span>
+            <div class="dtt-lead">
+                <span>THE UNDERSIGNED GRANTOR(S) DECLARE(S):</span>
+                <span>DOCUMENTARY TRANSFER TAX IS
+                    <span class="dtt-amount">${{ dtt.get('amount', '') if dtt else '' }}</span>
+                </span>
             </div>
-
-            <div class="dtt-options">
-                <div class="dtt-option">
-                    <span class="checkbox {% if not dtt or dtt.get('basis') == 'full' %}checked{% endif %}">
-                        {% if not dtt or dtt.get('basis') == 'full' %}✓{% endif %}
-                    </span>
-                    <span>Computed on full value of property conveyed, <strong>OR</strong></span>
-                </div>
-                <div class="dtt-option">
-                    <span class="checkbox {% if dtt and dtt.get('basis') == 'less_liens' %}checked{% endif %}">
-                        {% if dtt and dtt.get('basis') == 'less_liens' %}✓{% endif %}
-                    </span>
-                    <span>Computed on full value less liens and encumbrances remaining at time of sale</span>
-                </div>
+            <div class="dtt-option">
+                <span class="checkline">{% if dtt and dtt.get('basis') == 'full' %}X{% endif %}</span>
+                Computed on full value of property conveyed, or
             </div>
-
-            <div class="dtt-area-row">
-                <div class="dtt-option">
-                    <span class="checkbox {% if not dtt or dtt.get('area_type') == 'unincorporated' %}checked{% endif %}">
-                        {% if not dtt or dtt.get('area_type') == 'unincorporated' %}✓{% endif %}
-                    </span>
-                    <span>Unincorporated Area</span>
-                </div>
-                <div class="dtt-option">
-                    <span class="checkbox {% if dtt and dtt.get('area_type') == 'city' %}checked{% endif %}">
-                        {% if dtt and dtt.get('area_type') == 'city' %}✓{% endif %}
-                    </span>
-                    <span>City of <span class="city-field">{{ dtt.get('city_name', '') if dtt else '' }}</span></span>
-                </div>
+            <div class="dtt-option">
+                <span class="checkline">{% if dtt and dtt.get('basis') == 'less_liens' %}X{% endif %}</span>
+                Computed on full value less liens and encumbrances remaining at time of sale.
             </div>
+            <div class="dtt-option">
+                <span class="checkline">{% if dtt and dtt.get('area_type') == 'unincorporated' %}X{% endif %}</span>
+                Unincorporated area&nbsp;&nbsp;&nbsp;
+                <span class="checkline">{% if dtt and dtt.get('area_type') == 'city' %}X{% endif %}</span>
+                City of <span class="city-field">{{ dtt.get('city_name', '') if dtt else '' }}</span>
+            </div>
+            {% if dtt and dtt.get('is_exempt') and dtt.get('exemption_reason') %}
+            <div class="dtt-exempt">Exempt from transfer tax: {{ dtt.get('exemption_reason') }}</div>
+            {% endif %}
         </div>
 
         <!-- ================================================================
-             DEED BODY - Granting Clause
+             GRANTING CLAUSE — standard deed wording, no defined-term labels
              ================================================================ -->
 
         <div class="deed-body">
-            <p>FOR VALUABLE CONSIDERATION, receipt of which is hereby acknowledged,</p>
+            <p>For valuable consideration, receipt of which is hereby acknowledged,</p>
 
-            <div class="party-block">
-                <span class="party-name">{{ grantors_text or '_________________________________________________' }}</span>
-                <span class="party-label">("Grantor")</span>
-            </div>
+            <p class="party-name">{{ grantors_text or '_________________________________________________' }}</p>
 
-            <p>hereby <span class="grant-verb">GRANT(S)</span> to</p>
+            <p>hereby GRANT(S) to</p>
 
-            <div class="party-block">
-                <span class="party-name">{{ grantees_text or '_________________________________________________' }}</span>
-                {% if vesting %}
-                <br><span class="party-label">{{ vesting }}</span>
-                {% endif %}
-                <span class="party-label">("Grantee")</span>
-            </div>
+            <p><span class="party-name">{{ grantees_text or '_________________________________________________' }}</span>{% if vesting %}, {{ vesting }}{% endif %}</p>
 
             <p>
-                the following described real property in the County of 
-                <span class="county-name">{{ county or '_______________' }}</span>, 
-                State of California:
+                the real property situated in the County of
+                <strong>{{ county or '___________________________' }}</strong>,
+                State of California, more particularly described as follows:
             </p>
-        </div>
 
-        <!-- ================================================================
-             LEGAL DESCRIPTION
-             ================================================================ -->
-
-        <div class="legal-section">
             {% if legal_description and legal_description|length > (exhibit_threshold or 600) %}
                 <p class="legal-exhibit-ref">
-                    See Exhibit "A" attached hereto and incorporated herein by this reference.
+                    See Exhibit &ldquo;A&rdquo; attached hereto and incorporated herein by this reference.
                 </p>
             {% else %}
                 <div class="legal-content">{{ legal_description or 'LEGAL DESCRIPTION TO BE INSERTED' }}</div>
             {% endif %}
 
             {% if apn %}
-            <div class="apn-line">
-                <span class="apn-label">Assessor's Parcel Number:</span>
-                <span class="apn-value">{{ apn }}</span>
-            </div>
+            <div class="apn-line">Assessor&rsquo;s Parcel Number: {{ apn }}</div>
             {% endif %}
         </div>
 
         <!-- ================================================================
-             EXECUTION - Date & Signatures
+             EXECUTION — date left, signatures right
              ================================================================ -->
 
         <div class="execution-section">
             <div class="execution-date">
-                <span class="date-label">Dated:</span>
-                <span class="date-value">{{ execution_date or now().strftime('%B %d, %Y') }}</span>
+                Dated: <span class="date-value">{{ execution_date or now().strftime('%B %d, %Y') }}</span>
             </div>
 
             <div class="signatures">
                 {% set signers = grantors_text.split(';') if grantors_text and ';' in grantors_text else [grantors_text] if grantors_text else [] %}
-                
+
                 {% for signer in signers %}
                     {% set signer_name = signer.strip() if signer else '' %}
                     {% if signer_name %}
@@ -748,42 +458,20 @@
             </div>
         </div>
 
-        <!-- ================================================================
-             QR VERIFICATION FOOTER
-             ================================================================ -->
-
-        {% if document_id %}
-        <footer class="deed-footer">
-            <div class="verification-row">
-                <div class="qr-code">
-                    {% if qr_code_data_url %}
-                    <img src="{{ qr_code_data_url }}" alt="Verification QR Code" />
-                    {% else %}
-                    <!-- Placeholder for QR code -->
-                    {% endif %}
-                </div>
-                <div class="verification-text">
-                    <div class="verify-label">Verify this document:</div>
-                    <div class="verify-url">deedpro.com/verify/{{ document_id }}</div>
-                    <div class="verify-meta">
-                        Generated by <span class="deedpro-brand">DeedPro</span> • {{ now().strftime('%B %d, %Y at %I:%M %p') }}
-                    </div>
-                </div>
-            </div>
-        </footer>
-        {% endif %}
+        <!-- Statutory footer directive (pairs with the combined mail-to block) -->
+        <div class="mail-tax-directive">Mail Tax Statements As Directed Above</div>
 
     </div>
 
     <!-- ====================================================================
-         EXHIBIT A - Legal Description (if too long for main page)
+         EXHIBIT A — Legal Description (if too long for page one)
          ==================================================================== -->
 
     {% if legal_description and legal_description|length > (exhibit_threshold or 600) %}
     <div class="page-break"></div>
     <div class="exhibit-page">
         <div class="exhibit-header">
-            <div class="exhibit-title">Exhibit "A"</div>
+            <div class="exhibit-title">Exhibit &ldquo;A&rdquo;</div>
             <div class="exhibit-subtitle">Legal Description</div>
             <div class="exhibit-reference">
                 Attached to and made a part of Grant Deed dated {{ execution_date or now().strftime('%B %d, %Y') }}
@@ -793,17 +481,14 @@
         <div class="exhibit-content">{{ legal_description }}</div>
 
         {% if apn %}
-        <div class="exhibit-apn">
-            <span class="apn-label">Assessor's Parcel Number:</span>
-            <span class="apn-value">{{ apn }}</span>
-        </div>
+        <div class="exhibit-apn">Assessor&rsquo;s Parcel Number: {{ apn }}</div>
         {% endif %}
     </div>
     {% endif %}
 
     <!-- ====================================================================
-         PAGE 2 (or 3): CALIFORNIA ALL-PURPOSE ACKNOWLEDGMENT
-         California Civil Code § 1189
+         CALIFORNIA ALL-PURPOSE ACKNOWLEDGMENT — Civil Code §1189
+         (shared partial; the notary completes its contents, never us)
          ==================================================================== -->
     {% set document_title = 'Grant Deed' %}
     {% include '_partials/notary_acknowledgment.jinja2' %}
