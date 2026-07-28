@@ -45,7 +45,14 @@ function Checkline({ marked }: { marked: boolean }) {
 export function PreviewPanel({ state, activeSection }: PreviewPanelProps) {
   const preview = useMemo(() => ({
     requestedBy: state.requestedBy || '[Recording Requested By]',
-    returnTo: state.returnTo || state.requestedBy || '[Return To]',
+    // Mirror the generate payload: 'grantee' resolves to the grantee name,
+    // mailed at the property address (never render the literal 'grantee').
+    returnTo: state.returnTo === 'grantee'
+      ? state.grantee || '[GRANTEE NAME]'
+      : state.returnTo || state.requestedBy || '[Return To]',
+    returnToAddress: state.returnTo === 'grantee' && state.property
+      ? `${state.property.address}, ${state.property.city}, ${state.property.state} ${state.property.zip}`
+      : '',
     apn: state.property?.apn || '',
     titleOrderNo: state.titleOrderNo || '',
     escrowNo: state.escrowNo || '',
@@ -100,6 +107,9 @@ export function PreviewPanel({ state, activeSection }: PreviewPanelProps) {
                 </div>
                 <div className="min-h-[0.3in] mb-2">
                   <span className={`text-[10px] ${placeholder(preview.returnTo)}`}>{preview.returnTo}</span>
+                  {preview.returnToAddress && (
+                    <><br /><span className="text-[10px]">{preview.returnToAddress}</span></>
+                  )}
                 </div>
 
                 <div className="text-[10px]">Order No.: {preview.titleOrderNo || '____________'}</div>

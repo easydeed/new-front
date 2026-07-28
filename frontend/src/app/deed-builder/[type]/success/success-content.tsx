@@ -78,7 +78,15 @@ export function SuccessContent() {
     const response = await fetch(`${api}/deeds/${deedId}/download`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      // Diagnostic surfacing: the retry path reports WHY it failed — a
+      // generic "not available" hid the completed_at incident for weeks.
+      const data = await response.json().catch(() => ({}));
+      if (data.detail) {
+        toast.error(String(data.detail), { duration: 12000 });
+      }
+      return null;
+    }
     const blob = await response.blob();
     return window.URL.createObjectURL(blob);
   };

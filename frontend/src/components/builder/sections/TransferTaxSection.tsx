@@ -80,15 +80,20 @@ export function TransferTaxSection({
   // or enters values manually (the pre-TT auto-apply behavior is removed).
   useEffect(() => {
     if (!value) {
-      const isInCity = city && CITIES_WITH_OWN_DTT.some((c) => city.toLowerCase().includes(c))
+      // The property's city is DATA (from county records) — default the
+      // declaration's area to it whenever one exists. The old init only
+      // set "city" for cities with their OWN transfer tax, so ordinary
+      // incorporated properties initialized as "unincorporated" with a
+      // blank City-of line on the deed. The own-DTT list matters for the
+      // RATE calculation below, not for whether a city exists.
       onChange({
         isExempt: false,
         exemptReason: "",
         transferValue: "",
         calculatedAmount: "",
         basis: "full_value",
-        areaType: isInCity ? "city" : "unincorporated",
-        cityName: isInCity ? city : "",
+        areaType: city ? "city" : "unincorporated",
+        cityName: city || "",
       })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -313,12 +318,10 @@ export function TransferTaxSection({
               <input
                 type="radio"
                 checked={value.areaType === "city"}
-                onChange={() => manual({ ...value, areaType: "city" })}
+                onChange={() => manual({ ...value, areaType: "city", cityName: value.cityName || city || "" })}
                 className="w-4 h-4 text-brand-500"
               />
-              <span className="text-sm text-gray-700">
-                City{value.cityName ? ` of ${value.cityName}` : ""}
-              </span>
+              <span className="text-sm text-gray-700">City</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -330,6 +333,23 @@ export function TransferTaxSection({
               <span className="text-sm text-gray-700">Unincorporated</span>
             </label>
           </div>
+
+          {/* City name — fills the deed's "City of ____" line */}
+          {value.areaType === "city" && (
+            <div className="space-y-1">
+              <label htmlFor="dtt-city" className="block text-sm font-medium text-gray-700">
+                City of
+              </label>
+              <input
+                id="dtt-city"
+                type="text"
+                value={value.cityName || ""}
+                onChange={(e) => manual({ ...value, cityName: e.target.value })}
+                placeholder={city || "City name"}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              />
+            </div>
+          )}
 
           {/* Calculated Result */}
           {calculatedAmount && (

@@ -168,7 +168,20 @@ function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
         grantees_text: genState.grantee,
         vesting: genState.vesting,
         requested_by: genState.requestedBy,
-        return_to: genState.returnTo === 'grantee' ? genState.grantee : genState.requestedBy,
+        // Mail-to: when the deed returns to the grantee, it mails to the
+        // grantee AT THE PROPERTY (the standard default) — send the full
+        // address block so the recorded deed shows where to mail it.
+        // Requester-return stays name-only (partner mailing addresses live
+        // in the partner record; not yet collected in the builder).
+        return_to: genState.returnTo === 'grantee'
+          ? {
+              name: genState.grantee,
+              address1: genState.property?.address || '',
+              city: genState.property?.city || '',
+              state: genState.property?.state || '',
+              zip: genState.property?.zip || '',
+            }
+          : genState.requestedBy,
         title_order_no: genState.titleOrderNo || '',
         escrow_no: genState.escrowNo || '',
         dtt: {
@@ -213,7 +226,12 @@ function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
       // H1 (invariant #4): a save whose PDF store failed is not a success —
       // say so instead of celebrating a half-failure.
       if (result.pdf_error) {
-        toast.warning(result.pdf_error);
+        toast.warning(
+          result.pdf_error_detail
+            ? `${result.pdf_error} (${result.pdf_error_detail})`
+            : result.pdf_error,
+          { duration: 12000 }
+        );
       } else {
         toast.success('Deed generated successfully!');
       }
