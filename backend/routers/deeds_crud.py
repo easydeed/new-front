@@ -103,6 +103,15 @@ def create_deed_endpoint(deed: DeedCreate, user_id: int = Depends(get_current_us
             db.conn.rollback()
         except Exception:
             pass
+        # H1 (invariant #4, the flagship flow): a deed saved without its
+        # PDF must SAY so — print-only failure let production celebrate
+        # every generation while storing nothing (completed_at incident).
+        # The deed stays a draft; /download retries the render on request.
+        new_deed["pdf_error"] = (
+            "The deed was saved, but its PDF could not be generated and "
+            "stored. It remains a draft; opening or downloading it will "
+            "retry."
+        )
 
     # Phase 7: Send deed completion notification
     try:

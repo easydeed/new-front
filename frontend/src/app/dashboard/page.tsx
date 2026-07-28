@@ -192,19 +192,21 @@ export default function Dashboard() {
             <AIGreeting userName={userName} />
           </div>
 
-          {/* Continue where you left off (AI Card) */}
+          {/* Draft deed card (H2: honest capability — the builder has no
+              state-restore yet, so the card leads to the draft's real home
+              in Past Deeds instead of a dead-end type-selection push) */}
           {inProgressDeed && (
             <AICard
-              message={`You have a deed in progress. Want to continue where you left off?`}
+              message={`You have a draft deed that isn't finished.`}
               action={{
-                label: `Continue: ${inProgressDeed.property_address || inProgressDeed.deed_type || 'Draft'}`,
-                onClick: () => router.push('/deed-builder')
+                label: `View draft: ${inProgressDeed.property_address || inProgressDeed.deed_type || 'Draft'}`,
+                onClick: () => router.push(`/past-deeds?highlight=${inProgressDeed.id}`)
               }}
               secondaryAction={{
-                label: "Start fresh",
+                label: "Start a new deed",
                 onClick: () => router.push('/deed-builder')
               }}
-              details="Your work is automatically saved. You can continue anytime without losing progress."
+              details="Drafts live in Past Deeds — open one there to review it or continue with a fresh build."
               className="mb-8"
             />
           )}

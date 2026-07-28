@@ -123,11 +123,32 @@ with the fabricated success hiding the failure. Both fixed: standard
 resolver chain; failures return 502 `success: false` (the caller already
 handles thrown errors and degrades gracefully).
 
+**Findings (H1, the silent-PDF-store incident — 2026-07-28).** Production's
+`deeds` table never received the `completed_at` column that the stored-PDF
+pipeline stamps: the ALTER had been applied to the six-flow **test**
+harness's own schema list instead of the production schema path, so the
+baseline verified a schema production didn't have. Every production PDF
+store failed; the failure was print-only and non-blocking (the bug #8
+rollback made it resilient — and therefore silent), so the UI celebrated
+every generation while storing nothing. Three fixes: (1) `create_tables`
+is now the **single schema authority** — all columns/tables the code
+needs converge there idempotently at startup, and the test harness derives
+from that same function with no schema statements of its own (any
+deliberate test-only divergence requires a cited comment); (2) stuck
+deeds self-heal on next download; (3) a save whose PDF store fails now
+carries `pdf_error` in the response, the builder warns instead of
+celebrating, and the post-generation page shows an honest "PDF Not Ready"
+state. **Lesson recorded:** resilience without surfacing is camouflage —
+every non-blocking catch must emit a caller-visible signal.
+
 **Enforced by.**
 - `frontend/src/__tests__/proxyErrorHonesty.test.ts` — source-scans every
   proxy route: no empty-array response bodies; no `success: true` in any
   catch block; every catch that returns JSON carries an explicit 4xx/5xx.
 - `frontend/src/__tests__/integration/fault-injection.test.ts`
+- One schema authority: `scripts/six_flow_baseline.py::ensure_schema`
+  contains no ALTER/CREATE statements — schema comes only from
+  `database.create_tables`, the path production runs at startup.
 
 ---
 
@@ -212,3 +233,4 @@ issuance and authenticated flows against live Postgres.
 |---|---|
 | 2026-07-28 | Initial sweep: partner-API chassis fix, AI-chat proxy honesty fix, proxy source-scan test, partner-render tests. Draft pending owner decisions on §7. |
 | 2026-07-28 | Owner rulings executed: /api/generate-deed excised (snapshot re-recorded), /api/ai/chat logged-in-only + guard test + no-key 503, recitals ruling recorded. Report finalized. |
+| 2026-07-28 | H1 silent-PDF-store incident recorded under invariant #4: one-schema-authority rule (create_tables converges production + tests), store-failure surfaced in response/UI, resilience-without-surfacing lesson. Feature candidate ledgered: true builder resume (persist/restore keyed to deed id), pending usage evidence. |
