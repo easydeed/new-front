@@ -293,26 +293,8 @@
             font-size: 10pt;
         }
 
-        /* The shared acknowledgment partial pads 0.75in inside the @page
-           margins (doubled) and spreads onto two pages. Compress it to a
-           single page via overrides here — the partial itself is shared by
-           four sibling templates and stays untouched. */
-        body .notary-page {
-            padding: 0.1in 0 0 0;
-            font-size: 10.5pt;
-        }
-        body .notary-disclaimer { margin-bottom: 0.2in; }
-        body .notary-subtitle { margin-bottom: 0.15in; }
-        body .notary-venue { margin-bottom: 0.15in; }
-        body .notary-body { margin-bottom: 0.12in; }
-        body .notary-body p { margin-bottom: 0.1in; }
-        body .notary-certification { margin-bottom: 0.15in; }
-        body .notary-witness { margin-bottom: 0.2in; }
-        body .notary-signature-section { margin-bottom: 0.2in; }
-        body .notary-seal-area { width: 2in; height: 2in; }
-        body .notary-divider { margin: 0.15in 0; }
-        body .notary-optional-section { margin-top: 0.15in; }
-        body .notary-optional-row { margin-bottom: 0.08in; }
+        /* G3: the acknowledgment partial now carries its own single-page
+           spacing — the G2-era local overrides are retired. */
     </style>
 </head>
 <body>
