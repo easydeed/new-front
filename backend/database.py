@@ -320,6 +320,56 @@ def create_deed(user_id, deed_data):
             conn.close()
         return None
 
+def update_deed_draft(user_id, deed_id, deed_data):
+    """Ticket R: regenerating a resumed draft updates its row, never inserts
+    a second one. Only drafts are mutable — immutability applies to stored
+    PDFs, which flip status to 'completed'; this helper refuses those rows
+    (and deleted ones) by matching status in the WHERE clause. Metadata is
+    rebuilt exactly like create_deed so the stored PDF renders identically."""
+    conn = get_db_connection()
+    if not conn:
+        return None
+    try:
+        cursor = conn.cursor()
+        extras = {
+            key: deed_data.get(key)
+            for key in ('dtt', 'title_order_no', 'escrow_no', 'return_to', 'source', 'provenance')
+            if deed_data.get(key)
+        }
+        cursor.execute("""
+            UPDATE deeds
+            SET deed_type = %s, property_address = %s, apn = %s, county = %s,
+                legal_description = %s, grantor_name = %s, grantee_name = %s,
+                vesting = %s, requested_by = %s, metadata = %s::jsonb,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s AND user_id = %s
+              AND COALESCE(status, 'draft') NOT IN ('completed', 'deleted')
+            RETURNING *
+        """, (
+            deed_data.get('deed_type'),
+            deed_data.get('property_address') or 'Unknown',
+            deed_data.get('apn'),
+            deed_data.get('county'),
+            deed_data.get('legal_description'),
+            deed_data.get('grantor_name'),
+            deed_data.get('grantee_name'),
+            deed_data.get('vesting'),
+            deed_data.get('requested_by'),
+            json.dumps(extras),
+            deed_id,
+            user_id,
+        ))
+        deed = cursor.fetchone()
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return dict(deed) if deed else None
+    except Exception as e:
+        print(f"[Ticket R] Error updating draft {deed_id}: {type(e).__name__}: {e}")
+        if conn:
+            conn.close()
+        return None
+
 def get_user_deeds(user_id):
     conn = get_db_connection()
     if not conn:
