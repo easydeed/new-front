@@ -96,19 +96,26 @@ export function hydrateStateFromDeedRow(row: Record<string, any>): ResumeResult 
   }
 
   // ── Property ───────────────────────────────────────────────────
+  // Persistence follow-up: city/state/zip and the county-records owner are
+  // stored in metadata at save; the address-string parse remains only as
+  // the fallback for drafts saved before that change.
   const parsed = parseAddress(row.property_address || '');
-  if (!parsed.city) {
-    gaps.push('Property city/state/zip are not stored separately — could not parse them from the address');
+  const city = meta.property_city || parsed.city;
+  const stateCode = meta.property_state || parsed.state;
+  const zip = meta.property_zip || parsed.zip;
+  if (!city) {
+    gaps.push('Property city/state/zip were not saved with this draft — could not parse them from the address');
+  }
+  const owner: string | undefined = meta.current_owner || undefined;
+  if (!owner) {
+    gaps.push('Current-owner (county records) value was not saved with this draft — owner prefill not restored');
   }
   const propertyProvenance: PropertyProvenance = {};
   if (row.apn) propertyProvenance.apn = restoreSourced(row.apn, prov.apn);
   if (row.legal_description) {
     propertyProvenance.legalDescription = restoreSourced(row.legal_description, prov.legalDescription);
   }
-  // property.owner (current owner per county records) is never persisted as
-  // its own column; its bare value is unrecoverable. The grantor field
-  // carries the officer's grantor decision regardless.
-  gaps.push('Current-owner (county records) value is not persisted — owner prefill not restored');
+  if (owner) propertyProvenance.owner = restoreSourced(owner, prov.owner);
 
   // ── DTT (metadata stores the raw generate-payload shape) ───────
   let dtt: DTTData | null = null;
@@ -132,12 +139,13 @@ export function hydrateStateFromDeedRow(row: Record<string, any>): ResumeResult 
     deedType: row.deed_type || 'grant-deed',
     property: {
       address: parsed.address,
-      city: parsed.city,
+      city,
       county: row.county || '',
-      state: parsed.state,
-      zip: parsed.zip,
+      state: stateCode,
+      zip,
       apn: row.apn || '',
       legalDescription: row.legal_description || '',
+      ...(owner ? { owner } : {}),
       provenance: propertyProvenance,
     },
     grantor: row.grantor_name || '',

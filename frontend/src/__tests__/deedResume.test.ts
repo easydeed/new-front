@@ -23,6 +23,10 @@ const FULL_ROW = {
   metadata: {
     title_order_no: 'TO-1',
     escrow_no: 'ESC-2',
+    property_city: 'Santa Monica',
+    property_state: 'CA',
+    property_zip: '90401',
+    current_owner: 'JOHN A. DOE',
     return_to: { name: 'ROBERT C. ROE', address1: '1358 5TH ST', city: 'Santa Monica', state: 'CA', zip: '90401' },
     dtt: {
       transfer_value: '500000', is_exempt: false, exemption_reason: '',
@@ -32,6 +36,7 @@ const FULL_ROW = {
     provenance: {
       apn: { source: 'sitex', confirmed_at: '2026-07-28T20:00:00Z' },
       legalDescription: { source: 'sitex', confirmed_at: '2026-07-28T20:01:00Z' },
+      owner: { source: 'sitex', confirmed_at: '2026-07-28T20:01:30Z' },
       grantor: { source: 'sitex', confirmed_at: '2026-07-28T20:02:00Z' },
       dtt: { source: 'ai_suggested', confirmed_at: '2026-07-28T20:03:00Z', code_section: 'R&T 11911', basis: 'Gift' },
       vesting: { source: 'user', confirmed_at: '2026-07-28T20:04:00Z' },
@@ -79,7 +84,33 @@ describe('resume restores recorded decisions', () => {
     expect(state.preflightOverrides).toEqual({ 'legal-short': '2026-07-28T20:05:00Z' });
   });
 
-  it('reports unrecoverable fields as explicit gaps', () => {
+  it('restores the persisted city/zip and county-owner with provenance', () => {
+    // Persistence follow-up: these come from metadata, not address parsing.
+    expect(state.property?.owner).toBe('JOHN A. DOE');
+    expect(state.property?.provenance?.owner?.status).toBe('confirmed');
+    expect(state.property?.provenance?.owner?.confirmedAt).toBe('2026-07-28T20:01:30Z');
+    expect(gaps.some((g) => g.includes('Current-owner'))).toBe(false);
+  });
+});
+
+describe('drafts saved before the persistence follow-up fall back honestly', () => {
+  const oldRow = {
+    ...FULL_ROW,
+    metadata: { ...FULL_ROW.metadata },
+  } as any;
+  delete oldRow.metadata.property_city;
+  delete oldRow.metadata.property_state;
+  delete oldRow.metadata.property_zip;
+  delete oldRow.metadata.current_owner;
+  const { state, gaps } = hydrateStateFromDeedRow(oldRow);
+
+  it('parses city/state/zip from the address string as fallback', () => {
+    expect(state.property?.city).toBe('Santa Monica');
+    expect(state.property?.zip).toBe('90401');
+  });
+
+  it('reports the unsaved owner as an explicit gap', () => {
+    expect(state.property?.owner).toBeUndefined();
     expect(gaps.some((g) => g.includes('Current-owner'))).toBe(true);
   });
 });

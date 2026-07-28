@@ -40,6 +40,13 @@ class DeedCreate(BaseModel):
     return_to: Optional[Union[str, Dict[str, Optional[str]]]] = Field(
         default=None, description="Mail-to for the recorded deed (name or address block)")
     provenance: Optional[Dict] = Field(default=None, description="Per-field source + confirmation timestamps (Ticket B)")
+    # Resume-persistence follow-up: city/state/zip and the county-records
+    # owner were only recoverable by parsing the address string (or not at
+    # all) — persist them into metadata so a resumed draft restores fully.
+    property_city: Optional[str] = Field(default=None)
+    property_state: Optional[str] = Field(default=None)
+    property_zip: Optional[str] = Field(default=None)
+    current_owner: Optional[str] = Field(default=None, description="Owner per county records (prefill source)")
     # Ticket R: present when regenerating a RESUMED DRAFT — updates that
     # row instead of inserting a new one. Drafts only; completed deeds are
     # immutable (their PDF is stored) and deleted stays deleted.
