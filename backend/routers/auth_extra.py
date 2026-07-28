@@ -12,12 +12,12 @@ try:
     # Project-local utilities
     from database import get_db_connection
     from auth import create_access_token, get_password_hash, AuthUtils, ALGORITHM, SECRET_KEY
-    from utils.email import send_email  # Phase 7.5: Relative import first
+    from utils.email import send_email, email_configured  # Phase 7.5: Relative import first
 except Exception as e:
     # Fallback names if modules are under different paths; adjust as needed in your repo
     from backend.database import get_db_connection  # type: ignore
     from backend.auth import create_access_token, get_password_hash, AuthUtils, ALGORITHM, SECRET_KEY  # type: ignore
-    from backend.utils.email import send_email  # Phase 7.5: Absolute fallback
+    from backend.utils.email import send_email, email_configured  # Phase 7.5: Absolute fallback
 
 router = APIRouter()
 
@@ -49,6 +49,14 @@ class VerifyEmailRequest(BaseModel):
 @router.post("/users/forgot-password")
 def forgot_password(payload: ForgotPasswordRequest):
     """Send password reset email. Always return success to avoid user enumeration."""
+    # Invariant #4: with no email provider configured, "we sent a reset
+    # link" is a fabricated success. Fail uniformly BEFORE the user lookup
+    # so the honest error carries no enumeration signal either.
+    if not email_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Password reset is not available yet — email service is not configured.",
+        )
     email = payload.email.lower()
     try:
         conn = get_db_connection()
@@ -65,12 +73,19 @@ def forgot_password(payload: ForgotPasswordRequest):
             expires_delta=timedelta(hours=RESET_TOKEN_TTL_HOURS)
         )
         reset_url = f"{FRONTEND_URL}/reset-password?token={reset_token}"
-        send_email(
+        sent = send_email(
             to=email,
             subject="Reset your DeedPro password",
             body=f"<p>Hi {full_name},</p><p>Click <a href='{reset_url}'>here</a> to reset your password. This link expires in {RESET_TOKEN_TTL_HOURS} hour(s).</p>"
         )
+        if not sent:
+            # Provider configured but the send failed: log loudly, keep the
+            # generic message (a distinct error here would leak that the
+            # account exists).
+            print(f"[forgot-password] send_email failed for an existing account")
         return {"message": "If the email exists, we sent a reset link."}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail="Failed to process request")
 
