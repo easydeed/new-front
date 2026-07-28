@@ -36,6 +36,10 @@ export default function ForgotPasswordPage() {
 
       if (response.ok) {
         setMessage("Password reset link sent to your email!")
+      } else if (response.status === 503) {
+        // Honest unconfigured state (invariant #4) — don't claim a send.
+        const data = await response.json().catch(() => ({}))
+        setError(data.detail || "Password reset isn't available yet. Please contact support.")
       } else if (response.status === 404) {
         setError("Email address not found")
       } else {
