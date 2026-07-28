@@ -67,6 +67,24 @@ function materialFieldProvenance(
     : propertyFieldProvenance(state, key);
 }
 
+/**
+ * U2.1 — one confirmation model: the Property section holds the accordion
+ * until every PRESENT county-record field is confirmed (empty fields have
+ * nothing to confirm, U0). Advancing earlier is what turned APN/Legal into
+ * "surprise gates at the finish line" — the officer never saw the inline
+ * cards before the modal re-asked.
+ */
+export function propertyCandidatesRemaining(
+  property: DeedBuilderState['property'],
+): Array<keyof PropertyProvenance> {
+  if (!property) return [];
+  return PROPERTY_KEYS.filter((key) => {
+    const bare = ((property[key] ?? '') as string).trim();
+    if (!bare) return false;
+    return (property.provenance?.[key]?.status ?? 'candidate') !== 'confirmed';
+  });
+}
+
 /** Every material field still awaiting confirmation. Empty array = gate open. */
 export function collectCandidateFields(state: DeedBuilderState): CandidateField[] {
   const keys: MaterialFieldKey[] = [...PROPERTY_KEYS, 'grantor'];

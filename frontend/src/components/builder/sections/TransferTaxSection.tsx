@@ -284,7 +284,9 @@ export function TransferTaxSection({
                   const formatted = raw ? parseInt(raw).toLocaleString() : ""
                   manual({ ...value, transferValue: formatted })
                 }}
-                placeholder="500,000"
+                // U2.4: a realistic dollar amount as placeholder reads as an
+                // entered value — the hint must be words, not a number.
+                placeholder="Enter amount"
                 className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               />
             </div>
@@ -345,7 +347,9 @@ export function TransferTaxSection({
                 type="text"
                 value={value.cityName || ""}
                 onChange={(e) => manual({ ...value, cityName: e.target.value })}
-                placeholder={city || "City name"}
+                // U2.4 same defect class: the real city as a placeholder
+                // looked like a filled-in value while printing nothing.
+                placeholder="City name"
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               />
             </div>

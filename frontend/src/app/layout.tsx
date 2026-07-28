@@ -5,6 +5,7 @@ import "./globals.css";
 // Phase 24-A: vibrancy-boost.css DELETED - V0 design system taking over
 // V0 provides all styling via route group layouts (see (v0-landing)/layout.tsx)
 import { Toaster } from 'sonner'; // UI Polish: Toast notifications
+import { ToastRouteDismiss } from '@/components/ToastRouteDismiss';
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -46,8 +47,12 @@ export default function RootLayout({
             strategy="beforeInteractive"
           />
         )}
-        <Toaster 
+        {/* U2.2: every toast is dismissable (closeButton) and none survives
+            a route change (ToastRouteDismiss) — the immortal-toast fix. */}
+        <ToastRouteDismiss />
+        <Toaster
           position="top-right"
+          closeButton
           toastOptions={{
             style: {
               background: 'white',
