@@ -1,11 +1,45 @@
 'use client';
 
+// Ticket PV: the live preview mirrors the G2/G3 chassis page one — open
+// recorder space with the caption at the boundary, reference numbers
+// top-left, statutory DTT declaration, standard granting wording, no
+// chrome. The furniture strings come from lib/deedFurniture so the
+// drift-pinning test holds preview and templates to the same wording.
+// Interactivity (as-you-type updates, active-section highlighting) is
+// unchanged from the original panel.
 import { useMemo } from 'react';
 import { DeedBuilderState } from '@/types/builder';
+import {
+  DTT_LEAD,
+  DTT_AMOUNT_LABEL,
+  DTT_BASIS_FULL,
+  DTT_BASIS_LESS_LIENS,
+  DTT_AREA_UNINCORPORATED,
+  RECORDER_CAPTION,
+  MAIL_TAX_DIRECTIVE,
+  OPERATIVE_WORDS,
+  EXEMPTION_RECITALS,
+} from '@/lib/deedFurniture';
 
 interface PreviewPanelProps {
   state: DeedBuilderState;
   activeSection: string;
+}
+
+const DEED_TITLES: Record<string, string> = {
+  'grant-deed': 'GRANT DEED',
+  'quitclaim-deed': 'QUITCLAIM DEED',
+  'interspousal-transfer': 'INTERSPOUSAL TRANSFER DEED',
+  'warranty-deed': 'WARRANTY DEED',
+  'tax-deed': 'TAX DEED',
+};
+
+function Checkline({ marked }: { marked: boolean }) {
+  return (
+    <span className="inline-block w-7 border-b border-black text-center font-bold mr-1">
+      {marked ? 'X' : ' '}
+    </span>
+  );
 }
 
 export function PreviewPanel({ state, activeSection }: PreviewPanelProps) {
@@ -15,11 +49,6 @@ export function PreviewPanel({ state, activeSection }: PreviewPanelProps) {
     apn: state.property?.apn || '',
     titleOrderNo: state.titleOrderNo || '',
     escrowNo: state.escrowNo || '',
-    dtt: state.dtt?.isExempt 
-      ? `EXEMPT - ${state.dtt.exemptReason || '___'}`
-      : state.dtt?.calculatedAmount 
-        ? `$${state.dtt.calculatedAmount}`
-        : '[$_____]',
     grantor: state.grantor || '[GRANTOR NAME]',
     grantee: state.grantee || '[GRANTEE NAME]',
     vesting: state.vesting || '',
@@ -27,154 +56,170 @@ export function PreviewPanel({ state, activeSection }: PreviewPanelProps) {
     county: state.property?.county || '[County]',
   }), [state]);
 
-  const deedTitle = {
-    'grant-deed': 'GRANT DEED',
-    'quitclaim-deed': 'QUITCLAIM DEED',
-    'interspousal-transfer': 'INTERSPOUSAL TRANSFER DEED',
-    'warranty-deed': 'WARRANTY DEED',
-    'tax-deed': 'TAX DEED',
-  }[state.deedType] || 'DEED';
+  const deedTitle = DEED_TITLES[state.deedType] || 'DEED';
+  const operative = OPERATIVE_WORDS[state.deedType] || OPERATIVE_WORDS['grant-deed'];
+  const exemptionRecital = EXEMPTION_RECITALS[state.deedType];
+
+  // DTT honesty (G3's invariant, mock-up form): nothing is declared until
+  // the officer's transfer-tax data exists — no pre-checked boxes, no $0.00.
+  const dtt = state.dtt;
+  const dttAmount = dtt
+    ? dtt.isExempt
+      ? '0.00'
+      : dtt.calculatedAmount || ''
+    : '';
+
+  const signers = preview.grantor.includes(';')
+    ? preview.grantor.split(';').map((s) => s.trim()).filter(Boolean)
+    : [preview.grantor];
 
   const highlight = (section: string) =>
-    activeSection === section 
-      ? 'bg-brand-50 ring-2 ring-brand-300 rounded -m-2 p-2' 
+    activeSection === section
+      ? 'bg-brand-50 ring-2 ring-brand-300 rounded -m-1 p-1'
       : '';
 
-  const placeholder = (value: string) => 
+  const placeholder = (value: string) =>
     value.startsWith('[') ? 'text-gray-400 bg-gray-100 px-1 rounded' : '';
 
   return (
     <div className="h-full bg-gray-200 p-6 overflow-y-auto">
       <div className="max-w-3xl mx-auto">
         <div className="bg-white shadow-2xl" style={{ minHeight: '11in' }}>
-          <div className="p-8 pt-6 font-serif text-[13px] leading-relaxed" style={{ paddingLeft: '1in', paddingRight: '0.5in' }}>
-            
-            {/* Header Section - Grid Layout */}
-            <div className="grid grid-cols-[1fr_3.5in] gap-4 mb-4" style={{ minHeight: '2.5in' }}>
-              {/* Left Column: Recording Info */}
-              <div className={highlight('recording')}>
-                <div className="mb-3">
-                  <div className="text-[9px] font-bold uppercase tracking-wide mb-0.5">Recording Requested By:</div>
-                  <div className="min-h-[0.5in]">
-                    <span className={`text-[10px] ${placeholder(preview.requestedBy)}`}>{preview.requestedBy}</span>
-                  </div>
+          <div className="p-8 pt-6 font-serif text-[13px] leading-relaxed" style={{ paddingLeft: '0.6in', paddingRight: '0.5in' }}>
+
+            {/* Page-one header: info column beside the OPEN recorder space */}
+            <div className="flex" style={{ minHeight: '1.85in' }}>
+              <div className={`w-[55%] border-r border-black pr-3 ${highlight('recording')}`}>
+                <div className="text-[9px] font-bold uppercase tracking-wide">Recording Requested By:</div>
+                <div className="min-h-[0.3in] mb-2">
+                  <span className={`text-[10px] ${placeholder(preview.requestedBy)}`}>{preview.requestedBy}</span>
                 </div>
-                <div className="mb-3">
-                  <div className="text-[9px] font-bold uppercase tracking-wide mb-0.5">When Recorded Mail To:</div>
-                  <div className="min-h-[0.5in]">
-                    <span className={`text-[10px] ${placeholder(preview.returnTo)}`}>{preview.returnTo}</span>
-                  </div>
+
+                <div className="text-[9px] font-bold uppercase tracking-wide">
+                  Mail Tax Statements and<br />When Recorded Mail To:
                 </div>
-                <div>
-                  <div className="text-[9px] font-bold uppercase tracking-wide mb-0.5">Mail Tax Statements To:</div>
-                  <div className="text-[10px]">Same as above</div>
+                <div className="min-h-[0.3in] mb-2">
+                  <span className={`text-[10px] ${placeholder(preview.returnTo)}`}>{preview.returnTo}</span>
                 </div>
+
+                <div className="text-[10px]">Order No.: {preview.titleOrderNo || '____________'}</div>
+                <div className="text-[10px]">Escrow No.: {preview.escrowNo || '____________'}</div>
               </div>
-              
-              {/* Right Column: Recorder Box + Reference Numbers */}
-              <div className="flex flex-col items-end">
-                {/* Recorder's Box */}
-                <div className="w-[3.5in] h-[2.5in] border-2 border-black flex flex-col items-center justify-start pt-4">
-                  <span className="text-[8px] font-bold uppercase tracking-wider text-center">
-                    Space Above This Line<br />For Recorder&apos;s Use Only
-                  </span>
-                </div>
-                
-                {/* Reference Numbers - Below recorder box, right aligned */}
-                <div className={`mt-2 text-right text-[10px] ${highlight('recording')}`}>
-                  {(preview.titleOrderNo || !state.titleOrderNo) && (
-                    <div className="flex justify-end items-baseline gap-2 mb-1">
-                      <span>Order No.:</span>
-                      <span className="inline-block min-w-[1.5in] border-b border-black text-left pl-1">
-                        {preview.titleOrderNo || ''}
-                      </span>
-                    </div>
-                  )}
-                  {(preview.escrowNo || !state.escrowNo) && (
-                    <div className="flex justify-end items-baseline gap-2 mb-1">
-                      <span>Escrow No.:</span>
-                      <span className="inline-block min-w-[1.5in] border-b border-black text-left pl-1">
-                        {preview.escrowNo || ''}
-                      </span>
-                    </div>
-                  )}
-                  <div className={`flex justify-end items-baseline gap-2 ${highlight('property')}`}>
-                    <span>APN:</span>
-                    <span className="inline-block min-w-[1.5in] border-b border-black text-left pl-1 font-mono tracking-wide">
-                      {preview.apn || ''}
-                    </span>
-                  </div>
-                </div>
-              </div>
+
+              {/* Recorder's space: deliberately empty — stamps land here */}
+              <div className="flex-grow" aria-label="Space reserved for the county recorder" />
             </div>
 
-            {/* Separator Line */}
-            <div className="border-b-2 border-black mb-4" />
+            {/* Boundary row: APN left, recorder caption right, rule under */}
+            <div className="flex justify-between items-baseline border-b border-black pb-0.5 mb-3">
+              <span className={`text-[10px] ${highlight('property')}`}>
+                APN: <span className="font-mono tracking-wide">{preview.apn || '____________'}</span>
+              </span>
+              <span className="text-[7.5px] font-bold uppercase">{RECORDER_CAPTION}</span>
+            </div>
 
             {/* Title */}
-            <h1 className="text-[22pt] font-bold text-center mb-6 tracking-[4px] uppercase">
+            <h1 className="text-[14pt] font-bold text-center mb-3 tracking-[2px] uppercase">
               {deedTitle}
             </h1>
 
-            {/* Documentary Transfer Tax Section */}
-            <div className={`border border-black p-3 mb-5 text-[10px] ${highlight('transferTax')}`}>
-              <div className="font-bold uppercase mb-1">Documentary Transfer Tax</div>
-              <div>
-                <span className="font-bold">Computed on Full Value: </span>
-                <span className={placeholder(preview.dtt)}>{preview.dtt}</span>
+            {/* DTT declaration or categorical exemption recital */}
+            {exemptionRecital ? (
+              <div className={`text-[10px] mb-4 ${highlight('transferTax')}`}>
+                <span className="font-bold uppercase">Documentary Transfer Tax: Exempt. </span>
+                {exemptionRecital}
               </div>
-            </div>
+            ) : (
+              <div className={`text-[10px] mb-4 leading-normal ${highlight('transferTax')}`}>
+                <div className="flex justify-between gap-2">
+                  <span>{DTT_LEAD}</span>
+                  <span>
+                    {DTT_AMOUNT_LABEL}{' '}
+                    <span className="inline-block min-w-[1.2in] border-b border-black text-center">
+                      ${dttAmount}
+                    </span>
+                  </span>
+                </div>
+                <div className="ml-3">
+                  <Checkline marked={!!dtt && !dtt.isExempt && dtt.basis === 'full_value'} />
+                  {DTT_BASIS_FULL}
+                </div>
+                <div className="ml-3">
+                  <Checkline marked={!!dtt && !dtt.isExempt && dtt.basis === 'less_liens'} />
+                  {DTT_BASIS_LESS_LIENS}
+                </div>
+                <div className="ml-3">
+                  <Checkline marked={!!dtt && dtt.areaType === 'unincorporated'} />
+                  {DTT_AREA_UNINCORPORATED}{'   '}
+                  <Checkline marked={!!dtt && dtt.areaType === 'city'} />
+                  City of{' '}
+                  <span className="inline-block min-w-[1.2in] border-b border-black text-center">
+                    {dtt?.areaType === 'city' ? dtt.cityName || '' : ''}
+                  </span>
+                </div>
+                {dtt?.isExempt && dtt.exemptReason && (
+                  <div className="ml-3">Exempt from transfer tax: {dtt.exemptReason}</div>
+                )}
+              </div>
+            )}
 
-            {/* Body */}
-            <p className="mb-4 text-[12pt]">
-              FOR A VALUABLE CONSIDERATION, receipt of which is hereby acknowledged,
+            {/* Granting clause — standard deed wording, no defined-term labels */}
+            <p className="mb-2 text-[11pt]">
+              For valuable consideration, receipt of which is hereby acknowledged,
             </p>
 
-            <div className={`mb-4 ${highlight('grantor')}`}>
-              <span className={`font-bold uppercase text-[12pt] ${placeholder(preview.grantor)}`}>{preview.grantor}</span>
-              <span className="text-[12pt]"> (&quot;Grantor&quot;)</span>
+            <div className={`mb-2 ${highlight('grantor')}`}>
+              <span className={`font-bold uppercase text-[11pt] ${placeholder(preview.grantor)}`}>{preview.grantor}</span>
             </div>
 
-            <p className="mb-4 text-[12pt]">
-              hereby <span className="font-bold uppercase">GRANT(S)</span> to
-            </p>
+            <p className="mb-2 text-[11pt]">{operative}</p>
 
-            <div className={`mb-4 ${highlight('grantee')}`}>
-              <span className={`font-bold uppercase text-[12pt] ${placeholder(preview.grantee)}`}>{preview.grantee}</span>
+            <div className={`mb-2 ${highlight('grantee')}`}>
+              <span className={`font-bold uppercase text-[11pt] ${placeholder(preview.grantee)}`}>{preview.grantee}</span>
               {preview.vesting && (
-                <span className={`text-[12pt] ${highlight('vesting')}`}>, {preview.vesting}</span>
+                <span className={`text-[11pt] ${highlight('vesting')}`}>, {preview.vesting}</span>
               )}
-              <span className="text-[12pt]"> (&quot;Grantee&quot;)</span>
             </div>
 
-            <p className="mb-4 text-[12pt]">
-              the following described real property in the County of{' '}
-              <span className={`font-bold uppercase ${placeholder(preview.county)}`}>{preview.county}</span>, State of California:
+            <p className="mb-2 text-[11pt]">
+              the real property situated in the County of{' '}
+              <span className={`font-bold ${placeholder(preview.county)}`}>{preview.county}</span>,
+              State of California, more particularly described as follows:
             </p>
 
-            {/* Legal Description */}
-            <div className={`border-l-2 border-gray-300 bg-gray-50 p-3 mb-6 ${highlight('property')}`}>
-              <span className={`text-[11pt] ${placeholder(preview.legalDescription)}`}>
+            {/* Legal description — plain text, no box */}
+            <div className={`mb-3 ${highlight('property')}`}>
+              <span className={`text-[10.5pt] whitespace-pre-wrap ${placeholder(preview.legalDescription)}`}>
                 {preview.legalDescription}
               </span>
             </div>
 
-            {/* APN Line (in body) */}
-            <div className={`mb-6 text-[11pt] ${highlight('property')}`}>
-              <span className="font-bold">Assessor&apos;s Parcel Number: </span>
-              <span className="font-mono tracking-wider">{preview.apn || '[APN]'}</span>
+            {preview.apn && (
+              <div className={`mb-4 text-[10.5pt] ${highlight('property')}`}>
+                Assessor&rsquo;s Parcel Number: <span className="font-mono tracking-wider">{preview.apn}</span>
+              </div>
+            )}
+
+            {/* Execution: date left, signatures right */}
+            <div className="mt-8 flex justify-between items-start gap-4">
+              <div className="pt-6 text-[11pt]">
+                Dated: <span className="inline-block min-w-[1.6in] border-b border-black" />
+              </div>
+              <div className="w-[55%]">
+                {signers.map((name) => (
+                  <div key={name} className="mb-5">
+                    <div className="border-b border-black h-7" />
+                    <div className={`text-[10px] uppercase mt-0.5 ${placeholder(name)}`}>
+                      {name.startsWith('[') ? '' : name}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Execution Section */}
-            <div className="mt-12 space-y-8">
-              <div>
-                <span className="font-bold">Dated: </span>
-                <span className="inline-block min-w-[2.5in] border-b border-black" />
-              </div>
-              <div className="mt-8">
-                <div className="border-b border-black w-[3.5in] h-8" />
-                <div className="text-[11pt] uppercase mt-1">{preview.grantor !== '[GRANTOR NAME]' ? preview.grantor : ''}</div>
-              </div>
+            {/* Statutory closing directive */}
+            <div className="text-center text-[9px] font-bold uppercase mt-6">
+              {MAIL_TAX_DIRECTIVE}
             </div>
 
           </div>
@@ -184,4 +229,3 @@ export function PreviewPanel({ state, activeSection }: PreviewPanelProps) {
     </div>
   );
 }
-
