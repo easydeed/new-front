@@ -90,7 +90,7 @@ class PDFShiftService:
             async with httpx.AsyncClient(timeout=request_timeout) as client:
                 response = await client.post(
                     self.base_url,
-                    auth=(self.api_key, ""),  # Basic auth with API key
+                    auth=("api", self.api_key),  # PDFShift basic auth: username 'api', key as PASSWORD
                     json=default_options,
                     headers={
                         "Content-Type": "application/json",
@@ -172,7 +172,7 @@ class PDFShiftService:
         with httpx.Client(timeout=request_timeout) as client:
             response = client.post(
                 self.base_url,
-                auth=(self.api_key, ""),
+                auth=("api", self.api_key),
                 json=default_options
             )
             response.raise_for_status()
