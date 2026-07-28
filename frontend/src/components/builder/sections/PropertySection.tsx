@@ -6,6 +6,7 @@ import type { PropertyData, PropertyProvenance, Sourced } from "@/types/builder"
 import { useAIAssist } from "@/contexts/AIAssistContext"
 import { AISuggestion } from "../AISuggestion"
 import { ConfirmableField } from "../ConfirmableField"
+import { propertyCandidatesRemaining } from "@/lib/provenance"
 
 interface PropertySectionProps {
   value: PropertyData | null
@@ -398,11 +399,15 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
       const result = await response.json()
 
       if (result.status === 'success' && result.data) {
-        // Single property found
+        // Single property found. U2.1: do NOT auto-advance past unconfirmed
+        // county-record fields — advancing here is what made APN/Legal
+        // "surprise gates at the finish line" (the officer never saw the
+        // inline cards before the gate modal re-asked). The accordion
+        // advances when the last present field is confirmed below.
         const propertyData = mapSiteXResponse(result.data, searchQuery)
         onChange(propertyData)
-        onComplete()
-        
+        if (propertyCandidatesRemaining(propertyData).length === 0) onComplete()
+
       } else if (result.status === 'multi_match' && result.matches?.length > 0) {
         setPropertyMatches(result.matches)
         setPropertyMatchCount(result.match_count || result.matches.length)
@@ -448,9 +453,11 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
       const result = await response.json()
 
       if (result.status === 'success' && result.data) {
+        // U2.1: same rule as the single-match path — the accordion holds
+        // until the county-record fields are confirmed inline.
         const propertyData = mapSiteXResponse(result.data, match.address || selectedBuildingAddress)
         onChange(propertyData)
-        onComplete()
+        if (propertyCandidatesRemaining(propertyData).length === 0) onComplete()
       } else {
         setError('Failed to fetch property details. Please try again.')
       }
@@ -528,12 +535,20 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
     setError(null)
   }
 
+  // U2.1: after a confirm/edit lands, advance the accordion once the LAST
+  // present county-record field is confirmed — inline confirmation as the
+  // data lands is the one model; the gate modal only mops up leftovers.
+  const changeAndMaybeAdvance = (next: PropertyData) => {
+    onChange(next)
+    if (propertyCandidatesRemaining(next).length === 0) onComplete()
+  }
+
   // Confirm a single SiteX-sourced field: flip to confirmed, stamp the time.
   const confirmField = (key: keyof PropertyProvenance) => {
     if (!value) return
     const existing = value.provenance?.[key]
     if (!existing) return
-    onChange({
+    changeAndMaybeAdvance({
       ...value,
       provenance: {
         ...value.provenance,
@@ -547,7 +562,7 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
   // field (read by the generation payload) in sync.
   const editField = (key: keyof PropertyProvenance, newValue: string) => {
     if (!value) return
-    onChange({
+    changeAndMaybeAdvance({
       ...value,
       [key]: newValue,
       provenance: {

@@ -381,8 +381,9 @@ function DeedBuilderInner({ deedType, initialProperty, resumeDeedId }: DeedBuild
             <div className="w-full max-w-xl bg-white rounded-xl shadow-2xl p-6 max-h-[85vh] overflow-y-auto">
               <h2 className="text-lg font-semibold text-gray-900 mb-1">Ready to generate?</h2>
               <p className="text-sm text-gray-500 mb-4">
-                The generated document is final and stored immutably. Resolve the
-                items below first.
+                The generated document is final and stored immutably. Need
+                changes? Generate a corrected deed — the record keeps both.
+                Resolve the items below first.
               </p>
 
               <ValidationPanel
