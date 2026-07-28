@@ -102,8 +102,11 @@ async def log_api_usage(user_id: str, service: str, method: str, request_data: D
                 response_data, error_message, success, created_at
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """, (
-            user_id, service, method, json.dumps(request_data),
-            json.dumps(response_data) if response_data else None,
+            # default=str: payloads carry datetimes; without it json.dumps
+            # raised and the log entry was silently dropped (invariant #4:
+            # a failing logger is a swallowed error).
+            user_id, service, method, json.dumps(request_data, default=str),
+            json.dumps(response_data, default=str) if response_data else None,
             error, error is None, datetime.now()
         ))
         
