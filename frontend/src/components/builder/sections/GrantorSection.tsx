@@ -12,9 +12,11 @@ interface GrantorSectionProps {
   onChange: (grantor: string, provenance: Sourced<string>) => void;
   suggestedName?: string;
   provenance?: Sourced<string>;
+  /** U3: explicit confirm/edit-save advances the accordion (typing never does). */
+  onComplete?: () => void;
 }
 
-export function GrantorSection({ value, onChange, suggestedName, provenance }: GrantorSectionProps) {
+export function GrantorSection({ value, onChange, suggestedName, provenance, onComplete }: GrantorSectionProps) {
   const { enabled: aiEnabled } = useAIAssist();
   const [guidanceDismissed, setGuidanceDismissed] = useState(false);
 
@@ -33,6 +35,7 @@ export function GrantorSection({ value, onChange, suggestedName, provenance }: G
       status: 'confirmed',
       confirmedAt: new Date().toISOString(),
     });
+    onComplete?.();
   };
 
   const handleEdit = (newValue: string) => {
@@ -67,7 +70,12 @@ export function GrantorSection({ value, onChange, suggestedName, provenance }: G
           label="Grantor Name (Current Owner)"
           field={provenance ?? { value, source: 'sitex', status: 'candidate' }}
           onConfirm={handleConfirm}
-          onEdit={handleEdit}
+          onEdit={(v) => {
+            // An edit-save is an explicit officer action, like Confirm —
+            // it advances. Keystrokes in the plain input below never do.
+            handleEdit(v);
+            onComplete?.();
+          }}
         />
       ) : (
         <div>
