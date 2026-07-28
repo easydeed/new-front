@@ -7,6 +7,7 @@ import { useAIAssist } from "@/contexts/AIAssistContext"
 import { AISuggestion } from "../AISuggestion"
 import { ConfirmableField } from "../ConfirmableField"
 import { propertyCandidatesRemaining } from "@/lib/provenance"
+import { formatSuggestionSecondary } from "@/lib/addressLabels"
 
 interface PropertySectionProps {
   value: PropertyData | null
@@ -338,15 +339,20 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
     setPropertyMatches(null)
     setPropertyMatchCount(0)
     setError(null)
+    // U3: ONE behavior — selecting a suggestion always fetches the county
+    // records. The extra "now click Search" step was the nondeterminism the
+    // audit flagged (state hasn't landed yet, so pass parsed directly).
+    fetchPropertyData(parsed)
   }
 
   // Fetch property data from SiteX
-  const fetchPropertyData = async () => {
-    if (!selectedParsedAddress) {
+  const fetchPropertyData = async (parsedArg?: ParsedAddress) => {
+    const parsedAddress = parsedArg ?? selectedParsedAddress
+    if (!parsedAddress) {
       setError("Please select an address from the dropdown first")
       return
     }
-    
+
     setIsLoadingProperty(true)
     setError(null)
     setPropertyMatches(null)
@@ -363,10 +369,10 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
       // state: str = "CA"
       // zip: Optional[str] (alias for zip_code)
       const payload = {
-        address: selectedParsedAddress.street,  // Backend expects "address" as street
-        city: selectedParsedAddress.city || undefined,
-        state: selectedParsedAddress.state || 'CA',
-        zip_code: selectedParsedAddress.zip || undefined,
+        address: parsedAddress.street,  // Backend expects "address" as street
+        city: parsedAddress.city || undefined,
+        state: parsedAddress.state || 'CA',
+        zip_code: parsedAddress.zip || undefined,
       }
       
       console.log("Property search payload:", {
@@ -752,7 +758,7 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
                     {prediction.structured_formatting.main_text}
                   </p>
                   <p className="text-sm text-gray-500">
-                    {prediction.structured_formatting.secondary_text}
+                    {formatSuggestionSecondary(prediction.structured_formatting.secondary_text)}
                   </p>
                 </div>
               </button>

@@ -43,7 +43,9 @@ export function AIGreeting({ userName, className = "" }: AIGreetingProps) {
         <h1 className="text-2xl font-bold text-gray-900">
           {greeting}, {displayName}!
         </h1>
-        <p className="text-gray-500 text-sm">How can I help you today?</p>
+        {/* U3: no chat-style promise with no chat behind it — the line under
+            the greeting states what the page actually is. */}
+        <p className="text-gray-500 text-sm">Here&apos;s where your deeds stand.</p>
       </div>
     </div>
   )

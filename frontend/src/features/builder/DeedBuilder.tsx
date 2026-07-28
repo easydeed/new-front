@@ -10,6 +10,7 @@ import { PreviewPanel } from '@/components/builder/PreviewPanel';
 import { useBuilderMode } from '@/hooks/useBuilderMode';
 import { DeedBuilderState, PropertyData, Sourced } from '@/types/builder';
 import { buildDeedPayload, hasMeaningfulData } from '@/lib/deedPayload';
+import { DEED_LABELS } from '@/lib/deedTypes';
 import {
   MaterialFieldKey,
   collectCandidateFields,
@@ -27,14 +28,6 @@ interface DeedBuilderProps {
   /** Ticket R: id of a saved draft to hydrate into the builder. */
   resumeDeedId?: string;
 }
-
-const DEED_LABELS: Record<string, string> = {
-  'grant-deed': 'Grant Deed',
-  'quitclaim-deed': 'Quitclaim Deed',
-  'interspousal-transfer': 'Interspousal Transfer Deed',
-  'warranty-deed': 'Warranty Deed',
-  'tax-deed': 'Tax Deed',
-};
 
 function DeedBuilderInner({ deedType, initialProperty, resumeDeedId }: DeedBuilderProps) {
   const router = useRouter();

@@ -7,11 +7,13 @@ import Sidebar from "@/components/Sidebar"
 import { FileText, Download, Share2, Trash2, AlertCircle, CheckCircle, Clock, X, Plus, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
+import { deedTypeLabel } from "@/lib/deedTypes"
 
 interface Deed {
   id: number
   property_address: string
   deed_type: string
+  grantee_name?: string
   status: "completed" | "draft" | "in_progress"
   created_at: string
   updated_at: string
@@ -47,6 +49,7 @@ export default function PastDeedsPageV0() {
     isOpen: false,
     deedId: null,
   })
+  const [downloadingId, setDownloadingId] = useState<number | null>(null)
 
   useEffect(() => {
     fetchDeeds()
@@ -91,25 +94,36 @@ export default function PastDeedsPageV0() {
   const handleDownload = async (deed: Deed) => {
     // The stored PDF is served by the authenticated download endpoint; fetch
     // it as a blob since window.open can't carry the Authorization header.
+    // U3: the click acknowledges itself — spinner on the row's button while
+    // fetching, toast on the outcome either way.
+    setDownloadingId(deed.id)
     try {
       const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
       const token = localStorage.getItem("access_token") || localStorage.getItem("token")
       const response = await fetch(`${api}/deeds/${deed.id}/download`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      if (!response.ok) throw new Error("Download failed")
+      if (!response.ok) {
+        // The endpoint's 500 carries the real reason (exception class +
+        // message) — surface it, don't shrug.
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.detail || `Download failed (${response.status})`)
+      }
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `${deed.deed_type || "Deed"}_${deed.id}.pdf`
+      a.download = `${deedTypeLabel(deed.deed_type).replace(/ /g, "_")}_${deed.id}.pdf`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
+      toast.success(`Deed #${deed.id} PDF downloaded`)
     } catch (err) {
       console.error("Download error:", err)
-      toast.error("PDF not available for this deed")
+      toast.error(err instanceof Error ? err.message : "PDF not available for this deed")
+    } finally {
+      setDownloadingId(null)
     }
   }
 
@@ -217,12 +231,15 @@ export default function PastDeedsPageV0() {
     )
   }
 
+  // U3: rows identify deeds — with several drafts on one address, the date
+  // alone can't; show the time too (U1.4's full ISO timestamps make it real).
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+    const d = new Date(dateString)
+    return d.toLocaleDateString("en-US", {
       month: "2-digit",
       day: "2-digit",
       year: "numeric",
-    })
+    }) + " " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
   }
 
   return (
@@ -328,8 +345,15 @@ export default function PastDeedsPageV0() {
                           index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
                         }`}
                       >
-                        <td className="py-4 px-6 font-medium text-slate-800">{deed.property_address}</td>
-                        <td className="py-4 px-6 text-slate-600">{deed.deed_type}</td>
+                        <td className="py-4 px-6">
+                          {/* U3: a row identifies its deed — address alone
+                              can't when one property has several. */}
+                          <p className="font-medium text-slate-800">{deed.property_address}</p>
+                          <p className="text-sm text-slate-500">
+                            {deed.grantee_name ? `To ${deed.grantee_name} · ` : ""}Doc #{deed.id}
+                          </p>
+                        </td>
+                        <td className="py-4 px-6 text-slate-600">{deedTypeLabel(deed.deed_type)}</td>
                         <td className="py-4 px-6">{getStatusBadge(deed.status)}</td>
                         <td className="py-4 px-6 text-sm text-slate-600">{formatDate(deed.created_at)}</td>
                         <td className="py-4 px-6 text-sm text-slate-600">{formatDate(deed.updated_at)}</td>
@@ -348,10 +372,15 @@ export default function PastDeedsPageV0() {
                               <>
                                 <button
                                   onClick={() => handleDownload(deed)}
-                                  className="p-2 bg-[#7C4DFF] hover:bg-[#6a3de8] text-white rounded-lg transition-colors"
+                                  disabled={downloadingId === deed.id}
+                                  className="p-2 bg-[#7C4DFF] hover:bg-[#6a3de8] text-white rounded-lg transition-colors disabled:opacity-60"
                                   title="Download PDF"
                                 >
-                                  <Download className="w-4 h-4" />
+                                  {downloadingId === deed.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Download className="w-4 h-4" />
+                                  )}
                                 </button>
                                 <button
                                   onClick={() => handleShareClick(deed.id)}
