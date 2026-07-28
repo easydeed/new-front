@@ -111,9 +111,10 @@ from api.ai_assist import router as ai_assist_router
 app.include_router(ai_assist_router, prefix="/api/ai", tags=["AI Assistant"])
 print("✅ AI assist endpoints loaded successfully")
 
-from api.generate_deed import router as generate_deed_router
-app.include_router(generate_deed_router, prefix="/api", tags=["Document Generation"])
-print("✅ Document generation endpoints loaded successfully")
+# Doctrine sweep (owner ruling 2026-07-28): POST /api/generate-deed excised.
+# Its template map referenced files that never existed, so every call
+# failed; no frontend caller. The legacy flat templates it pointed near
+# (templates/grant_deed.html, quitclaim_deed.html) went with it.
 
 # Include new Grant Deed CA router
 from routers.deeds import router as deeds_router

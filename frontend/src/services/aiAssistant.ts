@@ -124,9 +124,18 @@ class AIAssistantService {
   ): Promise<string> {
     // If no API key, try the backend proxy
     try {
+      // AI assist is logged-in-only (doctrine sweep ruling): send the
+      // session token so the proxy can forward it to the backend.
+      const token =
+        typeof window !== "undefined"
+          ? localStorage.getItem("access_token") || localStorage.getItem("token")
+          : null
       const response = await fetch(this.baseUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           system: systemPrompt,
           message: userPrompt,

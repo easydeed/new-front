@@ -1,6 +1,6 @@
 # Doctrine Conformance Report
 
-**Status: DRAFT — pending owner decisions on the three flagged items (§7).**
+**Status: FINAL — all flagged items ruled by the owner 2026-07-28 (§7).**
 
 This document records DeedPro's standing product-safety invariants, the
 habitats swept for each, what the sweep found, and the automated test that
@@ -172,27 +172,37 @@ issuance and authenticated flows against live Postgres.
 
 ---
 
-## 7. Flagged for owner decision (not changed by the sweep)
+## 7. Flagged items and owner rulings (2026-07-28)
 
-1. **`POST /api/generate-deed` is dead code with a live route.** Its
-   template map references filenames that don't exist
+1. **`POST /api/generate-deed` was dead code with a live route.** Its
+   template map referenced filenames that never existed
    (`grant_deed_template.html` vs. the actual legacy `grant_deed.html`),
-   so every call fails; no frontend caller exists. The legacy flat
-   templates `templates/grant_deed.html` / `quitclaim_deed.html` (and
-   `frontend/src/utils/deedDataMapper.ts` which documents them) are
-   orphaned pre-chassis artifacts. Removing endpoint + files is a route
-   surface change (OpenAPI snapshot re-record) — excision needs approval.
-2. **`POST /api/ai/chat` (backend) requires no authentication.** Any
-   unauthenticated caller can spend AI tokens. Adding an auth dependency
-   is the obvious fix but changes behavior for any anonymous UI surface
-   using the assistant — owner call on whether AI assist is
-   logged-in-only.
+   so every call failed; no frontend caller existed.
+   **Ruling: excised.** The endpoint, `backend/api/generate_deed.py`, the
+   orphaned pre-chassis templates `templates/grant_deed.html` /
+   `quitclaim_deed.html`, and the consumer-less
+   `frontend/src/utils/deedDataMapper.ts` are removed; the OpenAPI route
+   snapshot was re-recorded with exactly that one route removal, citing
+   this ruling.
+2. **`POST /api/ai/chat` (backend) required no authentication** — any
+   caller could spend AI tokens.
+   **Ruling: logged-in-only.** The endpoint now requires the standard
+   user auth dependency; the proxy forwards the caller's bearer token and
+   the UI service sends it (both consumers live inside the authenticated
+   builder, so nothing anonymous was lost). The route joined the
+   guard-inspection discipline:
+   `backend/tests/test_ai.py::test_chat_requires_authentication` walks the
+   dependency tree and fails if the guard is ever dropped. The endpoint's
+   no-API-key path also fabricated success (`success: true` with canned
+   text — the same disease as the proxy, §4); it now returns 503.
 3. **Categorical exemption recitals** in the interspousal (§11927) and tax
    deed (§11922) templates are baked into the forms rather than
    officer-declared. These are the defining recitals of those instrument
    types (an interspousal transfer deed *is* the §11927 form), so they are
    treated as form furniture, not auto-applied choices — recorded here so
    the distinction is a documented decision, not an oversight.
+   **Ruling: confirmed as documented.** The officer's choice of instrument
+   is the decision; anything variable within an instrument gates.
 
 ---
 
@@ -201,3 +211,4 @@ issuance and authenticated flows against live Postgres.
 | Date | Change |
 |---|---|
 | 2026-07-28 | Initial sweep: partner-API chassis fix, AI-chat proxy honesty fix, proxy source-scan test, partner-render tests. Draft pending owner decisions on §7. |
+| 2026-07-28 | Owner rulings executed: /api/generate-deed excised (snapshot re-recorded), /api/ai/chat logged-in-only + guard test + no-key 503, recitals ruling recorded. Report finalized. |

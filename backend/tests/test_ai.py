@@ -31,6 +31,26 @@ def test_removed_ai_routes_are_gone():
     assert "/api/ai/profile-request" not in paths
 
 
+def test_chat_requires_authentication():
+    """Doctrine sweep ruling (2026-07-28): AI assist is logged-in-only —
+    an open endpoint spends AI tokens for anyone. Walk the route's
+    dependency tree and require the real auth guard, same discipline as
+    the /admin coverage test."""
+    from auth import get_current_user_id
+    route = next(r for r in app.routes if getattr(r, "path", "") == "/api/ai/chat")
+
+    def dependency_calls(dependant):
+        out = []
+        for d in dependant.dependencies:
+            out.append(d.call)
+            out.extend(dependency_calls(d))
+        return out
+
+    assert get_current_user_id in dependency_calls(route.dependant), (
+        "/api/ai/chat lost its auth dependency"
+    )
+
+
 def test_helper_functions_survive_for_main_endpoints():
     # main.py's /ai/deed-suggestions and /generate-deed-preview still use these.
     from ai_assist import suggest_defaults, validate_deed_data

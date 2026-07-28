@@ -21,11 +21,14 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    // Proxy to backend AI assist endpoint
+    // Proxy to backend AI assist endpoint (auth required backend-side —
+    // forward the caller's bearer token)
+    const authHeader = request.headers.get("authorization")
     const response = await fetch(`${BACKEND_URL}/api/ai/chat`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...(authHeader ? { Authorization: authHeader } : {}),
       },
       body: JSON.stringify({
         system: body.system || "",
