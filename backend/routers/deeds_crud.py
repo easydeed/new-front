@@ -1,5 +1,6 @@
 """Deed CRUD endpoints (T8 split — moved verbatim from main.py)."""
 import os
+from datetime import timezone
 from time import time
 from typing import Dict, Optional, Union
 
@@ -12,6 +13,16 @@ from auth import get_current_user_id
 from database import create_deed
 
 router = APIRouter()
+
+
+def _iso_utc(dt) -> Optional[str]:
+    """Naive DB TIMESTAMP (stored UTC) → ISO string with explicit offset."""
+    if not dt:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.isoformat()
+
 
 # Phase 6-2: Draft persistence (in-memory, replace with DB in Phase 6-3)
 _DRAFTS = {}
@@ -59,6 +70,36 @@ class DeedCreate(BaseModel):
 class DraftPayload(BaseModel):
     deed_type: str
     data: dict
+
+# U1: autosave payload — every field optional except deed_type. A draft may
+# be arbitrarily incomplete (the officer typed one field and left); the
+# generate path's critical-field validation does NOT apply here. Shape
+# otherwise mirrors DeedCreate so the draft row is the same row generate
+# later completes (deed_id threads through).
+class DraftSave(BaseModel):
+    deed_type: str = Field(..., description="Deed type, e.g., 'grant-deed'")
+    deed_id: Optional[int] = Field(default=None, description="Existing draft row to update; omit on first save")
+    property_address: Optional[str] = None
+    apn: Optional[str] = None
+    county: Optional[str] = None
+    legal_description: Optional[str] = None
+    grantor_name: Optional[str] = None
+    grantee_name: Optional[str] = None
+    vesting: Optional[str] = None
+    requested_by: Optional[str] = None
+    source: Optional[str] = None
+    dtt: Optional[Dict] = None
+    title_order_no: Optional[str] = None
+    escrow_no: Optional[str] = None
+    return_to: Optional[Union[str, Dict[str, Optional[str]]]] = None
+    provenance: Optional[Dict] = None
+    property_city: Optional[str] = None
+    property_state: Optional[str] = None
+    property_zip: Optional[str] = None
+    current_owner: Optional[str] = None
+
+    class Config:
+        extra = "ignore"
 
 # Deed endpoints
 @router.post("/deeds")
@@ -215,8 +256,13 @@ def list_deeds_endpoint(user_id: int = Depends(get_current_user_id)):
                     "county": deed[5],
                     "status": deed[6] or "draft",
                     "pdf_url": deed[7],
-                    "created_at": deed[8].strftime("%Y-%m-%d") if deed[8] else None,
-                    "updated_at": deed[9].strftime("%Y-%m-%d") if deed[9] else None,
+                    # U1.4: full ISO timestamps, not date-only strings — the
+                    # browser parses "2026-07-28" as UTC midnight, which
+                    # renders as the PREVIOUS day anywhere west of Greenwich.
+                    # The column is a naive TIMESTAMP holding UTC, so stamp
+                    # the offset explicitly or the browser assumes local.
+                    "created_at": _iso_utc(deed[8]),
+                    "updated_at": _iso_utc(deed[9]),
                 })
 
             return {"deeds": formatted_deeds}
@@ -278,6 +324,38 @@ def deeds_summary(user_id: int = Depends(get_current_user_id)) -> Dict[str, int]
         db.conn.rollback()  # Phase 14-B: Prevent transaction cascade failures
         print(f"Error fetching deed summary: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch summary: {str(e)}")
+
+# --- U1: durable draft autosave (the real one — deed row, not memory) ---
+@router.post("/deeds/draft")
+def save_draft_endpoint(draft: DraftSave, user_id: int = Depends(get_current_user_id)):
+    """Create-or-update a draft deed row from in-progress builder state.
+
+    First save (no deed_id) inserts and returns the row id; the builder
+    keeps it for every subsequent save and hands it to generate as deed_id,
+    so autosave and generate converge on ONE row — never a duplicate.
+    Completed deeds refuse the update (stored-PDF immutability), as do
+    deleted rows: both 409.
+    """
+    from database import save_draft_row
+
+    draft_data = draft.dict()
+    deed_id = draft_data.pop('deed_id', None)
+    row = save_draft_row(user_id, deed_id, draft_data)
+    if not row:
+        if deed_id:
+            # Wrong owner, completed, deleted, or missing — refuse rather
+            # than silently forking a new row (same doctrine as generate).
+            raise HTTPException(
+                status_code=409,
+                detail="This draft can no longer be updated (not found, not yours, or already completed)",
+            )
+        raise HTTPException(status_code=500, detail="Failed to save draft - check backend logs")
+
+    return {
+        "id": row["id"],
+        "status": row.get("status") or "draft",
+        "updated_at": _iso_utc(row.get("updated_at")),
+    }
 
 # --- Phase 6-2: Wizard draft persistence (minimal in-memory) ---
 @router.post("/deeds/drafts")

@@ -8,6 +8,7 @@ import { AIGreeting } from "@/components/ui/AIGreeting"
 import { AICard } from "@/components/ui/AICard"
 import { AIEmptyState } from "@/components/ui/AIEmptyState"
 import { AuthManager } from "@/utils/auth"
+import { pickInProgressDeed } from "@/lib/latestDraft"
 import { 
   FileText, Clock, CheckCircle, Send, 
   TrendingUp, Activity, Download, Share2, 
@@ -180,7 +181,9 @@ export default function Dashboard() {
   }
 
   const hasDeeds = recentDeeds.length > 0
-  const inProgressDeed = recentDeeds.find((d: any) => d.status === "draft" || d.status === "in_progress")
+  // U1.2: the LAST-TOUCHED draft (updated_at desc), not the first draft in
+  // a created_at-ordered list — that offered users their oldest work back.
+  const inProgressDeed = pickInProgressDeed(recentDeeds)
 
   return (
     <div className="flex bg-gray-50 min-h-screen">

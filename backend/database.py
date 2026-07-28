@@ -372,6 +372,81 @@ def update_deed_draft(user_id, deed_id, deed_data):
             conn.close()
         return None
 
+def save_draft_row(user_id, deed_id, deed_data):
+    """U1 autosave: persist in-progress builder state as a draft row.
+
+    Unlike create_deed/update_deed_draft (the GENERATE path, which demands
+    grantor/grantee/legal), a draft may be arbitrarily incomplete — exit
+    must never silently destroy work. Status stays 'draft'; the update arm
+    refuses completed (stored-PDF immutability) and deleted rows. Returns
+    the row dict (the caller keeps the id for subsequent saves/generate).
+    """
+    conn = get_db_connection()
+    if not conn:
+        return None
+    try:
+        cursor = conn.cursor()
+        extras = {
+            key: deed_data.get(key)
+            for key in ('dtt', 'title_order_no', 'escrow_no', 'return_to', 'source', 'provenance',
+                        'property_city', 'property_state', 'property_zip', 'current_owner')
+            if deed_data.get(key)
+        }
+        if deed_id:
+            cursor.execute("""
+                UPDATE deeds
+                SET deed_type = %s, property_address = %s, apn = %s, county = %s,
+                    legal_description = %s, grantor_name = %s, grantee_name = %s,
+                    vesting = %s, requested_by = %s, metadata = %s::jsonb,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s AND user_id = %s
+                  AND COALESCE(status, 'draft') NOT IN ('completed', 'deleted')
+                RETURNING *
+            """, (
+                deed_data.get('deed_type'),
+                deed_data.get('property_address'),
+                deed_data.get('apn'),
+                deed_data.get('county'),
+                deed_data.get('legal_description'),
+                deed_data.get('grantor_name'),
+                deed_data.get('grantee_name'),
+                deed_data.get('vesting'),
+                deed_data.get('requested_by'),
+                json.dumps(extras),
+                deed_id,
+                user_id,
+            ))
+        else:
+            cursor.execute("""
+                INSERT INTO deeds (user_id, deed_type, property_address, apn, county,
+                                   legal_description, grantor_name, grantee_name,
+                                   vesting, requested_by, status, metadata)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'draft', %s::jsonb)
+                RETURNING *
+            """, (
+                user_id,
+                deed_data.get('deed_type'),
+                deed_data.get('property_address'),
+                deed_data.get('apn'),
+                deed_data.get('county'),
+                deed_data.get('legal_description'),
+                deed_data.get('grantor_name'),
+                deed_data.get('grantee_name'),
+                deed_data.get('vesting'),
+                deed_data.get('requested_by'),
+                json.dumps(extras),
+            ))
+        deed = cursor.fetchone()
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return dict(deed) if deed else None
+    except Exception as e:
+        print(f"[U1] Error saving draft {deed_id or '(new)'}: {type(e).__name__}: {e}")
+        if conn:
+            conn.close()
+        return None
+
 def get_user_deeds(user_id):
     conn = get_db_connection()
     if not conn:

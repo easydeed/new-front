@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { AIAssistProvider } from '@/contexts/AIAssistContext';
@@ -9,10 +9,9 @@ import { InputPanel } from '@/components/builder/InputPanel';
 import { PreviewPanel } from '@/components/builder/PreviewPanel';
 import { useBuilderMode } from '@/hooks/useBuilderMode';
 import { DeedBuilderState, PropertyData, Sourced } from '@/types/builder';
+import { buildDeedPayload, hasMeaningfulData } from '@/lib/deedPayload';
 import {
   MaterialFieldKey,
-  buildPreflightOverridesPayload,
-  buildProvenancePayload,
   collectCandidateFields,
 } from '@/lib/provenance';
 import {
@@ -62,6 +61,80 @@ function DeedBuilderInner({ deedType, initialProperty, resumeDeedId }: DeedBuild
   const [expandedSection, setExpandedSection] = useState('property');
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // ── U1 autosave ────────────────────────────────────────────────
+  // Builder state persists to a real deed row (the resume serializer's
+  // write path) so a closed tab never silently destroys work. First save
+  // mints the row; every later save AND generate reuse its id, so autosave
+  // and generate converge on one row — never a duplicate.
+  const draftIdRef = useRef<number | null>(resumeDeedId ? Number(resumeDeedId) : null);
+  const lastSavedRef = useRef<string | null>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inflightSaveRef = useRef<Promise<void> | null>(null);
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
+  const persistDraft = useCallback((s: DeedBuilderState, serialized: string): Promise<void> => {
+    const run = (async () => {
+      try {
+        const token = localStorage.getItem('access_token') || localStorage.getItem('token');
+        const res = await fetch('/api/deeds/draft', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            ...(draftIdRef.current ? { deed_id: draftIdRef.current } : {}),
+            ...buildDeedPayload(s),
+          }),
+        });
+        if (res.ok) {
+          const row = await res.json();
+          if (row.id) draftIdRef.current = row.id;
+          lastSavedRef.current = serialized;
+        } else {
+          // No fake success: lastSavedRef stays stale, so the unsaved-work
+          // prompt still fires on exit — that is the honest surface here.
+          console.warn(`[autosave] draft save failed (${res.status})`);
+        }
+      } catch (err) {
+        console.warn('[autosave] draft save failed:', err);
+      } finally {
+        inflightSaveRef.current = null;
+      }
+    })();
+    inflightSaveRef.current = run;
+    return run;
+  }, []);
+
+  useEffect(() => {
+    if (isResuming || isGenerating) return;
+    if (!hasMeaningfulData(state)) return;
+    const serialized = JSON.stringify(buildDeedPayload(state));
+    if (serialized === lastSavedRef.current) return;
+    saveTimerRef.current = setTimeout(() => {
+      void persistDraft(state, serialized);
+    }, 2500);
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [state, isResuming, isGenerating, persistDraft]);
+
+  // Exit prompt ONLY when there are changes autosave hasn't landed yet —
+  // a clean builder or a fully saved draft leaves without friction.
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      const s = stateRef.current;
+      if (!hasMeaningfulData(s)) return;
+      if (JSON.stringify(buildDeedPayload(s)) !== lastSavedRef.current) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, []);
+
   // Ticket R: hydrate a resumed draft. The mapper restores the officer's
   // RECORDED provenance and legal-choice decisions — fields without a
   // recorded confirmation come back as candidates the gate re-asks.
@@ -86,6 +159,9 @@ function DeedBuilderInner({ deedType, initialProperty, resumeDeedId }: DeedBuild
         const { state: restored, gaps } = hydrateStateFromDeedRow(row);
         if (cancelled) return;
         setState(restored);
+        // Hydration is not an edit: seed the saved-state marker so autosave
+        // fires on the officer's next change, not on the restore itself.
+        lastSavedRef.current = JSON.stringify(buildDeedPayload(restored));
         if (gaps.length > 0) {
           toast.info(`Draft restored. Not recoverable: ${gaps.join(' · ')}`, { duration: 9000 });
         } else {
@@ -202,56 +278,17 @@ function DeedBuilderInner({ deedType, initialProperty, resumeDeedId }: DeedBuild
   const performGenerate = async (genState: DeedBuilderState) => {
     setIsGenerating(true);
     try {
-      // Build the payload to match backend expectations
+      // A first-save may be mid-flight; let it land so generate reuses its
+      // row id instead of racing it into a duplicate.
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      if (inflightSaveRef.current) await inflightSaveRef.current;
+
+      const serialized = buildDeedPayload(genState);
       const payload = {
-        // Ticket R: a resumed draft regenerates into its own row.
-        ...(resumeDeedId ? { deed_id: Number(resumeDeedId) } : {}),
-        doc_type: genState.deedType,
-        county: genState.property?.county || '',
-        apn: genState.property?.apn || '',
-        property_address: genState.property?.address || '',
-        property_city: genState.property?.city || '',
-        property_state: genState.property?.state || '',
-        property_zip: genState.property?.zip || '',
-        current_owner: genState.property?.owner || '',
-        legal_description: genState.property?.legalDescription || '',
-        grantors_text: genState.grantor,
-        grantees_text: genState.grantee,
-        vesting: genState.vesting,
-        requested_by: genState.requestedBy,
-        // Mail-to: when the deed returns to the grantee, it mails to the
-        // grantee AT THE PROPERTY (the standard default) — send the full
-        // address block so the recorded deed shows where to mail it.
-        // Requester-return stays name-only (partner mailing addresses live
-        // in the partner record; not yet collected in the builder).
-        return_to: genState.returnTo === 'grantee'
-          ? {
-              name: genState.grantee,
-              address1: genState.property?.address || '',
-              city: genState.property?.city || '',
-              state: genState.property?.state || '',
-              zip: genState.property?.zip || '',
-            }
-          : genState.requestedBy,
-        title_order_no: genState.titleOrderNo || '',
-        escrow_no: genState.escrowNo || '',
-        dtt: {
-          transfer_value: genState.dtt?.transferValue?.replace(/[^0-9]/g, '') || '',
-          is_exempt: genState.dtt?.isExempt || false,
-          exemption_reason: genState.dtt?.exemptReason || '',
-          basis: genState.dtt?.basis || 'full_value',
-          area_type: genState.dtt?.areaType || 'unincorporated',
-          city_name: genState.dtt?.cityName || '',
-          calculated_amount: genState.dtt?.calculatedAmount || '',
-        },
-        // Who-confirmed-what-when, persisted into deeds.metadata.provenance
-        // alongside the stored PDF's hash.
-        provenance: {
-          ...buildProvenancePayload(genState),
-          ...(buildPreflightOverridesPayload(genState)
-            ? { preflight_overrides: buildPreflightOverridesPayload(genState) }
-            : {}),
-        },
+        // Ticket R + U1: a resumed OR autosaved draft regenerates into its
+        // own row — draftIdRef covers both (resume seeds it, autosave mints it).
+        ...(draftIdRef.current ? { deed_id: draftIdRef.current } : {}),
+        ...serialized,
       };
 
       const response = await fetch('/api/deeds/generate', {
@@ -286,6 +323,9 @@ function DeedBuilderInner({ deedType, initialProperty, resumeDeedId }: DeedBuild
       } else {
         toast.success('Deed generated successfully!');
       }
+      // The row is saved (whatever the PDF outcome) — don't prompt on the
+      // redirect away.
+      lastSavedRef.current = JSON.stringify(serialized);
       router.push(`/deed-builder/${deedType}/success?id=${generatedDeedId}`);
     } catch (err) {
       console.error('Generation failed:', err);
