@@ -21,6 +21,46 @@ from schemas.api_v1.deeds import (
 from utils.api_keys import extract_key_prefix, validate_api_key, generate_deed_id, generate_document_id
 from utils.short_code import generate_content_hash
 from pdf_engine import render_pdf_async
+from services.deed_pdf import render_deed_html
+
+
+def build_render_row(deed_request) -> dict:
+    """Map a partner-API CreateDeedRequest onto the row shape the shared
+    deed chassis renders (services/deed_pdf.build_context_from_row). The
+    API's underscore deed types normalize to the template map's keys."""
+    tt = deed_request.transfer_tax
+    dtt = {
+        "calculated_amount": tt.computed_amount or "",
+        "basis": tt.basis.value if tt.basis else "full_value",
+        "area_type": "city" if tt.city_tax else "unincorporated",
+        "city_name": tt.city_name or "",
+        "is_exempt": bool(tt.exempt),
+        "exemption_reason": tt.exempt_code or "",
+    }
+    ret = deed_request.recording.return_to
+    return {
+        "deed_type": deed_request.deed_type.value.replace("_", "-"),
+        "grantor_name": deed_request.grantor.name,
+        "grantee_name": deed_request.grantee.name,
+        "legal_description": deed_request.property.legal_description,
+        "county": deed_request.property.county,
+        "apn": deed_request.property.apn,
+        "vesting": deed_request.grantee.vesting,
+        "requested_by": deed_request.recording.requested_by,
+        "metadata": {
+            "title_order_no": deed_request.recording.title_order_no,
+            "escrow_no": deed_request.recording.escrow_no,
+            "return_to": {
+                "name": ret.name,
+                "company": ret.company,
+                "address1": ret.address,
+                "city": ret.city,
+                "state": ret.state,
+                "zip": ret.zip,
+            },
+            "dtt": dtt,
+        },
+    }
 
 router = APIRouter(prefix="/api/v1", tags=["Public API v1"])
 
@@ -229,61 +269,14 @@ async def create_deed(
             "include_qr_code": deed_request.options.include_qr_code if deed_request.options else True,
         }
         
-        # Generate PDF using existing template system
-        # For now, use a simple HTML template (integrate with existing Jinja templates later)
-        full_address = f"{deed_request.property.address}, {deed_request.property.city}, {deed_request.property.state} {deed_request.property.zip}"
-        
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <style>
-                body {{ font-family: 'Times New Roman', serif; padding: 1in; font-size: 12pt; }}
-                .header {{ text-align: center; margin-bottom: 2em; }}
-                .title {{ font-size: 18pt; font-weight: bold; text-decoration: underline; }}
-                .section {{ margin: 1.5em 0; }}
-                .label {{ font-weight: bold; }}
-                .recording-box {{ border: 1px solid black; padding: 1em; margin-bottom: 2em; width: 3in; }}
-            </style>
-        </head>
-        <body>
-            <div class="recording-box">
-                <div style="font-size: 10pt;">
-                    RECORDING REQUESTED BY:<br/>
-                    {deed_request.recording.requested_by}<br/><br/>
-                    WHEN RECORDED MAIL TO:<br/>
-                    {deed_request.recording.return_to.name}<br/>
-                    {deed_request.recording.return_to.company or ''}<br/>
-                    {deed_request.recording.return_to.address}<br/>
-                    {deed_request.recording.return_to.city}, {deed_request.recording.return_to.state} {deed_request.recording.return_to.zip}
-                </div>
-            </div>
-            
-            <div class="header">
-                <div class="title">{deed_request.deed_type.value.replace('_', ' ').upper()}</div>
-            </div>
-            
-            <div class="section">
-                <p>FOR VALUABLE CONSIDERATION, receipt of which is hereby acknowledged,</p>
-                <p><span class="label">{deed_request.grantor.name}</span></p>
-                <p>hereby GRANT(S) to</p>
-                <p><span class="label">{deed_request.grantee.name}</span>, {deed_request.grantee.vesting}</p>
-            </div>
-            
-            <div class="section">
-                <p>the following described real property in the County of {deed_request.property.county}, State of California:</p>
-                <p>{deed_request.property.legal_description}</p>
-                <p><strong>APN:</strong> {deed_request.property.apn}</p>
-            </div>
-            
-            <div class="section" style="margin-top: 2em;">
-                <p>Document ID: {document_id}</p>
-                <p style="font-size: 10pt; color: #666;">Verify at: https://deedpro.com/verify/{document_id}</p>
-            </div>
-        </body>
-        </html>
-        """
-        
+        # Doctrine sweep: render through the shared recorder-compliant
+        # chassis (services/deed_pdf), not the old inline HTML — that
+        # ad-hoc template had no recorder's space, no DTT declaration, no
+        # acknowledgment, and printed the Document ID / verify URL on the
+        # instrument itself (chrome on a recorded page). Verification data
+        # stays in the response URLs and the authenticity record.
+        html_content = render_deed_html(build_render_row(deed_request))
+
         # Generate PDF
         try:
             pdf_bytes = await render_pdf_async(html_content)

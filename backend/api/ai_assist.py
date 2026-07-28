@@ -45,19 +45,21 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def ai_chat(request: ChatRequest):
+async def ai_chat(request: ChatRequest, user_id: int = Depends(get_current_user_id)):
     """
     AI Chat endpoint for wizard guidance.
     Uses OpenAI GPT-4 for natural language assistance.
-    
+
     This endpoint is called by the frontend aiAssistant service.
+    Doctrine sweep (owner ruling 2026-07-28): logged-in-only — both
+    consumers live inside the authenticated builder, and an open endpoint
+    spends AI tokens for anyone.
     """
     if not OPENAI_API_KEY:
-        logger.warning("OpenAI API key not configured, returning fallback response")
-        return ChatResponse(
-            success=True,
-            response="AI assistance is currently unavailable. Please consult a title professional for guidance on this question."
-        )
+        # An unconfigured service is an error, not a fabricated AI reply
+        # (same disease the proxy had: success:true with canned text).
+        logger.warning("OpenAI API key not configured")
+        raise HTTPException(status_code=503, detail="AI assistance is not configured")
     
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:

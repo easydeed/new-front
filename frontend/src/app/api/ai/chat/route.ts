@@ -7,17 +7,28 @@
 
 import { NextRequest, NextResponse } from "next/server"
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"
+// Doctrine sweep: same resolver chain as every other proxy — the old
+// NEXT_PUBLIC_BACKEND_URL || localhost:8000 chain pointed at localhost in
+// any deployment where that var was unset (bug #12a's species), and the
+// failure was invisible because the catch fabricated a success below.
+const BACKEND_URL =
+  process.env.BACKEND_BASE_URL ||
+  process.env.NEXT_PUBLIC_BACKEND_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://deedpro-main-api.onrender.com"
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    // Proxy to backend AI assist endpoint
+    // Proxy to backend AI assist endpoint (auth required backend-side —
+    // forward the caller's bearer token)
+    const authHeader = request.headers.get("authorization")
     const response = await fetch(`${BACKEND_URL}/api/ai/chat`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...(authHeader ? { Authorization: authHeader } : {}),
       },
       body: JSON.stringify({
         system: body.system || "",
@@ -41,12 +52,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data)
   } catch (error) {
     console.error("[AI Chat] Error:", error)
-    
-    // Return a helpful fallback response instead of an error
-    return NextResponse.json({
-      success: true,
-      response: "AI assistance is currently unavailable. For questions about California deed types, vesting, or documentary transfer tax, please consult a licensed title professional or attorney.",
-    })
+
+    // Doctrine sweep: a failure is an error, not a fabricated AI reply —
+    // the old catch returned success:true with canned text, so the UI
+    // rendered outage copy as if the assistant had said it.
+    return NextResponse.json(
+      {
+        success: false,
+        error: "AI assistance is currently unavailable. Please try again shortly.",
+      },
+      { status: 502 }
+    )
   }
 }
 

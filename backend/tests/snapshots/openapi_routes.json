@@ -321,10 +321,6 @@
  ],
  [
   "POST",
-  "/api/generate-deed"
- ],
- [
-  "POST",
   "/api/generate/grant-deed-ca"
  ],
  [
