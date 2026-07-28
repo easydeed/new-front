@@ -1,4 +1,5 @@
 """Deed CRUD endpoints (T8 split — moved verbatim from main.py)."""
+import os
 from time import time
 from typing import Dict, Optional, Union
 
@@ -136,12 +137,17 @@ def create_deed_endpoint(deed: DeedCreate, user_id: int = Depends(get_current_us
                 deed_type = deed_data.get('deed_type', 'deed')
                 deed_id = new_deed.get('id', 0)
 
-                # Send notification (non-blocking)
+                # Send notification (non-blocking). Signature drifted when
+                # the helper gained property_address/preview_link — this
+                # call failed on EVERY generation until 2026-07-28.
+                frontend_url = os.getenv("FRONTEND_URL", "https://deedpro-frontend-new.vercel.app")
                 notification_sent = send_deed_completion_notification(
                     user_email=user_email,
                     user_name=user_name,
                     deed_type=deed_type,
-                    deed_id=deed_id
+                    property_address=deed_data.get('property_address', ''),
+                    deed_id=deed_id,
+                    preview_link=f"{frontend_url}/past-deeds?highlight={deed_id}",
                 )
 
                 if notification_sent:

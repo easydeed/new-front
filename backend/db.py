@@ -17,7 +17,7 @@ load_dotenv()
 # Database connection with auto-reconnect support
 DB_URL = os.getenv("DATABASE_URL") or os.getenv("DB_URL")
 if DB_URL:
-    conn = psycopg2.connect(DB_URL)
+    conn = psycopg2.connect(DB_URL, connect_timeout=10)
 else:
     conn = None
     print("Warning: No database connection URL found")
@@ -40,7 +40,7 @@ def get_db_connection():
         # Test if connection is alive
         if conn is None or conn.closed:
             print("⚠️ Database connection closed, reconnecting...")
-            conn = psycopg2.connect(DB_URL)
+            conn = psycopg2.connect(DB_URL, connect_timeout=10)
             print("✅ Database reconnected successfully")
         else:
             # Test with a simple query
@@ -49,7 +49,7 @@ def get_db_connection():
     except (psycopg2.OperationalError, psycopg2.InterfaceError, AttributeError) as e:
         print(f"⚠️ Database connection lost ({e}), reconnecting...")
         try:
-            conn = psycopg2.connect(DB_URL)
+            conn = psycopg2.connect(DB_URL, connect_timeout=10)
             print("✅ Database reconnected successfully")
         except Exception as reconnect_error:
             print(f"❌ Failed to reconnect to database: {reconnect_error}")

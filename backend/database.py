@@ -11,7 +11,8 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 def get_db_connection():
     try:
-        conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
+        conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor,
+                                connect_timeout=10)
         return conn
     except Exception as e:
         print(f"Database connection error: {e}")
@@ -495,8 +496,31 @@ def get_recent_properties(user_id, limit=5):
             conn.close()
         return []
 
-# Initialize database tables on module import
+# Schema convergence at startup — OFF the import path. Running
+# create_tables() synchronously at import blocked uvicorn's port binding;
+# on 2026-07-28 a slow boot exceeded Render's port-detection window and the
+# deploy timed out ("No open ports detected"), leaving the OLD instance
+# serving. The daemon thread lets the port bind immediately; the schema
+# converges seconds later, with retries and loud logging (a failed
+# convergence must never be silent — one-schema-authority rule).
+def _converge_schema_with_retry(attempts: int = 5, delay_seconds: int = 5):
+    import time as _time
+    for attempt in range(1, attempts + 1):
+        try:
+            if create_tables():
+                print(f"[schema] Converged on attempt {attempt}")
+                return
+            print(f"[schema] create_tables returned False (attempt {attempt}/{attempts})")
+        except Exception as e:
+            print(f"[schema] Convergence error (attempt {attempt}/{attempts}): {e}")
+        _time.sleep(delay_seconds)
+    print("[schema] FAILED to converge after all attempts — columns the code "
+          "expects may be missing until the next restart")
+
+
 if DATABASE_URL:
-    create_tables()
+    import threading
+    threading.Thread(target=_converge_schema_with_retry, daemon=True,
+                     name="schema-convergence").start()
 else:
     print("Warning: DATABASE_URL environment variable not set") 
