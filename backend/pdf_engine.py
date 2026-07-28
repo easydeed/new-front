@@ -155,10 +155,10 @@ def render_pdf(
     
     elif selected_engine == "pdfshift":
         logger.debug("Rendering PDF with PDFShift")
-        # Convert page_setup to PDFShift margin format if needed
+        # Margins are owned by the templates' @page CSS — do NOT inject the
+        # page_setup dict as a PDFShift "margin" option (object form 400s;
+        # a margin override would also fight the measured chassis geometry).
         options = pdfshift_options or {}
-        if page_setup and "margin" not in options:
-            options["margin"] = page_setup
         return render_pdf_with_pdfshift_sync(html, options)
     
     else:
@@ -199,8 +199,6 @@ async def render_pdf_async(
     
     if selected_engine == "pdfshift":
         options = pdfshift_options or {}
-        if page_setup and "margin" not in options:
-            options["margin"] = page_setup
         return await render_pdf_with_pdfshift(html, options)
     
     elif selected_engine == "weasyprint":
