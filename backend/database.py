@@ -278,7 +278,8 @@ def create_deed(user_id, deed_data):
         # into metadata JSONB so the stored PDF can render the full document.
         extras = {
             key: deed_data.get(key)
-            for key in ('dtt', 'title_order_no', 'escrow_no', 'return_to', 'source', 'provenance')
+            for key in ('dtt', 'title_order_no', 'escrow_no', 'return_to', 'source', 'provenance',
+                        'property_city', 'property_state', 'property_zip', 'current_owner')
             if deed_data.get(key)
         }
 
@@ -333,7 +334,8 @@ def update_deed_draft(user_id, deed_id, deed_data):
         cursor = conn.cursor()
         extras = {
             key: deed_data.get(key)
-            for key in ('dtt', 'title_order_no', 'escrow_no', 'return_to', 'source', 'provenance')
+            for key in ('dtt', 'title_order_no', 'escrow_no', 'return_to', 'source', 'provenance',
+                        'property_city', 'property_state', 'property_zip', 'current_owner')
             if deed_data.get(key)
         }
         cursor.execute("""
