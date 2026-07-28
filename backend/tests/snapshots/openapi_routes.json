@@ -353,6 +353,10 @@
  ],
  [
   "POST",
+  "/deeds/draft"
+ ],
+ [
+  "POST",
   "/deeds/drafts"
  ],
  [
