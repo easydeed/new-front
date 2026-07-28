@@ -60,6 +60,19 @@ def test_context_reads_metadata_extras_including_json_string():
         assert ctx["dtt"]["city_name"] == "Los Angeles"
 
 
+def test_return_to_dict_passes_through_with_address():
+    """Mail-to may arrive as a full address block (builder sends the
+    grantee at the property address); the context must pass it through so
+    the deed prints WHERE to mail, not just a name."""
+    meta = {"return_to": {"name": "JANE ROE", "address1": "1358 5TH ST",
+                          "city": "Santa Monica", "state": "CA", "zip": "90401"}}
+    ctx = build_context_from_row(minimal_row(metadata=meta))
+    assert ctx["return_to"]["address1"] == "1358 5TH ST"
+    html = _normalized(__import__("services.deed_pdf", fromlist=["render_deed_html"]).render_deed_html(minimal_row(metadata=meta)))
+    assert "1358 5TH ST" in html
+    assert "Santa Monica, CA 90401" in html
+
+
 def test_exempt_dtt_maps_to_zero_amount():
     dtt = _map_dtt({"is_exempt": True, "exemption_reason": "R&T 11911", "area_type": "unincorporated"})
     assert dtt["amount"] == "0.00"

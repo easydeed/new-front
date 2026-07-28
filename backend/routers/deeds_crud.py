@@ -1,6 +1,6 @@
 """Deed CRUD endpoints (T8 split — moved verbatim from main.py)."""
 from time import time
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from psycopg2.extras import RealDictCursor
@@ -33,7 +33,11 @@ class DeedCreate(BaseModel):
     dtt: Optional[Dict] = Field(default=None, description="Documentary transfer tax details from the builder")
     title_order_no: Optional[str] = Field(default=None)
     escrow_no: Optional[str] = Field(default=None)
-    return_to: Optional[str] = Field(default=None, description="Mail-to name for the recorded deed")
+    # Bare string (name only, legacy) or a full mail-to block
+    # ({name, company?, address1, address2?, city, state, zip}) — the
+    # template and build_context_from_row handle both shapes.
+    return_to: Optional[Union[str, Dict[str, Optional[str]]]] = Field(
+        default=None, description="Mail-to for the recorded deed (name or address block)")
     provenance: Optional[Dict] = Field(default=None, description="Per-field source + confirmation timestamps (Ticket B)")
 
     class Config:
@@ -112,6 +116,10 @@ def create_deed_endpoint(deed: DeedCreate, user_id: int = Depends(get_current_us
             "stored. It remains a draft; opening or downloading it will "
             "retry."
         )
+        # Diagnostic surfacing: the owner of the deed may see WHY (class +
+        # trimmed message) — a generic error hid the completed_at incident
+        # for weeks. Render logs carry the full trace.
+        new_deed["pdf_error_detail"] = f"{type(pdf_error).__name__}: {str(pdf_error)[:200]}"
 
     # Phase 7: Send deed completion notification
     try:
@@ -396,4 +404,9 @@ def download_deed_endpoint(deed_id: int, user_id: int = Depends(get_current_user
     except Exception as e:
         print(f"Error downloading deed {deed_id}: {e}")
         db.conn.rollback()
-        raise HTTPException(status_code=500, detail="Failed to generate deed PDF")
+        # Diagnostic surfacing: this is the self-heal retry path — an
+        # authenticated owner needs the real reason, not a shrug.
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate deed PDF — {type(e).__name__}: {str(e)[:200]}",
+        )
