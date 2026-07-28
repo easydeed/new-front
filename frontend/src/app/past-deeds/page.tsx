@@ -84,7 +84,8 @@ export default function PastDeedsPageV0() {
   }
 
   const handleContinue = (deed: Deed) => {
-    router.push(`/deed-builder/${deed.deed_type.toLowerCase().replace(" ", "-")}`)
+    // Ticket R: drafts resume into a hydrated builder, not a blank one.
+    router.push(`/deed-builder/${deed.deed_type.toLowerCase().replace(" ", "-")}?resume=${deed.id}`)
   }
 
   const handleDownload = async (deed: Deed) => {

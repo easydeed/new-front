@@ -192,21 +192,20 @@ export default function Dashboard() {
             <AIGreeting userName={userName} />
           </div>
 
-          {/* Draft deed card (H2: honest capability — the builder has no
-              state-restore yet, so the card leads to the draft's real home
-              in Past Deeds instead of a dead-end type-selection push) */}
+          {/* Draft deed card (Ticket R: resume is real — the card opens the
+              builder hydrated from the saved row, decisions intact) */}
           {inProgressDeed && (
             <AICard
-              message={`You have a draft deed that isn't finished.`}
+              message={`You have a deed in progress. Continue where you left off?`}
               action={{
-                label: `View draft: ${inProgressDeed.property_address || inProgressDeed.deed_type || 'Draft'}`,
-                onClick: () => router.push(`/past-deeds?highlight=${inProgressDeed.id}`)
+                label: `Continue: ${inProgressDeed.property_address || inProgressDeed.deed_type || 'Draft'}`,
+                onClick: () => router.push(`/deed-builder/${inProgressDeed.deed_type || 'grant-deed'}?resume=${inProgressDeed.id}`)
               }}
               secondaryAction={{
                 label: "Start a new deed",
                 onClick: () => router.push('/deed-builder')
               }}
-              details="Drafts live in Past Deeds — open one there to review it or continue with a fresh build."
+              details="Your saved draft reopens with everything you entered — confirmations and tax decisions included."
               className="mb-8"
             />
           )}
@@ -459,10 +458,10 @@ function DeedRow({ deed }: { deed: any }) {
             </button>
           )}
           {(deed.status === 'draft' || deed.status === 'in_progress') && (
-            <button 
-              onClick={() => router.push('/deed-builder')}
+            <button
+              onClick={() => router.push(`/deed-builder/${deed.deed_type || 'grant-deed'}?resume=${deed.id}`)}
               className="p-2 hover:bg-emerald-50 rounded-lg transition-colors text-emerald-600"
-              title="Continue"
+              title="Continue this draft"
             >
               <ArrowRight className="w-4 h-4" />
             </button>

@@ -40,6 +40,10 @@ class DeedCreate(BaseModel):
     return_to: Optional[Union[str, Dict[str, Optional[str]]]] = Field(
         default=None, description="Mail-to for the recorded deed (name or address block)")
     provenance: Optional[Dict] = Field(default=None, description="Per-field source + confirmation timestamps (Ticket B)")
+    # Ticket R: present when regenerating a RESUMED DRAFT — updates that
+    # row instead of inserting a new one. Drafts only; completed deeds are
+    # immutable (their PDF is stored) and deleted stays deleted.
+    deed_id: Optional[int] = Field(default=None, description="Existing draft to update (builder resume)")
 
     class Config:
         extra = "ignore"  # Ignore extra fields from frontend
@@ -85,7 +89,20 @@ def create_deed_endpoint(deed: DeedCreate, user_id: int = Depends(get_current_us
     print(f"[Backend /deeds] legal_description: {deed_data.get('legal_description')[:100]}...")
     print(f"[Backend /deeds] source: {deed_data.get('source', 'unknown')}")
 
-    new_deed = create_deed(user_id, deed_data)
+    # Ticket R: a resumed draft regenerates INTO ITS OWN ROW.
+    resume_deed_id = deed_data.pop('deed_id', None)
+    if resume_deed_id:
+        from database import update_deed_draft
+        new_deed = update_deed_draft(user_id, resume_deed_id, deed_data)
+        if not new_deed:
+            # Wrong owner, already completed (PDF immutability), deleted,
+            # or missing — refuse rather than silently forking a new row.
+            raise HTTPException(
+                status_code=409,
+                detail="This deed can no longer be updated (not found, not yours, or already completed)",
+            )
+    else:
+        new_deed = create_deed(user_id, deed_data)
 
     if not new_deed:
         print(f"[Backend /deeds] ❌ create_deed returned None!")

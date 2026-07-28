@@ -12,6 +12,9 @@ export async function POST(req: NextRequest) {
     const payload = await req.json();
 
     const deedCreate = {
+      // Ticket R: present when regenerating a resumed draft — the backend
+      // updates that row instead of inserting a new one.
+      ...(payload.deed_id ? { deed_id: payload.deed_id } : {}),
       deed_type: payload.doc_type,
       property_address: payload.property_address || null,
       apn: payload.apn || null,

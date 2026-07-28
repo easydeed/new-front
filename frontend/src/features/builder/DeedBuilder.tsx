@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { AIAssistProvider } from '@/contexts/AIAssistContext';
@@ -25,6 +25,8 @@ import { ValidationPanel } from '@/components/builder/ValidationPanel';
 interface DeedBuilderProps {
   deedType: string;
   initialProperty?: PropertyData;
+  /** Ticket R: id of a saved draft to hydrate into the builder. */
+  resumeDeedId?: string;
 }
 
 const DEED_LABELS: Record<string, string> = {
@@ -35,9 +37,11 @@ const DEED_LABELS: Record<string, string> = {
   'tax-deed': 'Tax Deed',
 };
 
-function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
+function DeedBuilderInner({ deedType, initialProperty, resumeDeedId }: DeedBuilderProps) {
   const router = useRouter();
   useBuilderMode();
+
+  const [isResuming, setIsResuming] = useState(!!resumeDeedId);
 
   const [state, setState] = useState<DeedBuilderState>({
     deedType,
@@ -57,6 +61,47 @@ function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
 
   const [expandedSection, setExpandedSection] = useState('property');
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Ticket R: hydrate a resumed draft. The mapper restores the officer's
+  // RECORDED provenance and legal-choice decisions — fields without a
+  // recorded confirmation come back as candidates the gate re-asks.
+  useEffect(() => {
+    if (!resumeDeedId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = localStorage.getItem('access_token') || localStorage.getItem('token');
+        const res = await fetch(`/api/deeds/${resumeDeedId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || `Could not load draft (${res.status})`);
+        }
+        const row = await res.json();
+        if ((row.status || 'draft') !== 'draft') {
+          throw new Error('This deed is already completed — open it from Past Deeds instead.');
+        }
+        const { hydrateStateFromDeedRow } = await import('@/lib/deedResume');
+        const { state: restored, gaps } = hydrateStateFromDeedRow(row);
+        if (cancelled) return;
+        setState(restored);
+        if (gaps.length > 0) {
+          toast.info(`Draft restored. Not recoverable: ${gaps.join(' · ')}`, { duration: 9000 });
+        } else {
+          toast.success('Draft restored — pick up where you left off.');
+        }
+      } catch (err) {
+        if (!cancelled) {
+          toast.error(err instanceof Error ? err.message : 'Could not resume this draft.');
+        }
+      } finally {
+        if (!cancelled) setIsResuming(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resumeDeedId]);
 
   const handleChange = useCallback((updates: Partial<DeedBuilderState>) => {
     setState(prev => ({ ...prev, ...updates }));
@@ -159,6 +204,8 @@ function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
     try {
       // Build the payload to match backend expectations
       const payload = {
+        // Ticket R: a resumed draft regenerates into its own row.
+        ...(resumeDeedId ? { deed_id: Number(resumeDeedId) } : {}),
         doc_type: genState.deedType,
         county: genState.property?.county || '',
         apn: genState.property?.apn || '',
@@ -243,6 +290,15 @@ function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
       setIsGenerating(false);
     }
   };
+
+  if (isResuming) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-gray-100 gap-4">
+        <div className="animate-spin rounded-full h-10 w-10 border-4 border-brand-500 border-t-transparent" />
+        <p className="text-gray-600">Restoring your draft&hellip;</p>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col bg-gray-100">
