@@ -58,19 +58,15 @@ class PDFShiftService:
         if not self.is_configured():
             raise RuntimeError("PDFSHIFT_API_KEY environment variable not set")
         
-        # Default options optimized for legal documents
+        # ONLY documented PDFShift v3 parameters. The old defaults copied
+        # Playwright page.pdf() options (printBackground, preferCSSPageSize,
+        # displayHeaderFooter) and a margin object — PDFShift validates
+        # strictly and 400'd every real render (2026-07-28, the lock behind
+        # the auth lock). Page size and margins are owned by the templates'
+        # @page CSS, which Chrome print honors.
         default_options = {
             "source": html,
-            "format": "Letter",  # US Letter 8.5" x 11"
-            "margin": {
-                "top": "0.5in",
-                "right": "0.625in", 
-                "bottom": "0.625in",
-                "left": "0.75in"  # Extra left margin for binding
-            },
-            "printBackground": True,
-            "preferCSSPageSize": True,  # Honor @page CSS rules
-            "displayHeaderFooter": False,
+            "format": "Letter",
             "landscape": False,
         }
         
@@ -147,17 +143,11 @@ class PDFShiftService:
         if not self.is_configured():
             raise RuntimeError("PDFSHIFT_API_KEY environment variable not set")
         
+        # Documented PDFShift v3 parameters only (see async path note).
         default_options = {
             "source": html,
             "format": "Letter",
-            "margin": {
-                "top": "0.5in",
-                "right": "0.625in", 
-                "bottom": "0.625in",
-                "left": "0.75in"
-            },
-            "printBackground": True,
-            "preferCSSPageSize": True,
+            "landscape": False,
         }
         
         if options:
@@ -175,7 +165,12 @@ class PDFShiftService:
                 auth=("api", self.api_key),
                 json=default_options
             )
-            response.raise_for_status()
+            if response.status_code >= 400:
+                # PDFShift's error body names the offending parameter —
+                # never discard it (the 400 diagnosis lived in this body).
+                raise RuntimeError(
+                    f"PDFShift {response.status_code}: {response.text[:300]}"
+                )
             return response.content
 
 
