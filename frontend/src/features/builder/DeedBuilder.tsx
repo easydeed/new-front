@@ -210,7 +210,13 @@ function DeedBuilderInner({ deedType, initialProperty }: DeedBuilderProps) {
       
       const result = await response.json();
       const generatedDeedId = result.id || result.deed_id;
-      toast.success('Deed generated successfully!');
+      // H1 (invariant #4): a save whose PDF store failed is not a success —
+      // say so instead of celebrating a half-failure.
+      if (result.pdf_error) {
+        toast.warning(result.pdf_error);
+      } else {
+        toast.success('Deed generated successfully!');
+      }
       router.push(`/deed-builder/${deedType}/success?id=${generatedDeedId}`);
     } catch (err) {
       console.error('Generation failed:', err);

@@ -33,51 +33,21 @@ BASELINE_PASSWORD = "Baseline!Passw0rd"
 
 
 def ensure_schema(db_url):
-    """Bring a fresh database up to the columns the live flows need."""
+    """Prepare the test database for a deterministic run.
+
+    H1 class-killer (silent-PDF-store incident, 2026-07-28): this harness
+    carries NO schema statements of its own. Schema comes solely from
+    database.create_tables() — the same code path production runs at
+    startup — so a column can never again exist in tests but not in
+    production. Any deliberate test-only divergence must be added here
+    with a comment citing why. What remains below is data cleanup only.
+    """
     import psycopg2
     conn = psycopg2.connect(db_url)
     conn.autocommit = True
     cur = conn.cursor()
     from database import create_tables
     create_tables()
-    for stmt in [
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name VARCHAR(255)",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'user'",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS plan VARCHAR(50) DEFAULT 'free'",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMP",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(255)",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(50)",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS company_name VARCHAR(255)",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS company_type VARCHAR(100)",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS state VARCHAR(10)",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(50)",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS verified BOOLEAN DEFAULT FALSE",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscribe BOOLEAN DEFAULT FALSE",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS agree_terms BOOLEAN DEFAULT TRUE",
-        "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS grantor_name VARCHAR(255)",
-        "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS grantee_name VARCHAR(255)",
-        "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS pdf_url VARCHAR(500)",
-        "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'",
-        "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS requested_by VARCHAR(255)",
-        "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP",
-        """CREATE TABLE IF NOT EXISTS deed_shares (
-            id SERIAL PRIMARY KEY,
-            deed_id INT NOT NULL,
-            owner_user_id INT NOT NULL,
-            recipient_email TEXT NOT NULL,
-            token UUID DEFAULT gen_random_uuid(),
-            status VARCHAR(16) DEFAULT 'sent',
-            expires_at TIMESTAMPTZ,
-            created_at TIMESTAMPTZ DEFAULT now(),
-            updated_at TIMESTAMPTZ DEFAULT now(),
-            feedback TEXT, feedback_at TIMESTAMPTZ, feedback_by VARCHAR(255),
-            viewed_at TIMESTAMPTZ, view_count INT DEFAULT 0,
-            last_reminder_sent_at TIMESTAMPTZ, reminder_count INT DEFAULT 0
-        )""",
-    ]:
-        cur.execute(stmt)
     # deterministic reruns
     cur.execute("DELETE FROM deed_shares")
     cur.execute("DELETE FROM deed_pdfs") if _table_exists(cur, "deed_pdfs") else None

@@ -59,7 +59,74 @@ def create_tables():
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        
+
+        # ──────────────────────────────────────────────────────────────
+        # H1: ONE SCHEMA AUTHORITY. Every column/table the code needs is
+        # converged here, idempotently, at startup — production and the
+        # six-flow test DB derive from this same function. The columns
+        # below existed in production via historical migrations but not in
+        # the CREATEs above; the six-flow harness used to carry its own
+        # copy of these ALTERs, which is exactly how completed_at ended up
+        # existing in tests but not production (the silent-PDF-store
+        # incident, 2026-07-28). ensure_schema no longer amends schema.
+        # Any deliberate test-only divergence requires a cited comment.
+        # ──────────────────────────────────────────────────────────────
+        for stmt in [
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name VARCHAR(255)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'user'",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS plan VARCHAR(50) DEFAULT 'free'",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMP",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(255)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(50)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS company_name VARCHAR(255)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS company_type VARCHAR(100)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS state VARCHAR(10)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(50)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS verified BOOLEAN DEFAULT FALSE",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscribe BOOLEAN DEFAULT FALSE",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS agree_terms BOOLEAN DEFAULT TRUE",
+            "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS grantor_name VARCHAR(255)",
+            "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS grantee_name VARCHAR(255)",
+            "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS pdf_url VARCHAR(500)",
+            "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'",
+            "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS requested_by VARCHAR(255)",
+            # The column whose absence broke every production PDF store:
+            # store_deed_pdf stamps completed-on-store (PR #41); the ALTER
+            # only ever ran in the test harness. Now it runs here.
+            "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP",
+            """CREATE TABLE IF NOT EXISTS deed_pdfs (
+                deed_id INTEGER PRIMARY KEY REFERENCES deeds(id) ON DELETE CASCADE,
+                pdf_data BYTEA NOT NULL,
+                sha256 VARCHAR(64) NOT NULL,
+                generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )""",
+            """CREATE TABLE IF NOT EXISTS deed_shares (
+                id SERIAL PRIMARY KEY,
+                deed_id INT NOT NULL,
+                owner_user_id INT NOT NULL,
+                recipient_email TEXT NOT NULL,
+                token UUID DEFAULT gen_random_uuid(),
+                status VARCHAR(16) DEFAULT 'sent',
+                expires_at TIMESTAMPTZ,
+                created_at TIMESTAMPTZ DEFAULT now(),
+                updated_at TIMESTAMPTZ DEFAULT now(),
+                feedback TEXT, feedback_at TIMESTAMPTZ, feedback_by VARCHAR(255),
+                viewed_at TIMESTAMPTZ, view_count INT DEFAULT 0,
+                last_reminder_sent_at TIMESTAMPTZ, reminder_count INT DEFAULT 0
+            )""",
+            """CREATE TABLE IF NOT EXISTS plan_limits (
+                plan_name VARCHAR(50) PRIMARY KEY,
+                max_deeds_per_month INT,
+                api_calls_per_month INT,
+                ai_assistance BOOLEAN,
+                integrations_enabled BOOLEAN,
+                priority_support BOOLEAN
+            )""",
+        ]:
+            cursor.execute(stmt)
+
         # Create payment_methods table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS payment_methods (

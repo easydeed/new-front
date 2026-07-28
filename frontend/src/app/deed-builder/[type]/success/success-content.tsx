@@ -24,6 +24,7 @@ interface DeedDetails {
   pdf_url?: string;
   created_at?: string;
   deed_type?: string;
+  status?: string;
 }
 
 export function SuccessContent() {
@@ -155,6 +156,11 @@ export function SuccessContent() {
 
   const propertyAddress = deed?.property_address || deed?.property || 'Your Property';
 
+  // H1 (invariant #4): the celebration is conditional on the deed actually
+  // completing (stored PDF flips status to 'completed'). A draft here means
+  // the PDF store failed — say so; Download/Preview retry the render.
+  const pdfPending = !!deed && deed.status !== 'completed';
+
   if (loading) {
     return (
       <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
@@ -179,23 +185,36 @@ export function SuccessContent() {
       <main className="flex-1 p-6 md:p-10 lg:p-16 overflow-auto">
         <div className="max-w-[1200px] mx-auto">
           
-          {/* Success Header */}
+          {/* Success (or honest pending) header */}
           <div className="text-center mb-12">
-            {/* Success Animation */}
-            <div className="relative inline-block mb-8">
-              <div className="w-28 h-28 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center mx-auto shadow-lg ring-4 ring-green-50 animate-bounce-once">
-                <CheckCircle className="w-14 h-14 text-green-500" strokeWidth={2.5} />
+            {pdfPending ? (
+              <div className="relative inline-block mb-8">
+                <div className="w-28 h-28 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full flex items-center justify-center mx-auto shadow-lg ring-4 ring-amber-50">
+                  <FileText className="w-14 h-14 text-amber-500" strokeWidth={2.5} />
+                </div>
               </div>
-              {/* Decorative elements */}
-              <div className="absolute -top-2 -right-2 w-5 h-5 bg-[#7C4DFF] rounded-full animate-ping opacity-75" />
-              <div className="absolute -bottom-1 -left-3 w-4 h-4 bg-amber-400 rounded-full animate-ping opacity-75" style={{ animationDelay: '150ms' }} />
-              <div className="absolute top-0 -left-4 w-3 h-3 bg-green-400 rounded-full animate-ping opacity-75" style={{ animationDelay: '300ms' }} />
-              <Sparkles className="absolute -top-4 right-4 w-6 h-6 text-amber-400 animate-pulse" />
-            </div>
+            ) : (
+              <div className="relative inline-block mb-8">
+                <div className="w-28 h-28 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center mx-auto shadow-lg ring-4 ring-green-50 animate-bounce-once">
+                  <CheckCircle className="w-14 h-14 text-green-500" strokeWidth={2.5} />
+                </div>
+                {/* Decorative elements */}
+                <div className="absolute -top-2 -right-2 w-5 h-5 bg-[#7C4DFF] rounded-full animate-ping opacity-75" />
+                <div className="absolute -bottom-1 -left-3 w-4 h-4 bg-amber-400 rounded-full animate-ping opacity-75" style={{ animationDelay: '150ms' }} />
+                <div className="absolute top-0 -left-4 w-3 h-3 bg-green-400 rounded-full animate-ping opacity-75" style={{ animationDelay: '300ms' }} />
+                <Sparkles className="absolute -top-4 right-4 w-6 h-6 text-amber-400 animate-pulse" />
+              </div>
+            )}
 
             <h1 className="text-4xl md:text-5xl font-bold text-slate-800 mb-4 tracking-tight">
-              Deed Generated Successfully!
+              {pdfPending ? 'Deed Saved — PDF Not Ready' : 'Deed Generated Successfully!'}
             </h1>
+            {pdfPending && (
+              <p className="text-base text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 max-w-xl mx-auto mb-4">
+                The deed was saved, but its PDF hasn&apos;t been stored yet.
+                It remains a draft — Preview or Download below will retry the render.
+              </p>
+            )}
             <p className="text-xl text-slate-600 mb-2">
               {DEED_LABELS[type] || 'Deed'} for
             </p>
