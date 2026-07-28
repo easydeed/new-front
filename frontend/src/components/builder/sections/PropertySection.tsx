@@ -575,9 +575,14 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
   // RENDER: Property loaded successfully
   // ─────────────────────────────────────────────────────────────────
   if (value?.address) {
-    const allConfirmed = (['apn', 'legalDescription', 'owner'] as const).every(
-      (k) => provenanceFor(k).status === 'confirmed'
-    )
+    // U0: an EMPTY field has nothing to confirm — the generation gate
+    // ignores it (nothing unconfirmed can reach the PDF), so the UI must
+    // not render a confirm affordance or an "unconfirmed" warning for it.
+    // The audit's "No value / unconfirmed" card was exactly that mismatch.
+    const hasValue = (k: 'apn' | 'legalDescription' | 'owner') =>
+      !!((k === 'apn' ? value?.apn : k === 'legalDescription' ? value?.legalDescription : value?.owner) || '').trim()
+    const presentKeys = (['apn', 'legalDescription', 'owner'] as const).filter(hasValue)
+    const allConfirmed = presentKeys.every((k) => provenanceFor(k).status === 'confirmed')
 
     return (
       <div className="space-y-4">
@@ -596,25 +601,36 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
         </div>
 
         <div className="space-y-3">
-          <ConfirmableField
-            label="APN"
-            field={provenanceFor('apn')}
-            onConfirm={() => confirmField('apn')}
-            onEdit={(v) => editField('apn', v)}
-          />
-          <ConfirmableField
-            label="Current Owner"
-            field={provenanceFor('owner')}
-            onConfirm={() => confirmField('owner')}
-            onEdit={(v) => editField('owner', v)}
-          />
-          <ConfirmableField
-            label="Legal Description"
-            field={provenanceFor('legalDescription')}
-            multiline
-            onConfirm={() => confirmField('legalDescription')}
-            onEdit={(v) => editField('legalDescription', v)}
-          />
+          {hasValue('apn') && (
+            <ConfirmableField
+              label="APN"
+              field={provenanceFor('apn')}
+              onConfirm={() => confirmField('apn')}
+              onEdit={(v) => editField('apn', v)}
+            />
+          )}
+          {hasValue('owner') ? (
+            <ConfirmableField
+              label="Current Owner"
+              field={provenanceFor('owner')}
+              onConfirm={() => confirmField('owner')}
+              onEdit={(v) => editField('owner', v)}
+            />
+          ) : (
+            <p className="text-sm text-gray-500 p-3 border border-gray-200 rounded-lg">
+              Current owner: not returned by county records. The grantor you
+              enter is what prints on the deed.
+            </p>
+          )}
+          {hasValue('legalDescription') && (
+            <ConfirmableField
+              label="Legal Description"
+              field={provenanceFor('legalDescription')}
+              multiline
+              onConfirm={() => confirmField('legalDescription')}
+              onEdit={(v) => editField('legalDescription', v)}
+            />
+          )}
         </div>
 
         {!allConfirmed && (

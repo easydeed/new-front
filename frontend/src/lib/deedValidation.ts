@@ -118,3 +118,77 @@ export function unresolvedPreflight(
   const overrides = state.preflightOverrides ?? {};
   return evaluateRecorderPreflight(state).filter((c) => !c.ok && !overrides[c.id]);
 }
+
+// ─────────────────────────────────────────────────────────────────
+// U0 (UX audit): ONE TRUTH for section completeness. The header counter
+// used to derive "complete" from mere field presence while the generation
+// gate derived from confirmation state — so a resumed draft could show
+// "6 of 6 sections complete" beside an unconfirmed-field warning. Section
+// status now derives from the gate's own primitives: a section holding
+// unconfirmed candidate DATA fields or failing substantive checks is not
+// complete. (Empty optional fields — e.g. an owner never returned by
+// county records — have nothing to confirm and do not tarnish a section:
+// the gate ignores them and nothing unconfirmed can reach the PDF.)
+// ─────────────────────────────────────────────────────────────────
+import { collectCandidateFields } from '@/lib/provenance';
+
+export type SectionStatus = 'complete' | 'warning' | 'empty' | 'error';
+
+const CANDIDATE_SECTION: Record<string, string> = {
+  apn: 'property',
+  legalDescription: 'property',
+  owner: 'property',
+  grantor: 'grantor',
+};
+
+export interface SectionTruth {
+  statuses: Record<string, SectionStatus>;
+  completedCount: number;
+  totalSections: number;
+  /** Sections filled + substantive checks pass — candidates alone don't
+   * block the button; the gate modal is their confirm-all affordance. */
+  readyForGate: boolean;
+  /** Unconfirmed data fields the gate will ask about. */
+  pendingConfirmations: number;
+}
+
+export function deriveSectionTruth(state: DeedBuilderState): SectionTruth {
+  const candidates = collectCandidateFields(state);
+  const candidateSections = new Set(candidates.map((c) => CANDIDATE_SECTION[c.key]));
+  const failingSections = new Set(
+    evaluateSubstantive(state).filter((c) => !c.ok).map((c) => c.sectionId)
+  );
+
+  const status = (section: string, filled: boolean, extraWarning = false): SectionStatus => {
+    if (!filled) return 'empty';
+    if (candidateSections.has(section) || failingSections.has(section) || extraWarning) {
+      return 'warning';
+    }
+    return 'complete';
+  };
+
+  const granteeEchoesGrantor =
+    !!state.grantee?.trim() &&
+    state.grantee.trim().toUpperCase() === state.grantor?.trim().toUpperCase();
+
+  const statuses: Record<string, SectionStatus> = {
+    property: status('property', !!state.property?.address),
+    grantor: status('grantor', !!state.grantor?.trim()),
+    grantee: status('grantee', !!state.grantee?.trim(), granteeEchoesGrantor),
+    vesting: status('vesting', !!state.vesting?.trim()),
+    transferTax: status(
+      'transferTax',
+      !!(state.dtt?.isExempt && state.dtt?.exemptReason) || !!state.dtt?.transferValue
+    ),
+    recording: status('recording', !!state.requestedBy?.trim()),
+  };
+
+  const values = Object.values(statuses);
+  return {
+    statuses,
+    completedCount: values.filter((s) => s === 'complete').length,
+    totalSections: values.length,
+    readyForGate: !values.includes('empty') && failingSections.size === 0,
+    pendingConfirmations: candidates.length,
+  };
+}

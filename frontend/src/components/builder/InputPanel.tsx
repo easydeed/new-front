@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { Sparkles } from 'lucide-react';
 import { InputSection, SectionStatus } from './InputSection';
+import { deriveSectionTruth } from '@/lib/deedValidation';
 import { PropertySection } from './sections/PropertySection';
 import { GrantorSection } from './sections/GrantorSection';
 import { GranteeSection } from './sections/GranteeSection';
@@ -29,43 +30,17 @@ export function InputPanel({
   onSectionChange,
 }: InputPanelProps) {
   
-  const statuses = useMemo(() => {
-    const getStatus = (section: string): SectionStatus => {
-      switch (section) {
-        case 'property':
-          return state.property?.address ? 'complete' : 'empty';
-        case 'grantor':
-          return state.grantor?.trim() ? 'complete' : 'empty';
-        case 'grantee':
-          if (!state.grantee?.trim()) return 'empty';
-          if (state.grantee.trim().toUpperCase() === state.grantor?.trim().toUpperCase()) return 'warning';
-          return 'complete';
-        case 'vesting':
-          return state.vesting ? 'complete' : 'empty';
-        case 'transferTax':
-          if (state.dtt?.isExempt && state.dtt?.exemptReason) return 'complete';
-          if (state.dtt?.transferValue) return 'complete';
-          return 'empty';
-        case 'recording':
-          return state.requestedBy?.trim() ? 'complete' : 'empty';
-        default:
-          return 'empty';
-      }
-    };
-
-    return {
-      property: getStatus('property'),
-      grantor: getStatus('grantor'),
-      grantee: getStatus('grantee'),
-      vesting: getStatus('vesting'),
-      transferTax: getStatus('transferTax'),
-      recording: getStatus('recording'),
-    };
-  }, [state]);
-
-  const completedCount = Object.values(statuses).filter(s => s === 'complete').length;
-  const totalSections = 6;
-  const isReady = completedCount === totalSections;
+  // U0: ONE TRUTH — section status derives from the generation gate's own
+  // math (deriveSectionTruth), so the counter can never claim "complete"
+  // for a section the gate would still stop. The Generate button enables
+  // once sections are filled and substantive checks pass; unconfirmed
+  // candidates don't disable it — the gate modal is their confirm-all
+  // affordance, and the hint below the button says they're coming.
+  const truth = useMemo(() => deriveSectionTruth(state), [state]);
+  const statuses = truth.statuses as Record<string, SectionStatus>;
+  const completedCount = truth.completedCount;
+  const totalSections = truth.totalSections;
+  const isReady = truth.readyForGate;
 
   const toggleSection = (section: string) => {
     onSectionChange(expandedSection === section ? '' : section);
@@ -246,6 +221,12 @@ export function InputPanel({
         {!isReady && (
           <p className="text-center text-sm text-gray-500 mt-2">
             Complete all sections to generate
+          </p>
+        )}
+        {isReady && truth.pendingConfirmations > 0 && (
+          <p className="text-center text-sm text-amber-600 mt-2">
+            {truth.pendingConfirmations} county-record field{truth.pendingConfirmations === 1 ? '' : 's'} await
+            confirmation — you&apos;ll confirm before the PDF generates.
           </p>
         )}
       </div>
