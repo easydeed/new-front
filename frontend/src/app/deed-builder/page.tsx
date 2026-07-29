@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { FileText, ArrowRight } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 
 const DEED_TYPES = [
   {
@@ -38,11 +39,16 @@ const DEED_TYPES = [
 ];
 
 export default function DeedBuilderSelectPage() {
+  // HX0: internal tool — no session, no shell.
+  const { checked } = useRequireAuth();
   const router = useRouter();
 
   const handleSelectDeedType = (deedType: string) => {
     router.push(`/deed-builder/${deedType}`);
   };
+
+
+  if (!checked) return null;
 
   return (
     <div className="flex min-h-screen bg-gray-50">

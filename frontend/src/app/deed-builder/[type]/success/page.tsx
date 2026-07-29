@@ -2,8 +2,13 @@
 
 import { Suspense } from 'react';
 import { SuccessContent } from './success-content';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 
 export default function SuccessPage() {
+  // HX0: internal page — no session, no shell.
+  const { checked } = useRequireAuth();
+  if (!checked) return null;
+
   return (
     <Suspense fallback={<SuccessPageSkeleton />}>
       <SuccessContent />
