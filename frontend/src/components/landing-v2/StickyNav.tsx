@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
 export default function StickyNav() {
@@ -59,7 +60,19 @@ export default function StickyNav() {
             ))}
           </div>
 
-          <Button className="bg-[#7C4DFF] hover:bg-[#7C4DFF]/90 text-white font-bold">Start Free Trial</Button>
+          {/* HM1: the conversion path exists — Login and Start Free are
+              real links, not a dead button. */}
+          <div className="flex items-center gap-3">
+            <Link
+              href="/login"
+              className="px-4 py-2 text-sm font-medium rounded-lg text-gray-700 hover:text-[#1F2B37] hover:bg-gray-50 transition-colors"
+            >
+              Login
+            </Link>
+            <Button asChild className="bg-[#7C4DFF] hover:bg-[#7C4DFF]/90 text-white font-bold">
+              <Link href="/register">Start Free</Link>
+            </Button>
+          </div>
         </div>
       </div>
     </nav>

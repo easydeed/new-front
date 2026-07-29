@@ -5,17 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Check, Zap, Lock, Clock, ArrowRight, Wand2, Sparkles, Shield, X, FileDigit, MapPin } from "lucide-react"
 import dynamic from "next/dynamic"
+import Link from "next/link"
 import StickyNav from "@/components/landing-v2/StickyNav"
-
-// Dynamic import VideoPlayer (client island, no SSR)
-const VideoPlayer = dynamic(() => import("@/components/landing-v2/VideoPlayer"), {
-  ssr: false,
-  loading: () => (
-    <div className="aspect-video rounded-2xl bg-gray-800 border border-white/10 animate-pulse flex items-center justify-center">
-      <Sparkles className="h-12 w-12 text-gray-600" />
-    </div>
-  ),
-})
 
 const AnimatedDeed = dynamic(() => import("@/components/landing-v2/AnimatedDeed"), {
   ssr: false,
@@ -25,6 +16,10 @@ const AnimatedDeed = dynamic(() => import("@/components/landing-v2/AnimatedDeed"
     </div>
   ),
 })
+
+// HM1: owner supplies the sales address; empty string keeps the button
+// hidden — a mailto to nowhere is a dead promise.
+const CONTACT_SALES_EMAIL = ""
 
 export default function LandingPage() {
   return (
@@ -61,18 +56,15 @@ export default function LandingPage() {
                 </p>
 
                 <div className="mt-12 flex flex-col sm:flex-row gap-6">
+                  {/* HM1: CTAs are real links, not dead buttons. */}
                   <Button
+                    asChild
                     size="lg"
                     className="bg-[#7C4DFF] hover:bg-[#7C4DFF]/90 text-white font-bold text-lg px-8 py-8 shadow-xl shadow-[#7C4DFF]/25"
                   >
-                    Start Creating Deeds <ArrowRight className="ml-2 h-6 w-6" />
-                  </Button>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="border border-[#1F2B37] text-[#1F2B37] hover:bg-gray-50 font-bold text-lg px-8 py-8 bg-transparent"
-                  >
-                    Watch 2‑min Demo
+                    <Link href="/register">
+                      Start Creating Deeds <ArrowRight className="ml-2 h-6 w-6" />
+                    </Link>
                   </Button>
                 </div>
 
@@ -114,41 +106,6 @@ export default function LandingPage() {
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
-        </section>
-
-        {/* 3. VIDEO SECTION */}
-        <section id="video" aria-label="Product Demo" className="py-28 bg-[#1F2B37]">
-          <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-12">
-            <div className="text-center mb-12">
-              <Badge className="bg-[#7C4DFF]/20 text-[#7C4DFF] border border-[#7C4DFF]/30 text-lg font-semibold px-6 py-3 mb-6">
-                <Sparkles className="h-4 w-4 mr-2" />
-                See it in action
-              </Badge>
-              <h2 className="text-4xl sm:text-5xl font-bold text-white tracking-tight mb-6">Watch the 2‑minute demo</h2>
-              <p className="text-xl text-gray-300 leading-loose max-w-2xl mx-auto">
-                See how DeedPro transforms the deed creation process from hours to minutes with AI-powered automation.
-              </p>
-            </div>
-
-            <div className="mb-12">
-              <VideoPlayer />
-            </div>
-
-            <div className="flex flex-wrap items-center justify-center gap-8 mb-10">
-              {["AI wizard flow", "SmartReview validation", "One-click PDF generation"].map((item) => (
-                <div key={item} className="flex items-center gap-2 text-lg text-gray-300">
-                  <Check className="h-5 w-5 text-[#7C4DFF] flex-shrink-0" />
-                  {item}
-                </div>
-              ))}
-            </div>
-
-            <div className="text-center">
-              <Button className="bg-[#7C4DFF] hover:bg-[#7C4DFF]/90 text-white font-bold px-8 py-8 text-lg shadow-lg shadow-[#7C4DFF]/25">
-                Start Creating Deeds <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
             </div>
           </div>
         </section>
@@ -656,14 +613,17 @@ export default function LandingPage() {
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <Button className="bg-[#7C4DFF] hover:bg-[#7C4DFF]/90 text-white font-bold px-8 py-8">
-                    View API Docs
+                  {/* HM1: real destinations — public docs and the on-page
+                      integrations section. */}
+                  <Button asChild className="bg-[#7C4DFF] hover:bg-[#7C4DFF]/90 text-white font-bold px-8 py-8">
+                    <Link href="/docs">View API Docs</Link>
                   </Button>
                   <Button
+                    asChild
                     variant="outline"
                     className="border-white/30 text-white hover:bg-white/10 font-bold px-8 py-8 bg-transparent"
                   >
-                    Explore Integrations
+                    <a href="#integrations">Explore Integrations</a>
                   </Button>
                 </div>
 
@@ -855,15 +815,33 @@ Content-Type: application/json
                       ))}
                     </ul>
 
-                    <Button
-                      className={`w-full font-bold text-base py-8 ${
-                        tier.popular
-                          ? "bg-[#7C4DFF] hover:bg-[#7C4DFF]/90 text-white"
-                          : "bg-[#1F2B37] hover:bg-[#1F2B37]/90 text-white"
-                      }`}
-                    >
-                      {tier.cta}
-                    </Button>
+                    {/* HM1: Start/Trial → /register; Contact Sales is
+                        owner-gated (hidden until the address exists). */}
+                    {tier.cta === "Contact Sales" ? (
+                      CONTACT_SALES_EMAIL ? (
+                        <Button
+                          asChild
+                          className="w-full font-bold text-base py-8 bg-[#1F2B37] hover:bg-[#1F2B37]/90 text-white"
+                        >
+                          <a href={`mailto:${CONTACT_SALES_EMAIL}`}>{tier.cta}</a>
+                        </Button>
+                      ) : (
+                        <p className="text-center text-sm text-gray-500 py-4">
+                          Contact information coming soon
+                        </p>
+                      )
+                    ) : (
+                      <Button
+                        asChild
+                        className={`w-full font-bold text-base py-8 ${
+                          tier.popular
+                            ? "bg-[#7C4DFF] hover:bg-[#7C4DFF]/90 text-white"
+                            : "bg-[#1F2B37] hover:bg-[#1F2B37]/90 text-white"
+                        }`}
+                      >
+                        <Link href="/register">{tier.cta}</Link>
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               ))}
@@ -923,17 +901,24 @@ Content-Type: application/json
           </div>
         </section>
 
-        {/* 12. FOOTER */}
+        {/* 12. FOOTER — HM1: short and honest beats long and broken.
+            Every link resolves; the 404 set (/api /integrations /about
+            /blog /careers /contact /cookies) and the internal /security
+            page are gone. Legal links point at the HM3 scaffolds. */}
         <footer className="bg-[#111827] text-gray-300">
           <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-16">
-            <div className="grid md:grid-cols-5 gap-12">
+            <div className="grid md:grid-cols-4 gap-12">
               <div className="md:col-span-2">
                 <div className="flex items-center gap-2 mb-6">
                   <div className="h-10 w-10 rounded-lg bg-[#7C4DFF]" />
                   <span className="text-2xl font-bold text-white">DeedPro</span>
                 </div>
                 <p className="text-base leading-relaxed">
-                  Create California deeds in minutes with an AI‑assisted wizard and SmartReview.
+                  Create California deeds in minutes with an AI&#8209;assisted wizard and SmartReview.
+                </p>
+                {/* HM3: company identity block — owner supplies entity details. */}
+                <p className="mt-4 text-sm text-gray-500">
+                  DeedPro &middot; California, USA
                 </p>
               </div>
 
@@ -951,39 +936,13 @@ Content-Type: application/json
                     </a>
                   </li>
                   <li>
-                    <a href="/api" className="hover:text-[#7C4DFF] transition-colors">
-                      API
-                    </a>
-                  </li>
-                  <li>
-                    <a href="/integrations" className="hover:text-[#7C4DFF] transition-colors">
+                    <a href="#integrations" className="hover:text-[#7C4DFF] transition-colors">
                       Integrations
                     </a>
                   </li>
-                </ul>
-              </div>
-
-              <div>
-                <h3 className="font-bold text-white mb-4">Company</h3>
-                <ul className="space-y-3 text-sm">
                   <li>
-                    <a href="/about" className="hover:text-[#7C4DFF] transition-colors">
-                      About
-                    </a>
-                  </li>
-                  <li>
-                    <a href="/blog" className="hover:text-[#7C4DFF] transition-colors">
-                      Blog
-                    </a>
-                  </li>
-                  <li>
-                    <a href="/careers" className="hover:text-[#7C4DFF] transition-colors">
-                      Careers
-                    </a>
-                  </li>
-                  <li>
-                    <a href="/contact" className="hover:text-[#7C4DFF] transition-colors">
-                      Contact
+                    <a href="/docs" className="hover:text-[#7C4DFF] transition-colors">
+                      API Docs
                     </a>
                   </li>
                 </ul>
@@ -1002,17 +961,12 @@ Content-Type: application/json
                       Terms
                     </a>
                   </li>
-                  <li>
-                    <a href="/security" className="hover:text-[#7C4DFF] transition-colors">
-                      Security
-                    </a>
-                  </li>
                 </ul>
               </div>
             </div>
 
             <div className="mt-12 pt-8 border-t border-gray-800 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm">
-              <div>© 2025 DeedPro. All rights reserved.</div>
+              <div>&copy; 2026 DeedPro. All rights reserved.</div>
               <div className="flex gap-6">
                 <a href="/privacy" className="hover:text-[#7C4DFF] transition-colors">
                   Privacy
@@ -1020,16 +974,11 @@ Content-Type: application/json
                 <a href="/terms" className="hover:text-[#7C4DFF] transition-colors">
                   Terms
                 </a>
-                <a href="/cookies" className="hover:text-[#7C4DFF] transition-colors">
-                  Cookies
-                </a>
               </div>
             </div>
           </div>
         </footer>
       </main>
-
-      {/* 13. STICKY CTA BAR (Client Island) */}
     </>
   )
 }
