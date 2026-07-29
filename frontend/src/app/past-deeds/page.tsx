@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import Sidebar from "@/components/Sidebar"
 import { FileText, Download, Share2, Trash2, AlertCircle, CheckCircle, Clock, X, Plus, Loader2 } from "lucide-react"
 import { toast } from "sonner"
+import { SessionExpiredError, apiFetch } from "@/lib/apiClient"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { deedTypeLabel } from "@/lib/deedTypes"
 
@@ -57,28 +58,24 @@ export default function PastDeedsPageV0() {
 
   const fetchDeeds = async () => {
     try {
-      const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
       const token = localStorage.getItem("access_token")
-
       if (!token) {
         router.push("/login?redirect=/past-deeds")
         return
       }
 
-      const response = await fetch(`${api}/deeds`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      })
+      // X1: apiFetch surfaces every failure (401 = session-expired redirect).
+      const response = await apiFetch(`/deeds`, {}, { label: "Loading deeds" })
 
       if (!response.ok) {
-        throw new Error("Failed to fetch deeds")
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.detail || `Failed to fetch deeds (${response.status})`)
       }
 
       const data = await response.json()
       setDeeds(Array.isArray(data) ? data : data.deeds || [])
     } catch (err) {
+      if (err instanceof SessionExpiredError) return
       console.error("Error fetching deeds:", err)
       setError(err instanceof Error ? err.message : "Failed to load deeds")
     } finally {
@@ -98,11 +95,7 @@ export default function PastDeedsPageV0() {
     // fetching, toast on the outcome either way.
     setDownloadingId(deed.id)
     try {
-      const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
-      const token = localStorage.getItem("access_token") || localStorage.getItem("token")
-      const response = await fetch(`${api}/deeds/${deed.id}/download`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const response = await apiFetch(`/deeds/${deed.id}/download`, {}, { label: `Downloading deed #${deed.id}` })
       if (!response.ok) {
         // The endpoint's 500 carries the real reason (exception class +
         // message) — surface it, don't shrug.
@@ -139,23 +132,19 @@ export default function PastDeedsPageV0() {
     setShareError(null)
 
     try {
-      const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
-      const token = localStorage.getItem("access_token")
-
-      const response = await fetch(`${api}/shared-deeds`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      const response = await apiFetch(
+        `/shared-deeds`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ deed_id: selectedDeedId, ...shareForm }),
         },
-        body: JSON.stringify({
-          deed_id: selectedDeedId,
-          ...shareForm,
-        }),
-      })
+        { label: "Sharing deed" }
+      )
 
       if (!response.ok) {
-        throw new Error("Failed to share deed")
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.detail || `Failed to share deed (${response.status})`)
       }
 
       // Success - close modal and reset form
@@ -183,15 +172,7 @@ export default function PastDeedsPageV0() {
     if (!deleteConfirm.deedId) return
 
     try {
-      const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
-      const token = localStorage.getItem("access_token")
-
-      const response = await fetch(`${api}/deeds/${deleteConfirm.deedId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      const response = await apiFetch(`/deeds/${deleteConfirm.deedId}`, { method: "DELETE" }, { label: "Deleting deed" })
 
       if (!response.ok) {
         throw new Error("Failed to delete deed")
@@ -412,8 +393,8 @@ export default function PastDeedsPageV0() {
 
       {/* Share Modal */}
       {shareModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-[550px] w-full p-8 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-[550px] w-full p-6 max-h-[85vh] flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-slate-800">Share Deed</h2>
@@ -434,7 +415,7 @@ export default function PastDeedsPageV0() {
             )}
 
             {/* Form */}
-            <form onSubmit={handleShareSubmit} className="space-y-4">
+            <form onSubmit={handleShareSubmit} className="space-y-4 overflow-y-auto flex-1 min-h-0 pr-1">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Recipient Name <span className="text-red-500">*</span>

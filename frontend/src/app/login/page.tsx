@@ -44,6 +44,12 @@ function LoginContent() {
       return
     }
 
+    // X1: arrived here because a session expired mid-action — say so
+    // instead of presenting a blank login as if nothing happened.
+    if (searchParams.get("expired") === "1") {
+      setError("Your session expired. Sign in again to pick up where you left off.")
+    }
+
     // Check for registration success message
     if (searchParams.get("registered") === "true") {
       const email = searchParams.get("email")
