@@ -14,8 +14,17 @@ import Link from "next/link"
 import { AuthManager } from "../../utils/auth"
 import { Eye, EyeOff, AlertCircle, CheckCircle2, Zap, Copy, Check, ShieldCheck, FileCheck2, Landmark, ScrollText } from "lucide-react"
 
-const DEMO_EMAIL = "realty.reports@gmail.com"
-const DEMO_PASSWORD = "Alpha637#"
+// X0 (security hotfix): demo credentials NEVER ship in source or in a
+// production bundle. The always-visible card was a deliberate convenience
+// decision (#48/#55) reversed by the round-2 security audit. The card now
+// renders ONLY in local dev, with values from untracked env
+// (.env.local: NEXT_PUBLIC_DEMO_EMAIL / NEXT_PUBLIC_DEMO_PASSWORD) —
+// NODE_ENV is inlined at build time, so production builds eliminate the
+// entire branch, and Vercel doesn't define the vars regardless.
+const DEMO_EMAIL = process.env.NEXT_PUBLIC_DEMO_EMAIL || ""
+const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD || ""
+const SHOW_DEMO_CARD =
+  process.env.NODE_ENV === "development" && !!DEMO_EMAIL && !!DEMO_PASSWORD
 
 function LoginContent() {
   const [formData, setFormData] = useState({ email: "", password: "" })
@@ -262,7 +271,9 @@ function LoginContent() {
               </button>
             </form>
 
-            {/* Demo Credentials — always shown, collapsible */}
+            {/* Demo credentials — LOCAL DEV ONLY (X0). The prod build
+                dead-code-eliminates this branch via the inlined NODE_ENV. */}
+            {SHOW_DEMO_CARD && (
             <div className="border border-gray-200 rounded-xl overflow-hidden">
               <button
                 type="button"
@@ -328,6 +339,7 @@ function LoginContent() {
                 </div>
               )}
             </div>
+            )}
 
             {/* Sign-up link */}
             <p className="text-center text-sm text-gray-500">
