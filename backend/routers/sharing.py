@@ -13,7 +13,9 @@ router = APIRouter()
 
 class ShareDeedCreate(BaseModel):
     deed_id: int
-    recipient_name: str
+    # X2.4: email is the recipient's identity; the name is a courtesy for
+    # the email greeting only. Blank falls back to the address itself.
+    recipient_name: Optional[str] = None
     recipient_email: str
     recipient_role: str
     message: Optional[str] = None
@@ -38,6 +40,9 @@ def share_deed_for_approval(share_data: ShareDeedCreate, user_id: int = Depends(
     from datetime import timezone
     # Use configurable expiration (default 7 days = 168 hours)
     expires_in = share_data.expires_in_hours or 168
+    # X2.4: optional name — greet by email address when blank.
+    if not (share_data.recipient_name or "").strip():
+        share_data.recipient_name = share_data.recipient_email
     expires_at = datetime.now(timezone.utc) + timedelta(hours=expires_in)
     approval_token = str(uuid.uuid4())
 

@@ -38,6 +38,15 @@ export function SuccessContent() {
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState(false);
 
+  // X2.8: the stored PDF's sha256, stamped into metadata at store time —
+  // downloads serve exactly these fingerprinted bytes.
+  const pdfSha = (() => {
+    const meta = (deed as { metadata?: unknown } | null)?.metadata;
+    const parsed = typeof meta === 'string' ? (() => { try { return JSON.parse(meta); } catch { return {}; } })() : meta || {};
+    const sha = (parsed as { pdf_sha256?: unknown }).pdf_sha256;
+    return typeof sha === 'string' ? sha : '';
+  })();
+
   // Fetch deed details
   useEffect(() => {
     const fetchDeed = async () => {
@@ -244,12 +253,19 @@ export function SuccessContent() {
               </div>
             </div>
 
-            {/* Document ID */}
+            {/* Document ID + stored-PDF fingerprint (X2.8: downloads fetch
+                the server-stored bytes; the fingerprint makes "stored
+                immutably" demonstrable, not just asserted). */}
             {deedId && (
               <div className="flex items-center justify-between bg-slate-50 rounded-xl p-4 mb-8">
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Document ID</p>
                   <p className="text-sm font-mono text-slate-700">{deedId}</p>
+                  {pdfSha && (
+                    <p className="text-xs text-slate-400 font-mono mt-1 truncate" title={`SHA-256 ${pdfSha}`}>
+                      Stored PDF fingerprint: {pdfSha.slice(0, 16)}…
+                    </p>
+                  )}
                 </div>
                 <button
                   onClick={handleCopyId}

@@ -402,8 +402,14 @@ function DeedRow({ deed }: { deed: any }) {
     return d.toLocaleDateString()
   }
 
+  const needsAction = deed.status === 'draft' || deed.status === 'in_progress'
+
   return (
-    <div className="p-4 hover:bg-gray-50 transition-colors flex items-center justify-between gap-4">
+    // X2.7: drafts read as "needs action" at a glance — amber edge + a
+    // labeled Continue button, not an unexplained arrow.
+    <div className={`p-4 hover:bg-gray-50 transition-colors flex items-center justify-between gap-4 ${
+      needsAction ? 'border-l-4 border-amber-400' : ''
+    }`}>
       <div className="flex items-center gap-4 min-w-0 flex-1">
         <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
           <FileText className="w-5 h-5 text-gray-500" />
@@ -413,7 +419,7 @@ function DeedRow({ deed }: { deed: any }) {
             {formatDeedType(deed.deed_type)} {deed.property_address ? `- ${deed.property_address}` : ''}
           </p>
           <p className="text-sm text-gray-500 truncate">
-            {deed.county || 'California'} • {deed.grantor_name || 'Draft'} → {deed.grantee_name || '...'}
+            Doc #{deed.id} • {deed.grantor_name || 'Draft'} → {deed.grantee_name || '...'}
           </p>
         </div>
       </div>
@@ -424,7 +430,7 @@ function DeedRow({ deed }: { deed: any }) {
           {deed.status || 'Draft'}
         </span>
         <span className="text-sm text-gray-400 hidden sm:block">
-          {formatDate(deed.created_at)}
+          {formatDate(deed.updated_at || deed.created_at)}
         </span>
         
         {/* Actions */}
@@ -447,13 +453,14 @@ function DeedRow({ deed }: { deed: any }) {
               <Share2 className="w-4 h-4" />
             </button>
           )}
-          {(deed.status === 'draft' || deed.status === 'in_progress') && (
+          {needsAction && (
             <button
               onClick={() => router.push(`/deed-builder/${deed.deed_type || 'grant-deed'}?resume=${deed.id}`)}
-              className="p-2 hover:bg-emerald-50 rounded-lg transition-colors text-emerald-600"
+              className="flex items-center gap-1 px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg transition-colors text-sm font-medium"
               title="Continue this draft"
             >
-              <ArrowRight className="w-4 h-4" />
+              Continue
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           )}
         </div>

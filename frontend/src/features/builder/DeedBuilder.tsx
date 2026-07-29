@@ -115,6 +115,39 @@ function DeedBuilderInner({ deedType, initialProperty, resumeDeedId }: DeedBuild
     };
   }, [state, isResuming, isGenerating, persistDraft]);
 
+  // X2.6 — duplicate-parcel awareness: a PASSIVE notice (never a block)
+  // when the loaded APN already has a completed deed. Legitimate reasons
+  // to proceed exist (corrections, new transfers) — the officer just
+  // shouldn't discover the earlier document after recording.
+  const dupeCheckedApnRef = useRef<string | null>(null);
+  useEffect(() => {
+    const apn = state.property?.apn?.trim();
+    if (!apn || dupeCheckedApnRef.current === apn) return;
+    dupeCheckedApnRef.current = apn;
+    (async () => {
+      try {
+        const res = await apiFetch('/deeds', {}, { label: 'Checking parcel history', silent: true });
+        if (!res.ok) return;
+        const data = await res.json();
+        const existing = (data.deeds || []).find(
+          (d: { id: number; apn?: string; status?: string; updated_at?: string; created_at?: string }) =>
+            d.apn === apn && d.status === 'completed' && d.id !== draftIdRef.current
+        );
+        if (existing) {
+          const when = existing.updated_at || existing.created_at;
+          toast.info(
+            `Heads up: this parcel (APN ${apn}) already has a completed deed — Doc #${existing.id}` +
+              (when ? `, ${new Date(when).toLocaleDateString()}` : '') +
+              `. Continuing creates a separate document.`,
+            { duration: 10000 }
+          );
+        }
+      } catch {
+        // Passive awareness only — a failed check never interrupts the flow.
+      }
+    })();
+  }, [state.property?.apn]);
+
   // Exit prompt ONLY when there are changes autosave hasn't landed yet —
   // a clean builder or a fully saved draft leaves without friction.
   useEffect(() => {

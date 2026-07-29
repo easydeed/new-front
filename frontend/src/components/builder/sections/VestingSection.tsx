@@ -20,13 +20,19 @@ interface VestingSectionProps {
   decision?: LegalChoiceRecord
 }
 
-const VESTING_OPTIONS = [
+export const VESTING_OPTIONS = [
+  // X2.2: "a single person" and the gender-neutral sole-and-separate are
+  // the values the AI proposes — they must exist as NAMED options or the
+  // accepted suggestion lights the Custom radio (the recommended path
+  // must not look like the risky path).
+  { value: "a single person", label: "A Single Person", min: 1, max: 1 },
   { value: "a single man", label: "A Single Man", min: 1, max: 1 },
   { value: "a single woman", label: "A Single Woman", min: 1, max: 1 },
   { value: "an unmarried man", label: "An Unmarried Man", min: 1, max: 1 },
   { value: "an unmarried woman", label: "An Unmarried Woman", min: 1, max: 1 },
   { value: "a married man as his sole and separate property", label: "Married Man - Sole & Separate", min: 1, max: 1 },
   { value: "a married woman as her sole and separate property", label: "Married Woman - Sole & Separate", min: 1, max: 1 },
+  { value: "a married person as their sole and separate property", label: "Married - Sole & Separate", min: 1, max: 1 },
   { value: "husband and wife as joint tenants", label: "Husband & Wife - Joint Tenants", min: 2, max: 2 },
   { value: "husband and wife as community property", label: "Husband & Wife - Community Property", min: 2, max: 2 },
   { value: "husband and wife as community property with right of survivorship", label: "Community Property w/ Survivorship", min: 2, max: 2 },
@@ -98,8 +104,11 @@ export function VestingSection({ value, onChange, granteeCount, deedType, grante
     }
   }
 
-  // Check if current value matches a standard option
-  const isStandardOption = filteredOptions.some((opt) => opt.value === value)
+  // Check if current value matches a standard option (case-insensitive —
+  // an accepted suggestion must select its named option, X2.2).
+  const matchesOption = (optValue: string) =>
+    !!value && optValue.trim().toLowerCase() === value.trim().toLowerCase()
+  const isStandardOption = filteredOptions.some((opt) => matchesOption(opt.value))
   const isCustom = value && !isStandardOption
 
   // Handle custom input
@@ -190,7 +199,7 @@ export function VestingSection({ value, onChange, granteeCount, deedType, grante
               key={option.value}
               className={`
                 flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all
-                ${value === option.value
+                ${matchesOption(option.value)
                   ? "border-brand-500 bg-brand-50"
                   : "border-gray-200 hover:border-gray-300"
                 }
@@ -200,7 +209,7 @@ export function VestingSection({ value, onChange, granteeCount, deedType, grante
                 type="radio"
                 name="vesting"
                 value={option.value}
-                checked={value === option.value}
+                checked={matchesOption(option.value)}
                 onChange={(e) => {
                   manual(e.target.value)
                   setShowCustom(false)
