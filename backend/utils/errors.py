@@ -270,17 +270,6 @@ class SiteXError(ExternalServiceError):
         )
 
 
-class PDFShiftError(ExternalServiceError):
-    """Raised when PDFShift API fails"""
-    
-    def __init__(self, reason: str, status_code: int = 502):
-        super().__init__(
-            service="PDFShift",
-            reason=reason,
-            status_code=status_code
-        )
-
-
 class GooglePlacesError(ExternalServiceError):
     """Raised when Google Places API fails"""
     
@@ -334,7 +323,6 @@ def is_retryable_error(error: DeedProException) -> bool:
     """
     retryable_codes = [
         "SITEX_SERVICE_ERROR",
-        "PDFSHIFT_SERVICE_ERROR",
         "RATE_LIMIT_EXCEEDED",
         "PDF_ENGINE_UNAVAILABLE",
     ]

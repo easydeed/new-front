@@ -94,7 +94,7 @@ async def generate_grant_deed_ca(
             logger.error(f"[{request_id}] Template rendering failed: {e}")
             raise HTTPException(status_code=500, detail=f"Template rendering error: {e}")
         
-        # Generate PDF using pdf_engine (PDFShift with WeasyPrint fallback)
+        # Generate PDF using pdf_engine (WeasyPrint — PS2 consolidation)
         try:
             from pdf_engine import render_pdf_async
             

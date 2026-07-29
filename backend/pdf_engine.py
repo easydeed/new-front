@@ -1,17 +1,16 @@
 """
 PDF Generation Engine
-Supports triple rendering: WeasyPrint (default), PDFShift (cloud), and Chromium (local)
+WeasyPrint (production) with Chromium/Playwright available for local E2E work.
 
-Phase 1.1: Added PDFShift integration for production-grade PDF generation
-
-PS2 (2026-07-29, owner decision): WeasyPrint IS the production engine.
-'auto' now always selects WeasyPrint — the Render box renders natively
-(shell precheck: `import weasyprint` → ok), and WeasyPrint is the engine
-every test in the harness has exercised all along, so this closes the
+PS2 (2026-07-29, owner decision): WeasyPrint IS the production engine —
+the engine every test in the harness exercises, closing the
 test-vs-production render asymmetry from the PDFShift 401/400 incidents.
-PDFShift remains ONLY as an explicit config-flagged fallback for one
-deploy cycle (set PDF_ENGINE=pdfshift on Render to flip back); a
-follow-up ticket removes it, its allowlist code, and its env var.
+PS3: the production parity check PASSED on the Render box (all geometry
+within 0.5pt; statutory strings and mail-to identical), so PDFShift is
+REMOVED — service, allowlist pins, and parity script deleted; the env
+var and account are retired owner-side. A stale PDF_ENGINE=pdfshift
+renders through WeasyPrint with a loud log (never a crash, never
+silent) until the var is deleted.
 """
 import os
 import logging
@@ -64,64 +63,25 @@ def render_pdf_with_chromium(html: str, page_setup: Dict[str, str]) -> bytes:
         return pdf_bytes
 
 
-async def render_pdf_with_pdfshift(
-    html: str, 
-    options: Optional[Dict[str, Any]] = None
-) -> bytes:
-    """
-    Render PDF using PDFShift API (cloud Chrome headless)
-    Best for production - consistent, high-quality output
-    Requires: PDFSHIFT_API_KEY environment variable
-    """
-    from services.pdfshift_service import pdfshift_service
-    
-    if not pdfshift_service.is_configured():
-        raise RuntimeError(
-            "PDFShift engine requires PDFSHIFT_API_KEY environment variable"
-        )
-    
-    return await pdfshift_service.render_pdf(html, options)
-
-
-def render_pdf_with_pdfshift_sync(
-    html: str, 
-    options: Optional[Dict[str, Any]] = None
-) -> bytes:
-    """
-    Synchronous wrapper for PDFShift rendering
-    For use in non-async contexts
-    """
-    from services.pdfshift_service import pdfshift_service
-    
-    if not pdfshift_service.is_configured():
-        raise RuntimeError(
-            "PDFShift engine requires PDFSHIFT_API_KEY environment variable"
-        )
-    
-    return pdfshift_service.render_pdf_sync(html, options)
-
-
 def render_pdf(
     html: str,
     base_url: Optional[str] = None,
     page_setup: Optional[Dict[str, str]] = None,
     engine: Optional[str] = None,
-    pdfshift_options: Optional[Dict[str, Any]] = None
 ) -> bytes:
     """
-    Main PDF rendering function with triple engine support
+    Main PDF rendering function
 
     Args:
         html: HTML content to render
         base_url: Base URL for resolving relative paths (fonts, images)
         page_setup: Page margins (for Chromium engine)
         engine: None (default: PDF_ENGINE env var, else 'auto'), 'auto',
-            'pdfshift', 'weasyprint', or 'chromium'/'playwright'.
+            'weasyprint', or 'chromium'/'playwright'.
             PS2 note: the old default was the string "auto", which is
             truthy — `engine or os.getenv("PDF_ENGINE")` therefore NEVER
             read the env var from the stored-PDF pipeline. The fallback
             flag has to actually work, so the default is now None.
-        pdfshift_options: Additional options for PDFShift API
     
     Returns:
         PDF binary data
@@ -131,17 +91,23 @@ def render_pdf(
         RuntimeError: If engine dependencies missing
     
     Engine Selection (when 'auto'):
-        WeasyPrint, always (PS2). The presence of a PDFShift key no longer
-        changes the engine — flipping back requires the explicit
-        PDF_ENGINE=pdfshift fallback flag.
+        WeasyPrint, always (PS2/PS3 — PDFShift is removed).
     """
     # Get engine from parameter or environment variable
     requested_engine = (engine or os.getenv("PDF_ENGINE") or "auto").lower()
 
-    # PS2: 'auto' means WeasyPrint — the engine the test harness exercises.
+    # PS2/PS3: 'auto' means WeasyPrint. A stale 'pdfshift' value (the
+    # engine is removed) also renders through WeasyPrint — loudly, so the
+    # leftover env var gets deleted rather than crashing every render.
     if requested_engine == "auto":
         selected_engine = "weasyprint"
-        logger.info("PDF Engine: WeasyPrint (production engine; PDF_ENGINE=pdfshift is the fallback flag)")
+        logger.info("PDF Engine: WeasyPrint (production engine)")
+    elif requested_engine == "pdfshift":
+        selected_engine = "weasyprint"
+        logger.warning(
+            "PDF_ENGINE=pdfshift is RETIRED (PS3) — rendering with WeasyPrint. "
+            "Delete the PDF_ENGINE and PDFSHIFT_API_KEY env vars."
+        )
     else:
         selected_engine = requested_engine
     
@@ -163,18 +129,10 @@ def render_pdf(
         logger.debug("Rendering PDF with Chromium/Playwright")
         return render_pdf_with_chromium(html, page_setup=page_setup)
     
-    elif selected_engine == "pdfshift":
-        logger.debug("Rendering PDF with PDFShift")
-        # Margins are owned by the templates' @page CSS — do NOT inject the
-        # page_setup dict as a PDFShift "margin" option (object form 400s;
-        # a margin override would also fight the measured chassis geometry).
-        options = pdfshift_options or {}
-        return render_pdf_with_pdfshift_sync(html, options)
-    
     else:
         raise ValueError(
             f"Unknown PDF engine: {selected_engine}. "
-            f"Use 'auto', 'pdfshift', 'weasyprint', or 'chromium'"
+            f"Use 'auto', 'weasyprint', or 'chromium'"
         )
 
 
@@ -183,21 +141,22 @@ async def render_pdf_async(
     base_url: Optional[str] = None,
     page_setup: Optional[Dict[str, str]] = None,
     engine: Optional[str] = None,
-    pdfshift_options: Optional[Dict[str, Any]] = None
 ) -> bytes:
     """
     Async version of render_pdf for use in async contexts
-    
-    Preferred for PDFShift as it uses async HTTP client
+    (WeasyPrint runs in a thread pool so the event loop never blocks.)
     """
     requested_engine = (engine or os.getenv("PDF_ENGINE") or "auto").lower()
 
-    # PS2: 'auto' means WeasyPrint (same rule as the sync path).
-    if requested_engine == "auto":
+    # PS2/PS3: same rule as the sync path — a stale 'pdfshift' renders
+    # through WeasyPrint, loudly.
+    if requested_engine in ("auto", "pdfshift"):
+        if requested_engine == "pdfshift":
+            logger.warning("PDF_ENGINE=pdfshift is RETIRED (PS3) — rendering with WeasyPrint.")
         selected_engine = "weasyprint"
     else:
         selected_engine = requested_engine
-    
+
     if page_setup is None:
         page_setup = {
             "top": "0.5in",
@@ -205,12 +164,8 @@ async def render_pdf_async(
             "bottom": "0.625in",
             "left": "0.75in"
         }
-    
-    if selected_engine == "pdfshift":
-        options = pdfshift_options or {}
-        return await render_pdf_with_pdfshift(html, options)
-    
-    elif selected_engine == "weasyprint":
+
+    if selected_engine == "weasyprint":
         # Run sync WeasyPrint in thread pool for non-blocking
         return await asyncio.get_event_loop().run_in_executor(
             None, render_pdf_with_weasyprint, html, base_url

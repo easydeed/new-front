@@ -345,20 +345,12 @@ def admin_system_overview():
     except Exception as e:
         print(f"Stripe health check failed: {e}")
 
-    # PDF engine status
-    pdf_engine_primary = os.getenv("PDF_ENGINE", "auto")
-    use_pdfshift = os.getenv("USE_PDFSHIFT", "false").lower() == "true"
-    pdfshift_key = os.getenv("PDFSHIFT_API_KEY")
-
-    if use_pdfshift and pdfshift_key:
-        pdf_primary = "PDFShift"
-    else:
-        pdf_primary = "WeasyPrint"
+    # PDF engine status — WeasyPrint is THE engine (PS2; PDFShift removed).
+    pdf_primary = "WeasyPrint"
 
     # Get PDF generation stats from deeds table
     pdf_stats = {
         "total_generated": 0,
-        "pdfshift_count": 0,
         "weasyprint_count": 0,
         "avg_time_ms": 0,
         "by_type": {}
@@ -369,15 +361,7 @@ def admin_system_overview():
             # Total deeds with PDFs (completed deeds)
             cur.execute("SELECT COUNT(*) FROM deeds WHERE status = 'completed'")
             pdf_stats["total_generated"] = cur.fetchone()[0] or 0
-
-            # For now, estimate PDFShift vs WeasyPrint based on deployment date
-            # (In future, add pdf_engine column to deeds table)
-            if use_pdfshift:
-                pdf_stats["pdfshift_count"] = pdf_stats["total_generated"]
-                pdf_stats["weasyprint_count"] = 0
-            else:
-                pdf_stats["pdfshift_count"] = 0
-                pdf_stats["weasyprint_count"] = pdf_stats["total_generated"]
+            pdf_stats["weasyprint_count"] = pdf_stats["total_generated"]
 
             # By deed type
             cur.execute("""

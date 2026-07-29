@@ -20,7 +20,6 @@ interface SystemHealth {
 
 interface PDFStats {
   total_generated: number;
-  pdfshift_count: number;
   weasyprint_count: number;
   avg_time_ms: number;
   by_type: Record<string, number>;
@@ -77,7 +76,6 @@ export default function SystemTab(){
   
   const pdfStats = data?.pdf_stats || {
     total_generated: 0,
-    pdfshift_count: 0,
     weasyprint_count: 0,
     avg_time_ms: 0,
     by_type: {}
@@ -95,10 +93,7 @@ export default function SystemTab(){
       <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>PDF Generation</div>
       <div className="grid stats">
         <StatCard title="Total Generated" value={pdfStats.total_generated} />
-        <StatCard 
-          title="PDFShift" 
-          value={`${pdfStats.pdfshift_count} (${pdfStats.total_generated ? Math.round(pdfStats.pdfshift_count / pdfStats.total_generated * 100) : 0}%)`} 
-        />
+        {/* PS3: PDFShift removed — WeasyPrint is the engine. */}
         <StatCard 
           title="WeasyPrint" 
           value={`${pdfStats.weasyprint_count} (${pdfStats.total_generated ? Math.round(pdfStats.weasyprint_count / pdfStats.total_generated * 100) : 0}%)`} 
