@@ -11,6 +11,7 @@ import { useBuilderMode } from '@/hooks/useBuilderMode';
 import { DeedBuilderState, PropertyData, Sourced } from '@/types/builder';
 import { buildDeedPayload, hasMeaningfulData } from '@/lib/deedPayload';
 import { DEED_LABELS } from '@/lib/deedTypes';
+import { SessionExpiredError, apiFetch } from '@/lib/apiClient';
 import {
   MaterialFieldKey,
   collectCandidateFields,
@@ -69,18 +70,17 @@ function DeedBuilderInner({ deedType, initialProperty, resumeDeedId }: DeedBuild
   const persistDraft = useCallback((s: DeedBuilderState, serialized: string): Promise<void> => {
     const run = (async () => {
       try {
-        const token = localStorage.getItem('access_token') || localStorage.getItem('token');
-        const res = await fetch('/api/deeds/draft', {
+        // X1: silent for ordinary failures (background save; the exit prompt
+        // is the surface) — but a 401 is NEVER silent: the audited disaster
+        // was typing into a dead session with no warning at all.
+        const res = await apiFetch('/api/deeds/draft', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ...(draftIdRef.current ? { deed_id: draftIdRef.current } : {}),
             ...buildDeedPayload(s),
           }),
-        });
+        }, { label: 'Autosave', silent: true });
         if (res.ok) {
           const row = await res.json();
           if (row.id) draftIdRef.current = row.id;
@@ -91,7 +91,9 @@ function DeedBuilderInner({ deedType, initialProperty, resumeDeedId }: DeedBuild
           console.warn(`[autosave] draft save failed (${res.status})`);
         }
       } catch (err) {
-        console.warn('[autosave] draft save failed:', err);
+        if (!(err instanceof SessionExpiredError)) {
+          console.warn('[autosave] draft save failed:', err);
+        }
       } finally {
         inflightSaveRef.current = null;
       }
@@ -136,10 +138,8 @@ function DeedBuilderInner({ deedType, initialProperty, resumeDeedId }: DeedBuild
     let cancelled = false;
     (async () => {
       try {
-        const token = localStorage.getItem('access_token') || localStorage.getItem('token');
-        const res = await fetch(`/api/deeds/${resumeDeedId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        // X1: apiFetch attaches auth and makes failures loud (401 = expired).
+        const res = await apiFetch(`/api/deeds/${resumeDeedId}`, {}, { label: 'Loading draft', silent: true });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           throw new Error(err.detail || `Could not load draft (${res.status})`);
@@ -161,6 +161,7 @@ function DeedBuilderInner({ deedType, initialProperty, resumeDeedId }: DeedBuild
           toast.success('Draft restored — pick up where you left off.');
         }
       } catch (err) {
+        if (err instanceof SessionExpiredError) return;
         if (!cancelled) {
           toast.error(err instanceof Error ? err.message : 'Could not resume this draft.');
         }
@@ -284,18 +285,14 @@ function DeedBuilderInner({ deedType, initialProperty, resumeDeedId }: DeedBuild
         ...serialized,
       };
 
-      const response = await fetch('/api/deeds/generate', {
+      // X1: apiFetch attaches the session token (G1's fossil-key fallback
+      // included) and handles 401 as session-expired. silent — this catch
+      // block already surfaces failures with the backend's detail.
+      const response = await apiFetch('/api/deeds/generate', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // G1: AuthManager stores the session under 'access_token'; the bare
-          // 'token' key is a pre-AuthManager fossil nothing writes anymore.
-          // This was the only call site reading it without the fallback —
-          // every fresh session generated with "Bearer null" (demo blocker).
-          'Authorization': `Bearer ${localStorage.getItem('access_token') || localStorage.getItem('token')}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-      });
+      }, { label: 'Generating deed', silent: true });
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({ detail: 'Generation failed' }));
@@ -321,6 +318,7 @@ function DeedBuilderInner({ deedType, initialProperty, resumeDeedId }: DeedBuild
       lastSavedRef.current = JSON.stringify(serialized);
       router.push(`/deed-builder/${deedType}/success?id=${generatedDeedId}`);
     } catch (err) {
+      if (err instanceof SessionExpiredError) return;
       console.error('Generation failed:', err);
       toast.error(err instanceof Error ? err.message : 'Generation failed. Please try again.');
     } finally {

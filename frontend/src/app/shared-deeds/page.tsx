@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import Sidebar from "@/components/Sidebar"
 import { Send, Eye, Clock, CheckCircle, XCircle, AlertCircle, RotateCw, X, Plus, FileText, MessageSquare } from "lucide-react"
 import { toast } from "sonner"
+import { SessionExpiredError, apiFetch } from "@/lib/apiClient"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 
 interface SharedDeed {
@@ -65,29 +66,27 @@ export default function SharedDeedsPageV0() {
   }, [])
 
   const fetchSharedDeeds = async () => {
+    setLoading(true)
+    setError(null)
     try {
-      const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
       const token = localStorage.getItem("access_token")
-
       if (!token) {
         router.push("/login?redirect=/shared-deeds")
         return
       }
 
-      const response = await fetch(`${api}/shared-deeds`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      })
+      // X1: apiFetch surfaces every failure (401 = session-expired redirect).
+      const response = await apiFetch(`/shared-deeds`, {}, { label: "Loading shared deeds" })
 
       if (!response.ok) {
-        throw new Error("Failed to fetch shared deeds")
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.detail || `Failed to fetch shared deeds (${response.status})`)
       }
 
       const data = await response.json()
       setSharedDeeds(Array.isArray(data) ? data : data.shared_deeds || [])
     } catch (err) {
+      if (err instanceof SessionExpiredError) return
       console.error("Error fetching shared deeds:", err)
       setError(err instanceof Error ? err.message : "Failed to load shared deeds")
     } finally {
@@ -97,16 +96,9 @@ export default function SharedDeedsPageV0() {
 
   const handleViewFeedback = async (shareId: number) => {
     try {
-      const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
-      const token = localStorage.getItem("access_token")
-
       let feedbackText = ""
       
-      const response = await fetch(`${api}/shared-deeds/${shareId}/feedback`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      const response = await apiFetch(`/shared-deeds/${shareId}/feedback`, {}, { label: "Loading feedback" })
 
       if (response.ok) {
         const data = await response.json()
@@ -141,15 +133,7 @@ export default function SharedDeedsPageV0() {
 
   const handleRemind = async (shareId: number) => {
     try {
-      const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
-      const token = localStorage.getItem("access_token")
-
-      const response = await fetch(`${api}/shared-deeds/${shareId}/resend`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      const response = await apiFetch(`/shared-deeds/${shareId}/resend`, { method: "POST" }, { label: "Sending reminder" })
 
       if (!response.ok) {
         throw new Error("Failed to send reminder")
@@ -170,15 +154,7 @@ export default function SharedDeedsPageV0() {
     if (!revokeConfirm.shareId) return
 
     try {
-      const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
-      const token = localStorage.getItem("access_token")
-
-      const response = await fetch(`${api}/shared-deeds/${revokeConfirm.shareId}/revoke`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      const response = await apiFetch(`/shared-deeds/${revokeConfirm.shareId}/revoke`, { method: "POST" }, { label: "Revoking access" })
 
       if (!response.ok) {
         throw new Error("Failed to revoke access")
@@ -313,7 +289,7 @@ export default function SharedDeedsPageV0() {
                 <p className="text-slate-600">{error}</p>
               </div>
               <button
-                onClick={() => window.location.reload()}
+                onClick={() => fetchSharedDeeds()}
                 className="px-6 py-3 bg-[#7C4DFF] hover:bg-[#6a3de8] text-white font-semibold rounded-xl shadow-md transition-all"
               >
                 Try Again
@@ -452,7 +428,7 @@ export default function SharedDeedsPageV0() {
 
       {/* Feedback Modal */}
       {feedbackModal.open && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl shadow-2xl max-w-[600px] w-full p-8">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
@@ -525,7 +501,7 @@ export default function SharedDeedsPageV0() {
 
       {/* Share New Deed Modal (Placeholder) */}
       {shareModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl shadow-2xl max-w-[600px] w-full p-8">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-slate-800">Share Deed for Review</h2>

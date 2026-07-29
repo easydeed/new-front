@@ -9,6 +9,7 @@ import { AICard } from "@/components/ui/AICard"
 import { AIEmptyState } from "@/components/ui/AIEmptyState"
 import { AuthManager } from "@/utils/auth"
 import { pickInProgressDeed } from "@/lib/latestDraft"
+import { SessionExpiredError, apiFetch } from "@/lib/apiClient"
 import { 
   FileText, Clock, CheckCircle, Send, 
   TrendingUp, Activity, Download, Share2, 
@@ -89,13 +90,10 @@ export default function Dashboard() {
   useEffect(() => {
     if (!isAuthenticated) return
 
-    const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
-    const token = localStorage.getItem("access_token")
     ;(async () => {
       try {
-        const res = await fetch(`${api}/deeds/summary`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        })
+        // X1: loud failures — apiFetch toasts non-2xx and handles 401.
+        const res = await apiFetch(`/deeds/summary`, {}, { label: "Loading dashboard summary" })
 
         if (res.ok) {
           const data = await res.json()
@@ -107,9 +105,7 @@ export default function Dashboard() {
           })
         } else {
           // Fallback: calculate from deeds list
-          const list = await fetch(`${api}/deeds`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          })
+          const list = await apiFetch(`/deeds`, {}, { label: "Loading deeds", silent: true })
           if (list.ok) {
             const data = await list.json()
             const deeds = Array.isArray(data.deeds) ? data.deeds : []
@@ -125,6 +121,7 @@ export default function Dashboard() {
           }
         }
       } catch (e) {
+        if (e instanceof SessionExpiredError) return
         console.error("Failed to load dashboard summary:", e)
       }
     })()
@@ -135,16 +132,7 @@ export default function Dashboard() {
       const token = localStorage.getItem("access_token")
       if (!token) return
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"}/deeds`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      )
+      const response = await apiFetch(`/deeds`, {}, { label: "Loading your deeds" })
 
       if (response.ok) {
         const data = await response.json()
@@ -157,6 +145,7 @@ export default function Dashboard() {
         setDeedsError(data.detail || `Couldn't load your deeds (${response.status})`)
       }
     } catch (error) {
+      if (error instanceof SessionExpiredError) return
       console.error("Error fetching recent deeds:", error)
       setDeedsError("Couldn't load your deeds. Check your connection and try again.")
     }
@@ -341,11 +330,8 @@ function DeedRow({ deed }: { deed: any }) {
   // reach it; fetch the stored PDF as a blob like Past Deeds does.
   const handleDownload = async () => {
     try {
-      const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
-      const token = localStorage.getItem("access_token")
-      const response = await fetch(`${api}/deeds/${deed.id}/download`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      // X1: loud failures — apiFetch toasts non-2xx and handles 401.
+      const response = await apiFetch(`/deeds/${deed.id}/download`, {}, { label: `Downloading deed #${deed.id}` })
       if (!response.ok) throw new Error("Download failed")
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
@@ -357,6 +343,7 @@ function DeedRow({ deed }: { deed: any }) {
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
     } catch (err) {
+      if (err instanceof SessionExpiredError) return
       console.error("Download error:", err)
     }
   }
