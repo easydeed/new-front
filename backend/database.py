@@ -490,12 +490,27 @@ def get_user_profile(user_id):
             conn.close()
         return None
 
+def clean_profile_text(value):
+    """Trim + collapse internal whitespace on a profile text field.
+
+    Profile strings print on deed faces (requested-by, company lines) —
+    '  Pacific COast TItle ' was stored verbatim and rode onto documents.
+    Whitespace is machine noise and gets fixed here; CASE is the owner's
+    text and is never touched (auto-'fixing' McDonald or LLC would corrupt
+    real names). Blank collapses to None.
+    """
+    if value is None:
+        return None
+    cleaned = " ".join(str(value).split())
+    return cleaned or None
+
+
 def update_user_profile(user_id, profile_data):
     """Update or create user profile for AI defaults"""
     conn = get_db_connection()
     if not conn:
         return False
-    
+
     try:
         cursor = conn.cursor()
         cursor.execute("""
@@ -515,11 +530,13 @@ def update_user_profile(user_id, profile_data):
                 updated_at = CURRENT_TIMESTAMP
         """, (
             user_id,
-            profile_data.get('company_name'),
-            profile_data.get('business_address'),
-            profile_data.get('license_number'),
+            # Deed-face fields are normalized at the write choke point —
+            # whatever endpoint or script feeds this, the row is clean.
+            clean_profile_text(profile_data.get('company_name')),
+            clean_profile_text(profile_data.get('business_address')),
+            clean_profile_text(profile_data.get('license_number')),
             profile_data.get('role', 'escrow_officer'),
-            profile_data.get('default_county'),
+            clean_profile_text(profile_data.get('default_county')),
             profile_data.get('preferred_deed_type', 'grant_deed'),
             profile_data.get('auto_populate_company_info', True)
         ))

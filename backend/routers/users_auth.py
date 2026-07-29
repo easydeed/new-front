@@ -18,7 +18,7 @@ from auth import (
     get_password_hash, verify_password, create_access_token,
     get_current_user_id, AuthUtils
 )
-from database import get_user_profile, update_user_profile, get_recent_properties
+from database import clean_profile_text, get_user_profile, update_user_profile, get_recent_properties
 
 router = APIRouter()
 
@@ -71,6 +71,11 @@ async def register_user(user: UserRegister = Body(...)):
         if not AuthUtils.validate_state_code(user.state):
             raise HTTPException(status_code=400, detail="Invalid state code")
 
+        # Profile-hygiene: a name that is all whitespace is no name — the
+        # value prints on deed faces and emails.
+        if not clean_profile_text(user.full_name):
+            raise HTTPException(status_code=400, detail="Full name is required")
+
         # Hash password
         hashed_password = get_password_hash(user.password)
 
@@ -86,8 +91,12 @@ async def register_user(user: UserRegister = Body(...)):
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
             """, (
-                user.email.lower(), hashed_password, user.full_name, user.role,
-                user.company_name, user.company_type, user.phone, user.state.upper(),
+                # Profile-hygiene: name/company/phone print on deed faces
+                # and emails — normalize whitespace at the write, never case.
+                user.email.lower(), hashed_password,
+                clean_profile_text(user.full_name), user.role,
+                clean_profile_text(user.company_name), user.company_type,
+                clean_profile_text(user.phone), user.state.upper(),
                 user.subscribe, 'free'
             ))
             result = cur.fetchone()
