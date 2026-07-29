@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/Sidebar';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 
 interface SecurityEvent {
   id: number;
@@ -25,6 +26,8 @@ interface SecurityMetrics {
 }
 
 export default function SecurityDashboard() {
+  // HX0: this page served the internal app to logged-out visitors.
+  const { checked } = useRequireAuth();
   const [securityEvents, setSecurityEvents] = useState<SecurityEvent[]>([]);
   const [securityMetrics, setSecurityMetrics] = useState<SecurityMetrics | null>(null);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
@@ -138,6 +141,9 @@ export default function SecurityDashboard() {
   const runSecurityScan = () => {
     alert('🔍 Security Scan Initiated\n\nScanning for:\n\n✅ Weak passwords\n✅ Suspicious login patterns\n✅ Unusual IP addresses\n✅ Account permissions\n✅ Data access patterns\n\nScan will complete in 2-3 minutes...');
   };
+
+
+  if (!checked) return null;
 
   return (
     <div style={{ display: 'flex' }}>

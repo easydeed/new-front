@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/Sidebar';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import '../../styles/dashboard.css';
 
 interface TeamMember {
@@ -36,6 +37,8 @@ interface RecentActivity {
 }
 
 export default function TeamDashboard() {
+  // HX0: internal page — no session, no shell.
+  const { checked } = useRequireAuth();
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [teamStats, setTeamStats] = useState<TeamStats | null>(null);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
@@ -190,6 +193,9 @@ export default function TeamDashboard() {
       </div>
     );
   }
+
+
+  if (!checked) return null;
 
   return (
     <div style={{ display: 'flex' }}>
