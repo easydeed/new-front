@@ -50,9 +50,17 @@ export function PreviewPanel({ state, activeSection }: PreviewPanelProps) {
     returnTo: state.returnTo === 'grantee'
       ? state.grantee || '[GRANTEE NAME]'
       : state.returnTo || state.requestedBy || '[Return To]',
-    returnToAddress: state.returnTo === 'grantee' && state.property
-      ? `${state.property.address}, ${state.property.city}, ${state.property.state} ${state.property.zip}`
-      : '',
+    // D1: the PDF stacks the mail-to block (name / street / city, ST zip) —
+    // the preview shows the same lines, not a squashed comma-string.
+    returnToLines: state.returnTo === 'grantee' && state.property
+      ? [
+          state.property.address,
+          [
+            state.property.city,
+            [state.property.state, state.property.zip].filter(Boolean).join(' '),
+          ].filter(Boolean).join(', '),
+        ].filter(Boolean)
+      : [],
     apn: state.property?.apn || '',
     titleOrderNo: state.titleOrderNo || '',
     escrowNo: state.escrowNo || '',
@@ -88,6 +96,16 @@ export function PreviewPanel({ state, activeSection }: PreviewPanelProps) {
   const placeholder = (value: string) =>
     value.startsWith('[') ? 'text-gray-400 bg-gray-100 px-1 rounded' : '';
 
+  // D1: PREVIEW-ONLY data highlighting — every span rendering inserted data
+  // gets the same purple treatment so the officer can see at a glance which
+  // parts of the page came from their inputs. Never applied to placeholders
+  // (those keep the gray treatment) and never anywhere near the PDF
+  // templates: recorded pages carry no chrome (Gov C §27361.7, G2/G3 pins).
+  const dataHighlight = (value: string | undefined | null) =>
+    value && !String(value).startsWith('[')
+      ? 'bg-brand-50 text-brand-900 px-0.5 rounded'
+      : '';
+
   return (
     <div className="h-full bg-gray-200 p-6 overflow-y-auto">
       <div className="max-w-3xl mx-auto">
@@ -99,21 +117,29 @@ export function PreviewPanel({ state, activeSection }: PreviewPanelProps) {
               <div className={`w-[55%] border-r border-black pr-3 ${highlight('recording')}`}>
                 <div className="text-[9px] font-bold uppercase tracking-wide">Recording Requested By:</div>
                 <div className="min-h-[0.3in] mb-2">
-                  <span className={`text-[10px] ${placeholder(preview.requestedBy)}`}>{preview.requestedBy}</span>
+                  <span className={`text-[10px] ${placeholder(preview.requestedBy)} ${dataHighlight(preview.requestedBy)}`}>{preview.requestedBy}</span>
                 </div>
 
                 <div className="text-[9px] font-bold uppercase tracking-wide">
                   Mail Tax Statements and<br />When Recorded Mail To:
                 </div>
                 <div className="min-h-[0.3in] mb-2">
-                  <span className={`text-[10px] ${placeholder(preview.returnTo)}`}>{preview.returnTo}</span>
-                  {preview.returnToAddress && (
-                    <><br /><span className="text-[10px]">{preview.returnToAddress}</span></>
-                  )}
+                  <span className={`text-[10px] ${placeholder(preview.returnTo)} ${dataHighlight(preview.returnTo)}`}>{preview.returnTo}</span>
+                  {preview.returnToLines.map((line) => (
+                    <span key={line} className={`block text-[10px] ${dataHighlight(line)}`}>{line}</span>
+                  ))}
                 </div>
 
-                <div className="text-[10px]">Order No.: {preview.titleOrderNo || '____________'}</div>
-                <div className="text-[10px]">Escrow No.: {preview.escrowNo || '____________'}</div>
+                <div className="text-[10px]">
+                  Order No.: {preview.titleOrderNo
+                    ? <span className={dataHighlight(preview.titleOrderNo)}>{preview.titleOrderNo}</span>
+                    : '____________'}
+                </div>
+                <div className="text-[10px]">
+                  Escrow No.: {preview.escrowNo
+                    ? <span className={dataHighlight(preview.escrowNo)}>{preview.escrowNo}</span>
+                    : '____________'}
+                </div>
               </div>
 
               {/* Recorder's space: deliberately empty — stamps land here */}
@@ -123,7 +149,7 @@ export function PreviewPanel({ state, activeSection }: PreviewPanelProps) {
             {/* Boundary row: APN left, recorder caption right, rule under */}
             <div className="flex justify-between items-baseline border-b border-black pb-0.5 mb-3">
               <span className={`text-[10px] ${highlight('property')}`}>
-                APN: <span className="font-mono tracking-wide">{preview.apn || '____________'}</span>
+                APN: <span className={`font-mono tracking-wide ${dataHighlight(preview.apn)}`}>{preview.apn || '____________'}</span>
               </span>
               <span className="text-[7.5px] font-bold uppercase">{RECORDER_CAPTION}</span>
             </div>
@@ -145,7 +171,7 @@ export function PreviewPanel({ state, activeSection }: PreviewPanelProps) {
                   <span>{DTT_LEAD}</span>
                   <span>
                     {DTT_AMOUNT_LABEL}{' '}
-                    <span className="inline-block min-w-[1.2in] border-b border-black text-center">
+                    <span className={`inline-block min-w-[1.2in] border-b border-black text-center ${dataHighlight(dttAmount)}`}>
                       ${dttAmount}
                     </span>
                   </span>
@@ -163,7 +189,7 @@ export function PreviewPanel({ state, activeSection }: PreviewPanelProps) {
                   {DTT_AREA_UNINCORPORATED}{'   '}
                   <Checkline marked={!!dtt && dtt.areaType === 'city'} />
                   City of{' '}
-                  <span className="inline-block min-w-[1.2in] border-b border-black text-center">
+                  <span className={`inline-block min-w-[1.2in] border-b border-black text-center ${dataHighlight(dtt?.areaType === 'city' ? dtt.cityName : '')}`}>
                     {dtt?.areaType === 'city' ? dtt.cityName || '' : ''}
                   </span>
                 </div>
@@ -179,34 +205,35 @@ export function PreviewPanel({ state, activeSection }: PreviewPanelProps) {
             </p>
 
             <div className={`mb-2 ${highlight('grantor')}`}>
-              <span className={`font-bold uppercase text-[11pt] ${placeholder(preview.grantor)}`}>{preview.grantor}</span>
+              <span className={`font-bold uppercase text-[11pt] ${placeholder(preview.grantor)} ${dataHighlight(preview.grantor)}`}>{preview.grantor}</span>
             </div>
 
             <p className="mb-2 text-[11pt]">{operative}</p>
 
             <div className={`mb-2 ${highlight('grantee')}`}>
-              <span className={`font-bold uppercase text-[11pt] ${placeholder(preview.grantee)}`}>{preview.grantee}</span>
+              <span className={`font-bold uppercase text-[11pt] ${placeholder(preview.grantee)} ${dataHighlight(preview.grantee)}`}>{preview.grantee}</span>
               {preview.vesting && (
-                <span className={`text-[11pt] ${highlight('vesting')}`}>, {preview.vesting}</span>
+                <span className={`text-[11pt] ${highlight('vesting')} ${dataHighlight(preview.vesting)}`}>, {preview.vesting}</span>
               )}
             </div>
 
             <p className="mb-2 text-[11pt]">
               the real property situated in the County of{' '}
-              <span className={`font-bold ${placeholder(preview.county)}`}>{preview.county}</span>,
+              <span className={`font-bold ${placeholder(preview.county)} ${dataHighlight(preview.county)}`}>{preview.county}</span>,
               State of California, more particularly described as follows:
             </p>
 
-            {/* Legal description — plain text, no box */}
+            {/* Legal description — plain text, no box; D1: bolded like the
+                parties, mirroring the chassis .legal-content weight. */}
             <div className={`mb-3 ${highlight('property')}`}>
-              <span className={`text-[10.5pt] whitespace-pre-wrap ${placeholder(preview.legalDescription)}`}>
+              <span className={`font-bold text-[10.5pt] whitespace-pre-wrap ${placeholder(preview.legalDescription)} ${dataHighlight(preview.legalDescription)}`}>
                 {preview.legalDescription}
               </span>
             </div>
 
             {preview.apn && (
               <div className={`mb-4 text-[10.5pt] ${highlight('property')}`}>
-                Assessor&rsquo;s Parcel Number: <span className="font-mono tracking-wider">{preview.apn}</span>
+                Assessor&rsquo;s Parcel Number: <span className={`font-mono tracking-wider ${dataHighlight(preview.apn)}`}>{preview.apn}</span>
               </div>
             )}
 
