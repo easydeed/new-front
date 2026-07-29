@@ -16,7 +16,7 @@ TEMPLATE_ROOT = os.path.join(os.path.dirname(os.path.dirname(__file__)), "..", "
 env = Environment(loader=FileSystemLoader(TEMPLATE_ROOT), autoescape=select_autoescape(["html","xml","jinja2"]))
 
 async def _render_pdf(template_path: str, ctx: Dict[str, Any]) -> bytes:
-    """Render PDF using pdf_engine (PDFShift with WeasyPrint fallback)"""
+    """Render PDF using pdf_engine (WeasyPrint — PS2 consolidation)"""
     try:
         # ✅ PHASE 19 FIX: Add datetime functions to match Grant Deed's approach
         from datetime import datetime
@@ -26,7 +26,7 @@ async def _render_pdf(template_path: str, ctx: Dict[str, Any]) -> bytes:
         template = env.get_template(template_path)
         html = template.render(**ctx)
         
-        # Use pdf_engine for PDFShift with WeasyPrint fallback
+        # Render through pdf_engine (WeasyPrint)
         from pdf_engine import render_pdf_async
         return await render_pdf_async(html)
     except TemplateError as e:

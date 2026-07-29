@@ -84,7 +84,7 @@ def test_unknown_deed_type_falls_back_to_grant_deed_template():
 
 
 def test_render_produces_pdf_bytes_for_every_mapped_deed_type():
-    # WeasyPrint renders locally (no PDFShift key in the test env).
+    # WeasyPrint — the production engine since PS2 — renders locally.
     for deed_type in ("grant-deed", "quitclaim-deed", "interspousal-transfer",
                       "warranty-deed", "tax-deed"):
         pdf = render_deed_pdf(minimal_row(deed_type=deed_type))
