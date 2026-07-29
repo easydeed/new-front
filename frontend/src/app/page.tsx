@@ -42,7 +42,7 @@ export default function LandingPage() {
               {/* Left: Text */}
               <div>
                 <Badge className="bg-[#7C4DFF]/10 text-[#7C4DFF] border border-[#7C4DFF]/20 text-lg font-semibold px-6 py-3">
-                  Trusted by 500+ Escrow Officers
+                  Built for California Escrow Professionals
                 </Badge>
 
                 <h1 className="mt-8 text-7xl sm:text-7xl lg:text-8xl font-bold tracking-tighter text-[#1F2B37] leading-[1.05]">
@@ -88,15 +88,41 @@ export default function LandingPage() {
           <div id="scroll-sentinel" className="h-px" aria-hidden="true" />
         </section>
 
+        {/* 1b. HOW IT ACTUALLY WORKS — the differentiators, near the fold
+            (HM2.3): suggest → confirm → record, immutability, and the
+            not-legal-advice line are the product, not fine print. */}
+        <section aria-label="How DeedPro works" className="py-12 bg-[#1F2B37]">
+          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+            <div className="grid md:grid-cols-3 gap-8 text-center">
+              <div>
+                <div className="text-lg font-bold text-white mb-1">The software suggests</div>
+                <p className="text-sm text-gray-300">County records prefill APN, legal description, and owner — as suggestions.</p>
+              </div>
+              <div>
+                <div className="text-lg font-bold text-white mb-1">Your officer decides</div>
+                <p className="text-sm text-gray-300">Every material field requires explicit confirmation before anything generates.</p>
+              </div>
+              <div>
+                <div className="text-lg font-bold text-white mb-1">The system records</div>
+                <p className="text-sm text-gray-300">Who confirmed what, and when — stored with a hash-stamped, immutable PDF.</p>
+              </div>
+            </div>
+            <p className="mt-8 text-center text-xs text-gray-400 max-w-3xl mx-auto">
+              DeedPro is software, not a law firm. It prepares documents at the direction of the
+              professional using it and does not provide legal advice or legal determinations.
+            </p>
+          </div>
+        </section>
+
         {/* 2. STATS BAR */}
         <section aria-label="Statistics" className="py-20 bg-white border-y border-gray-200">
           <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-12">
               {[
-                { icon: FileDigit, label: "Deeds Generated", value: "25,000+", color: "text-[#7C4DFF]" },
-                { icon: Check, label: "Accuracy Rate", value: "99.9%", color: "text-[#4F76F6]" },
-                { icon: Clock, label: "Time Saved", value: "45 min", color: "text-[#7C4DFF]" },
-                { icon: Shield, label: "Compliance", value: "100%", color: "text-[#4F76F6]" },
+                { icon: Clock, label: "Recorder-ready deed", value: "~9 clicks", color: "text-[#7C4DFF]" },
+                { icon: Check, label: "Fields confirmed by your officer", value: "Every one", color: "text-[#4F76F6]" },
+                { icon: Shield, label: "Hash-stamped, immutable PDFs", value: "SHA-256", color: "text-[#7C4DFF]" },
+                { icon: FileDigit, label: "CA deed types supported", value: "5", color: "text-[#4F76F6]" },
               ].map((stat) => (
                 <div key={stat.label} className="text-center">
                   <div className="text-5xl sm:text-6xl font-bold text-[#1F2B37] mb-3">{stat.value}</div>
@@ -179,14 +205,14 @@ export default function LandingPage() {
                       </div>
                     </div>
                     <div className="mt-3 px-2 py-1.5 bg-green-50 rounded text-xs text-green-700 font-semibold">
-                      ✓ 100% Compliant
+                      ✓ Formatting checks surfaced for review
                     </div>
                   </div>
                 </div>
 
-                <h3 className="text-2xl font-bold text-[#1F2B37] mb-4">CA Compliance Built-in</h3>
+                <h3 className="text-2xl font-bold text-[#1F2B37] mb-4">County Formatting Built-in</h3>
                 <p className="text-lg text-gray-600 leading-loose">
-                  All 58 counties supported with up-to-date recording requirements and formatting.
+                  Recorder-formatting checks for California counties — margins, fonts, and the statutory furniture — surfaced for your officer&apos;s review.
                 </p>
               </div>
 
@@ -334,8 +360,8 @@ export default function LandingPage() {
                       </div>
 
                       <p className="text-base text-gray-600 leading-relaxed mb-6">
-                        Enter the property address. We instantly validate and prefill legal descriptions from trusted
-                        county records.
+                        Enter the property address. DeedPro pulls the APN, legal description, and current owner
+                        from county records as suggestions — your officer confirms each one.
                       </p>
 
                       <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -409,7 +435,7 @@ export default function LandingPage() {
                       </div>
 
                       <p className="text-base text-gray-600 leading-relaxed mb-6">
-                        Our AI instantly drafts a compliant deed with proper formatting for all 58 California counties.
+                        AI prepares the document; your officer confirms every field before anything generates.
                       </p>
 
                       <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -439,24 +465,24 @@ export default function LandingPage() {
                           <div className="flex items-start gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
                             <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
                             <div className="text-sm">
-                              <div className="font-semibold text-green-900">Legal description verified</div>
-                              <div className="text-green-700 text-xs">Matches county records</div>
+                              <div className="font-semibold text-green-900">Legal description confirmed</div>
+                              <div className="text-green-700 text-xs">By your officer, against county records</div>
                             </div>
                           </div>
 
                           <div className="flex items-start gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
                             <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
                             <div className="text-sm">
-                              <div className="font-semibold text-green-900">Formatting compliant</div>
-                              <div className="text-green-700 text-xs">LA County requirements met</div>
+                              <div className="font-semibold text-green-900">Formatting checks passed</div>
+                              <div className="text-green-700 text-xs">County recorder formatting rules</div>
                             </div>
                           </div>
 
                           <div className="flex items-start gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
                             <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
                             <div className="text-sm">
-                              <div className="font-semibold text-green-900">Ready to record</div>
-                              <div className="text-green-700 text-xs">All checks passed</div>
+                              <div className="font-semibold text-green-900">Ready to generate</div>
+                              <div className="text-green-700 text-xs">Every confirmation recorded</div>
                             </div>
                           </div>
                         </div>
@@ -473,7 +499,8 @@ export default function LandingPage() {
                       </div>
 
                       <p className="text-base text-gray-600 leading-relaxed mb-6">
-                        SmartReview catches potential issues before recording. One click to generate PDF and e-record.
+                        Two-stage checks — substantive completeness and county recorder formatting — surfaced for
+                        your officer&apos;s review. One click generates the final, hash-stamped PDF.
                       </p>
 
                       <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -553,7 +580,7 @@ export default function LandingPage() {
                   {[
                     { feature: "Time to complete", deedpro: "5-10 min", manual: "45-90 min" },
                     { feature: "Error rate", deedpro: "<1%", manual: "15-25%" },
-                    { feature: "Compliance updates", deedpro: "Automatic", manual: "Manual tracking" },
+                    { feature: "Recorder formatting checks", deedpro: "Built-in", manual: "Manual tracking" },
                     { feature: "Multi-user collaboration", deedpro: true, manual: false },
                     { feature: "API access", deedpro: true, manual: false },
                     { feature: "SmartReview validation", deedpro: true, manual: false },
@@ -629,12 +656,12 @@ export default function LandingPage() {
 
                 <div className="mt-12 grid grid-cols-2 gap-6">
                   <div>
-                    <div className="text-3xl font-bold text-[#7C4DFF] mb-2">99.9%</div>
-                    <div className="text-sm text-gray-400">API Uptime</div>
+                    <div className="text-3xl font-bold text-[#7C4DFF] mb-2">REST</div>
+                    <div className="text-sm text-gray-400">JSON in, PDF out</div>
                   </div>
                   <div>
-                    <div className="text-3xl font-bold text-[#4F76F6] mb-2">&lt;200ms</div>
-                    <div className="text-sm text-gray-400">Avg Response</div>
+                    <div className="text-3xl font-bold text-[#4F76F6] mb-2">5</div>
+                    <div className="text-sm text-gray-400">CA deed types</div>
                   </div>
                 </div>
               </div>
@@ -698,7 +725,7 @@ Content-Type: application/json
                 Enterprise-grade security
               </h2>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-loose">
-                Your data is protected with industry-leading security standards.
+                Security you can verify in the product — not badges.
               </p>
             </div>
 
@@ -706,18 +733,18 @@ Content-Type: application/json
               {[
                 {
                   icon: Shield,
-                  title: "SOC 2 Type II",
-                  desc: "Audited security controls and compliance certification.",
+                  title: "Hash-Stamped PDFs",
+                  desc: "Every generated document is fingerprinted (SHA-256) at creation and stored immutably.",
                 },
                 {
                   icon: Lock,
-                  title: "AES-256 Encryption",
-                  desc: "Bank-grade data protection for all documents and data.",
+                  title: "Encrypted Sessions",
+                  desc: "Token-based authentication over encrypted transport; sessions expire and say so.",
                 },
                 {
                   icon: Check,
-                  title: "ALTA Best Practices",
-                  desc: "Follows American Land Title Association industry standards.",
+                  title: "The Officer Decides",
+                  desc: "Every material field requires explicit confirmation — recorded with who, what, and when.",
                 },
               ].map((cert) => (
                 <div key={cert.title} className="text-center">
@@ -877,7 +904,7 @@ Content-Type: application/json
                 },
                 {
                   q: "How long does generation take?",
-                  a: "Average generation time is 1-2 seconds. Most deeds are ready within 90 seconds.",
+                  a: "Once your officer confirms the fields, the PDF renders in seconds — a full deed is typically ~9 clicks end to end.",
                 },
                 {
                   q: "Can I save partial work?",
@@ -886,7 +913,7 @@ Content-Type: application/json
                 { q: "Is there API access?", a: "Yes. REST API available on Professional and Enterprise plans." },
                 {
                   q: "What about security?",
-                  a: "We use AES-256 encryption, SOC 2 compliance, and follow ALTA best practices.",
+                  a: "Token-based sessions over encrypted transport, and every generated PDF is hash-stamped (SHA-256) and stored immutably. Formal certifications are on the roadmap — we'd rather show you the mechanism than a badge.",
                 },
               ].map((faq) => (
                 <div
