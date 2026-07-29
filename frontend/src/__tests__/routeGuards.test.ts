@@ -27,6 +27,8 @@ const PUBLIC_ROUTES = new Set([
   '/approve/[token]', // public share-approval flow (token IS the auth)
   '/api-key-request', // partner lead form
   '/docs', // developer documentation index
+  '/terms', // public legal scaffold (HM3)
+  '/privacy', // public legal scaffold (HM3)
   '/settings', // server redirect to /account-settings (which guards)
   '/create-deed', // legacy server redirect to /deed-builder (which guards)
   '/create-deed/[docType]', // legacy server redirect to /deed-builder/[type] (which guards)
