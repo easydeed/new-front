@@ -3,6 +3,15 @@ PDF Generation Engine
 Supports triple rendering: WeasyPrint (default), PDFShift (cloud), and Chromium (local)
 
 Phase 1.1: Added PDFShift integration for production-grade PDF generation
+
+PS2 (2026-07-29, owner decision): WeasyPrint IS the production engine.
+'auto' now always selects WeasyPrint — the Render box renders natively
+(shell precheck: `import weasyprint` → ok), and WeasyPrint is the engine
+every test in the harness has exercised all along, so this closes the
+test-vs-production render asymmetry from the PDFShift 401/400 incidents.
+PDFShift remains ONLY as an explicit config-flagged fallback for one
+deploy cycle (set PDF_ENGINE=pdfshift on Render to flip back); a
+follow-up ticket removes it, its allowlist code, and its env var.
 """
 import os
 import logging
@@ -93,20 +102,25 @@ def render_pdf_with_pdfshift_sync(
 
 
 def render_pdf(
-    html: str, 
-    base_url: Optional[str] = None, 
-    page_setup: Optional[Dict[str, str]] = None, 
-    engine: str = "auto",
+    html: str,
+    base_url: Optional[str] = None,
+    page_setup: Optional[Dict[str, str]] = None,
+    engine: Optional[str] = None,
     pdfshift_options: Optional[Dict[str, Any]] = None
 ) -> bytes:
     """
     Main PDF rendering function with triple engine support
-    
+
     Args:
         html: HTML content to render
         base_url: Base URL for resolving relative paths (fonts, images)
         page_setup: Page margins (for Chromium engine)
-        engine: 'auto' (default), 'pdfshift', 'weasyprint', or 'chromium'/'playwright'
+        engine: None (default: PDF_ENGINE env var, else 'auto'), 'auto',
+            'pdfshift', 'weasyprint', or 'chromium'/'playwright'.
+            PS2 note: the old default was the string "auto", which is
+            truthy — `engine or os.getenv("PDF_ENGINE")` therefore NEVER
+            read the env var from the stored-PDF pipeline. The fallback
+            flag has to actually work, so the default is now None.
         pdfshift_options: Additional options for PDFShift API
     
     Returns:
@@ -117,21 +131,17 @@ def render_pdf(
         RuntimeError: If engine dependencies missing
     
     Engine Selection (when 'auto'):
-        1. PDFShift - if PDFSHIFT_API_KEY is set (best quality)
-        2. WeasyPrint - fallback (fast, local)
+        WeasyPrint, always (PS2). The presence of a PDFShift key no longer
+        changes the engine — flipping back requires the explicit
+        PDF_ENGINE=pdfshift fallback flag.
     """
     # Get engine from parameter or environment variable
     requested_engine = (engine or os.getenv("PDF_ENGINE") or "auto").lower()
-    
-    # Auto-select engine based on available services
+
+    # PS2: 'auto' means WeasyPrint — the engine the test harness exercises.
     if requested_engine == "auto":
-        from services.pdfshift_service import pdfshift_service
-        if pdfshift_service.is_configured():
-            selected_engine = "pdfshift"
-            logger.info("PDF Engine: Auto-selected PDFShift (API key configured)")
-        else:
-            selected_engine = "weasyprint"
-            logger.info("PDF Engine: Auto-selected WeasyPrint (PDFShift not configured)")
+        selected_engine = "weasyprint"
+        logger.info("PDF Engine: WeasyPrint (production engine; PDF_ENGINE=pdfshift is the fallback flag)")
     else:
         selected_engine = requested_engine
     
@@ -169,10 +179,10 @@ def render_pdf(
 
 
 async def render_pdf_async(
-    html: str, 
-    base_url: Optional[str] = None, 
-    page_setup: Optional[Dict[str, str]] = None, 
-    engine: str = "auto",
+    html: str,
+    base_url: Optional[str] = None,
+    page_setup: Optional[Dict[str, str]] = None,
+    engine: Optional[str] = None,
     pdfshift_options: Optional[Dict[str, Any]] = None
 ) -> bytes:
     """
@@ -181,11 +191,10 @@ async def render_pdf_async(
     Preferred for PDFShift as it uses async HTTP client
     """
     requested_engine = (engine or os.getenv("PDF_ENGINE") or "auto").lower()
-    
-    # Auto-select engine
+
+    # PS2: 'auto' means WeasyPrint (same rule as the sync path).
     if requested_engine == "auto":
-        from services.pdfshift_service import pdfshift_service
-        selected_engine = "pdfshift" if pdfshift_service.is_configured() else "weasyprint"
+        selected_engine = "weasyprint"
     else:
         selected_engine = requested_engine
     
