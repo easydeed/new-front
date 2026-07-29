@@ -35,3 +35,16 @@ def test_removed_routers_are_gone():
     assert ("POST", "/deeds/{deed_id}/share") not in routes
     assert ("POST", "/deeds/shares/resend") not in routes
     assert ("GET", "/deed-shares/{share_id}/feedback") not in routes
+
+
+def test_share_model_recipient_name_optional_email_is_identity():
+    """X2.4: email is the recipient's identity; the name is a courtesy for
+    the greeting. A blank or absent name must validate — and the create
+    path falls back to the address itself."""
+    from routers.sharing import ShareDeedCreate
+    share = ShareDeedCreate(
+        deed_id=1, recipient_email="reviewer@test.dev", recipient_role="Other")
+    assert share.recipient_name is None
+    share2 = ShareDeedCreate(
+        deed_id=1, recipient_name="  ", recipient_email="r@test.dev", recipient_role="Other")
+    assert (share2.recipient_name or "").strip() == ""

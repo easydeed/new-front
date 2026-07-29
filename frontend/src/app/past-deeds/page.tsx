@@ -4,7 +4,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Sidebar from "@/components/Sidebar"
-import { FileText, Download, Share2, Trash2, AlertCircle, CheckCircle, Clock, X, Plus, Loader2 } from "lucide-react"
+import { FileText, Download, Share2, Trash2, AlertCircle, CheckCircle, Clock, X, Plus, Loader2, Search } from "lucide-react"
 import { toast } from "sonner"
 import { SessionExpiredError, apiFetch } from "@/lib/apiClient"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
@@ -15,6 +15,7 @@ interface Deed {
   property_address: string
   deed_type: string
   grantee_name?: string
+  apn?: string
   status: "completed" | "draft" | "in_progress"
   created_at: string
   updated_at: string
@@ -51,6 +52,9 @@ export default function PastDeedsPageV0() {
     deedId: null,
   })
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
+  // X2.7: find a deed without scrolling — text search + status filter.
+  const [searchQuery, setSearchQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "draft">("all")
 
   useEffect(() => {
     fetchDeeds()
@@ -223,6 +227,21 @@ export default function PastDeedsPageV0() {
     }) + " " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
   }
 
+  // X2.7: filter over address, grantee, doc id, APN, and type label.
+  const visibleDeeds = deeds.filter((deed) => {
+    if (statusFilter === "completed" && deed.status !== "completed") return false
+    if (statusFilter === "draft" && deed.status === "completed") return false
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return true
+    return [
+      deed.property_address,
+      deed.grantee_name,
+      deed.apn,
+      String(deed.id),
+      deedTypeLabel(deed.deed_type),
+    ].some((field) => (field || "").toLowerCase().includes(q))
+  })
+
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
       <Sidebar />
@@ -238,11 +257,35 @@ export default function PastDeedsPageV0() {
 
             {/* Subheader Bar */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-              <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-[#7C4DFF]" />
-                <span className="text-lg font-semibold text-slate-700">
-                  Showing {deeds.length} {deeds.length === 1 ? "deed" : "deeds"}
-                </span>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-1">
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <FileText className="w-5 h-5 text-[#7C4DFF]" />
+                  <span className="text-lg font-semibold text-slate-700">
+                    {visibleDeeds.length === deeds.length
+                      ? `Showing ${deeds.length} ${deeds.length === 1 ? "deed" : "deeds"}`
+                      : `Showing ${visibleDeeds.length} of ${deeds.length} deeds`}
+                  </span>
+                </div>
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search address, grantee, APN, or Doc ID"
+                    className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF]"
+                  />
+                </div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as "all" | "completed" | "draft")}
+                  className="px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF]"
+                  aria-label="Filter by status"
+                >
+                  <option value="all">All statuses</option>
+                  <option value="completed">Completed</option>
+                  <option value="draft">Drafts</option>
+                </select>
               </div>
               <button
                 onClick={() => router.push("/deed-builder")}
@@ -310,6 +353,7 @@ export default function PastDeedsPageV0() {
                 <table className="w-full">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-slate-700">Doc ID</th>
                       <th className="text-left py-4 px-6 text-sm font-semibold text-slate-700">Property</th>
                       <th className="text-left py-4 px-6 text-sm font-semibold text-slate-700">Deed Type</th>
                       <th className="text-left py-4 px-6 text-sm font-semibold text-slate-700">Status</th>
@@ -319,20 +363,21 @@ export default function PastDeedsPageV0() {
                     </tr>
                   </thead>
                   <tbody>
-                    {deeds.map((deed, index) => (
+                    {visibleDeeds.map((deed, index) => (
                       <tr
                         key={deed.id}
                         className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${
                           index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
                         }`}
                       >
+                        <td className="py-4 px-6 font-mono text-sm text-slate-600">#{deed.id}</td>
                         <td className="py-4 px-6">
                           {/* U3: a row identifies its deed — address alone
                               can't when one property has several. */}
                           <p className="font-medium text-slate-800">{deed.property_address}</p>
-                          <p className="text-sm text-slate-500">
-                            {deed.grantee_name ? `To ${deed.grantee_name} · ` : ""}Doc #{deed.id}
-                          </p>
+                          {deed.grantee_name && (
+                            <p className="text-sm text-slate-500">To {deed.grantee_name}</p>
+                          )}
                         </td>
                         <td className="py-4 px-6 text-slate-600">{deedTypeLabel(deed.deed_type)}</td>
                         <td className="py-4 px-6">{getStatusBadge(deed.status)}</td>
@@ -418,11 +463,10 @@ export default function PastDeedsPageV0() {
             <form onSubmit={handleShareSubmit} className="space-y-4 overflow-y-auto flex-1 min-h-0 pr-1">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Recipient Name <span className="text-red-500">*</span>
+                  Recipient Name <span className="text-slate-400 font-normal">(optional)</span>
                 </label>
                 <input
                   type="text"
-                  required
                   value={shareForm.recipient_name}
                   onChange={(e) => setShareForm({ ...shareForm, recipient_name: e.target.value })}
                   className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
@@ -483,7 +527,12 @@ export default function PastDeedsPageV0() {
                   <option value="336">14 days</option>
                   <option value="720">30 days</option>
                 </select>
-                <p className="text-xs text-slate-500 mt-1">The recipient must approve or request changes before this date.</p>
+                {/* X2.5: say what expiry actually does. */}
+                <p className="text-xs text-slate-500 mt-1">
+                  When the link expires it stops working and the share is marked
+                  expired — the deed itself is unaffected, and you can share it
+                  again anytime.
+                </p>
               </div>
 
               {/* Footer Buttons */}

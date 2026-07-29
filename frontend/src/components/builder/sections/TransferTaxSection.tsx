@@ -5,6 +5,7 @@ import { Calculator, Scale, ShieldCheck, X } from "lucide-react"
 import { useAIAssist } from "@/contexts/AIAssistContext"
 import { AISuggestion } from "../AISuggestion"
 import { detectDttSuggestion } from "@/lib/dttSuggestions"
+import { computeDttBreakdown } from "@/lib/dttCalc"
 import type { DTTData, LegalChoiceRecord } from "@/types/builder"
 
 interface TransferTaxSectionProps {
@@ -24,24 +25,6 @@ interface TransferTaxSectionProps {
   suggestionDismissed?: boolean
   onDismissSuggestion: () => void
 }
-
-// Cities with their own DTT rates
-const CITIES_WITH_OWN_DTT = [
-  "los angeles",
-  "san francisco",
-  "oakland",
-  "berkeley",
-  "san jose",
-  "sacramento",
-  "riverside",
-  "pomona",
-  "culver city",
-  "santa monica",
-  "redondo beach",
-  "inglewood",
-  "long beach",
-  "pasadena",
-]
 
 // DTT exemption codes
 const EXEMPTION_REASONS = [
@@ -128,34 +111,18 @@ export function TransferTaxSection({
     )
   }
 
-  // Calculate DTT when values change
-  const calculatedAmount = useMemo(() => {
-    if (!value || value.isExempt || !value.transferValue) return ""
+  // Calculate DTT when values change. X2.3: the breakdown (county + city
+  // portions) is computed here so the result can SHOW it — one opaque
+  // total hid what was being declared. DISCOVERY fixed alongside: the old
+  // math added a generic $2.20/$1,000 "city tax" for ANY city, including
+  // cities with no municipal transfer tax at all — a fabricated number on
+  // a legal declaration. City portion now applies only to cities on the
+  // own-DTT list (named rates for LA/SF/Oakland; the $2.20 approximation
+  // for the other listed cities — owner/legal to verify current
+  // schedules; all city rates here are approximations of tiered rates).
+  const dttBreakdown = useMemo(() => computeDttBreakdown(value), [value])
 
-    const amount = parseFloat(value.transferValue.replace(/[^0-9.]/g, ""))
-    if (isNaN(amount) || amount <= 0) return ""
-
-    // County rate: $1.10 per $1,000
-    const countyTax = (amount / 1000) * 1.1
-
-    // City rate varies
-    let cityTax = 0
-    if (value.areaType === "city") {
-      const cityLower = (value.cityName || "").toLowerCase()
-
-      if (cityLower.includes("los angeles")) {
-        cityTax = (amount / 1000) * 4.5
-      } else if (cityLower.includes("san francisco")) {
-        cityTax = (amount / 1000) * 7.5
-      } else if (cityLower.includes("oakland")) {
-        cityTax = (amount / 1000) * 15.0
-      } else {
-        cityTax = (amount / 1000) * 2.2
-      }
-    }
-
-    return (countyTax + cityTax).toFixed(2)
-  }, [value])
+  const calculatedAmount = dttBreakdown?.total ?? ""
 
   // Derived recalculation — not an officer action, no decision stamp.
   useEffect(() => {
@@ -355,13 +322,21 @@ export function TransferTaxSection({
             </div>
           )}
 
-          {/* Calculated Result */}
-          {calculatedAmount && (
-            <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
-              <Calculator className="w-5 h-5 text-emerald-500" />
-              <span className="font-medium text-emerald-700">
-                Documentary Transfer Tax: ${calculatedAmount}
-              </span>
+          {/* Calculated Result — X2.3: the breakdown, not one opaque total */}
+          {dttBreakdown && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg space-y-1">
+              <div className="flex items-center gap-2">
+                <Calculator className="w-5 h-5 text-emerald-500" />
+                <span className="font-medium text-emerald-700">
+                  Documentary Transfer Tax: ${dttBreakdown.total}
+                </span>
+              </div>
+              <div className="text-sm text-emerald-700 pl-7">
+                County ($1.10 / $1,000): ${dttBreakdown.county}
+                {dttBreakdown.city && (
+                  <> · City of {value.cityName}: ${dttBreakdown.city}</>
+                )}
+              </div>
             </div>
           )}
         </div>

@@ -48,7 +48,8 @@ describe('U3 — deed types display as names, not slugs', () => {
   it('Past Deeds rows carry grantee and doc id', () => {
     const pastDeeds = stripComments(readSource('app', 'past-deeds', 'page.tsx'));
     expect(pastDeeds).toContain('deed.grantee_name');
-    expect(pastDeeds).toContain('Doc #{deed.id}');
+    // X2.7 promoted the doc id from an under-address line to its own column.
+    expect(pastDeeds).toContain('>#{deed.id}</td>');
   });
 });
 

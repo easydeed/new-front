@@ -235,7 +235,7 @@ def list_deeds_endpoint(user_id: int = Depends(get_current_user_id)):
         with db.conn.cursor() as cur:
             cur.execute("""
                 SELECT id, deed_type, property_address, grantor_name, grantee_name,
-                       county, status, pdf_url, created_at, updated_at
+                       county, status, pdf_url, created_at, updated_at, apn
                 FROM deeds
                 WHERE user_id = %s AND COALESCE(status, '') <> 'deleted'
                 ORDER BY created_at DESC
@@ -263,6 +263,9 @@ def list_deeds_endpoint(user_id: int = Depends(get_current_user_id)):
                     # the offset explicitly or the browser assumes local.
                     "created_at": _iso_utc(deed[8]),
                     "updated_at": _iso_utc(deed[9]),
+                    # X2.6/X2.7: the parcel id — dupe-parcel awareness in the
+                    # builder and searchable rows in Past Deeds.
+                    "apn": deed[10],
                 })
 
             return {"deeds": formatted_deeds}
