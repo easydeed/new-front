@@ -1,13 +1,12 @@
 /**
- * X0 (security hotfix) — demo credentials can never render outside local
- * dev, and never exist in source at all.
+ * Demo credentials — never in source; visibility is env-controlled.
  *
- * History this pins against: the demo card shipped always-visible with
- * committed credential constants (#48/#55, a deliberate convenience
- * decision) and the round-2 security audit found the real credentials in
- * the production login bundle. Reversed: values come only from untracked
- * env (.env.local), and the card renders only when the build-time-inlined
- * NODE_ENV is 'development' — production builds eliminate the branch.
+ * History: committed constants shipped always-visible (#48/#55); the
+ * round-2 audit found them in the production bundle; X0 removed them
+ * from source and dev-gated the card. Owner decision 2026-07-29: the
+ * card SHOWS pre-launch — so the gate is now env-presence (set the
+ * NEXT_PUBLIC_DEMO_* vars on Vercel to show it, delete them at launch
+ * to remove it). What can never change: no credential value in git.
  */
 import { describe, expect, it } from '@jest/globals';
 import * as fs from 'fs';
@@ -27,8 +26,8 @@ describe('X0 — demo credentials gate', () => {
     expect(LOGIN).toContain('process.env.NEXT_PUBLIC_DEMO_PASSWORD');
   });
 
-  it('the card is gated on development NODE_ENV, checked at build time', () => {
-    expect(LOGIN).toMatch(/process\.env\.NODE_ENV === ["']development["']/);
+  it('the card renders only when both env values exist', () => {
+    expect(LOGIN).toContain('const SHOW_DEMO_CARD = !!DEMO_EMAIL && !!DEMO_PASSWORD');
     expect(LOGIN).toContain('{SHOW_DEMO_CARD && (');
   });
 
