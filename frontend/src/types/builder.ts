@@ -101,6 +101,10 @@ export interface AffidavitFacts {
   signerCount?: string;
   signerNames?: string;
   titleVesting?: string;
+  /* TOD revocation (Prob C §5600): the revoking grantor — record
+     identification only; the statutory form is signed AND printed by the
+     grantor at notarization (execution act; nothing pre-prints). */
+  revokingGrantor?: string;
 }
 
 export interface DeedBuilderState {

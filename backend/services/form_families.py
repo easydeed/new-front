@@ -32,6 +32,7 @@ FAMILY_BY_DEED_TYPE = {
     "affidavit-death-trustee": "affidavit",
     "homestead-declaration": "declaration",
     "trust-certification": "declaration",
+    "tod-revocation": "declaration",
 }
 
 SINGLE_PARTY_FAMILIES = {"declaration"}

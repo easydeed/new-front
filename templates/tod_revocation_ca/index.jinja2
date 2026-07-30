@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Revocation of Revocable Transfer on Death (TOD) Deed - California</title>
+    <style>
+        /* ==========================================================================
+           REVOCATION OF REVOCABLE TOD DEED — Prob C §§5600/5644 — wave 1 #7
+
+           This is the STATUTORY form (the PCT blank mirrors the §5644
+           prescription): three pages — (1) header + exemption recitals +
+           the statute's IMPORTANT NOTICE + APN + property description;
+           (2) the revocation statement + signature/date + the TWO-WITNESS
+           block; (3) the §1189 acknowledgment. Statutory text renders
+           VERBATIM (drift-pinned against lib/deedFurniture).
+
+           Doctrine notes:
+           - The DTT/PCOR exemption recitals are categorical statutory
+             furniture (R&T §11930 / §480.3) — no decision gate, exactly
+             like the interspousal recital precedent. No DTT block.
+           - The grantor is named ONLY at signature ("Sign and print your
+             name") — an execution act: nothing pre-prints (pinned). The
+             witness signatures are likewise blank furniture.
+           - Chassis rules (G2/G3): open recorder space, boundary caption,
+             no chrome, blank notarial contents.
+           ========================================================================== */
+
+        @page {
+            size: letter;
+            margin: 0.5in 0.5in 0.6in 0.6in;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: "Times New Roman", Times, Georgia, serif;
+            font-size: 11pt;
+            line-height: 1.4;
+            color: #000;
+            background: #fff;
+        }
+
+        .header-section { display: flex; min-height: 1.85in; }
+
+        .recording-info {
+            width: 3.4in;
+            flex-shrink: 0;
+            border-right: 0.75pt solid #000;
+            padding-right: 0.15in;
+            font-size: 10pt;
+            line-height: 1.35;
+        }
+
+        .recorder-space { flex-grow: 1; }
+
+        .recording-label {
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 9pt;
+        }
+
+        .recording-value { margin-bottom: 0.12in; min-height: 0.35in; }
+
+        .header-boundary {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            border-bottom: 0.75pt solid #000;
+            padding-bottom: 0.03in;
+            margin-bottom: 0.12in;
+            font-size: 10pt;
+        }
+
+        .recorder-caption {
+            font-size: 7.5pt;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .deed-title {
+            text-align: center;
+            font-size: 13pt;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin: 0.08in 0 0.02in 0;
+        }
+
+        .deed-subtitle {
+            text-align: center;
+            font-size: 10.5pt;
+            font-weight: bold;
+            margin-bottom: 0.1in;
+        }
+
+        .exemption-recitals {
+            font-size: 10pt;
+            margin-bottom: 0.12in;
+        }
+
+        .exemption-recitals .lead { font-weight: bold; }
+
+        .notice-box {
+            /* The statute's own warning — form content, not chrome. */
+            border: 1.5pt solid #000;
+            padding: 0.08in 0.12in;
+            font-size: 10pt;
+            margin-bottom: 0.14in;
+        }
+
+        .notice-head {
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 0.05in;
+        }
+
+        .section-head {
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 11pt;
+            margin: 0.14in 0 0.05in 0;
+        }
+
+        .section-note { font-size: 9.5pt; font-style: italic; }
+
+        .fact { font-weight: bold; }
+
+        .fact-line {
+            display: inline-block;
+            min-width: 2.2in;
+            border-bottom: 1px solid #000;
+        }
+
+        .legal-content {
+            font-weight: bold;
+            white-space: pre-wrap;
+            margin: 0.08in 0;
+            min-height: 1.2in;
+        }
+
+        .page-break { page-break-before: always; }
+
+        .sig-block { margin: 0.1in 0 0.18in 0; }
+
+        .sig-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 0.04in;
+        }
+
+        .sig-line {
+            border-bottom: 1px solid #000;
+            width: 3.4in;
+            height: 0.32in;
+        }
+
+        .sig-caption { font-size: 9pt; }
+    </style>
+</head>
+<body>
+    <div class="deed-page">
+
+        <header class="header-section">
+            <div class="recording-info">
+                <div class="recording-label">Recording Requested By:</div>
+                <div class="recording-value">{{ requested_by or '' }}{% if requested_by_address %}<br>{{ requested_by_address }}{% endif %}</div>
+
+                <div class="recording-label">When Recorded Mail To<br>And Mail Tax Statements To:</div>
+                <div class="recording-value">
+                    {% if return_to %}
+                        {% if return_to.get('name') %}{{ return_to.get('name') }}<br>{% endif %}
+                        {% if return_to.get('company') %}{{ return_to.get('company') }}<br>{% endif %}
+                        {% if return_to.get('address1') %}{{ return_to.get('address1') }}<br>{% endif %}
+                        {% if return_to.get('address2') %}{{ return_to.get('address2') }}<br>{% endif %}
+                        {% set city = return_to.get('city', '') %}
+                        {% set state = return_to.get('state', '') %}
+                        {% set zip = return_to.get('zip', '') %}
+                        {% if city or state or zip %}
+                            {{ city }}{% if city and (state or zip) %}, {% endif %}{{ state }} {{ zip }}
+                        {% endif %}
+                    {% else %}
+                        _________________________________<br>
+                        _________________________________<br>
+                        _________________________________
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="recorder-space"><!-- Gov. Code §27361.6 — recorder's use only --></div>
+        </header>
+
+        <div class="header-boundary">
+            <span>Title Order No.: {{ title_order_no or '______________' }}&nbsp;&nbsp;Escrow No.: {{ escrow_no or '______________' }}</span>
+            <span class="recorder-caption">Space Above This Line Is For Recorder&rsquo;s Use</span>
+        </div>
+
+        <h1 class="deed-title">Revocation of<br>Revocable Transfer on Death (TOD) Deed</h1>
+        <div class="deed-subtitle">(California Probate Code &sect; 5600)</div>
+
+        {# Categorical statutory exemptions — furniture, no decision gate
+           (R&T §11930 conveyance-without-consideration-at-death family;
+           §480.3 PCOR exclusion). Interspousal-recital precedent. #}
+        <div class="exemption-recitals">
+            <div class="lead">THE UNDERSIGNED GRANTOR(s) DECLARE(s):</div>
+            <div>This conveyance is exempt from Documentary Transfer Tax under Revenue and Taxation Code &sect;11930.</div>
+            <div>This conveyance is exempt from Preliminary Change of Ownership Report under Revenue and Taxation Code &sect; 480.3.</div>
+        </div>
+
+        <div class="notice-box">
+            <div class="notice-head">IMPORTANT NOTICE: THIS FORM MUST BE RECORDED TO BE EFFECTIVE</div>
+            This revocation form MUST be RECORDED on or before 60 days after the date it is notarized
+            or it will not be effective. This revocation form only affects a transfer on death deed that YOU
+            made. A transfer on death deed made by a co-owner of your property is not affected by this
+            revocation form. A co-owner who wants to revoke a transfer on death deed that they made must
+            complete and RECORD a SEPARATE revocation form.
+        </div>
+
+        <div class="section-head">Property Assessor&rsquo;s Parcel Number</div>
+        <div>{% if apn %}<span class="fact">{{ apn }}</span>{% else %}<span class="fact-line">&nbsp;</span>{% endif %}</div>
+
+        <div class="section-head">Property Description</div>
+        <div class="section-note">(Legal description of the property affected by this revocation)</div>
+        <div class="legal-content">{{ legal_description or '' }}</div>
+
+    </div>
+
+    <div class="page-break"></div>
+    <div class="deed-page">
+
+        <div class="section-head">Revocation</div>
+        <p>I revoke any TOD deed to transfer the described property that I executed before executing this form.</p>
+
+        <div class="section-head">Signature and Date</div>
+        <div class="section-note">
+            (Sign and print your name below (your name should exactly match the name shown on your title documents)
+        </div>
+        {# Execution acts, twice over (statutory form provides two grantor
+           blocks): the grantor signs AND prints their own name at
+           notarization — nothing pre-prints (pinned). #}
+        {% for _ in range(2) %}
+        <div class="sig-block">
+            <div class="sig-row">
+                <span>Date: <span class="fact-line" style="min-width:1.4in">&nbsp;</span></span>
+                <span class="sig-line"></span>
+            </div>
+            <div class="sig-row">
+                <span></span>
+                <span class="sig-caption">(Sign Name)</span>
+            </div>
+            <div class="sig-row">
+                <span></span>
+                <span class="sig-line"></span>
+            </div>
+            <div class="sig-row">
+                <span></span>
+                <span class="sig-caption">(Print Name)</span>
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="section-head">Witnesses</div>
+        <p>
+            To be valid, this form must be signed by two persons, both present at the same time, who witness
+            your signing of the deed or your acknowledgment that it is your deed. The signatures of the
+            witnesses do not need to be acknowledged by a notary public.
+        </p>
+
+        {% for n in [1, 2] %}
+        <div class="sig-block">
+            <div style="font-weight:bold">Witness #{{ n }}</div>
+            <div class="sig-row">
+                <span>Date: <span class="fact-line" style="min-width:1.4in">&nbsp;</span></span>
+                <span class="sig-line"></span>
+            </div>
+            <div class="sig-row">
+                <span></span>
+                <span class="sig-caption">(Sign Name)</span>
+            </div>
+            <div class="sig-row">
+                <span></span>
+                <span class="sig-line"></span>
+            </div>
+            <div class="sig-row">
+                <span></span>
+                <span class="sig-caption">(Print Name)</span>
+            </div>
+        </div>
+        {% endfor %}
+
+    </div>
+
+    {# Page 3 — the §1189 acknowledgment (own-page default mode). #}
+    {% set document_title = 'Revocation of Revocable Transfer on Death (TOD) Deed' %}
+    {% include '_partials/notary_acknowledgment.jinja2' %}
+
+</body>
+</html>

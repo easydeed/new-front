@@ -20,6 +20,12 @@ import {
   OPERATIVE_WORDS,
   EXEMPTION_RECITALS,
   FIXED_VESTING_PHRASES,
+  TOD_DTT_EXEMPTION,
+  TOD_PCOR_EXEMPTION,
+  TOD_NOTICE_HEAD,
+  TOD_NOTICE_BODY,
+  TOD_REVOCATION_STATEMENT,
+  TOD_WITNESS_INSTRUCTION,
 } from '@/lib/deedFurniture';
 // FORMS registry: document titles + family come from the one source of
 // type facts.
@@ -191,7 +197,65 @@ export function PreviewPanel({ state, activeSection, onRegionClick }: PreviewPan
               </div>
             )}
 
-            {isDeclaration && state.deedType === 'trust-certification' ? (
+            {isDeclaration && state.deedType === 'tod-revocation' ? (
+              <>
+                {/* Statutory revocation form (Prob C §§5600/5644) — the
+                    exemption recitals and notice are the statute's own
+                    furniture; the grantor is named only at signature
+                    (execution act — nothing pre-prints). */}
+                <div className={`text-[10px] mb-3 ${highlight('transferTax')}`}>
+                  <div className="font-bold">THE UNDERSIGNED GRANTOR(s) DECLARE(s):</div>
+                  <div>{TOD_DTT_EXEMPTION}</div>
+                  <div>{TOD_PCOR_EXEMPTION}</div>
+                </div>
+
+                <div className="border border-black p-2 text-[10px] mb-3">
+                  <div className="font-bold text-center mb-1">{TOD_NOTICE_HEAD}</div>
+                  {TOD_NOTICE_BODY}
+                </div>
+
+                <div className="text-[11pt] font-bold uppercase mb-1">Property Assessor&rsquo;s Parcel Number</div>
+                <div className={`mb-2 ${highlight('property')}`}>
+                  <span onClick={go('property')} className={`font-mono tracking-wide ${CLICKABLE} ${dataHighlight(preview.apn)}`}>{preview.apn || '____________'}</span>
+                </div>
+
+                <div className="text-[11pt] font-bold uppercase mb-1">Property Description</div>
+                <div className={`mb-3 ${highlight('property')}`}>
+                  <span onClick={go('property')} className={`font-bold text-[10.5pt] whitespace-pre-wrap ${CLICKABLE} ${placeholder(preview.legalDescription)} ${dataHighlight(preview.legalDescription)}`}>
+                    {preview.legalDescription}
+                  </span>
+                </div>
+
+                <div className="text-[11pt] font-bold uppercase mb-1">Revocation</div>
+                <p className="mb-3 text-[11pt]">{TOD_REVOCATION_STATEMENT}</p>
+
+                <div className="text-[11pt] font-bold uppercase mb-1">Signature and Date</div>
+                <p className={`mb-2 text-[10px] italic ${highlight('affidavit')}`}>
+                  Signed and printed by{' '}
+                  <span onClick={go('affidavit', 'affidavit-revokingGrantor')} className={`font-bold uppercase not-italic ${CLICKABLE} ${dataHighlight(aff?.revokingGrantor)}`}>{factOrBlank(aff?.revokingGrantor)}</span>
+                  {' '}at notarization — the statutory form pre-prints no name.
+                </p>
+                <div className="mb-3">
+                  <div className="border-b border-black h-6 w-[60%]" />
+                  <div className="text-[9px]">(Sign Name) / (Print Name)</div>
+                </div>
+
+                <div className="text-[11pt] font-bold uppercase mb-1">Witnesses</div>
+                <p className="mb-2 text-[10px]">{TOD_WITNESS_INSTRUCTION}</p>
+                <div className="flex gap-6 mb-2">
+                  <div className="flex-1">
+                    <div className="text-[10px] font-bold">Witness #1</div>
+                    <div className="border-b border-black h-6" />
+                    <div className="text-[9px]">(Sign Name) / (Print Name)</div>
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-[10px] font-bold">Witness #2</div>
+                    <div className="border-b border-black h-6" />
+                    <div className="text-[9px]">(Sign Name) / (Print Name)</div>
+                  </div>
+                </div>
+              </>
+            ) : isDeclaration && state.deedType === 'trust-certification' ? (
               <>
                 {/* Certification of trust (PCT #72, Prob C §18100.5).
                     Owner ruling: initial lines and checkboxes are EXECUTION

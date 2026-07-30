@@ -49,6 +49,8 @@ TEMPLATE_BY_DEED_TYPE = {
     "homestead-declaration": "homestead_declaration_ca/index.jinja2",
     # FORMS wave 1 #6 — property-less (PCT reference #72; Prob C §18100.5).
     "trust-certification": "trust_certification_ca/index.jinja2",
+    # FORMS wave 1 #7 — statutory revocation form (Prob C §§5600/5644).
+    "tod-revocation": "tod_revocation_ca/index.jinja2",
 }
 DEFAULT_TEMPLATE = "grant_deed_ca/index.jinja2"
 
