@@ -23,8 +23,8 @@ const KNOWN_SECTIONS = new Set(['property', 'grantor', 'grantee', 'vesting', 'tr
 describe('FORMS registry — completeness and coherence', () => {
   const entries = Object.values(FORM_REGISTRY);
 
-  it('carries the eleven shipped types', () => {
-    expect(entries.length).toBe(11);
+  it('carries the twelve shipped types', () => {
+    expect(entries.length).toBe(12);
     expect(formConfig('affidavit-death-jt')?.family).toBe('affidavit');
     // Wave 1 siblings (owner-ranked #1 and #2):
     expect(formConfig('affidavit-death-cp-spouse')?.family).toBe('affidavit');
@@ -32,9 +32,11 @@ describe('FORMS registry — completeness and coherence', () => {
     // Wave 1 deed variants (owner-ranked #3 and #4):
     expect(formConfig('grant-deed-jt')?.family).toBe('deed');
     expect(formConfig('grant-deed-cp-ros')?.family).toBe('deed');
-    // Wave 1 #5 — the third family (correction note: ACKNOWLEDGED,
-    // CCP §704.930, single-party):
+    // Wave 1 #5/#6 — the third family (correction note: ACKNOWLEDGED,
+    // single-party; #6 additionally property-less):
     expect(formConfig('homestead-declaration')?.family).toBe('declaration');
+    expect(formConfig('trust-certification')?.family).toBe('declaration');
+    expect(formConfig('trust-certification')?.sections).not.toContain('property');
   });
 
   it('every entry is internally coherent', () => {

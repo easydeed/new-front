@@ -276,9 +276,13 @@ def create_deed(user_id, deed_data):
         # FORMS: single-party families carry their parties in the JSONB
         # column instead of the grantor/grantee pair — require at least one
         # named party there; two-party instruments keep the strict pair.
-        from services.form_families import is_single_party
+        from services.form_families import is_single_party, requires_legal_description
         if is_single_party(deed_data.get('deed_type')):
-            critical_fields = ['legal_description']
+            critical_fields = (
+                ['legal_description']
+                if requires_legal_description(deed_data.get('deed_type'))
+                else []
+            )
             parties = deed_data.get('parties') or {}
             if not any((v or '').strip() for v in parties.values()):
                 print(f"[Database.create_deed] ❌ ERROR: single-party instrument with no named party!")

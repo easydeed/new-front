@@ -85,6 +85,9 @@ const FIXED_VESTING_DEED_SECTIONS = ['property', 'grantor', 'grantee', 'transfer
    for its officer-typed instrument facts. */
 const AFFIDAVIT_SECTIONS = ['property', 'affidavit', 'recording'];
 const DECLARATION_SECTIONS = ['property', 'affidavit', 'recording'];
+/* Property-less: the certification of trust describes a TRUST, not a
+   parcel — no property search, no APN, no legal description. */
+const PROPERTYLESS_DECLARATION_SECTIONS = ['affidavit', 'recording'];
 
 /* Spike flag 4 ruling (applies to every affidavit-of-death variant):
    passive guidance only. The BOE-502-D itself is Tier B (form-fill
@@ -289,6 +292,46 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
       },
     ],
   },
+  // Wave 1 form #6 — reference: PCT blank form #72 (Trust-Certification).
+  // Correction-note family: an ACKNOWLEDGED penalty-of-perjury declaration
+  // ("(Acknowledgement must be attached)"), not a jurat. Owner ruling:
+  // initial lines and checkboxes are EXECUTION acts — they render blank,
+  // always; the builder collects typed transcriptions only.
+  'trust-certification': {
+    slug: 'trust-certification',
+    label: 'Certification of Trust',
+    title: 'CERTIFICATION OF TRUST',
+    subtitle: 'California Probate Code Section 18100.5',
+    description: 'Certifies a trust’s existence and the trustees’ authority (Prob C §18100.5) — acknowledged; no property description',
+    popular: false,
+    family: 'declaration',
+    sections: PROPERTYLESS_DECLARATION_SECTIONS,
+    notarial: 'acknowledgment',
+    hasDtt: false,
+    affidavitFields: [
+      { key: 'trustName', label: 'Trust name', placeholder: 'THE DOE FAMILY TRUST', uppercase: true, group: 'The trust' },
+      { key: 'trustDate', label: 'Executed on', placeholder: 'January 10, 2010', group: 'The trust' },
+      { key: 'settlors', label: 'Settlor(s)', placeholder: 'JOHN A. DOE AND JANE B. DOE', uppercase: true, group: 'The trust' },
+      { key: 'trustees', label: 'Currently acting trustee(s)', placeholder: 'JOHN A. DOE AND JANE B. DOE', uppercase: true, group: 'The trust' },
+      {
+        key: 'revocability',
+        label: 'Revocable or irrevocable (as the trust instrument states)',
+        placeholder: 'Revocable',
+        group: 'Authority',
+        hint: 'Typed transcription for the record — the form’s checkboxes stay blank for the trustee’s hand at signing.',
+      },
+      { key: 'revokerName', label: 'Person who may revoke (if revocable)', placeholder: 'JOHN A. DOE', uppercase: true, group: 'Authority' },
+      { key: 'signerCount', label: 'Number of trustees required to sign', placeholder: '1', group: 'Authority' },
+      { key: 'signerNames', label: 'Their name(s)', placeholder: 'JOHN A. DOE', uppercase: true, group: 'Authority' },
+      {
+        key: 'titleVesting',
+        label: 'Title to trust assets is to be taken as',
+        placeholder: 'JOHN A. DOE AND JANE B. DOE, TRUSTEES OF THE DOE FAMILY TRUST',
+        uppercase: true,
+        group: 'Authority',
+      },
+    ],
+  },
 };
 
 export function formConfig(slug: string | undefined | null): FormTypeConfig | undefined {
@@ -309,6 +352,13 @@ export function usesFactsSection(slug: string | undefined | null): boolean {
  * deeds.parties JSONB column, never the grantor/grantee pair. */
 export function isSinglePartyType(slug: string | undefined | null): boolean {
   return formFamily(slug) === 'declaration';
+}
+
+/** Whether the form ties to a parcel (property search, APN, legal
+ * description). The certification of trust does not. */
+export function hasPropertySection(slug: string | undefined | null): boolean {
+  const cfg = formConfig(slug);
+  return cfg ? cfg.sections.includes('property') : true;
 }
 
 /**

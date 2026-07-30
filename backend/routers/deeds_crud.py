@@ -32,7 +32,10 @@ class DeedCreate(BaseModel):
     property_address: Optional[str] = Field(default=None)
     apn: Optional[str] = Field(default=None)
     county: Optional[str] = Field(default=None)
-    legal_description: str = Field(..., min_length=1, description="Legal description (required, non-empty)")
+    # Required for every parcel-tied instrument — enforced by the family-
+    # aware critical-field check (same 422s); property-less instruments
+    # (certification of trust) legitimately have none.
+    legal_description: Optional[str] = Field(default=None, description="Legal description (required for parcel-tied instruments)")
     owner_type: Optional[str] = Field(default=None)
     sales_price: Optional[float] = Field(default=None)
     # FORMS parties migration: the pair is required for two-party families
@@ -131,9 +134,13 @@ def create_deed_endpoint(deed: DeedCreate, user_id: int = Depends(get_current_us
     # FORMS parties migration: single-party families (declaration) have no
     # grantor/grantee — they must name at least one party in `parties`;
     # two-party families keep the strict pair exactly as before.
-    from services.form_families import is_single_party
+    from services.form_families import is_single_party, requires_legal_description
     if is_single_party(deed_data.get('deed_type')):
-        critical_fields = {'legal_description': 'Legal description'}
+        critical_fields = (
+            {'legal_description': 'Legal description'}
+            if requires_legal_description(deed_data.get('deed_type'))
+            else {}
+        )
         parties = {
             k: (v or '').strip() for k, v in (deed_data.get('parties') or {}).items()
         }
@@ -169,7 +176,7 @@ def create_deed_endpoint(deed: DeedCreate, user_id: int = Depends(get_current_us
     print(f"[Backend /deeds] county: {deed_data.get('county')}")  # ✅ PHASE 19: Add county logging
     print(f"[Backend /deeds] grantor_name: {deed_data.get('grantor_name')}")
     print(f"[Backend /deeds] grantee_name: {deed_data.get('grantee_name')}")
-    print(f"[Backend /deeds] legal_description: {deed_data.get('legal_description')[:100]}...")
+    print(f"[Backend /deeds] legal_description: {(deed_data.get('legal_description') or '')[:100]}...")
     print(f"[Backend /deeds] source: {deed_data.get('source', 'unknown')}")
 
     # Ticket R: a resumed draft regenerates INTO ITS OWN ROW.

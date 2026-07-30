@@ -35,7 +35,7 @@ const dttComplete = (state: DeedBuilderState): boolean => {
 /** FORMS: instrument families diverge here — affidavits have no
  * grantor/grantee/vesting/DTT; their substance is the sworn facts.
  * Family membership comes from the registry (one entry per type). */
-import { formFamily, hasVestingInput } from '@/lib/formRegistry';
+import { formFamily, hasPropertySection, hasVestingInput } from '@/lib/formRegistry';
 
 export function isAffidavitType(deedType: string | undefined): boolean {
   return formFamily(deedType) === 'affidavit';
@@ -47,8 +47,28 @@ export function isDeclarationType(deedType: string | undefined): boolean {
 
 export function evaluateSubstantive(state: DeedBuilderState): CheckResult[] {
   if (isDeclarationType(state.deedType)) {
-    // Declaration family (homestead): one party — the declarant — plus the
-    // premises. No grantee, no vesting, no DTT (not a conveyance).
+    // Declaration family: single-party instruments validate by their real
+    // substance. No grantee, no vesting, no DTT (not conveyances).
+    if (state.deedType === 'trust-certification') {
+      // Property-less (Prob C §18100.5): the substance is the trust and
+      // its certifying trustee(s); the other transcriptions may print as
+      // the reference's tolerated blanks.
+      return [
+        {
+          id: 'trust_named',
+          label: 'Trust named',
+          ok: !!state.affidavit?.trustName?.trim(),
+          sectionId: 'affidavit',
+        },
+        {
+          id: 'trustees_present',
+          label: 'Certifying trustee(s) stated',
+          ok: !!state.affidavit?.trustees?.trim(),
+          sectionId: 'affidavit',
+        },
+      ];
+    }
+    // Homestead: the declarant plus the premises.
     return [
       {
         id: 'declarant_present',
@@ -151,19 +171,25 @@ export function evaluateSubstantive(state: DeedBuilderState): CheckResult[] {
 
 export function evaluateRecorderPreflight(state: DeedBuilderState): CheckResult[] {
   return [
-    {
-      id: 'apn_present',
-      label: 'APN present',
-      ok: !!state.property?.apn?.trim(),
-      detail: 'Recorder intake conventions expect an Assessor’s Parcel Number.',
-      sectionId: 'property',
-    },
-    {
-      id: 'county_set',
-      label: 'County set',
-      ok: !!state.property?.county?.trim(),
-      sectionId: 'property',
-    },
+    // Property-less instruments (certification of trust) reference no
+    // parcel — the APN/county conventions don't apply to them.
+    ...(hasPropertySection(state.deedType)
+      ? [
+          {
+            id: 'apn_present',
+            label: 'APN present',
+            ok: !!state.property?.apn?.trim(),
+            detail: 'Recorder intake conventions expect an Assessor’s Parcel Number.',
+            sectionId: 'property',
+          },
+          {
+            id: 'county_set',
+            label: 'County set',
+            ok: !!state.property?.county?.trim(),
+            sectionId: 'property',
+          },
+        ]
+      : []),
     {
       id: 'return_address',
       label: 'Return address block',
@@ -254,12 +280,18 @@ export function deriveSectionTruth(state: DeedBuilderState): SectionTruth {
     // The typed-facts section is complete when its family's substantive
     // facts are present: the declaration's single declarant, or the
     // affidavit's affiant/decedent/recording reference.
-    const affFilled = isDeclarationType(state.deedType)
-      ? !!aff?.declarantName?.trim()
-      : !!(aff?.affiantName?.trim() && aff?.decedentName?.trim() &&
-        aff?.instrumentNo?.trim() && aff?.recordingDate?.trim());
+    const affFilled = state.deedType === 'trust-certification'
+      ? !!(aff?.trustName?.trim() && aff?.trustees?.trim())
+      : isDeclarationType(state.deedType)
+        ? !!aff?.declarantName?.trim()
+        : !!(aff?.affiantName?.trim() && aff?.decedentName?.trim() &&
+          aff?.instrumentNo?.trim() && aff?.recordingDate?.trim());
     const statuses: Record<string, SectionStatus> = {
-      property: status('property', !!state.property?.address),
+      // Property-less instruments (certification of trust) have no
+      // property section — the one-truth counter must not count it.
+      ...(hasPropertySection(state.deedType)
+        ? { property: status('property', !!state.property?.address) }
+        : {}),
       affidavit: status('affidavit', affFilled),
       recording: status('recording', !!state.requestedBy?.trim()),
     };

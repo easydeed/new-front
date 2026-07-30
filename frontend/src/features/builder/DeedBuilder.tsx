@@ -22,6 +22,7 @@ import {
   unresolvedPreflight,
 } from '@/lib/deedValidation';
 import { ValidationPanel } from '@/components/builder/ValidationPanel';
+import { hasPropertySection } from '@/lib/formRegistry';
 
 interface DeedBuilderProps {
   deedType: string;
@@ -53,7 +54,11 @@ function DeedBuilderInner({ deedType, initialProperty, resumeDeedId }: DeedBuild
     escrowNo: '',
   });
 
-  const [expandedSection, setExpandedSection] = useState('property');
+  // Property-less instruments (certification of trust) have no property
+  // section — the builder opens on the form's first real section.
+  const [expandedSection, setExpandedSection] = useState(
+    hasPropertySection(deedType) ? 'property' : 'affidavit'
+  );
   const [isGenerating, setIsGenerating] = useState(false);
 
   // ── U1 autosave ────────────────────────────────────────────────

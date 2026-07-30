@@ -90,6 +90,17 @@ export interface AffidavitFacts {
   /* Declaration family (homestead): the single party. Persisted to the
      deeds.parties JSONB column, not metadata.affidavit. */
   declarantName?: string;
+  /* Certification of trust (Prob C §18100.5) — typed transcriptions of
+     the trust instrument. The form's initial lines and checkboxes stay
+     BLANK for the trustee's hand (owner ruling: execution acts). */
+  trustName?: string;
+  settlors?: string;
+  trustees?: string;
+  revocability?: string;
+  revokerName?: string;
+  signerCount?: string;
+  signerNames?: string;
+  titleVesting?: string;
 }
 
 export interface DeedBuilderState {
