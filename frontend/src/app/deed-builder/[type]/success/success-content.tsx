@@ -1,6 +1,7 @@
 'use client';
 
 import { useSearchParams, useParams, useRouter } from 'next/navigation';
+import { formConfig } from '@/lib/formRegistry';
 import { useEffect, useState } from 'react';
 import { 
   CheckCircle, Download, FileText, Share2, Printer, Copy, 
@@ -252,6 +253,22 @@ export function SuccessContent() {
                 <p className="text-slate-500 truncate">{propertyAddress}</p>
               </div>
             </div>
+
+            {/* FORMS flag-4 ruling: companion-filing guidance — passive,
+                links the state form, never a block and never form-fill. */}
+            {formConfig(type)?.companionNotice && (
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-900">
+                <p>{formConfig(type)!.companionNotice!.text}</p>
+                <a
+                  href={formConfig(type)!.companionNotice!.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold underline hover:text-blue-700"
+                >
+                  {formConfig(type)!.companionNotice!.linkText} ↗
+                </a>
+              </div>
+            )}
 
             {/* Document ID + stored-PDF fingerprint (X2.8: downloads fetch
                 the server-stored bytes; the fingerprint makes "stored

@@ -20,6 +20,9 @@ import {
   OPERATIVE_WORDS,
   EXEMPTION_RECITALS,
 } from '@/lib/deedFurniture';
+// FORMS registry: document titles + family come from the one source of
+// type facts.
+import { formConfig, formFamily } from '@/lib/formRegistry';
 
 interface PreviewPanelProps {
   state: DeedBuilderState;
@@ -28,15 +31,6 @@ interface PreviewPanelProps {
       focuses the matching input where one exists). Preview-only. */
   onRegionClick?: (section: string, field?: string) => void;
 }
-
-const DEED_TITLES: Record<string, string> = {
-  'grant-deed': 'GRANT DEED',
-  'quitclaim-deed': 'QUITCLAIM DEED',
-  'interspousal-transfer': 'INTERSPOUSAL TRANSFER DEED',
-  'warranty-deed': 'WARRANTY DEED',
-  'tax-deed': 'TAX DEED',
-  'affidavit-death-jt': 'AFFIDAVIT — DEATH OF JOINT TENANT',
-};
 
 function Checkline({ marked }: { marked: boolean }) {
   return (
@@ -76,11 +70,11 @@ export function PreviewPanel({ state, activeSection, onRegionClick }: PreviewPan
     county: state.property?.county || '[County]',
   }), [state]);
 
-  const deedTitle = DEED_TITLES[state.deedType] || 'DEED';
-  // FORMS-SPIKE: affidavit instruments render a sworn-statement body —
+  const deedTitle = formConfig(state.deedType)?.title || 'DEED';
+  // FORMS: affidavit instruments render a sworn-statement body —
   // no DTT declaration, no granting clause, jurat instead of an
-  // acknowledgment.
-  const isAffidavit = state.deedType === 'affidavit-death-jt';
+  // acknowledgment. Family from the registry.
+  const isAffidavit = formFamily(state.deedType) === 'affidavit';
   const aff = state.affidavit;
   const factOrBlank = (v: string | undefined) => v?.trim() || '________________';
   const operative = OPERATIVE_WORDS[state.deedType] || OPERATIVE_WORDS['grant-deed'];
