@@ -26,6 +26,7 @@ import {
   MAIL_TAX_DIRECTIVE,
   OPERATIVE_WORDS,
   EXEMPTION_RECITALS,
+  FIXED_VESTING_PHRASES,
 } from '../lib/deedFurniture';
 
 /** Strip // and /* comments so prose about a disease can't trip the scan. */
@@ -48,6 +49,8 @@ const TEMPLATE_DIRS: Record<string, string> = {
   'interspousal-transfer': 'interspousal_transfer_ca',
   'warranty-deed': 'warranty_deed_ca',
   'tax-deed': 'tax_deed_ca',
+  'grant-deed-jt': 'grant_deed_jt_ca',
+  'grant-deed-cp-ros': 'grant_deed_cp_ros_ca',
 };
 
 /** Normalize Jinja/HTML source for wording comparison. */
@@ -76,6 +79,7 @@ describe('preview uses the shared furniture constants', () => {
     'MAIL_TAX_DIRECTIVE',
     'OPERATIVE_WORDS',
     'EXEMPTION_RECITALS',
+    'FIXED_VESTING_PHRASES',
   ])('renders via %s, not a duplicated string', (identifier) => {
     expect(PANEL).toContain(identifier);
   });
@@ -106,7 +110,7 @@ describe('preview carries no dead pre-G2 furniture', () => {
 
 describe('the same wording lives in the backend chassis templates', () => {
   const allTypes = Object.keys(TEMPLATE_DIRS);
-  const dttTypes = ['grant-deed', 'quitclaim-deed', 'warranty-deed'];
+  const dttTypes = ['grant-deed', 'quitclaim-deed', 'warranty-deed', 'grant-deed-jt', 'grant-deed-cp-ros'];
 
   it.each(allTypes)('%s: recorder caption and mail-tax directive', (dt) => {
     const t = template(dt);
@@ -128,5 +132,16 @@ describe('the same wording lives in the backend chassis templates', () => {
 
   it.each(Object.keys(EXEMPTION_RECITALS))('%s: categorical exemption recital', (dt) => {
     expect(template(dt)).toContain(EXEMPTION_RECITALS[dt]);
+  });
+
+  // Wave 1 #3/#4: the fixed-vesting phrase is furniture printed by the
+  // template — preview and instrument must carry the identical wording,
+  // and the template must never read the stored vesting value (a stray
+  // value must not contradict the face of the instrument).
+  it.each(Object.keys(FIXED_VESTING_PHRASES))('%s: fixed-vesting furniture, stored vesting never read', (dt) => {
+    const t = template(dt);
+    expect(t).toContain(`${FIXED_VESTING_PHRASES[dt]} the real property situated in the County of`);
+    expect(t).not.toContain('{{ vesting }}');
+    expect(t).not.toContain('{% if vesting %}');
   });
 });

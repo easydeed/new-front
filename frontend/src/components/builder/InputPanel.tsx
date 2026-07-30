@@ -12,6 +12,7 @@ import { TransferTaxSection } from './sections/TransferTaxSection';
 import { RecordingSection } from './sections/RecordingSection';
 import { AffidavitSection } from './sections/AffidavitSection';
 import { isAffidavitType } from '@/lib/deedValidation';
+import { hasVestingInput } from '@/lib/formRegistry';
 import { DeedBuilderState } from '@/types/builder';
 
 interface InputPanelProps {
@@ -156,9 +157,15 @@ export function InputPanel({
             onChange={(grantee) => onChange({ grantee })}
             grantorName={state.grantor}
           />
-          <SectionNext to="vesting" label="Next: Vesting" />
+          {hasVestingInput(state.deedType)
+            ? <SectionNext to="vesting" label="Next: Vesting" />
+            : <SectionNext to="transferTax" label="Next: Transfer Tax" />}
         </InputSection>
 
+        {/* Fixed-vesting variants (JT / CP w/ROS grant deeds) print their
+            vesting on the instrument's face — no vesting input, no
+            vestingDecision: choosing the form IS the decision (Flag-3). */}
+        {hasVestingInput(state.deedType) && (
         <InputSection
           id="vesting"
           title="Vesting"
@@ -179,6 +186,7 @@ export function InputPanel({
           />
           <SectionNext to="transferTax" label="Next: Transfer Tax" />
         </InputSection>
+        )}
 
         <InputSection
           id="transferTax"
