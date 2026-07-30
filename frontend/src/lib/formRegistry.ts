@@ -342,6 +342,65 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
       },
     ],
   },
+  // Wave 2 form #4 — reference: PCT blank form #34 (Homestead_Dec-Spouses).
+  // Acknowledgment verified from the reference (CCP §704.930). TWO
+  // declarants — a parties-JSONB shape, not a new class ("We are husband
+  // and wife" is Flag-3 furniture, the CP-spouse-recital class).
+  'homestead-declaration-spouses': {
+    slug: 'homestead-declaration-spouses',
+    label: 'Declaration of Homestead — Spouses',
+    title: 'DECLARATION OF HOMESTEAD',
+    subtitle: '(Spouses as Declared Owners)',
+    description: 'Spouses declare a homestead on their principal dwelling (CCP §704.930) — acknowledged and recorded',
+    popular: false,
+    family: 'declaration',
+    sections: DECLARATION_SECTIONS,
+    notarial: 'acknowledgment',
+    hasDtt: false,
+    affidavitFields: [
+      {
+        key: 'declarantName',
+        label: 'First declared owner',
+        placeholder: 'ROBERT OWNER',
+        uppercase: true,
+        hint: 'Both spouses sign before a notary.',
+      },
+      {
+        key: 'declarant2Name',
+        label: 'Second declared owner (spouse)',
+        placeholder: 'MARIA OWNER',
+        uppercase: true,
+      },
+    ],
+  },
+  // Wave 2 form #5 — reference: PCT blank form #32 (Homestead-Abandon).
+  // Acknowledgment verified from the reference; the operative
+  // "hereby abandon(s)" recital is instrument-defining furniture (the
+  // TOD-revocation operative-statement precedent), and the prior
+  // declaration's recording reference is the recorded-instrument class.
+  'homestead-abandonment': {
+    slug: 'homestead-abandonment',
+    label: 'Abandonment of Declared Homestead',
+    title: 'DECLARATION OF ABANDONMENT OF DECLARED HOMESTEAD',
+    description: 'Abandons a previously recorded homestead declaration — acknowledged; identifies the prior declaration by its recording reference',
+    popular: false,
+    family: 'declaration',
+    sections: DECLARATION_SECTIONS,
+    notarial: 'acknowledgment',
+    hasDtt: false,
+    affidavitFields: [
+      {
+        key: 'priorDeclarant',
+        label: 'Prior declaration executed by',
+        placeholder: 'ROBERT OWNER',
+        uppercase: true,
+        hint: 'As named on the recorded Homestead Declaration being abandoned. Also the abandoning owner.',
+        group: 'The recorded declaration being abandoned',
+      },
+      { key: 'declarationDate', label: 'Executed on', placeholder: 'June 1, 2015', group: 'The recorded declaration being abandoned' },
+      ...RECORDING_REF_FIELDS('The recorded declaration being abandoned'),
+    ],
+  },
   // Wave 1 form #6 — reference: PCT blank form #72 (Trust-Certification).
   // Correction-note family: an ACKNOWLEDGED penalty-of-perjury declaration
   // ("(Acknowledgement must be attached)"), not a jurat. Owner ruling:

@@ -87,9 +87,15 @@ export interface AffidavitFacts {
   /* Trustee variant — the declaration of trust. */
   trustDate?: string;
   trustors?: string;
-  /* Declaration family (homestead): the single party. Persisted to the
+  /* Declaration family (homestead): the declarant(s). Persisted to the
      deeds.parties JSONB column, not metadata.affidavit. */
   declarantName?: string;
+  /* Homestead — Spouses variant: the second declared owner. */
+  declarant2Name?: string;
+  /* Homestead — Abandonment: the prior declaration being abandoned
+     (executed-by + dates identify the recorded instrument). */
+  priorDeclarant?: string;
+  declarationDate?: string;
   /* Certification of trust (Prob C §18100.5) — typed transcriptions of
      the trust instrument. The form's initial lines and checkboxes stay
      BLANK for the trustee's hand (owner ruling: execution acts). */

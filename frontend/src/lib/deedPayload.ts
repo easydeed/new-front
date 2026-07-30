@@ -47,6 +47,9 @@ function buildFactsBlock(aff: AffidavitFacts | undefined) {
     signer_names: aff.signerNames || '',
     title_vesting: aff.titleVesting || '',
     revoking_grantor: aff.revokingGrantor || '',
+    declarant2_name: aff.declarant2Name || '',
+    prior_declarant: aff.priorDeclarant || '',
+    declaration_date: aff.declarationDate || '',
   };
   return Object.values(block).some((v) => v) ? block : null;
 }
@@ -82,7 +85,11 @@ export function buildDeedPayload(genState: DeedBuilderState) {
         ? { trustee: aff?.trustees || '' }
         : genState.deedType === 'tod-revocation'
           ? { grantor: aff?.revokingGrantor || '' }
-          : { declarant: aff?.declarantName || '' }
+          : genState.deedType === 'homestead-declaration-spouses'
+            ? { declarant: aff?.declarantName || '', second_declarant: aff?.declarant2Name || '' }
+            : genState.deedType === 'homestead-abandonment'
+              ? { declarant: aff?.priorDeclarant || '' }
+              : { declarant: aff?.declarantName || '' }
       : null,
     vesting: genState.vesting,
     requested_by: genState.requestedBy,

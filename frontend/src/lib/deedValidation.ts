@@ -87,7 +87,49 @@ export function evaluateSubstantive(state: DeedBuilderState): CheckResult[] {
         },
       ];
     }
-    // Homestead: the declarant plus the premises.
+    if (state.deedType === 'homestead-declaration-spouses') {
+      // Both declared owners, plus the premises.
+      return [
+        {
+          id: 'declarants_present',
+          label: 'Both declared owners stated',
+          ok: !!state.affidavit?.declarantName?.trim() && !!state.affidavit?.declarant2Name?.trim(),
+          sectionId: 'affidavit',
+        },
+        {
+          id: 'legal_description_present',
+          label: 'Legal description present',
+          ok: !!state.property?.legalDescription?.trim(),
+          sectionId: 'property',
+        },
+      ];
+    }
+    if (state.deedType === 'homestead-abandonment') {
+      // The prior declaration is identified by who executed it and its
+      // recording reference (the recorded-instrument class).
+      return [
+        {
+          id: 'prior_declarant_named',
+          label: 'Prior declaration executed-by stated',
+          ok: !!state.affidavit?.priorDeclarant?.trim(),
+          sectionId: 'affidavit',
+        },
+        {
+          id: 'recorded_instrument_reference',
+          label: 'Recorded declaration reference',
+          ok: !!state.affidavit?.instrumentNo?.trim() && !!state.affidavit?.recordingDate?.trim(),
+          detail: 'The recorded declaration is identified by its recording date and instrument number.',
+          sectionId: 'affidavit',
+        },
+        {
+          id: 'legal_description_present',
+          label: 'Legal description present',
+          ok: !!state.property?.legalDescription?.trim(),
+          sectionId: 'property',
+        },
+      ];
+    }
+    // Homestead (individual): the declarant plus the premises.
     return [
       {
         id: 'declarant_present',
@@ -303,10 +345,14 @@ export function deriveSectionTruth(state: DeedBuilderState): SectionTruth {
       ? !!(aff?.trustName?.trim() && aff?.trustees?.trim())
       : state.deedType === 'tod-revocation'
         ? !!aff?.revokingGrantor?.trim()
-        : isDeclarationType(state.deedType)
-          ? !!aff?.declarantName?.trim()
-          : !!(aff?.affiantName?.trim() && aff?.decedentName?.trim() &&
-            aff?.instrumentNo?.trim() && aff?.recordingDate?.trim());
+        : state.deedType === 'homestead-declaration-spouses'
+          ? !!(aff?.declarantName?.trim() && aff?.declarant2Name?.trim())
+          : state.deedType === 'homestead-abandonment'
+            ? !!(aff?.priorDeclarant?.trim() && aff?.instrumentNo?.trim() && aff?.recordingDate?.trim())
+            : isDeclarationType(state.deedType)
+              ? !!aff?.declarantName?.trim()
+              : !!(aff?.affiantName?.trim() && aff?.decedentName?.trim() &&
+                aff?.instrumentNo?.trim() && aff?.recordingDate?.trim());
     const statuses: Record<string, SectionStatus> = {
       // Property-less instruments (certification of trust) have no
       // property section — the one-truth counter must not count it.

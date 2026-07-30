@@ -54,6 +54,9 @@ TEMPLATE_BY_DEED_TYPE = {
     "trust-certification": "trust_certification_ca/index.jinja2",
     # FORMS wave 1 #7 — statutory revocation form (Prob C §§5600/5644).
     "tod-revocation": "tod_revocation_ca/index.jinja2",
+    # FORMS wave 2 — homestead pair (PCT references #34 and #32).
+    "homestead-declaration-spouses": "homestead_declaration_spouses_ca/index.jinja2",
+    "homestead-abandonment": "homestead_abandonment_ca/index.jinja2",
 }
 DEFAULT_TEMPLATE = "grant_deed_ca/index.jinja2"
 
@@ -99,6 +102,9 @@ def build_context_from_row(row):
         "legal_description": row.get("legal_description") or "",
         "county": row.get("county") or "",
         "apn": row.get("apn") or "",
+        # Street address — the homestead abandonment's "commonly known as"
+        # line (other chassis templates don't read it).
+        "property_address": row.get("property_address") or "",
         "vesting": row.get("vesting") or "",
         "requested_by": row.get("requested_by") or "",
         "requested_by_address": meta.get("requested_by_address") or "",
