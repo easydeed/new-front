@@ -531,6 +531,38 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
       },
     ],
   },
+  // Wave 2 form #8 — reference: PCT blank form #20 (Trust_Deed-
+  // Sub_Trustee). Acknowledgment verified from the reference. The
+  // WHEREAS/NOW-THEREFORE recitals are instrument-defining furniture
+  // (TOD-revocation operative class); the deed of trust is identified by
+  // its recording reference (recorded-instrument class); the new trustee
+  // is a typed party fact (grantee-name class). Carries an APN but NO
+  // legal description — the DOT reference identifies the property.
+  'trustee-substitution': {
+    slug: 'trustee-substitution',
+    label: 'Substitution of Trustee',
+    title: 'SUBSTITUTION OF TRUSTEE',
+    description: 'The beneficiary under a recorded deed of trust substitutes a new trustee — acknowledged and recorded',
+    popular: false,
+    family: 'declaration',
+    sections: DECLARATION_SECTIONS,
+    notarial: 'acknowledgment',
+    hasDtt: false,
+    affidavitFields: [
+      { key: 'originalTrustor', label: 'Original trustor', placeholder: 'JOHN A. DOE', uppercase: true, group: 'The recorded deed of trust' },
+      { key: 'originalTrustee', label: 'Original trustee', placeholder: 'FIRST TITLE COMPANY', uppercase: true, group: 'The recorded deed of trust' },
+      { key: 'originalBeneficiary', label: 'Original beneficiary (the undersigned)', placeholder: 'ACME LENDING, INC.', uppercase: true, group: 'The recorded deed of trust', hint: 'Signs before a notary.' },
+      { key: 'deedDate', label: 'Deed of Trust dated', placeholder: 'June 1, 2015', group: 'The recorded deed of trust' },
+      ...RECORDING_REF_FIELDS('The recorded deed of trust'),
+      {
+        key: 'newTrustee',
+        label: 'New trustee substituted',
+        placeholder: 'PACIFIC COAST TITLE COMPANY',
+        uppercase: true,
+        group: 'The substitution',
+      },
+    ],
+  },
 };
 
 export function formConfig(slug: string | undefined | null): FormTypeConfig | undefined {

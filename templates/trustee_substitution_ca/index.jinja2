@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Substitution of Trustee - California</title>
+    <style>
+        /* ==========================================================================
+           SUBSTITUTION OF TRUSTEE — wave 2 #8
+
+           Reference implementation: Pacific Coast Title blank form #20
+           (Trust_Deed-Sub_Trustee), measured with pdfplumber (letter, one
+           page, §1189 acknowledgment lower half). Acknowledgment verified
+           from the reference.
+
+           Doctrine (all covered precedent): the WHEREAS / NOW THEREFORE
+           recitals are instrument-defining furniture (the TOD-revocation
+           operative class); the deed of trust is identified by its
+           original parties + recording reference (recorded-instrument
+           class); the NEW trustee is a typed party fact (grantee-name
+           class); bare signature lines per the bare-signature ruling —
+           the undersigned beneficiary signs at notarization.
+           Carries an APN but NO legal description: the reference
+           identifies the property through the deed of trust. Not a
+           conveyance — no DTT, no mail-tax ("AND WHEN RECORDED MAIL TO").
+           Chassis rules (G2/G3) verbatim; parties ride deeds.parties
+           ({beneficiary}).
+           ========================================================================== */
+
+        @page {
+            size: letter;
+            margin: 0.5in 0.5in 0.6in 0.6in;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: "Times New Roman", Times, Georgia, serif;
+            font-size: 11pt;
+            line-height: 1.35;
+            color: #000;
+            background: #fff;
+        }
+
+        .header-section { display: flex; min-height: 1.85in; }
+
+        .recording-info {
+            width: 3.4in;
+            flex-shrink: 0;
+            border-right: 0.75pt solid #000;
+            padding-right: 0.15in;
+            font-size: 10pt;
+            line-height: 1.35;
+        }
+
+        .recorder-space { flex-grow: 1; }
+
+        .recording-label {
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 9pt;
+        }
+
+        .recording-value { margin-bottom: 0.12in; min-height: 0.35in; }
+
+        .ref-line { font-size: 10pt; }
+
+        .header-boundary {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            border-bottom: 0.75pt solid #000;
+            padding-bottom: 0.03in;
+            margin-bottom: 0.12in;
+        }
+
+        .apn-ref { font-weight: bold; font-size: 10pt; }
+
+        .recorder-caption {
+            font-size: 7.5pt;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .deed-title {
+            text-align: center;
+            font-size: 14pt;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin: 0.08in 0 0.02in 0;
+        }
+
+        .deed-subtitle {
+            text-align: center;
+            font-size: 11pt;
+            font-weight: bold;
+            margin-bottom: 0.1in;
+        }
+
+        .declaration-body {
+            font-size: 11pt;
+            line-height: 1.35;
+            text-align: justify;
+        }
+
+        .declaration-body p { margin-bottom: 0.07in; }
+
+        .fact {
+            /* Officer-supplied facts render bold; a missing fact renders as
+               the reference's blank line so an incomplete instrument LOOKS
+               incomplete. */
+            font-weight: bold;
+        }
+
+        .fact-line {
+            display: inline-block;
+            min-width: 2.2in;
+            border-bottom: 1px solid #000;
+        }
+
+        .execution-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: 0.12in;
+            margin-bottom: 0.05in;
+        }
+
+        .signature-block { width: 3.2in; }
+
+        .signature-line {
+            border-bottom: 1px solid #000;
+            width: 3.2in;
+            height: 0.35in;
+        }
+
+        .print-name {
+            font-size: 10pt;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="deed-page">
+
+        <header class="header-section">
+            <div class="recording-info">
+                <div class="recording-label">Recording Requested By:</div>
+                <div class="recording-value">{{ requested_by or '' }}{% if requested_by_address %}<br>{{ requested_by_address }}{% endif %}</div>
+
+                <div class="recording-label">And When Recorded Mail To:</div>
+                <div class="recording-value">
+                    {% if return_to %}
+                        {% if return_to.get('name') %}{{ return_to.get('name') }}<br>{% endif %}
+                        {% if return_to.get('company') %}{{ return_to.get('company') }}<br>{% endif %}
+                        {% if return_to.get('address1') %}{{ return_to.get('address1') }}<br>{% endif %}
+                        {% if return_to.get('address2') %}{{ return_to.get('address2') }}<br>{% endif %}
+                        {% set city = return_to.get('city', '') %}
+                        {% set state = return_to.get('state', '') %}
+                        {% set zip = return_to.get('zip', '') %}
+                        {% if city or state or zip %}
+                            {{ city }}{% if city and (state or zip) %}, {% endif %}{{ state }} {{ zip }}
+                        {% endif %}
+                    {% else %}
+                        _________________________________<br>
+                        _________________________________<br>
+                        _________________________________
+                    {% endif %}
+                </div>
+
+                <div class="ref-line">Order No.: {{ title_order_no or '____________________' }}</div>
+                <div class="ref-line">Escrow No.: {{ escrow_no or '____________________' }}</div>
+            </div>
+
+            <div class="recorder-space"><!-- Gov. Code §27361.6 — recorder's use only --></div>
+        </header>
+
+        <div class="header-boundary">
+            <span class="apn-ref">APN: {{ apn or '____________________' }}</span>
+            <span class="recorder-caption">Space Above This Line Is For Recorder&rsquo;s Use</span>
+        </div>
+
+        <h1 class="deed-title">Substitution of Trustee</h1>
+
+        {% set aff = affidavit or {} %}
+        <div class="declaration-body">
+            <p>
+                WHEREAS, {% if aff.get('original_trustor') %}<span class="fact">{{ aff.get('original_trustor') }}</span>{% else %}<span class="fact-line">&nbsp;</span>{% endif %} was the original Trustor,
+                {% if aff.get('original_trustee') %}<span class="fact">{{ aff.get('original_trustee') }}</span>{% else %}<span class="fact-line">&nbsp;</span>{% endif %} was the original Trustee, and
+                {% if aff.get('original_beneficiary') %}<span class="fact">{{ aff.get('original_beneficiary') }}</span>{% else %}<span class="fact-line">&nbsp;</span>{% endif %} was the original beneficiary under that
+                certain Deed of Trust dated {% if aff.get('deed_date') %}<span class="fact">{{ aff.get('deed_date') }}</span>{% else %}<span class="fact-line" style="min-width:1.4in">&nbsp;</span>{% endif %}
+                and recorded on {% if aff.get('recording_date') %}<span class="fact">{{ aff.get('recording_date') }}</span>{% else %}<span class="fact-line" style="min-width:1.4in">&nbsp;</span>{% endif %}
+                as Instrument No. {% if aff.get('instrument_no') %}<span class="fact">{{ aff.get('instrument_no') }}</span>{% else %}<span class="fact-line" style="min-width:1.4in">&nbsp;</span>{% endif %}
+                of Official Records of {% if county %}<span class="fact">{{ county }}</span>{% else %}<span class="fact-line" style="min-width:1.6in">&nbsp;</span>{% endif %} County, California;
+            </p>
+            <p>
+                WHEREAS, the undersigned Beneficiary desires to substitute a new Trustee under said deed of trust.
+            </p>
+            <p>
+                NOW THEREFORE, the undersigned hereby substitute(s)
+                {% if aff.get('new_trustee') %}<span class="fact">{{ aff.get('new_trustee') }}</span>{% else %}<span class="fact-line" style="min-width:3in">&nbsp;</span>{% endif %}
+                as Trustee under said Deed of Trust.
+            </p>
+        </div>
+
+
+
+        {# Execution: the declarant signs at the notarization — date and
+           signature stay blank (blank-contents doctrine). The printed name
+           identifies the signer, as the deed chassis prints signer names. #}
+        {# Reference-faithful bare signature lines (two provided); the
+           undersigned beneficiary signs at notarization. #}
+        <div class="execution-section">
+            <div>Dated: <span class="fact-line" style="min-width:1.8in">&nbsp;</span></div>
+            <div class="signature-block">
+                <div class="signature-line"></div>
+                <div class="signature-line" style="margin-top:0.12in"></div>
+            </div>
+        </div>
+
+        {# CCP §704.930: ACKNOWLEDGED, not sworn — §1189 certificate,
+           on the SAME page as the reference lays it out. #}
+        {% set document_title = 'Substitution of Trustee' %}
+        {% set ack_inline = true %}
+        {% include '_partials/notary_acknowledgment.jinja2' %}
+
+    </div>
+</body>
+</html>

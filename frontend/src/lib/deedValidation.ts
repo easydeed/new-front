@@ -68,6 +68,33 @@ export function evaluateSubstantive(state: DeedBuilderState): CheckResult[] {
         },
       ];
     }
+    if (state.deedType === 'trustee-substitution') {
+      // The deed of trust is identified by its recording reference; the
+      // undersigned beneficiary and the new trustee are the substance.
+      // No legal description on the reference (the DOT reference
+      // identifies the property).
+      return [
+        {
+          id: 'beneficiary_named',
+          label: 'Beneficiary (the undersigned) stated',
+          ok: !!state.affidavit?.originalBeneficiary?.trim(),
+          sectionId: 'affidavit',
+        },
+        {
+          id: 'new_trustee_named',
+          label: 'New trustee stated',
+          ok: !!state.affidavit?.newTrustee?.trim(),
+          sectionId: 'affidavit',
+        },
+        {
+          id: 'recorded_instrument_reference',
+          label: 'Recorded deed-of-trust reference',
+          ok: !!state.affidavit?.instrumentNo?.trim() && !!state.affidavit?.recordingDate?.trim(),
+          detail: 'The deed of trust is identified by its recording date and instrument number.',
+          sectionId: 'affidavit',
+        },
+      ];
+    }
     if (state.deedType === 'poa-statutory') {
       // The statute's only content blanks: principal and appointee(s).
       // Powers/instructions/elections are the principal's execution acts.
@@ -359,7 +386,10 @@ export function deriveSectionTruth(state: DeedBuilderState): SectionTruth {
     // The typed-facts section is complete when its family's substantive
     // facts are present: the declaration's single declarant, or the
     // affidavit's affiant/decedent/recording reference.
-    const affFilled = state.deedType === 'poa-statutory'
+    const affFilled = state.deedType === 'trustee-substitution'
+      ? !!(aff?.originalBeneficiary?.trim() && aff?.newTrustee?.trim() &&
+        aff?.instrumentNo?.trim() && aff?.recordingDate?.trim())
+      : state.deedType === 'poa-statutory'
       ? !!(aff?.principalName?.trim() && aff?.agentNames?.trim())
       : state.deedType === 'trust-certification'
       ? !!(aff?.trustName?.trim() && aff?.trustees?.trim())

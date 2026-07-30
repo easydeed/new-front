@@ -227,7 +227,47 @@ export function PreviewPanel({ state, activeSection, onRegionClick }: PreviewPan
               </div>
             )}
 
-            {isDeclaration && state.deedType === 'poa-statutory' ? (
+            {isDeclaration && state.deedType === 'trustee-substitution' ? (
+              <>
+                {/* PCT #20 — WHEREAS/NOW-THEREFORE recitals are furniture;
+                    the DOT identification and new trustee are typed facts. */}
+                <div className={`text-[11pt] leading-relaxed mb-3 ${highlight('affidavit')}`}>
+                  <p className="mb-2">
+                    WHEREAS, <span onClick={go('affidavit', 'affidavit-originalTrustor')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.originalTrustor)}`}>{factOrBlank(aff?.originalTrustor)}</span>
+                    {' '}was the original Trustor,{' '}
+                    <span onClick={go('affidavit', 'affidavit-originalTrustee')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.originalTrustee)}`}>{factOrBlank(aff?.originalTrustee)}</span>
+                    {' '}was the original Trustee, and{' '}
+                    <span onClick={go('affidavit', 'affidavit-originalBeneficiary')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.originalBeneficiary)}`}>{factOrBlank(aff?.originalBeneficiary)}</span>
+                    {' '}was the original beneficiary under that certain Deed of Trust dated{' '}
+                    <span onClick={go('affidavit', 'affidavit-deedDate')} className={`${CLICKABLE} ${dataHighlight(aff?.deedDate)}`}>{factOrBlank(aff?.deedDate)}</span>
+                    {' '}and recorded on{' '}
+                    <span onClick={go('affidavit', 'affidavit-recordingDate')} className={`${CLICKABLE} ${dataHighlight(aff?.recordingDate)}`}>{factOrBlank(aff?.recordingDate)}</span>
+                    {' '}as Instrument No.{' '}
+                    <span onClick={go('affidavit', 'affidavit-instrumentNo')} className={`${CLICKABLE} ${dataHighlight(aff?.instrumentNo)}`}>{factOrBlank(aff?.instrumentNo)}</span>
+                    {' '}of Official Records of{' '}
+                    <span onClick={go('property')} className={`font-bold ${CLICKABLE} ${placeholder(preview.county)} ${dataHighlight(preview.county)}`}>{preview.county}</span>
+                    {' '}County, California;
+                  </p>
+                  <p className="mb-2">
+                    WHEREAS, the undersigned Beneficiary desires to substitute a new Trustee under said deed of trust.
+                  </p>
+                  <p className="mb-2">
+                    NOW THEREFORE, the undersigned hereby substitute(s){' '}
+                    <span onClick={go('affidavit', 'affidavit-newTrustee')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.newTrustee)}`}>{factOrBlank(aff?.newTrustee)}</span>
+                    {' '}as Trustee under said Deed of Trust.
+                  </p>
+                </div>
+
+                <div className="mt-6 flex justify-between items-end gap-4">
+                  <div className="text-[11pt]">Dated: <span className="inline-block min-w-[1.6in] border-b border-black" /></div>
+                  <div className="w-[45%]">
+                    <div className="border-b border-black h-7 mb-3" />
+                    <div className="border-b border-black h-7" />
+                  </div>
+                </div>
+                {ackSketch}
+              </>
+            ) : isDeclaration && state.deedType === 'poa-statutory' ? (
               <>
                 {/* Prob C §4401 statutory form. Only TWO typed facts; every
                     other mark is the principal's execution act — blank. */}
