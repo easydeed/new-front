@@ -15,11 +15,22 @@ interface Deed {
   property_address: string
   deed_type: string
   grantee_name?: string
+  /** FORMS parties migration: single-party instruments (declaration
+   * family) name their parties here; grantor/grantee stay empty. */
+  parties?: Record<string, string | null> | null
   apn?: string
   status: "completed" | "draft" | "in_progress"
   created_at: string
   updated_at: string
   pdf_url?: string
+}
+
+/** Row display for single-party instruments: the named parties, joined —
+ * shown (and searched) where two-party rows show "To {grantee}". */
+function partyNames(deed: Deed): string {
+  return Object.values(deed.parties || {})
+    .filter((v): v is string => !!v && !!v.trim())
+    .join("; ")
 }
 
 interface ShareFormData {
@@ -249,6 +260,7 @@ export default function PastDeedsPageV0() {
     return [
       deed.property_address,
       deed.grantee_name,
+      partyNames(deed),
       deed.apn,
       String(deed.id),
       deedTypeLabel(deed.deed_type),
@@ -388,9 +400,13 @@ export default function PastDeedsPageV0() {
                           {/* U3: a row identifies its deed — address alone
                               can't when one property has several. */}
                           <p className="font-medium text-slate-800">{deed.property_address}</p>
-                          {deed.grantee_name && (
+                          {deed.grantee_name ? (
                             <p className="text-sm text-slate-500">To {deed.grantee_name}</p>
-                          )}
+                          ) : partyNames(deed) ? (
+                            /* Single-party instruments have no grantee — the
+                               row reads by its named parties instead. */
+                            <p className="text-sm text-slate-500">{partyNames(deed)}</p>
+                          ) : null}
                         </td>
                         <td className="py-4 px-6 text-slate-600">{deedTypeLabel(deed.deed_type)}</td>
                         <td className="py-4 px-6">{getStatusBadge(deed.status)}</td>

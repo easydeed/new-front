@@ -100,6 +100,9 @@ def build_context_from_row(row):
         # FORMS-SPIKE: the affidavit's officer-supplied facts (decedent,
         # JT-deed recording reference, affiant) ride in metadata.affidavit.
         "affidavit": meta.get("affidavit") if isinstance(meta.get("affidavit"), dict) else None,
+        # FORMS parties migration: single-party instruments' named parties
+        # (deeds.parties JSONB) — e.g. the homestead declarant.
+        "parties": row.get("parties") if isinstance(row.get("parties"), dict) else None,
         "exhibit_threshold": 600,
         "execution_date": None,
         "now": datetime.now,

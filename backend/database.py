@@ -93,6 +93,12 @@ def create_tables():
             "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS pdf_url VARCHAR(500)",
             "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'",
             "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS requested_by VARCHAR(255)",
+            # FORMS wave 1 — parties JSONB (owner-ledgered migration; both
+            # triggers fired: catalog >10 types AND single-party instruments
+            # whose parties cannot map onto grantor/grantee). ADDITIVE and
+            # nullable; legacy columns untouched and still authoritative for
+            # two-party instruments. No backfill.
+            "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS parties JSONB",
             # The column whose absence broke every production PDF store:
             # store_deed_pdf stamps completed-on-store (PR #41); the ALTER
             # only ever ran in the test harness. Now it runs here.
@@ -266,8 +272,19 @@ def create_deed(user_id, deed_data):
         # Phase 11: Debug logging
         print(f"[Phase 11] Inserting deed with data: user_id={user_id}, deed_type={deed_data.get('deed_type')}, property_address={deed_data.get('property_address')}, apn={deed_data.get('apn')}")
         
-        # Phase 15 Backend Hotfix V1: Defensive validation before DB insert
-        critical_fields = ['grantor_name', 'grantee_name', 'legal_description']
+        # Phase 15 Backend Hotfix V1: Defensive validation before DB insert.
+        # FORMS: single-party families carry their parties in the JSONB
+        # column instead of the grantor/grantee pair — require at least one
+        # named party there; two-party instruments keep the strict pair.
+        from services.form_families import is_single_party
+        if is_single_party(deed_data.get('deed_type')):
+            critical_fields = ['legal_description']
+            parties = deed_data.get('parties') or {}
+            if not any((v or '').strip() for v in parties.values()):
+                print(f"[Database.create_deed] ❌ ERROR: single-party instrument with no named party!")
+                return None
+        else:
+            critical_fields = ['grantor_name', 'grantee_name', 'legal_description']
         for field in critical_fields:
             if not deed_data.get(field):
                 print(f"[Database.create_deed] ❌ ERROR: Missing {field} in deed_data!")
@@ -287,8 +304,8 @@ def create_deed(user_id, deed_data):
         cursor.execute("""
             INSERT INTO deeds (user_id, deed_type, property_address, apn, county,
                              legal_description, owner_type, sales_price,
-                             grantor_name, grantee_name, vesting, requested_by, metadata)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+                             grantor_name, grantee_name, vesting, requested_by, parties, metadata)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s::jsonb)
             RETURNING *
         """, (
             user_id,
@@ -303,6 +320,7 @@ def create_deed(user_id, deed_data):
             deed_data.get('grantee_name'),
             deed_data.get('vesting'),
             deed_data.get('requested_by'),  # Phase 16: Add requested_by field
+            json.dumps(deed_data['parties']) if deed_data.get('parties') else None,
             json.dumps(extras)
         ))
         
@@ -344,7 +362,7 @@ def update_deed_draft(user_id, deed_id, deed_data):
             UPDATE deeds
             SET deed_type = %s, property_address = %s, apn = %s, county = %s,
                 legal_description = %s, grantor_name = %s, grantee_name = %s,
-                vesting = %s, requested_by = %s, metadata = %s::jsonb,
+                vesting = %s, requested_by = %s, parties = %s::jsonb, metadata = %s::jsonb,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = %s AND user_id = %s
               AND COALESCE(status, 'draft') NOT IN ('completed', 'deleted')
@@ -359,6 +377,7 @@ def update_deed_draft(user_id, deed_id, deed_data):
             deed_data.get('grantee_name'),
             deed_data.get('vesting'),
             deed_data.get('requested_by'),
+            json.dumps(deed_data['parties']) if deed_data.get('parties') else None,
             json.dumps(extras),
             deed_id,
             user_id,
@@ -400,7 +419,7 @@ def save_draft_row(user_id, deed_id, deed_data):
                 UPDATE deeds
                 SET deed_type = %s, property_address = %s, apn = %s, county = %s,
                     legal_description = %s, grantor_name = %s, grantee_name = %s,
-                    vesting = %s, requested_by = %s, metadata = %s::jsonb,
+                    vesting = %s, requested_by = %s, parties = %s::jsonb, metadata = %s::jsonb,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = %s AND user_id = %s
                   AND COALESCE(status, 'draft') NOT IN ('completed', 'deleted')
@@ -415,6 +434,7 @@ def save_draft_row(user_id, deed_id, deed_data):
                 deed_data.get('grantee_name'),
                 deed_data.get('vesting'),
                 deed_data.get('requested_by'),
+                json.dumps(deed_data['parties']) if deed_data.get('parties') else None,
                 json.dumps(extras),
                 deed_id,
                 user_id,
@@ -423,8 +443,8 @@ def save_draft_row(user_id, deed_id, deed_data):
             cursor.execute("""
                 INSERT INTO deeds (user_id, deed_type, property_address, apn, county,
                                    legal_description, grantor_name, grantee_name,
-                                   vesting, requested_by, status, metadata)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'draft', %s::jsonb)
+                                   vesting, requested_by, parties, status, metadata)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'draft', %s::jsonb)
                 RETURNING *
             """, (
                 user_id,
@@ -437,6 +457,7 @@ def save_draft_row(user_id, deed_id, deed_data):
                 deed_data.get('grantee_name'),
                 deed_data.get('vesting'),
                 deed_data.get('requested_by'),
+                json.dumps(deed_data['parties']) if deed_data.get('parties') else None,
                 json.dumps(extras),
             ))
         deed = cursor.fetchone()

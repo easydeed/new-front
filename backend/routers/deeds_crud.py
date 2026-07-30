@@ -35,8 +35,13 @@ class DeedCreate(BaseModel):
     legal_description: str = Field(..., min_length=1, description="Legal description (required, non-empty)")
     owner_type: Optional[str] = Field(default=None)
     sales_price: Optional[float] = Field(default=None)
-    grantor_name: str = Field(..., min_length=1, description="Grantor name (required, non-empty)")
-    grantee_name: str = Field(..., min_length=1, description="Grantee name (required, non-empty)")
+    # FORMS parties migration: the pair is required for two-party families
+    # (deed, affidavit) — enforced by the family-aware critical-field check
+    # below, which returns the same 400s as before. Single-party families
+    # (declaration) carry their parties in `parties` instead, so the model
+    # itself can no longer hard-require the pair.
+    grantor_name: Optional[str] = Field(default=None, description="Grantor name (required for two-party instruments)")
+    grantee_name: Optional[str] = Field(default=None, description="Grantee name (required for two-party instruments)")
     vesting: Optional[str] = Field(default=None)
     requested_by: Optional[str] = Field(default=None, description="Person/company requesting the deed (e.g., escrow officer)")
     requested_by_address: Optional[str] = Field(default=None, description="Requesting party's mailing address (one line)")
@@ -62,6 +67,11 @@ class DeedCreate(BaseModel):
     # FORMS-SPIKE: affidavit-of-death facts (affiant, decedent, JT-deed
     # recording reference) — persisted into metadata.affidavit.
     affidavit: Optional[Dict] = Field(default=None, description="Affidavit facts for affidavit-type instruments")
+    # FORMS parties migration (owner-ledgered): named parties of single-party
+    # instruments (e.g. {"declarant": "..."}) — deeds.parties JSONB column.
+    # Two-party instruments keep the authoritative grantor/grantee columns.
+    parties: Optional[Dict[str, Optional[str]]] = Field(
+        default=None, description="Named parties for single-party instruments (declaration family)")
     # Ticket R: present when regenerating a RESUMED DRAFT — updates that
     # row instead of inserting a new one. Drafts only; completed deeds are
     # immutable (their PDF is stored) and deleted stays deleted.
@@ -103,6 +113,7 @@ class DraftSave(BaseModel):
     property_zip: Optional[str] = None
     current_owner: Optional[str] = None
     affidavit: Optional[Dict] = None
+    parties: Optional[Dict[str, Optional[str]]] = None
 
     class Config:
         extra = "ignore"
@@ -116,12 +127,30 @@ def create_deed_endpoint(deed: DeedCreate, user_id: int = Depends(get_current_us
     deed_data = deed.dict()
 
     # DEFENSIVE: Strip whitespace and validate non-empty for critical fields
-    # This provides an additional layer of validation beyond Pydantic
-    critical_fields = {
-        'grantor_name': 'Grantor information',
-        'grantee_name': 'Grantee information',
-        'legal_description': 'Legal description'
-    }
+    # This provides an additional layer of validation beyond Pydantic.
+    # FORMS parties migration: single-party families (declaration) have no
+    # grantor/grantee — they must name at least one party in `parties`;
+    # two-party families keep the strict pair exactly as before.
+    from services.form_families import is_single_party
+    if is_single_party(deed_data.get('deed_type')):
+        critical_fields = {'legal_description': 'Legal description'}
+        parties = {
+            k: (v or '').strip() for k, v in (deed_data.get('parties') or {}).items()
+        }
+        deed_data['parties'] = parties
+        if not any(parties.values()):
+            print(f"[Backend /deeds] ❌ VALIDATION ERROR: no named party on single-party instrument!")
+            # Same status/shape as the two-party critical-field failures.
+            raise HTTPException(
+                status_code=422,
+                detail="Validation failed: Party information is required and cannot be empty"
+            )
+    else:
+        critical_fields = {
+            'grantor_name': 'Grantor information',
+            'grantee_name': 'Grantee information',
+            'legal_description': 'Legal description'
+        }
 
     for field_name, field_label in critical_fields.items():
         value = (deed_data.get(field_name) or "").strip()
@@ -241,7 +270,7 @@ def list_deeds_endpoint(user_id: int = Depends(get_current_user_id)):
         with db.conn.cursor() as cur:
             cur.execute("""
                 SELECT id, deed_type, property_address, grantor_name, grantee_name,
-                       county, status, pdf_url, created_at, updated_at, apn
+                       county, status, pdf_url, created_at, updated_at, apn, parties
                 FROM deeds
                 WHERE user_id = %s AND COALESCE(status, '') <> 'deleted'
                 ORDER BY created_at DESC
@@ -272,6 +301,10 @@ def list_deeds_endpoint(user_id: int = Depends(get_current_user_id)):
                     # X2.6/X2.7: the parcel id — dupe-parcel awareness in the
                     # builder and searchable rows in Past Deeds.
                     "apn": deed[10],
+                    # FORMS parties migration: named parties of single-party
+                    # instruments (Past Deeds projects these when the
+                    # grantor/grantee columns are legitimately empty).
+                    "parties": deed[11],
                 })
 
             return {"deeds": formatted_deeds}

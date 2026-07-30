@@ -119,6 +119,22 @@ describe('FORMS registry — the consumers derive from it', () => {
   });
 });
 
+describe('FORMS registry ↔ backend family map (parties migration)', () => {
+  it('every registry entry carries the same family on both sides of the wire', () => {
+    // The backend's per-family validation (single-party instruments store
+    // parties in JSONB; two-party keep grantor/grantee) reads
+    // services/form_families.py — a type whose family differed between
+    // the two maps would validate one way and render another.
+    const py = fs.readFileSync(
+      path.join(__dirname, '..', '..', '..', 'backend', 'services', 'form_families.py'),
+      'utf8'
+    );
+    for (const f of Object.values(FORM_REGISTRY)) {
+      expect(py).toContain(`"${f.slug}": "${f.family}"`);
+    }
+  });
+});
+
 describe('FORMS flag-4 ruling — the companion notice is passive guidance', () => {
   it('every death affidavit carries the BOE-502-D notice with the state link', () => {
     for (const slug of ['affidavit-death-jt', 'affidavit-death-cp-spouse', 'affidavit-death-trustee']) {
