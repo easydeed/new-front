@@ -41,7 +41,29 @@ export function isAffidavitType(deedType: string | undefined): boolean {
   return formFamily(deedType) === 'affidavit';
 }
 
+export function isDeclarationType(deedType: string | undefined): boolean {
+  return formFamily(deedType) === 'declaration';
+}
+
 export function evaluateSubstantive(state: DeedBuilderState): CheckResult[] {
+  if (isDeclarationType(state.deedType)) {
+    // Declaration family (homestead): one party — the declarant — plus the
+    // premises. No grantee, no vesting, no DTT (not a conveyance).
+    return [
+      {
+        id: 'declarant_present',
+        label: 'Declarant stated',
+        ok: !!state.affidavit?.declarantName?.trim(),
+        sectionId: 'affidavit',
+      },
+      {
+        id: 'legal_description_present',
+        label: 'Legal description present',
+        ok: !!state.property?.legalDescription?.trim(),
+        sectionId: 'property',
+      },
+    ];
+  }
   if (isAffidavitType(state.deedType)) {
     const aff = state.affidavit;
     return [
@@ -227,10 +249,15 @@ export function deriveSectionTruth(state: DeedBuilderState): SectionTruth {
     return 'complete';
   };
 
-  if (isAffidavitType(state.deedType)) {
+  if (isAffidavitType(state.deedType) || isDeclarationType(state.deedType)) {
     const aff = state.affidavit;
-    const affFilled = !!(aff?.affiantName?.trim() && aff?.decedentName?.trim() &&
-      aff?.instrumentNo?.trim() && aff?.recordingDate?.trim());
+    // The typed-facts section is complete when its family's substantive
+    // facts are present: the declaration's single declarant, or the
+    // affidavit's affiant/decedent/recording reference.
+    const affFilled = isDeclarationType(state.deedType)
+      ? !!aff?.declarantName?.trim()
+      : !!(aff?.affiantName?.trim() && aff?.decedentName?.trim() &&
+        aff?.instrumentNo?.trim() && aff?.recordingDate?.trim());
     const statuses: Record<string, SectionStatus> = {
       property: status('property', !!state.property?.address),
       affidavit: status('affidavit', affFilled),

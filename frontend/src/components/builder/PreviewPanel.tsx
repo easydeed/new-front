@@ -76,6 +76,7 @@ export function PreviewPanel({ state, activeSection, onRegionClick }: PreviewPan
   // no DTT declaration, no granting clause, jurat instead of an
   // acknowledgment. Family from the registry.
   const isAffidavit = formFamily(state.deedType) === 'affidavit';
+  const isDeclaration = formFamily(state.deedType) === 'declaration';
   const aff = state.affidavit;
   const factOrBlank = (v: string | undefined) => v?.trim() || '________________';
   const operative = OPERATIVE_WORDS[state.deedType] || OPERATIVE_WORDS['grant-deed'];
@@ -187,7 +188,75 @@ export function PreviewPanel({ state, activeSection, onRegionClick }: PreviewPan
               </div>
             )}
 
-            {isAffidavit ? (
+            {isDeclaration ? (
+              <>
+                {/* Homestead declaration recital (PCT #33) — numbered
+                    clauses 2–4 are instrument-defining furniture; the
+                    declarant is the single typed fact. */}
+                <div className={`text-[11pt] leading-relaxed mb-3 ${highlight('affidavit')}`}>
+                  <p className="mb-2">
+                    I, <span onClick={go('affidavit', 'affidavit-declarantName')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.declarantName)}`}>{factOrBlank(aff?.declarantName)}</span>,
+                    {' '}hereby certify and declare as follows:
+                  </p>
+                  <p className="mb-2">
+                    1. I hereby claim as a declared homestead the premises described as follows:
+                  </p>
+                </div>
+
+                <div className={`mb-3 ${highlight('property')}`}>
+                  <span onClick={go('property')} className={`font-bold text-[10.5pt] whitespace-pre-wrap ${CLICKABLE} ${placeholder(preview.legalDescription)} ${dataHighlight(preview.legalDescription)}`}>
+                    {preview.legalDescription}
+                  </span>
+                </div>
+
+                <div className={`text-[11pt] leading-relaxed mb-3 ${highlight('affidavit')}`}>
+                  <p className="mb-2">2. I am the owner of the above described homestead.</p>
+                  <p className="mb-2">
+                    3. The above described homestead is my principal dwelling or the principal
+                    dwelling of my spouse and I am, or my spouse is, currently residing thereon.
+                  </p>
+                  <p className="mb-2">
+                    4. The facts stated in this declaration are known to be true as of my
+                    personal knowledge.
+                  </p>
+                </div>
+
+                <div className="mt-6 flex justify-between items-end gap-4">
+                  <div className="text-[11pt]">Dated: <span className="inline-block min-w-[1.6in] border-b border-black" /></div>
+                  <div className="w-[45%]">
+                    <div className="border-b border-black h-7" />
+                    <div className="text-[9px] uppercase">
+                      Print Name: <span className={`font-bold ${dataHighlight(aff?.declarantName)}`}>{aff?.declarantName || ''}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Acknowledgment sketch — CC §1189 (CCP §704.930: a homestead
+                    declaration is ACKNOWLEDGED, not sworn). All entries are
+                    the notary's; nothing pre-fills. */}
+                <div className="mt-5 text-[9.5px] border border-black p-2 leading-snug">
+                  A notary public or other officer completing this certificate verifies only the
+                  identity of the individual who signed the document to which this certificate is
+                  attached, and not the truthfulness, accuracy, or validity of that document.
+                </div>
+                <div className="mt-3 text-[10px]">
+                  <div>STATE OF CALIFORNIA&nbsp;&nbsp;)</div>
+                  <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)&nbsp;&nbsp;SS.</div>
+                  <div>COUNTY OF <span className="inline-block min-w-[1.4in] border-b border-black">{preview.county.startsWith('[') ? '' : preview.county}</span>&nbsp;)</div>
+                  <p className="mt-2">
+                    On ____________ before me, ______________________________, Notary Public,
+                    personally appeared ______________________________, who proved to me on the
+                    basis of satisfactory evidence to be the person(s) whose name(s) is/are
+                    subscribed to the within instrument and acknowledged to me that he/she/they
+                    executed the same in his/her/their authorized capacity(ies)…
+                  </p>
+                  <div className="mt-4 flex justify-between items-end">
+                    <div>Signature <span className="inline-block min-w-[2in] border-b border-black" /></div>
+                    <div className="border border-black w-[1.6in] h-[1.1in] flex items-center justify-center text-center text-[8px] uppercase text-gray-500">(This area for notary stamp)</div>
+                  </div>
+                </div>
+              </>
+            ) : isAffidavit ? (
               <>
                 {/* Sworn-statement recital — form furniture; the FACTS are
                     officer-typed and highlighted/clickable like deed data. */}

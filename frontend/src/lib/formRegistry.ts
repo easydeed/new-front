@@ -13,7 +13,16 @@
  */
 
 export type NotarialCertificate = 'acknowledgment' | 'jurat';
-export type FormFamily = 'deed' | 'affidavit';
+/**
+ * deed        — two-party conveyance: acknowledgment + DTT declaration.
+ * affidavit   — sworn statement: jurat, no DTT; parties aliased onto the
+ *               grantor/grantee columns (decedent/affiant).
+ * declaration — single-party acknowledged instrument (homestead declarant,
+ *               certifying trustee): acknowledgment, no DTT; parties live
+ *               in the deeds.parties JSONB column (owner-ledgered
+ *               migration), not the grantor/grantee pair.
+ */
+export type FormFamily = 'deed' | 'affidavit' | 'declaration';
 
 export interface CompanionNotice {
   /** Passive guidance ONLY — never a block, never form-fill work. */
@@ -71,7 +80,11 @@ const DEED_SECTIONS = ['property', 'grantor', 'grantee', 'vesting', 'transferTax
    decision (Flag-3 precedent), so there is no vesting input. Everything
    else, including the full transfer-tax decision gate, is unchanged. */
 const FIXED_VESTING_DEED_SECTIONS = ['property', 'grantor', 'grantee', 'transferTax', 'recording'];
+/* The 'affidavit' section id names the shared TYPED-FACTS section — every
+   non-deed family (sworn affidavits AND acknowledged declarations) uses it
+   for its officer-typed instrument facts. */
 const AFFIDAVIT_SECTIONS = ['property', 'affidavit', 'recording'];
+const DECLARATION_SECTIONS = ['property', 'affidavit', 'recording'];
 
 /* Spike flag 4 ruling (applies to every affidavit-of-death variant):
    passive guidance only. The BOE-502-D itself is Tier B (form-fill
@@ -253,6 +266,29 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
       ...RECORDING_REF_FIELDS("The deed by which the trustee acquired title"),
     ],
   },
+  // Wave 1 form #5 — reference: PCT blank form #33 (Homestead_Dec-Indiv).
+  // Correction-note family: ACKNOWLEDGED per CCP §704.930, not a jurat.
+  'homestead-declaration': {
+    slug: 'homestead-declaration',
+    label: 'Declaration of Homestead',
+    title: 'DECLARATION OF HOMESTEAD',
+    subtitle: '(Individual)',
+    description: 'Declares a homestead on the owner’s principal dwelling (CCP §704.930) — acknowledged and recorded',
+    popular: false,
+    family: 'declaration',
+    sections: DECLARATION_SECTIONS,
+    notarial: 'acknowledgment',
+    hasDtt: false,
+    affidavitFields: [
+      {
+        key: 'declarantName',
+        label: 'Declarant (owner claiming the homestead)',
+        placeholder: 'ROBERT OWNER',
+        uppercase: true,
+        hint: 'The owner residing in the dwelling. Signs before a notary.',
+      },
+    ],
+  },
 };
 
 export function formConfig(slug: string | undefined | null): FormTypeConfig | undefined {
@@ -261,6 +297,18 @@ export function formConfig(slug: string | undefined | null): FormTypeConfig | un
 
 export function formFamily(slug: string | undefined | null): FormFamily {
   return formConfig(slug)?.family ?? 'deed';
+}
+
+/** Non-deed families (affidavit, declaration) collect their instrument
+ * facts in the shared typed-facts section (section id 'affidavit'). */
+export function usesFactsSection(slug: string | undefined | null): boolean {
+  return formFamily(slug) !== 'deed';
+}
+
+/** Declaration-family instruments have ONE party — stored in the
+ * deeds.parties JSONB column, never the grantor/grantee pair. */
+export function isSinglePartyType(slug: string | undefined | null): boolean {
+  return formFamily(slug) === 'declaration';
 }
 
 /**

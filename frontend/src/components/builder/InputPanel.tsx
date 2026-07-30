@@ -11,8 +11,7 @@ import { VestingSection } from './sections/VestingSection';
 import { TransferTaxSection } from './sections/TransferTaxSection';
 import { RecordingSection } from './sections/RecordingSection';
 import { AffidavitSection } from './sections/AffidavitSection';
-import { isAffidavitType } from '@/lib/deedValidation';
-import { hasVestingInput } from '@/lib/formRegistry';
+import { formFamily, hasVestingInput, usesFactsSection } from '@/lib/formRegistry';
 import { DeedBuilderState } from '@/types/builder';
 
 interface InputPanelProps {
@@ -105,16 +104,16 @@ export function InputPanel({
           <PropertySection
             value={state.property}
             onChange={(property) => onChange({ property })}
-            onComplete={() => toggleSection(isAffidavitType(state.deedType) ? 'affidavit' : 'grantor')}
+            onComplete={() => toggleSection(usesFactsSection(state.deedType) ? 'affidavit' : 'grantor')}
           />
         </InputSection>
 
-        {isAffidavitType(state.deedType) ? (
+        {usesFactsSection(state.deedType) ? (
         <InputSection
           id="affidavit"
-          title="Affidavit Facts"
+          title={formFamily(state.deedType) === 'declaration' ? 'Declaration Facts' : 'Affidavit Facts'}
           status={statuses.affidavit}
-          preview={state.affidavit?.decedentName || 'Decedent, affiant, and the recorded-instrument reference'}
+          preview={state.affidavit?.declarantName || state.affidavit?.decedentName || 'The instrument’s typed facts'}
           isExpanded={expandedSection === 'affidavit'}
           onToggle={() => toggleSection('affidavit')}
         >

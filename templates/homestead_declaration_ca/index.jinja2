@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Declaration of Homestead (Individual) - California</title>
+    <style>
+        /* ==========================================================================
+           DECLARATION OF HOMESTEAD (INDIVIDUAL) — wave 1 #5
+
+           First declaration-family instrument. Reference implementation:
+           Pacific Coast Title blank form #33 (Homestead_Dec-Indiv),
+           measured with pdfplumber (letter page; recorder caption ~192pt;
+           title ~204pt; §1189 acknowledgment lower half ~570pt; one page).
+
+           Family facts (per the FORMS_TRIAGE correction note):
+           - ACKNOWLEDGED, not sworn — CCP §704.930 requires a homestead
+             declaration to be acknowledged. The certificate is the §1189
+             acknowledgment partial, NOT the jurat.
+           - Single-party instrument: the declarant rides in the
+             deeds.parties JSONB column (owner-ledgered migration) — no
+             grantor/grantee, no vesting.
+           - Not a conveyance: no DTT declaration, no mail-tax directive
+             ("AND WHEN RECORDED MAIL TO"). The reference carries no
+             Order/Escrow lines either (consumer instrument) — they render
+             only when the officer supplies values.
+           Chassis rules (G2/G3) carried over verbatim: §27361.6 open
+           recorder space + boundary caption; §27361.7 no chrome;
+           blank-contents doctrine (execution and notarial entries blank).
+           ========================================================================== */
+
+        @page {
+            size: letter;
+            margin: 0.5in 0.5in 0.6in 0.6in;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: "Times New Roman", Times, Georgia, serif;
+            font-size: 11pt;
+            line-height: 1.35;
+            color: #000;
+            background: #fff;
+        }
+
+        .header-section { display: flex; min-height: 1.85in; }
+
+        .recording-info {
+            width: 3.4in;
+            flex-shrink: 0;
+            border-right: 0.75pt solid #000;
+            padding-right: 0.15in;
+            font-size: 10pt;
+            line-height: 1.35;
+        }
+
+        .recorder-space { flex-grow: 1; }
+
+        .recording-label {
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 9pt;
+        }
+
+        .recording-value { margin-bottom: 0.12in; min-height: 0.35in; }
+
+        .ref-line { font-size: 10pt; }
+
+        .header-boundary {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            border-bottom: 0.75pt solid #000;
+            padding-bottom: 0.03in;
+            margin-bottom: 0.12in;
+        }
+
+        .apn-ref { font-weight: bold; font-size: 10pt; }
+
+        .recorder-caption {
+            font-size: 7.5pt;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .deed-title {
+            text-align: center;
+            font-size: 14pt;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin: 0.08in 0 0.02in 0;
+        }
+
+        .deed-subtitle {
+            text-align: center;
+            font-size: 11pt;
+            font-weight: bold;
+            margin-bottom: 0.1in;
+        }
+
+        .declaration-body {
+            font-size: 11pt;
+            line-height: 1.35;
+            text-align: justify;
+        }
+
+        .declaration-body p { margin-bottom: 0.07in; }
+
+        .fact {
+            /* Officer-supplied facts render bold; a missing fact renders as
+               the reference's blank line so an incomplete instrument LOOKS
+               incomplete. */
+            font-weight: bold;
+        }
+
+        .fact-line {
+            display: inline-block;
+            min-width: 2.2in;
+            border-bottom: 1px solid #000;
+        }
+
+        .legal-content {
+            font-weight: bold;
+            white-space: pre-wrap;
+            margin: 0.08in 0;
+            min-height: 0.5in;
+        }
+
+        .execution-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: 0.12in;
+            margin-bottom: 0.05in;
+        }
+
+        .signature-block { width: 3.2in; }
+
+        .signature-line {
+            border-bottom: 1px solid #000;
+            width: 3.2in;
+            height: 0.35in;
+        }
+
+        .print-name {
+            font-size: 10pt;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="deed-page">
+
+        <header class="header-section">
+            <div class="recording-info">
+                <div class="recording-label">Recording Requested By:</div>
+                <div class="recording-value">{{ requested_by or '' }}{% if requested_by_address %}<br>{{ requested_by_address }}{% endif %}</div>
+
+                <div class="recording-label">And When Recorded Mail To:</div>
+                <div class="recording-value">
+                    {% if return_to %}
+                        {% if return_to.get('name') %}{{ return_to.get('name') }}<br>{% endif %}
+                        {% if return_to.get('company') %}{{ return_to.get('company') }}<br>{% endif %}
+                        {% if return_to.get('address1') %}{{ return_to.get('address1') }}<br>{% endif %}
+                        {% if return_to.get('address2') %}{{ return_to.get('address2') }}<br>{% endif %}
+                        {% set city = return_to.get('city', '') %}
+                        {% set state = return_to.get('state', '') %}
+                        {% set zip = return_to.get('zip', '') %}
+                        {% if city or state or zip %}
+                            {{ city }}{% if city and (state or zip) %}, {% endif %}{{ state }} {{ zip }}
+                        {% endif %}
+                    {% else %}
+                        _________________________________<br>
+                        _________________________________<br>
+                        _________________________________
+                    {% endif %}
+                </div>
+
+                {# The reference carries no Order/Escrow lines (consumer
+                   instrument) — render only when the officer supplied one. #}
+                {% if title_order_no %}<div class="ref-line">Order No.: {{ title_order_no }}</div>{% endif %}
+                {% if escrow_no %}<div class="ref-line">Escrow No.: {{ escrow_no }}</div>{% endif %}
+            </div>
+
+            <div class="recorder-space"><!-- Gov. Code §27361.6 — recorder's use only --></div>
+        </header>
+
+        <div class="header-boundary">
+            <span class="apn-ref">APN: {{ apn or '____________________' }}</span>
+            <span class="recorder-caption">Space Above This Line Is For Recorder&rsquo;s Use</span>
+        </div>
+
+        <h1 class="deed-title">Declaration of Homestead</h1>
+        <div class="deed-subtitle">(Individual)</div>
+
+        {% set declarant = (parties or {}).get('declarant') %}
+        <div class="declaration-body">
+            <p>
+                I, {% if declarant %}<span class="fact">{{ declarant }}</span>{% else %}<span class="fact-line">&nbsp;</span>{% endif %},
+                hereby certify and declare as follows:
+            </p>
+            <p>
+                1. I hereby claim as a declared homestead the premises described as follows:
+            </p>
+        </div>
+
+        <div class="legal-content">{{ legal_description or '' }}</div>
+
+        <div class="declaration-body">
+            <p>2. I am the owner of the above described homestead.</p>
+            <p>
+                3. The above described homestead is my principal dwelling or the principal
+                dwelling of my spouse and I am, or my spouse is, currently residing thereon.
+            </p>
+            <p>
+                4. The facts stated in this declaration are known to be true as of my
+                personal knowledge.
+            </p>
+        </div>
+
+        {# Execution: the declarant signs at the notarization — date and
+           signature stay blank (blank-contents doctrine). The printed name
+           identifies the signer, as the deed chassis prints signer names. #}
+        <div class="execution-section">
+            <div>Dated: <span class="fact-line" style="min-width:1.8in">&nbsp;</span></div>
+            <div class="signature-block">
+                <div class="signature-line"></div>
+                <div class="print-name">Print Name: {% if declarant %}<span class="fact">{{ declarant }}</span>{% endif %}</div>
+            </div>
+        </div>
+
+        {# CCP §704.930: ACKNOWLEDGED, not sworn — §1189 certificate,
+           on the SAME page as the reference lays it out. #}
+        {% set document_title = 'Declaration of Homestead' %}
+        {% set ack_inline = true %}
+        {% include '_partials/notary_acknowledgment.jinja2' %}
+
+    </div>
+</body>
+</html>
