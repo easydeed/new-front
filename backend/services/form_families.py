@@ -27,6 +27,8 @@ FAMILY_BY_DEED_TYPE = {
     "tax-deed": "deed",
     "grant-deed-jt": "deed",
     "grant-deed-cp-ros": "deed",
+    "grant-deed-corp": "deed",
+    "grant-deed-partnership": "deed",
     "affidavit-death-jt": "affidavit",
     "affidavit-death-cp-spouse": "affidavit",
     "affidavit-death-trustee": "affidavit",

@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Partnership Grant Deed - California</title>
+    <style>
+        /* ==========================================================================
+           PARTNERSHIP GRANT DEED — CALIFORNIA (wave 2 #6)
+
+           Entity-grantor variant of the grant-deed chassis (PCT reference
+           blank form #29, Deed-Partnership). The entity recital ("a ___
+           partnership organized under the laws of the State of ___") is
+           instrument-defining furniture (Flag-3); the partnership type
+           and state of organization are typed officer facts, blanks
+           tolerated. General partners sign in capacity: the "By/And ...
+           General Partner" lines are furniture verified from the
+           reference. Every other chassis behavior — full R&T §11932–11933
+           DTT declaration, officer vesting, §1189 acknowledgment — is the
+           grant deed's. Chassis notes below are the grant deed's.
+
+           Geometry mirrors the owner's reference sample of a standard recorded
+           CA Grant Deed plus statute:
+           - Gov. Code §27361.6: recorder's space top-right of page one
+             (open space — no drawn box; a border invites rejection), caption
+             "SPACE ABOVE THIS LINE IS FOR RECORDER'S USE" at its bottom
+             boundary (~2.66" from the page top in the reference).
+           - R&T §11932–11933: DTT declaration opens with
+             "THE UNDERSIGNED GRANTOR(S) DECLARE(S):" and shows the
+             computed-on and unincorporated/City checklines.
+           - Gov. Code §27361.7 reproducibility: recorded pages carry no
+             color, no backgrounds, no branding. The QR/verification block
+             was REMOVED from recorded pages — the capability survives as
+             data (deed_pdfs.sha256 + metadata + the /api/verify portal).
+           ========================================================================== */
+
+        @page {
+            size: letter;
+            margin: 0.5in 0.5in 0.6in 0.6in;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Times New Roman", Times, Georgia, serif;
+            font-size: 11pt;
+            line-height: 1.35;
+            color: #000;
+            background: #fff;
+        }
+
+        /* --------------------------------------------------------------------------
+           PAGE-ONE HEADER — left info column beside the open recorder's space.
+           The vertical rule at 3.4in marks the left boundary of the recorder's
+           space, exactly as on the reference form. The space itself is empty.
+           -------------------------------------------------------------------------- */
+
+        .header-section {
+            display: flex;
+            min-height: 1.85in;
+        }
+
+        .recording-info {
+            width: 3.4in;
+            flex-shrink: 0;
+            border-right: 0.75pt solid #000;
+            padding-right: 0.15in;
+            font-size: 10pt;
+            line-height: 1.35;
+        }
+
+        .recorder-space {
+            /* Open space for the recorder — nothing renders here. */
+            flex-grow: 1;
+        }
+
+        .recording-label {
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 9pt;
+        }
+
+        .recording-value {
+            margin-bottom: 0.12in;
+            min-height: 0.35in;
+        }
+
+        .ref-line {
+            font-size: 10pt;
+        }
+
+        /* Boundary row: APN left, recorder caption right, rule underneath. */
+        .header-boundary {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            border-bottom: 0.75pt solid #000;
+            padding-bottom: 0.03in;
+            margin-bottom: 0.12in;
+        }
+
+        .apn-ref {
+            /* D2: the parcel id carries the same weight as the parties. */
+            font-weight: bold;
+            font-size: 10pt;
+        }
+
+        .recorder-caption {
+            font-size: 7.5pt;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* --------------------------------------------------------------------------
+           TITLE
+           -------------------------------------------------------------------------- */
+
+        .deed-title {
+            text-align: center;
+            font-size: 14pt;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin: 0.08in 0 0.12in 0;
+        }
+
+        /* --------------------------------------------------------------------------
+           DOCUMENTARY TRANSFER TAX DECLARATION — statutory wording, no chrome.
+           -------------------------------------------------------------------------- */
+
+        .dtt-section {
+            font-size: 10pt;
+            line-height: 1.5;
+            margin-bottom: 0.15in;
+        }
+
+        .dtt-lead {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.2in;
+        }
+
+        .dtt-amount {
+            border-bottom: 0.75pt solid #000;
+            min-width: 1.6in;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .checkline {
+            display: inline-block;
+            width: 0.35in;
+            border-bottom: 0.75pt solid #000;
+            text-align: center;
+            font-weight: bold;
+            margin-right: 0.06in;
+        }
+
+        .dtt-option {
+            margin-left: 0.15in;
+        }
+
+        .city-field {
+            border-bottom: 0.75pt solid #000;
+            min-width: 1.8in;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .dtt-exempt {
+            margin-left: 0.15in;
+        }
+
+        /* --------------------------------------------------------------------------
+           DEED BODY
+           -------------------------------------------------------------------------- */
+
+        .deed-body {
+            font-size: 11pt;
+            line-height: 1.45;
+        }
+
+        .deed-body p {
+            margin-bottom: 0.08in;
+        }
+
+        .party-name {
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .legal-content {
+            /* D1: the property description carries the same weight as the
+               parties — the three data blocks an examiner scans first. */
+            font-weight: bold;
+            white-space: pre-wrap;
+            margin: 0.08in 0 0.08in 0;
+        }
+
+        .legal-exhibit-ref {
+            font-weight: bold;
+            margin: 0.08in 0;
+        }
+
+        .apn-line { font-weight: bold;
+            margin-top: 0.08in;
+        }
+
+        /* --------------------------------------------------------------------------
+           EXECUTION — date left, signature lines right (reference layout).
+           -------------------------------------------------------------------------- */
+
+        .execution-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-top: 0.25in;
+            page-break-inside: avoid;
+        }
+
+        .execution-date {
+            padding-top: 0.25in;
+        }
+
+        .date-value {
+            border-bottom: 0.75pt solid #000;
+            min-width: 1.8in;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .signatures {
+            width: 3.4in;
+        }
+
+        .signature-entry {
+            margin-bottom: 0.35in;
+        }
+
+        .signature-line {
+            border-bottom: 0.75pt solid #000;
+            width: 3.4in;
+            height: 0.35in;
+        }
+
+        .signature-name {
+            font-size: 10pt;
+            text-transform: uppercase;
+        }
+
+        /* --------------------------------------------------------------------------
+           PAGE-ONE FOOTER — statutory mail-tax directive, nothing else.
+           -------------------------------------------------------------------------- */
+
+        .mail-tax-directive {
+            text-align: center;
+            font-size: 9pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-top: 0.3in;
+        }
+
+        /* --------------------------------------------------------------------------
+           EXHIBIT A (legal-description overflow) — plain page.
+           -------------------------------------------------------------------------- */
+
+        .page-break {
+            page-break-before: always;
+        }
+
+        .exhibit-page {
+            padding-top: 0.5in;
+        }
+
+        .exhibit-header {
+            text-align: center;
+            margin-bottom: 0.4in;
+        }
+
+        .exhibit-title {
+            font-size: 14pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .exhibit-subtitle {
+            font-size: 11pt;
+            margin-top: 0.08in;
+        }
+
+        .exhibit-reference {
+            font-size: 10pt;
+            margin-top: 0.12in;
+        }
+
+        .exhibit-content {
+            font-size: 11pt;
+            line-height: 1.5;
+            text-align: justify;
+            white-space: pre-wrap;
+        }
+
+        .exhibit-apn {
+            margin-top: 0.3in;
+            font-size: 10pt;
+        }
+
+        /* G3: the acknowledgment partial now carries its own single-page
+           spacing — the G2-era local overrides are retired. */
+    </style>
+</head>
+<body>
+    <div class="deed-page">
+
+        <!-- ================================================================
+             PAGE-ONE HEADER — info column + open recorder's space
+             ================================================================ -->
+
+        <header class="header-section">
+            <div class="recording-info">
+                <div class="recording-label">Recording Requested By:</div>
+                <div class="recording-value">{{ requested_by or title_company or '' }}{% if requested_by_address %}<br>{{ requested_by_address }}{% endif %}</div>
+
+                <div class="recording-label">Mail Tax Statements and<br>When Recorded Mail To:</div>
+                <div class="recording-value">
+                    {% if return_to %}
+                        {% if return_to.get('name') %}{{ return_to.get('name') }}<br>{% endif %}
+                        {% if return_to.get('company') %}{{ return_to.get('company') }}<br>{% endif %}
+                        {% if return_to.get('address1') %}{{ return_to.get('address1') }}<br>{% endif %}
+                        {% if return_to.get('address2') %}{{ return_to.get('address2') }}<br>{% endif %}
+                        {% set city = return_to.get('city', '') %}
+                        {% set state = return_to.get('state', '') %}
+                        {% set zip = return_to.get('zip', '') %}
+                        {% if city or state or zip %}
+                            {{ city }}{% if city and (state or zip) %}, {% endif %}{{ state }} {{ zip }}
+                        {% endif %}
+                    {% else %}
+                        _________________________________<br>
+                        _________________________________<br>
+                        _________________________________
+                    {% endif %}
+                </div>
+
+                <div class="ref-line">Order No.: {{ title_order_no or '____________________' }}</div>
+                <div class="ref-line">Escrow No.: {{ escrow_no or '____________________' }}</div>
+            </div>
+
+            <div class="recorder-space"><!-- Gov. Code §27361.6 — recorder's use only --></div>
+        </header>
+
+        <div class="header-boundary">
+            <span class="apn-ref">APN: {{ apn or '____________________' }}</span>
+            <span class="recorder-caption">Space Above This Line Is For Recorder&rsquo;s Use</span>
+        </div>
+
+        <!-- ================================================================
+             TITLE
+             ================================================================ -->
+
+        <h1 class="deed-title">Partnership Grant Deed</h1>
+
+        <!-- ================================================================
+             DOCUMENTARY TRANSFER TAX — R&T §11932–11933 declaration
+             ================================================================ -->
+
+        <div class="dtt-section">
+            <div class="dtt-lead">
+                <span>THE UNDERSIGNED GRANTOR(S) DECLARE(S):</span>
+                <span>DOCUMENTARY TRANSFER TAX IS
+                    <span class="dtt-amount">${{ dtt.get('amount', '') if dtt else '' }}</span>
+                </span>
+            </div>
+            <div class="dtt-option">
+                <span class="checkline">{% if dtt and dtt.get('basis') == 'full' %}X{% endif %}</span>
+                Computed on full value of property conveyed, or
+            </div>
+            <div class="dtt-option">
+                <span class="checkline">{% if dtt and dtt.get('basis') == 'less_liens' %}X{% endif %}</span>
+                Computed on full value less liens and encumbrances remaining at time of sale.
+            </div>
+            <div class="dtt-option">
+                <span class="checkline">{% if dtt and dtt.get('area_type') == 'unincorporated' %}X{% endif %}</span>
+                Unincorporated area&nbsp;&nbsp;&nbsp;
+                <span class="checkline">{% if dtt and dtt.get('area_type') == 'city' %}X{% endif %}</span>
+                City of <span class="city-field">{{ dtt.get('city_name', '') if dtt else '' }}</span>
+            </div>
+            {% if dtt and dtt.get('is_exempt') and dtt.get('exemption_reason') %}
+            <div class="dtt-exempt">Exempt from transfer tax: {{ dtt.get('exemption_reason') }}</div>
+            {% endif %}
+        </div>
+
+        <!-- ================================================================
+             GRANTING CLAUSE — standard deed wording, no defined-term labels
+             ================================================================ -->
+
+        <div class="deed-body">
+            <p>For valuable consideration, receipt of which is hereby acknowledged,</p>
+
+            <p class="party-name">{{ grantors_text or '_________________________________________________' }}</p>
+
+            <p>
+                {% set aff = affidavit or {} %}
+                a {% if aff.get('partnership_type') %}<strong>{{ aff.get('partnership_type') }}</strong>{% else %}___________{% endif %}
+                partnership organized under the laws of the State of
+                {% if aff.get('entity_state') %}<strong>{{ aff.get('entity_state') }}</strong>{% else %}______________{% endif %}
+                hereby GRANTS to
+            </p>
+
+            <p><span class="party-name">{{ grantees_text or '_________________________________________________' }}</span>{% if vesting %}, {{ vesting }}{% endif %}</p>
+
+            <p>
+                the real property situated in the County of
+                <strong>{{ county or '___________________________' }}</strong>,
+                State of California, more particularly described as follows:
+            </p>
+
+            {% if legal_description and legal_description|length > (exhibit_threshold or 600) %}
+                <p class="legal-exhibit-ref">
+                    See Exhibit &ldquo;A&rdquo; attached hereto and incorporated herein by this reference.
+                </p>
+            {% else %}
+                <div class="legal-content">{{ legal_description or 'LEGAL DESCRIPTION TO BE INSERTED' }}</div>
+            {% endif %}
+
+            {% if apn %}
+            <div class="apn-line">Assessor&rsquo;s Parcel Number: {{ apn }}</div>
+            {% endif %}
+        </div>
+
+        <!-- ================================================================
+             EXECUTION — date left, signatures right
+             ================================================================ -->
+
+        <div class="execution-section">
+            <div class="execution-date">
+                Dated: <span class="date-value">{{ execution_date or now().strftime('%B %d, %Y') }}</span>
+            </div>
+
+            <div class="signatures">
+                {# Entity execution: the entity is named; the officers/
+                   partners sign in capacity — "By/And" lines are furniture
+                   verified from the reference; signatures stay blank. #}
+                <div class="signature-entry">
+                    <div class="signature-name">{{ grantors_text or '' }}</div>
+                </div>
+                <div class="signature-entry">
+                    <div class="signature-line"></div>
+                    <div class="signature-name">By
+                    <div class="signature-name">General Partner</div></div>
+                </div>
+                <div class="signature-entry">
+                    <div class="signature-line"></div>
+                    <div class="signature-name">And
+                    <div class="signature-name">General Partner</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statutory footer directive (pairs with the combined mail-to block) -->
+        <div class="mail-tax-directive">Mail Tax Statements As Directed Above</div>
+
+    </div>
+
+    <!-- ====================================================================
+         EXHIBIT A — Legal Description (if too long for page one)
+         ==================================================================== -->
+
+    {% if legal_description and legal_description|length > (exhibit_threshold or 600) %}
+    <div class="page-break"></div>
+    <div class="exhibit-page">
+        <div class="exhibit-header">
+            <div class="exhibit-title">Exhibit &ldquo;A&rdquo;</div>
+            <div class="exhibit-subtitle">Legal Description</div>
+            <div class="exhibit-reference">
+                Attached to and made a part of Partnership Grant Deed dated {{ execution_date or now().strftime('%B %d, %Y') }}
+            </div>
+        </div>
+
+        <div class="exhibit-content">{{ legal_description }}</div>
+
+        {% if apn %}
+        <div class="exhibit-apn">Assessor&rsquo;s Parcel Number: {{ apn }}</div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- ====================================================================
+         CALIFORNIA ALL-PURPOSE ACKNOWLEDGMENT — Civil Code §1189
+         (shared partial; the notary completes its contents, never us)
+         ==================================================================== -->
+    {% set document_title = 'Partnership Grant Deed' %}
+    {% include '_partials/notary_acknowledgment.jinja2' %}
+
+</body>
+</html>

@@ -50,6 +50,8 @@ function buildFactsBlock(aff: AffidavitFacts | undefined) {
     declarant2_name: aff.declarant2Name || '',
     prior_declarant: aff.priorDeclarant || '',
     declaration_date: aff.declarationDate || '',
+    entity_state: aff.entityState || '',
+    partnership_type: aff.partnershipType || '',
   };
   return Object.values(block).some((v) => v) ? block : null;
 }
@@ -110,7 +112,9 @@ export function buildDeedPayload(genState: DeedBuilderState) {
       : genState.requestedBy,
     title_order_no: genState.titleOrderNo || '',
     escrow_no: genState.escrowNo || '',
-    affidavit: buildFactsBlock(isAffidavit || isSingleParty ? aff : undefined),
+    // The typed-facts bucket now serves all three families (deed-family
+    // entity facts included); buildFactsBlock nulls it when empty.
+    affidavit: buildFactsBlock(aff),
     dtt: {
       transfer_value: genState.dtt?.transferValue?.replace(/[^0-9]/g, '') || '',
       is_exempt: genState.dtt?.isExempt || false,

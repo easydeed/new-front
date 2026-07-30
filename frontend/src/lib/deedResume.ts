@@ -197,6 +197,8 @@ export function hydrateStateFromDeedRow(row: Record<string, any>): ResumeResult 
           declarant2Name: meta.affidavit?.declarant2_name || (row.parties && row.parties.second_declarant) || '',
           priorDeclarant: meta.affidavit?.prior_declarant || '',
           declarationDate: meta.affidavit?.declaration_date || '',
+          entityState: meta.affidavit?.entity_state || '',
+          partnershipType: meta.affidavit?.partnership_type || '',
         }
       : undefined,
     returnTo,

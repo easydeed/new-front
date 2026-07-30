@@ -145,6 +145,41 @@ export function InputPanel({
             provenance={state.grantorProvenance}
             onComplete={() => onSectionChange('grantee')}
           />
+          {/* Wave 2 #6 — entity grantors: typed facts completing the
+              entity recital (Flag-3 furniture prints the recital; these
+              blanks are the officer's transcription, tolerated blank). */}
+          {['grant-deed-corp', 'grant-deed-partnership'].includes(state.deedType) && (
+            <div className="mt-4 space-y-4">
+              {state.deedType === 'grant-deed-partnership' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Partnership type (as stated in the partnership agreement)
+                  </label>
+                  <input
+                    type="text"
+                    data-builder-field="affidavit-partnershipType"
+                    value={state.affidavit?.partnershipType ?? ''}
+                    onChange={(e) => onChange({ affidavit: { ...(state.affidavit ?? { affiantName: '', decedentName: '', recordingDate: '', instrumentNo: '' }), partnershipType: e.target.value } })}
+                    placeholder="general"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  State of organization
+                </label>
+                <input
+                  type="text"
+                  data-builder-field="affidavit-entityState"
+                  value={state.affidavit?.entityState ?? ''}
+                  onChange={(e) => onChange({ affidavit: { ...(state.affidavit ?? { affiantName: '', decedentName: '', recordingDate: '', instrumentNo: '' }), entityState: e.target.value } })}
+                  placeholder="California"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                />
+              </div>
+            </div>
+          )}
         </InputSection>
 
         <InputSection

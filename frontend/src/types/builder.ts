@@ -111,6 +111,11 @@ export interface AffidavitFacts {
      identification only; the statutory form is signed AND printed by the
      grantor at notarization (execution act; nothing pre-prints). */
   revokingGrantor?: string;
+  /* Entity grant deeds (wave 2 #6): typed facts completing the entity-
+     grantor recital — state of organization, and the partnership's kind
+     (general/limited) on the partnership form. */
+  entityState?: string;
+  partnershipType?: string;
 }
 
 export interface DeedBuilderState {

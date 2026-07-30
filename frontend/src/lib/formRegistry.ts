@@ -206,6 +206,34 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
     notarial: 'acknowledgment',
     hasDtt: true,
   },
+  // Wave 2 form #6 — TWO references implement the one owner-named form
+  // ("Corporation/Partnership as Grantor"): PCT #22 (Deed-Corporation)
+  // and #29 (Deed-Partnership). Entity recitals are Flag-3 furniture;
+  // state-of-organization / partnership-type are typed officer facts;
+  // signature capacity lines ("By/And", "General Partner") are furniture
+  // verified from the references. Full deed chassis incl. the DTT gate.
+  'grant-deed-corp': {
+    slug: 'grant-deed-corp',
+    label: 'Corporation Grant Deed',
+    title: 'CORPORATION GRANT DEED',
+    description: 'Grant deed with a corporation as grantor — officers sign in capacity; full transfer-tax declaration',
+    popular: false,
+    family: 'deed',
+    sections: DEED_SECTIONS,
+    notarial: 'acknowledgment',
+    hasDtt: true,
+  },
+  'grant-deed-partnership': {
+    slug: 'grant-deed-partnership',
+    label: 'Partnership Grant Deed',
+    title: 'PARTNERSHIP GRANT DEED',
+    description: 'Grant deed with a partnership as grantor — general partners sign in capacity; full transfer-tax declaration',
+    popular: false,
+    family: 'deed',
+    sections: DEED_SECTIONS,
+    notarial: 'acknowledgment',
+    hasDtt: true,
+  },
   'affidavit-death-jt': {
     slug: 'affidavit-death-jt',
     label: 'Affidavit — Death of Joint Tenant',

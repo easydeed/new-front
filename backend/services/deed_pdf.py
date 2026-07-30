@@ -57,6 +57,9 @@ TEMPLATE_BY_DEED_TYPE = {
     # FORMS wave 2 — homestead pair (PCT references #34 and #32).
     "homestead-declaration-spouses": "homestead_declaration_spouses_ca/index.jinja2",
     "homestead-abandonment": "homestead_abandonment_ca/index.jinja2",
+    # FORMS wave 2 #6 — entity grantors (PCT references #22 and #29).
+    "grant-deed-corp": "grant_deed_corp_ca/index.jinja2",
+    "grant-deed-partnership": "grant_deed_partnership_ca/index.jinja2",
 }
 DEFAULT_TEMPLATE = "grant_deed_ca/index.jinja2"
 

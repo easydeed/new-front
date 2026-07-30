@@ -27,6 +27,7 @@ import {
   OPERATIVE_WORDS,
   EXEMPTION_RECITALS,
   FIXED_VESTING_PHRASES,
+  ENTITY_GRANTOR_RECITALS,
   TOD_NOTICE_HEAD,
   TOD_REVOCATION_STATEMENT,
   TOD_WITNESS_INSTRUCTION,
@@ -54,6 +55,8 @@ const TEMPLATE_DIRS: Record<string, string> = {
   'tax-deed': 'tax_deed_ca',
   'grant-deed-jt': 'grant_deed_jt_ca',
   'grant-deed-cp-ros': 'grant_deed_cp_ros_ca',
+  'grant-deed-corp': 'grant_deed_corp_ca',
+  'grant-deed-partnership': 'grant_deed_partnership_ca',
 };
 
 /** Normalize Jinja/HTML source for wording comparison. */
@@ -113,7 +116,7 @@ describe('preview carries no dead pre-G2 furniture', () => {
 
 describe('the same wording lives in the backend chassis templates', () => {
   const allTypes = Object.keys(TEMPLATE_DIRS);
-  const dttTypes = ['grant-deed', 'quitclaim-deed', 'warranty-deed', 'grant-deed-jt', 'grant-deed-cp-ros'];
+  const dttTypes = ['grant-deed', 'quitclaim-deed', 'warranty-deed', 'grant-deed-jt', 'grant-deed-cp-ros', 'grant-deed-corp', 'grant-deed-partnership'];
 
   it.each(allTypes)('%s: recorder caption and mail-tax directive', (dt) => {
     const t = template(dt);
@@ -146,6 +149,13 @@ describe('the same wording lives in the backend chassis templates', () => {
     expect(t).toContain(`${FIXED_VESTING_PHRASES[dt]} the real property situated in the County of`);
     expect(t).not.toContain('{{ vesting }}');
     expect(t).not.toContain('{% if vesting %}');
+  });
+
+  // Wave 2 #6: the entity-grantor recital renders verbatim in preview
+  // (by identifier) and templates (by value).
+  it.each(Object.keys(ENTITY_GRANTOR_RECITALS))('%s: entity-grantor recital furniture', (dt) => {
+    expect(template(dt)).toContain(ENTITY_GRANTOR_RECITALS[dt]);
+    expect(PANEL).toContain('ENTITY_GRANTOR_RECITALS');
   });
 
   // Wave 1 #7: the statutory revocation text renders verbatim in both the

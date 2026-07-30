@@ -20,6 +20,7 @@ import {
   OPERATIVE_WORDS,
   EXEMPTION_RECITALS,
   FIXED_VESTING_PHRASES,
+  ENTITY_GRANTOR_RECITALS,
   TOD_DTT_EXEMPTION,
   TOD_PCOR_EXEMPTION,
   TOD_NOTICE_HEAD,
@@ -674,7 +675,24 @@ export function PreviewPanel({ state, activeSection, onRegionClick }: PreviewPan
               <span onClick={go('grantor')} className={`font-bold uppercase text-[11pt] ${CLICKABLE} ${placeholder(preview.grantor)} ${dataHighlight(preview.grantor)}`}>{preview.grantor}</span>
             </div>
 
-            <p className="mb-2 text-[11pt]">{operative}</p>
+            {ENTITY_GRANTOR_RECITALS[state.deedType] ? (
+              /* Entity-grantor recital (Flag-3 furniture) + the officer's
+                 typed state-of-organization / partnership-type facts. */
+              <p className="mb-2 text-[11pt]">
+                {state.deedType === 'grant-deed-partnership' ? (
+                  <>
+                    a <span onClick={go('grantor')} className={`${CLICKABLE} ${dataHighlight(aff?.partnershipType)}`}>{aff?.partnershipType || '___________'}</span>
+                    {' '}{ENTITY_GRANTOR_RECITALS[state.deedType]}{' '}
+                  </>
+                ) : (
+                  <>{ENTITY_GRANTOR_RECITALS[state.deedType]}{' '}</>
+                )}
+                <span onClick={go('grantor')} className={`${CLICKABLE} ${dataHighlight(aff?.entityState)}`}>{aff?.entityState || '____________________'}</span>
+                {' '}{operative}
+              </p>
+            ) : (
+              <p className="mb-2 text-[11pt]">{operative}</p>
+            )}
 
             <div className={`mb-2 ${highlight('grantee')}`}>
               <span onClick={go('grantee', 'grantee')} className={`font-bold uppercase text-[11pt] ${CLICKABLE} ${placeholder(preview.grantee)} ${dataHighlight(preview.grantee)}`}>{preview.grantee}</span>

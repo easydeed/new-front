@@ -37,6 +37,17 @@ export const OPERATIVE_WORDS: Record<string, string> = {
   'tax-deed': 'does hereby grant, bargain, sell and convey to',
   'grant-deed-jt': 'hereby GRANT(S) to',
   'grant-deed-cp-ros': 'hereby GRANT(S) to',
+  'grant-deed-corp': 'hereby GRANTS to',
+  'grant-deed-partnership': 'hereby GRANTS to',
+};
+
+/** Entity-grantor recitals (wave 2 #6) — instrument-defining furniture:
+ * choosing "Corporation Grant Deed" IS declaring the grantor's kind
+ * (Flag-3). The blanks (state of organization; partnership type) are
+ * typed officer facts. Drift-pinned in preview and templates. */
+export const ENTITY_GRANTOR_RECITALS: Record<string, string> = {
+  'grant-deed-corp': 'a corporation organized under the laws of the State of',
+  'grant-deed-partnership': 'partnership organized under the laws of the State of',
 };
 
 /** Fixed-vesting phrases printed on the instrument's face (wave 1 #3/#4).
