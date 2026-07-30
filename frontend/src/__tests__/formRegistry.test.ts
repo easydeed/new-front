@@ -10,7 +10,7 @@
 import { describe, expect, it } from '@jest/globals';
 import * as fs from 'fs';
 import * as path from 'path';
-import { FORM_REGISTRY, formConfig, formFamily, hasVestingInput } from '../lib/formRegistry';
+import { FORM_REGISTRY, SITUATION_GROUP_ORDER, formConfig, formFamily, hasVestingInput } from '../lib/formRegistry';
 import { DEED_LABELS, deedTypeLabel } from '../lib/deedTypes';
 import { isAffidavitType } from '../lib/deedValidation';
 
@@ -69,6 +69,14 @@ describe('FORMS registry — completeness and coherence', () => {
       expect(f.title.length).toBeGreaterThan(3);
       for (const section of f.sections) {
         expect(KNOWN_SECTIONS.has(section)).toBe(true);
+      }
+      // CAT1: every entry carries picker metadata — a valid situation
+      // group and non-empty lowercase keywords (UI metadata only).
+      expect(SITUATION_GROUP_ORDER).toContain(f.situationGroup);
+      expect(f.keywords.length).toBeGreaterThan(0);
+      for (const k of f.keywords) {
+        expect(k).toBe(k.toLowerCase());
+        expect(k.trim().length).toBeGreaterThan(0);
       }
       // Doctrine coupling, all three families enforced structurally:
       //   affidavit   → jurat, no DTT (sworn statement)
@@ -152,7 +160,10 @@ describe('FORMS registry — the consumers derive from it', () => {
   });
 
   it('the selection page and preview read the registry', () => {
-    expect(readSource('app', 'deed-builder', 'page.tsx')).toContain('FORM_REGISTRY');
+    // CAT1: the picker reads the registry through the formSearch layer.
+    const picker = readSource('app', 'deed-builder', 'page.tsx');
+    expect(picker).toContain('formSearch');
+    expect(readSource('lib', 'formSearch.ts')).toContain('FORM_REGISTRY');
     const preview = readSource('components', 'builder', 'PreviewPanel.tsx');
     expect(preview).toContain("formConfig(state.deedType)?.title");
     expect(preview).toContain("formFamily(state.deedType)");
