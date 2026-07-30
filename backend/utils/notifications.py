@@ -111,9 +111,16 @@ def render_share_email(recipient_name: str, owner_name: str, deed_type: str, sha
 
 def send_share_notification(recipient_email: str, recipient_name: str, owner_name: str, deed_type: str, share_link: str) -> bool:
     """Send deed sharing notification email."""
+    ok, _ = send_share_notification_with_reason(recipient_email, recipient_name, owner_name, deed_type, share_link)
+    return ok
+
+
+def send_share_notification_with_reason(recipient_email: str, recipient_name: str, owner_name: str, deed_type: str, share_link: str):
+    """S1 follow-up: the share path needs the WHY, not just False."""
+    from utils.email import send_email_with_reason
     subject = f"🤝 {owner_name} shared a deed with you"
     html = render_share_email(recipient_name, owner_name, deed_type, share_link)
-    return send_email(recipient_email, subject, html)
+    return send_email_with_reason(recipient_email, subject, html)
 
 def render_deed_completion_email(user_name: str, deed_type: str, property_address: str, deed_id: int, preview_link: str) -> str:
     """Render HTML email for deed completion notification."""

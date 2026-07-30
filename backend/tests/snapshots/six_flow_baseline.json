@@ -79,6 +79,7 @@
   },
   "5_share_create": {
     "keys": [
+      "email_error",
       "email_sent",
       "message",
       "shared_deed",
