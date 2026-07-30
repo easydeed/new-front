@@ -13,6 +13,30 @@
  */
 
 export type NotarialCertificate = 'acknowledgment' | 'jurat';
+
+/**
+ * CAT1 — the picker's browse groups. DESK taxonomy, not engineering
+ * taxonomy: officers think in situations ("the husband died", "seller is
+ * an LLC"), so the groups read like escrow work — the coherence families
+ * (deed/affidavit/declaration) stay internal.
+ */
+export type SituationGroup =
+  | 'Transfer Property'
+  | 'Clear Title After a Death'
+  | 'Homestead'
+  | 'Trusts'
+  | 'Power of Attorney'
+  | 'Other Recorded Documents';
+
+/** Browse order — by desk frequency. */
+export const SITUATION_GROUP_ORDER: SituationGroup[] = [
+  'Transfer Property',
+  'Clear Title After a Death',
+  'Homestead',
+  'Trusts',
+  'Power of Attorney',
+  'Other Recorded Documents',
+];
 /**
  * deed        — two-party conveyance: acknowledgment + DTT declaration.
  * affidavit   — sworn statement: jurat, no DTT; parties aliased onto the
@@ -72,6 +96,12 @@ export interface FormTypeConfig {
   /** Officer-typed fact inputs (affidavit family only) — drives the shared
       AffidavitSection so a sibling form is registry data + a template. */
   affidavitFields?: AffidavitFieldSpec[];
+  /** CAT1 — UI METADATA ONLY: situation words + aliases for the picker's
+      type-ahead ("death", "llc", "successor"). Never structural; the
+      registry's no-legal-choice pin is untouched by these. */
+  keywords: string[];
+  /** CAT1 — the picker's browse group (desk taxonomy). */
+  situationGroup: SituationGroup;
 }
 
 const DEED_SECTIONS = ['property', 'grantor', 'grantee', 'vesting', 'transferTax', 'recording'];
@@ -132,6 +162,8 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
     title: 'GRANT DEED',
     description: 'Standard transfer of property ownership with implied warranties',
     popular: true,
+    keywords: ['transfer', 'sale', 'sell', 'convey', 'buyer', 'seller', 'purchase'],
+    situationGroup: 'Transfer Property',
     family: 'deed',
     sections: DEED_SECTIONS,
     notarial: 'acknowledgment',
@@ -143,6 +175,8 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
     title: 'QUITCLAIM DEED',
     description: 'Transfer ownership without warranties — commonly used between family members',
     popular: true,
+    keywords: ['transfer', 'quit', 'claim', 'family', 'divorce', 'remove name', 'add name'],
+    situationGroup: 'Transfer Property',
     family: 'deed',
     sections: DEED_SECTIONS,
     notarial: 'acknowledgment',
@@ -154,6 +188,8 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
     title: 'INTERSPOUSAL TRANSFER DEED',
     description: 'Transfer between spouses — exempt from documentary transfer tax',
     popular: true,
+    keywords: ['transfer', 'spouse', 'husband', 'wife', 'marriage', 'divorce', 'interspousal'],
+    situationGroup: 'Transfer Property',
     family: 'deed',
     sections: DEED_SECTIONS,
     notarial: 'acknowledgment',
@@ -165,6 +201,8 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
     title: 'WARRANTY DEED',
     description: 'Provides the strongest buyer protections with full title guarantees',
     popular: false,
+    keywords: ['transfer', 'warranty', 'guarantee', 'sale'],
+    situationGroup: 'Transfer Property',
     family: 'deed',
     sections: DEED_SECTIONS,
     notarial: 'acknowledgment',
@@ -176,6 +214,8 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
     title: 'TAX DEED',
     description: 'Transfer resulting from tax sale — typically used by government entities',
     popular: false,
+    keywords: ['transfer', 'tax sale', 'government', 'auction'],
+    situationGroup: 'Transfer Property',
     family: 'deed',
     sections: DEED_SECTIONS,
     notarial: 'acknowledgment',
@@ -188,6 +228,8 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
     title: 'JOINT TENANCY GRANT DEED',
     description: 'Grant deed conveying to two or more grantees as joint tenants — vesting printed on the face of the form',
     popular: false,
+    keywords: ['transfer', 'joint tenants', 'joint tenancy', 'survivorship', 'couple'],
+    situationGroup: 'Transfer Property',
     family: 'deed',
     sections: FIXED_VESTING_DEED_SECTIONS,
     notarial: 'acknowledgment',
@@ -201,6 +243,8 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
     subtitle: 'Community Property with Right of Survivorship',
     description: 'Grant deed conveying to spouses as community property with right of survivorship — vesting printed on the face of the form',
     popular: false,
+    keywords: ['transfer', 'community property', 'survivorship', 'spouses', 'married couple'],
+    situationGroup: 'Transfer Property',
     family: 'deed',
     sections: FIXED_VESTING_DEED_SECTIONS,
     notarial: 'acknowledgment',
@@ -218,6 +262,8 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
     title: 'CORPORATION GRANT DEED',
     description: 'Grant deed with a corporation as grantor — officers sign in capacity; full transfer-tax declaration',
     popular: false,
+    keywords: ['transfer', 'corporation', 'company', 'inc', 'entity', 'llc', 'business seller'],
+    situationGroup: 'Transfer Property',
     family: 'deed',
     sections: DEED_SECTIONS,
     notarial: 'acknowledgment',
@@ -229,6 +275,8 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
     title: 'PARTNERSHIP GRANT DEED',
     description: 'Grant deed with a partnership as grantor — general partners sign in capacity; full transfer-tax declaration',
     popular: false,
+    keywords: ['transfer', 'partnership', 'partners', 'company', 'entity', 'business seller'],
+    situationGroup: 'Transfer Property',
     family: 'deed',
     sections: DEED_SECTIONS,
     notarial: 'acknowledgment',
@@ -240,6 +288,8 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
     title: 'AFFIDAVIT — DEATH OF JOINT TENANT',
     description: 'Clears a deceased joint tenant from title — sworn statement with jurat, death certificate attached',
     popular: false,
+    keywords: ['death', 'died', 'deceased', 'survivor', 'joint tenant', 'clear title', 'death certificate'],
+    situationGroup: 'Clear Title After a Death',
     family: 'affidavit',
     sections: AFFIDAVIT_SECTIONS,
     notarial: 'jurat',
@@ -262,6 +312,8 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
     subtitle: 'Community Property with Right of Survivorship — Spouse',
     description: 'Clears a deceased spouse from community-property-with-survivorship title — sworn statement with jurat, death certificate attached',
     popular: false,
+    keywords: ['death', 'died', 'deceased', 'survivor', 'spouse', 'husband', 'wife', 'community property', 'clear title'],
+    situationGroup: 'Clear Title After a Death',
     family: 'affidavit',
     sections: AFFIDAVIT_SECTIONS,
     notarial: 'jurat',
@@ -284,6 +336,8 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
     title: 'AFFIDAVIT — DEATH OF TRUSTEE',
     description: 'Clears a deceased trustee from title held in trust — sworn by the surviving or successor trustee, death certificate attached',
     popular: false,
+    keywords: ['death', 'died', 'deceased', 'trustee', 'trust', 'successor trustee', 'clear title'],
+    situationGroup: 'Clear Title After a Death',
     family: 'affidavit',
     sections: AFFIDAVIT_SECTIONS,
     notarial: 'jurat',
@@ -308,6 +362,8 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
     subtitle: 'By Surviving Domestic Partner',
     description: 'Clears a deceased joint tenant from title, sworn by the surviving registered domestic partner (Fam C §297) — jurat, death certificate attached',
     popular: false,
+    keywords: ['death', 'died', 'deceased', 'survivor', 'domestic partner', 'joint tenant', 'clear title'],
+    situationGroup: 'Clear Title After a Death',
     family: 'affidavit',
     sections: AFFIDAVIT_SECTIONS,
     notarial: 'jurat',
@@ -332,6 +388,8 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
     subtitle: 'Community Property with Right of Survivorship — Domestic Partner',
     description: 'Clears a deceased registered domestic partner from community-property-with-survivorship title (Fam C §297) — jurat, death certificate attached',
     popular: false,
+    keywords: ['death', 'died', 'deceased', 'survivor', 'domestic partner', 'community property', 'clear title'],
+    situationGroup: 'Clear Title After a Death',
     family: 'affidavit',
     sections: AFFIDAVIT_SECTIONS,
     notarial: 'jurat',
@@ -356,6 +414,8 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
     subtitle: '(Individual)',
     description: 'Declares a homestead on the owner’s principal dwelling (CCP §704.930) — acknowledged and recorded',
     popular: false,
+    keywords: ['homestead', 'protect home', 'equity', 'declaration', 'individual owner'],
+    situationGroup: 'Homestead',
     family: 'declaration',
     sections: DECLARATION_SECTIONS,
     notarial: 'acknowledgment',
@@ -381,6 +441,8 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
     subtitle: '(Spouses as Declared Owners)',
     description: 'Spouses declare a homestead on their principal dwelling (CCP §704.930) — acknowledged and recorded',
     popular: false,
+    keywords: ['homestead', 'protect home', 'equity', 'spouses', 'married couple'],
+    situationGroup: 'Homestead',
     family: 'declaration',
     sections: DECLARATION_SECTIONS,
     notarial: 'acknowledgment',
@@ -412,6 +474,8 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
     title: 'DECLARATION OF ABANDONMENT OF DECLARED HOMESTEAD',
     description: 'Abandons a previously recorded homestead declaration — acknowledged; identifies the prior declaration by its recording reference',
     popular: false,
+    keywords: ['homestead', 'abandon', 'abandonment', 'remove homestead', 'cancel homestead'],
+    situationGroup: 'Homestead',
     family: 'declaration',
     sections: DECLARATION_SECTIONS,
     notarial: 'acknowledgment',
@@ -441,6 +505,8 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
     subtitle: 'California Probate Code Section 18100.5',
     description: 'Certifies a trust’s existence and the trustees’ authority (Prob C §18100.5) — acknowledged; no property description',
     popular: false,
+    keywords: ['trust', 'certification', 'trustee', 'settlor', 'probate 18100.5', 'title company'],
+    situationGroup: 'Trusts',
     family: 'declaration',
     sections: PROPERTYLESS_DECLARATION_SECTIONS,
     notarial: 'acknowledgment',
@@ -483,6 +549,8 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
     subtitle: '(California Probate Code § 5600)',
     description: 'Revokes a recorded transfer on death deed — statutory form; must be recorded within 60 days of notarization',
     popular: false,
+    keywords: ['revoke', 'revocation', 'transfer on death', 'tod', 'beneficiary deed', 'cancel'],
+    situationGroup: 'Other Recorded Documents',
     family: 'declaration',
     sections: DECLARATION_SECTIONS,
     notarial: 'acknowledgment',
@@ -511,6 +579,8 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
     subtitle: '(California Probate Code Section 4401)',
     description: 'The §4401 statutory power of attorney, recordable — the principal initials powers and signs before a notary',
     popular: false,
+    keywords: ['power of attorney', 'poa', 'agent', 'attorney-in-fact', 'authority', 'principal', 'statutory'],
+    situationGroup: 'Power of Attorney',
     family: 'declaration',
     sections: PROPERTYLESS_DECLARATION_SECTIONS,
     notarial: 'acknowledgment',
@@ -544,6 +614,8 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
     title: 'SUBSTITUTION OF TRUSTEE',
     description: 'The beneficiary under a recorded deed of trust substitutes a new trustee — acknowledged and recorded',
     popular: false,
+    keywords: ['trust', 'trustee', 'substitute', 'substitution', 'deed of trust', 'beneficiary', 'lender'],
+    situationGroup: 'Trusts',
     family: 'declaration',
     sections: DECLARATION_SECTIONS,
     notarial: 'acknowledgment',
