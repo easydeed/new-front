@@ -245,6 +245,7 @@ export function TransferTaxSection({
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
               <input
                 type="text"
+                data-builder-field="dtt-value"
                 value={value.transferValue}
                 onChange={(e) => {
                   const raw = e.target.value.replace(/[^0-9]/g, "")
@@ -311,6 +312,7 @@ export function TransferTaxSection({
               </label>
               <input
                 id="dtt-city"
+                data-builder-field="dtt-city"
                 type="text"
                 value={value.cityName || ""}
                 onChange={(e) => manual({ ...value, cityName: e.target.value })}

@@ -303,6 +303,23 @@ function DeedBuilderInner({ deedType, initialProperty, resumeDeedId }: DeedBuild
     setExpandedSection(sectionId);
   };
 
+  // D3 click-to-fix: a click on a preview data region opens its section;
+  // where a plain input exists it also receives focus (data-builder-field
+  // anchors). Provenance-card fields open at section level — the card is
+  // the affordance there.
+  const handleRegionClick = useCallback((section: string, field?: string) => {
+    setExpandedSection(section);
+    if (!field) return;
+    // Wait out the accordion expansion before focusing.
+    setTimeout(() => {
+      const el = document.querySelector<HTMLElement>(`[data-builder-field="${field}"]`);
+      if (el) {
+        el.focus();
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 350);
+  }, []);
+
   const performGenerate = async (genState: DeedBuilderState) => {
     setIsGenerating(true);
     try {
@@ -386,7 +403,11 @@ function DeedBuilderInner({ deedType, initialProperty, resumeDeedId }: DeedBuild
         </div>
 
         <div className="flex-1">
-          <PreviewPanel state={state} activeSection={expandedSection} />
+          <PreviewPanel
+            state={state}
+            activeSection={expandedSection}
+            onRegionClick={handleRegionClick}
+          />
         </div>
       </div>
 

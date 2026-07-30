@@ -24,6 +24,9 @@ import {
 interface PreviewPanelProps {
   state: DeedBuilderState;
   activeSection: string;
+  /** D3 click-to-fix: clicking a data region opens its section (and
+      focuses the matching input where one exists). Preview-only. */
+  onRegionClick?: (section: string, field?: string) => void;
 }
 
 const DEED_TITLES: Record<string, string> = {
@@ -42,7 +45,7 @@ function Checkline({ marked }: { marked: boolean }) {
   );
 }
 
-export function PreviewPanel({ state, activeSection }: PreviewPanelProps) {
+export function PreviewPanel({ state, activeSection, onRegionClick }: PreviewPanelProps) {
   const preview = useMemo(() => ({
     requestedBy: state.requestedBy || '[Recording Requested By]',
     requestedByAddress: state.requestedByAddress || '',
@@ -107,6 +110,15 @@ export function PreviewPanel({ state, activeSection }: PreviewPanelProps) {
       ? 'bg-brand-50 text-brand-900 px-0.5 rounded'
       : '';
 
+  // D3: click-to-fix. Every data region is clickable — real values jump
+  // to their field ("fix"), placeholders jump to the empty field ("fill");
+  // one gesture either way. Sections whose data lives in provenance cards
+  // (grantor, APN, legal description) open at SECTION level: the card IS
+  // the affordance there, and faking an input focus would mislead.
+  const go = (section: string, field?: string) =>
+    onRegionClick ? () => onRegionClick(section, field) : undefined;
+  const CLICKABLE = onRegionClick ? 'cursor-pointer hover:ring-1 hover:ring-brand-300' : '';
+
   return (
     <div className="h-full bg-gray-200 p-6 overflow-y-auto">
       <div className="max-w-3xl mx-auto">
@@ -118,11 +130,11 @@ export function PreviewPanel({ state, activeSection }: PreviewPanelProps) {
               <div className={`w-[55%] border-r border-black pr-3 ${highlight('recording')}`}>
                 <div className="text-[9px] font-bold uppercase tracking-wide">Recording Requested By:</div>
                 <div className="min-h-[0.3in] mb-2">
-                  <span className={`text-[10px] ${placeholder(preview.requestedBy)} ${dataHighlight(preview.requestedBy)}`}>{preview.requestedBy}</span>
+                  <span onClick={go('recording', 'requested-by')} className={`text-[10px] ${CLICKABLE} ${placeholder(preview.requestedBy)} ${dataHighlight(preview.requestedBy)}`}>{preview.requestedBy}</span>
                   {/* D2: the requesting party's address prints under their
                       name — same treatment as the mail-to block. */}
                   {preview.requestedByAddress && (
-                    <span className={`block text-[10px] ${dataHighlight(preview.requestedByAddress)}`}>{preview.requestedByAddress}</span>
+                    <span onClick={go('recording', 'requested-by-address')} className={`block text-[10px] ${CLICKABLE} ${dataHighlight(preview.requestedByAddress)}`}>{preview.requestedByAddress}</span>
                   )}
                 </div>
 
@@ -130,20 +142,20 @@ export function PreviewPanel({ state, activeSection }: PreviewPanelProps) {
                   Mail Tax Statements and<br />When Recorded Mail To:
                 </div>
                 <div className="min-h-[0.3in] mb-2">
-                  <span className={`text-[10px] ${placeholder(preview.returnTo)} ${dataHighlight(preview.returnTo)}`}>{preview.returnTo}</span>
+                  <span onClick={go('recording')} className={`text-[10px] ${CLICKABLE} ${placeholder(preview.returnTo)} ${dataHighlight(preview.returnTo)}`}>{preview.returnTo}</span>
                   {preview.returnToLines.map((line) => (
-                    <span key={line} className={`block text-[10px] ${dataHighlight(line)}`}>{line}</span>
+                    <span key={line} onClick={go('recording')} className={`block text-[10px] ${CLICKABLE} ${dataHighlight(line)}`}>{line}</span>
                   ))}
                 </div>
 
                 <div className="text-[10px]">
                   Order No.: {preview.titleOrderNo
-                    ? <span className={dataHighlight(preview.titleOrderNo)}>{preview.titleOrderNo}</span>
+                    ? <span onClick={go('recording', 'title-order-no')} className={`${CLICKABLE} ${dataHighlight(preview.titleOrderNo)}`}>{preview.titleOrderNo}</span>
                     : '____________'}
                 </div>
                 <div className="text-[10px]">
                   Escrow No.: {preview.escrowNo
-                    ? <span className={dataHighlight(preview.escrowNo)}>{preview.escrowNo}</span>
+                    ? <span onClick={go('recording', 'escrow-no')} className={`${CLICKABLE} ${dataHighlight(preview.escrowNo)}`}>{preview.escrowNo}</span>
                     : '____________'}
                 </div>
               </div>
@@ -155,7 +167,7 @@ export function PreviewPanel({ state, activeSection }: PreviewPanelProps) {
             {/* Boundary row: APN left, recorder caption right, rule under */}
             <div className="flex justify-between items-baseline border-b border-black pb-0.5 mb-3">
               <span className={`text-[10px] font-bold ${highlight('property')}`}>
-                APN: <span className={`font-mono tracking-wide ${dataHighlight(preview.apn)}`}>{preview.apn || '____________'}</span>
+                APN: <span onClick={go('property')} className={`font-mono tracking-wide ${CLICKABLE} ${dataHighlight(preview.apn)}`}>{preview.apn || '____________'}</span>
               </span>
               <span className="text-[7.5px] font-bold uppercase">{RECORDER_CAPTION}</span>
             </div>
@@ -177,7 +189,7 @@ export function PreviewPanel({ state, activeSection }: PreviewPanelProps) {
                   <span>{DTT_LEAD}</span>
                   <span>
                     {DTT_AMOUNT_LABEL}{' '}
-                    <span className={`inline-block min-w-[1.2in] border-b border-black text-center ${dataHighlight(dttAmount)}`}>
+                    <span onClick={go('transferTax', 'dtt-value')} className={`inline-block min-w-[1.2in] border-b border-black text-center ${CLICKABLE} ${dataHighlight(dttAmount)}`}>
                       ${dttAmount}
                     </span>
                   </span>
@@ -195,7 +207,7 @@ export function PreviewPanel({ state, activeSection }: PreviewPanelProps) {
                   {DTT_AREA_UNINCORPORATED}{'   '}
                   <Checkline marked={!!dtt && dtt.areaType === 'city'} />
                   City of{' '}
-                  <span className={`inline-block min-w-[1.2in] border-b border-black text-center ${dataHighlight(dtt?.areaType === 'city' ? dtt.cityName : '')}`}>
+                  <span onClick={go('transferTax', 'dtt-city')} className={`inline-block min-w-[1.2in] border-b border-black text-center ${CLICKABLE} ${dataHighlight(dtt?.areaType === 'city' ? dtt.cityName : '')}`}>
                     {dtt?.areaType === 'city' ? dtt.cityName || '' : ''}
                   </span>
                 </div>
@@ -211,35 +223,35 @@ export function PreviewPanel({ state, activeSection }: PreviewPanelProps) {
             </p>
 
             <div className={`mb-2 ${highlight('grantor')}`}>
-              <span className={`font-bold uppercase text-[11pt] ${placeholder(preview.grantor)} ${dataHighlight(preview.grantor)}`}>{preview.grantor}</span>
+              <span onClick={go('grantor')} className={`font-bold uppercase text-[11pt] ${CLICKABLE} ${placeholder(preview.grantor)} ${dataHighlight(preview.grantor)}`}>{preview.grantor}</span>
             </div>
 
             <p className="mb-2 text-[11pt]">{operative}</p>
 
             <div className={`mb-2 ${highlight('grantee')}`}>
-              <span className={`font-bold uppercase text-[11pt] ${placeholder(preview.grantee)} ${dataHighlight(preview.grantee)}`}>{preview.grantee}</span>
+              <span onClick={go('grantee', 'grantee')} className={`font-bold uppercase text-[11pt] ${CLICKABLE} ${placeholder(preview.grantee)} ${dataHighlight(preview.grantee)}`}>{preview.grantee}</span>
               {preview.vesting && (
-                <span className={`text-[11pt] ${highlight('vesting')} ${dataHighlight(preview.vesting)}`}>, {preview.vesting}</span>
+                <span onClick={go('vesting')} className={`text-[11pt] ${CLICKABLE} ${highlight('vesting')} ${dataHighlight(preview.vesting)}`}>, {preview.vesting}</span>
               )}
             </div>
 
             <p className="mb-2 text-[11pt]">
               the real property situated in the County of{' '}
-              <span className={`font-bold ${placeholder(preview.county)} ${dataHighlight(preview.county)}`}>{preview.county}</span>,
+              <span onClick={go('property')} className={`font-bold ${CLICKABLE} ${placeholder(preview.county)} ${dataHighlight(preview.county)}`}>{preview.county}</span>,
               State of California, more particularly described as follows:
             </p>
 
             {/* Legal description — plain text, no box; D1: bolded like the
                 parties, mirroring the chassis .legal-content weight. */}
             <div className={`mb-3 ${highlight('property')}`}>
-              <span className={`font-bold text-[10.5pt] whitespace-pre-wrap ${placeholder(preview.legalDescription)} ${dataHighlight(preview.legalDescription)}`}>
+              <span onClick={go('property')} className={`font-bold text-[10.5pt] whitespace-pre-wrap ${CLICKABLE} ${placeholder(preview.legalDescription)} ${dataHighlight(preview.legalDescription)}`}>
                 {preview.legalDescription}
               </span>
             </div>
 
             {preview.apn && (
               <div className={`mb-4 text-[10.5pt] font-bold ${highlight('property')}`}>
-                Assessor&rsquo;s Parcel Number: <span className={`font-mono tracking-wider ${dataHighlight(preview.apn)}`}>{preview.apn}</span>
+                Assessor&rsquo;s Parcel Number: <span onClick={go('property')} className={`font-mono tracking-wider ${CLICKABLE} ${dataHighlight(preview.apn)}`}>{preview.apn}</span>
               </div>
             )}
 
