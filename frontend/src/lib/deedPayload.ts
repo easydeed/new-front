@@ -57,11 +57,19 @@ export function buildDeedPayload(genState: DeedBuilderState) {
     escrow_no: genState.escrowNo || '',
     affidavit: isAffidavit && aff
       ? {
+          // Superset of all affidavit variants — each template reads only
+          // the keys its recital carries; unused keys stay empty strings.
           affiant_name: aff.affiantName || '',
           decedent_name: aff.decedentName || '',
           jt_deed_date: aff.jtDeedDate || '',
           jt_deed_grantor: aff.jtDeedGrantor || '',
           jt_deed_grantees: aff.jtDeedGrantees || '',
+          death_date: aff.deathDate || '',
+          death_place: aff.deathPlace || '',
+          deed_date: aff.deedDate || '',
+          deed_grantor: aff.deedGrantor || '',
+          trust_date: aff.trustDate || '',
+          trustors: aff.trustors || '',
           recording_date: aff.recordingDate || '',
           instrument_no: aff.instrumentNo || '',
         }

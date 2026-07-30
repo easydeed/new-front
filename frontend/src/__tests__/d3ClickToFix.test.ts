@@ -51,13 +51,15 @@ describe('D3 — every preview data region is clickable with a valid mapping', (
     const fields = gos.map((m) => m[2]).filter(Boolean) as string[];
     expect(fields.length).toBeGreaterThanOrEqual(5);
     const affidavitSrc = readSource('components', 'builder', 'sections', 'AffidavitSection.tsx');
+    const registrySrc = readSource('lib', 'formRegistry.ts');
     for (const field of new Set(fields)) {
       if (field.startsWith('affidavit-')) {
-        // FORMS-SPIKE: AffidavitSection stamps its anchors dynamically
-        // (data-builder-field={`affidavit-${key}`}); assert the pattern
-        // and that the key is a real AffidavitFacts field.
+        // FORMS: AffidavitSection stamps its anchors dynamically
+        // (data-builder-field={`affidavit-${key}`}) from the registry's
+        // affidavitFields specs; assert the pattern and that the key is
+        // a declared spec key.
         expect(affidavitSrc).toContain('data-builder-field={`affidavit-${key}`}');
-        expect(affidavitSrc).toContain(`'${field.replace('affidavit-', '')}'`);
+        expect(registrySrc).toContain(`'${field.replace('affidavit-', '')}'`);
         continue;
       }
       const anchor = FIELD_ANCHORS.find(([name]) => name === field);

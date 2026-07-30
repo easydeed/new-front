@@ -23,9 +23,12 @@ const KNOWN_SECTIONS = new Set(['property', 'grantor', 'grantee', 'vesting', 'tr
 describe('FORMS registry — completeness and coherence', () => {
   const entries = Object.values(FORM_REGISTRY);
 
-  it('carries the six shipped types', () => {
-    expect(entries.length).toBe(6);
+  it('carries the eight shipped types', () => {
+    expect(entries.length).toBe(8);
     expect(formConfig('affidavit-death-jt')?.family).toBe('affidavit');
+    // Wave 1 siblings (owner-ranked #1 and #2):
+    expect(formConfig('affidavit-death-cp-spouse')?.family).toBe('affidavit');
+    expect(formConfig('affidavit-death-trustee')?.family).toBe('affidavit');
   });
 
   it('every entry is internally coherent', () => {
@@ -42,6 +45,20 @@ describe('FORMS registry — completeness and coherence', () => {
         expect(f.notarial).toBe('jurat');
         expect(f.hasDtt).toBe(false);
         expect(f.sections).toContain('affidavit');
+        // The shared AffidavitSection renders from these specs — every
+        // sworn form must declare its officer-typed facts, always
+        // including the common four (who swears, who died, and the
+        // recorded instrument's date + number).
+        const keys = (f.affidavitFields ?? []).map((s) => s.key);
+        for (const common of ['affiantName', 'decedentName', 'recordingDate', 'instrumentNo']) {
+          expect(keys).toContain(common);
+        }
+        // Field specs describe INPUTS (label/placeholder/grouping) — a
+        // spec with a value would be a smuggled prefill.
+        for (const spec of f.affidavitFields ?? []) {
+          expect(Object.keys(spec)).not.toContain('value');
+          expect(Object.keys(spec)).not.toContain('default');
+        }
       } else {
         expect(f.notarial).toBe('acknowledgment');
         expect(f.hasDtt).toBe(true);
@@ -87,11 +104,13 @@ describe('FORMS registry — the consumers derive from it', () => {
 });
 
 describe('FORMS flag-4 ruling — the companion notice is passive guidance', () => {
-  it('the affidavit carries the BOE-502-D notice with the state link', () => {
-    const notice = formConfig('affidavit-death-jt')?.companionNotice;
-    expect(notice).toBeDefined();
-    expect(notice!.text).toContain('BOE-502-D');
-    expect(notice!.href).toContain('boe.ca.gov');
+  it('every death affidavit carries the BOE-502-D notice with the state link', () => {
+    for (const slug of ['affidavit-death-jt', 'affidavit-death-cp-spouse', 'affidavit-death-trustee']) {
+      const notice = formConfig(slug)?.companionNotice;
+      expect(notice).toBeDefined();
+      expect(notice!.text).toContain('BOE-502-D');
+      expect(notice!.href).toContain('boe.ca.gov');
+    }
   });
 
   it('the success page renders it as guidance — never a block', () => {

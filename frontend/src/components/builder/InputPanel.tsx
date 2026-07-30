@@ -113,11 +113,12 @@ export function InputPanel({
           id="affidavit"
           title="Affidavit Facts"
           status={statuses.affidavit}
-          preview={state.affidavit?.decedentName || 'Decedent, affiant, and the JT deed reference'}
+          preview={state.affidavit?.decedentName || 'Decedent, affiant, and the recorded-instrument reference'}
           isExpanded={expandedSection === 'affidavit'}
           onToggle={() => toggleSection('affidavit')}
         >
           <AffidavitSection
+            deedType={state.deedType}
             value={state.affidavit}
             onChange={(affidavit) => onChange({ affidavit })}
           />

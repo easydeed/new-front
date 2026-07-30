@@ -174,6 +174,12 @@ export function hydrateStateFromDeedRow(row: Record<string, any>): ResumeResult 
           jtDeedDate: meta.affidavit.jt_deed_date || '',
           jtDeedGrantor: meta.affidavit.jt_deed_grantor || '',
           jtDeedGrantees: meta.affidavit.jt_deed_grantees || '',
+          deathDate: meta.affidavit.death_date || '',
+          deathPlace: meta.affidavit.death_place || '',
+          deedDate: meta.affidavit.deed_date || '',
+          deedGrantor: meta.affidavit.deed_grantor || '',
+          trustDate: meta.affidavit.trust_date || '',
+          trustors: meta.affidavit.trustors || '',
           recordingDate: meta.affidavit.recording_date || '',
           instrumentNo: meta.affidavit.instrument_no || '',
         }

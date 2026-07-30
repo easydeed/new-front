@@ -58,10 +58,13 @@ export function evaluateSubstantive(state: DeedBuilderState): CheckResult[] {
         sectionId: 'affidavit',
       },
       {
-        id: 'jt_deed_reference',
-        label: 'Joint-tenancy deed recording reference',
+        // Common to every affidavit-of-death variant: the recorded
+        // instrument the decedent held title under (JT deed, CP deed, or
+        // the deed to the trustee) is identified by its recording data.
+        id: 'recorded_instrument_reference',
+        label: 'Recorded deed reference',
         ok: !!aff?.instrumentNo?.trim() && !!aff?.recordingDate?.trim(),
-        detail: 'The recorded JT deed is identified by its recording date and instrument number.',
+        detail: 'The recorded deed is identified by its recording date and instrument number.',
         sectionId: 'affidavit',
       },
       {
