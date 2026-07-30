@@ -23,8 +23,12 @@ const KNOWN_SECTIONS = new Set(['property', 'grantor', 'grantee', 'vesting', 'tr
 describe('FORMS registry — completeness and coherence', () => {
   const entries = Object.values(FORM_REGISTRY);
 
-  it('carries the fifteen shipped types', () => {
-    expect(entries.length).toBe(15);
+  it('carries the seventeen shipped types', () => {
+    expect(entries.length).toBe(17);
+    // Wave 2 #4/#5 — homestead pair (acknowledgment verified from the
+    // references; spouses = two declarants in parties JSONB):
+    expect(formConfig('homestead-declaration-spouses')?.family).toBe('declaration');
+    expect(formConfig('homestead-abandonment')?.family).toBe('declaration');
     // Wave 2 #2/#3 — domestic-partner affidavit variants (jurat verified
     // from the references; §297 recital is Flag-3 furniture):
     expect(formConfig('affidavit-death-jt-dp')?.family).toBe('affidavit');

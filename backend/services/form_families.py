@@ -35,6 +35,8 @@ FAMILY_BY_DEED_TYPE = {
     "homestead-declaration": "declaration",
     "trust-certification": "declaration",
     "tod-revocation": "declaration",
+    "homestead-declaration-spouses": "declaration",
+    "homestead-abandonment": "declaration",
 }
 
 SINGLE_PARTY_FAMILIES = {"declaration"}
