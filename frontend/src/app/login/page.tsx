@@ -14,17 +14,15 @@ import Link from "next/link"
 import { AuthManager } from "../../utils/auth"
 import { Eye, EyeOff, AlertCircle, CheckCircle2, Zap, Copy, Check, ShieldCheck, FileCheck2, Landmark, ScrollText } from "lucide-react"
 
-// X0 (security hotfix): demo credentials NEVER ship in source or in a
-// production bundle. The always-visible card was a deliberate convenience
-// decision (#48/#55) reversed by the round-2 security audit. The card now
-// renders ONLY in local dev, with values from untracked env
-// (.env.local: NEXT_PUBLIC_DEMO_EMAIL / NEXT_PUBLIC_DEMO_PASSWORD) —
-// NODE_ENV is inlined at build time, so production builds eliminate the
-// entire branch, and Vercel doesn't define the vars regardless.
+// Demo credentials: values live ONLY in env (never in git — X0's rule
+// stands). Pre-launch, the owner sets NEXT_PUBLIC_DEMO_EMAIL/PASSWORD on
+// Vercel and the card shows on the production login page (owner decision,
+// 2026-07-29: visible until launch); deleting the vars + redeploying
+// removes it with no code change. NEXT_PUBLIC_* values are inlined at
+// build time, so a redeploy is needed for changes to take effect.
 const DEMO_EMAIL = process.env.NEXT_PUBLIC_DEMO_EMAIL || ""
 const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD || ""
-const SHOW_DEMO_CARD =
-  process.env.NODE_ENV === "development" && !!DEMO_EMAIL && !!DEMO_PASSWORD
+const SHOW_DEMO_CARD = !!DEMO_EMAIL && !!DEMO_PASSWORD
 
 function LoginContent() {
   const [formData, setFormData] = useState({ email: "", password: "" })
@@ -277,8 +275,8 @@ function LoginContent() {
               </button>
             </form>
 
-            {/* Demo credentials — LOCAL DEV ONLY (X0). The prod build
-                dead-code-eliminates this branch via the inlined NODE_ENV. */}
+            {/* Demo credentials — rendered only when the env vars are set
+                (pre-launch convenience; values never live in source). */}
             {SHOW_DEMO_CARD && (
             <div className="border border-gray-200 rounded-xl overflow-hidden">
               <button
