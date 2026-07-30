@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
       escrow_no: payload.escrow_no || null,
       return_to: payload.return_to || null,
       provenance: payload.provenance || null,
+      affidavit: payload.affidavit || null,
     };
 
     const authHeader = req.headers.get('authorization');

@@ -10,6 +10,8 @@ import { GranteeSection } from './sections/GranteeSection';
 import { VestingSection } from './sections/VestingSection';
 import { TransferTaxSection } from './sections/TransferTaxSection';
 import { RecordingSection } from './sections/RecordingSection';
+import { AffidavitSection } from './sections/AffidavitSection';
+import { isAffidavitType } from '@/lib/deedValidation';
 import { DeedBuilderState } from '@/types/builder';
 
 interface InputPanelProps {
@@ -102,10 +104,26 @@ export function InputPanel({
           <PropertySection
             value={state.property}
             onChange={(property) => onChange({ property })}
-            onComplete={() => toggleSection('grantor')}
+            onComplete={() => toggleSection(isAffidavitType(state.deedType) ? 'affidavit' : 'grantor')}
           />
         </InputSection>
 
+        {isAffidavitType(state.deedType) ? (
+        <InputSection
+          id="affidavit"
+          title="Affidavit Facts"
+          status={statuses.affidavit}
+          preview={state.affidavit?.decedentName || 'Decedent, affiant, and the JT deed reference'}
+          isExpanded={expandedSection === 'affidavit'}
+          onToggle={() => toggleSection('affidavit')}
+        >
+          <AffidavitSection
+            value={state.affidavit}
+            onChange={(affidavit) => onChange({ affidavit })}
+          />
+          <SectionNext to="recording" label="Next: Recording Info" />
+        </InputSection>
+        ) : (<>
         <InputSection
           id="grantor"
           title="Grantor"
@@ -190,6 +208,7 @@ export function InputPanel({
           />
           <SectionNext to="recording" label="Next: Recording Info" />
         </InputSection>
+        </>)}
 
         <InputSection
           id="recording"

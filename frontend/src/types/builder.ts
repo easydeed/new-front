@@ -67,6 +67,16 @@ export interface DTTData {
   cityName?: string;
 }
 
+export interface AffidavitFacts {
+  affiantName: string;
+  decedentName: string;
+  jtDeedDate: string;
+  jtDeedGrantor: string;
+  jtDeedGrantees: string;
+  recordingDate: string;
+  instrumentNo: string;
+}
+
 export interface DeedBuilderState {
   deedType: string;
   property: PropertyData | null;
@@ -93,6 +103,8 @@ export interface DeedBuilderState {
    * confirmations.
    */
   preflightOverrides?: Record<string, string>;
+  /** FORMS-SPIKE: affidavit-of-death facts (affidavit-death-jt type). */
+  affidavit?: AffidavitFacts;
   requestedBy: string;
   /** D2: the requesting party's mailing address (one line, optional). */
   requestedByAddress?: string;

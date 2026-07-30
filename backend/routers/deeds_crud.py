@@ -59,6 +59,9 @@ class DeedCreate(BaseModel):
     property_state: Optional[str] = Field(default=None)
     property_zip: Optional[str] = Field(default=None)
     current_owner: Optional[str] = Field(default=None, description="Owner per county records (prefill source)")
+    # FORMS-SPIKE: affidavit-of-death facts (affiant, decedent, JT-deed
+    # recording reference) — persisted into metadata.affidavit.
+    affidavit: Optional[Dict] = Field(default=None, description="Affidavit facts for affidavit-type instruments")
     # Ticket R: present when regenerating a RESUMED DRAFT — updates that
     # row instead of inserting a new one. Drafts only; completed deeds are
     # immutable (their PDF is stored) and deleted stays deleted.
@@ -99,6 +102,7 @@ class DraftSave(BaseModel):
     property_state: Optional[str] = None
     property_zip: Optional[str] = None
     current_owner: Optional[str] = None
+    affidavit: Optional[Dict] = None
 
     class Config:
         extra = "ignore"

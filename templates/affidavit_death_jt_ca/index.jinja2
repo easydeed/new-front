@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Affidavit - Death of Joint Tenant - California</title>
+    <style>
+        /* ==========================================================================
+           AFFIDAVIT — DEATH OF JOINT TENANT (FORMS-SPIKE)
+
+           First non-deed instrument on the G2/G3 chassis. Reference
+           implementation: Pacific Coast Title blank form #4 (Aff_Death-JT),
+           measured with pdfplumber (letter page; recorder caption at the
+           header boundary ~192pt; title immediately below; jurat in the
+           lower half; ATTACH directive at the foot).
+
+           Chassis rules carried over verbatim:
+           - Gov. Code §27361.6 recorder's space top-right, open, caption at
+             the boundary; §27361.7 no chrome on recorded pages.
+           - Blank-contents doctrine: the affiant's execution and every
+             notarial entry stay blank — we generate the form, never the
+             sworn or notarial contents.
+           DELIBERATE DIFFERENCES from the deed chassis (reference-faithful):
+           - No DTT declaration: an affidavit of death is not a conveyance;
+             title passes by survivorship. The reference carries no tax block.
+           - No mail-tax directive; the header reads AND WHEN RECORDED MAIL
+             TO (there is no tax statement to direct).
+           - Jurat (Gov C §8202), NOT an acknowledgment (§1189): affidavits
+             are sworn statements — wrong-certificate is a real defect class.
+           ========================================================================== */
+
+        @page {
+            size: letter;
+            margin: 0.5in 0.5in 0.6in 0.6in;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: "Times New Roman", Times, Georgia, serif;
+            font-size: 11pt;
+            line-height: 1.35;
+            color: #000;
+            background: #fff;
+        }
+
+        .header-section { display: flex; min-height: 1.85in; }
+
+        .recording-info {
+            width: 3.4in;
+            flex-shrink: 0;
+            border-right: 0.75pt solid #000;
+            padding-right: 0.15in;
+            font-size: 10pt;
+            line-height: 1.35;
+        }
+
+        .recorder-space { flex-grow: 1; }
+
+        .recording-label {
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 9pt;
+        }
+
+        .recording-value { margin-bottom: 0.12in; min-height: 0.35in; }
+
+        .ref-line { font-size: 10pt; }
+
+        .header-boundary {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            border-bottom: 0.75pt solid #000;
+            padding-bottom: 0.03in;
+            margin-bottom: 0.12in;
+        }
+
+        .apn-ref { font-weight: bold; font-size: 10pt; }
+
+        .recorder-caption {
+            font-size: 7.5pt;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .deed-title {
+            text-align: center;
+            font-size: 14pt;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin: 0.1in 0 0.14in 0;
+        }
+
+        .affidavit-body {
+            font-size: 11pt;
+            line-height: 1.55;
+            text-align: justify;
+        }
+
+        .affidavit-body p { margin-bottom: 0.12in; }
+
+        .fact {
+            /* Officer-supplied facts render bold like the deed parties; a
+               missing fact renders as the reference's blank line so an
+               incomplete instrument LOOKS incomplete. */
+            font-weight: bold;
+        }
+
+        .fact-line {
+            display: inline-block;
+            min-width: 2.2in;
+            border-bottom: 1px solid #000;
+        }
+
+        .legal-content {
+            font-weight: bold;
+            white-space: pre-wrap;
+            margin: 0.1in 0;
+            min-height: 0.55in;
+        }
+
+        .execution-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: 0.12in;
+            margin-bottom: 0.05in;
+        }
+
+        .signature-line {
+            border-bottom: 1px solid #000;
+            width: 3.2in;
+            height: 0.35in;
+        }
+
+        .attach-directive {
+            text-align: center;
+            font-size: 10pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-top: 0.12in;
+        }
+    </style>
+</head>
+<body>
+    <div class="deed-page">
+
+        <header class="header-section">
+            <div class="recording-info">
+                <div class="recording-label">Recording Requested By:</div>
+                <div class="recording-value">{{ requested_by or '' }}{% if requested_by_address %}<br>{{ requested_by_address }}{% endif %}</div>
+
+                <div class="recording-label">And When Recorded Mail To:</div>
+                <div class="recording-value">
+                    {% if return_to %}
+                        {% if return_to.get('name') %}{{ return_to.get('name') }}<br>{% endif %}
+                        {% if return_to.get('company') %}{{ return_to.get('company') }}<br>{% endif %}
+                        {% if return_to.get('address1') %}{{ return_to.get('address1') }}<br>{% endif %}
+                        {% if return_to.get('address2') %}{{ return_to.get('address2') }}<br>{% endif %}
+                        {% set city = return_to.get('city', '') %}
+                        {% set state = return_to.get('state', '') %}
+                        {% set zip = return_to.get('zip', '') %}
+                        {% if city or state or zip %}
+                            {{ city }}{% if city and (state or zip) %}, {% endif %}{{ state }} {{ zip }}
+                        {% endif %}
+                    {% else %}
+                        _________________________________<br>
+                        _________________________________<br>
+                        _________________________________
+                    {% endif %}
+                </div>
+
+                <div class="ref-line">Order No.: {{ title_order_no or '____________________' }}</div>
+                <div class="ref-line">Escrow No.: {{ escrow_no or '____________________' }}</div>
+            </div>
+
+            <div class="recorder-space"><!-- Gov. Code §27361.6 — recorder's use only --></div>
+        </header>
+
+        <div class="header-boundary">
+            <span class="apn-ref">APN: {{ apn or '____________________' }}</span>
+            <span class="recorder-caption">Space Above This Line Is For Recorder&rsquo;s Use</span>
+        </div>
+
+        <h1 class="deed-title">Affidavit &mdash; Death of Joint Tenant</h1>
+
+        {% set aff = affidavit or {} %}
+        <div class="affidavit-body">
+            <p>
+                {% if aff.get('affiant_name') %}<span class="fact">{{ aff.get('affiant_name') }}</span>{% else %}<span class="fact-line">&nbsp;</span>{% endif %},
+                of legal age, being first duly sworn, deposes and says:
+            </p>
+            <p>
+                {% if aff.get('decedent_name') %}<span class="fact">{{ aff.get('decedent_name') }}</span>{% else %}<span class="fact-line">&nbsp;</span>{% endif %}
+                is the decedent mentioned in the attached certified copy of Certificate of Death,
+                and is the same person who is named as one of the parties in that certain deed
+                dated {% if aff.get('jt_deed_date') %}<span class="fact">{{ aff.get('jt_deed_date') }}</span>{% else %}<span class="fact-line" style="min-width:1.4in">&nbsp;</span>{% endif %},
+                executed by {% if aff.get('jt_deed_grantor') %}<span class="fact">{{ aff.get('jt_deed_grantor') }}</span>{% else %}<span class="fact-line">&nbsp;</span>{% endif %}
+                to {% if aff.get('jt_deed_grantees') %}<span class="fact">{{ aff.get('jt_deed_grantees') }}</span>{% else %}<span class="fact-line">&nbsp;</span>{% endif %}
+                as joint tenants, recorded on
+                {% if aff.get('recording_date') %}<span class="fact">{{ aff.get('recording_date') }}</span>{% else %}<span class="fact-line" style="min-width:1.4in">&nbsp;</span>{% endif %},
+                as Instrument No. {% if aff.get('instrument_no') %}<span class="fact">{{ aff.get('instrument_no') }}</span>{% else %}<span class="fact-line" style="min-width:1.4in">&nbsp;</span>{% endif %},
+                Official Records of
+                {% if county %}<span class="fact">{{ county }}</span>{% else %}<span class="fact-line" style="min-width:1.6in">&nbsp;</span>{% endif %}
+                County, California, describing the following real property:
+            </p>
+        </div>
+
+        <div class="legal-content">{{ legal_description or '' }}</div>
+
+        {# Execution: the affiant signs at the notarization — the date and
+           signature are theirs, not ours (blank-contents doctrine). #}
+        <div class="execution-section">
+            <div>Dated: <span class="fact-line" style="min-width:1.8in">&nbsp;</span></div>
+            <div>
+                <div class="signature-line"></div>
+            </div>
+        </div>
+
+        {% include '_partials/notary_jurat.jinja2' %}
+
+        <div class="attach-directive">Attach Certified Copy of Death Certificate</div>
+
+    </div>
+</body>
+</html>

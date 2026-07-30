@@ -9,6 +9,7 @@ export const DEED_LABELS: Record<string, string> = {
   'interspousal-transfer': 'Interspousal Transfer Deed',
   'warranty-deed': 'Warranty Deed',
   'tax-deed': 'Tax Deed',
+  'affidavit-death-jt': 'Affidavit — Death of Joint Tenant',
 };
 
 /** Slug → display label; unknown slugs title-case rather than leak raw. */

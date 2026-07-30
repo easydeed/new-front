@@ -167,6 +167,17 @@ export function hydrateStateFromDeedRow(row: Record<string, any>): ResumeResult 
         : undefined,
     requestedBy: row.requested_by || '',
     requestedByAddress: meta.requested_by_address || '',
+    affidavit: meta.affidavit
+      ? {
+          affiantName: meta.affidavit.affiant_name || '',
+          decedentName: meta.affidavit.decedent_name || '',
+          jtDeedDate: meta.affidavit.jt_deed_date || '',
+          jtDeedGrantor: meta.affidavit.jt_deed_grantor || '',
+          jtDeedGrantees: meta.affidavit.jt_deed_grantees || '',
+          recordingDate: meta.affidavit.recording_date || '',
+          instrumentNo: meta.affidavit.instrument_no || '',
+        }
+      : undefined,
     returnTo,
     titleOrderNo: meta.title_order_no || '',
     escrowNo: meta.escrow_no || '',

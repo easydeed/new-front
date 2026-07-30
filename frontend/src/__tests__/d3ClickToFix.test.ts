@@ -23,7 +23,7 @@ function readSource(...segments: string[]): string {
 const PREVIEW = readSource('components', 'builder', 'PreviewPanel.tsx');
 const BUILDER = readSource('features', 'builder', 'DeedBuilder.tsx');
 
-const KNOWN_SECTIONS = new Set(['property', 'grantor', 'grantee', 'vesting', 'transferTax', 'recording']);
+const KNOWN_SECTIONS = new Set(['property', 'grantor', 'grantee', 'vesting', 'transferTax', 'recording', 'affidavit']);
 const FIELD_ANCHORS: Array<[string, string[]]> = [
   ['grantee', ['components', 'builder', 'sections', 'GranteeSection.tsx']],
   ['dtt-value', ['components', 'builder', 'sections', 'TransferTaxSection.tsx']],
@@ -50,7 +50,16 @@ describe('D3 — every preview data region is clickable with a valid mapping', (
   it('every field-level mapping has a data-builder-field anchor', () => {
     const fields = gos.map((m) => m[2]).filter(Boolean) as string[];
     expect(fields.length).toBeGreaterThanOrEqual(5);
+    const affidavitSrc = readSource('components', 'builder', 'sections', 'AffidavitSection.tsx');
     for (const field of new Set(fields)) {
+      if (field.startsWith('affidavit-')) {
+        // FORMS-SPIKE: AffidavitSection stamps its anchors dynamically
+        // (data-builder-field={`affidavit-${key}`}); assert the pattern
+        // and that the key is a real AffidavitFacts field.
+        expect(affidavitSrc).toContain('data-builder-field={`affidavit-${key}`}');
+        expect(affidavitSrc).toContain(`'${field.replace('affidavit-', '')}'`);
+        continue;
+      }
       const anchor = FIELD_ANCHORS.find(([name]) => name === field);
       expect(anchor).toBeDefined();
       const src = readSource(...anchor![1]);

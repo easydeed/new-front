@@ -35,6 +35,7 @@ const DEED_TITLES: Record<string, string> = {
   'interspousal-transfer': 'INTERSPOUSAL TRANSFER DEED',
   'warranty-deed': 'WARRANTY DEED',
   'tax-deed': 'TAX DEED',
+  'affidavit-death-jt': 'AFFIDAVIT — DEATH OF JOINT TENANT',
 };
 
 function Checkline({ marked }: { marked: boolean }) {
@@ -76,6 +77,12 @@ export function PreviewPanel({ state, activeSection, onRegionClick }: PreviewPan
   }), [state]);
 
   const deedTitle = DEED_TITLES[state.deedType] || 'DEED';
+  // FORMS-SPIKE: affidavit instruments render a sworn-statement body —
+  // no DTT declaration, no granting clause, jurat instead of an
+  // acknowledgment.
+  const isAffidavit = state.deedType === 'affidavit-death-jt';
+  const aff = state.affidavit;
+  const factOrBlank = (v: string | undefined) => v?.trim() || '________________';
   const operative = OPERATIVE_WORDS[state.deedType] || OPERATIVE_WORDS['grant-deed'];
   const exemptionRecital = EXEMPTION_RECITALS[state.deedType];
 
@@ -177,6 +184,70 @@ export function PreviewPanel({ state, activeSection, onRegionClick }: PreviewPan
               {deedTitle}
             </h1>
 
+            {isAffidavit ? (
+              <>
+                {/* Sworn-statement recital — form furniture; the FACTS are
+                    officer-typed and highlighted/clickable like deed data. */}
+                <div className={`text-[11pt] leading-relaxed mb-3 ${highlight('affidavit')}`}>
+                  <p className="mb-2">
+                    <span onClick={go('affidavit', 'affidavit-affiantName')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.affiantName)}`}>{factOrBlank(aff?.affiantName)}</span>,
+                    {' '}of legal age, being first duly sworn, deposes and says:
+                  </p>
+                  <p className="mb-2">
+                    <span onClick={go('affidavit', 'affidavit-decedentName')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.decedentName)}`}>{factOrBlank(aff?.decedentName)}</span>
+                    {' '}is the decedent mentioned in the attached certified copy of Certificate of Death,
+                    and is the same person who is named as one of the parties in that certain deed dated{' '}
+                    <span onClick={go('affidavit', 'affidavit-jtDeedDate')} className={`${CLICKABLE} ${dataHighlight(aff?.jtDeedDate)}`}>{factOrBlank(aff?.jtDeedDate)}</span>, executed by{' '}
+                    <span onClick={go('affidavit', 'affidavit-jtDeedGrantor')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.jtDeedGrantor)}`}>{factOrBlank(aff?.jtDeedGrantor)}</span> to{' '}
+                    <span onClick={go('affidavit', 'affidavit-jtDeedGrantees')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.jtDeedGrantees)}`}>{factOrBlank(aff?.jtDeedGrantees)}</span>
+                    {' '}as joint tenants, recorded on{' '}
+                    <span onClick={go('affidavit', 'affidavit-recordingDate')} className={`${CLICKABLE} ${dataHighlight(aff?.recordingDate)}`}>{factOrBlank(aff?.recordingDate)}</span>, as Instrument No.{' '}
+                    <span onClick={go('affidavit', 'affidavit-instrumentNo')} className={`${CLICKABLE} ${dataHighlight(aff?.instrumentNo)}`}>{factOrBlank(aff?.instrumentNo)}</span>,
+                    {' '}Official Records of{' '}
+                    <span onClick={go('property')} className={`font-bold ${CLICKABLE} ${placeholder(preview.county)} ${dataHighlight(preview.county)}`}>{preview.county}</span>
+                    {' '}County, California, describing the following real property:
+                  </p>
+                </div>
+
+                <div className={`mb-3 ${highlight('property')}`}>
+                  <span onClick={go('property')} className={`font-bold text-[10.5pt] whitespace-pre-wrap ${CLICKABLE} ${placeholder(preview.legalDescription)} ${dataHighlight(preview.legalDescription)}`}>
+                    {preview.legalDescription}
+                  </span>
+                </div>
+
+                <div className="mt-6 flex justify-between items-end gap-4">
+                  <div className="text-[11pt]">Dated: <span className="inline-block min-w-[1.6in] border-b border-black" /></div>
+                  <div className="w-[45%]"><div className="border-b border-black h-7" /></div>
+                </div>
+
+                {/* Jurat sketch — Gov C §8202: sworn, not acknowledged. All
+                    entries are the notary's; nothing pre-fills. */}
+                <div className="mt-5 text-[9.5px] border border-black p-2 leading-snug">
+                  A notary public or other officer completing this certificate verifies only the
+                  identity of the individual who signed the document to which this certificate is
+                  attached, and not the truthfulness, accuracy, or validity of that document.
+                </div>
+                <div className="mt-3 text-[10px]">
+                  <div>STATE OF CALIFORNIA&nbsp;&nbsp;)</div>
+                  <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)&nbsp;&nbsp;SS.</div>
+                  <div>COUNTY OF <span className="inline-block min-w-[1.4in] border-b border-black">{preview.county.startsWith('[') ? '' : preview.county}</span>&nbsp;)</div>
+                  <p className="mt-2">
+                    Subscribed and sworn to (or affirmed) before me on this ____ day of
+                    ____________, ______, by ______________________________, proved to me on the
+                    basis of satisfactory evidence to be the person(s) who appeared before me.
+                  </p>
+                  <div className="mt-4 flex justify-between items-end">
+                    <div>Signature <span className="inline-block min-w-[2in] border-b border-black" /></div>
+                    <div className="border border-black w-[1.6in] h-[1.1in] flex items-center justify-center text-center text-[8px] uppercase text-gray-500">(This area for notary stamp)</div>
+                  </div>
+                </div>
+
+                <div className="text-center text-[9px] font-bold uppercase mt-5">
+                  Attach Certified Copy of Death Certificate
+                </div>
+              </>
+            ) : (
+              <>
             {/* DTT declaration or categorical exemption recital */}
             {exemptionRecital ? (
               <div className={`text-[10px] mb-4 ${highlight('transferTax')}`}>
@@ -276,6 +347,8 @@ export function PreviewPanel({ state, activeSection, onRegionClick }: PreviewPan
             <div className="text-center text-[9px] font-bold uppercase mt-6">
               {MAIL_TAX_DIRECTIVE}
             </div>
+              </>
+            )}
 
           </div>
         </div>
