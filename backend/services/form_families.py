@@ -40,15 +40,16 @@ FAMILY_BY_DEED_TYPE = {
     "homestead-declaration-spouses": "declaration",
     "homestead-abandonment": "declaration",
     "poa-statutory": "declaration",
+    "trustee-substitution": "declaration",
 }
 
 SINGLE_PARTY_FAMILIES = {"declaration"}
 
-# Property-less instruments describe no parcel: no APN, no legal
-# description (the certification of trust certifies a TRUST — Prob C
-# §18100.5). Everything else still requires a legal description on the
-# generate path.
-PROPERTYLESS_TYPES = {"trust-certification", "poa-statutory"}
+# Types whose generate path does NOT require a legal description. Most
+# describe no parcel at all (certification of trust, POA); the trustee
+# substitution carries an APN but identifies the property via the deed of
+# trust's recording reference — its reference prints no legal description.
+PROPERTYLESS_TYPES = {"trust-certification", "poa-statutory", "trustee-substitution"}
 
 
 def family_of(deed_type):

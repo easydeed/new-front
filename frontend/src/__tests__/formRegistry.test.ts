@@ -23,8 +23,12 @@ const KNOWN_SECTIONS = new Set(['property', 'grantor', 'grantee', 'vesting', 'tr
 describe('FORMS registry — completeness and coherence', () => {
   const entries = Object.values(FORM_REGISTRY);
 
-  it('carries the twenty shipped types', () => {
-    expect(entries.length).toBe(20);
+  it('carries the twenty-one shipped types', () => {
+    expect(entries.length).toBe(21);
+    // Wave 2 #8 — substitution of trustee (acknowledged; APN but no
+    // legal description — the DOT reference identifies the property):
+    expect(formConfig('trustee-substitution')?.family).toBe('declaration');
+    expect(formConfig('trustee-substitution')?.sections).toContain('property');
     // Wave 2 #7 — the statutory POA (acknowledged, property-less,
     // single-party; only two typed facts by design):
     expect(formConfig('poa-statutory')?.family).toBe('declaration');

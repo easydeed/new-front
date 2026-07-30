@@ -62,6 +62,8 @@ TEMPLATE_BY_DEED_TYPE = {
     "grant-deed-partnership": "grant_deed_partnership_ca/index.jinja2",
     # FORMS wave 2 #7 — statutory POA (Prob C §4401; PCT reference #55).
     "poa-statutory": "poa_statutory_ca/index.jinja2",
+    # FORMS wave 2 #8 — substitution of trustee (PCT reference #20).
+    "trustee-substitution": "trustee_substitution_ca/index.jinja2",
 }
 DEFAULT_TEMPLATE = "grant_deed_ca/index.jinja2"
 

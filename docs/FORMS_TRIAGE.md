@@ -14,10 +14,12 @@ Tenant (SHIPPED, the spike) · – Surviving Spouse/CP w/ROS · – Trustee ·
 deltas each; highest non-deed volume in escrow.
 
 *Other single recordables:* Declaration of Homestead (+ Abandonment) ·
-Certification of Trust (Prob C §18100.5 — sworn, jurat) · Revocation of
-Revocable TOD Deed · Power of Attorney (recordable, acknowledgment) ·
-Substitution of Trustee · Full/Partial Reconveyance. *Rationale:* one
-instrument, one signer-set, recorder-formatted — chassis-shaped.
+Certification of Trust (Prob C §18100.5 — ~~sworn, jurat~~ ACKNOWLEDGED;
+see correction note below) · Revocation of Revocable TOD Deed · Power of
+Attorney (recordable, acknowledgment) · Substitution of Trustee ·
+Full/Partial Reconveyance (HOLD — owner ruling, wave 2: lender-side
+paper needing a separate decision). *Rationale:* one instrument, one
+signer-set, recorder-formatted — chassis-shaped.
 
 **Tier B — fillable government forms; need a form-fill pipeline (LAST, owner directive)**
 
@@ -42,7 +44,8 @@ territory the doctrine deliberately avoids.
 2. Affidavit of Death – Trustee — sibling, ~1–2 hrs
 3. Grant Deed – Joint Tenancy — deed variant, escrow staple
 4. Grant Deed – CP w/Right of Survivorship — deed variant, pairs with #1
-5. Declaration of Homestead — new family, high consumer demand, jurat reuse
+5. Declaration of Homestead — new family, high consumer demand, ~~jurat
+   reuse~~ (ACKNOWLEDGED per CCP §704.930 — see correction note below)
 6. Certification of Trust — sworn instrument, title-company request magnet
 7. Revocation of Revocable TOD Deed — small, completes a common workflow
 

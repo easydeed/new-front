@@ -123,6 +123,13 @@ export interface AffidavitFacts {
      execution act and renders blank/verbatim, never pre-completed. */
   principalName?: string;
   agentNames?: string;
+  /* Substitution of Trustee (wave 2 #8): the deed of trust is identified
+     by its original parties + recording reference; the undersigned
+     beneficiary substitutes the new trustee. */
+  originalTrustor?: string;
+  originalTrustee?: string;
+  originalBeneficiary?: string;
+  newTrustee?: string;
 }
 
 export interface DeedBuilderState {

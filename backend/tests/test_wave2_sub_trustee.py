@@ -1,0 +1,139 @@
+"""FORMS wave 2 #8 — Substitution of Trustee, pinned. The wave closer.
+
+Built against Pacific Coast Title blank form #20 (Trust_Deed-Sub_Trustee).
+Drift review: ACKNOWLEDGMENT VERIFIED FROM THE REFERENCE; every element
+maps onto covered precedent exactly as the wave order predicted —
+WHEREAS/NOW-THEREFORE recitals → the TOD-revocation operative class;
+deed-of-trust identification → the recorded-instrument class; the new
+trustee → the grantee-name typed-fact class; bare signature lines → the
+bare-signature ruling. Carries an APN but NO legal description (the DOT
+reference identifies the property).
+"""
+import io
+
+import pdfplumber
+
+from services.deed_pdf import render_deed_html, render_deed_pdf
+from tests.test_deed_pdf import _normalized
+
+SUB_META = {
+    "requested_by_address": "456 Escrow Way, Los Angeles, CA 90012",
+    "return_to": {"name": "ACME LENDING, INC.", "address1": "789 LENDER BLVD",
+                  "city": "Los Angeles", "state": "CA", "zip": "90012"},
+    "title_order_no": "TO-9921",
+    "escrow_no": "ESC-4410",
+    "affidavit": {
+        "original_trustor": "JOHN A. DOE",
+        "original_trustee": "FIRST TITLE COMPANY",
+        "original_beneficiary": "ACME LENDING, INC.",
+        "deed_date": "June 1, 2015",
+        "recording_date": "June 15, 2015",
+        "instrument_no": "2015-0654321",
+        "new_trustee": "PACIFIC COAST TITLE COMPANY",
+    },
+}
+
+
+def sub_row(**overrides):
+    row = {
+        "id": 1,
+        "deed_type": "trustee-substitution",
+        "grantor_name": "",
+        "grantee_name": "",
+        "parties": {"beneficiary": "ACME LENDING, INC."},
+        "legal_description": "",   # the reference prints none
+        "county": "Los Angeles",
+        "apn": "4290-012-034",
+        "property_address": "1358 5TH ST, Santa Monica, CA 90401",
+        "requested_by": "Pacific Coast Escrow",
+        "metadata": SUB_META,
+    }
+    row.update(overrides)
+    return row
+
+
+def test_recital_furniture_present():
+    html = _normalized(render_deed_html(sub_row()))
+    assert "Substitution of Trustee" in html
+    assert "was the original Trustor," in html
+    assert "was the original Trustee, and" in html
+    assert "was the original beneficiary under that" in html
+    assert "WHEREAS, the undersigned Beneficiary desires to substitute a new Trustee under said deed of trust." in html
+    assert "NOW THEREFORE, the undersigned hereby substitute(s)" in html
+    assert "as Trustee under said Deed of Trust." in html
+
+
+def test_officer_facts_render():
+    html = _normalized(render_deed_html(sub_row()))
+    for fact in ("JOHN A. DOE", "FIRST TITLE COMPANY", "ACME LENDING, INC.",
+                 "June 1, 2015", "June 15, 2015", "2015-0654321",
+                 "PACIFIC COAST TITLE COMPANY", "Los Angeles",
+                 "4290-012-034", "TO-9921", "ESC-4410"):
+        assert fact in html, fact
+
+
+def test_missing_facts_render_blank_never_invented():
+    html = render_deed_html(sub_row(parties=None, metadata={}))
+    assert "fact-line" in html
+    assert "PACIFIC COAST TITLE COMPANY" not in html
+    assert "2015-0654321" not in html
+
+
+def test_acknowledgment_not_jurat_and_contents_blank():
+    html = _normalized(render_deed_html(sub_row()))
+    assert "personally appeared" in html
+    assert "acknowledged to me" in html
+    assert "Subscribed and sworn to (or affirmed) before me" not in html
+    assert html.count("verifies only the identity") == 1
+    ack = html[html.index("personally appeared"):]
+    assert "ACME LENDING" not in ack
+
+
+def test_apn_but_no_legal_description_no_dtt():
+    """The reference's shape: APN prints; no legal-description block; not
+    a conveyance (no DTT, no mail-tax); vesting cannot leak."""
+    html = _normalized(render_deed_html(sub_row(vesting="SENTINEL VESTING TEXT")))
+    assert "APN: 4290-012-034" in html
+    assert "legal-content" not in html
+    assert "DOCUMENTARY TRANSFER TAX" not in html.upper()
+    assert "Mail Tax Statements" not in html
+    assert "And When Recorded Mail To" in html
+    assert "SENTINEL VESTING TEXT" not in html
+
+
+def test_one_page_with_inline_acknowledgment():
+    pdf = render_deed_pdf(sub_row())
+    with pdfplumber.open(io.BytesIO(pdf)) as doc:
+        assert len(doc.pages) == 1
+        page = doc.pages[0]
+        words = page.extract_words()
+
+        def top_of(needle):
+            hits = [w for w in words if needle.upper() in w["text"].upper()]
+            assert hits, needle
+            return hits[0]["top"]
+
+        def x_of(needle):
+            hits = [w for w in words if needle.upper() in w["text"].upper()]
+            return hits[0]["x0"]
+
+        caption_top = top_of("RECORDER’S")
+        title_top = top_of("SUBSTITUTION")
+        ack_top = top_of("personally")
+        assert caption_top > 100
+        assert x_of("RECORDER’S") > 300
+        assert title_top > caption_top
+        assert ack_top > page.height / 2
+
+    html = render_deed_html(sub_row())
+    for leaked in ("7C4DFF", "Generated by", "deedpro.com/verify", "recorder-box", "bg-brand"):
+        assert leaked not in html, leaked
+
+
+def test_registered_in_the_type_and_family_maps():
+    from services.deed_pdf import TEMPLATE_BY_DEED_TYPE
+    from services.form_families import family_of, is_single_party, requires_legal_description
+    assert TEMPLATE_BY_DEED_TYPE["trustee-substitution"] == "trustee_substitution_ca/index.jinja2"
+    assert family_of("trustee-substitution") == "declaration"
+    assert is_single_party("trustee-substitution")
+    assert not requires_legal_description("trustee-substitution")

@@ -21,6 +21,11 @@ _Last corrected: 2026-07-30 (owner corrections relayed post-wave-1)._
 - **Full/Partial Reconveyance — HOLD** (wave-2 ruling): lender-side
   paper adjacent to Tier C; needs a separate owner decision before any
   build. Not part of wave 2.
+- **Affidavit of Death — TOD Beneficiary — HOLD** (wave-2 form #1): NO
+  PCT reference exists (the Succeed-* blanks are a different
+  instrument). Sourcing it — drafting from the Prob C §5680-series
+  procedure or adopting a county-published form — is a doctrine-shaped
+  decision awaiting the owner. The other seven wave-2 forms shipped.
 
 ## Closed — do not re-report
 
