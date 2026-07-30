@@ -39,6 +39,7 @@ class DeedCreate(BaseModel):
     grantee_name: str = Field(..., min_length=1, description="Grantee name (required, non-empty)")
     vesting: Optional[str] = Field(default=None)
     requested_by: Optional[str] = Field(default=None, description="Person/company requesting the deed (e.g., escrow officer)")
+    requested_by_address: Optional[str] = Field(default=None, description="Requesting party's mailing address (one line)")
     source: Optional[str] = Field(default=None, description="Data source tracking (e.g., 'modern-canonical', 'classic')")
     # T2: extras persisted into deeds.metadata so the stored PDF can render
     # the complete document (DTT declaration, reference numbers, mail-to).
@@ -87,6 +88,7 @@ class DraftSave(BaseModel):
     grantee_name: Optional[str] = None
     vesting: Optional[str] = None
     requested_by: Optional[str] = None
+    requested_by_address: Optional[str] = None
     source: Optional[str] = None
     dtt: Optional[Dict] = None
     title_order_no: Optional[str] = None

@@ -46,7 +46,10 @@ def test_selectlist_resolves_to_selectlist_handler(client, path):
     with patch("routers.partners.list_partners", return_value=FAKE_PARTNERS):
         res = client.get(path, headers={"Authorization": "Bearer x"})
     assert res.status_code == 200
+    # D2: the selectlist carries the partner's one-line address so
+    # selecting a partner fills the deed's requesting-party block.
     assert res.json() == [
         {"id": "11111111-1111-1111-1111-111111111111",
-         "name": "Pacific Coast Title", "category": "title"},
+         "name": "Pacific Coast Title", "category": "title",
+         "address": ""},
     ]

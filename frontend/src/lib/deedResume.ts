@@ -166,6 +166,7 @@ export function hydrateStateFromDeedRow(row: Record<string, any>): ResumeResult 
           )
         : undefined,
     requestedBy: row.requested_by || '',
+    requestedByAddress: meta.requested_by_address || '',
     returnTo,
     titleOrderNo: meta.title_order_no || '',
     escrowNo: meta.escrow_no || '',

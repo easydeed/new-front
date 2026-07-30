@@ -111,12 +111,22 @@ async def get_partners_selectlist(
         organization_id = get_user_organization(user_id)
         partners = list_partners(organization_id, active_only=True)
 
-        # Simplify for dropdown
+        # Simplify for dropdown. D2: the address rides along so selecting
+        # a partner can fill the deed's "Recording Requested By" block —
+        # the data always existed on the partner row; the deed never got it.
+        def _addr(p):
+            street = " ".join(str(p.get(k) or "").strip() for k in ("address_line1", "address_line2")).strip()
+            locality = " ".join(str(p.get(k) or "").strip() for k in ("state", "postal_code")).strip()
+            city = str(p.get("city") or "").strip()
+            tail = ", ".join(x for x in (city, locality) if x)
+            return ", ".join(x for x in (street, tail) if x)
+
         return [
             {
                 'id': p['id'],
                 'name': p['company_name'],
-                'category': p.get('category', 'other')
+                'category': p.get('category', 'other'),
+                'address': _addr(p),
             }
             for p in partners
         ]

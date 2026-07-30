@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
       grantee_name: payload.grantees_text || null,
       vesting: payload.vesting || null,
       requested_by: payload.requested_by || null,
+      requested_by_address: payload.requested_by_address || null,
       source: 'deed-builder',
       dtt: payload.dtt || null,
       title_order_no: payload.title_order_no || null,
