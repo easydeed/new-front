@@ -30,6 +30,8 @@ FAMILY_BY_DEED_TYPE = {
     "affidavit-death-jt": "affidavit",
     "affidavit-death-cp-spouse": "affidavit",
     "affidavit-death-trustee": "affidavit",
+    "affidavit-death-jt-dp": "affidavit",
+    "affidavit-death-cp-dp": "affidavit",
     "homestead-declaration": "declaration",
     "trust-certification": "declaration",
     "tod-revocation": "declaration",

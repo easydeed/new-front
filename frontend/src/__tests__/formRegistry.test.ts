@@ -23,8 +23,12 @@ const KNOWN_SECTIONS = new Set(['property', 'grantor', 'grantee', 'vesting', 'tr
 describe('FORMS registry — completeness and coherence', () => {
   const entries = Object.values(FORM_REGISTRY);
 
-  it('carries the thirteen shipped types', () => {
-    expect(entries.length).toBe(13);
+  it('carries the fifteen shipped types', () => {
+    expect(entries.length).toBe(15);
+    // Wave 2 #2/#3 — domestic-partner affidavit variants (jurat verified
+    // from the references; §297 recital is Flag-3 furniture):
+    expect(formConfig('affidavit-death-jt-dp')?.family).toBe('affidavit');
+    expect(formConfig('affidavit-death-cp-dp')?.family).toBe('affidavit');
     expect(formConfig('affidavit-death-jt')?.family).toBe('affidavit');
     // Wave 1 siblings (owner-ranked #1 and #2):
     expect(formConfig('affidavit-death-cp-spouse')?.family).toBe('affidavit');

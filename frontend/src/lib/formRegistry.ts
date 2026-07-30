@@ -269,6 +269,56 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
       ...RECORDING_REF_FIELDS("The deed by which the trustee acquired title"),
     ],
   },
+  // Wave 2 form #2 — reference: PCT blank form #5 (Aff_Death-JT-DomPart).
+  // Jurat verified from the reference; the §297 registered-domestic-
+  // partnership recital is instrument-defining furniture (Flag-3, same
+  // class as the CP-spouse clause 2).
+  'affidavit-death-jt-dp': {
+    slug: 'affidavit-death-jt-dp',
+    label: 'Affidavit — Death of Joint Tenant (Domestic Partner)',
+    title: 'AFFIDAVIT — DEATH OF JOINT TENANT',
+    subtitle: 'By Surviving Domestic Partner',
+    description: 'Clears a deceased joint tenant from title, sworn by the surviving registered domestic partner (Fam C §297) — jurat, death certificate attached',
+    popular: false,
+    family: 'affidavit',
+    sections: AFFIDAVIT_SECTIONS,
+    notarial: 'jurat',
+    hasDtt: false,
+    companionNotice: BOE_502D_NOTICE,
+    affidavitFields: [
+      { ...AFFIANT_FIELD, hint: 'The surviving registered domestic partner. Signs before a notary.' },
+      DECEDENT_FIELD,
+      { key: 'deathDate', label: 'Date of death', placeholder: 'March 3, 2026', group: 'Death particulars' },
+      { key: 'deathPlace', label: 'Place of death', placeholder: 'Los Angeles, California', group: 'Death particulars' },
+      { key: 'deedDate', label: 'Deed date', placeholder: 'June 1, 2015', group: 'The joint-tenancy deed being cleared' },
+      { key: 'deedGrantor', label: 'Executed by (grantor on that deed)', placeholder: 'ROBERT SELLER', uppercase: true, group: 'The joint-tenancy deed being cleared' },
+      { key: 'jtDeedGrantees', label: 'To (grantees, as joint tenants)', placeholder: 'JOHN A. DOE AND JAMES C. ROE', uppercase: true, group: 'The joint-tenancy deed being cleared' },
+      ...RECORDING_REF_FIELDS('The joint-tenancy deed being cleared'),
+    ],
+  },
+  // Wave 2 form #3 — reference: PCT blank form #2 (Aff_Death-CP_Rt_Surv-DomPart).
+  'affidavit-death-cp-dp': {
+    slug: 'affidavit-death-cp-dp',
+    label: 'Affidavit — Death of Domestic Partner (CP w/ Right of Survivorship)',
+    title: 'AFFIDAVIT OF DEATH',
+    subtitle: 'Community Property with Right of Survivorship — Domestic Partner',
+    description: 'Clears a deceased registered domestic partner from community-property-with-survivorship title (Fam C §297) — jurat, death certificate attached',
+    popular: false,
+    family: 'affidavit',
+    sections: AFFIDAVIT_SECTIONS,
+    notarial: 'jurat',
+    hasDtt: false,
+    companionNotice: BOE_502D_NOTICE,
+    affidavitFields: [
+      { ...AFFIANT_FIELD, hint: 'The surviving registered domestic partner. Signs before a notary.' },
+      DECEDENT_FIELD,
+      { key: 'deathDate', label: 'Date of death', placeholder: 'March 3, 2026', group: 'Death particulars' },
+      { key: 'deathPlace', label: 'Place of death', placeholder: 'Los Angeles, California', group: 'Death particulars' },
+      { key: 'deedDate', label: 'Deed date', placeholder: 'June 1, 2015', group: 'The community-property deed being cleared' },
+      { key: 'deedGrantor', label: 'Executed by (grantor on that deed)', placeholder: 'ROBERT SELLER', uppercase: true, group: 'The community-property deed being cleared' },
+      ...RECORDING_REF_FIELDS('The community-property deed being cleared'),
+    ],
+  },
   // Wave 1 form #5 — reference: PCT blank form #33 (Homestead_Dec-Indiv).
   // Correction-note family: ACKNOWLEDGED per CCP §704.930, not a jurat.
   'homestead-declaration': {

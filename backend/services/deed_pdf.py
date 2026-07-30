@@ -42,6 +42,9 @@ TEMPLATE_BY_DEED_TYPE = {
     # FORMS wave 1 — affidavit siblings (PCT references #3 and #7).
     "affidavit-death-cp-spouse": "affidavit_death_cp_spouse_ca/index.jinja2",
     "affidavit-death-trustee": "affidavit_death_trustee_ca/index.jinja2",
+    # FORMS wave 2 — domestic-partner variants (PCT references #5 and #2).
+    "affidavit-death-jt-dp": "affidavit_death_jt_dp_ca/index.jinja2",
+    "affidavit-death-cp-dp": "affidavit_death_cp_dp_ca/index.jinja2",
     # FORMS wave 1 — fixed-vesting deed variants (PCT references #28, #21).
     "grant-deed-jt": "grant_deed_jt_ca/index.jinja2",
     "grant-deed-cp-ros": "grant_deed_cp_ros_ca/index.jinja2",
