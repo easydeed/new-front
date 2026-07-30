@@ -32,7 +32,43 @@ const dttComplete = (state: DeedBuilderState): boolean => {
   return (dtt.isExempt && !!dtt.exemptReason) || !!dtt.transferValue;
 };
 
+/** FORMS-SPIKE: instrument families diverge here — affidavits have no
+ * grantor/grantee/vesting/DTT; their substance is the sworn facts. */
+export function isAffidavitType(deedType: string | undefined): boolean {
+  return deedType === 'affidavit-death-jt';
+}
+
 export function evaluateSubstantive(state: DeedBuilderState): CheckResult[] {
+  if (isAffidavitType(state.deedType)) {
+    const aff = state.affidavit;
+    return [
+      {
+        id: 'affiant_present',
+        label: 'Affiant stated',
+        ok: !!aff?.affiantName?.trim(),
+        sectionId: 'affidavit',
+      },
+      {
+        id: 'decedent_present',
+        label: 'Decedent stated',
+        ok: !!aff?.decedentName?.trim(),
+        sectionId: 'affidavit',
+      },
+      {
+        id: 'jt_deed_reference',
+        label: 'Joint-tenancy deed recording reference',
+        ok: !!aff?.instrumentNo?.trim() && !!aff?.recordingDate?.trim(),
+        detail: 'The recorded JT deed is identified by its recording date and instrument number.',
+        sectionId: 'affidavit',
+      },
+      {
+        id: 'legal_description_present',
+        label: 'Legal description present',
+        ok: !!state.property?.legalDescription?.trim(),
+        sectionId: 'property',
+      },
+    ];
+  }
   const pending = isDttSuggestionPending(state);
   // Decided = a recorded instruction exists, or (legacy drafts predating the
   // decision record) the section is complete with no suggestion pending.
@@ -96,12 +132,19 @@ export function evaluateRecorderPreflight(state: DeedBuilderState): CheckResult[
       detail: 'The "when recorded mail to" block should identify a recipient.',
       sectionId: 'recording',
     },
-    {
-      id: 'acknowledgment_page',
-      label: 'Acknowledgment page (CC §1189)',
-      ok: true, // included by every deed template (Ticket N); static template fact
-      detail: 'Included automatically in the generated document.',
-    },
+    isAffidavitType(state.deedType)
+      ? {
+          id: 'jurat_included',
+          label: 'Jurat (Gov C §8202)',
+          ok: true, // the affidavit template includes it; static template fact
+          detail: 'Affidavits are sworn statements — a jurat renders automatically.',
+        }
+      : {
+          id: 'acknowledgment_page',
+          label: 'Acknowledgment page (CC §1189)',
+          ok: true, // included by every deed template (Ticket N); static template fact
+          detail: 'Included automatically in the generated document.',
+        },
     {
       id: 'page_setup',
       label: 'Page size and recorder box',
@@ -166,6 +209,25 @@ export function deriveSectionTruth(state: DeedBuilderState): SectionTruth {
     }
     return 'complete';
   };
+
+  if (isAffidavitType(state.deedType)) {
+    const aff = state.affidavit;
+    const affFilled = !!(aff?.affiantName?.trim() && aff?.decedentName?.trim() &&
+      aff?.instrumentNo?.trim() && aff?.recordingDate?.trim());
+    const statuses: Record<string, SectionStatus> = {
+      property: status('property', !!state.property?.address),
+      affidavit: status('affidavit', affFilled),
+      recording: status('recording', !!state.requestedBy?.trim()),
+    };
+    const values = Object.values(statuses);
+    return {
+      statuses,
+      completedCount: values.filter((s) => s === 'complete').length,
+      totalSections: values.length,
+      readyForGate: !values.includes('empty') && failingSections.size === 0,
+      pendingConfirmations: candidates.length,
+    };
+  }
 
   const granteeEchoesGrantor =
     !!state.grantee?.trim() &&

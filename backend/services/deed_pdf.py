@@ -37,6 +37,8 @@ TEMPLATE_BY_DEED_TYPE = {
     "interspousal-transfer": "interspousal_transfer_ca/index.jinja2",
     "warranty-deed": "warranty_deed_ca/index.jinja2",
     "tax-deed": "tax_deed_ca/index.jinja2",
+    # FORMS-SPIKE: first non-deed instrument on the chassis.
+    "affidavit-death-jt": "affidavit_death_jt_ca/index.jinja2",
 }
 DEFAULT_TEMPLATE = "grant_deed_ca/index.jinja2"
 
@@ -89,6 +91,9 @@ def build_context_from_row(row):
         "escrow_no": meta.get("escrow_no") or "",
         "return_to": return_to,
         "dtt": _map_dtt(meta.get("dtt")),
+        # FORMS-SPIKE: the affidavit's officer-supplied facts (decedent,
+        # JT-deed recording reference, affiant) ride in metadata.affidavit.
+        "affidavit": meta.get("affidavit") if isinstance(meta.get("affidavit"), dict) else None,
         "exhibit_threshold": 600,
         "execution_date": None,
         "now": datetime.now,

@@ -36,6 +36,13 @@ const DEED_TYPES = [
     description: 'Transfer resulting from tax sale — typically used by government entities',
     popular: false,
   },
+  // FORMS-SPIKE: first non-deed instrument on the chassis.
+  {
+    id: 'affidavit-death-jt',
+    title: 'Affidavit — Death of Joint Tenant',
+    description: 'Clears a deceased joint tenant from title — sworn statement with jurat, death certificate attached',
+    popular: false,
+  },
 ];
 
 export default function DeedBuilderSelectPage() {

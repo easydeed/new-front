@@ -15,6 +15,14 @@ import {
 } from '@/lib/provenance';
 
 export function buildDeedPayload(genState: DeedBuilderState) {
+  // FORMS-SPIKE: for affidavit instruments the deeds row's party columns
+  // are display aliases — grantor_name holds the DECEDENT (whose interest
+  // clears) and grantee_name the AFFIANT, so Past Deeds rows read
+  // sensibly and the backend's critical-field validation applies to the
+  // affidavit's real substance. The authoritative facts live in
+  // metadata.affidavit. Aliasing is FLAGGED in the spike report.
+  const isAffidavit = genState.deedType === 'affidavit-death-jt';
+  const aff = genState.affidavit;
   return {
     doc_type: genState.deedType,
     county: genState.property?.county || '',
@@ -25,8 +33,8 @@ export function buildDeedPayload(genState: DeedBuilderState) {
     property_zip: genState.property?.zip || '',
     current_owner: genState.property?.owner || '',
     legal_description: genState.property?.legalDescription || '',
-    grantors_text: genState.grantor,
-    grantees_text: genState.grantee,
+    grantors_text: isAffidavit ? (aff?.decedentName || '') : genState.grantor,
+    grantees_text: isAffidavit ? (aff?.affiantName || '') : genState.grantee,
     vesting: genState.vesting,
     requested_by: genState.requestedBy,
     requested_by_address: genState.requestedByAddress || '',
@@ -46,6 +54,17 @@ export function buildDeedPayload(genState: DeedBuilderState) {
       : genState.requestedBy,
     title_order_no: genState.titleOrderNo || '',
     escrow_no: genState.escrowNo || '',
+    affidavit: isAffidavit && aff
+      ? {
+          affiant_name: aff.affiantName || '',
+          decedent_name: aff.decedentName || '',
+          jt_deed_date: aff.jtDeedDate || '',
+          jt_deed_grantor: aff.jtDeedGrantor || '',
+          jt_deed_grantees: aff.jtDeedGrantees || '',
+          recording_date: aff.recordingDate || '',
+          instrument_no: aff.instrumentNo || '',
+        }
+      : null,
     dtt: {
       transfer_value: genState.dtt?.transferValue?.replace(/[^0-9]/g, '') || '',
       is_exempt: genState.dtt?.isExempt || false,
