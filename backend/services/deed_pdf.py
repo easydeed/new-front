@@ -39,6 +39,9 @@ TEMPLATE_BY_DEED_TYPE = {
     "tax-deed": "tax_deed_ca/index.jinja2",
     # FORMS-SPIKE: first non-deed instrument on the chassis.
     "affidavit-death-jt": "affidavit_death_jt_ca/index.jinja2",
+    # FORMS wave 1 — affidavit siblings (PCT references #3 and #7).
+    "affidavit-death-cp-spouse": "affidavit_death_cp_spouse_ca/index.jinja2",
+    "affidavit-death-trustee": "affidavit_death_trustee_ca/index.jinja2",
 }
 DEFAULT_TEMPLATE = "grant_deed_ca/index.jinja2"
 

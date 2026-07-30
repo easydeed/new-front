@@ -68,13 +68,25 @@ export interface DTTData {
 }
 
 export interface AffidavitFacts {
+  /* Common to every affidavit-of-death variant: who swears, who died, and
+     the recording reference of the instrument under which the decedent
+     held title (how the recorder ties the documents together). */
   affiantName: string;
   decedentName: string;
-  jtDeedDate: string;
-  jtDeedGrantor: string;
-  jtDeedGrantees: string;
   recordingDate: string;
   instrumentNo: string;
+  /* JT variant — the joint-tenancy deed being cleared. */
+  jtDeedDate?: string;
+  jtDeedGrantor?: string;
+  jtDeedGrantees?: string;
+  /* CP w/ROS (spouse) variant — death particulars + the CP deed. */
+  deathDate?: string;
+  deathPlace?: string;
+  deedDate?: string;
+  deedGrantor?: string;
+  /* Trustee variant — the declaration of trust. */
+  trustDate?: string;
+  trustors?: string;
 }
 
 export interface DeedBuilderState {

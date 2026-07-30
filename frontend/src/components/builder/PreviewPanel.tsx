@@ -174,9 +174,16 @@ export function PreviewPanel({ state, activeSection, onRegionClick }: PreviewPan
             </div>
 
             {/* Title */}
-            <h1 className="text-[14pt] font-bold text-center mb-3 tracking-[2px] uppercase">
+            <h1 className={`text-[14pt] font-bold text-center tracking-[2px] uppercase ${formConfig(state.deedType)?.subtitle ? 'mb-0.5' : 'mb-3'}`}>
               {deedTitle}
             </h1>
+            {/* Reference-faithful qualifier lines under the title, when the
+                blank form carries them (e.g. the CP w/ROS affidavit) */}
+            {formConfig(state.deedType)?.subtitle && (
+              <div className="text-center font-bold text-[11pt] mb-3">
+                {formConfig(state.deedType)?.subtitle}
+              </div>
+            )}
 
             {isAffidavit ? (
               <>
@@ -187,6 +194,51 @@ export function PreviewPanel({ state, activeSection, onRegionClick }: PreviewPan
                     <span onClick={go('affidavit', 'affidavit-affiantName')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.affiantName)}`}>{factOrBlank(aff?.affiantName)}</span>,
                     {' '}of legal age, being first duly sworn, deposes and says:
                   </p>
+                  {state.deedType === 'affidavit-death-cp-spouse' ? (
+                    <>
+                      {/* PCT #3 recital — numbered clauses, reference-faithful.
+                          Clause 2 is instrument-defining furniture (Flag-3). */}
+                      <p className="mb-2">
+                        1. <span onClick={go('affidavit', 'affidavit-decedentName')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.decedentName)}`}>{factOrBlank(aff?.decedentName)}</span>
+                        {' '}is the decedent mentioned in the attached certified copy of Certificate of Death, who died on{' '}
+                        <span onClick={go('affidavit', 'affidavit-deathDate')} className={`${CLICKABLE} ${dataHighlight(aff?.deathDate)}`}>{factOrBlank(aff?.deathDate)}</span>, at{' '}
+                        <span onClick={go('affidavit', 'affidavit-deathPlace')} className={`${CLICKABLE} ${dataHighlight(aff?.deathPlace)}`}>{factOrBlank(aff?.deathPlace)}</span> (insert place of death).
+                      </p>
+                      <p className="mb-2">
+                        2. I am the surviving spouse of Decedent and was married to Decedent on the date of death.
+                      </p>
+                      <p className="mb-2">
+                        3. Decedent and I are the same persons who are named as grantees in that certain deed dated{' '}
+                        <span onClick={go('affidavit', 'affidavit-deedDate')} className={`${CLICKABLE} ${dataHighlight(aff?.deedDate)}`}>{factOrBlank(aff?.deedDate)}</span>, executed by{' '}
+                        <span onClick={go('affidavit', 'affidavit-deedGrantor')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.deedGrantor)}`}>{factOrBlank(aff?.deedGrantor)}</span>
+                        {' '}in favor of the grantees as community property with right of survivorship, recorded on{' '}
+                        <span onClick={go('affidavit', 'affidavit-recordingDate')} className={`${CLICKABLE} ${dataHighlight(aff?.recordingDate)}`}>{factOrBlank(aff?.recordingDate)}</span>, as Instrument No.{' '}
+                        <span onClick={go('affidavit', 'affidavit-instrumentNo')} className={`${CLICKABLE} ${dataHighlight(aff?.instrumentNo)}`}>{factOrBlank(aff?.instrumentNo)}</span>,
+                        {' '}Official Records of{' '}
+                        <span onClick={go('property')} className={`font-bold ${CLICKABLE} ${placeholder(preview.county)} ${dataHighlight(preview.county)}`}>{preview.county}</span>
+                        {' '}County, California, describing the following real property:
+                      </p>
+                    </>
+                  ) : state.deedType === 'affidavit-death-trustee' ? (
+                    <>
+                      {/* PCT #7 recital — clause 3 (successor-trustee assertion,
+                          instrument-defining furniture) renders BELOW the legal
+                          description, as the reference lays it out. */}
+                      <p className="mb-2">
+                        1. <span onClick={go('affidavit', 'affidavit-decedentName')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.decedentName)}`}>{factOrBlank(aff?.decedentName)}</span>
+                        {' '}is the decedent mentioned in the attached certified copy of Certificate of Death, and is the same person named as Trustee in that certain Declaration of Trust dated{' '}
+                        <span onClick={go('affidavit', 'affidavit-trustDate')} className={`${CLICKABLE} ${dataHighlight(aff?.trustDate)}`}>{factOrBlank(aff?.trustDate)}</span>, executed by{' '}
+                        <span onClick={go('affidavit', 'affidavit-trustors')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.trustors)}`}>{factOrBlank(aff?.trustors)}</span> as trustor(s).
+                      </p>
+                      <p className="mb-2">
+                        2. At the time of decedent&rsquo;s death, decedent was the owner, as Trustee, of certain real property acquired by a deed recorded on{' '}
+                        <span onClick={go('affidavit', 'affidavit-recordingDate')} className={`${CLICKABLE} ${dataHighlight(aff?.recordingDate)}`}>{factOrBlank(aff?.recordingDate)}</span>, as Instrument No.{' '}
+                        <span onClick={go('affidavit', 'affidavit-instrumentNo')} className={`${CLICKABLE} ${dataHighlight(aff?.instrumentNo)}`}>{factOrBlank(aff?.instrumentNo)}</span>, in Official Records of{' '}
+                        <span onClick={go('property')} className={`font-bold ${CLICKABLE} ${placeholder(preview.county)} ${dataHighlight(preview.county)}`}>{preview.county}</span>
+                        {' '}County, California, describing the following real property:
+                      </p>
+                    </>
+                  ) : (
                   <p className="mb-2">
                     <span onClick={go('affidavit', 'affidavit-decedentName')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.decedentName)}`}>{factOrBlank(aff?.decedentName)}</span>
                     {' '}is the decedent mentioned in the attached certified copy of Certificate of Death,
@@ -201,6 +253,7 @@ export function PreviewPanel({ state, activeSection, onRegionClick }: PreviewPan
                     <span onClick={go('property')} className={`font-bold ${CLICKABLE} ${placeholder(preview.county)} ${dataHighlight(preview.county)}`}>{preview.county}</span>
                     {' '}County, California, describing the following real property:
                   </p>
+                  )}
                 </div>
 
                 <div className={`mb-3 ${highlight('property')}`}>
@@ -208,6 +261,17 @@ export function PreviewPanel({ state, activeSection, onRegionClick }: PreviewPan
                     {preview.legalDescription}
                   </span>
                 </div>
+
+                {state.deedType === 'affidavit-death-trustee' && (
+                  <div className={`text-[11pt] leading-relaxed mb-3 ${highlight('affidavit')}`}>
+                    <p>
+                      3. I am the surviving or successor Trustee of the same trust under which said
+                      decedent held title as trustee pursuant to the deed described above, and am
+                      designated and empowered pursuant to the terms of said trust to serve as
+                      Trustee thereof.
+                    </p>
+                  </div>
+                )}
 
                 <div className="mt-6 flex justify-between items-end gap-4">
                   <div className="text-[11pt]">Dated: <span className="inline-block min-w-[1.6in] border-b border-black" /></div>
