@@ -46,6 +46,21 @@ export function InputPanel({
     onSectionChange(expandedSection === section ? '' : section);
   };
 
+  // D2: typed sections get a "Next" button — same forward momentum as
+  // confirm-advance, with NO fake confirmations: the officer's own typing
+  // is their act; "Confirm" stays reserved for external-source data.
+  const SectionNext = ({ to, label }: { to: string; label: string }) => (
+    <div className="pt-3 flex justify-end">
+      <button
+        type="button"
+        onClick={() => onSectionChange(to)}
+        className="px-4 py-2 bg-gray-900 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors"
+      >
+        {label}
+      </button>
+    </div>
+  );
+
   return (
     <div className="h-full flex flex-col bg-gray-50">
       {/* Header */}
@@ -122,6 +137,7 @@ export function InputPanel({
             onChange={(grantee) => onChange({ grantee })}
             grantorName={state.grantor}
           />
+          <SectionNext to="vesting" label="Next: Vesting" />
         </InputSection>
 
         <InputSection
@@ -142,6 +158,7 @@ export function InputPanel({
             deedType={state.deedType}
             grantee={state.grantee}
           />
+          <SectionNext to="transferTax" label="Next: Transfer Tax" />
         </InputSection>
 
         <InputSection
@@ -171,6 +188,7 @@ export function InputPanel({
             suggestionDismissed={state.dttSuggestionDismissed}
             onDismissSuggestion={() => onChange({ dttSuggestionDismissed: true })}
           />
+          <SectionNext to="recording" label="Next: Recording Info" />
         </InputSection>
 
         <InputSection
@@ -183,11 +201,13 @@ export function InputPanel({
         >
           <RecordingSection
             requestedBy={state.requestedBy}
+            requestedByAddress={state.requestedByAddress}
             returnTo={state.returnTo}
             titleOrderNo={state.titleOrderNo}
             escrowNo={state.escrowNo}
             onChange={(updates) => onChange(updates)}
           />
+          <SectionNext to="" label="Done — review your deed" />
         </InputSection>
       </div>
 

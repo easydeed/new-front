@@ -29,6 +29,7 @@ export function buildDeedPayload(genState: DeedBuilderState) {
     grantees_text: genState.grantee,
     vesting: genState.vesting,
     requested_by: genState.requestedBy,
+    requested_by_address: genState.requestedByAddress || '',
     // Mail-to: when the deed returns to the grantee, it mails to the
     // grantee AT THE PROPERTY (the standard default) — send the full
     // address block so the recorded deed shows where to mail it.

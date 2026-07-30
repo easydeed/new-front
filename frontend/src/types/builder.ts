@@ -94,6 +94,8 @@ export interface DeedBuilderState {
    */
   preflightOverrides?: Record<string, string>;
   requestedBy: string;
+  /** D2: the requesting party's mailing address (one line, optional). */
+  requestedByAddress?: string;
   returnTo: string;
   titleOrderNo?: string;
   escrowNo?: string;

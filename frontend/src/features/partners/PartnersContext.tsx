@@ -31,6 +31,8 @@ export interface PartnerOption {
   category: string;
   company_name?: string;
   contact_name?: string;
+  /** D2: one-line mailing address, assembled server-side. */
+  address?: string;
 }
 
 export interface CreatePartnerData {
@@ -129,6 +131,7 @@ export function PartnersProvider({ children }: { children: React.ReactNode }) {
         category: item.category || 'other',
         company_name: item.company_name,
         contact_name: item.contact_name,
+        address: item.address || '',
       }));
 
       setPartners(normalized);

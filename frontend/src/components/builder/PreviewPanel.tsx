@@ -45,6 +45,7 @@ function Checkline({ marked }: { marked: boolean }) {
 export function PreviewPanel({ state, activeSection }: PreviewPanelProps) {
   const preview = useMemo(() => ({
     requestedBy: state.requestedBy || '[Recording Requested By]',
+    requestedByAddress: state.requestedByAddress || '',
     // Mirror the generate payload: 'grantee' resolves to the grantee name,
     // mailed at the property address (never render the literal 'grantee').
     returnTo: state.returnTo === 'grantee'
@@ -118,6 +119,11 @@ export function PreviewPanel({ state, activeSection }: PreviewPanelProps) {
                 <div className="text-[9px] font-bold uppercase tracking-wide">Recording Requested By:</div>
                 <div className="min-h-[0.3in] mb-2">
                   <span className={`text-[10px] ${placeholder(preview.requestedBy)} ${dataHighlight(preview.requestedBy)}`}>{preview.requestedBy}</span>
+                  {/* D2: the requesting party's address prints under their
+                      name — same treatment as the mail-to block. */}
+                  {preview.requestedByAddress && (
+                    <span className={`block text-[10px] ${dataHighlight(preview.requestedByAddress)}`}>{preview.requestedByAddress}</span>
+                  )}
                 </div>
 
                 <div className="text-[9px] font-bold uppercase tracking-wide">
@@ -148,7 +154,7 @@ export function PreviewPanel({ state, activeSection }: PreviewPanelProps) {
 
             {/* Boundary row: APN left, recorder caption right, rule under */}
             <div className="flex justify-between items-baseline border-b border-black pb-0.5 mb-3">
-              <span className={`text-[10px] ${highlight('property')}`}>
+              <span className={`text-[10px] font-bold ${highlight('property')}`}>
                 APN: <span className={`font-mono tracking-wide ${dataHighlight(preview.apn)}`}>{preview.apn || '____________'}</span>
               </span>
               <span className="text-[7.5px] font-bold uppercase">{RECORDER_CAPTION}</span>
@@ -232,7 +238,7 @@ export function PreviewPanel({ state, activeSection }: PreviewPanelProps) {
             </div>
 
             {preview.apn && (
-              <div className={`mb-4 text-[10.5pt] ${highlight('property')}`}>
+              <div className={`mb-4 text-[10.5pt] font-bold ${highlight('property')}`}>
                 Assessor&rsquo;s Parcel Number: <span className={`font-mono tracking-wider ${dataHighlight(preview.apn)}`}>{preview.apn}</span>
               </div>
             )}

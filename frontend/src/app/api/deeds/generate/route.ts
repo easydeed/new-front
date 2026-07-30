@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
       grantee_name: payload.grantees_text || '',
       vesting: payload.vesting || null,
       requested_by: payload.requested_by || null,
+      requested_by_address: payload.requested_by_address || null,
       source: 'deed-builder',
       // Persisted into deeds.metadata so the stored PDF renders the full
       // document (DTT declaration, reference numbers, mail-to).

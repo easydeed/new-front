@@ -92,6 +92,8 @@
         }
 
         .apn-ref {
+            /* D2: the parcel id carries the same weight as the parties. */
+            font-weight: bold;
             font-size: 10pt;
         }
 
@@ -192,7 +194,7 @@
             margin: 0.08in 0;
         }
 
-        .apn-line {
+        .apn-line { font-weight: bold;
             margin-top: 0.08in;
         }
 
@@ -310,7 +312,7 @@
         <header class="header-section">
             <div class="recording-info">
                 <div class="recording-label">Recording Requested By:</div>
-                <div class="recording-value">{{ requested_by or title_company or '' }}</div>
+                <div class="recording-value">{{ requested_by or title_company or '' }}{% if requested_by_address %}<br>{{ requested_by_address }}{% endif %}</div>
 
                 <div class="recording-label">Mail Tax Statements and<br>When Recorded Mail To:</div>
                 <div class="recording-value">

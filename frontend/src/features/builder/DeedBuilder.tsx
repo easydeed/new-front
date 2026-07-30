@@ -47,6 +47,7 @@ function DeedBuilderInner({ deedType, initialProperty, resumeDeedId }: DeedBuild
     vesting: '',
     dtt: null,
     requestedBy: '',
+    requestedByAddress: '',
     returnTo: '',
     titleOrderNo: '',
     escrowNo: '',

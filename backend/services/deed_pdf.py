@@ -84,6 +84,7 @@ def build_context_from_row(row):
         "apn": row.get("apn") or "",
         "vesting": row.get("vesting") or "",
         "requested_by": row.get("requested_by") or "",
+        "requested_by_address": meta.get("requested_by_address") or "",
         "title_order_no": meta.get("title_order_no") or "",
         "escrow_no": meta.get("escrow_no") or "",
         "return_to": return_to,

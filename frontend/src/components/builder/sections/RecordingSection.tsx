@@ -9,13 +9,15 @@ import { AddPartnerModal, PartnerFormData } from '@/components/modals/AddPartner
 
 interface RecordingSectionProps {
   requestedBy: string;
+  /** D2: the requesting party's mailing address (prints under their name). */
+  requestedByAddress?: string;
   returnTo: string;
   titleOrderNo?: string;
   escrowNo?: string;
-  onChange: (updates: { requestedBy?: string; returnTo?: string; titleOrderNo?: string; escrowNo?: string }) => void;
+  onChange: (updates: { requestedBy?: string; requestedByAddress?: string; returnTo?: string; titleOrderNo?: string; escrowNo?: string }) => void;
 }
 
-export function RecordingSection({ requestedBy, returnTo, titleOrderNo, escrowNo, onChange }: RecordingSectionProps) {
+export function RecordingSection({ requestedBy, requestedByAddress, returnTo, titleOrderNo, escrowNo, onChange }: RecordingSectionProps) {
   const { enabled: aiEnabled } = useAIAssist();
   const [guidanceDismissed, setGuidanceDismissed] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -41,8 +43,10 @@ export function RecordingSection({ requestedBy, returnTo, titleOrderNo, escrowNo
       return;
     }
     
-    onChange({ requestedBy: value });
+    // D2: the partner record already carries the mailing address — selecting
+    // a partner fills both the name and the address that print on the deed.
     const partner = partners.find(p => p.label === value);
+    onChange({ requestedBy: value, requestedByAddress: partner?.address || requestedByAddress || '' });
     if (partner) {
       localStorage.setItem('lastPartnerUsed', partner.id);
     }
@@ -66,7 +70,11 @@ export function RecordingSection({ requestedBy, returnTo, titleOrderNo, escrowNo
       
       // Auto-select the new partner (use company_name as the label)
       if (newPartner?.company_name) {
-        onChange({ requestedBy: newPartner.company_name });
+        const addr = [
+          [newPartner.address_line1, newPartner.address_line2].filter(Boolean).join(' '),
+          [newPartner.city, [newPartner.state, newPartner.postal_code].filter(Boolean).join(' ')].filter(Boolean).join(', '),
+        ].filter(Boolean).join(', ');
+        onChange({ requestedBy: newPartner.company_name, requestedByAddress: addr });
         localStorage.setItem('lastPartnerUsed', newPartner.id);
       }
       
@@ -128,6 +136,21 @@ export function RecordingSection({ requestedBy, returnTo, titleOrderNo, escrowNo
             No partners yet. Select &quot;➕ Add New Partner&quot; to create one.
           </p>
         ) : null}
+      </div>
+
+      {/* D2: the requesting party's address prints under their name in the
+          deed header — filled from the partner record, editable here. */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Requesting Party Address <span className="text-gray-400 font-normal">(optional)</span>
+        </label>
+        <input
+          type="text"
+          value={requestedByAddress || ''}
+          onChange={(e) => onChange({ requestedByAddress: e.target.value })}
+          placeholder="Street, City, ST ZIP"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+        />
       </div>
 
       {/* Add Partner Modal */}
