@@ -410,24 +410,43 @@ export function PreviewPanel({ state, activeSection, onRegionClick }: PreviewPan
                     <span onClick={go('affidavit', 'affidavit-affiantName')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.affiantName)}`}>{factOrBlank(aff?.affiantName)}</span>,
                     {' '}of legal age, being first duly sworn, deposes and says:
                   </p>
-                  {state.deedType === 'affidavit-death-cp-spouse' ? (
+                  {['affidavit-death-cp-spouse', 'affidavit-death-cp-dp', 'affidavit-death-jt-dp'].includes(state.deedType) ? (
                     <>
-                      {/* PCT #3 recital — numbered clauses, reference-faithful.
-                          Clause 2 is instrument-defining furniture (Flag-3). */}
+                      {/* PCT #3/#2/#5 recitals — numbered clauses, reference-
+                          faithful. Clause 2 (spouse or the Fam C §297
+                          domestic-partner recital) is instrument-defining
+                          furniture (Flag-3); clause 3 carries the CP phrase
+                          or the JT grantees list per the reference. */}
                       <p className="mb-2">
                         1. <span onClick={go('affidavit', 'affidavit-decedentName')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.decedentName)}`}>{factOrBlank(aff?.decedentName)}</span>
                         {' '}is the decedent mentioned in the attached certified copy of Certificate of Death, who died on{' '}
                         <span onClick={go('affidavit', 'affidavit-deathDate')} className={`${CLICKABLE} ${dataHighlight(aff?.deathDate)}`}>{factOrBlank(aff?.deathDate)}</span>, at{' '}
                         <span onClick={go('affidavit', 'affidavit-deathPlace')} className={`${CLICKABLE} ${dataHighlight(aff?.deathPlace)}`}>{factOrBlank(aff?.deathPlace)}</span> (insert place of death).
                       </p>
-                      <p className="mb-2">
-                        2. I am the surviving spouse of Decedent and was married to Decedent on the date of death.
-                      </p>
+                      {state.deedType === 'affidavit-death-cp-spouse' ? (
+                        <p className="mb-2">
+                          2. I am the surviving spouse of Decedent and was married to Decedent on the date of death.
+                        </p>
+                      ) : (
+                        <p className="mb-2">
+                          2. I am the surviving registered domestic partner of Decedent and on the date of
+                          decedent&rsquo;s death, we were in a registered domestic partnership under California
+                          Family Code Section 297.
+                        </p>
+                      )}
                       <p className="mb-2">
                         3. Decedent and I are the same persons who are named as grantees in that certain deed dated{' '}
                         <span onClick={go('affidavit', 'affidavit-deedDate')} className={`${CLICKABLE} ${dataHighlight(aff?.deedDate)}`}>{factOrBlank(aff?.deedDate)}</span>, executed by{' '}
                         <span onClick={go('affidavit', 'affidavit-deedGrantor')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.deedGrantor)}`}>{factOrBlank(aff?.deedGrantor)}</span>
-                        {' '}in favor of the grantees as community property with right of survivorship, recorded on{' '}
+                        {state.deedType === 'affidavit-death-jt-dp' ? (
+                          <>
+                            {' '}to{' '}
+                            <span onClick={go('affidavit', 'affidavit-jtDeedGrantees')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.jtDeedGrantees)}`}>{factOrBlank(aff?.jtDeedGrantees)}</span>
+                            {' '}as joint tenants, recorded on{' '}
+                          </>
+                        ) : (
+                          <>{' '}in favor of the grantees as community property with right of survivorship, recorded on{' '}</>
+                        )}
                         <span onClick={go('affidavit', 'affidavit-recordingDate')} className={`${CLICKABLE} ${dataHighlight(aff?.recordingDate)}`}>{factOrBlank(aff?.recordingDate)}</span>, as Instrument No.{' '}
                         <span onClick={go('affidavit', 'affidavit-instrumentNo')} className={`${CLICKABLE} ${dataHighlight(aff?.instrumentNo)}`}>{factOrBlank(aff?.instrumentNo)}</span>,
                         {' '}Official Records of{' '}

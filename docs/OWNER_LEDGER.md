@@ -18,13 +18,18 @@ _Last corrected: 2026-07-30 (owner corrections relayed post-wave-1)._
 - **Counsel review** of the DRAFT `/terms` + `/privacy` pages.
 - **PDFShift account closure** (code removal shipped in PR #71; Render
   env vars `PDFSHIFT_API_KEY`/`PDF_ENGINE` deletion rides with it).
+- **Full/Partial Reconveyance — HOLD** (wave-2 ruling): lender-side
+  paper adjacent to Tier C; needs a separate owner decision before any
+  build. Not part of wave 2.
 
 ## Closed — do not re-report
 
 - **SendGrid** — RESOLVED 2026-07-30: `info@deedpro.io` verified, key
   refreshed, production share test green with delivery confirmed.
-- **W0 §3** — DECIDED (Model 2, asserted confirmations). PR #79 closed
-  as decided; the W1 draft stays parked pending the owner's lane call.
+- **W0 §3** — DECIDED: **Model 2 = confirmation in our UI** (corrected
+  2026-07-30; an earlier ledger entry inverted this as "asserted
+  confirmations" — the owner's definition governs). PR #79 closed as
+  decided; the W1 draft stays parked pending the owner's lane call.
 - **Demo-card Vercel env vars** — closed 2026-07-30: owner has not
   requested the demo card back; reopen only on owner request.
 - **PS2/PS3 engine flip** — WeasyPrint sole engine; production parity
