@@ -94,3 +94,22 @@ type #2. Half-day refactor, pays for itself by the third form.
    more one-pagers come.
 3. `is_test`-style aliasing debt (judgment call 2) is the only schema
    smell — flagged above with its exit ramp.
+
+---
+
+## Addendum — owner rulings on the four flags (2026-07-30)
+
+1. **Gate strictness:** stays as built — reference-faithful; tolerated
+   blanks stand. Owner may tighten later (one-line change).
+2. **Party-column aliasing:** accepted. **LEDGERED:** migrate to a
+   `parties` JSONB column when EITHER trigger fires — catalog exceeds
+   10 types, OR the first form arrives whose parties cannot map onto
+   grantor_name/grantee_name.
+3. **Bare signature line:** approved as built.
+4. **BOE-502-D:** stays Tier B, last. A PASSIVE success-page notice now
+   ships (registry `companionNotice`) linking the state BOE forms page —
+   guidance only, no form-fill work.
+
+Registry refactor: executed (lib/formRegistry.ts; labels, titles,
+sections, family, notarial cert, DTT flag, and companion guidance all
+derive from one entry per type). Wave 1 fires on the owner's ranking.

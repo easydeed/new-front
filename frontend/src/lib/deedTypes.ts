@@ -1,16 +1,12 @@
 /**
- * U3 — one place for deed-type naming. The builder header already showed
- * "Grant Deed" while Past Deeds rows showed the raw slug ("grant-deed");
- * both now read from here.
+ * U3 — one place for deed-type naming; since the FORMS registry landed,
+ * the labels derive from it (registry = single source of type facts).
  */
-export const DEED_LABELS: Record<string, string> = {
-  'grant-deed': 'Grant Deed',
-  'quitclaim-deed': 'Quitclaim Deed',
-  'interspousal-transfer': 'Interspousal Transfer Deed',
-  'warranty-deed': 'Warranty Deed',
-  'tax-deed': 'Tax Deed',
-  'affidavit-death-jt': 'Affidavit — Death of Joint Tenant',
-};
+import { FORM_REGISTRY } from '@/lib/formRegistry';
+
+export const DEED_LABELS: Record<string, string> = Object.fromEntries(
+  Object.values(FORM_REGISTRY).map((f) => [f.slug, f.label])
+);
 
 /** Slug → display label; unknown slugs title-case rather than leak raw. */
 export function deedTypeLabel(slug: string | undefined | null): string {

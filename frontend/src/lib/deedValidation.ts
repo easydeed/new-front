@@ -32,10 +32,13 @@ const dttComplete = (state: DeedBuilderState): boolean => {
   return (dtt.isExempt && !!dtt.exemptReason) || !!dtt.transferValue;
 };
 
-/** FORMS-SPIKE: instrument families diverge here — affidavits have no
- * grantor/grantee/vesting/DTT; their substance is the sworn facts. */
+/** FORMS: instrument families diverge here — affidavits have no
+ * grantor/grantee/vesting/DTT; their substance is the sworn facts.
+ * Family membership comes from the registry (one entry per type). */
+import { formFamily } from '@/lib/formRegistry';
+
 export function isAffidavitType(deedType: string | undefined): boolean {
-  return deedType === 'affidavit-death-jt';
+  return formFamily(deedType) === 'affidavit';
 }
 
 export function evaluateSubstantive(state: DeedBuilderState): CheckResult[] {

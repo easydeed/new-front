@@ -13,6 +13,7 @@ import {
   buildPreflightOverridesPayload,
   buildProvenancePayload,
 } from '@/lib/provenance';
+import { formFamily } from '@/lib/formRegistry';
 
 export function buildDeedPayload(genState: DeedBuilderState) {
   // FORMS-SPIKE: for affidavit instruments the deeds row's party columns
@@ -21,7 +22,7 @@ export function buildDeedPayload(genState: DeedBuilderState) {
   // sensibly and the backend's critical-field validation applies to the
   // affidavit's real substance. The authoritative facts live in
   // metadata.affidavit. Aliasing is FLAGGED in the spike report.
-  const isAffidavit = genState.deedType === 'affidavit-death-jt';
+  const isAffidavit = formFamily(genState.deedType) === 'affidavit';
   const aff = genState.affidavit;
   return {
     doc_type: genState.deedType,

@@ -4,46 +4,16 @@ import { useRouter } from 'next/navigation';
 import { FileText, ArrowRight } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { FORM_REGISTRY } from '@/lib/formRegistry';
 
-const DEED_TYPES = [
-  {
-    id: 'grant-deed',
-    title: 'Grant Deed',
-    description: 'Standard transfer of property ownership with implied warranties',
-    popular: true,
-  },
-  {
-    id: 'quitclaim-deed',
-    title: 'Quitclaim Deed',
-    description: 'Transfer ownership without warranties — commonly used between family members',
-    popular: true,
-  },
-  {
-    id: 'interspousal-transfer',
-    title: 'Interspousal Transfer Deed',
-    description: 'Transfer between spouses — exempt from documentary transfer tax',
-    popular: true,
-  },
-  {
-    id: 'warranty-deed',
-    title: 'Warranty Deed',
-    description: 'Provides the strongest buyer protections with full title guarantees',
-    popular: false,
-  },
-  {
-    id: 'tax-deed',
-    title: 'Tax Deed',
-    description: 'Transfer resulting from tax sale — typically used by government entities',
-    popular: false,
-  },
-  // FORMS-SPIKE: first non-deed instrument on the chassis.
-  {
-    id: 'affidavit-death-jt',
-    title: 'Affidavit — Death of Joint Tenant',
-    description: 'Clears a deceased joint tenant from title — sworn statement with jurat, death certificate attached',
-    popular: false,
-  },
-];
+// FORMS registry: the selectable catalog IS the registry — adding a
+// type there adds its card here.
+const DEED_TYPES = Object.values(FORM_REGISTRY).map((f) => ({
+  id: f.slug,
+  title: f.label,
+  description: f.description,
+  popular: f.popular,
+}));
 
 export default function DeedBuilderSelectPage() {
   // HX0: internal tool — no session, no shell.
