@@ -35,7 +35,7 @@ const dttComplete = (state: DeedBuilderState): boolean => {
 /** FORMS: instrument families diverge here — affidavits have no
  * grantor/grantee/vesting/DTT; their substance is the sworn facts.
  * Family membership comes from the registry (one entry per type). */
-import { formFamily } from '@/lib/formRegistry';
+import { formFamily, hasVestingInput } from '@/lib/formRegistry';
 
 export function isAffidavitType(deedType: string | undefined): boolean {
   return formFamily(deedType) === 'affidavit';
@@ -98,12 +98,23 @@ export function evaluateSubstantive(state: DeedBuilderState): CheckResult[] {
       ok: !!state.property?.legalDescription?.trim(),
       sectionId: 'property',
     },
-    {
-      id: 'vesting_stated',
-      label: 'Vesting stated',
-      ok: !!state.vesting?.trim(),
-      sectionId: 'vesting',
-    },
+    hasVestingInput(state.deedType)
+      ? {
+          id: 'vesting_stated',
+          label: 'Vesting stated',
+          ok: !!state.vesting?.trim(),
+          sectionId: 'vesting',
+        }
+      : {
+          // Fixed-vesting variants (JT / CP w/ROS grant deeds): the vesting
+          // phrase is printed on the instrument's face — choosing the form
+          // IS the vesting decision (Flag-3). Structural fact, like the
+          // notarial certificate.
+          id: 'vesting_fixed_by_instrument',
+          label: 'Vesting fixed by the instrument',
+          ok: true,
+          detail: 'This form prints its vesting on its face; there is no vesting entry.',
+        },
     {
       id: 'dtt_decided',
       label: 'Transfer tax decided',
@@ -243,7 +254,12 @@ export function deriveSectionTruth(state: DeedBuilderState): SectionTruth {
     property: status('property', !!state.property?.address),
     grantor: status('grantor', !!state.grantor?.trim()),
     grantee: status('grantee', !!state.grantee?.trim(), granteeEchoesGrantor),
-    vesting: status('vesting', !!state.vesting?.trim()),
+    // Fixed-vesting variants have no vesting section — its status must not
+    // appear in the one-truth counter (a section that cannot be opened can
+    // never read "incomplete").
+    ...(hasVestingInput(state.deedType)
+      ? { vesting: status('vesting', !!state.vesting?.trim()) }
+      : {}),
     transferTax: status(
       'transferTax',
       !!(state.dtt?.isExempt && state.dtt?.exemptReason) || !!state.dtt?.transferValue

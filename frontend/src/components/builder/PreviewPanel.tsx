@@ -19,6 +19,7 @@ import {
   MAIL_TAX_DIRECTIVE,
   OPERATIVE_WORDS,
   EXEMPTION_RECITALS,
+  FIXED_VESTING_PHRASES,
 } from '@/lib/deedFurniture';
 // FORMS registry: document titles + family come from the one source of
 // type facts.
@@ -79,6 +80,7 @@ export function PreviewPanel({ state, activeSection, onRegionClick }: PreviewPan
   const factOrBlank = (v: string | undefined) => v?.trim() || '________________';
   const operative = OPERATIVE_WORDS[state.deedType] || OPERATIVE_WORDS['grant-deed'];
   const exemptionRecital = EXEMPTION_RECITALS[state.deedType];
+  const fixedVesting = FIXED_VESTING_PHRASES[state.deedType];
 
   // DTT honesty (G3's invariant, mock-up form): nothing is declared until
   // the officer's transfer-tax data exists — no pre-checked boxes, no $0.00.
@@ -359,12 +361,15 @@ export function PreviewPanel({ state, activeSection, onRegionClick }: PreviewPan
 
             <div className={`mb-2 ${highlight('grantee')}`}>
               <span onClick={go('grantee', 'grantee')} className={`font-bold uppercase text-[11pt] ${CLICKABLE} ${placeholder(preview.grantee)} ${dataHighlight(preview.grantee)}`}>{preview.grantee}</span>
-              {preview.vesting && (
+              {!fixedVesting && preview.vesting && (
                 <span onClick={go('vesting')} className={`text-[11pt] ${CLICKABLE} ${highlight('vesting')} ${dataHighlight(preview.vesting)}`}>, {preview.vesting}</span>
               )}
             </div>
 
             <p className="mb-2 text-[11pt]">
+              {/* Fixed-vesting furniture — instrument-defining, not data:
+                  no highlight, no click target, exactly as printed. */}
+              {fixedVesting && `${fixedVesting} `}
               the real property situated in the County of{' '}
               <span onClick={go('property')} className={`font-bold ${CLICKABLE} ${placeholder(preview.county)} ${dataHighlight(preview.county)}`}>{preview.county}</span>,
               State of California, more particularly described as follows:

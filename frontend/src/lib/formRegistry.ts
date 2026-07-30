@@ -66,6 +66,11 @@ export interface FormTypeConfig {
 }
 
 const DEED_SECTIONS = ['property', 'grantor', 'grantee', 'vesting', 'transferTax', 'recording'];
+/* Fixed-vesting deed variants (wave 1 #3/#4): the vesting phrase is printed
+   on the instrument's face as furniture — choosing the form IS the vesting
+   decision (Flag-3 precedent), so there is no vesting input. Everything
+   else, including the full transfer-tax decision gate, is unchanged. */
+const FIXED_VESTING_DEED_SECTIONS = ['property', 'grantor', 'grantee', 'transferTax', 'recording'];
 const AFFIDAVIT_SECTIONS = ['property', 'affidavit', 'recording'];
 
 /* Spike flag 4 ruling (applies to every affidavit-of-death variant):
@@ -160,6 +165,31 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
     notarial: 'acknowledgment',
     hasDtt: true,
   },
+  // Wave 1 form #3 — reference: PCT blank form #28 (Deed-JointTenancy).
+  'grant-deed-jt': {
+    slug: 'grant-deed-jt',
+    label: 'Grant Deed — Joint Tenancy',
+    title: 'JOINT TENANCY GRANT DEED',
+    description: 'Grant deed conveying to two or more grantees as joint tenants — vesting printed on the face of the form',
+    popular: false,
+    family: 'deed',
+    sections: FIXED_VESTING_DEED_SECTIONS,
+    notarial: 'acknowledgment',
+    hasDtt: true,
+  },
+  // Wave 1 form #4 — reference: PCT blank form #21 (Deed-CPSurvivorship).
+  'grant-deed-cp-ros': {
+    slug: 'grant-deed-cp-ros',
+    label: 'Grant Deed — Community Property w/ Right of Survivorship',
+    title: 'GRANT DEED',
+    subtitle: 'Community Property with Right of Survivorship',
+    description: 'Grant deed conveying to spouses as community property with right of survivorship — vesting printed on the face of the form',
+    popular: false,
+    family: 'deed',
+    sections: FIXED_VESTING_DEED_SECTIONS,
+    notarial: 'acknowledgment',
+    hasDtt: true,
+  },
   'affidavit-death-jt': {
     slug: 'affidavit-death-jt',
     label: 'Affidavit — Death of Joint Tenant',
@@ -231,4 +261,16 @@ export function formConfig(slug: string | undefined | null): FormTypeConfig | un
 
 export function formFamily(slug: string | undefined | null): FormFamily {
   return formConfig(slug)?.family ?? 'deed';
+}
+
+/**
+ * Whether the officer supplies vesting text for this type. Fixed-vesting
+ * instruments (JT / CP w/ROS grant deeds) print their vesting phrase as
+ * form furniture in the TEMPLATE — the registry carries no vesting value,
+ * only the absence of the input. Unknown slugs default to the standard
+ * deed behavior (officer-typed vesting).
+ */
+export function hasVestingInput(slug: string | undefined | null): boolean {
+  const cfg = formConfig(slug);
+  return cfg ? cfg.sections.includes('vesting') : true;
 }

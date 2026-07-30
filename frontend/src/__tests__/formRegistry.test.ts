@@ -10,7 +10,7 @@
 import { describe, expect, it } from '@jest/globals';
 import * as fs from 'fs';
 import * as path from 'path';
-import { FORM_REGISTRY, formConfig, formFamily } from '../lib/formRegistry';
+import { FORM_REGISTRY, formConfig, formFamily, hasVestingInput } from '../lib/formRegistry';
 import { DEED_LABELS, deedTypeLabel } from '../lib/deedTypes';
 import { isAffidavitType } from '../lib/deedValidation';
 
@@ -23,12 +23,15 @@ const KNOWN_SECTIONS = new Set(['property', 'grantor', 'grantee', 'vesting', 'tr
 describe('FORMS registry — completeness and coherence', () => {
   const entries = Object.values(FORM_REGISTRY);
 
-  it('carries the eight shipped types', () => {
-    expect(entries.length).toBe(8);
+  it('carries the ten shipped types', () => {
+    expect(entries.length).toBe(10);
     expect(formConfig('affidavit-death-jt')?.family).toBe('affidavit');
     // Wave 1 siblings (owner-ranked #1 and #2):
     expect(formConfig('affidavit-death-cp-spouse')?.family).toBe('affidavit');
     expect(formConfig('affidavit-death-trustee')?.family).toBe('affidavit');
+    // Wave 1 deed variants (owner-ranked #3 and #4):
+    expect(formConfig('grant-deed-jt')?.family).toBe('deed');
+    expect(formConfig('grant-deed-cp-ros')?.family).toBe('deed');
   });
 
   it('every entry is internally coherent', () => {
@@ -93,6 +96,19 @@ describe('FORMS registry — the consumers derive from it', () => {
     expect(isAffidavitType('affidavit-death-jt')).toBe(true);
     expect(isAffidavitType('grant-deed')).toBe(false);
     expect(formFamily('unknown-type')).toBe('deed'); // safe default
+  });
+
+  it('fixed-vesting variants drop the vesting section; the registry carries no phrase', () => {
+    for (const slug of ['grant-deed-jt', 'grant-deed-cp-ros']) {
+      expect(hasVestingInput(slug)).toBe(false);
+      expect(formConfig(slug)?.hasDtt).toBe(true); // still conveyances: full DTT gate
+      // The vesting phrase is TEMPLATE furniture (deedFurniture +
+      // chassis-conformance pins) — a registry entry must not carry it,
+      // or config would be deciding a legal question.
+      expect(JSON.stringify(formConfig(slug))).not.toMatch(/JOINT TENANTS|SURVIVORSHIP the real/);
+    }
+    expect(hasVestingInput('grant-deed')).toBe(true);
+    expect(hasVestingInput('unknown-type')).toBe(true); // safe default
   });
 
   it('the selection page and preview read the registry', () => {

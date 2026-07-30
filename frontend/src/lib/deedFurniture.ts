@@ -35,6 +35,18 @@ export const OPERATIVE_WORDS: Record<string, string> = {
   'interspousal-transfer': 'hereby GRANTS AND TRANSFERS to',
   'warranty-deed': 'hereby GRANTS, BARGAINS, SELLS AND CONVEYS to',
   'tax-deed': 'does hereby grant, bargain, sell and convey to',
+  'grant-deed-jt': 'hereby GRANT(S) to',
+  'grant-deed-cp-ros': 'hereby GRANT(S) to',
+};
+
+/** Fixed-vesting phrases printed on the instrument's face (wave 1 #3/#4).
+ * Instrument-defining furniture under the Flag-3 precedent: choosing the
+ * form IS the officer's vesting decision, so the phrase lives here and in
+ * the template — never as a stored vesting value. The clause reads
+ * "<phrase> the real property situated in ..." per the PCT references. */
+export const FIXED_VESTING_PHRASES: Record<string, string> = {
+  'grant-deed-jt': 'as JOINT TENANTS',
+  'grant-deed-cp-ros': 'as COMMUNITY PROPERTY WITH RIGHT OF SURVIVORSHIP',
 };
 
 /** Categorical exemption recitals (instrument-defining form furniture —
