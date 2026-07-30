@@ -52,6 +52,8 @@ function buildFactsBlock(aff: AffidavitFacts | undefined) {
     declaration_date: aff.declarationDate || '',
     entity_state: aff.entityState || '',
     partnership_type: aff.partnershipType || '',
+    principal_name: aff.principalName || '',
+    agent_names: aff.agentNames || '',
   };
   return Object.values(block).some((v) => v) ? block : null;
 }
@@ -83,7 +85,9 @@ export function buildDeedPayload(genState: DeedBuilderState) {
     // The single party by role: the homestead's declarant, or the trust
     // certification's certifying trustee(s).
     parties: isSingleParty
-      ? genState.deedType === 'trust-certification'
+      ? genState.deedType === 'poa-statutory'
+        ? { principal: aff?.principalName || '' }
+        : genState.deedType === 'trust-certification'
         ? { trustee: aff?.trustees || '' }
         : genState.deedType === 'tod-revocation'
           ? { grantor: aff?.revokingGrantor || '' }
