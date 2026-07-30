@@ -227,7 +227,70 @@ export function PreviewPanel({ state, activeSection, onRegionClick }: PreviewPan
               </div>
             )}
 
-            {isDeclaration && state.deedType === 'tod-revocation' ? (
+            {isDeclaration && state.deedType === 'poa-statutory' ? (
+              <>
+                {/* Prob C §4401 statutory form. Only TWO typed facts; every
+                    other mark is the principal's execution act — blank. */}
+                <div className="text-[9.5px] font-bold text-justify mb-3">
+                  NOTICE: THE POWERS GRANTED BY THIS DOCUMENT ARE BROAD AND SWEEPING. THEY ARE
+                  EXPLAINED IN THE UNIFORM STATUTORY FORM POWER OF ATTORNEY ACT (CALIFORNIA
+                  PROBATE CODE SECTIONS 4400-4465). IF YOU HAVE ANY QUESTIONS ABOUT THESE
+                  POWERS, OBTAIN COMPETENT LEGAL ADVICE. THIS DOCUMENT DOES NOT AUTHORIZE
+                  ANYONE TO MAKE MEDICAL AND OTHER HEALTH-CARE DECISIONS FOR YOU. YOU MAY
+                  REVOKE THIS POWER OF ATTORNEY IF YOU LATER WISH TO DO SO.
+                </div>
+                <div className={`text-[10.5pt] leading-relaxed mb-2 ${highlight('affidavit')}`}>
+                  <p className="mb-1">
+                    I, <span onClick={go('affidavit', 'affidavit-principalName')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.principalName)}`}>{factOrBlank(aff?.principalName)}</span>
+                    {' '}<span className="italic text-[8.5px]">(your name and address)</span>
+                  </p>
+                  <p className="mb-1">
+                    appoint <span onClick={go('affidavit', 'affidavit-agentNames')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.agentNames)}`}>{factOrBlank(aff?.agentNames)}</span>
+                    {' '}<span className="italic text-[8.5px]">(name and address of the person appointed, or of each person appointed if you want to designate more than one)</span>
+                  </p>
+                  <p>as my agent (attorney-in-fact) to act for me in any lawful way with respect to the following initialed subjects:</p>
+                </div>
+                <div className="text-[9px] font-bold mb-2">
+                  TO GRANT ALL OF THE FOLLOWING POWERS, INITIAL THE LINE IN FRONT OF (N)…
+                  TO WITHHOLD A POWER, DO NOT INITIAL THE LINE IN FRONT OF IT.
+                </div>
+                <div className="text-[10px] mb-3">
+                  {['(A) Real property transactions.', '(B) Tangible personal property transactions.', '(C) Stock and bond transactions.',
+                    '(D) Commodity and option transactions.', '(E) Banking and other financial institution transactions.',
+                    '(F) Business operating transactions.', '(G) Insurance and annuity transactions.',
+                    '(H) Estate, trust, and other beneficiary transactions.', '(I) Claims and litigation.',
+                    '(J) Personal and family maintenance.', '(K) Benefits from social security, medicare, medicaid, or other governmental programs, or civil or military service.',
+                    '(L) Retirement plan transactions.', '(M) Tax matters.', '(N) ALL OF THE POWERS LISTED ABOVE.'].map((p) => (
+                    /* The principal's initials — blank in preview as on the instrument. */
+                    <div key={p}><span className="inline-block w-10 border-b border-black mr-2" />{p}</div>
+                  ))}
+                </div>
+                <div className="text-[9px] font-bold mb-2">
+                  SPECIAL INSTRUCTIONS: ON THE FOLLOWING LINES YOU MAY GIVE SPECIAL INSTRUCTIONS
+                  LIMITING OR EXTENDING THE POWERS GRANTED TO YOUR AGENT.
+                </div>
+                <div className="border-b border-black h-4 mb-1" />
+                <div className="border-b border-black h-4 mb-3" />
+                <p className="text-[10px] mb-1">
+                  This power of attorney will continue to be effective even though I become incapacitated.
+                </p>
+                <div className="text-[9px] font-bold mb-2">
+                  STRIKE THE PRECEDING SENTENCE IF YOU DO NOT WANT THIS POWER OF ATTORNEY TO
+                  CONTINUE IF YOU BECOME INCAPACITATED.
+                </div>
+                <p className="text-[10px] mb-2">
+                  If I have designated more than one agent, the agents are to act{' '}
+                  <span className="inline-block min-w-[1.4in] border-b border-black" />.
+                  {' '}<span className="italic text-[8.5px]">(the principal writes &quot;SEPARATELY&quot; or &quot;JOINTLY&quot; — jointly by default)</span>
+                </p>
+                <div className="mt-4">
+                  <div>Signed this ____ day of ____________, ______</div>
+                  <div className="border-b border-black h-6 w-[50%] mt-2" />
+                  <div className="text-[8.5px] italic">(your signature)</div>
+                </div>
+                {ackSketch}
+              </>
+            ) : isDeclaration && state.deedType === 'tod-revocation' ? (
               <>
                 {/* Statutory revocation form (Prob C §§5600/5644) — the
                     exemption recitals and notice are the statute's own

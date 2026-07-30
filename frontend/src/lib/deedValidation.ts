@@ -68,6 +68,24 @@ export function evaluateSubstantive(state: DeedBuilderState): CheckResult[] {
         },
       ];
     }
+    if (state.deedType === 'poa-statutory') {
+      // The statute's only content blanks: principal and appointee(s).
+      // Powers/instructions/elections are the principal's execution acts.
+      return [
+        {
+          id: 'principal_named',
+          label: 'Principal (name and address) stated',
+          ok: !!state.affidavit?.principalName?.trim(),
+          sectionId: 'affidavit',
+        },
+        {
+          id: 'agents_named',
+          label: 'Agent(s) stated',
+          ok: !!state.affidavit?.agentNames?.trim(),
+          sectionId: 'affidavit',
+        },
+      ];
+    }
     if (state.deedType === 'tod-revocation') {
       // The statutory form names the grantor only at signature; the typed
       // name identifies the record (and the parties column) — plus the
@@ -341,7 +359,9 @@ export function deriveSectionTruth(state: DeedBuilderState): SectionTruth {
     // The typed-facts section is complete when its family's substantive
     // facts are present: the declaration's single declarant, or the
     // affidavit's affiant/decedent/recording reference.
-    const affFilled = state.deedType === 'trust-certification'
+    const affFilled = state.deedType === 'poa-statutory'
+      ? !!(aff?.principalName?.trim() && aff?.agentNames?.trim())
+      : state.deedType === 'trust-certification'
       ? !!(aff?.trustName?.trim() && aff?.trustees?.trim())
       : state.deedType === 'tod-revocation'
         ? !!aff?.revokingGrantor?.trim()

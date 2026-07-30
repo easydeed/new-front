@@ -116,6 +116,13 @@ export interface AffidavitFacts {
      (general/limited) on the partnership form. */
   entityState?: string;
   partnershipType?: string;
+  /* Statutory POA (Prob C §4401, wave 2 #7): the ONLY typed facts — the
+     statute's blanks are "(your name and address)" and the appointee(s).
+     Every other mark (power initials, special instructions, the
+     separately/jointly word, the incapacity strike) is the PRINCIPAL's
+     execution act and renders blank/verbatim, never pre-completed. */
+  principalName?: string;
+  agentNames?: string;
 }
 
 export interface DeedBuilderState {

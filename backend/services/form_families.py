@@ -39,6 +39,7 @@ FAMILY_BY_DEED_TYPE = {
     "tod-revocation": "declaration",
     "homestead-declaration-spouses": "declaration",
     "homestead-abandonment": "declaration",
+    "poa-statutory": "declaration",
 }
 
 SINGLE_PARTY_FAMILIES = {"declaration"}
@@ -47,7 +48,7 @@ SINGLE_PARTY_FAMILIES = {"declaration"}
 # description (the certification of trust certifies a TRUST — Prob C
 # §18100.5). Everything else still requires a legal description on the
 # generate path.
-PROPERTYLESS_TYPES = {"trust-certification"}
+PROPERTYLESS_TYPES = {"trust-certification", "poa-statutory"}
 
 
 def family_of(deed_type):

@@ -23,8 +23,13 @@ const KNOWN_SECTIONS = new Set(['property', 'grantor', 'grantee', 'vesting', 'tr
 describe('FORMS registry — completeness and coherence', () => {
   const entries = Object.values(FORM_REGISTRY);
 
-  it('carries the nineteen shipped types', () => {
-    expect(entries.length).toBe(19);
+  it('carries the twenty shipped types', () => {
+    expect(entries.length).toBe(20);
+    // Wave 2 #7 — the statutory POA (acknowledged, property-less,
+    // single-party; only two typed facts by design):
+    expect(formConfig('poa-statutory')?.family).toBe('declaration');
+    expect(formConfig('poa-statutory')?.sections).not.toContain('property');
+    expect((formConfig('poa-statutory')?.affidavitFields ?? []).length).toBe(2);
     // Wave 2 #6 — entity grantors (two references, one owner-named form):
     expect(formConfig('grant-deed-corp')?.family).toBe('deed');
     expect(formConfig('grant-deed-partnership')?.family).toBe('deed');

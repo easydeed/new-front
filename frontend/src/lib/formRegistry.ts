@@ -497,6 +497,40 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
       },
     ],
   },
+  // Wave 2 form #7 — the STATUTORY form (Prob C §4401; PCT #55 mirrors
+  // it). Acknowledgment verified from the reference (recordability).
+  // Property-less, single-party (the principal). The owner's high-risk
+  // flag resolved WITHOUT force: only two typed facts exist (principal,
+  // agent(s)); the 14 power initial lines, special-instruction lines,
+  // the separately/jointly word-blank, and the incapacity strike are all
+  // the principal's execution acts — blank/verbatim, never an input.
+  'poa-statutory': {
+    slug: 'poa-statutory',
+    label: 'Power of Attorney — Uniform Statutory Form',
+    title: 'UNIFORM STATUTORY FORM POWER OF ATTORNEY',
+    subtitle: '(California Probate Code Section 4401)',
+    description: 'The §4401 statutory power of attorney, recordable — the principal initials powers and signs before a notary',
+    popular: false,
+    family: 'declaration',
+    sections: PROPERTYLESS_DECLARATION_SECTIONS,
+    notarial: 'acknowledgment',
+    hasDtt: false,
+    affidavitFields: [
+      {
+        key: 'principalName',
+        label: 'Principal — name and address',
+        placeholder: 'ROBERT OWNER, 1358 5TH ST, SANTA MONICA, CA 90401',
+        uppercase: true,
+        hint: 'The person granting the power. Initials the powers and signs before a notary — those marks stay blank on the generated form.',
+      },
+      {
+        key: 'agentNames',
+        label: 'Agent(s) (attorney(s)-in-fact) — name and address of each',
+        placeholder: 'JANE B. DOE, 456 ESCROW WAY, LOS ANGELES, CA 90012',
+        uppercase: true,
+      },
+    ],
+  },
 };
 
 export function formConfig(slug: string | undefined | null): FormTypeConfig | undefined {

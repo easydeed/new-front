@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Uniform Statutory Form Power of Attorney - California</title>
+    <style>
+        /* ==========================================================================
+           UNIFORM STATUTORY FORM POWER OF ATTORNEY — Prob C §4401 — wave 2 #7
+
+           The STATUTORY form (PCT reference #55 mirrors it): two pages —
+           (1) statutory notice + appointment + the 14 initialed powers;
+           (2) special instructions + durability + multi-agent election +
+           third-party reliance + execution + the §1189 acknowledgment
+           (inline, as the reference prints it). Statutory text VERBATIM.
+
+           The owner's high-risk flag, resolved WITHOUT force — the split:
+           - TYPED OFFICER FACTS (only two): the principal's name/address
+             and the appointee(s). Nothing else is an input.
+           - THE PRINCIPAL'S EXECUTION ACTS (blank/verbatim, always): the
+             14 power initial lines (cert-of-trust ruling, directly on
+             point); the special-instruction lines and the SEPARATELY/
+             JOINTLY word-blank ("Other:"-line class — signer-completed
+             text blanks; the word-blank carries a jointly-by-default
+             legal effect, so pre-writing it would fabricate an election);
+             the incapacity sentence prints verbatim, never pre-struck
+             (striking is the principal's pen).
+
+           Chassis notes: recorder header per §27361.6 with the caption
+           KEPT (the reference omits it; format furniture in the
+           recorder's favor — stated in the drift review). Property-less,
+           no DTT, no mail-tax. No chrome (§27361.7).
+           ========================================================================== */
+
+        @page {
+            size: letter;
+            margin: 0.5in 0.5in 0.6in 0.6in;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: "Times New Roman", Times, Georgia, serif;
+            font-size: 10.5pt;
+            line-height: 1.35;
+            color: #000;
+            background: #fff;
+        }
+
+        .header-section { display: flex; min-height: 1.85in; }
+
+        .recording-info {
+            width: 3.4in;
+            flex-shrink: 0;
+            border-right: 0.75pt solid #000;
+            padding-right: 0.15in;
+            font-size: 10pt;
+            line-height: 1.35;
+        }
+
+        .recorder-space { flex-grow: 1; }
+
+        .recording-label {
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 9pt;
+        }
+
+        .recording-value { margin-bottom: 0.12in; min-height: 0.35in; }
+
+        .ref-line { font-size: 10pt; }
+
+        .header-boundary {
+            display: flex;
+            justify-content: flex-end;
+            align-items: baseline;
+            border-bottom: 0.75pt solid #000;
+            padding-bottom: 0.03in;
+            margin-bottom: 0.12in;
+        }
+
+        .recorder-caption {
+            font-size: 7.5pt;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .deed-title {
+            text-align: center;
+            font-size: 13pt;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin: 0.06in 0 0.02in 0;
+        }
+
+        .deed-subtitle {
+            text-align: center;
+            font-size: 10pt;
+            font-weight: bold;
+            margin-bottom: 0.08in;
+        }
+
+        .statutory-notice {
+            font-size: 9.5pt;
+            font-weight: bold;
+            text-align: justify;
+            margin-bottom: 0.1in;
+        }
+
+        .poa-body {
+            font-size: 10.5pt;
+            line-height: 1.4;
+            text-align: justify;
+        }
+
+        .poa-body p { margin-bottom: 0.04in; }
+
+        .fact { font-weight: bold; }
+
+        .fact-line {
+            display: inline-block;
+            min-width: 3in;
+            border-bottom: 1px solid #000;
+        }
+
+        .caption-note {
+            font-size: 8.5pt;
+            font-style: italic;
+        }
+
+        .instruction {
+            font-size: 9pt;
+            font-weight: bold;
+            margin: 0.035in 0;
+        }
+
+        /* The PRINCIPAL's initial lines — blank, always. */
+        .initial-line {
+            display: inline-block;
+            width: 0.5in;
+            border-bottom: 1px solid #000;
+            margin-right: 0.1in;
+        }
+
+        .power-item { margin-bottom: 0.03in; font-size: 10pt; }
+
+        .special-line {
+            border-bottom: 1px solid #000;
+            height: 0.2in;
+            margin-bottom: 0.04in;
+        }
+
+        .word-blank {
+            display: inline-block;
+            min-width: 1.6in;
+            border-bottom: 1px solid #000;
+        }
+
+        .execution-section { margin-top: 0.12in; }
+
+        .signature-line {
+            border-bottom: 1px solid #000;
+            width: 3in;
+            height: 0.28in;
+            margin-top: 0.05in;
+        }
+
+        .page-break { page-break-before: always; }
+
+        .page-note { text-align: center; font-size: 9pt; margin-top: 0.1in; }
+    </style>
+</head>
+<body>
+    <div class="deed-page">
+
+        <header class="header-section">
+            <div class="recording-info">
+                <div class="recording-label">Recording Requested By:</div>
+                <div class="recording-value">{{ requested_by or '' }}{% if requested_by_address %}<br>{{ requested_by_address }}{% endif %}</div>
+
+                <div class="recording-label">And When Recorded Mail To:</div>
+                <div class="recording-value">
+                    {% if return_to %}
+                        {% if return_to.get('name') %}{{ return_to.get('name') }}<br>{% endif %}
+                        {% if return_to.get('company') %}{{ return_to.get('company') }}<br>{% endif %}
+                        {% if return_to.get('address1') %}{{ return_to.get('address1') }}<br>{% endif %}
+                        {% if return_to.get('address2') %}{{ return_to.get('address2') }}<br>{% endif %}
+                        {% set city = return_to.get('city', '') %}
+                        {% set state = return_to.get('state', '') %}
+                        {% set zip = return_to.get('zip', '') %}
+                        {% if city or state or zip %}
+                            {{ city }}{% if city and (state or zip) %}, {% endif %}{{ state }} {{ zip }}
+                        {% endif %}
+                    {% else %}
+                        _________________________________<br>
+                        _________________________________<br>
+                        _________________________________
+                    {% endif %}
+                </div>
+
+                <div class="ref-line">Order No.: {{ title_order_no or '____________________' }}</div>
+                <div class="ref-line">Escrow No.: {{ escrow_no or '____________________' }}</div>
+            </div>
+
+            <div class="recorder-space"><!-- Gov. Code §27361.6 — recorder's use only --></div>
+        </header>
+
+        <div class="header-boundary">
+            <span class="recorder-caption">Space Above This Line Is For Recorder&rsquo;s Use</span>
+        </div>
+
+        <h1 class="deed-title">Uniform Statutory Form Power of Attorney</h1>
+        <div class="deed-subtitle">(California Probate Code Section 4401)</div>
+
+        <div class="statutory-notice">
+            NOTICE: THE POWERS GRANTED BY THIS DOCUMENT ARE BROAD AND SWEEPING. THEY ARE
+            EXPLAINED IN THE UNIFORM STATUTORY FORM POWER OF ATTORNEY ACT (CALIFORNIA
+            PROBATE CODE SECTIONS 4400-4465). IF YOU HAVE ANY QUESTIONS ABOUT THESE POWERS,
+            OBTAIN COMPETENT LEGAL ADVICE. THIS DOCUMENT DOES NOT AUTHORIZE ANYONE TO MAKE
+            MEDICAL AND OTHER HEALTH-CARE DECISIONS FOR YOU. YOU MAY REVOKE THIS POWER OF
+            ATTORNEY IF YOU LATER WISH TO DO SO.
+        </div>
+
+        {% set aff = affidavit or {} %}
+        <div class="poa-body">
+            <p>
+                I, {% if aff.get('principal_name') %}<span class="fact">{{ aff.get('principal_name') }}</span>{% else %}<span class="fact-line">&nbsp;</span>{% endif %}
+                <span class="caption-note">(your name and address)</span>
+            </p>
+            <p>
+                appoint {% if aff.get('agent_names') %}<span class="fact">{{ aff.get('agent_names') }}</span>{% else %}<span class="fact-line">&nbsp;</span>{% endif %}
+                <span class="caption-note">(name and address of the person appointed, or of each person appointed if you want to designate more than one)</span>
+            </p>
+            <p>as my agent (attorney-in-fact) to act for me in any lawful way with respect to the following initialed subjects:</p>
+        </div>
+
+        <div class="instruction">
+            TO GRANT ALL OF THE FOLLOWING POWERS, INITIAL THE LINE IN FRONT OF (N) AND IGNORE
+            THE LINES IN FRONT OF THE OTHER POWERS.
+        </div>
+        <div class="instruction">
+            TO GRANT ONE OR MORE, BUT FEWER THAN ALL, OF THE FOLLOWING POWERS, INITIAL THE
+            LINE IN FRONT OF EACH POWER YOU ARE GRANTING.
+        </div>
+        <div class="instruction">
+            TO WITHHOLD A POWER, DO NOT INITIAL THE LINE IN FRONT OF IT. YOU MAY, BUT NEED
+            NOT, CROSS OUT EACH POWER WITHHELD.
+        </div>
+
+        <div class="instruction">INITIAL</div>
+        {# The PRINCIPAL initials at execution — 14 lines, blank ALWAYS
+           (cert-of-trust ruling: a pre-marked power is a fabricated
+           assertion). #}
+        <div class="power-item"><span class="initial-line">&nbsp;</span>(A) Real property transactions.</div>
+        <div class="power-item"><span class="initial-line">&nbsp;</span>(B) Tangible personal property transactions.</div>
+        <div class="power-item"><span class="initial-line">&nbsp;</span>(C) Stock and bond transactions.</div>
+        <div class="power-item"><span class="initial-line">&nbsp;</span>(D) Commodity and option transactions.</div>
+        <div class="power-item"><span class="initial-line">&nbsp;</span>(E) Banking and other financial institution transactions.</div>
+        <div class="power-item"><span class="initial-line">&nbsp;</span>(F) Business operating transactions.</div>
+        <div class="power-item"><span class="initial-line">&nbsp;</span>(G) Insurance and annuity transactions.</div>
+        <div class="power-item"><span class="initial-line">&nbsp;</span>(H) Estate, trust, and other beneficiary transactions.</div>
+        <div class="power-item"><span class="initial-line">&nbsp;</span>(I) Claims and litigation.</div>
+        <div class="power-item"><span class="initial-line">&nbsp;</span>(J) Personal and family maintenance.</div>
+        <div class="power-item"><span class="initial-line">&nbsp;</span>(K) Benefits from social security, medicare, medicaid, or other governmental programs, or civil or military service.</div>
+        <div class="power-item"><span class="initial-line">&nbsp;</span>(L) Retirement plan transactions.</div>
+        <div class="power-item"><span class="initial-line">&nbsp;</span>(M) Tax matters.</div>
+        <div class="power-item"><span class="initial-line">&nbsp;</span>(N) ALL OF THE POWERS LISTED ABOVE.</div>
+        <div class="instruction">YOU NEED NOT INITIAL ANY OTHER LINES IF YOU INITIAL LINE (N).</div>
+
+        <div class="page-note">Page 1 of 2</div>
+
+    </div>
+
+    <div class="page-break"></div>
+    <div class="deed-page">
+
+        <div class="instruction">
+            SPECIAL INSTRUCTIONS: ON THE FOLLOWING LINES YOU MAY GIVE SPECIAL INSTRUCTIONS
+            LIMITING OR EXTENDING THE POWERS GRANTED TO YOUR AGENT.
+        </div>
+        {# The principal's hand — free-form legal content stays blank
+           (the "Other:"-line class). #}
+        <div class="special-line"></div>
+        <div class="special-line"></div>
+        <div class="special-line"></div>
+
+        <div class="instruction">
+            UNLESS YOU DIRECT OTHERWISE ABOVE, THIS POWER OF ATTORNEY IS EFFECTIVE
+            IMMEDIATELY AND WILL CONTINUE UNTIL IT IS REVOKED.
+        </div>
+
+        <div class="poa-body">
+            <p>This power of attorney will continue to be effective even though I become incapacitated.</p>
+        </div>
+        <div class="instruction">
+            STRIKE THE PRECEDING SENTENCE IF YOU DO NOT WANT THIS POWER OF ATTORNEY TO
+            CONTINUE IF YOU BECOME INCAPACITATED.
+        </div>
+
+        <div class="instruction" style="text-align:center">
+            EXERCISE OF POWER OF ATTORNEY WHERE MORE THAN ONE AGENT DESIGNATED
+        </div>
+        <div class="poa-body">
+            {# The word-blank is the PRINCIPAL's election (jointly by
+               default per the statute's own text) — blank, always. #}
+            <p>If I have designated more than one agent, the agents are to act <span class="word-blank">&nbsp;</span>.</p>
+        </div>
+        <div class="instruction">
+            IF YOU APPOINTED MORE THAN ONE AGENT AND YOU WANT EACH AGENT TO BE ABLE TO ACT
+            ALONE WITHOUT THE OTHER AGENT JOINING, WRITE THE WORD &quot;SEPARATELY&quot; IN THE BLANK
+            SPACE ABOVE. IF YOU DO NOT INSERT ANY WORD IN THE BLANK SPACE, OR IF YOU INSERT
+            THE WORD &quot;JOINTLY&quot;, THEN ALL OF YOUR AGENTS MUST ACT OR SIGN TOGETHER.
+        </div>
+
+        <div class="poa-body">
+            <p>
+                I agree that any third party who receives a copy of this document may act under it.
+                A third party may seek identification. Revocation of the power of attorney is not
+                effective as to a third party until the third party has actual knowledge of the
+                revocation. I agree to indemnify the third party for any claims that arise against
+                the third party because of reliance on this power of attorney.
+            </p>
+        </div>
+
+        <div class="execution-section">
+            <div>Signed this <span class="word-blank" style="min-width:0.7in">&nbsp;</span> day of
+                <span class="word-blank">&nbsp;</span>, <span class="word-blank" style="min-width:0.7in">&nbsp;</span></div>
+            <div class="signature-line"></div>
+            <div class="caption-note">(your signature)</div>
+            <div style="margin-top:0.06in">State of <span class="word-blank">&nbsp;</span>&nbsp;&nbsp;County of <span class="word-blank">&nbsp;</span></div>
+        </div>
+
+        <div class="instruction" style="margin-top:0.08in">
+            BY ACCEPTING OR ACTING UNDER THE APPOINTMENT, THE AGENT ASSUMES THE FIDUCIARY
+            AND OTHER LEGAL RESPONSIBILITIES OF AN AGENT.
+        </div>
+
+        {# The §1189 acknowledgment, inline on page two as the reference
+           prints it. #}
+        {% set document_title = 'Uniform Statutory Form Power of Attorney' %}
+        {% set ack_inline = true %}
+        {% include '_partials/notary_acknowledgment.jinja2' %}
+
+    </div>
+</body>
+</html>

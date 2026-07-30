@@ -199,6 +199,8 @@ export function hydrateStateFromDeedRow(row: Record<string, any>): ResumeResult 
           declarationDate: meta.affidavit?.declaration_date || '',
           entityState: meta.affidavit?.entity_state || '',
           partnershipType: meta.affidavit?.partnership_type || '',
+          principalName: meta.affidavit?.principal_name || '',
+          agentNames: meta.affidavit?.agent_names || '',
         }
       : undefined,
     returnTo,
