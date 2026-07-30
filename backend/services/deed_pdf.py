@@ -45,6 +45,8 @@ TEMPLATE_BY_DEED_TYPE = {
     # FORMS wave 1 — fixed-vesting deed variants (PCT references #28, #21).
     "grant-deed-jt": "grant_deed_jt_ca/index.jinja2",
     "grant-deed-cp-ros": "grant_deed_cp_ros_ca/index.jinja2",
+    # FORMS wave 1 — declaration family (PCT reference #33; CCP §704.930).
+    "homestead-declaration": "homestead_declaration_ca/index.jinja2",
 }
 DEFAULT_TEMPLATE = "grant_deed_ca/index.jinja2"
 

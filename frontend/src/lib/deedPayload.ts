@@ -13,7 +13,7 @@ import {
   buildPreflightOverridesPayload,
   buildProvenancePayload,
 } from '@/lib/provenance';
-import { formFamily } from '@/lib/formRegistry';
+import { formFamily, isSinglePartyType } from '@/lib/formRegistry';
 
 export function buildDeedPayload(genState: DeedBuilderState) {
   // FORMS-SPIKE: for affidavit instruments the deeds row's party columns
@@ -23,6 +23,9 @@ export function buildDeedPayload(genState: DeedBuilderState) {
   // affidavit's real substance. The authoritative facts live in
   // metadata.affidavit. Aliasing is FLAGGED in the spike report.
   const isAffidavit = formFamily(genState.deedType) === 'affidavit';
+  // Declaration family (parties migration): the single party rides in the
+  // deeds.parties JSONB column — grantor/grantee stay legitimately empty.
+  const isSingleParty = isSinglePartyType(genState.deedType);
   const aff = genState.affidavit;
   return {
     doc_type: genState.deedType,
@@ -34,8 +37,9 @@ export function buildDeedPayload(genState: DeedBuilderState) {
     property_zip: genState.property?.zip || '',
     current_owner: genState.property?.owner || '',
     legal_description: genState.property?.legalDescription || '',
-    grantors_text: isAffidavit ? (aff?.decedentName || '') : genState.grantor,
-    grantees_text: isAffidavit ? (aff?.affiantName || '') : genState.grantee,
+    grantors_text: isSingleParty ? '' : isAffidavit ? (aff?.decedentName || '') : genState.grantor,
+    grantees_text: isSingleParty ? '' : isAffidavit ? (aff?.affiantName || '') : genState.grantee,
+    parties: isSingleParty ? { declarant: aff?.declarantName || '' } : null,
     vesting: genState.vesting,
     requested_by: genState.requestedBy,
     requested_by_address: genState.requestedByAddress || '',
@@ -109,6 +113,9 @@ export function hasMeaningfulData(s: DeedBuilderState): boolean {
     s.dtt ||
     s.requestedBy?.trim() ||
     s.titleOrderNo?.trim() ||
-    s.escrowNo?.trim()
+    s.escrowNo?.trim() ||
+    // Typed instrument facts (affidavit/declaration families) are work
+    // worth keeping too — a declarant name alone must autosave.
+    Object.values(s.affidavit ?? {}).some((v) => v?.trim())
   );
 }

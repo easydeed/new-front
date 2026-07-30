@@ -23,8 +23,8 @@ const KNOWN_SECTIONS = new Set(['property', 'grantor', 'grantee', 'vesting', 'tr
 describe('FORMS registry — completeness and coherence', () => {
   const entries = Object.values(FORM_REGISTRY);
 
-  it('carries the ten shipped types', () => {
-    expect(entries.length).toBe(10);
+  it('carries the eleven shipped types', () => {
+    expect(entries.length).toBe(11);
     expect(formConfig('affidavit-death-jt')?.family).toBe('affidavit');
     // Wave 1 siblings (owner-ranked #1 and #2):
     expect(formConfig('affidavit-death-cp-spouse')?.family).toBe('affidavit');
@@ -32,6 +32,9 @@ describe('FORMS registry — completeness and coherence', () => {
     // Wave 1 deed variants (owner-ranked #3 and #4):
     expect(formConfig('grant-deed-jt')?.family).toBe('deed');
     expect(formConfig('grant-deed-cp-ros')?.family).toBe('deed');
+    // Wave 1 #5 — the third family (correction note: ACKNOWLEDGED,
+    // CCP §704.930, single-party):
+    expect(formConfig('homestead-declaration')?.family).toBe('declaration');
   });
 
   it('every entry is internally coherent', () => {
@@ -42,9 +45,21 @@ describe('FORMS registry — completeness and coherence', () => {
       for (const section of f.sections) {
         expect(KNOWN_SECTIONS.has(section)).toBe(true);
       }
-      // Doctrine coupling: sworn instruments carry a jurat, deed family
-      // an acknowledgment; only deed family declares DTT.
-      if (f.family === 'affidavit') {
+      // Doctrine coupling, all three families enforced structurally:
+      //   affidavit   → jurat, no DTT (sworn statement)
+      //   declaration → acknowledgment, no DTT (single-party, CCP §704.930)
+      //   deed        → acknowledgment, DTT (conveyance)
+      if (f.family === 'declaration') {
+        expect(f.notarial).toBe('acknowledgment');
+        expect(f.hasDtt).toBe(false);
+        expect(f.sections).toContain('affidavit'); // the shared typed-facts section
+        expect(f.sections).not.toContain('vesting');
+        expect((f.affidavitFields ?? []).length).toBeGreaterThan(0);
+        for (const spec of f.affidavitFields ?? []) {
+          expect(Object.keys(spec)).not.toContain('value');
+          expect(Object.keys(spec)).not.toContain('default');
+        }
+      } else if (f.family === 'affidavit') {
         expect(f.notarial).toBe('jurat');
         expect(f.hasDtt).toBe(false);
         expect(f.sections).toContain('affidavit');

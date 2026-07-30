@@ -11,6 +11,10 @@
   - document_title: string (e.g., "Grant Deed")
   - execution_date: string (optional, for optional section)
   - page_count: int (optional, for optional section)
+  - ack_inline: bool (optional) — set true BEFORE the include when the
+    certificate belongs on the SAME page as the instrument (one-page
+    references like the homestead declaration, PCT #33). Default (unset)
+    keeps the deed-chassis behavior: the certificate opens its own page.
 #}
 
 <style>
@@ -19,7 +23,8 @@
    ========================================================================== */
 
 .notary-page {
-    page-break-before: always;
+    page-break-before: {{ 'auto' if ack_inline else 'always' }};
+    {% if ack_inline %}page-break-inside: avoid;{% endif %}
     /* G3: the including template's @page margins already frame the page —
        the old 0.75in padding doubled them and pushed the certificate onto
        two pages. Compressed spacing keeps it to one. */
@@ -260,6 +265,24 @@
     font-size: 9pt;
     color: #333;
 }
+
+{% if ack_inline %}
+/* Inline (same-page) mode — the compact certificate exactly as one-page
+   references print it: statutory text unchanged, headline and optional
+   document-description section omitted, spacing tightened. */
+.notary-page { font-size: 9.5pt; line-height: 1.35; padding-top: 0.06in; }
+.notary-disclaimer { font-size: 9pt; padding: 6px 10px; margin-bottom: 0.08in; }
+.notary-venue { margin-bottom: 0.08in; }
+.notary-body { margin-bottom: 0.06in; }
+.notary-body p { margin-bottom: 0.05in; }
+.notary-certification { margin-bottom: 0.06in; }
+.notary-witness { margin-bottom: 0.08in; }
+.notary-signature-section { margin-bottom: 0; }
+.notary-signature-line { height: 0.32in; margin-bottom: 2px; }
+.notary-signature-label { margin-bottom: 0.08in; }
+.notary-print-name { margin-bottom: 0.06in; }
+.notary-seal-area { width: 1.8in; height: 1.15in; }
+{% endif %}
 </style>
 
 <!-- ========================================================================
@@ -275,9 +298,11 @@
         the truthfulness, accuracy, or validity of that document.
     </div>
 
-    <!-- TITLE -->
+    {% if not ack_inline %}
+    <!-- TITLE (own-page mode only; one-page references print no headline) -->
     <div class="notary-main-title">California All-Purpose Acknowledgment</div>
     <div class="notary-subtitle">Civil Code § 1189</div>
+    {% endif %}
 
     <!-- VENUE -->
     <div class="notary-venue">
@@ -332,14 +357,17 @@
         <div class="notary-signature-block">
             <div class="notary-signature-line"></div>
             <div class="notary-signature-label">Signature of Notary Public</div>
-            
+            {% if not ack_inline %}
+            {# One-page references print only the signature line — the
+               printed-name/commission rows belong to own-page mode. #}
             <div class="notary-print-name">
                 Name (Printed): <span class="notary-field">__________________________</span>
             </div>
-            
+
             <div class="notary-commission">
                 My Commission Expires: <span class="notary-field short">________________</span>
             </div>
+            {% endif %}
         </div>
 
         <div class="notary-seal-area">
@@ -347,10 +375,12 @@
         </div>
     </div>
 
+    {% if not ack_inline %}
     <!-- DIVIDER -->
     <div class="notary-divider"></div>
 
-    <!-- OPTIONAL SECTION -->
+    <!-- OPTIONAL SECTION (own-page mode only — §1189's optional
+         document-description block; absent from one-page references) -->
     <div class="notary-optional-section">
         <div class="notary-optional-header">Optional Section</div>
         <div class="notary-optional-note">
@@ -377,6 +407,7 @@
             <span class="notary-optional-value"></span>
         </div>
     </div>
+    {% endif %}
 
     {% if document_id %}
     <!-- QR VERIFICATION SECTION (Phase 4) -->

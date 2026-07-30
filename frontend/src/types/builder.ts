@@ -87,6 +87,9 @@ export interface AffidavitFacts {
   /* Trustee variant — the declaration of trust. */
   trustDate?: string;
   trustors?: string;
+  /* Declaration family (homestead): the single party. Persisted to the
+     deeds.parties JSONB column, not metadata.affidavit. */
+  declarantName?: string;
 }
 
 export interface DeedBuilderState {

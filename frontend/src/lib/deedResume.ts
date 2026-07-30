@@ -167,21 +167,24 @@ export function hydrateStateFromDeedRow(row: Record<string, any>): ResumeResult 
         : undefined,
     requestedBy: row.requested_by || '',
     requestedByAddress: meta.requested_by_address || '',
-    affidavit: meta.affidavit
+    affidavit: meta.affidavit || row.parties
       ? {
-          affiantName: meta.affidavit.affiant_name || '',
-          decedentName: meta.affidavit.decedent_name || '',
-          jtDeedDate: meta.affidavit.jt_deed_date || '',
-          jtDeedGrantor: meta.affidavit.jt_deed_grantor || '',
-          jtDeedGrantees: meta.affidavit.jt_deed_grantees || '',
-          deathDate: meta.affidavit.death_date || '',
-          deathPlace: meta.affidavit.death_place || '',
-          deedDate: meta.affidavit.deed_date || '',
-          deedGrantor: meta.affidavit.deed_grantor || '',
-          trustDate: meta.affidavit.trust_date || '',
-          trustors: meta.affidavit.trustors || '',
-          recordingDate: meta.affidavit.recording_date || '',
-          instrumentNo: meta.affidavit.instrument_no || '',
+          // Declaration family: the single party lives in the parties
+          // JSONB column (parties migration), not metadata.affidavit.
+          declarantName: (row.parties && row.parties.declarant) || '',
+          affiantName: meta.affidavit?.affiant_name || '',
+          decedentName: meta.affidavit?.decedent_name || '',
+          jtDeedDate: meta.affidavit?.jt_deed_date || '',
+          jtDeedGrantor: meta.affidavit?.jt_deed_grantor || '',
+          jtDeedGrantees: meta.affidavit?.jt_deed_grantees || '',
+          deathDate: meta.affidavit?.death_date || '',
+          deathPlace: meta.affidavit?.death_place || '',
+          deedDate: meta.affidavit?.deed_date || '',
+          deedGrantor: meta.affidavit?.deed_grantor || '',
+          trustDate: meta.affidavit?.trust_date || '',
+          trustors: meta.affidavit?.trustors || '',
+          recordingDate: meta.affidavit?.recording_date || '',
+          instrumentNo: meta.affidavit?.instrument_no || '',
         }
       : undefined,
     returnTo,
