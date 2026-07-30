@@ -8,12 +8,47 @@
  * from DeedBuilder.performGenerate verbatim so there is no second,
  * poorer serialization for drafts.
  */
-import type { DeedBuilderState } from '@/types/builder';
+import type { AffidavitFacts, DeedBuilderState } from '@/types/builder';
 import {
   buildPreflightOverridesPayload,
   buildProvenancePayload,
 } from '@/lib/provenance';
 import { formFamily, isSinglePartyType } from '@/lib/formRegistry';
+
+/**
+ * metadata.affidavit — the typed-facts bucket shared by the affidavit and
+ * declaration families. Superset of every variant's snake_case keys (each
+ * template reads only the keys its recital carries); null when the form
+ * has no typed facts or none are filled (a homestead whose only fact —
+ * the declarant — rides in `parties` must not mint an all-empty block).
+ */
+function buildFactsBlock(aff: AffidavitFacts | undefined) {
+  if (!aff) return null;
+  const block = {
+    affiant_name: aff.affiantName || '',
+    decedent_name: aff.decedentName || '',
+    jt_deed_date: aff.jtDeedDate || '',
+    jt_deed_grantor: aff.jtDeedGrantor || '',
+    jt_deed_grantees: aff.jtDeedGrantees || '',
+    death_date: aff.deathDate || '',
+    death_place: aff.deathPlace || '',
+    deed_date: aff.deedDate || '',
+    deed_grantor: aff.deedGrantor || '',
+    trust_date: aff.trustDate || '',
+    trustors: aff.trustors || '',
+    recording_date: aff.recordingDate || '',
+    instrument_no: aff.instrumentNo || '',
+    trust_name: aff.trustName || '',
+    settlors: aff.settlors || '',
+    trustees: aff.trustees || '',
+    revocability: aff.revocability || '',
+    revoker_name: aff.revokerName || '',
+    signer_count: aff.signerCount || '',
+    signer_names: aff.signerNames || '',
+    title_vesting: aff.titleVesting || '',
+  };
+  return Object.values(block).some((v) => v) ? block : null;
+}
 
 export function buildDeedPayload(genState: DeedBuilderState) {
   // FORMS-SPIKE: for affidavit instruments the deeds row's party columns
@@ -39,7 +74,13 @@ export function buildDeedPayload(genState: DeedBuilderState) {
     legal_description: genState.property?.legalDescription || '',
     grantors_text: isSingleParty ? '' : isAffidavit ? (aff?.decedentName || '') : genState.grantor,
     grantees_text: isSingleParty ? '' : isAffidavit ? (aff?.affiantName || '') : genState.grantee,
-    parties: isSingleParty ? { declarant: aff?.declarantName || '' } : null,
+    // The single party by role: the homestead's declarant, or the trust
+    // certification's certifying trustee(s).
+    parties: isSingleParty
+      ? genState.deedType === 'trust-certification'
+        ? { trustee: aff?.trustees || '' }
+        : { declarant: aff?.declarantName || '' }
+      : null,
     vesting: genState.vesting,
     requested_by: genState.requestedBy,
     requested_by_address: genState.requestedByAddress || '',
@@ -59,25 +100,7 @@ export function buildDeedPayload(genState: DeedBuilderState) {
       : genState.requestedBy,
     title_order_no: genState.titleOrderNo || '',
     escrow_no: genState.escrowNo || '',
-    affidavit: isAffidavit && aff
-      ? {
-          // Superset of all affidavit variants — each template reads only
-          // the keys its recital carries; unused keys stay empty strings.
-          affiant_name: aff.affiantName || '',
-          decedent_name: aff.decedentName || '',
-          jt_deed_date: aff.jtDeedDate || '',
-          jt_deed_grantor: aff.jtDeedGrantor || '',
-          jt_deed_grantees: aff.jtDeedGrantees || '',
-          death_date: aff.deathDate || '',
-          death_place: aff.deathPlace || '',
-          deed_date: aff.deedDate || '',
-          deed_grantor: aff.deedGrantor || '',
-          trust_date: aff.trustDate || '',
-          trustors: aff.trustors || '',
-          recording_date: aff.recordingDate || '',
-          instrument_no: aff.instrumentNo || '',
-        }
-      : null,
+    affidavit: buildFactsBlock(isAffidavit || isSingleParty ? aff : undefined),
     dtt: {
       transfer_value: genState.dtt?.transferValue?.replace(/[^0-9]/g, '') || '',
       is_exempt: genState.dtt?.isExempt || false,

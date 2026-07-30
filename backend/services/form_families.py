@@ -31,9 +31,16 @@ FAMILY_BY_DEED_TYPE = {
     "affidavit-death-cp-spouse": "affidavit",
     "affidavit-death-trustee": "affidavit",
     "homestead-declaration": "declaration",
+    "trust-certification": "declaration",
 }
 
 SINGLE_PARTY_FAMILIES = {"declaration"}
+
+# Property-less instruments describe no parcel: no APN, no legal
+# description (the certification of trust certifies a TRUST — Prob C
+# §18100.5). Everything else still requires a legal description on the
+# generate path.
+PROPERTYLESS_TYPES = {"trust-certification"}
 
 
 def family_of(deed_type):
@@ -43,3 +50,7 @@ def family_of(deed_type):
 
 def is_single_party(deed_type):
     return family_of(deed_type) in SINGLE_PARTY_FAMILIES
+
+
+def requires_legal_description(deed_type):
+    return deed_type not in PROPERTYLESS_TYPES

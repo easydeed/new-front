@@ -23,7 +23,7 @@ import {
 } from '@/lib/deedFurniture';
 // FORMS registry: document titles + family come from the one source of
 // type facts.
-import { formConfig, formFamily } from '@/lib/formRegistry';
+import { formConfig, formFamily, hasPropertySection } from '@/lib/formRegistry';
 
 interface PreviewPanelProps {
   state: DeedBuilderState;
@@ -168,11 +168,14 @@ export function PreviewPanel({ state, activeSection, onRegionClick }: PreviewPan
               <div className="flex-grow" aria-label="Space reserved for the county recorder" />
             </div>
 
-            {/* Boundary row: APN left, recorder caption right, rule under */}
+            {/* Boundary row: APN left (parcel-tied forms only), recorder
+                caption right, rule under */}
             <div className="flex justify-between items-baseline border-b border-black pb-0.5 mb-3">
-              <span className={`text-[10px] font-bold ${highlight('property')}`}>
-                APN: <span onClick={go('property')} className={`font-mono tracking-wide ${CLICKABLE} ${dataHighlight(preview.apn)}`}>{preview.apn || '____________'}</span>
-              </span>
+              {hasPropertySection(state.deedType) ? (
+                <span className={`text-[10px] font-bold ${highlight('property')}`}>
+                  APN: <span onClick={go('property')} className={`font-mono tracking-wide ${CLICKABLE} ${dataHighlight(preview.apn)}`}>{preview.apn || '____________'}</span>
+                </span>
+              ) : <span />}
               <span className="text-[7.5px] font-bold uppercase">{RECORDER_CAPTION}</span>
             </div>
 
@@ -188,7 +191,85 @@ export function PreviewPanel({ state, activeSection, onRegionClick }: PreviewPan
               </div>
             )}
 
-            {isDeclaration ? (
+            {isDeclaration && state.deedType === 'trust-certification' ? (
+              <>
+                {/* Certification of trust (PCT #72, Prob C §18100.5).
+                    Owner ruling: initial lines and checkboxes are EXECUTION
+                    acts — they render blank, always; typed transcriptions
+                    fill the text blanks only. */}
+                <div className={`text-[10.5pt] leading-relaxed mb-3 ${highlight('affidavit')}`}>
+                  <p className="mb-2">
+                    The undersigned declare(s) under penalty of perjury under the laws of the
+                    State of California that the following is true and correct:
+                  </p>
+                  <p className="mb-1.5">
+                    1. The Trust known as{' '}
+                    <span onClick={go('affidavit', 'affidavit-trustName')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.trustName)}`}>{factOrBlank(aff?.trustName)}</span>,
+                    {' '}executed on{' '}
+                    <span onClick={go('affidavit', 'affidavit-trustDate')} className={`${CLICKABLE} ${dataHighlight(aff?.trustDate)}`}>{factOrBlank(aff?.trustDate)}</span>,
+                    {' '}is a valid and existing trust.
+                  </p>
+                  <p className="mb-1.5">
+                    2. The name(s) of the settlor(s) of the Trust is (are):{' '}
+                    <span onClick={go('affidavit', 'affidavit-settlors')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.settlors)}`}>{factOrBlank(aff?.settlors)}</span>
+                  </p>
+                  <p className="mb-1.5">
+                    3. The name(s) of the currently acting trustee(s) is (are):{' '}
+                    <span onClick={go('affidavit', 'affidavit-trustees')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.trustees)}`}>{factOrBlank(aff?.trustees)}</span>
+                  </p>
+                  <div className="mb-1.5">
+                    4. The trustee(s) of the Trust have the following powers (initial applicable line(s)):
+                    <div className="ml-5">
+                      <div><span className="inline-block w-10 border-b border-black mr-2" />Power to acquire additional property.</div>
+                      <div><span className="inline-block w-10 border-b border-black mr-2" />Power to sell and execute deeds.</div>
+                      <div><span className="inline-block w-10 border-b border-black mr-2" />Power to encumber, and execute deeds of trust.</div>
+                      <div><span className="inline-block w-10 border-b border-black mr-2" />Other: <span className="inline-block min-w-[2.4in] border-b border-black" /></div>
+                    </div>
+                  </div>
+                  <div className="mb-1.5">
+                    5. The Trust is (check one): <span className="inline-block w-10 border-b border-black mx-1" />Revocable
+                    <span className="inline-block w-10 border-b border-black mx-1" />Irrevocable
+                    <div>
+                      The name of the person who may revoke the Trust is:{' '}
+                      <span onClick={go('affidavit', 'affidavit-revokerName')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.revokerName)}`}>{factOrBlank(aff?.revokerName)}</span>
+                    </div>
+                  </div>
+                  <p className="mb-1.5">
+                    6. The number of trustees who must sign documents in order to exercise the
+                    powers of the Trust is (are):{' '}
+                    <span onClick={go('affidavit', 'affidavit-signerCount')} className={`${CLICKABLE} ${dataHighlight(aff?.signerCount)}`}>{factOrBlank(aff?.signerCount)}</span>,
+                    {' '}whose name(s) is (are):{' '}
+                    <span onClick={go('affidavit', 'affidavit-signerNames')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.signerNames)}`}>{factOrBlank(aff?.signerNames)}</span>
+                  </p>
+                  <p className="mb-1.5">
+                    7. Title to Trust assets is to be taken as follows:{' '}
+                    <span onClick={go('affidavit', 'affidavit-titleVesting')} className={`font-bold uppercase ${CLICKABLE} ${dataHighlight(aff?.titleVesting)}`}>{factOrBlank(aff?.titleVesting)}</span>
+                  </p>
+                  <p className="mb-1.5">
+                    8. The Trust has not been revoked, modified or amended in any manner which
+                    would cause the representations contained herein to be incorrect.
+                  </p>
+                  <p className="mb-1.5">9. I (we) am (are) all of the currently acting trustees.</p>
+                  <p className="mb-1.5">
+                    10. I (we) understand that I (we) may be required to provide copies of
+                    excerpts from the original Trust documents which designate the trustees
+                    and confer the power to act in the pending transaction.
+                  </p>
+                </div>
+
+                <div className="mt-5 flex justify-between items-end gap-4">
+                  <div className="text-[11pt]">Dated: <span className="inline-block min-w-[1.6in] border-b border-black" /></div>
+                  <div className="w-[45%]">
+                    <div className="border-b border-black h-7 mb-3" />
+                    <div className="border-b border-black h-7" />
+                  </div>
+                </div>
+
+                <div className="text-center text-[9px] font-bold mt-4">
+                  (Acknowledgement must be attached)
+                </div>
+              </>
+            ) : isDeclaration ? (
               <>
                 {/* Homestead declaration recital (PCT #33) — numbered
                     clauses 2–4 are instrument-defining furniture; the

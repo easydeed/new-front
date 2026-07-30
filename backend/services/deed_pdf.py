@@ -47,6 +47,8 @@ TEMPLATE_BY_DEED_TYPE = {
     "grant-deed-cp-ros": "grant_deed_cp_ros_ca/index.jinja2",
     # FORMS wave 1 — declaration family (PCT reference #33; CCP §704.930).
     "homestead-declaration": "homestead_declaration_ca/index.jinja2",
+    # FORMS wave 1 #6 — property-less (PCT reference #72; Prob C §18100.5).
+    "trust-certification": "trust_certification_ca/index.jinja2",
 }
 DEFAULT_TEMPLATE = "grant_deed_ca/index.jinja2"
 

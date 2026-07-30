@@ -11,7 +11,7 @@ import { VestingSection } from './sections/VestingSection';
 import { TransferTaxSection } from './sections/TransferTaxSection';
 import { RecordingSection } from './sections/RecordingSection';
 import { AffidavitSection } from './sections/AffidavitSection';
-import { formFamily, hasVestingInput, usesFactsSection } from '@/lib/formRegistry';
+import { formFamily, hasPropertySection, hasVestingInput, usesFactsSection } from '@/lib/formRegistry';
 import { DeedBuilderState } from '@/types/builder';
 
 interface InputPanelProps {
@@ -92,6 +92,9 @@ export function InputPanel({
 
       {/* Sections - overflow-visible allows dropdowns to extend outside */}
       <div className="flex-1 p-4 space-y-3 overflow-visible" style={{ overflowY: 'auto', overscrollBehavior: 'contain' }}>
+        {/* Property-less instruments (certification of trust) reference no
+            parcel — the builder opens on the typed-facts section instead. */}
+        {hasPropertySection(state.deedType) && (
         <InputSection
           id="property"
           title="Property"
@@ -107,6 +110,7 @@ export function InputPanel({
             onComplete={() => toggleSection(usesFactsSection(state.deedType) ? 'affidavit' : 'grantor')}
           />
         </InputSection>
+        )}
 
         {usesFactsSection(state.deedType) ? (
         <InputSection
