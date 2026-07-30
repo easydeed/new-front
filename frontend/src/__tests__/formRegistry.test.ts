@@ -23,8 +23,11 @@ const KNOWN_SECTIONS = new Set(['property', 'grantor', 'grantee', 'vesting', 'tr
 describe('FORMS registry — completeness and coherence', () => {
   const entries = Object.values(FORM_REGISTRY);
 
-  it('carries the seventeen shipped types', () => {
-    expect(entries.length).toBe(17);
+  it('carries the nineteen shipped types', () => {
+    expect(entries.length).toBe(19);
+    // Wave 2 #6 — entity grantors (two references, one owner-named form):
+    expect(formConfig('grant-deed-corp')?.family).toBe('deed');
+    expect(formConfig('grant-deed-partnership')?.family).toBe('deed');
     // Wave 2 #4/#5 — homestead pair (acknowledgment verified from the
     // references; spouses = two declarants in parties JSONB):
     expect(formConfig('homestead-declaration-spouses')?.family).toBe('declaration');
