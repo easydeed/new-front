@@ -332,6 +332,34 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
       },
     ],
   },
+  // Wave 1 form #7 — the STATUTORY revocation form (Prob C §§5600/5644;
+  // PCT's blank mirrors it). Single-party, acknowledged; the DTT/PCOR
+  // exemption recitals are pre-printed statutory furniture (no decision
+  // gate — R&T §11930 / §480.3 apply categorically). The grantor is named
+  // only at signature on the statutory form ("Sign and print your name" —
+  // an execution act), so the typed name identifies the record and the
+  // Past Deeds row; it never pre-prints on the instrument.
+  'tod-revocation': {
+    slug: 'tod-revocation',
+    label: 'Revocation of Revocable TOD Deed',
+    title: 'REVOCATION OF REVOCABLE TRANSFER ON DEATH (TOD) DEED',
+    subtitle: '(California Probate Code § 5600)',
+    description: 'Revokes a recorded transfer on death deed — statutory form; must be recorded within 60 days of notarization',
+    popular: false,
+    family: 'declaration',
+    sections: DECLARATION_SECTIONS,
+    notarial: 'acknowledgment',
+    hasDtt: false,
+    affidavitFields: [
+      {
+        key: 'revokingGrantor',
+        label: 'Revoking grantor (as named on the recorded TOD deed)',
+        placeholder: 'ROBERT OWNER',
+        uppercase: true,
+        hint: 'Identifies this record and the Past Deeds row. The statutory form itself is signed AND printed by the grantor at notarization — no name pre-prints.',
+      },
+    ],
+  },
 };
 
 export function formConfig(slug: string | undefined | null): FormTypeConfig | undefined {

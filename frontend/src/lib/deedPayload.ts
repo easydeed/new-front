@@ -46,6 +46,7 @@ function buildFactsBlock(aff: AffidavitFacts | undefined) {
     signer_count: aff.signerCount || '',
     signer_names: aff.signerNames || '',
     title_vesting: aff.titleVesting || '',
+    revoking_grantor: aff.revokingGrantor || '',
   };
   return Object.values(block).some((v) => v) ? block : null;
 }
@@ -79,7 +80,9 @@ export function buildDeedPayload(genState: DeedBuilderState) {
     parties: isSingleParty
       ? genState.deedType === 'trust-certification'
         ? { trustee: aff?.trustees || '' }
-        : { declarant: aff?.declarantName || '' }
+        : genState.deedType === 'tod-revocation'
+          ? { grantor: aff?.revokingGrantor || '' }
+          : { declarant: aff?.declarantName || '' }
       : null,
     vesting: genState.vesting,
     requested_by: genState.requestedBy,

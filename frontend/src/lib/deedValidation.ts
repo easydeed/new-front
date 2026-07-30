@@ -68,6 +68,25 @@ export function evaluateSubstantive(state: DeedBuilderState): CheckResult[] {
         },
       ];
     }
+    if (state.deedType === 'tod-revocation') {
+      // The statutory form names the grantor only at signature; the typed
+      // name identifies the record (and the parties column) — plus the
+      // affected property's description.
+      return [
+        {
+          id: 'revoking_grantor_named',
+          label: 'Revoking grantor named',
+          ok: !!state.affidavit?.revokingGrantor?.trim(),
+          sectionId: 'affidavit',
+        },
+        {
+          id: 'legal_description_present',
+          label: 'Legal description present',
+          ok: !!state.property?.legalDescription?.trim(),
+          sectionId: 'property',
+        },
+      ];
+    }
     // Homestead: the declarant plus the premises.
     return [
       {
@@ -282,10 +301,12 @@ export function deriveSectionTruth(state: DeedBuilderState): SectionTruth {
     // affidavit's affiant/decedent/recording reference.
     const affFilled = state.deedType === 'trust-certification'
       ? !!(aff?.trustName?.trim() && aff?.trustees?.trim())
-      : isDeclarationType(state.deedType)
-        ? !!aff?.declarantName?.trim()
-        : !!(aff?.affiantName?.trim() && aff?.decedentName?.trim() &&
-          aff?.instrumentNo?.trim() && aff?.recordingDate?.trim());
+      : state.deedType === 'tod-revocation'
+        ? !!aff?.revokingGrantor?.trim()
+        : isDeclarationType(state.deedType)
+          ? !!aff?.declarantName?.trim()
+          : !!(aff?.affiantName?.trim() && aff?.decedentName?.trim() &&
+            aff?.instrumentNo?.trim() && aff?.recordingDate?.trim());
     const statuses: Record<string, SectionStatus> = {
       // Property-less instruments (certification of trust) have no
       // property section — the one-truth counter must not count it.

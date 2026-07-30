@@ -27,6 +27,9 @@ import {
   OPERATIVE_WORDS,
   EXEMPTION_RECITALS,
   FIXED_VESTING_PHRASES,
+  TOD_NOTICE_HEAD,
+  TOD_REVOCATION_STATEMENT,
+  TOD_WITNESS_INSTRUCTION,
 } from '../lib/deedFurniture';
 
 /** Strip // and /* comments so prose about a disease can't trip the scan. */
@@ -143,5 +146,19 @@ describe('the same wording lives in the backend chassis templates', () => {
     expect(t).toContain(`${FIXED_VESTING_PHRASES[dt]} the real property situated in the County of`);
     expect(t).not.toContain('{{ vesting }}');
     expect(t).not.toContain('{% if vesting %}');
+  });
+
+  // Wave 1 #7: the statutory revocation text renders verbatim in both the
+  // preview (by identifier) and the template (by value).
+  it('tod-revocation: statutory notice, revocation statement, witness instruction', () => {
+    const t = normalized(
+      fs.readFileSync(path.join(TEMPLATE_ROOT, 'tod_revocation_ca', 'index.jinja2'), 'utf8')
+    );
+    expect(t).toContain(TOD_NOTICE_HEAD);
+    expect(t).toContain(TOD_REVOCATION_STATEMENT);
+    expect(t).toContain(TOD_WITNESS_INSTRUCTION);
+    for (const id of ['TOD_NOTICE_HEAD', 'TOD_REVOCATION_STATEMENT', 'TOD_WITNESS_INSTRUCTION']) {
+      expect(PANEL).toContain(id);
+    }
   });
 });

@@ -49,6 +49,27 @@ export const FIXED_VESTING_PHRASES: Record<string, string> = {
   'grant-deed-cp-ros': 'as COMMUNITY PROPERTY WITH RIGHT OF SURVIVORSHIP',
 };
 
+/** TOD revocation (Prob C §§5600/5644) — statutory furniture shared by
+ * preview and template (drift-pinned). The exemption recitals are
+ * categorical (no decision gate); the notice is the statute's own. */
+export const TOD_DTT_EXEMPTION =
+  'This conveyance is exempt from Documentary Transfer Tax under Revenue and Taxation Code §11930.';
+export const TOD_PCOR_EXEMPTION =
+  'This conveyance is exempt from Preliminary Change of Ownership Report under Revenue and Taxation Code § 480.3.';
+export const TOD_NOTICE_HEAD = 'IMPORTANT NOTICE: THIS FORM MUST BE RECORDED TO BE EFFECTIVE';
+export const TOD_NOTICE_BODY =
+  'This revocation form MUST be RECORDED on or before 60 days after the date it is notarized ' +
+  'or it will not be effective. This revocation form only affects a transfer on death deed that YOU ' +
+  'made. A transfer on death deed made by a co-owner of your property is not affected by this ' +
+  'revocation form. A co-owner who wants to revoke a transfer on death deed that they made must ' +
+  'complete and RECORD a SEPARATE revocation form.';
+export const TOD_REVOCATION_STATEMENT =
+  'I revoke any TOD deed to transfer the described property that I executed before executing this form.';
+export const TOD_WITNESS_INSTRUCTION =
+  'To be valid, this form must be signed by two persons, both present at the same time, who witness ' +
+  'your signing of the deed or your acknowledgment that it is your deed. The signatures of the ' +
+  'witnesses do not need to be acknowledged by a notary public.';
+
 /** Categorical exemption recitals (instrument-defining form furniture —
  * see docs/DOCTRINE_CONFORMANCE.md §7.3). */
 export const EXEMPTION_RECITALS: Record<string, string> = {

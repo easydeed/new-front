@@ -193,6 +193,7 @@ export function hydrateStateFromDeedRow(row: Record<string, any>): ResumeResult 
           signerCount: meta.affidavit?.signer_count || '',
           signerNames: meta.affidavit?.signer_names || '',
           titleVesting: meta.affidavit?.title_vesting || '',
+          revokingGrantor: meta.affidavit?.revoking_grantor || '',
         }
       : undefined,
     returnTo,
