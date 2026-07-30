@@ -37,6 +37,7 @@ export function GranteeSection({ value, onChange, grantorName }: GranteeSectionP
           <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
             type="text"
+            data-builder-field="grantee"
             value={value}
             onChange={(e) => onChange(e.target.value.toUpperCase())}
             placeholder="JANE DOE"
