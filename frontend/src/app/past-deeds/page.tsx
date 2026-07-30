@@ -52,6 +52,11 @@ export default function PastDeedsPageV0() {
     deedId: null,
   })
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
+  // S1: the share result panel — email status reported truthfully, and the
+  // review link surfaced for manual sending (shares must be usable even
+  // with no email transport configured).
+  const [shareResult, setShareResult] = useState<{ approvalUrl: string; emailSent: boolean } | null>(null)
+  const [linkCopied, setLinkCopied] = useState(false)
   // X2.7: find a deed without scrolling — text search + status filter.
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "draft">("all")
@@ -128,6 +133,8 @@ export default function PastDeedsPageV0() {
     setSelectedDeedId(deedId)
     setShareModalOpen(true)
     setShareError(null)
+    setShareResult(null)
+    setLinkCopied(false)
   }
 
   const handleShareSubmit = async (e: React.FormEvent) => {
@@ -151,8 +158,10 @@ export default function PastDeedsPageV0() {
         throw new Error(data.detail || `Failed to share deed (${response.status})`)
       }
 
-      // Success - close modal and reset form
-      setShareModalOpen(false)
+      // S1: the backend says whether the email actually went out
+      // (email_sent) and hands back the review link — report THAT, never
+      // a fabricated "the recipient will receive an email."
+      const data = await response.json().catch(() => ({}))
       setShareForm({
         recipient_name: "",
         recipient_email: "",
@@ -160,7 +169,10 @@ export default function PastDeedsPageV0() {
         message: "",
         expires_in_hours: 168,
       })
-      toast.success("Deed shared successfully! The recipient will receive an email with the review link.")
+      setShareResult({
+        approvalUrl: data?.shared_deed?.approval_url || "",
+        emailSent: !!data?.email_sent,
+      })
     } catch (err) {
       setShareError(err instanceof Error ? err.message : "Failed to share deed")
     } finally {
@@ -459,7 +471,72 @@ export default function PastDeedsPageV0() {
               </div>
             )}
 
-            {/* Form */}
+            {/* S1: result panel — the truth about what happened, plus the
+                review link so the share works even with no email transport. */}
+            {shareResult ? (
+              <div className="space-y-4 overflow-y-auto flex-1 min-h-0 pr-1">
+                <div className="flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-green-800 font-medium">
+                    Share saved — the review link is active until it expires.
+                  </p>
+                </div>
+
+                {shareResult.emailSent ? (
+                  <p className="text-sm text-slate-600">
+                    A notification email with the review link was sent to the recipient.
+                  </p>
+                ) : (
+                  <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                    <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-amber-800">
+                      The notification email could <strong>not</strong> be sent (email
+                      isn&apos;t configured on the server). Copy the review link below
+                      and send it to the recipient yourself.
+                    </p>
+                  </div>
+                )}
+
+                {shareResult.approvalUrl && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Review link</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value={shareResult.approvalUrl}
+                        onFocus={(e) => e.target.select()}
+                        className="flex-1 px-3 py-2.5 text-sm font-mono border border-slate-300 rounded-lg bg-slate-50 text-slate-700"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(shareResult.approvalUrl)
+                          setLinkCopied(true)
+                          setTimeout(() => setLinkCopied(false), 2000)
+                        }}
+                        className="px-4 py-2.5 bg-[#7C4DFF] hover:bg-[#6a3de8] text-white text-sm font-medium rounded-lg transition-colors flex-shrink-0"
+                      >
+                        {linkCopied ? "Copied!" : "Copy link"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShareModalOpen(false)
+                      setShareResult(null)
+                    }}
+                    className="px-6 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-lg transition-colors"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            ) : (
             <form onSubmit={handleShareSubmit} className="space-y-4 overflow-y-auto flex-1 min-h-0 pr-1">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -560,6 +637,7 @@ export default function PastDeedsPageV0() {
                 </button>
               </div>
             </form>
+            )}
           </div>
         </div>
       )}
