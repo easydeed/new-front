@@ -48,3 +48,25 @@ territory the doctrine deliberately avoids.
 
 *Pre-wave recommendation from the spike report: the half-day form-registry
 refactor, so type #7 costs what type #2 costs.*
+
+---
+
+## Correction note — wave-1 reference measurements (2026-07-30, owner-acknowledged)
+
+**References outrank memo predictions.** Two certificate predictions above
+were wrong, caught when the PCT references were fetched and measured
+before building (the pipeline's first step, doing exactly its job):
+
+1. **Declaration of Homestead** (#5): predicted "jurat reuse" — the
+   reference carries a **§1189 acknowledgment**, consistent with
+   CCP §704.930 (a homestead declaration "shall be acknowledged").
+2. **Certification of Trust** (#6): predicted "sworn, jurat" — the
+   reference is a penalty-of-perjury declaration ending "(Acknowledgement
+   must be attached)": an **acknowledged** instrument, not a jurat.
+
+Both therefore ship as a third registry family — **declaration**
+(acknowledged, no DTT, single-party) — alongside deed (acknowledged, DTT)
+and affidavit (jurat, no DTT); the coherence pins enforce all three
+structurally. The single-party shape also fired the owner-ledgered
+parties-JSONB migration (both triggers at once: catalog >10 types AND
+parties unmappable onto grantor/grantee).
