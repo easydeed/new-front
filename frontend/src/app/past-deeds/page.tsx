@@ -55,7 +55,7 @@ export default function PastDeedsPageV0() {
   // S1: the share result panel — email status reported truthfully, and the
   // review link surfaced for manual sending (shares must be usable even
   // with no email transport configured).
-  const [shareResult, setShareResult] = useState<{ approvalUrl: string; emailSent: boolean } | null>(null)
+  const [shareResult, setShareResult] = useState<{ approvalUrl: string; emailSent: boolean; emailError?: string } | null>(null)
   const [linkCopied, setLinkCopied] = useState(false)
   // X2.7: find a deed without scrolling — text search + status filter.
   const [searchQuery, setSearchQuery] = useState("")
@@ -172,6 +172,7 @@ export default function PastDeedsPageV0() {
       setShareResult({
         approvalUrl: data?.shared_deed?.approval_url || "",
         emailSent: !!data?.email_sent,
+        emailError: typeof data?.email_error === "string" ? data.email_error : undefined,
       })
     } catch (err) {
       setShareError(err instanceof Error ? err.message : "Failed to share deed")
@@ -489,11 +490,17 @@ export default function PastDeedsPageV0() {
                 ) : (
                   <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
                     <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-amber-800">
-                      The notification email could <strong>not</strong> be sent (email
-                      isn&apos;t configured on the server). Copy the review link below
-                      and send it to the recipient yourself.
-                    </p>
+                    <div className="text-sm text-amber-800">
+                      <p>
+                        The notification email could <strong>not</strong> be sent.
+                        Copy the review link below and send it to the recipient yourself.
+                      </p>
+                      {shareResult.emailError && (
+                        <p className="mt-1 text-xs font-mono text-amber-700 break-words">
+                          {shareResult.emailError}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 )}
 

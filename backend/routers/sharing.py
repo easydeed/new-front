@@ -131,12 +131,16 @@ def share_deed_for_approval(share_data: ShareDeedCreate, user_id: int = Depends(
         "apn": apn
     }
 
-    # Phase 7: Send sharing notification email
+    # Phase 7: Send sharing notification email. S1 follow-up: the failure
+    # REASON travels — logged with a [SHARE-EMAIL] prefix and carried in
+    # the response so the modal's amber panel can say why ("from address
+    # not verified" is actionable; "email not configured" was wrong).
     email_sent = False
+    email_error = None
     try:
-        from utils.notifications import send_share_notification
+        from utils.notifications import send_share_notification_with_reason
 
-        email_sent = send_share_notification(
+        email_sent, email_error = send_share_notification_with_reason(
             recipient_email=share_data.recipient_email,
             recipient_name=share_data.recipient_name,
             owner_name=owner_name,
@@ -145,22 +149,20 @@ def share_deed_for_approval(share_data: ShareDeedCreate, user_id: int = Depends(
         )
 
         if email_sent:
-            print(f"[Phase 7] ✅ Sharing notification sent to {share_data.recipient_email}")
+            print(f"[SHARE-EMAIL] ✅ Sent to {share_data.recipient_email}")
         else:
-            print(f"[Phase 7] ⚠️ Failed to send sharing notification")
+            print(f"[SHARE-EMAIL] ❌ Not sent: {email_error}")
     except Exception as notif_error:
-        # Don't fail the request if notification fails
-        print(f"[Phase 7] ⚠️ Sharing notification error (non-blocking): {notif_error}")
-
-    if not email_sent:
-        # Still return success but indicate email issue
-        print("[Phase 7] Warning: Deed shared but email notification failed")
+        # Don't fail the request if notification fails — but never lose why.
+        email_error = f"{type(notif_error).__name__}: {str(notif_error)[:200]}"
+        print(f"[SHARE-EMAIL] ❌ Exception (non-blocking): {email_error}")
 
     return {
         "success": True,
-        "message": "Deed shared successfully! Approval email sent." if email_sent else "Deed shared, but email notification failed.",
+        "message": "Deed shared successfully! Approval email sent." if email_sent else "Deed shared, but the notification email was not sent.",
         "shared_deed": shared_deed,
-        "email_sent": email_sent
+        "email_sent": email_sent,
+        "email_error": email_error
     }
 
 @router.get("/shared-deeds")
