@@ -16,6 +16,12 @@ _Last corrected: 2026-07-30 (owner corrections relayed post-wave-1)._
 - **HM2 inputs**: sales/contact email → `CONTACT_SALES_EMAIL` constant;
   footer entity details.
 - **Counsel review** of the DRAFT `/terms` + `/privacy` pages.
+- **Demo-card Vercel env vars** — REOPENED 2026-07-30 on the owner's
+  direct request ("I do not see them"). The code is live (PR #76); the
+  card renders only when BOTH `NEXT_PUBLIC_DEMO_EMAIL` and
+  `NEXT_PUBLIC_DEMO_PASSWORD` are set in Vercel (Production) and the
+  site is redeployed. Owner sets the values (current/rotated password —
+  never the pre-X0 leaked one); values never in git or chat.
 - **PDFShift account closure** (code removal shipped in PR #71; Render
   env vars `PDFSHIFT_API_KEY`/`PDF_ENGINE` deletion rides with it).
 - **Full/Partial Reconveyance — HOLD** (wave-2 ruling): lender-side
@@ -35,8 +41,9 @@ _Last corrected: 2026-07-30 (owner corrections relayed post-wave-1)._
   2026-07-30; an earlier ledger entry inverted this as "asserted
   confirmations" — the owner's definition governs). PR #79 closed as
   decided; the W1 draft stays parked pending the owner's lane call.
-- **Demo-card Vercel env vars** — closed 2026-07-30: owner has not
-  requested the demo card back; reopen only on owner request.
+- ~~Demo-card Vercel env vars~~ — the 2026-07-30 closure ("owner has
+  not requested the demo card back") was superseded the same day by the
+  owner's request; see the reopened item on the open card above.
 - **PS2/PS3 engine flip** — WeasyPrint sole engine; production parity
   PASSED; PDFShift code removed (account closure remains open, above).
 - **T7 drops** — done (owner-executed).
