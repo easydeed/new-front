@@ -1,0 +1,9 @@
+Plus Jakarta Sans — Copyright 2020 The Plus Jakarta Sans Project Authors
+(https://github.com/tokotype/PlusJakartaSans)
+
+Licensed under the SIL Open Font License, Version 1.1.
+Full text: https://openfontlicense.org
+
+The committed file is the latin subset of the ExtraBold (800) weight,
+self-hosted for the DeedPro wordmark (docs/BRAND.md) — no runtime
+requests to third-party font hosts.

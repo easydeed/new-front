@@ -1,10 +1,13 @@
 /**
- * BRAND1 — the DeedPro mark: the "Stamped Page".
+ * BRAND2 — the DeedPro mark: the "Stamped Page", refined.
  *
- * A recorded instrument, reduced to its essence: a document with a folded
- * corner, three lines of text, and a two-ring recorder's seal in the
- * lower half. The seal is the story — DeedPro's output is measured,
- * recorder-formatted, hash-stamped paper (see docs/BRAND.md).
+ * Design source of record: the Figma export at figma/ (reference-only —
+ * app code never imports from it; this file re-implements the geometry).
+ * A recorded instrument reduced to its essence: a rounded page with a
+ * folded corner, a header ruling line over two lighter data lines, and a
+ * two-ring recorder's seal with a center hash-stamp dot — the embosser
+ * convention, not a generic badge. The seal is the story: measured,
+ * recorder-formatted, hash-stamped paper (docs/BRAND.md).
  *
  * This component is the single source of the mark's geometry and the ONE
  * place brand hex values may appear outside the Tailwind token scale —
@@ -16,10 +19,22 @@
  * this component anywhere in the preview-to-PDF path.
  */
 import type { CSSProperties } from 'react';
+import localFont from 'next/font/local';
+
+/** Wordmark face — Plus Jakarta Sans 800, SELF-HOSTED (no third-party
+ * font requests; latin subset committed beside this file). App/marketing
+ * surfaces only: the font loads where this module is imported, and this
+ * module never reaches the PDF path. */
+const jakarta = localFont({
+  src: './fonts/PlusJakartaSans-ExtraBold-latin.woff2',
+  weight: '800',
+  display: 'swap',
+  fallback: ['system-ui', 'sans-serif'],
+});
 
 /** Brand purple 500 — matches tailwind.config.js brand.500. */
 const BRAND = '#7C4DFF';
-/** Fold shadow — matches brand.700-adjacent (#5B35D5, the mark's own). */
+/** Fold plane — the mark's brand-700-adjacent. */
 const FOLD = '#5B35D5';
 /** Ink — the wordmark's "Deed" (and the ink-variant mark). */
 const INK = '#1F2B37';
@@ -27,19 +42,20 @@ const INK = '#1F2B37';
 type MarkVariant = 'brand' | 'ink' | 'white';
 
 interface LogoMarkProps {
-  /** Rendered height in px; width scales at the mark's 84:104 ratio. */
+  /** Rendered height in px; width scales at the mark's 64:80 ratio. */
   size?: number;
   variant?: MarkVariant;
   className?: string;
 }
 
 /**
- * The mark. At small sizes (≤20px) the geometry simplifies for optics:
- * two text lines instead of three and a single thicker seal ring —
- * a normal small-size variant, same concept.
+ * The mark. At small sizes (≤20px) the geometry simplifies for optics
+ * (per the Figma scale-floor sheet): two text lines and a single heavier
+ * seal ring — two rings merge into noise at favicon scale.
  */
 export function LogoMark({ size = 32, variant = 'brand', className }: LogoMarkProps) {
   const small = size <= 20;
+  const width = (size * 64) / 80;
   const doc = variant === 'white' ? '#FFFFFF' : variant === 'ink' ? INK : BRAND;
   const fold = variant === 'white' ? '#FFFFFF' : variant === 'ink' ? '#000000' : FOLD;
   const detail = variant === 'white' ? INK : '#FFFFFF';
@@ -47,29 +63,41 @@ export function LogoMark({ size = 32, variant = 'brand', className }: LogoMarkPr
 
   return (
     <svg
-      viewBox="0 0 84 104"
-      width={(size * 84) / 104}
+      viewBox="0 0 64 80"
+      width={width}
       height={size}
+      fill="none"
       className={className}
       aria-hidden="true"
       focusable="false"
     >
-      {/* The page, folded corner top-right */}
-      <path d="M10 4 h44 l18 18 v74 a4 4 0 0 1 -4 4 h-54 a4 4 0 0 1 -4 -4 v-88 a4 4 0 0 1 4 -4 z" fill={doc} />
-      <path d="M54 4 v14 a4 4 0 0 0 4 4 h14 z" fill={fold} opacity={foldOpacity} />
+      {/* Page body — three rounded corners, top-right notched for fold */}
+      <path
+        d="M4 0H50L64 14V76C64 78.2 62.2 80 60 80H4C1.8 80 0 78.2 0 76V4C0 1.8 1.8 0 4 0Z"
+        fill={doc}
+      />
+      {/* Fold triangle — the turned corner */}
+      <path d="M50 0L64 14H50V0Z" fill={fold} opacity={foldOpacity} />
 
-      {/* The instrument's text lines */}
-      <rect x="20" y="34" width="42" height="4.5" rx="2.25" fill={detail} opacity="0.95" />
-      <rect x="20" y="44" width="42" height="4.5" rx="2.25" fill={detail} opacity="0.95" />
-      {!small && <rect x="20" y="54" width="26" height="4.5" rx="2.25" fill={detail} opacity="0.95" />}
-
-      {/* The recorder's seal — two rings, lower half */}
       {small ? (
-        <circle cx="47" cy="76" r="12" fill="none" stroke={detail} strokeWidth="6" />
+        <>
+          {/* Two lines only — three collapse at favicon scale */}
+          <rect x="10" y="22" width="34" height="4" rx="2" fill={detail} fillOpacity="0.9" />
+          <rect x="10" y="31" width="26" height="4" rx="2" fill={detail} fillOpacity="0.62" />
+          {/* Single heavier ring — the bullseye reads at 16px */}
+          <circle cx="32" cy="61" r="10" stroke={detail} strokeWidth="3.5" />
+        </>
       ) : (
         <>
-          <circle cx="47" cy="76" r="13.5" fill="none" stroke={detail} strokeWidth="3.5" />
-          <circle cx="47" cy="76" r="6.5" fill="none" stroke={detail} strokeWidth="2" />
+          {/* Header ruling line — document-type declaration weight */}
+          <rect x="10" y="22" width="34" height="3" rx="1.5" fill={detail} fillOpacity="0.88" />
+          {/* Body ruling lines — lighter, data-entry fields */}
+          <rect x="10" y="30" width="26" height="2.5" rx="1.25" fill={detail} fillOpacity="0.58" />
+          <rect x="10" y="37" width="31" height="2.5" rx="1.25" fill={detail} fillOpacity="0.58" />
+          {/* Recorder's seal — two-ring embosser + center hash stamp */}
+          <circle cx="32" cy="60" r="11.25" stroke={detail} strokeWidth="1.6" />
+          <circle cx="32" cy="60" r="7" stroke={detail} strokeWidth="1.6" />
+          <circle cx="32" cy="60" r="1.75" fill={detail} />
         </>
       )}
     </svg>
@@ -85,14 +113,17 @@ interface LockupProps {
 const lockupStyle = (size: number): CSSProperties => ({
   display: 'inline-flex',
   alignItems: 'center',
-  gap: Math.max(6, Math.round(size * 0.28)),
+  // Figma spec: gap = 0.45 × mark WIDTH (markSize in the reference is width).
+  gap: Math.max(6, Math.round(((size * 64) / 80) * 0.45)),
 });
 
 const wordmarkStyle = (size: number): CSSProperties => ({
-  fontWeight: 700,
-  letterSpacing: '-0.02em',
-  fontSize: Math.round(size * 0.72),
+  fontWeight: 800,
+  letterSpacing: '-0.025em',
+  // Figma spec: fontSize = 0.95 × mark width.
+  fontSize: Math.round(((size * 64) / 80) * 0.95),
   lineHeight: 1,
+  userSelect: 'none',
 });
 
 /** Mark + wordmark: ink "Deed", brand "Pro". Light surfaces. */
@@ -100,7 +131,7 @@ export function LogoLockup({ size = 32, className }: LockupProps) {
   return (
     <span style={lockupStyle(size)} className={className}>
       <LogoMark size={size} />
-      <span style={wordmarkStyle(size)}>
+      <span className={jakarta.className} style={wordmarkStyle(size)}>
         <span style={{ color: INK }}>Deed</span>
         <span style={{ color: BRAND }}>Pro</span>
       </span>
@@ -108,12 +139,19 @@ export function LogoLockup({ size = 32, className }: LockupProps) {
   );
 }
 
-/** One-color white lockup for dark surfaces (mark's details read in ink). */
+/**
+ * Dark-surface lockup, per the refined design: the mark stays FULL
+ * COLOR (the purple page reads on ink/dark grounds) and the wordmark
+ * flips "Deed" to white while "Pro" keeps brand purple.
+ */
 export function LogoLockupDark({ size = 32, className }: LockupProps) {
   return (
     <span style={lockupStyle(size)} className={className}>
-      <LogoMark size={size} variant="white" />
-      <span style={{ ...wordmarkStyle(size), color: '#FFFFFF' }}>DeedPro</span>
+      <LogoMark size={size} />
+      <span className={jakarta.className} style={wordmarkStyle(size)}>
+        <span style={{ color: '#FFFFFF' }}>Deed</span>
+        <span style={{ color: BRAND }}>Pro</span>
+      </span>
     </span>
   );
 }
