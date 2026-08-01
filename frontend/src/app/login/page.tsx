@@ -13,6 +13,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { AuthManager } from "../../utils/auth"
 import { Eye, EyeOff, AlertCircle, CheckCircle2, Zap, Copy, Check, ShieldCheck, FileCheck2, Landmark, ScrollText } from "lucide-react"
+import { LogoLockup } from "@/components/brand/Logo"
 
 // Demo credentials: values live ONLY in env (never in git — X0's rule
 // stands). Pre-launch, the owner sets NEXT_PUBLIC_DEMO_EMAIL/PASSWORD on
@@ -155,11 +156,8 @@ function LoginContent() {
       {/* ── Form column ─────────────────────────────────────────── */}
       <div className="flex flex-col px-6 sm:px-12 py-8">
         {/* Brand row */}
-        <Link href="/" className="flex items-center gap-2.5 self-start">
-          <span className="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center shadow-brand">
-            <ShieldCheck className="w-5 h-5 text-white" />
-          </span>
-          <span className="text-xl font-bold tracking-tight text-gray-900">DeedPro</span>
+        <Link href="/" className="self-start">
+          <LogoLockup size={32} />
         </Link>
 
         <div className="flex-1 flex items-center justify-center py-10">

@@ -7,6 +7,7 @@ import { Check, Zap, Lock, Clock, ArrowRight, Wand2, Sparkles, Shield, X, FileDi
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import StickyNav from "@/components/landing-v2/StickyNav"
+import { LogoLockupDark } from "@/components/brand/Logo"
 
 const AnimatedDeed = dynamic(() => import("@/components/landing-v2/AnimatedDeed"), {
   ssr: false,
@@ -936,9 +937,8 @@ Content-Type: application/json
           <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-16">
             <div className="grid md:grid-cols-4 gap-12">
               <div className="md:col-span-2">
-                <div className="flex items-center gap-2 mb-6">
-                  <div className="h-10 w-10 rounded-lg bg-[#7C4DFF]" />
-                  <span className="text-2xl font-bold text-white">DeedPro</span>
+                <div className="mb-6">
+                  <LogoLockupDark size={36} />
                 </div>
                 <p className="text-base leading-relaxed">
                   Create California deeds in minutes with an AI&#8209;assisted wizard and SmartReview.
