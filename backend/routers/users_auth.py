@@ -170,8 +170,12 @@ async def register_user(user: UserRegister = Body(...)):
 @router.post("/users/login")
 async def login_user(credentials: UserLogin = Body(...)):
     """Authenticate user and return JWT token"""
+    # Poisoned-conn hotfix: bind before try — if get_db_connection raises,
+    # the except block's rollback used to hit an UnboundLocalError.
+    conn = None
     try:
         # PHASE 24-G FIX: Use resilient connection that auto-reconnects
+        # (and, since the 2026-08-01 outage, heals aborted transactions).
         conn = db.get_db_connection()
 
         with conn.cursor() as cur:
