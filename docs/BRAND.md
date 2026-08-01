@@ -1,25 +1,31 @@
 # DeedPro Brand — canonical identity
 
-_BRAND1, owner-approved mark. This file is the identity's single written
-source; `frontend/src/components/brand/Logo.tsx` is the mark's single
-geometry source; `frontend/tailwind.config.js` `brand.*` is the color
-tokens' single source._
+_BRAND1 established the mark; BRAND2 refined it against the Figma
+export. **Design source of record: the `figma/` folder** (reference-only
+— app code never imports from it, CI-pinned).
+`frontend/src/components/brand/Logo.tsx` is the production geometry;
+`frontend/tailwind.config.js` `brand.*` is the color tokens' single
+source._
 
-## The mark: the Stamped Page
+## The mark: the Stamped Page (refined)
 
-A recorded instrument, reduced to its essence — a purple document with a
-folded corner, three lines of text, and a **two-ring recorder's seal** in
-the lower half.
+A recorded instrument, reduced to its essence — a purple page with three
+rounded corners and a folded top-right corner, a **header ruling line**
+over two lighter **data-entry lines** (the line hierarchy reads as a
+real instrument: declaration, then fields), and a **two-ring recorder's
+seal with a center hash-stamp dot** in the lower half — the county
+embosser convention, not a generic badge.
 
 The seal is the story. DeedPro's product is not "documents" — it is
 *recordable* paper: measured to the recorder's conventions (Gov C
 §27361.6), free of chrome (§27361.7), immutable once generated, and
-hash-stamped (`deed_pdfs.sha256`). The mark is that promise drawn small:
-a page a county recorder would accept, already carrying its seal.
+hash-stamped (`deed_pdfs.sha256`). The center dot IS the hash stamp.
 
-Small-size optics (≤20px, favicons): the mark simplifies to two text
-lines and a single thicker seal ring — same concept, tuned for pixels.
-This is the normal small-size variant, not a second logo.
+Small-size optics (≤20px, favicons; the Figma scale-floor sheet):
+two text lines and a single heavier seal ring — two rings merge into
+noise at favicon scale, so the bullseye carries the identity. The 16px
+favicon cut biases the ring slightly larger for the same reason. This is
+the normal small-size variant, not a second logo.
 
 **The hard rule (G2 no-chrome):** the mark appears on app and marketing
 surfaces ONLY. Recorded instrument pages carry no branding of any kind —
@@ -58,14 +64,25 @@ system, not a palette.
 
 ## Typography
 
-System stack (Inter-compatible): the app's existing sans stack, no
-webfont dependency. Weights: 700 for the wordmark and headings, 600 for
-UI emphasis, 400 body. The wordmark tracks tight (`-0.02em`).
+**Wordmark: Plus Jakarta Sans 800**, tracked `-0.025em` — a geometric-
+humanist face whose rounded terminals match the mark's rounded page
+corners; the 800 weight gives the wordmark the same stamped authority as
+the seal. **Self-hosted** via `next/font/local` (latin-subset woff2
+committed beside the component, SIL OFL) — no runtime requests to
+third-party font hosts, and the face loads only where the Logo module is
+imported: app and marketing surfaces, never the PDF path.
+
+Lockup proportions (Figma spec): wordmark size = 0.95 × mark width;
+mark-to-wordmark gap = 0.45 × mark width.
+
+UI text stays on the app's system sans stack: 700 headings, 600
+emphasis, 400 body.
 
 ## Wordmark rules
 
 - Two-tone split, always: **Deed** in ink `#1F2B37`, **Pro** in brand
-  `#7C4DFF`. On dark surfaces the lockup is one-color white
+  `#7C4DFF`. On dark surfaces (refined rule): the mark stays FULL
+  COLOR, **Deed** flips to white, **Pro** keeps brand purple
   (`LogoLockupDark`).
 - Never italic, never letter-spaced wide, never re-colored beyond the
   two sanctioned treatments.
