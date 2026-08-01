@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { LogoLockup } from "@/components/brand/Logo"
 
 export default function StickyNav() {
   const [isScrolled, setIsScrolled] = useState(false)
@@ -27,10 +28,7 @@ export default function StickyNav() {
     >
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
         <div className="flex items-center justify-between h-16">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-[#7C4DFF]" />
-            <span className="text-xl font-bold text-[#1F2B37]">DeedPro</span>
-          </div>
+          <LogoLockup size={30} />
 
           <div className="hidden md:flex items-center gap-1">
             {[
@@ -69,7 +67,7 @@ export default function StickyNav() {
             >
               Login
             </Link>
-            <Button asChild className="bg-[#7C4DFF] hover:bg-[#7C4DFF]/90 text-white font-bold">
+            <Button asChild className="bg-brand-500 hover:bg-brand-600 text-white font-bold">
               <Link href="/register">Start Free</Link>
             </Button>
           </div>

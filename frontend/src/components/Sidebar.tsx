@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 import { AuthManager } from '../utils/auth';
+import { LogoLockup, LogoMark } from '@/components/brand/Logo';
 import {
   LayoutDashboard,
   FilePlus2,
@@ -100,11 +101,10 @@ export default function Sidebar() {
         collapsed ? 'justify-center px-0' : ''
       }`}
     >
-      <span className="w-9 h-9 rounded-lg bg-brand-500 flex items-center justify-center flex-shrink-0">
-        <ShieldCheck className="w-5 h-5 text-white" />
-      </span>
-      {!collapsed && (
-        <span className="text-xl font-bold tracking-tight text-gray-900">DeedPro</span>
+      {collapsed ? (
+        <LogoMark size={30} />
+      ) : (
+        <LogoLockup size={30} />
       )}
     </div>
   );

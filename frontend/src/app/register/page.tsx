@@ -10,6 +10,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Eye, EyeOff, ShieldCheck } from "lucide-react"
+import { LogoLockup } from "@/components/brand/Logo"
 import { AuthManager } from "@/utils/auth"
 
 const states = [
@@ -249,11 +250,8 @@ export default function RegisterPage() {
       {/* Top brand bar */}
       <header className="px-4 sm:px-6 lg:px-8 py-5">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            <span className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center">
-              <ShieldCheck className="w-5 h-5 text-white" />
-            </span>
-            <span className="text-xl font-bold tracking-tight text-gray-900">DeedPro</span>
+          <Link href="/">
+            <LogoLockup size={30} />
           </Link>
           <Link href="/login" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">
             Already have an account? <span className="text-brand-500">Sign in</span>
