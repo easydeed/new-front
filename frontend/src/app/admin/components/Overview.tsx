@@ -149,7 +149,7 @@ export default function OverviewTab(){
             </div>
           </div>
           {scanErr && (
-            <div style={{ fontSize: 12, color: 'var(--dp-warning)', marginTop: 8 }}>
+            <div style={{ fontSize: 12, color: 'var(--dp-warning-strong)', marginTop: 8 }}>
               Shown as unavailable — {scanErr}
             </div>
           )}

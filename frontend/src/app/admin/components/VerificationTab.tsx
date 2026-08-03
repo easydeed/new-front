@@ -221,7 +221,7 @@ export default function VerificationTab() {
               <tr key={doc.short_code}>
                 <td>
                   <code style={{ 
-                    background: 'var(--dp-surface, #1a1a2e)', 
+                    background: 'var(--dp-surface)', 
                     padding: '2px 6px', 
                     borderRadius: 4,
                     fontSize: 12
@@ -308,8 +308,8 @@ export default function VerificationTab() {
             </div>
 
             {selectedDoc.status === 'active' && (
-              <div style={{ borderTop: '1px solid var(--dp-border, #333)', paddingTop: 16 }}>
-                <div style={{ fontWeight: 600, marginBottom: 8, color: 'var(--dp-danger, #ef4444)' }}>
+              <div style={{ borderTop: '1px solid var(--dp-border)', paddingTop: 16 }}>
+                <div style={{ fontWeight: 600, marginBottom: 8, color: 'var(--dp-danger)' }}>
                   Revoke Document
                 </div>
                 <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 12 }}>
@@ -324,7 +324,7 @@ export default function VerificationTab() {
                 />
                 <button 
                   className="button" 
-                  style={{ background: 'var(--dp-danger, #ef4444)', color: 'white' }}
+                  style={{ background: 'var(--dp-danger)', color: 'white' }}
                   onClick={handleRevoke}
                   disabled={revoking || !revokeReason.trim()}
                 >

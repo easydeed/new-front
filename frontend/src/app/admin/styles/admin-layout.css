@@ -12,7 +12,7 @@
 /* Sidebar */
 .admin-sidebar {
   width: 260px;
-  background: #fff;
+  background: var(--dp-panel);
   border-right: 1px solid var(--dp-border);
   display: flex;
   flex-direction: column;
@@ -38,7 +38,10 @@
 .admin-logo-icon {
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, #F57C00 0%, #FF9800 100%);
+  /* ADMIN-BRAND: was an orange gradient that appeared on no other
+     DeedPro surface. The console's mark now reads as the same product
+     as the app it administers. */
+  background: linear-gradient(135deg, var(--dp-primary) 0%, var(--dp-primary-active) 100%);
   border-radius: 10px;
   display: flex;
   align-items: center;

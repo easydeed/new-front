@@ -1,42 +1,93 @@
+/* ============================================================
+   Admin console tokens — ADMIN-BRAND
+   ============================================================
+
+   The console predates the brand. Its accent was #F57C00 orange, which
+   is not a DeedPro color and, worse, sits in the amber family that
+   doctrine reserves for a meaning (see docs/BRAND.md → "Doctrinal colors
+   are brand"). An operator scanning this screen for the amber that says
+   "a machine suggested this, no human has confirmed it" was reading past
+   an orange used for buttons, nav highlights and a logo tile.
+
+   Two rules govern this file:
+
+   1. The accent is brand purple (#7C4DFF), matching every other
+      DeedPro surface. Admin is an app surface, not a separate product.
+   2. The doctrinal colors appear here only WITH their meanings —
+      never as decoration.
+
+   A note on scope, flagged rather than assumed: BRAND.md defines amber
+   as "unconfirmed external data" in the officer-facing flow. The admin
+   console has no officer decisions in it, so the nearest honest reading
+   is used below and stated explicitly rather than quietly widened.
+
+   Nothing here should be spelled as a raw hex at a call site. Every
+   admin surface reads these variables, and adminBrand.test.ts fails the
+   build if a component hardcodes a color or references a token this file
+   does not define — which is how four undefined tokens (--dp-warn,
+   --dp-error, --dp-muted, --dp-brand) spent months silently rendering
+   their fallback hex instead of anything in the palette. */
+
 :root{
-  /* Light Professional Theme */
+  /* Neutrals — light professional surface (unchanged; already on-brand) */
   --dp-bg: #f8fafc;
   --dp-bg-subtle: #f1f5f9;
   --dp-panel: #ffffff;
   --dp-panel-alt: #f8fafc;
   --dp-border: #e2e8f0;
   --dp-border-hover: #cbd5e1;
+
+  /* Ink — BRAND.md's wordmark ink for headings, slate for body/dim */
+  --dp-ink: #1F2B37;
   --dp-text: #1e293b;
   --dp-text-dim: #64748b;
   --dp-text-muted: #94a3b8;
-  
-  /* Brand - Subtle Orange Accent */
-  --dp-primary: #F57C00;
-  --dp-primary-light: #fff7ed;
-  --dp-primary-600: #ea580c;
-  --dp-primary-hover: #c2410c;
-  
-  /* Status Colors */
-  --dp-success: #059669;
-  --dp-success-light: #ecfdf5;
-  --dp-warning: #d97706;
-  --dp-warning-light: #fffbeb;
+
+  /* Brand — the single accent. tailwind.config.js `brand.*` is the
+     source of truth for these values; they are mirrored here because
+     the admin console is plain CSS, not Tailwind classes. */
+  --dp-primary: #7C4DFF;        /* brand-500 — actions, focus, nav */
+  --dp-primary-light: #F5F3FF;  /* brand-50  — active nav wash */
+  --dp-primary-600: #6a3de8;    /* brand-600 */
+  --dp-primary-hover: #6a3de8;
+  --dp-primary-active: #5b32d1; /* brand-700 */
+
+  /* ── Doctrinal colors — meanings, not decoration ──────────────
+     AMBER says the value on screen must not be read at face value:
+     unconfirmed, unmeasured, or degraded. It is the console's reading
+     of BRAND.md's "unconfirmed external data" — a number the machine
+     produced that no one has stood behind. It is NOT a warning-flavored
+     accent, and it never fills a button.
+
+     RED says something failed or is unavailable. An error, not a state.
+
+     GREEN says a probe completed and passed. Never a default. */
+  --dp-warning: #F59E0B;        /* warning.500 — matches the app */
+  --dp-warning-strong: #b45309; /* legible amber for body text */
+  --dp-warning-light: #FFFBEB;
   --dp-danger: #dc2626;
   --dp-danger-light: #fef2f2;
-  
+  --dp-success: #059669;
+  --dp-success-light: #ecfdf5;
+
+  /* Absence is neutral, not amber. "Not monitored", "not measured" and
+     "—" are facts about our instrumentation, not warnings about data. */
+  --dp-absent: #94a3b8;
+
   /* Shadows */
   --dp-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
   --dp-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
   --dp-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
   --dp-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
-  
+
   /* Radius */
   --dp-radius: 12px;
   --dp-radius-sm: 8px;
   --dp-radius-xs: 6px;
   --dp-radius-full: 9999px;
-  
-  /* Hover */
+
+  /* Interaction surfaces */
   --dp-hover: #f1f5f9;
   --dp-surface: #f8fafc;
+  --dp-surface-2: #f1f5f9;
 }
