@@ -49,12 +49,27 @@ def admin_dashboard():
             cur.execute("SELECT COUNT(*) FROM deeds")
             total_deeds = cur.fetchone()[0]
 
-            # Get deeds this month
+            # Deeds this month — and the two facts that make it readable.
+            #
+            # ADMIN1.5 reconciliation. This number is a CALENDAR-MONTH
+            # count, so on the 1st through the 3rd of a month it reads
+            # near zero on a platform that has been busy all along, and
+            # the operator's first reading is "we collapsed". The count
+            # was never wrong; the card was unlabelled. Two additions fix
+            # that without touching the semantics: the window's start
+            # date travels with the number so the UI can say WHICH month
+            # it means, and a rolling 30-day count sits beside it as the
+            # figure that does not reset at midnight on the 1st.
             cur.execute("""
-                SELECT COUNT(*) FROM deeds
-                WHERE created_at >= DATE_TRUNC('month', CURRENT_DATE)
+                SELECT COUNT(*) FILTER (WHERE created_at >= DATE_TRUNC('month', CURRENT_DATE)) AS this_month,
+                       COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days') AS last_30,
+                       DATE_TRUNC('month', CURRENT_DATE)::date AS month_start
+                FROM deeds
             """)
-            deeds_this_month = cur.fetchone()[0]
+            month_row = cur.fetchone()
+            deeds_this_month = month_row[0] or 0
+            deeds_last_30_days = month_row[1] or 0
+            month_window_start = month_row[2].isoformat() if month_row[2] else None
 
             # Get subscription breakdown
             cur.execute("""
@@ -100,6 +115,9 @@ def admin_dashboard():
             "active_users": active_users,
             "total_deeds": total_deeds,
             "deeds_this_month": deeds_this_month,
+            # The label the console needs in order to state its own window.
+            "deeds_this_month_since": month_window_start,
+            "deeds_last_30_days": deeds_last_30_days,
             "total_revenue": total_revenue,
             "monthly_revenue": monthly_revenue,
             "subscription_breakdown": {
@@ -138,15 +156,29 @@ def admin_dashboard():
 def admin_system_overview():
     """Get system overview with real health checks and PDF stats - Phase 5D"""
     # Check database health
+    #
+    # ADMIN1.5 relapse sweep. This measured with `time.time()` and cast
+    # the result to `int` milliseconds, so a healthy same-region probe —
+    # which lands well under a millisecond — truncated to 0 and the
+    # console reported "0ms latency". A zero produced by rounding is
+    # exactly the failure ADMIN1 spent a PR removing: a numeral that
+    # reads as a measurement and is not one. It is also the WRONG clock:
+    # `time.time()` is wall-clock and can step backwards under NTP.
+    #
+    # `perf_counter()` is monotonic, the value keeps sub-millisecond
+    # resolution, and on a failed probe it is None rather than 0 — a
+    # database that did not answer has no latency, and saying "0ms"
+    # under an Offline badge was the most confident wrong number on the
+    # screen.
     db_status = "down"
-    db_latency = 0
+    db_latency = None
     try:
         import time
-        start = time.time()
+        start = time.perf_counter()
         with db.conn.cursor() as cur:
             cur.execute("SELECT 1")
             cur.fetchone()
-        db_latency = int((time.time() - start) * 1000)
+        db_latency = round((time.perf_counter() - start) * 1000, 3)
         db_status = "up"
     except Exception as e:
         print(f"DB health check failed: {e}")

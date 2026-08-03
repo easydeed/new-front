@@ -9,12 +9,32 @@
 // TYPES
 // ============================================================================
 
-export type Paged<T> = { 
-  items: T[]; 
-  page: number; 
-  limit: number; 
-  total: number 
+export type Paged<T> = {
+  items: T[];
+  page: number;
+  limit: number;
+  total: number;
+  /** The sort the server actually applied — echoed so the UI can say it
+   *  rather than assume it. See USER_SORTS/DEED_SORTS in admin_api_v2. */
+  sort?: string;
 };
+
+/** Sort keys the users list accepts. Mirrors USER_SORTS server-side. */
+export const USER_SORT_OPTIONS: Array<{ key: string; label: string }> = [
+  { key: 'newest', label: 'Newest first' },
+  { key: 'oldest', label: 'Oldest first' },
+  { key: 'email', label: 'Email A–Z' },
+  { key: 'deeds', label: 'Most deeds' },
+  { key: 'last_login', label: 'Last login' },
+];
+
+/** Sort keys the deeds list accepts. Mirrors DEED_SORTS server-side. */
+export const DEED_SORT_OPTIONS: Array<{ key: string; label: string }> = [
+  { key: 'newest', label: 'Newest first' },
+  { key: 'oldest', label: 'Oldest first' },
+  { key: 'updated', label: 'Recently updated' },
+  { key: 'type', label: 'Deed type' },
+];
 
 export type ApiKeyRow = {
   id: string;
@@ -93,7 +113,19 @@ export type StatSummary = {
   total_users: number;
   active_users: number;
   total_deeds: number;
+  /**
+   * A CALENDAR-MONTH count. On the 2nd of a month it is near zero on a
+   * platform that never slowed down — which is why it never travels
+   * alone any more: `deeds_this_month_since` states the window it
+   * means, and `deeds_last_30_days` is the figure that does not reset
+   * at midnight on the 1st. Rendering this number without its label was
+   * the "This Month 0" the browser audit read as a collapse.
+   */
   deeds_this_month?: number;
+  /** ISO date the calendar-month window opens on. */
+  deeds_this_month_since?: string | null;
+  /** Rolling 30-day deed count — the reconciling figure. */
+  deeds_last_30_days?: number;
   /**
    * ADMIN1: /admin/dashboard has always computed a real 7-day signup +
    * deed feed and no frontend rendered it. It is the closest thing the
@@ -217,16 +249,19 @@ export const AdminApi = {
   getSummary: () => http<StatSummary>('/admin/dashboard'),
 
   // Users Management
-  searchUsers: (page = 1, limit = 25, search = '') =>
-    http<Paged<UserRow>>(`/admin/users/search?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`),
+  searchUsers: (page = 1, limit = 25, search = '', sort = 'newest') =>
+    http<Paged<UserRow>>(
+      `/admin/users/search?page=${page}&limit=${limit}` +
+      `&search=${encodeURIComponent(search)}&sort=${encodeURIComponent(sort)}`
+    ),
   
   getUser: (id: number) => http<UserDetail>(`/admin/users/${id}`),
 
   // Deeds Management — /admin/deeds/search is the real endpoint: honest
   // statuses (draft/completed/deleted) and a working status + user filter.
   // (Its predecessor /admin/deeds hardcoded every status to "completed".)
-  searchDeeds: (page = 1, limit = 25, search = '', status = '', userId?: number) => {
-    const qs = new URLSearchParams({ page: String(page), limit: String(limit) });
+  searchDeeds: (page = 1, limit = 25, search = '', status = '', userId?: number, sort = 'newest') => {
+    const qs = new URLSearchParams({ page: String(page), limit: String(limit), sort });
     if (search) qs.set('search', search);
     if (status) qs.set('status', status);
     if (userId != null) qs.set('user_id', String(userId));

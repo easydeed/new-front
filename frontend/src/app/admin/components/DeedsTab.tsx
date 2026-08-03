@@ -1,7 +1,8 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { AdminApi, DeedRow } from '@/lib/adminApi';
+import { AdminApi, DeedRow, DEED_SORT_OPTIONS } from '@/lib/adminApi';
+import Pager from './Pager';
 
 export default function DeedsTab(){
   // Per-user view: /admin?tab=deeds&user=<id> (linked from the user detail page)
@@ -14,48 +15,84 @@ export default function DeedsTab(){
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [sort, setSort] = useState('newest');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [modal, setModal] = useState<DeedRow | null>(null);
+  const [appliedSearch, setAppliedSearch] = useState('');
+  const firstRun = useRef(true);
 
-  async function load(){
+  async function load(nextPage = page){
     setLoading(true);
+    setLoadError('');
     try{
-      const res = await AdminApi.searchDeeds(page, limit, search, status, userId);
-      setRows(res.items); setTotal(res.total);
+      const res = await AdminApi.searchDeeds(nextPage, limit, search, status, userId, sort);
+      setRows(res.items); setTotal(res.total); setAppliedSearch(search);
+    }catch(e){
+      setRows([]); setTotal(0);
+      setLoadError(e instanceof Error ? e.message : 'Failed to load deeds');
     }finally{
       setLoading(false);
     }
   }
-  useEffect(()=>{ load(); /* eslint-disable-next-line */ }, [page, status]);
+  // A status or sort change resets to page 1 at the control (below), so
+  // this effect never re-queries page 3 of a result set that now has one
+  // page — the "Page 3 / 1 over an empty table" the audit hit.
+  useEffect(()=>{ load(); /* eslint-disable-next-line */ }, [page, status, sort]);
 
   useEffect(()=>{
-    const t = setTimeout(()=>{ setPage(1); load(); }, 300);
+    if (firstRun.current){ firstRun.current = false; return; }
+    const t = setTimeout(()=>{ setPage(1); load(1); }, 300);
     return ()=> clearTimeout(t);
+    /* eslint-disable-next-line */
   }, [search]);
+
+  const pageCount = Math.ceil(total / limit);
+  const searching = loading && search !== appliedSearch;
+  const filtered = appliedSearch !== '' || status !== '' || userId != null;
+  const noMatches = !loading && !loadError && rows.length === 0 && filtered;
+
+  function clearFilters(){
+    setStatus('');
+    setSearch('');
+    setPage(1);
+  }
 
   return (
     <div className="vstack">
       <div className="hstack" style={{justifyContent:'space-between'}}>
         <div className="hstack">
           <input className="input" placeholder="Search deeds..." value={search} onChange={e=>setSearch(e.target.value)} style={{width:320}} />
-          <select className="select" value={status} onChange={e=>setStatus(e.target.value)}>
+          <select className="select" value={status} onChange={e=>{ setPage(1); setStatus(e.target.value); }}>
             <option value="">All</option>
             <option value="completed">Completed</option>
             <option value="draft">Draft (pending)</option>
             <option value="deleted">Deleted</option>
           </select>
+          <label className="hstack" style={{gap:6, fontSize:13, opacity:.8}}>
+            Sort
+            <select className="select" value={sort} onChange={e=>{ setPage(1); setSort(e.target.value); }}>
+              {DEED_SORT_OPTIONS.map(o => (
+                <option key={o.key} value={o.key}>{o.label}</option>
+              ))}
+            </select>
+          </label>
           {userId != null && (
             <span style={{fontSize:13, opacity:.7}}>Filtered to user #{userId}</span>
           )}
         </div>
-        <div className="hstack">
-          <div style={{opacity:.7, fontSize:13}}>
-            Page {page} / {Math.max(1, Math.ceil(total/limit))}
-          </div>
-          <button className="button ghost" onClick={()=> setPage(p=>Math.max(1,p-1))} disabled={page<=1}>Prev</button>
-          <button className="button" onClick={()=> setPage(p=> p+1)} disabled={page*limit>=total}>Next</button>
-        </div>
+        <Pager page={page} pageCount={pageCount} total={total} noun="deed"
+               loading={loading} onPage={setPage} />
       </div>
+
+      {searching && (
+        <div style={{fontSize:13, opacity:.7}}>Searching for “{search}”…</div>
+      )}
+      {!searching && appliedSearch && !loadError && (
+        <div style={{fontSize:13, opacity:.7}}>
+          {total} result{total === 1 ? '' : 's'} for “{appliedSearch}”
+        </div>
+      )}
 
       <div className="card">
         <table className="table">
@@ -76,8 +113,27 @@ export default function DeedsTab(){
                 <div className="skeleton" style={{height:42, marginTop:8}}/>
                 <div className="skeleton" style={{height:42, marginTop:8}}/>
               </td></tr>
+            ) : loadError ? (
+              <tr><td colSpan={6} style={{color:'var(--dp-danger)'}}>
+                Could not load deeds — {loadError}. This is a failed request,
+                not an empty table.
+              </td></tr>
+            ) : noMatches ? (
+              <tr><td colSpan={6} style={{opacity:.8}}>
+                No deeds match the current filters
+                {appliedSearch && <> (“{appliedSearch}”)</>}
+                {status && <> · status {status}</>}
+                {userId != null && <> · user #{userId}</>}.{' '}
+                {userId == null && (
+                  <button className="button ghost" onClick={clearFilters}>
+                    Clear filters
+                  </button>
+                )}
+              </td></tr>
             ) : rows.length === 0 ? (
-              <tr><td colSpan={6} style={{opacity:.75}}>No deeds</td></tr>
+              <tr><td colSpan={6} style={{opacity:.75}}>
+                No deeds have been created yet.
+              </td></tr>
             ) : rows[0] && rows[0].id === undefined ? (
               // Hardening (see UsersTab): a broken row shape announces
               // itself instead of rendering a table of blanks whose

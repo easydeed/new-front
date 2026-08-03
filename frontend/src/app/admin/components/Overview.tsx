@@ -85,20 +85,74 @@ export default function OverviewTab(){
     {Array.from({length:4}).map((_,i)=> <div key={i} className="card skeleton" style={{height:92}} />)}
   </div>;
 
+  /** "2026-08-01" → "Aug 1" — the window the month card actually means. */
+  function monthWindowLabel(iso?: string | null): string {
+    if (!iso) return 'the 1st';
+    const d = new Date(`${iso}T00:00:00`);
+    if (isNaN(d.getTime())) return 'the 1st';
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+
+  const since = monthWindowLabel(stats?.deeds_this_month_since);
+
   return (
     <div className="vstack">
       <div className="grid stats">
         {loading ? skeleton : (<>
           <StatCard title="Total Users" value={stats?.total_users ?? '—'} />
           <StatCard title="Total Deeds" value={stats?.total_deeds ?? '—'} />
-          <StatCard title="Deeds This Month" value={stats?.deeds_this_month ?? '—'} />
-          <StatCard title="QR Scans (Week)" value={stats?.scans_this_week ?? '—'} />
+          {/* ADMIN1.5 reconciliation: both windows, both labelled. The
+              card used to read "Deeds This Month" with no window stated,
+              so on the 2nd of a month a healthy platform reported 0 and
+              the number read as a collapse rather than as a calendar. */}
+          <StatCard
+            title="Deeds — last 30 days"
+            value={stats?.deeds_last_30_days ?? '—'}
+            sub="rolling window"
+          />
+          <StatCard
+            title="Deeds — this calendar month"
+            value={stats?.deeds_this_month ?? '—'}
+            sub={`since ${since}`}
+          />
         </>)}
       </div>
 
-      {scanErr && (
-        <div style={{ fontSize: 12, color: 'var(--dp-warn, #b26a00)', marginTop: -4 }}>
-          QR scan count shown as unavailable — {scanErr}
+      {!loading && (
+        <div style={{ fontSize: 12, opacity: 0.7, marginTop: -4 }}>
+          The two deed counts measure different windows and are expected to
+          disagree — early in a month the calendar figure is a fraction of the
+          rolling one. Neither is a trend; trends arrive with ADMIN6.
+        </div>
+      )}
+
+      {/* QR verifications — stated with its provenance.
+          `total_scans_week` counts rows in `verification_log`, and the
+          only writer of the `document_authenticity` codes those scans
+          resolve against is the partner-API lane
+          (routers/api_v1/router.py). Wizard deeds carry a stored PDF
+          hash but no short code (VERIFY1, parked), so they cannot appear
+          here. Labelling this "QR Scans (Week)" invited the reading that
+          it covered the whole platform. */}
+      {!loading && (
+        <div className="card">
+          <div className="hstack" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <div>
+              <div style={{ fontWeight: 600 }}>Verification scans · last 7 days</div>
+              <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>
+                Partner-API documents only — deeds made in the wizard are not
+                issued verification codes, so they are not counted here.
+              </div>
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 700 }}>
+              {stats?.scans_this_week ?? '—'}
+            </div>
+          </div>
+          {scanErr && (
+            <div style={{ fontSize: 12, color: 'var(--dp-warning)', marginTop: 8 }}>
+              Shown as unavailable — {scanErr}
+            </div>
+          )}
         </div>
       )}
 
