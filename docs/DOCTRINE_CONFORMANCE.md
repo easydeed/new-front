@@ -252,6 +252,20 @@ because a pre-marked election is a fabricated assertion. Piping those
 through machine-to-machine calls without a per-family doctrine pass
 would be shipping the auto-applied-exemption bug (§1) at the API layer.
 
+**Corollary (A2) — accepting and discarding a legal input is silently
+deciding.** Two exposed instruments fix their own vesting: their titles
+*are* the vesting decision, and their templates deliberately never read a
+supplied vesting value. A caller who sends one and receives a 200 would
+reasonably believe their input shaped the instrument. It did not. That is
+invariant #4's API-shaped cousin — a fabricated *influence* rather than a
+fabricated success — and it is worse than a plain error, because nothing
+in the response reveals it. The API therefore **refuses** the input and
+names the instrument that decided, rather than swallowing it. Same
+reasoning covers the entity deeds' required recitals: rendering a blank
+line inside a granting clause where a fact belongs produces a defective
+instrument while reporting success. Pinned in
+`backend/tests/test_api_catalog_and_rates.py`.
+
 **Consequence.** v1's exposed type set is deed-family only, pinned in
 `backend/tests/test_api_v1_structure.py::test_api_exposes_deed_family_only`.
 Each additional family requires its own doctrine pass before exposure —

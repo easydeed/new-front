@@ -45,7 +45,7 @@ export default function Footer() {
               <li><a href="#" className="hover:text-white transition-colors">Deed Types Guide</a></li>
               <li><a href="#" className="hover:text-white transition-colors">Recording Requirements</a></li>
               <li><a href="#" className="hover:text-white transition-colors">State Regulations</a></li>
-              <li><a href="/docs/API_REFERENCE" className="hover:text-white transition-colors">API Documentation</a></li>
+              <li><a href="/developers" className="hover:text-white transition-colors">API Documentation</a></li>
               <li><a href="#" className="hover:text-white transition-colors">SoftPro Integration</a></li>
               <li><a href="#" className="hover:text-white transition-colors">Qualia Integration</a></li>
             </ul>

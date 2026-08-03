@@ -26,7 +26,12 @@ const PUBLIC_ROUTES = new Set([
   '/verify/[code]', // public QR verification of recorded deeds
   '/approve/[token]', // public share-approval flow (token IS the auth)
   '/api-key-request', // partner lead form
-  '/docs', // developer documentation index
+  // A4: developer documentation. Public and indexable by ruling —
+  // linked from the footer only while key issuance is manual, so it is
+  // discoverable by people who go looking without sitting in the
+  // conversion path of people who aren't. (/docs retired; it now 301s
+  // here.)
+  '/developers',
   '/terms', // public legal scaffold (HM3)
   '/privacy', // public legal scaffold (HM3)
   '/settings', // server redirect to /account-settings (which guards)

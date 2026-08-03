@@ -231,7 +231,7 @@ Response: {
 }`}
             </pre>
             <div className="mt-6 flex gap-4">
-              <a href="/docs/API_REFERENCE" className="bg-tertiary hover:bg-secondary text-white px-4 py-2 rounded-lg font-semibold transition-colors">
+              <a href="/developers" className="bg-tertiary hover:bg-secondary text-white px-4 py-2 rounded-lg font-semibold transition-colors">
                 View API Docs
               </a>
               <a href="/api-key-request" className="border border-silver hover:border-tertiary hover:text-tertiary px-4 py-2 rounded-lg font-semibold transition-colors">
