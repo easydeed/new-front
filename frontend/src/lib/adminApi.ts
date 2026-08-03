@@ -82,11 +82,30 @@ export type ApiKeyRequestRow = {
   created_at: string;
 };
 
+export type ActivityEvent = {
+  type: 'user_signup' | 'deed_created' | string;
+  user: string;
+  timestamp: string | null;
+  deed_id?: number;
+};
+
 export type StatSummary = {
   total_users: number;
   active_users: number;
   total_deeds: number;
   deeds_this_month?: number;
+  /**
+   * ADMIN1: /admin/dashboard has always computed a real 7-day signup +
+   * deed feed and no frontend rendered it. It is the closest thing the
+   * platform has to an activity timeline, and it was being thrown away.
+   */
+  recent_activity?: ActivityEvent[];
+  /**
+   * NOT RENDERED, and deliberately not typed as trustworthy: the
+   * backend derives these from plan counts times hardcoded prices
+   * (admin_inline.py), which contradicts the real Stripe figures on
+   * /admin/revenue. Use the Revenue tab for money.
+   */
   total_revenue?: number;
   monthly_revenue?: number;
 };

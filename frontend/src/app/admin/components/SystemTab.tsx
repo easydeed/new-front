@@ -1,4 +1,21 @@
 'use client';
+/**
+ * System health — the screen an operator opens during an incident.
+ *
+ * ADMIN1 truth pass. Two problems lived here:
+ *
+ * 1. On a failed load it rendered the whole dashboard from zero/unknown
+ *    defaults, so a dead backend showed "Total Generated 0 · Avg Time
+ *    0ms" — numerals that read as measurements. It now renders the
+ *    failure and nothing else. A health screen that invents health is
+ *    worse than no health screen.
+ * 2. Values it displayed were fabricated upstream: the PDF engine was a
+ *    hardcoded "up", avg render time was a constant 0, and the
+ *    WeasyPrint count was asserted equal to a count of completed deeds.
+ *    Those are fixed in the backend; this file renders what the probe
+ *    actually reports, including "not measured" as an em-dash rather
+ *    than as a zero.
+ */
 import { useEffect, useState } from 'react';
 import StatCard from './StatCard';
 import Badge from './Badge';
@@ -11,18 +28,30 @@ function authHeaders() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+interface ServiceHealth {
+  status: string;
+  latency_ms?: number;
+  primary?: string;
+  error?: string | null;
+  note?: string;
+}
+
 interface SystemHealth {
-  database: { status: string; latency_ms: number };
-  pdf_engine: { status: string; primary: string };
-  sitex: { status: string; last_call?: string };
-  stripe: { status: string };
+  database: ServiceHealth;
+  pdf_engine: ServiceHealth;
+  sitex: ServiceHealth;
+  stripe: ServiceHealth;
 }
 
 interface PDFStats {
-  total_generated: number;
-  weasyprint_count: number;
-  avg_time_ms: number;
+  stored_pdfs: number;
+  completed_deeds: number;
+  completed_without_pdf: number;
+  /** null when nothing measures it — rendered as "—", never as 0. */
+  avg_time_ms: number | null;
+  engine: string;
   by_type: Record<string, number>;
+  error?: string;
 }
 
 interface SystemData {
@@ -30,24 +59,31 @@ interface SystemData {
   pdf_stats: PDFStats;
 }
 
-export default function SystemTab(){
+function StatusBadge({ service }: { service: ServiceHealth }) {
+  if (service.status === 'up') return <Badge kind="success">Online</Badge>;
+  if (service.status === 'not_monitored') return <Badge kind="neutral">Not monitored</Badge>;
+  if (service.status === 'unknown') return <Badge kind="neutral">Unknown</Badge>;
+  return <Badge kind="danger">Offline</Badge>;
+}
+
+export default function SystemTab() {
   const [data, setData] = useState<SystemData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(()=>{
+  useEffect(() => {
     async function load() {
       try {
         const res = await fetch(`${API_BASE}/admin/system/overview`, {
-          headers: { ...authHeaders() }
+          headers: { ...authHeaders() },
         });
         if (res.ok) {
           setData(await res.json());
         } else {
-          setError('Failed to load system data');
+          setError(`Failed to load system data — HTTP ${res.status}`);
         }
-      } catch (e: any) {
-        setError(e.message || 'Failed to load');
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to load system data');
       } finally {
         setLoading(false);
       }
@@ -59,68 +95,94 @@ export default function SystemTab(){
     return (
       <div className="vstack">
         <div className="grid stats">
-          {[1,2,3,4].map(i => <div key={i} className="card skeleton" style={{height: 92}} />)}
+          {[1, 2, 3, 4].map((i) => <div key={i} className="card skeleton" style={{ height: 92 }} />)}
         </div>
-        <div className="card skeleton" style={{height: 200}} />
+        <div className="card skeleton" style={{ height: 200 }} />
       </div>
     );
   }
 
-  // Provide defaults if no data
-  const health = data?.health || {
-    database: { status: 'unknown', latency_ms: 0 },
-    pdf_engine: { status: 'unknown', primary: 'unknown' },
-    sitex: { status: 'unknown' },
-    stripe: { status: 'unknown' }
-  };
-  
-  const pdfStats = data?.pdf_stats || {
-    total_generated: 0,
-    weasyprint_count: 0,
-    avg_time_ms: 0,
-    by_type: {}
-  };
+  // Fail loudly. No defaults, no zeros — if we could not read the
+  // system's health, the only honest thing to show is that fact.
+  if (error || !data) {
+    return (
+      <div className="card" style={{ borderColor: 'var(--dp-danger)' }}>
+        <div style={{ fontWeight: 700, marginBottom: 6, color: 'var(--dp-danger)' }}>
+          System health unavailable
+        </div>
+        <div style={{ fontSize: 14, marginBottom: 10 }}>
+          {error || 'The backend returned no data.'}
+        </div>
+        <div style={{ fontSize: 13, opacity: 0.75 }}>
+          Nothing below is being shown as zero, because a zero here would be
+          indistinguishable from a real measurement. Check the API service
+          and reload.
+        </div>
+      </div>
+    );
+  }
+
+  const { health, pdf_stats: pdfStats } = data;
+  const stuck = pdfStats.completed_without_pdf || 0;
 
   return (
     <div className="vstack">
-      {error && (
+      {/* PDF pipeline */}
+      <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>PDF pipeline</div>
+      {pdfStats.error ? (
         <div className="card" style={{ borderColor: 'var(--dp-danger)', color: 'var(--dp-danger)' }}>
-          {error}
+          PDF statistics unavailable — {pdfStats.error}
         </div>
+      ) : (
+        <>
+          <div className="grid stats">
+            {/* Counted from deed_pdfs — rows whose bytes we actually
+                stored — not from deed status, which is a different fact. */}
+            <StatCard title="Stored PDFs" value={pdfStats.stored_pdfs} />
+            <StatCard title="Completed deeds" value={pdfStats.completed_deeds} />
+            <StatCard title="Completed without PDF" value={stuck} />
+            <StatCard
+              title="Avg render time"
+              value={pdfStats.avg_time_ms == null ? '—' : `${pdfStats.avg_time_ms}ms`}
+            />
+          </div>
+          {pdfStats.avg_time_ms == null && (
+            <div style={{ fontSize: 12, opacity: 0.65, marginTop: -4 }}>
+              Render time is not measured anywhere in the pipeline yet, so it is
+              shown as unavailable rather than as zero.
+            </div>
+          )}
+          {stuck > 0 && (
+            // The H1 silent-store class, visible from the console at last.
+            <div className="card" style={{ borderColor: 'var(--dp-warn, #b26a00)' }}>
+              <strong>{stuck}</strong> completed deed{stuck === 1 ? ' has' : 's have'} no
+              stored PDF. These are recoverable — the artifact regenerates on next
+              download — but a persistent count here means the store is failing.
+            </div>
+          )}
+        </>
       )}
 
-      {/* PDF Generation Stats */}
-      <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>PDF Generation</div>
-      <div className="grid stats">
-        <StatCard title="Total Generated" value={pdfStats.total_generated} />
-        {/* PS3: PDFShift removed — WeasyPrint is the engine. */}
-        <StatCard 
-          title="WeasyPrint" 
-          value={`${pdfStats.weasyprint_count} (${pdfStats.total_generated ? Math.round(pdfStats.weasyprint_count / pdfStats.total_generated * 100) : 0}%)`} 
-        />
-        <StatCard title="Avg Time" value={`${pdfStats.avg_time_ms}ms`} />
-      </div>
-
-      {/* By Deed Type */}
-      {Object.keys(pdfStats.by_type).length > 0 && (
+      {/* By deed type */}
+      {Object.keys(pdfStats.by_type || {}).length > 0 && (
         <div className="card">
-          <div style={{ fontWeight: 600, marginBottom: 12 }}>By Deed Type</div>
+          <div style={{ fontWeight: 600, marginBottom: 12 }}>Stored PDFs by deed type</div>
           <div style={{ display: 'grid', gap: 8 }}>
             {Object.entries(pdfStats.by_type).map(([type, count]) => (
               <div key={type} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 140, fontSize: 13 }}>{formatDeedType(type)}</div>
+                <div style={{ width: 180, fontSize: 13 }}>{formatDeedType(type)}</div>
                 <div style={{ flex: 1, height: 8, background: 'var(--dp-border, #333)', borderRadius: 4, overflow: 'hidden' }}>
-                  <div 
-                    style={{ 
-                      height: '100%', 
-                      width: `${Math.round((count as number) / pdfStats.total_generated * 100)}%`,
+                  <div
+                    style={{
+                      height: '100%',
+                      width: `${pdfStats.stored_pdfs ? Math.round((count as number) / pdfStats.stored_pdfs * 100) : 0}%`,
                       background: 'var(--dp-primary, #7C4DFF)',
-                      borderRadius: 4
-                    }} 
+                      borderRadius: 4,
+                    }}
                   />
                 </div>
-                <div style={{ width: 80, fontSize: 13, textAlign: 'right' }}>
-                  {count} ({Math.round((count as number) / pdfStats.total_generated * 100)}%)
+                <div style={{ width: 90, fontSize: 13, textAlign: 'right' }}>
+                  {count} ({pdfStats.stored_pdfs ? Math.round((count as number) / pdfStats.stored_pdfs * 100) : 0}%)
                 </div>
               </div>
             ))}
@@ -128,53 +190,37 @@ export default function SystemTab(){
         </div>
       )}
 
-      {/* System Health */}
-      <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8, marginTop: 8 }}>System Health</div>
+      {/* Health */}
+      <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8, marginTop: 8 }}>System health</div>
       <div className="card">
         <table className="table">
           <thead>
-            <tr>
-              <th>Service</th>
-              <th>Status</th>
-              <th>Details</th>
-            </tr>
+            <tr><th>Service</th><th>Status</th><th>Details</th></tr>
           </thead>
           <tbody>
             <tr>
               <td>Database</td>
-              <td>
-                <Badge kind={health.database.status === 'up' ? 'success' : 'danger'}>
-                  {health.database.status === 'up' ? 'Online' : 'Offline'}
-                </Badge>
-              </td>
+              <td><StatusBadge service={health.database} /></td>
               <td style={{ fontSize: 12, opacity: 0.7 }}>{health.database.latency_ms}ms latency</td>
             </tr>
             <tr>
-              <td>PDF Engine</td>
-              <td>
-                <Badge kind={health.pdf_engine.status === 'up' ? 'success' : 'danger'}>
-                  {health.pdf_engine.status === 'up' ? 'Online' : 'Offline'}
-                </Badge>
+              <td>PDF engine</td>
+              <td><StatusBadge service={health.pdf_engine} /></td>
+              <td style={{ fontSize: 12, opacity: 0.7 }}>
+                {health.pdf_engine.error
+                  ? health.pdf_engine.error
+                  : `${health.pdf_engine.primary} — render probe passed`}
               </td>
-              <td style={{ fontSize: 12, opacity: 0.7 }}>Primary: {health.pdf_engine.primary}</td>
             </tr>
             <tr>
               <td>SiteX API</td>
-              <td>
-                <Badge kind={health.sitex.status === 'up' ? 'success' : health.sitex.status === 'unknown' ? 'neutral' : 'danger'}>
-                  {health.sitex.status === 'up' ? 'Online' : health.sitex.status === 'unknown' ? 'Unknown' : 'Offline'}
-                </Badge>
-              </td>
-              <td style={{ fontSize: 12, opacity: 0.7 }}>{health.sitex.last_call || '—'}</td>
+              <td><StatusBadge service={health.sitex} /></td>
+              <td style={{ fontSize: 12, opacity: 0.7 }}>{health.sitex.note || '—'}</td>
             </tr>
             <tr>
               <td>Stripe</td>
-              <td>
-                <Badge kind={health.stripe.status === 'up' ? 'success' : 'danger'}>
-                  {health.stripe.status === 'up' ? 'Online' : 'Offline'}
-                </Badge>
-              </td>
-              <td style={{ fontSize: 12, opacity: 0.7 }}>Payments & Subscriptions</td>
+              <td><StatusBadge service={health.stripe} /></td>
+              <td style={{ fontSize: 12, opacity: 0.7 }}>Payments &amp; subscriptions</td>
             </tr>
           </tbody>
         </table>
@@ -184,18 +230,5 @@ export default function SystemTab(){
 }
 
 function formatDeedType(type: string): string {
-  const mapping: Record<string, string> = {
-    'grant_deed': 'Grant Deed',
-    'grant_deed_ca': 'Grant Deed',
-    'quitclaim_deed': 'Quitclaim Deed',
-    'quitclaim_deed_ca': 'Quitclaim Deed',
-    'interspousal_transfer': 'Interspousal',
-    'interspousal_transfer_ca': 'Interspousal',
-    'warranty_deed': 'Warranty Deed',
-    'warranty_deed_ca': 'Warranty Deed',
-    'tax_deed': 'Tax Deed',
-    'tax_deed_ca': 'Tax Deed',
-  };
-  return mapping[type] || type.replace(/_/g, ' ');
+  return type.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
-
