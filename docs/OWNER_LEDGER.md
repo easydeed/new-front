@@ -4,11 +4,11 @@
 (not only in chat) so the list survives context windows. No credential
 values ever appear in this file — item names and status only.
 
-_Last corrected: 2026-07-30 (owner corrections relayed post-wave-1)._
+_Last corrected: 2026-08-03 (owner board sync — four environment items
+closed; privileged-account audit executed)._
 
 ## Open — owner's card
 
-- **Demo password rotation** (X0 follow-up).
 - **Junk seed cleanup** (test rows in production data).
 - **TitlePoint / SiteX credential rotations.**
 - **DTT city-rates review** (`frontend/src/lib/dttCalc.ts`) — owner's
@@ -22,17 +22,13 @@ _Last corrected: 2026-07-30 (owner corrections relayed post-wave-1)._
   `NEXT_PUBLIC_DEMO_PASSWORD` are set in Vercel (Production) and the
   site is redeployed. Owner sets the values (current/rotated password —
   never the pre-X0 leaked one); values never in git or chat.
+  **⚠ May now be moot — owner's call, not closed here.** The 2026-08-03
+  privilege audit hash-locked the X0 demo account, which is the account
+  a demo card would advertise. A card offering credentials that cannot
+  authenticate is worse than no card. Either the item retires with the
+  account, or a fresh non-privileged demo account is created for it.
 - **PDFShift account closure** (code removal shipped in PR #71; Render
   env vars `PDFSHIFT_API_KEY`/`PDF_ENGINE` deletion rides with it).
-- **Second Render service `deedpro-external-api` — DELETE** (A1, Flag-1
-  ruling; Tier 3, owner-executed). Its `render.yaml` block is gone as of
-  A1, but Render does not remove an existing service when the blueprint
-  drops it. The service ran a broken second API (every partner call
-  401'd while `/healthz` stayed green); suspend or delete it in the
-  Render dashboard. Its env vars go with it — `MAIN_API_INTERNAL_TOKEN`,
-  `ADMIN_SETUP_SECRET`, and the frontend's
-  `EXTERNAL_API_ADMIN_SETUP_SECRET`/`EXTERNAL_API_BASE_URL` in Vercel
-  are now referenced by no code.
 - ~~Production `api*` table check~~ — ANSWERED 2026-08-03: all seven
   `api*` tables exist in production and all five key tables are EMPTY
   (0 rows). Nothing ever authenticated, so nothing ever wrote. A1 takes
@@ -54,6 +50,34 @@ _Last corrected: 2026-07-30 (owner corrections relayed post-wave-1)._
 
 ## Closed — do not re-report
 
+- **Privileged-account audit (#103 follow-through)** — EXECUTED
+  2026-08-03. PR #103 closed the hole that let self-registration mint an
+  admin; this is the audit of accounts created *before* that fix. One
+  legacy admin found: the X0 demo account `test@deedpro-check.com`,
+  demoted and hash-locked. `realty.reports@gmail.com` is now the sole
+  admin. Retain this entry — it is the platform's only record of who
+  held privilege and when it changed, until an admin audit log exists
+  (ADMIN0 gap 3).
+- **Demo password rotation** (X0 follow-up) — CLOSED 2026-08-03 as
+  **superseded by lockout**: the account whose password was to be
+  rotated is hash-locked, so there is no live credential left to rotate.
+- **`NOTIFICATIONS_ENABLED=true`** — SET and deployed 2026-08-03. The
+  in-app notification bell is live, which makes E1/A1's approval record
+  readable for the first time: the rows were being written since E1 and
+  the flag gated only the read side. PR #107 had already fixed the
+  `KeyError: 0` that would have crashed the endpoint on enabling.
+- **`ADMIN_EMAIL=info@deedpro.io`** — SET and deployed 2026-08-03. Both
+  ops funnels now land there: new-signup pings (E1) and API-access
+  inquiries, authenticated and public alike (A3/#108). It matches the
+  verified SendGrid sender, so these are self-addressed and maximally
+  deliverable.
+- **Second Render service `deedpro-external-api`** — DELETED by owner
+  2026-08-03 (A1 Flag-1 ruling; Tier 3). Its `render.yaml` block went
+  with A1. The service ran a broken second API — every partner call
+  401'd while `/healthz` stayed green. Its env vars retire with it:
+  `MAIN_API_INTERNAL_TOKEN`, `ADMIN_SETUP_SECRET`, and the frontend's
+  `EXTERNAL_API_ADMIN_SETUP_SECRET`/`EXTERNAL_API_BASE_URL` are
+  referenced by no code.
 - **SendGrid** — RESOLVED 2026-07-30: `info@deedpro.io` verified, key
   refreshed, production share test green with delivery confirmed.
 - **W0 §3** — DECIDED: **Model 2 = confirmation in our UI** (corrected
