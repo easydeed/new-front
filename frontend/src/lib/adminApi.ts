@@ -16,6 +16,72 @@ export type Paged<T> = {
   total: number 
 };
 
+export type ApiKeyRow = {
+  id: string;
+  key_prefix: string;
+  name: string;
+  is_active: boolean;
+  is_test: boolean;
+  rate_limit_hour: number;
+  rate_limit_day: number;
+  created_at?: string;
+  last_used_at?: string | null;
+  deed_count?: number;
+  request_count?: number;
+};
+
+export type ApiKeyListResponse = {
+  api_keys: ApiKeyRow[];
+  total: number;
+  page: number;
+  pages: number;
+};
+
+export type ApiKeyDetail = {
+  api_key: ApiKeyRow & { created_by_email?: string };
+  stats: {
+    total_deeds?: number;
+    completed_deeds?: number;
+    total_requests?: number;
+    error_requests?: number;
+    avg_response_ms?: number | null;
+  };
+  recent_requests: Array<{
+    endpoint: string;
+    method: string;
+    status_code: number;
+    response_time_ms: number;
+    created_at: string;
+  }>;
+};
+
+/** The full key is returned exactly once, at creation. */
+export type CreatedApiKey = {
+  success: boolean;
+  api_key: ApiKeyRow & { key: string };
+  warning: string;
+};
+
+export type ApiKeyRequestRow = {
+  id: number;
+  company_name: string;
+  business_type?: string | null;
+  contact_name?: string | null;
+  email: string;
+  phone?: string | null;
+  use_case?: string | null;
+  expected_volume?: string | null;
+  integration_timeline?: string | null;
+  current_software?: string | null;
+  additional_info?: string | null;
+  status: 'new' | 'contacted' | 'approved' | 'declined';
+  notified_at?: string | null;
+  /** Set when the owner's notification email failed — the request is
+   *  still here, which is the point of storing before sending. */
+  notify_error?: string | null;
+  created_at: string;
+};
+
 export type StatSummary = {
   total_users: number;
   active_users: number;
@@ -184,7 +250,36 @@ export const AdminApi = {
     http<{success: boolean; message: string}>(`/admin/users/${id}`, {
       method: 'DELETE'
     }),
-  
+
+  // A3: partner API keys. These endpoints existed on the main API since
+  // the public-API work and no frontend had ever called them — the only
+  // key UI talked to a separate, dormant service through a shared setup
+  // secret, dropping the admin's own JWT. This goes through the same
+  // authenticated client as every other admin call.
+  listApiKeys: (page = 1, limit = 25) =>
+    http<ApiKeyListResponse>(`/admin/api-keys?page=${page}&limit=${limit}`),
+
+  getApiKey: (id: string) => http<ApiKeyDetail>(`/admin/api-keys/${id}`),
+
+  createApiKey: (body: { name: string; is_test?: boolean; rate_limit_hour?: number; rate_limit_day?: number }) =>
+    http<CreatedApiKey>('/admin/api-keys', { method: 'POST', body: JSON.stringify(body) }),
+
+  updateApiKey: (id: string, updates: { name?: string; is_active?: boolean; rate_limit_hour?: number; rate_limit_day?: number }) =>
+    http<{ success: boolean; api_key: ApiKeyRow }>(`/admin/api-keys/${id}`, {
+      method: 'PATCH', body: JSON.stringify(updates)
+    }),
+
+  deactivateApiKey: (id: string) =>
+    http<{ success: boolean; message: string }>(`/admin/api-keys/${id}`, { method: 'DELETE' }),
+
+  // The inquiry queue behind manual key issuance.
+  listApiKeyRequests: () =>
+    http<{ items: ApiKeyRequestRow[]; total: number }>('/admin/api-key-requests'),
+
+  updateApiKeyRequest: (id: number, status: ApiKeyRequestRow['status']) =>
+    http<{ success: boolean }>(`/admin/api-key-requests/${id}`, {
+      method: 'PATCH', body: JSON.stringify({ status })
+    }),
 };
 
 /**

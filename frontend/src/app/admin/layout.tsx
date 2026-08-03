@@ -8,6 +8,13 @@ import './styles/admin-layout.css';
 
 // Icons as simple SVG components
 const Icons = {
+  Plug: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M9 2v6"/><path d="M15 2v6"/>
+      <path d="M6 8h12v3a6 6 0 0 1-6 6 6 6 0 0 1-6-6z"/>
+      <path d="M12 17v5"/>
+    </svg>
+  ),
   Dashboard: () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <rect x="3" y="3" width="7" height="7" rx="1"/>
@@ -71,6 +78,9 @@ const NAV_ITEMS = [
   { id: 'verification', label: 'Verification', icon: Icons.Shield, href: '/admin?tab=verification' },
   { id: 'revenue', label: 'Revenue', icon: Icons.DollarSign, href: '/admin?tab=revenue' },
   { id: 'system', label: 'System', icon: Icons.Settings, href: '/admin?tab=system' },
+  // A3: reachable at last — the key admin screens existed but nothing
+  // linked to them, so they could only be found by typing a URL.
+  { id: 'api', label: 'API', icon: Icons.Plug, href: '/admin?tab=api' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

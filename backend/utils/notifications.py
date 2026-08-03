@@ -95,6 +95,17 @@ def send_welcome_with_reason(user_email: str, full_name: str) -> SendResult:
     return send_email_with_reason(user_email, subject, html, text)
 
 
+def notify_api_key_request(admin_email: str, company_name: str, contact_email: str,
+                           business_type: str, expected_volume: str, use_case: str,
+                           request_id: int) -> SendResult:
+    """A3: an API-access inquiry reached us. The row is already stored —
+    this is the ping, and its reason is recorded on the row when it
+    fails, so a lost email cannot lose the request."""
+    subject, html, text = email_templates.admin_api_key_request(
+        company_name, contact_email, business_type, expected_volume, use_case, request_id)
+    return send_email_with_reason(admin_email, subject, html, text)
+
+
 def notify_new_user_registration(admin_email: str, user_email: str, user_name: str,
                                  user_id: int) -> SendResult:
     """E1 fix (owner-ruled): this function was imported on every signup

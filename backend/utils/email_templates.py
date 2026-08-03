@@ -296,6 +296,34 @@ def welcome(full_name) -> Rendered:
     return subject, _base("Your account is ready", content, False), text
 
 
+def admin_api_key_request(company_name, contact_email, business_type,
+                          expected_volume, use_case, request_id,
+                          requested_at: Optional[str] = None) -> Rendered:
+    """A3 ops ping: someone asked for API access. Key issuance is manual
+    by ruling, so this email is the start of a conversation, not a
+    provisioning trigger — it carries what the owner needs to decide
+    whether to have that conversation."""
+    ts = requested_at or datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    subject = f"API access request: {company_name}"
+    content = (
+        _p("A platform asked about integrating with the DeedPro API.")
+        + _facts([("Company", company_name), ("Contact", contact_email),
+                  ("Business type", business_type), ("Expected volume", expected_volume),
+                  ("Request", f"#{request_id}"), ("At", ts)])
+        + (_p(f'<span style="color:#8a94a0;font-size:13px;">What they described:</span><br>{_esc(use_case)}')
+           if use_case else "")
+        + _button(f"{_frontend_url()}/admin?tab=api", "Open the API admin")
+    )
+    text = (
+        f"API access request from {company_name}.\n\n"
+        f"Contact: {contact_email}\nBusiness type: {business_type}\n"
+        f"Expected volume: {expected_volume}\nRequest: #{request_id}\nAt: {ts}\n"
+        + (f"\nWhat they described:\n{use_case}\n" if use_case else "")
+        + f"\nAdmin: {_frontend_url()}/admin?tab=api"
+    )
+    return subject, _base(f"API access request from {company_name}", content, False), text
+
+
 def admin_new_user(user_email, user_id, registered_at: Optional[str] = None) -> Rendered:
     """Ops ping (owner ruling): registrant email + timestamp — no more."""
     ts = registered_at or datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")

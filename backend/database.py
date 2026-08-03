@@ -223,6 +223,32 @@ def create_tables():
                 created_at TIMESTAMPTZ DEFAULT now()
             )""",
             "CREATE INDEX IF NOT EXISTS idx_api_usage_log_key ON api_usage_log(api_key_id, created_at)",
+            # A3: the API-access inquiry funnel. The request form used to
+            # fake its own submission (setTimeout, then a success screen
+            # promising a 24-hour review nobody could perform, because
+            # nothing was ever sent or stored). Requests land here, the
+            # owner is emailed through the one honest transport, and the
+            # admin API tab lists them — key issuance stays manual per
+            # ruling, so this table IS the queue.
+            """CREATE TABLE IF NOT EXISTS api_key_requests (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id),
+                company_name TEXT NOT NULL,
+                business_type TEXT,
+                contact_name TEXT,
+                email TEXT NOT NULL,
+                phone TEXT,
+                use_case TEXT,
+                expected_volume TEXT,
+                integration_timeline TEXT,
+                current_software TEXT,
+                additional_info TEXT,
+                status VARCHAR(20) DEFAULT 'new',
+                notified_at TIMESTAMPTZ,
+                notify_error TEXT,
+                created_at TIMESTAMPTZ DEFAULT now()
+            )""",
+            "CREATE INDEX IF NOT EXISTS idx_api_key_requests_status ON api_key_requests(status, created_at)",
             """CREATE TABLE IF NOT EXISTS api_rate_limits (
                 id SERIAL PRIMARY KEY,
                 api_key_id UUID,

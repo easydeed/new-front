@@ -174,6 +174,10 @@ print("✅ QR Verification System loaded (/api/verify/{code} - public, /admin/ve
 # Public API v1 (Partner API for deed generation)
 from routers.api_v1.router import router as api_v1_router
 app.include_router(api_v1_router, tags=["Public API v1"])
+
+# A3: API-access inquiry funnel (the form that used to fake its submit).
+from routers.api_key_requests import router as api_key_requests_router
+app.include_router(api_key_requests_router)
 print("✅ Public API v1 loaded (/api/v1/deeds - partner deed generation)")
 
 # T8: routers extracted from main.py's former inline sections, mounted in the

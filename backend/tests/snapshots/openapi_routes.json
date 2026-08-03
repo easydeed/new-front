@@ -25,6 +25,10 @@
  ],
  [
   "GET",
+  "/admin/api-key-requests"
+ ],
+ [
+  "GET",
   "/admin/api-keys"
  ],
  [
@@ -281,6 +285,10 @@
  ],
  [
   "PATCH",
+  "/admin/api-key-requests/{request_id}"
+ ],
+ [
+  "PATCH",
   "/admin/api-keys/{key_id}"
  ],
  [
@@ -314,6 +322,10 @@
  [
   "POST",
   "/ai/deed-suggestions"
+ ],
+ [
+  "POST",
+  "/api-key-requests"
  ],
  [
   "POST",
