@@ -1,8 +1,9 @@
 import json
 import os
 import psycopg2
-from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
+
+from db_rows import ROW_FACTORY
 
 load_dotenv()
 
@@ -10,8 +11,17 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 def get_db_connection():
+    """A fresh connection, on the ONE row contract (see db_rows.py).
+
+    This helper used to hand out RealDictCursor connections while
+    db.get_db_connection returned tuple rows — two helpers, two row
+    types, nothing in either name saying which. That ambiguity 401'd
+    every partner API key for months. Both now use db_rows.ROW_FACTORY,
+    whose rows answer to BOTH `row[0]` and `row['name']`, so there is no
+    longer a wrong way to read one.
+    """
     try:
-        conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor,
+        conn = psycopg2.connect(DATABASE_URL, cursor_factory=ROW_FACTORY,
                                 connect_timeout=10)
         return conn
     except Exception as e:

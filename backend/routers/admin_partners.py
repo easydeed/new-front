@@ -20,7 +20,7 @@ def is_admin(user_id: int) -> bool:
         return False
     
     try:
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor = conn.cursor()
         cursor.execute("SELECT role FROM users WHERE id = %s", (user_id,))
         user = cursor.fetchone()
         

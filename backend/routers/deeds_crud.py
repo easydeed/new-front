@@ -470,7 +470,7 @@ def list_available_deeds_for_sharing(user_id: int = Depends(get_current_user_id)
 def get_deed_endpoint(deed_id: int, user_id: int = Depends(get_current_user_id)):
     """Get a specific deed - Phase 15 v5: Preview page integration"""
     try:
-        cursor = db.conn.cursor(cursor_factory=RealDictCursor)
+        cursor = db.conn.cursor()
 
         # Fetch deed - ensure user owns it or is admin
         cursor.execute("""
@@ -527,7 +527,7 @@ def download_deed_endpoint(deed_id: int, user_id: int = Depends(get_current_user
     if not db.conn:
         raise HTTPException(status_code=500, detail="Database connection not available")
     try:
-        cursor = db.conn.cursor(cursor_factory=RealDictCursor)
+        cursor = db.conn.cursor()
         cursor.execute("""
             SELECT d.*, u.role
             FROM deeds d
