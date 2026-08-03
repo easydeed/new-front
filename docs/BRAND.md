@@ -62,6 +62,31 @@ These are the suggest→confirm→record doctrine expressed as color. A
 designer changing amber to blue is changing the product's honesty
 system, not a palette.
 
+### The admin console (ADMIN-BRAND)
+
+The console is an app surface and carries the same accent. Its tokens
+live in `frontend/src/app/admin/styles/tokens.css` — plain CSS variables
+rather than Tailwind classes, mirroring `brand.*`. Its accent was
+`#F57C00` orange until ADMIN-BRAND: a color on no other DeedPro surface,
+sitting in the family doctrine reserves for a meaning.
+
+The console has no officer decisions in it, so violet's "proposed legal
+choice" has nothing to attach to and purple is simply the accent there.
+Amber's meaning carries across with the nearest honest reading, stated
+rather than assumed: **a value that is real but must not be read at face
+value** — unconfirmed, unmeasured, or degraded. Absence ("not
+monitored", "not measured", an em-dash) is neutral gray, not amber:
+that is a fact about our instrumentation, not a warning about data.
+Failure is red. Amber never fills a control, because a fill describes an
+action and amber describes data.
+
+`adminBrand.test.ts` enforces this structurally, and enforces something
+a palette pin would miss: every `var(--dp-*)` an admin file references
+must be declared in `tokens.css`. Four tokens (`--dp-warn`, `--dp-error`,
+`--dp-muted`, `--dp-brand`) were referenced for months without ever being
+defined, each written with a hex fallback that therefore rendered every
+time — those surfaces were not reading the token file at all.
+
 ## Typography
 
 **Wordmark: Plus Jakarta Sans 800**, tracked `-0.025em` — a geometric-

@@ -4,8 +4,8 @@
 (not only in chat) so the list survives context windows. No credential
 values ever appear in this file — item names and status only.
 
-_Last corrected: 2026-08-03 (ADMIN0 rulings recorded: wave order,
-audit-log shape, supersession + VERIFY1 parked)._
+_Last corrected: 2026-08-03 (ADMIN1.5 split across #113/#114 recorded;
+ADMIN-BRAND #115 with its one extended reading flagged for the owner)._
 
 ## Open — owner's card
 
@@ -98,8 +98,17 @@ audit-log shape, supersession + VERIFY1 parked)._
 ## Approved wave — ADMIN (ADMIN0 audit, 2026-08-03)
 
 Order **re-approved 2026-08-03** after the browser audit:
-**ADMIN1 ✅ → BILL1 ✅ → ADMIN1.5 (+ADMIN-BRAND) → ADMIN3 → ADMIN2 →
+**ADMIN1 ✅ → BILL1 ✅ → ADMIN1.5 ✅ (+ADMIN-BRAND ✅) → ADMIN3 → ADMIN2 →
 ADMIN4 → ADMIN5 → ADMIN6.**
+
+ADMIN1.5 shipped in **two** PRs, which is worth recording so the
+sequencing sync reads correctly against the history: **#113** carried the
+serializer half (row type, field contract, the `/real` fossil, the CSV
+check) and **#114** the rest of the sharpened scope (reconciliation,
+stats-honesty relapse sweep, frictions). **ADMIN-BRAND is #115**, stacked
+on #114 because both touch the same three components.
+
+**Next: ADMIN3** (email outcome persistence).
 
 ADMIN3 was **promoted above ADMIN2**: it answers the 3 AM question, and
 ADMIN2's queue surface depends on knowing what failed. ADMIN5 needs a
@@ -114,12 +123,41 @@ we reach it.
   subclass, so rows serialised as JSON arrays and every by-name read
   came back undefined. Fixed at the row type (`HybridRow` — dict
   subclass AND index-addressable), with the field contract pinned
-  against real serialised output.
-- **ADMIN-BRAND** — the console adopts the BRAND2 tokens. Rides with or
-  immediately after ADMIN1.5. Not cosmetic: the current orange palette
-  predates the brand and collides with doctrine, since amber now means
-  unconfirmed external data. Decorative amber/violet dies; the doctrinal
-  colors appear in admin only with their meanings.
+  against real serialised output. **(#113)**
+- **ADMIN1.5, second half (#114)** — the numbers inside the fixed shape.
+  *Reconciliation:* the month card states its window and travels with a
+  rolling 30-day count; percentage charts name their denominator and say
+  so when n is too small to read as a distribution; the Verification tab
+  scopes itself to the partner-API lane it actually covers.
+  *Relapse sweep:* database latency was `int(seconds * 1000)`, which
+  truncated a healthy sub-millisecond probe to a "0ms" that read as a
+  measurement — and reported 0 under an Offline badge. Now
+  `perf_counter()`, and null on a failed probe. The Verification tab's
+  two fetches had no failure branch, so a 500 rendered as `?? 0` beside
+  "No verified documents yet".
+  *Frictions:* one shared pager that stops announcing "Page 1 / 1" over
+  an empty set, three distinguishable search states, and a stated,
+  changeable sort behind a server-side allowlist.
+- **ADMIN-BRAND** (#115) — the console adopts the BRAND2 tokens. Not
+  cosmetic: the orange palette predated the brand and collided with
+  doctrine, since amber means unconfirmed external data. Decorative
+  amber/violet is gone; the doctrinal colors appear in admin only with
+  their meanings, and those meanings are now written in `docs/BRAND.md`
+  beside the values.
+  **One reading was extended, not assumed — owner's to confirm or
+  narrow:** BRAND.md defines amber for the officer-facing flow
+  ("unconfirmed external data"). The console has no officer decisions in
+  it, so amber there means *a value that is real but must not be read at
+  face value* — unconfirmed, unmeasured, or degraded. Absence is neutral
+  gray and failure is red, so amber did not simply become "warning".
+  **Second finding, from the sweep:** four tokens (`--dp-warn`,
+  `--dp-error`, `--dp-muted`, `--dp-brand`) were referenced across the
+  console and **declared nowhere**. Every reference carried a hex
+  fallback, so those surfaces rendered the fallback every time and were
+  never reading the token file — including a `#333` border and a
+  `#1a1a2e` dark-navy chip on a light theme. A palette swap alone would
+  have left them orange-adjacent and untouched. Pinned now: every
+  `var(--dp-*)` must resolve to a declaration in `tokens.css`.
 
 - **ADMIN1 — truth pass + operator home.** Kills the fabricated System
   values (`pdf_engine` hardcoded `"up"`, `avg_time_ms` never assigned,

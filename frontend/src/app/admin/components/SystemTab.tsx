@@ -177,7 +177,7 @@ export default function SystemTab() {
           )}
           {stuck > 0 && (
             // The H1 silent-store class, visible from the console at last.
-            <div className="card" style={{ borderColor: 'var(--dp-warn, #b26a00)' }}>
+            <div className="card" style={{ borderColor: 'var(--dp-warning-strong)' }}>
               <strong>{stuck}</strong> completed deed{stuck === 1 ? ' has' : 's have'} no
               stored PDF. These are recoverable — the artifact regenerates on next
               download — but a persistent count here means the store is failing.
@@ -209,7 +209,7 @@ export default function SystemTab() {
               is the count above, not all deeds.
             </div>
             {smallSample && (
-              <div style={{ fontSize: 12, color: 'var(--dp-warning)', marginBottom: 12 }}>
+              <div style={{ fontSize: 12, color: 'var(--dp-warning-strong)', marginBottom: 12 }}>
                 n = {base}. At this size each document is worth
                 ~{Math.round(100 / base)} percentage points, so treat the bars as
                 a tally with a scale, not as a distribution.
@@ -219,12 +219,12 @@ export default function SystemTab() {
               {Object.entries(pdfStats.by_type).map(([type, count]) => (
                 <div key={type} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 180, fontSize: 13 }}>{formatDeedType(type)}</div>
-                  <div style={{ flex: 1, height: 8, background: 'var(--dp-border, #333)', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{ flex: 1, height: 8, background: 'var(--dp-border)', borderRadius: 4, overflow: 'hidden' }}>
                     <div
                       style={{
                         height: '100%',
                         width: `${share(count as number)}%`,
-                        background: 'var(--dp-primary, #7C4DFF)',
+                        background: 'var(--dp-primary)',
                         borderRadius: 4,
                       }}
                     />

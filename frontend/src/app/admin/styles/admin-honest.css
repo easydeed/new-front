@@ -126,9 +126,13 @@
   color: var(--dp-success);
 }
 
+/* Amber carries a meaning (see tokens.css): the value is real but must
+   not be read at face value. The text uses the darker amber because
+   #F59E0B on a near-white wash does not clear contrast for body text —
+   the doctrine color must be legible to do its job. */
 .badge.warn {
   background: var(--dp-warning-light);
-  color: var(--dp-warning);
+  color: var(--dp-warning-strong);
 }
 
 .badge.danger {

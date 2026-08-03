@@ -134,19 +134,23 @@ export default function UserDetailPage() {
           {!isEditing ? (
             <>
               <button className="button" onClick={() => setIsEditing(true)}>Edit</button>
-              <button 
-                className="button" 
-                style={{
-                  background: user.is_active ? 'var(--dp-warning, #f59e0b)' : 'var(--dp-success, #10b981)', 
-                  color: 'white'
-                }} 
+              {/* ADMIN-BRAND: this was a filled amber button. Amber
+                  describes DATA the reader should not take at face value;
+                  it does not describe an ACTION. A filled doctrine color
+                  on a control is the decorative use the ruling kills —
+                  and it also made Suspend compete with Delete for the
+                  eye. Outline treatment: present, deliberate, not
+                  shouting, and the colour vocabulary stays honest. */}
+              <button
+                className="button ghost"
+                style={{ borderColor: 'var(--dp-border-hover)' }}
                 onClick={handleSuspend}
               >
                 {user.is_active ? '⏸ Suspend' : '▶ Unsuspend'}
               </button>
               <button 
                 className="button" 
-                style={{background: 'var(--dp-error, #ef4444)', color: 'white'}} 
+                style={{background: 'var(--dp-danger)', color: 'white'}} 
                 onClick={handleDelete}
               >
                 Delete
@@ -174,7 +178,7 @@ export default function UserDetailPage() {
       </div>
       
       {error && (
-        <div className="card" style={{background: 'var(--dp-error, #ef4444)', color: 'white', marginBottom: 16, padding: 16}}>
+        <div className="card" style={{background: 'var(--dp-danger)', color: 'white', marginBottom: 16, padding: 16}}>
           <strong>Error:</strong> {error}
         </div>
       )}
@@ -222,9 +226,9 @@ export default function UserDetailPage() {
                   </div>
                   <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
                     {user.is_active ? (
-                      <><span style={{color: 'var(--dp-success, #10b981)'}}>✅ Active</span> <span style={{opacity: 0.6, fontSize: 12}}>- Can login</span></>
+                      <><span style={{color: 'var(--dp-success)'}}>✅ Active</span> <span style={{opacity: 0.6, fontSize: 12}}>- Can login</span></>
                     ) : (
-                      <><span style={{color: 'var(--dp-error, #ef4444)'}}>❌ Suspended</span> <span style={{opacity: 0.6, fontSize: 12}}>- Cannot login</span></>
+                      <><span style={{color: 'var(--dp-danger)'}}>❌ Suspended</span> <span style={{opacity: 0.6, fontSize: 12}}>- Cannot login</span></>
                     )}
                   </div>
                 </div>
@@ -235,9 +239,9 @@ export default function UserDetailPage() {
                   </div>
                   <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
                     {user.verified ? (
-                      <><span style={{color: 'var(--dp-success, #10b981)'}}>✅ Verified</span></>
+                      <><span style={{color: 'var(--dp-success)'}}>✅ Verified</span></>
                     ) : (
-                      <><span style={{color: 'var(--dp-warning, #f59e0b)'}}>⚠️ Not Verified</span></>
+                      <><span style={{color: 'var(--dp-warning-strong)'}}>⚠️ Not Verified</span></>
                     )}
                   </div>
                 </div>
@@ -339,7 +343,7 @@ export default function UserDetailPage() {
                 <div style={{fontWeight: 600}}>{user.deed_stats?.drafts ?? 0}</div>
               </div>
             </div>
-            <hr style={{border: 'none', borderTop: '1px solid var(--dp-border, #333)', margin: '8px 0'}} />
+            <hr style={{border: 'none', borderTop: '1px solid var(--dp-border)', margin: '8px 0'}} />
             <div>
               <div style={{opacity: 0.6, fontSize: 12, marginBottom: 4}}>Account Created</div>
               <div style={{fontWeight: 500}}>

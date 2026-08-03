@@ -139,13 +139,13 @@ export default function ApiTab() {
       {/* The full key is displayed exactly once — it is bcrypt-hashed at
           rest and cannot be recovered afterward. */}
       {minted && (
-        <div className="card" style={{ borderColor: 'var(--dp-brand, #7C4DFF)' }}>
+        <div className="card" style={{ borderColor: 'var(--dp-primary)' }}>
           <div style={{ fontWeight: 700, marginBottom: 8 }}>
             Copy this key now — it cannot be shown again
           </div>
           <code
             style={{
-              display: 'block', padding: '12px 14px', background: 'var(--dp-surface-2, #f7f8fa)',
+              display: 'block', padding: '12px 14px', background: 'var(--dp-surface-2)',
               borderRadius: 8, wordBreak: 'break-all', fontSize: 14, marginBottom: 12,
             }}
           >
@@ -190,7 +190,7 @@ export default function ApiTab() {
         )}
 
         {keys.length === 0 ? (
-          <div style={{ color: 'var(--dp-muted, #8a94a0)' }}>
+          <div style={{ color: 'var(--dp-text-dim)' }}>
             No API keys yet. Keys are issued manually — create one after you&apos;ve
             talked with the partner.
           </div>
@@ -241,7 +241,7 @@ export default function ApiTab() {
         </div>
 
         {requests.length === 0 ? (
-          <div style={{ color: 'var(--dp-muted, #8a94a0)' }}>
+          <div style={{ color: 'var(--dp-text-dim)' }}>
             No inquiries yet. Submissions from the API access form land here.
           </div>
         ) : (
@@ -261,7 +261,7 @@ export default function ApiTab() {
                       {r.notify_error && (
                         // The request survived an email failure — say so,
                         // rather than letting it look like it never came.
-                        <div style={{ fontSize: 12, color: 'var(--dp-warn, #b26a00)' }}>
+                        <div style={{ fontSize: 12, color: 'var(--dp-warning-strong)' }}>
                           notification email failed — {r.notify_error}
                         </div>
                       )}

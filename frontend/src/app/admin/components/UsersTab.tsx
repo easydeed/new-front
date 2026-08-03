@@ -179,7 +179,7 @@ export default function UsersTab(){
               <div><strong>Stripe Customer:</strong> {modal.stripe_customer_id || '—'}</div>
               <div><strong>Deeds Created:</strong> {modal.deed_count ?? modal.deed_stats?.total ?? '—'}</div>
             </div>
-            <div className="hstack" style={{justifyContent:'flex-end', gap:8, paddingTop:12, borderTop:'1px solid var(--dp-border, #333)'}}>
+            <div className="hstack" style={{justifyContent:'flex-end', gap:8, paddingTop:12, borderTop:'1px solid var(--dp-border)'}}>
               <button 
                 className="button" 
                 onClick={()=>{
