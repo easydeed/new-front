@@ -71,6 +71,24 @@ _Last corrected: 2026-07-30 (owner corrections relayed post-wave-1)._
   furniture; blank execution marks; parties-JSONB migration; declaration
   family; FORMS_TRIAGE correction note).
 
+## Parked tickets (scoped, not scheduled)
+
+- **Connection-helper LIFECYCLE collapse** — parked 2026-08-03 by owner
+  ruling; explicitly NOT to be absorbed into another ticket. PR #107
+  unified the ROW CONTRACT (one cursor factory, rows readable both
+  ways, pinned). What remains is that the two helpers differ in
+  lifecycle: `database.get_db_connection` returns a FRESH connection per
+  call and its callers `conn.close()` it; `db.get_db_connection` returns
+  the SHARED module-level connection carrying the #100 healing ladder.
+  **Risk note (the reason it is its own ticket):** naively pointing the
+  fresh-connection callers at the shared helper means their existing
+  `close()` calls would close the shared connection out from under every
+  other request — a #100-class production outage, arriving by the same
+  door as the last one. Either direction (converge on per-request, or
+  converge on shared and strip every close) is a real architecture
+  decision with a live blast radius, and needs its own scoped ticket
+  with its own verification.
+
 ## Ledgered triggers (machine-side, fire on condition)
 
 - **Verification-at-registration** (E1 Phase 1 ruling, 2026-08-03):

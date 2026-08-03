@@ -141,6 +141,106 @@ def create_api_key_request(payload: ApiKeyRequestIn,
     }
 
 
+class ApiKeyInquiryIn(BaseModel):
+    """The public path: three fields, no account.
+
+    Ruled after A4 shipped — the developer docs are public, so their
+    "Request access" call to action cannot lead to a login wall. A
+    platform engineer evaluating the API should be able to start a
+    conversation without first creating a DeedPro account they may never
+    use. The authenticated form stays for logged-in users, who can give
+    us the fuller picture.
+    """
+    company_name: str = Field(..., min_length=1, max_length=200)
+    email: EmailStr
+    use_case: str = Field(..., min_length=1, max_length=2000)
+
+
+@router.post("/api-key-inquiries")
+def create_api_key_inquiry(payload: ApiKeyInquiryIn):
+    """Public — deliberately no auth dependency.
+
+    Same store and same transport as the authenticated form, so the
+    admin queue is one queue: the row simply has no user_id. Storing
+    before sending matters more here, not less — an anonymous inquiry has
+    no account we could trace it back to if the email were lost.
+
+    Abuse posture (ruled): no captcha today; length caps and the email
+    validator are the whole defence, and the fallback if spam becomes
+    real is a plain mailto: link rather than more machinery.
+    """
+    conn = get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=503,
+                            detail="Unable to record the request right now — please try again.")
+
+    company = clean_profile_text(payload.company_name)
+    if not company:
+        raise HTTPException(status_code=400, detail="Company name is required")
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO api_key_requests (
+                    user_id, company_name, email, use_case, status
+                ) VALUES (NULL, %s, %s, %s, 'new')
+                RETURNING id
+            """, (company, payload.email.lower(), payload.use_case))
+            request_id = cur.fetchone()[0]
+            conn.commit()
+    except Exception as e:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        print(f"[api-key-inquiry] store failed: {e}")
+        raise HTTPException(status_code=500,
+                            detail="Could not record the request — please try again.")
+
+    admin_email = os.getenv("ADMIN_EMAIL", "admin@deedpro.com")
+    notified, notify_error = notify_api_key_request(
+        admin_email=admin_email,
+        company_name=company,
+        contact_email=payload.email.lower(),
+        business_type="—",
+        expected_volume="—",
+        use_case=payload.use_case,
+        request_id=request_id,
+    )
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE api_key_requests
+                SET notified_at = CASE WHEN %s THEN NOW() ELSE NULL END,
+                    notify_error = %s
+                WHERE id = %s
+            """, (notified, None if notified else (notify_error or "unknown")[:500], request_id))
+            conn.commit()
+    except Exception as e:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        print(f"[api-key-inquiry] could not record notification state: {e}")
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+    if not notified:
+        print(f"[api-key-inquiry] inquiry #{request_id} stored but not emailed: {notify_error}")
+
+    return {
+        "success": True,
+        "request_id": request_id,
+        "email_sent": notified,
+        "email_error": notify_error,
+        "message": "Your request is recorded. We'll reach out to discuss your integration.",
+    }
+
+
 @router.get("/admin/api-key-requests")
 def list_api_key_requests(status: Optional[str] = None,
                           admin=Depends(get_current_admin)):
