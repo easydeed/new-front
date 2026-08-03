@@ -102,6 +102,38 @@ export type ApiKeyRequestRow = {
   created_at: string;
 };
 
+/**
+ * ADMIN3 — one recorded send attempt. Mirrors `email_log` and the
+ * eleven `TEMPLATES` in backend/utils/notifications.py.
+ */
+export type EmailLogRow = {
+  id: number;
+  template: string;
+  recipient: string;
+  subject?: string | null;
+  status: 'sent' | 'failed';
+  /** The S1 diagnosis string on failure — actionable, not a boolean. */
+  reason?: string | null;
+  user_id?: number | null;
+  context?: Record<string, unknown> | null;
+  created_at: string;
+};
+
+export type EmailStats = {
+  window_days: number;
+  sent: number;
+  failed: number;
+  total: number;
+  /**
+   * When the ledger started. Without this a table created yesterday
+   * reads exactly like a quiet month, and "0 failures" over a window
+   * that predates the log is not a clean bill of health.
+   */
+  recording_since: string | null;
+  by_template: Array<{ template: string; sent: number; failed: number }>;
+  failures_by_reason: Array<{ reason: string; count: number }>;
+};
+
 export type ActivityEvent = {
   type: 'user_signup' | 'deed_created' | string;
   user: string;
@@ -269,6 +301,17 @@ export const AdminApi = {
   },
   
   getDeed: (id: number) => http<DeedRow>(`/admin/deeds/${id}`),
+
+  // ADMIN3 — the transport ledger.
+  searchEmails: (page = 1, limit = 25, status = '', template = '', search = '') => {
+    const qs = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (status) qs.set('status', status);
+    if (template) qs.set('template', template);
+    if (search) qs.set('search', search);
+    return http<Paged<EmailLogRow>>(`/admin/emails?${qs.toString()}`);
+  },
+
+  getEmailStats: (days = 7) => http<EmailStats>(`/admin/emails/stats?days=${days}`),
 
   // Revenue Analytics
   getRevenue: () => http<RevenueSummary>('/admin/revenue'),

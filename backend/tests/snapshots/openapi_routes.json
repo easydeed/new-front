@@ -53,6 +53,14 @@
  ],
  [
   "GET",
+  "/admin/emails"
+ ],
+ [
+  "GET",
+  "/admin/emails/stats"
+ ],
+ [
+  "GET",
   "/admin/export/deeds.csv"
  ],
  [

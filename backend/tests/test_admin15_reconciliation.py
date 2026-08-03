@@ -137,9 +137,19 @@ def test_sort_keys_resolve_through_a_map_and_never_reach_sql_directly():
 def test_the_applied_sort_is_echoed_to_the_client():
     """The console states its sort. It can only do that honestly if the
     server says which one it used rather than the client assuming its
-    request was honoured."""
+    request was honoured.
+
+    Counted rather than fixed at 2 (ADMIN3 added a third sorted list):
+    the property is "every list that accepts a sort echoes one", so the
+    pin compares the two populations instead of memorising a number.
+    """
     src = code_only(ADMIN_V2)
-    assert src.count('"sort": (sort or DEFAULT_SORT).lower()') == 2
+    accepts_sort = len(re.findall(r"_order_by\(", src)) - 1  # minus the def
+    echoes = src.count('"sort": (sort or DEFAULT_SORT).lower()')
+    assert echoes == accepts_sort >= 2, (
+        f"{accepts_sort} endpoints resolve a sort but {echoes} echo it — a "
+        "list that sorts silently is the defect this replaced"
+    )
 
 
 # ── Live-DB reconciliation ───────────────────────────────────────────

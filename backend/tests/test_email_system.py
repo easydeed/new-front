@@ -241,14 +241,41 @@ def test_approval_creates_in_app_record_before_email():
 
 
 def test_every_sender_returns_reason_tuples():
+    """Every sender reaches the one honest transport, and its (ok, reason)
+    survives.
+
+    ADMIN3 changed this pin DELIBERATELY, and the reason is the lesson
+    from #113: it asserted that each sender's source contained the
+    literal `send_email_with_reason(` — the SPELLING of the arrangement,
+    not the property. When ADMIN3 put a recording step between the
+    senders and the transport, every sender still reached the transport
+    and still returned its reason; only the spelling moved. A pin that
+    fails on a strictly stronger arrangement is guarding syntax.
+
+    What is asserted now is the property in two halves: each sender goes
+    through the single choke point, and that choke point is the only
+    thing that touches the transport (pinned in
+    test_admin3_email_outcomes.py, which fails if a second call appears).
+    """
     import inspect
     from utils import notifications as n
+    # `send_email_with_reason` is imported into this namespace and its
+    # name starts with "send_", so the old collector swept up the
+    # TRANSPORT and asserted the transport called itself — which passed
+    # only because its own `def` line contains its own name. Excluded by
+    # name: it is the thing being reached, not a thing that reaches.
+    TRANSPORT = {"send_email_with_reason"}
     senders = [f for name, f in vars(n).items()
-               if callable(f) and (name.startswith("send_") or name.startswith("notify_"))]
+               if callable(f) and name not in TRANSPORT
+               and (name.startswith("send_") or name.startswith("notify_"))]
     assert len(senders) >= 9
     for f in senders:
         src = inspect.getsource(f)
-        assert "send_email_with_reason(" in src, f"{f.__name__} bypasses the reason contract"
+        assert "_send(" in src, f"{f.__name__} bypasses the choke point"
+    # And the choke point still preserves the reason it was built for.
+    choke = inspect.getsource(n._send)
+    assert "send_email_with_reason(" in choke
+    assert "return ok, reason" in choke
 
 
 def test_viewed_revoked_expired_stay_email_silent():

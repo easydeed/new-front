@@ -105,6 +105,55 @@ describe('the accent is the brand, not the console\'s own orange', () => {
   });
 });
 
+describe('the admin palette mirrors the brand source of truth', () => {
+  /**
+   * ADMIN-BRAND follow-up, added in the ADMIN3 PR (flagged, not
+   * smuggled). BRAND.md names `tailwind.config.js` `brand.*` as the
+   * single source for the brand colors. The console is plain CSS and
+   * cannot read Tailwind classes, so `tokens.css` MIRRORS those values
+   * — and every other mirror in this codebase is pinned bidirectionally
+   * (form_families.py ↔ formRegistry.ts, dtt_rates.py ↔ dttCalc.ts,
+   * api_catalog.py ↔ apiDocs.ts). This one shipped without its pin, so
+   * a brand change in Tailwind would have silently left admin behind —
+   * which is precisely the drift that produced an orange console in the
+   * first place.
+   */
+  const tailwind = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'tailwind.config.js'), 'utf8');
+  const tokens = fs.readFileSync(TOKENS, 'utf8');
+
+  function brandShade(shade: string): string {
+    const m = tailwind.match(new RegExp(`${shade}:\\s*'(#[0-9a-fA-F]{6})'`));
+    if (!m) throw new Error(`brand.${shade} not found in tailwind.config.js`);
+    return m[1].toLowerCase();
+  }
+
+  function adminToken(name: string): string {
+    const m = tokens.match(new RegExp(`${name}:\\s*(#[0-9a-fA-F]{6})`));
+    if (!m) throw new Error(`${name} not found in tokens.css`);
+    return m[1].toLowerCase();
+  }
+
+  const MIRRORED: Array<[string, string]> = [
+    ['--dp-primary', '500'],
+    ['--dp-primary-600', '600'],
+    ['--dp-primary-active', '700'],
+    ['--dp-primary-light', '50'],
+  ];
+
+  for (const [token, shade] of MIRRORED) {
+    it(`${token} equals tailwind brand.${shade}`, () => {
+      expect(adminToken(token)).toBe(brandShade(shade));
+    });
+  }
+
+  it('the doctrinal amber matches the app\'s warning.500', () => {
+    const m = tailwind.match(/warning:\s*\{[\s\S]{0,200}?DEFAULT:\s*'(#[0-9a-fA-F]{6})'/);
+    expect(m).not.toBeNull();
+    expect(adminToken('--dp-warning')).toBe(m![1].toLowerCase());
+  });
+});
+
 describe('doctrinal colors appear only with their meanings', () => {
   const tokens = fs.readFileSync(TOKENS, 'utf8');
 
