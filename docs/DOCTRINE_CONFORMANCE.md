@@ -227,10 +227,46 @@ issuance and authenticated flows against live Postgres.
 
 ---
 
+## 8. The API's doctrine boundary: deed family only (2026-08-03, owner-ruled)
+
+The partner API (`/api/v1`) hands instrument generation to a caller's
+software. The wizard, by contrast, puts every legal choice in front of a
+human officer with the amber/violet honesty machinery around it. That
+difference is the whole question, and the ruling draws the line by
+instrument family:
+
+**Deeds — exposed.** The API caller is the officer's system. Escrow and
+title platforms have licensed humans behind them, and W0's Model 2 ruling
+(confirmation happens in our UI) already establishes where human
+decisions live when they must be ours. A deed's variable choices —
+consideration, vesting, DTT basis and exemption — arrive as typed facts
+from a system whose operator is accountable for them, the same way the
+wizard receives them from an officer.
+
+**Affidavits and declarations — held.** These instruments carry
+execution-act machinery: sworn statements under jurat, initial lines,
+checkbox elections, blank-contents doctrine. Their entire premise is a
+human hand at the moment of execution — the cert-of-trust ruling
+(blank initial lines and unmarked checkboxes, always) exists precisely
+because a pre-marked election is a fabricated assertion. Piping those
+through machine-to-machine calls without a per-family doctrine pass
+would be shipping the auto-applied-exemption bug (§1) at the API layer.
+
+**Consequence.** v1's exposed type set is deed-family only, pinned in
+`backend/tests/test_api_v1_structure.py::test_api_exposes_deed_family_only`.
+Each additional family requires its own doctrine pass before exposure —
+and the boundary is stated plainly in the partner documentation, not
+hidden as a gap: *the API will not decide legal choices for you, and
+some instruments require a human flow by design.* That sentence is a
+disclosure to a title company's counsel, not an apology.
+
+---
+
 ## Change log
 
 | Date | Change |
 |---|---|
+| 2026-08-03 | §8 added — API doctrine boundary ruled: v1 = deed family only; affidavit/declaration families held pending per-family passes (execution-act instruments require human flows by design). A1 also recorded three never-run defects in the mounted `/api/v1` (tuple-read auth, unassigned `full_address`, metering aborting the deed transaction) — all three survived because the only tests bypassed the HTTP and database layers, the test-vs-production asymmetry lesson under invariant #4. |
 | 2026-07-28 | Initial sweep: partner-API chassis fix, AI-chat proxy honesty fix, proxy source-scan test, partner-render tests. Draft pending owner decisions on §7. |
 | 2026-07-28 | Owner rulings executed: /api/generate-deed excised (snapshot re-recorded), /api/ai/chat logged-in-only + guard test + no-key 503, recitals ruling recorded. Report finalized. |
 | 2026-07-28 | H1 silent-PDF-store incident recorded under invariant #4: one-schema-authority rule (create_tables converges production + tests), store-failure surfaced in response/UI, resilience-without-surfacing lesson. Feature candidate ledgered: true builder resume (persist/restore keyed to deed id), pending usage evidence. |

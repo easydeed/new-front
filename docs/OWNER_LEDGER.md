@@ -24,6 +24,25 @@ _Last corrected: 2026-07-30 (owner corrections relayed post-wave-1)._
   never the pre-X0 leaked one); values never in git or chat.
 - **PDFShift account closure** (code removal shipped in PR #71; Render
   env vars `PDFSHIFT_API_KEY`/`PDF_ENGINE` deletion rides with it).
+- **Second Render service `deedpro-external-api` — DELETE** (A1, Flag-1
+  ruling; Tier 3, owner-executed). Its `render.yaml` block is gone as of
+  A1, but Render does not remove an existing service when the blueprint
+  drops it. The service ran a broken second API (every partner call
+  401'd while `/healthz` stayed green); suspend or delete it in the
+  Render dashboard. Its env vars go with it — `MAIN_API_INTERNAL_TOKEN`,
+  `ADMIN_SETUP_SECRET`, and the frontend's
+  `EXTERNAL_API_ADMIN_SETUP_SECRET`/`EXTERNAL_API_BASE_URL` in Vercel
+  are now referenced by no code.
+- ~~Production `api*` table check~~ — ANSWERED 2026-08-03: all seven
+  `api*` tables exist in production and all five key tables are EMPTY
+  (0 rows). Nothing ever authenticated, so nothing ever wrote. A1 takes
+  the simple branch: `create_tables()` adopts the existing empty tables
+  and converges their columns onto Gen 3's bcrypt/20-char design. No
+  data to preserve, no legacy keys to deactivate, no backfill.
+- **API pricing — DEFERRED by ruling** (Flag 3): free manually-issued
+  keys through the design-partner phase; `api_usage_log` meters from day
+  one (shipped in A1) so the eventual pricing decision reads data. The
+  four-model `api_partner_contracts` schema stays unused until then.
 - **Full/Partial Reconveyance — HOLD** (wave-2 ruling): lender-side
   paper adjacent to Tier C; needs a separate owner decision before any
   build. Not part of wave 2.

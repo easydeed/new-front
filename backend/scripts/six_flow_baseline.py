@@ -47,6 +47,13 @@ def ensure_schema(db_url):
     conn.autocommit = True
     cur = conn.cursor()
     from database import create_tables
+    # Importing `database` starts the daemon "schema-convergence" thread;
+    # running our own statements alongside its DDL deadlocks (found while
+    # building the A1 API baseline — same latent race lived here).
+    import threading
+    for t in threading.enumerate():
+        if t.name == "schema-convergence":
+            t.join(timeout=120)
     create_tables()
     # deterministic reruns
     cur.execute("DELETE FROM deed_shares")
