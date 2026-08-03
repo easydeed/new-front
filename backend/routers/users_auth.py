@@ -16,7 +16,7 @@ from typing import Optional
 import db
 from auth import (
     get_password_hash, verify_password, create_access_token,
-    get_current_user_id, AuthUtils
+    get_current_user_id, is_admin_role, AuthUtils
 )
 from database import clean_profile_text, get_user_profile, update_user_profile, get_recent_properties
 
@@ -75,6 +75,21 @@ async def register_user(user: UserRegister = Body(...)):
         # value prints on deed faces and emails.
         if not clean_profile_text(user.full_name):
             raise HTTPException(status_code=400, detail="Full name is required")
+
+        # SECURITY: registration must never grant privilege. users.role is
+        # the professional role that prints on the profile (Escrow Officer,
+        # Title Agent, ...) AND the value is_admin_role() reads to gate the
+        # admin console — one column, two meanings. The field was accepted
+        # verbatim from the request body, so registering with
+        # {"role": "admin"} minted a working admin account: the login token
+        # carried role=admin and /admin/* answered it, including API-key
+        # minting. Privilege is granted by an operator, never claimed by a
+        # registrant.
+        if is_admin_role(user.role):
+            raise HTTPException(
+                status_code=400,
+                detail="That role cannot be selected at registration.",
+            )
 
         # Hash password
         hashed_password = get_password_hash(user.password)
@@ -173,6 +188,13 @@ async def register_user(user: UserRegister = Body(...)):
         except Exception as rollback_error:
             print(f"[REGISTER ROLLBACK ERROR] {rollback_error}")
         raise HTTPException(status_code=400, detail="Email already exists")
+    except HTTPException:
+        # Deliberate validation failures (weak password, bad email, bad
+        # state, missing name, privileged role) are already the right
+        # answer — the blanket handler below used to re-wrap them as
+        # "Registration failed: 400: ..." with a 500 status, so every
+        # validation message reached the user as a server error.
+        raise
     except Exception as e:
         # PHASE 24-G FIX: Safe rollback that handles closed connections
         try:
