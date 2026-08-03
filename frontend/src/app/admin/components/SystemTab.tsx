@@ -30,10 +30,28 @@ function authHeaders() {
 
 interface ServiceHealth {
   status: string;
-  latency_ms?: number;
+  /** null when the probe did not complete — a service that never
+   *  answered has no latency, and "0ms" under an Offline badge was the
+   *  most confident wrong number on this screen. */
+  latency_ms?: number | null;
   primary?: string;
   error?: string | null;
   note?: string;
+}
+
+/**
+ * ADMIN1.5 relapse sweep. The backend measured latency as
+ * `int(seconds * 1000)`, so every healthy same-region probe truncated to
+ * 0 and the console said "0ms latency" — a zero manufactured by
+ * rounding, which is the exact failure ADMIN1 removed elsewhere. The
+ * probe keeps sub-millisecond resolution now; this renders it without
+ * inventing precision it does not have.
+ */
+function formatLatency(ms: number | null | undefined): string {
+  if (ms == null) return 'not measured';
+  if (ms < 1) return '<1ms';
+  if (ms < 10) return `${ms.toFixed(1)}ms`;
+  return `${Math.round(ms)}ms`;
 }
 
 interface SystemHealth {
@@ -58,6 +76,11 @@ interface SystemData {
   health: SystemHealth;
   pdf_stats: PDFStats;
 }
+
+/** Below this many observations, a percentage chart is arithmetic on a
+ *  handful of rows. Named rather than inlined so the threshold is a
+ *  stated editorial choice and can be pinned by test. */
+const SMALL_SAMPLE_THRESHOLD = 20;
 
 function StatusBadge({ service }: { service: ServiceHealth }) {
   if (service.status === 'up') return <Badge kind="success">Online</Badge>;
@@ -163,32 +186,59 @@ export default function SystemTab() {
         </>
       )}
 
-      {/* By deed type */}
-      {Object.keys(pdfStats.by_type || {}).length > 0 && (
-        <div className="card">
-          <div style={{ fontWeight: 600, marginBottom: 12 }}>Stored PDFs by deed type</div>
-          <div style={{ display: 'grid', gap: 8 }}>
-            {Object.entries(pdfStats.by_type).map(([type, count]) => (
-              <div key={type} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 180, fontSize: 13 }}>{formatDeedType(type)}</div>
-                <div style={{ flex: 1, height: 8, background: 'var(--dp-border, #333)', borderRadius: 4, overflow: 'hidden' }}>
-                  <div
-                    style={{
-                      height: '100%',
-                      width: `${pdfStats.stored_pdfs ? Math.round((count as number) / pdfStats.stored_pdfs * 100) : 0}%`,
-                      background: 'var(--dp-primary, #7C4DFF)',
-                      borderRadius: 4,
-                    }}
-                  />
-                </div>
-                <div style={{ width: 90, fontSize: 13, textAlign: 'right' }}>
-                  {count} ({pdfStats.stored_pdfs ? Math.round((count as number) / pdfStats.stored_pdfs * 100) : 0}%)
-                </div>
+      {/* By deed type — with its denominator stated.
+          ADMIN1.5: this drew percentage bars off `stored_pdfs` without
+          ever naming that base. At the sample sizes this platform
+          currently has, one deed moves a bar twenty points, and a
+          confident-looking distribution chart is the most persuasive way
+          to show a reader something that is not there. The base is now
+          named in the heading, the count leads and the share follows,
+          and below a threshold the chart says outright that the shares
+          are arithmetic rather than signal. */}
+      {Object.keys(pdfStats.by_type || {}).length > 0 && (() => {
+        const base = pdfStats.stored_pdfs || 0;
+        const share = (count: number) => (base ? Math.round((count / base) * 100) : 0);
+        const smallSample = base > 0 && base < SMALL_SAMPLE_THRESHOLD;
+        return (
+          <div className="card">
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>
+              Stored PDFs by deed type
+            </div>
+            <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 12 }}>
+              Shares of {base} stored PDF{base === 1 ? '' : 's'} — the denominator
+              is the count above, not all deeds.
+            </div>
+            {smallSample && (
+              <div style={{ fontSize: 12, color: 'var(--dp-warning)', marginBottom: 12 }}>
+                n = {base}. At this size each document is worth
+                ~{Math.round(100 / base)} percentage points, so treat the bars as
+                a tally with a scale, not as a distribution.
               </div>
-            ))}
+            )}
+            <div style={{ display: 'grid', gap: 8 }}>
+              {Object.entries(pdfStats.by_type).map(([type, count]) => (
+                <div key={type} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 180, fontSize: 13 }}>{formatDeedType(type)}</div>
+                  <div style={{ flex: 1, height: 8, background: 'var(--dp-border, #333)', borderRadius: 4, overflow: 'hidden' }}>
+                    <div
+                      style={{
+                        height: '100%',
+                        width: `${share(count as number)}%`,
+                        background: 'var(--dp-primary, #7C4DFF)',
+                        borderRadius: 4,
+                      }}
+                    />
+                  </div>
+                  <div style={{ width: 120, fontSize: 13, textAlign: 'right' }}>
+                    {count} of {base}{' '}
+                    <span style={{ opacity: 0.6 }}>({share(count as number)}%)</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Health */}
       <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8, marginTop: 8 }}>System health</div>
@@ -201,7 +251,11 @@ export default function SystemTab() {
             <tr>
               <td>Database</td>
               <td><StatusBadge service={health.database} /></td>
-              <td style={{ fontSize: 12, opacity: 0.7 }}>{health.database.latency_ms}ms latency</td>
+              <td style={{ fontSize: 12, opacity: 0.7 }}>
+                {health.database.status === 'up'
+                  ? `${formatLatency(health.database.latency_ms)} — single SELECT 1 round trip`
+                  : 'no latency to report — the probe did not complete'}
+              </td>
             </tr>
             <tr>
               <td>PDF engine</td>

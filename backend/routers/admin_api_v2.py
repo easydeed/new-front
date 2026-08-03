@@ -20,18 +20,59 @@ router = APIRouter(prefix="/admin", tags=["Admin v2"])
 # Note: get_db_connection() uses RealDictCursor, so fetchall() already returns dicts
 # No need for a _dictify helper function
 
+# ── Sort whitelists (ADMIN1.5 frictions) ─────────────────────────────
+#
+# Both lists were hard-sorted `created_at DESC` with nothing on screen
+# saying so, which is a small dishonesty of the same family as an
+# unlabelled denominator: the operator reads an order into a list that
+# the list never claimed. The console now names its sort and can change
+# it — through these maps and ONLY these maps.
+#
+# The ORDER BY fragment is interpolated into an f-string (the WHERE
+# clause already is), so an unmapped key must never reach SQL. A dict
+# lookup with a default, not a format of user input: an allowlist that
+# cannot be spelled around is the difference between a sort control and
+# an injection point.
+USER_SORTS: Dict[str, str] = {
+    "newest": "u.created_at DESC NULLS LAST",
+    "oldest": "u.created_at ASC NULLS LAST",
+    "email": "LOWER(u.email) ASC",
+    "deeds": "deed_count DESC, u.created_at DESC",
+    "last_login": "u.last_login DESC NULLS LAST",
+}
+DEED_SORTS: Dict[str, str] = {
+    "newest": "d.created_at DESC NULLS LAST",
+    "oldest": "d.created_at ASC NULLS LAST",
+    "updated": "d.updated_at DESC NULLS LAST",
+    "type": "d.deed_type ASC, d.created_at DESC",
+}
+DEFAULT_SORT = "newest"
+
+
+def _order_by(sorts: Dict[str, str], requested: Optional[str]) -> str:
+    """Resolve a sort key to SQL, or 400. Never interpolate the input."""
+    key = (requested or DEFAULT_SORT).lower()
+    if key not in sorts:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown sort '{requested}'. Valid: {', '.join(sorted(sorts))}",
+        )
+    return sorts[key]
+
 @router.get("/users/search")
 def admin_users_search(
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=200),
     search: Optional[str] = None,
     role: Optional[str] = None,
+    sort: Optional[str] = Query(None, description="newest|oldest|email|deeds|last_login"),
     admin=Depends(get_current_admin)
 ):
     """
     Paginated, searchable users list.
     Safe and additive to any existing /admin/users route.
     """
+    order_sql = _order_by(USER_SORTS, sort)
     offset = (page - 1) * limit
     conn = get_db_connection()
     with conn.cursor() as cur:
@@ -55,12 +96,13 @@ def admin_users_search(
                    (SELECT COUNT(*) FROM deeds d WHERE d.user_id = u.id) as deed_count
             FROM users u
             {where_sql}
-            ORDER BY u.created_at DESC
+            ORDER BY {order_sql}
             LIMIT %s OFFSET %s
         """, params + [limit, offset])
         rows = cur.fetchall()  # Already returns list of dicts (RealDictCursor)
 
-    return {"page": page, "limit": limit, "total": total, "items": rows}
+    return {"page": page, "limit": limit, "total": total,
+            "sort": (sort or DEFAULT_SORT).lower(), "items": rows}
 
 @router.get("/users/{user_id}")
 def admin_user_detail(user_id: int, admin=Depends(get_current_admin)):
@@ -106,11 +148,13 @@ def admin_deeds_search(
     search: Optional[str] = None,
     status: Optional[str] = None,
     user_id: Optional[int] = None,
+    sort: Optional[str] = Query(None, description="newest|oldest|updated|type"),
     admin=Depends(get_current_admin)
 ):
     """
     Paginated, searchable deeds list (per-user via user_id).
     """
+    order_sql = _order_by(DEED_SORTS, sort)
     offset = (page - 1) * limit
     conn = get_db_connection()
     with conn.cursor() as cur:
@@ -142,12 +186,13 @@ def admin_deeds_search(
             FROM deeds d
             LEFT JOIN users u ON u.id = d.user_id
             {where_sql}
-            ORDER BY d.created_at DESC
+            ORDER BY {order_sql}
             LIMIT %s OFFSET %s
         """, params + [limit, offset])
         rows = cur.fetchall()  # Already returns list of dicts (RealDictCursor)
 
-    return {"page": page, "limit": limit, "total": total, "items": rows}
+    return {"page": page, "limit": limit, "total": total,
+            "sort": (sort or DEFAULT_SORT).lower(), "items": rows}
 
 @router.get("/deeds/{deed_id}")
 def admin_deed_detail(deed_id: int, admin=Depends(get_current_admin)):

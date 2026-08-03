@@ -42,25 +42,49 @@ export default function VerificationTab() {
   const [revoking, setRevoking] = useState(false);
   const [revokeReason, setRevokeReason] = useState('');
 
+  /** Whether the document list is a real answer or an unanswered call.
+   *  An empty array from a failed fetch renders identically to an empty
+   *  database — doctrine §4, and this tab had exactly that hole. */
+  const [docsLoaded, setDocsLoaded] = useState(false);
+
   async function loadData() {
     setLoading(true);
     setError('');
+    setDocsLoaded(false);
     try {
-      // Load stats
+      // ADMIN1.5 relapse sweep. Both fetches used to be `if (res.ok)`
+      // with no else: a 500 left `stats` null and `documents` empty, and
+      // the cards below rendered `?? 0` while the table said "No
+      // verified documents yet". A dead endpoint was indistinguishable
+      // from a quiet platform — the fabricated-success pattern ADMIN1
+      // was fired to remove, still alive on this tab.
+      const failures: string[] = [];
+
       const statsRes = await fetch(`${API_BASE}/admin/verification/stats`, {
         headers: { ...authHeaders() }
       });
       if (statsRes.ok) {
         setStats(await statsRes.json());
+      } else {
+        setStats(null);
+        failures.push(`stats (HTTP ${statsRes.status})`);
       }
 
-      // Load documents
       const docsRes = await fetch(`${API_BASE}/admin/verification/documents?limit=50`, {
         headers: { ...authHeaders() }
       });
       if (docsRes.ok) {
         const data = await docsRes.json();
         setDocuments(data.items || []);
+        setDocsLoaded(true);
+      } else {
+        setDocuments([]);
+        failures.push(`documents (HTTP ${docsRes.status})`);
+      }
+
+      if (failures.length) {
+        setError(`Verification data unavailable — ${failures.join(', ')}. `
+          + 'Nothing below is being shown as zero.');
       }
     } catch (e: any) {
       setError(e.message || 'Failed to load verification data');
@@ -117,12 +141,37 @@ export default function VerificationTab() {
 
   return (
     <div className="vstack">
-      {/* Stats Cards */}
+      {/* What this tab covers — stated before the numbers.
+          `document_authenticity` has exactly one live writer:
+          routers/api_v1/router.py, the partner-API lane.
+          `create_document_authenticity` in routers/verification.py has
+          zero callers, so a deed made in the wizard gets a stored PDF
+          hash and no short code. Every count on this tab is therefore an
+          API-lane count. Unlabelled, "Total Documents" read as "every
+          document DeedPro has ever issued", which is off by the entire
+          wizard. Whether wizard deeds should be publicly verifiable is
+          VERIFY1 — a parked product question, not a bug to paper over. */}
+      <div className="card" style={{ borderColor: 'var(--dp-border)' }}>
+        <div style={{ fontWeight: 600, marginBottom: 4 }}>
+          Partner-API documents only
+        </div>
+        <div style={{ fontSize: 13, opacity: 0.75 }}>
+          Verification codes are issued by the partner API. Deeds created in the
+          wizard are stored with a PDF hash but no short code, so they never
+          appear here and are not counted below. Public verification for wizard
+          deeds is an open product decision (VERIFY1), not a gap in this table.
+        </div>
+      </div>
+
+      {/* Stats Cards — em-dash, never 0, when the stats call failed.
+          `?? 0` here was a silent zero of the same family as the Revenue
+          and QR ones ADMIN1 killed: it turned "we could not ask" into
+          "the answer is none". */}
       <div className="grid stats">
-        <StatCard title="Total Documents" value={stats?.total_documents ?? 0} />
-        <StatCard title="Active" value={stats?.active_documents ?? 0} />
-        <StatCard title="Revoked" value={stats?.revoked_documents ?? 0} />
-        <StatCard title="Scans Today" value={stats?.total_scans_today ?? 0} />
+        <StatCard title="Total Documents" value={stats?.total_documents ?? '—'} />
+        <StatCard title="Active" value={stats?.active_documents ?? '—'} />
+        <StatCard title="Revoked" value={stats?.revoked_documents ?? '—'} />
+        <StatCard title="Scans Today" value={stats?.total_scans_today ?? '—'} />
       </div>
 
       {error && (
@@ -135,9 +184,11 @@ export default function VerificationTab() {
       <div className="card">
         <div className="hstack" style={{ justifyContent: 'space-between', marginBottom: 16 }}>
           <div style={{ fontWeight: 700, fontSize: 16 }}>Verified Documents</div>
-          <Badge kind="neutral">{documents.length} documents</Badge>
+          <Badge kind="neutral">
+            {docsLoaded ? `${documents.length} documents` : 'count unavailable'}
+          </Badge>
         </div>
-        
+
         <table className="table">
           <thead>
             <tr>
@@ -151,10 +202,19 @@ export default function VerificationTab() {
             </tr>
           </thead>
           <tbody>
-            {documents.length === 0 ? (
+            {!docsLoaded ? (
+              <tr>
+                <td colSpan={7} style={{ color: 'var(--dp-danger)', textAlign: 'center', padding: 24 }}>
+                  The document list did not load. This is not an empty table —
+                  it is an unanswered request.
+                </td>
+              </tr>
+            ) : documents.length === 0 ? (
               <tr>
                 <td colSpan={7} style={{ opacity: 0.75, textAlign: 'center', padding: 24 }}>
-                  No verified documents yet. Documents will appear here when deeds are generated with QR codes.
+                  No partner-API documents yet. A row appears here when a deed is
+                  generated through the partner API, which issues the short code.
+                  Wizard deeds are never listed here — see the note above.
                 </td>
               </tr>
             ) : documents.map(doc => (
