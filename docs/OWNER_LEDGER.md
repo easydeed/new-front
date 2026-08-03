@@ -54,6 +54,12 @@ _Last corrected: 2026-07-30 (owner corrections relayed post-wave-1)._
 
 ## Ledgered triggers (machine-side, fire on condition)
 
+- **Verification-at-registration** (E1 Phase 1 ruling, 2026-08-03):
+  stays resend-only for now — enable required email verification at
+  registration **before first real customer onboarding or any public
+  launch**. The plumbing exists (`EMAIL_VERIFICATION_REQUIRED` +
+  `/users/verify-email`); the trigger is the go-to-market moment, not a
+  code change.
 - ~~Parties JSONB migration~~ — FIRED and executed (PR #86).
 - **"Compact chassis" CSS variant** — consider if more one-page
   instruments accumulate (spike report note; the inline-acknowledgment
