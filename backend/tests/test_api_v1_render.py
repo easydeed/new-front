@@ -11,17 +11,37 @@ import re
 
 from routers.api_v1.router import build_render_row
 from schemas.api_v1.deeds import (
-    CreateDeedRequest, DeedType, PropertyModel, GrantorModel, GranteeModel,
-    TransferTaxModel, RecordingModel, ReturnToModel, TaxBasis,
+    CreateDeedRequest, DeedType, EntityModel, PropertyModel, GrantorModel,
+    GranteeModel, TransferTaxModel, RecordingModel, ReturnToModel, TaxBasis,
 )
 from services.deed_pdf import TEMPLATE_BY_DEED_TYPE, render_deed_html
 
 
 def _request(deed_type=DeedType.GRANT_DEED, **tt_overrides):
+    """A2: the sample is now type-aware. A fixed-vesting instrument
+    REFUSES a supplied vesting (its title is the vesting decision) and an
+    entity deed REQUIRES its organizing-state recital, so one fixed
+    payload can no longer stand in for every type — which is the point of
+    the per-type rules."""
+    from services.api_catalog import rules_for
+
     tt = dict(exempt=False, exempt_code=None, value=500000.0,
               computed_amount="550.00", basis=TaxBasis.FULL_VALUE,
               city_tax=True, city_name="Los Angeles")
     tt.update(tt_overrides)
+
+    rules = rules_for(deed_type.value)
+    grantee = GranteeModel(
+        name="ROBERT C. ROE",
+        vesting=None if rules.fixed_vesting else "a single man",
+    )
+    entity = None
+    if rules.required_entity_facts:
+        entity = EntityModel(
+            entity_state="California" if "entity_state" in rules.required_entity_facts else None,
+            partnership_type="general partnership" if "partnership_type" in rules.required_entity_facts else None,
+        )
+
     return CreateDeedRequest(
         deed_type=deed_type,
         property=PropertyModel(
@@ -29,8 +49,8 @@ def _request(deed_type=DeedType.GRANT_DEED, **tt_overrides):
             zip="90001", county="Los Angeles", apn="1234-567-890",
             legal_description="LOT 15, BLOCK 3, TRACT 12345",
         ),
-        grantor=GrantorModel(name="JOHN A. DOE"),
-        grantee=GranteeModel(name="ROBERT C. ROE", vesting="a single man"),
+        grantor=GrantorModel(name="JOHN A. DOE", entity=entity),
+        grantee=grantee,
         transfer_tax=TransferTaxModel(**tt),
         recording=RecordingModel(
             requested_by="Pacific Coast Escrow",

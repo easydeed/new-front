@@ -19,6 +19,8 @@ from schemas.api_v1.deeds import (
     VerificationResponse, VerificationDocumentModel, VerificationPropertyModel, VerificationPartiesModel,
     APIErrorResponse, ErrorResponse
 )
+from services.api_catalog import chassis_type
+from services.dtt_rates import compute_dtt
 from utils.api_keys import extract_key_prefix, validate_api_key, generate_deed_id, generate_document_id
 from utils.short_code import generate_content_hash
 from pdf_engine import render_pdf_async
@@ -39,8 +41,18 @@ def build_render_row(deed_request) -> dict:
         "exemption_reason": tt.exempt_code or "",
     }
     ret = deed_request.recording.return_to
+    # A2: entity recitals ride in metadata.affidavit, the same slot the
+    # wizard's entity deeds read (templates bind `aff = affidavit`).
+    entity = getattr(deed_request.grantor, "entity", None)
+    affidavit = None
+    if entity is not None:
+        facts = {k: v for k, v in {
+            "entity_state": entity.entity_state,
+            "partnership_type": entity.partnership_type,
+        }.items() if v}
+        affidavit = facts or None
     return {
-        "deed_type": deed_request.deed_type.value.replace("_", "-"),
+        "deed_type": chassis_type(deed_request.deed_type.value),
         "grantor_name": deed_request.grantor.name,
         "grantee_name": deed_request.grantee.name,
         "legal_description": deed_request.property.legal_description,
@@ -49,6 +61,7 @@ def build_render_row(deed_request) -> dict:
         "vesting": deed_request.grantee.vesting,
         "requested_by": deed_request.recording.requested_by,
         "metadata": {
+            "affidavit": affidavit,
             "title_order_no": deed_request.recording.title_order_no,
             "escrow_no": deed_request.recording.escrow_no,
             "return_to": {
@@ -718,58 +731,58 @@ async def calculate_transfer_tax(
     request: TransferTaxCalculateRequest,
     api_key: dict = Depends(get_api_key)
 ):
-    """Calculate documentary transfer tax for a given value and location."""
-    
-    # California county rate: $1.10 per $1,000
+    """Calculate documentary transfer tax for a given value and location.
+
+    A2: this endpoint used to carry its OWN city-rate table, and it
+    disagreed with the officer-facing calculator (San Francisco $3.75 vs
+    $7.50, Santa Monica and Berkeley priced here and not there). Whichever
+    surface a caller happened to use decided what their deed declared.
+    One source now: services/dtt_rates, mirrored to dttCalc.ts and pinned.
+    """
     taxable_value = request.value - request.less_liens
-    county_rate = 1.10
-    county_tax = (taxable_value / 1000) * county_rate
-    
-    # City tax varies - common ones
-    city_rates = {
-        "los angeles": 4.50,
-        "oakland": 15.00,  # Measure W
-        "san francisco": 3.75,  # Base rate
-        "berkeley": 15.00,
-        "culver city": 4.50,
-        "santa monica": 3.00,
-        "pasadena": 2.20,
-        "pomona": 2.20,
-        "riverside": 1.10,
-    }
-    
-    city_tax = 0
+    dtt = compute_dtt(taxable_value, request.city)
+    city_rate = dtt["city_rate_per_1000"]
+
     city_breakdown = None
-    
     if request.city:
-        city_lower = request.city.lower()
-        if city_lower in city_rates:
-            city_rate = city_rates[city_lower]
-            city_tax = (taxable_value / 1000) * city_rate
+        if city_rate is None:
+            # Honest silence beats an invented number: cities absent from
+            # the own-DTT list levy no municipal transfer tax.
+            city_breakdown = {
+                "name": request.city,
+                "rate": None,
+                "amount": 0.0,
+                "notes": "This city levies no documentary transfer tax of its own.",
+            }
+        else:
             city_breakdown = {
                 "name": request.city,
                 "rate": f"${city_rate:.2f} per $1,000",
-                "amount": round(city_tax, 2),
-                "notes": "Additional city transfer tax applies" if city_rate > 2.20 else None
+                "amount": dtt["city_tax"],
+                "notes": None,
             }
-    
-    total_tax = county_tax + city_tax
-    
+
     return {
         "success": True,
         "data": {
             "taxable_value": taxable_value,
-            "county_tax": round(county_tax, 2),
-            "city_tax": round(city_tax, 2),
-            "total_tax": round(total_tax, 2),
+            "county_tax": dtt["county_tax"],
+            "city_tax": dtt["city_tax"],
+            "total_tax": dtt["total_tax"],
             "breakdown": {
                 "county": {
                     "name": f"{request.county} County",
-                    "rate": "$1.10 per $1,000",
-                    "amount": round(county_tax, 2)
+                    "rate": f"${dtt['county_rate_per_1000']:.2f} per $1,000",
+                    "amount": dtt["county_tax"]
                 },
                 "city": city_breakdown
-            }
+            },
+            # Rate provenance travels with the number — these are
+            # approximations of tiered municipal schedules, and a caller
+            # declaring tax on a recorded instrument should know that.
+            "disclaimer": "County rate per R&T §11911. City rates are approximations "
+                          "of tiered municipal schedules; verify against the current "
+                          "schedule for the recording jurisdiction."
         }
     }
 
