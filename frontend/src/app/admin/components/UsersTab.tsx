@@ -64,6 +64,18 @@ export default function UsersTab(){
               </td></tr>
             ) : rows.length === 0 ? (
               <tr><td colSpan={7} style={{opacity:.75}}>No users</td></tr>
+            ) : rows[0] && rows[0].id === undefined ? (
+              // HARDENING, not the cure (that is the serializer fix in
+              // ADMIN1.5). A malformed row shape used to render as a
+              // table of blanks and em-dashes — data that looks merely
+              // sparse — and only announced itself when a drill-down
+              // requested /admin/users/undefined. If the contract breaks
+              // again, say so here rather than draw an empty table.
+              <tr><td colSpan={7} style={{color:'var(--dp-danger)'}}>
+                User rows arrived without an <code>id</code> field — the API
+                response shape does not match what this table reads. Not
+                rendering rows, because they would be blank.
+              </td></tr>
             ) : rows.map(u => (
               <tr key={u.id}>
                 <td>{u.id}</td>

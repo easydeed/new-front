@@ -62,10 +62,15 @@ def admin_users_search(
 
     return {"page": page, "limit": limit, "total": total, "items": rows}
 
-@router.get("/users/{user_id}/real")
-def admin_user_detail_real(user_id: int, admin=Depends(get_current_admin)):
-    """
-    Real user detail, joined with deed stats.
+@router.get("/users/{user_id}")
+def admin_user_detail(user_id: int, admin=Depends(get_current_admin)):
+    """User detail, joined with deed stats.
+
+    ADMIN1.5: this route was `/users/{user_id}/real` — a fossil of a
+    mock/real serializer split. The "mock" half lived in admin_inline
+    (hardcoded per-user revenue, `shared_deeds: 0`, an empty
+    `activity_log`) and is deleted, so the honest one takes the plain
+    path and sits alongside the PUT and DELETE already there.
     """
     conn = get_db_connection()
     with conn.cursor() as cur:
