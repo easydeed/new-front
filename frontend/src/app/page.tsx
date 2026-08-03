@@ -644,7 +644,7 @@ export default function LandingPage() {
                   {/* HM1: real destinations — public docs and the on-page
                       integrations section. */}
                   <Button asChild className="bg-[#7C4DFF] hover:bg-[#7C4DFF]/90 text-white font-bold px-8 py-8">
-                    <Link href="/docs">View API Docs</Link>
+                    <Link href="/developers">View API Docs</Link>
                   </Button>
                   <Button
                     asChild
@@ -968,7 +968,7 @@ Content-Type: application/json
                     </a>
                   </li>
                   <li>
-                    <a href="/docs" className="hover:text-[#7C4DFF] transition-colors">
+                    <a href="/developers" className="hover:text-[#7C4DFF] transition-colors">
                       API Docs
                     </a>
                   </li>
