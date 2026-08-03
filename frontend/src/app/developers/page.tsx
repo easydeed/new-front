@@ -18,6 +18,7 @@
 import type { Metadata } from 'next';
 import { API_DEED_TYPES, HELD_FAMILIES } from '@/lib/apiDocs';
 import { LogoLockup } from '@/components/brand/Logo';
+import ApiInquiryForm from './ApiInquiryForm';
 
 export const metadata: Metadata = {
   title: 'DeedPro API for developers',
@@ -168,7 +169,7 @@ export default function DevelopersPage() {
             <LogoLockup size={30} />
           </a>
           <a
-            href="/api-key-request"
+            href="#request-access"
             className="rounded-lg bg-[#7C4DFF] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#6a3ff0]"
           >
             Request access
@@ -222,12 +223,11 @@ export default function DevelopersPage() {
             <ol className="mt-6 space-y-3 text-gray-600">
               <li>
                 <strong className="text-[#1F2B37]">1. Get a test key.</strong>{' '}
-                <a href="/api-key-request" className="text-[#7C4DFF] hover:underline">
+                <a href="#request-access" className="text-[#7C4DFF] hover:underline">
                   Request access
                 </a>{' '}
-                — we issue keys after a short conversation about what you&rsquo;re building.
-                The form sits behind a DeedPro account, so you&rsquo;ll sign in or create
-                one first. Test keys start with{' '}
+                — three fields, no account needed. We issue keys after a short
+                conversation about what you&rsquo;re building. Test keys start with{' '}
                 <code className="rounded bg-gray-100 px-1 text-[13px]">dp_test_</code>.
               </li>
               <li>
@@ -539,20 +539,11 @@ export default function DevelopersPage() {
             </div>
           </section>
 
-          {/* Footer CTA */}
-          <div className="mt-12 rounded-2xl border border-gray-200 bg-gray-50 p-8">
-            <h2 className="text-xl font-bold text-[#1F2B37]">Ready to build?</h2>
-            <p className="mt-2 max-w-xl leading-relaxed text-gray-600">
-              Tell us what you&rsquo;re integrating and we&rsquo;ll set you up with a test key.
-              We issue keys after a conversation — it is a short one, and it means the fit is
-              clear on both sides. The request form asks you to sign in first.
-            </p>
-            <a
-              href="/api-key-request"
-              className="mt-5 inline-block rounded-lg bg-[#7C4DFF] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#6a3ff0]"
-            >
-              Request API access
-            </a>
+          {/* The inquiry form itself — public, three fields, no account.
+              A page whose call to action led to a login wall was friction
+              in the exact funnel it exists to serve. */}
+          <div className="mt-12">
+            <ApiInquiryForm />
           </div>
         </div>
       </div>

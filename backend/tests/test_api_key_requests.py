@@ -178,3 +178,90 @@ def test_the_queue_lists_it_for_an_admin_only(client_and_token):
     assert listed.status_code == 200
     companies = [i["company_name"] for i in listed.json()["items"]]
     assert "Pacific Coast Escrow" in companies
+
+
+# ── The public path (ruled after A4) ─────────────────────────────────
+
+INQUIRY_BODY = {
+    "company_name": "  Coastline Title  ",
+    "email": "Ops@CoastlineTitle.example",
+    "use_case": "Generating grant deeds at closing from our title platform.",
+}
+
+
+def test_public_inquiry_has_no_auth_dependency():
+    """The developer docs are public; their call to action cannot lead to
+    a login wall. A platform engineer must be able to start a
+    conversation without first creating an account they may never use."""
+    from routers.api_key_requests import create_api_key_inquiry
+    sig = inspect.signature(create_api_key_inquiry)
+    for param in sig.parameters.values():
+        assert "Depends" not in str(param.default), \
+            f"public inquiry gained an auth dependency: {param}"
+    src = inspect.getsource(create_api_key_inquiry)
+    assert "get_current_user_id" not in src
+
+
+def test_public_inquiry_stores_before_notifying_too():
+    from routers import api_key_requests
+    src = inspect.getsource(api_key_requests.create_api_key_inquiry)
+    assert src.index("INSERT INTO api_key_requests") < src.index("notify_api_key_request")
+
+
+def test_public_inquiry_caps_field_lengths():
+    """No captcha by ruling — the length caps and the email validator are
+    the whole defence, so they must actually be there."""
+    from routers.api_key_requests import ApiKeyInquiryIn
+    fields = ApiKeyInquiryIn.model_fields
+    assert any(getattr(m, "max_length", None) == 200 for m in fields["company_name"].metadata)
+    assert any(getattr(m, "max_length", None) == 2000 for m in fields["use_case"].metadata)
+
+
+@pytest.mark.skipif(not LIVE_DB, reason="live test DB required")
+def test_anonymous_inquiry_is_stored_and_queued():
+    from fastapi.testclient import TestClient
+    from main import app
+    import psycopg2
+
+    conn = psycopg2.connect(LIVE_DB)
+    conn.autocommit = True
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM api_key_requests WHERE email = %s", ("ops@coastlinetitle.example",))
+    conn.close()
+
+    client = TestClient(app)
+    with patch("routers.api_key_requests.notify_api_key_request",
+               return_value=(True, None)) as notify:
+        # No Authorization header at all.
+        res = client.post("/api-key-inquiries", json=INQUIRY_BODY)
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["email_sent"] is True
+    assert "reach out" in body["message"].lower()
+    assert notify.called
+
+    conn = psycopg2.connect(LIVE_DB)
+    with conn.cursor() as cur:
+        cur.execute("""SELECT user_id, company_name, email, status
+                       FROM api_key_requests WHERE id = %s""", (body["request_id"],))
+        row = cur.fetchone()
+    conn.close()
+    assert row[0] is None            # anonymous — no account
+    assert row[1] == "Coastline Title"
+    assert row[2] == "ops@coastlinetitle.example"
+    assert row[3] == "new"           # same queue as the authenticated form
+
+
+@pytest.mark.skipif(not LIVE_DB, reason="live test DB required")
+def test_anonymous_inquiry_survives_a_failed_email():
+    from fastapi.testclient import TestClient
+    from main import app
+    client = TestClient(app)
+    with patch("routers.api_key_requests.notify_api_key_request",
+               return_value=(False, "SENDGRID_API_KEY is not set in the environment")):
+        res = client.post("/api-key-inquiries", json=INQUIRY_BODY)
+    assert res.status_code == 200
+    assert res.json()["email_sent"] is False
+    # An anonymous inquiry has no account to trace it back to, so losing
+    # the row would lose the lead entirely.
+    assert res.json()["request_id"] > 0

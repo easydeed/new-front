@@ -29,6 +29,19 @@ const openapi = JSON.parse(fs.readFileSync(
   path.join(__dirname, '..', '..', '..', 'backend', 'tests', 'snapshots', 'openapi_routes.json'), 'utf8'
 )) as Array<[string, string]>;
 
+/**
+ * Placement and copy pins must read what a VISITOR sees, not what the
+ * file contains: a comment explaining why a link was removed necessarily
+ * names the link, and a naive source match then fails on its own
+ * explanation.
+ */
+function withoutComments(src: string) {
+  return src
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')  // JSX comments
+    .replace(/\/\*[\s\S]*?\*\//g, '')       // block comments
+    .replace(/^\s*\/\/.*$/gm, '');          // line comments
+}
+
 import { API_DEED_TYPES, HELD_FAMILIES } from '@/lib/apiDocs';
 
 describe('documented deed types mirror the backend catalog', () => {
@@ -131,6 +144,47 @@ describe('versioning is promised', () => {
   });
 });
 
+describe('the access path is public — no login wall', () => {
+  const form = fs.readFileSync(
+    path.join(__dirname, '..', 'app', 'developers', 'ApiInquiryForm.tsx'), 'utf8'
+  );
+
+  it('the page CTAs point at the on-page form, not the authenticated one', () => {
+    // A public docs page whose call to action led to /api-key-request
+    // (auth-protected) put a login wall in the exact funnel it serves.
+    expect(page).toContain('href="#request-access"');
+    const ctaToAuthedForm = page.match(/href="\/api-key-request"/g) || [];
+    expect(ctaToAuthedForm).toHaveLength(0);
+  });
+
+  it('the form posts to the public endpoint with no Authorization header', () => {
+    expect(form).toContain('/api-key-inquiries');
+    expect(form).not.toContain('Authorization');
+    expect(form).not.toContain('access_token');
+  });
+
+  it('asks for three fields and no more', () => {
+    expect(form).toContain('company_name');
+    expect(form).toContain('email');
+    expect(form).toContain('use_case');
+    for (const extra of ['expected_volume', 'integration_timeline', 'business_type', 'phone']) {
+      expect(form).not.toContain(extra);
+    }
+  });
+
+  it('promises a conversation, not a key, and surfaces failures', () => {
+    expect(form).toMatch(/reach out/i);
+    expect(form).not.toMatch(/within 24 hours/i);
+    expect(form).toContain('role="alert"');
+    const successSets = form.match(/setSubmitted\(true\)/g) || [];
+    expect(successSets).toHaveLength(1);
+  });
+
+  it('still offers the fuller authenticated form to signed-in users', () => {
+    expect(form).toContain('/api-key-request');
+  });
+});
+
 describe('placement — footer only during the design-partner phase', () => {
   it('/docs retires with a permanent redirect', () => {
     expect(nextConfig).toContain("source: '/docs'");
@@ -142,6 +196,19 @@ describe('placement — footer only during the design-partner phase', () => {
   it('the homepage footer links to it', () => {
     const footer = homepage.slice(homepage.indexOf('<footer'));
     expect(footer).toContain('href="/developers"');
+  });
+
+  it('the homepage body does NOT — footer is the only entry point', () => {
+    // The integrations section carried a prominent "View API Docs"
+    // button. While keys are issued manually, a link into docs you
+    // cannot self-serve a key from is a dead-end funnel.
+    // Comments explaining the removal necessarily name the thing
+    // removed, so read what renders, not what the file contains.
+    const body = withoutComments(homepage.slice(0, homepage.indexOf('<footer')));
+    expect(body).not.toContain('/developers');
+    expect(body).not.toMatch(/View API Docs/i);
+    // ...but the integrations prose itself stays.
+    expect(body).toMatch(/SoftPro, Qualia/);
   });
 
   it('nothing still points at the retired /docs routes', () => {

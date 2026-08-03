@@ -641,11 +641,13 @@ export default function LandingPage() {
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4">
-                  {/* HM1: real destinations — public docs and the on-page
-                      integrations section. */}
-                  <Button asChild className="bg-[#7C4DFF] hover:bg-[#7C4DFF]/90 text-white font-bold px-8 py-8">
-                    <Link href="/developers">View API Docs</Link>
-                  </Button>
+                  {/* The "View API Docs" button was removed here per the
+                      footer-only placement ruling: while API keys are
+                      issued manually, a prominent link into docs you
+                      cannot self-serve a key from is a dead-end funnel.
+                      /developers stays reachable from the footer, where
+                      the engineers who go looking will find it. The
+                      integrations prose above is unchanged. */}
                   <Button
                     asChild
                     variant="outline"

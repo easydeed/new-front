@@ -325,6 +325,10 @@
  ],
  [
   "POST",
+  "/api-key-inquiries"
+ ],
+ [
+  "POST",
   "/api-key-requests"
  ],
  [
