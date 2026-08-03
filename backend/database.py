@@ -133,10 +133,12 @@ def create_tables():
             )""",
             # ── A1: API lane under the ONE SCHEMA AUTHORITY ──────────────
             # The mounted /api/v1 depended on tables that existed only in
-            # hand-run migration files (001/005). Both branches are safe
-            # here: CREATE IF NOT EXISTS no-ops where a hand-run migration
-            # already made the table; the ALTER ladder retrofits any
-            # missing Gen-3 columns onto a Gen-2-era (001-shaped) table.
+            # hand-run migration files (001/005). Production check
+            # (2026-08-03): all of them exist there and all are EMPTY —
+            # nothing ever authenticated, so nothing ever wrote. The
+            # CREATEs therefore no-op in production and create fresh
+            # elsewhere; the ALTER ladder converges an existing
+            # 001-shaped table onto Gen 3's design. No data to preserve.
             """CREATE TABLE IF NOT EXISTS api_keys (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 key_prefix TEXT NOT NULL,

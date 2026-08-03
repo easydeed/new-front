@@ -33,10 +33,12 @@ _Last corrected: 2026-07-30 (owner corrections relayed post-wave-1)._
   `ADMIN_SETUP_SECRET`, and the frontend's
   `EXTERNAL_API_ADMIN_SETUP_SECRET`/`EXTERNAL_API_BASE_URL` in Vercel
   are now referenced by no code.
-- **Production `api*` table check** (A1 gate): confirm whether the
-  hand-run migrations (001/005) ever ran in production. A1's schema
-  authority handles both branches, but the answer decides whether the
-  first deploy creates fresh tables or converges existing ones.
+- ~~Production `api*` table check~~ — ANSWERED 2026-08-03: all seven
+  `api*` tables exist in production and all five key tables are EMPTY
+  (0 rows). Nothing ever authenticated, so nothing ever wrote. A1 takes
+  the simple branch: `create_tables()` adopts the existing empty tables
+  and converges their columns onto Gen 3's bcrypt/20-char design. No
+  data to preserve, no legacy keys to deactivate, no backfill.
 - **API pricing — DEFERRED by ruling** (Flag 3): free manually-issued
   keys through the design-partner phase; `api_usage_log` meters from day
   one (shipped in A1) so the eventual pricing decision reads data. The
