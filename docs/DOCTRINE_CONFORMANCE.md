@@ -276,10 +276,54 @@ disclosure to a title company's counsel, not an apology.
 
 ---
 
+## 9. A stored instrument is never overwritten (2026-08-03, owner-ruled)
+
+**Statement.** Once a deed's PDF is stored, those bytes and their sha256
+are the artifact. A regeneration may not silently replace them.
+
+**Finding (ADMIN0).** `services/deed_pdf.py:166-173` stores via
+`INSERT ... ON CONFLICT (deed_id) DO UPDATE SET pdf_data = EXCLUDED.pdf_data`.
+`deed_pdfs` is keyed by `deed_id`, one row per deed, so a re-store
+overwrites the prior bytes **and the prior hash** in place. Nothing
+records that a previous artifact existed. The draft path is properly
+guarded — a resume against a completed deed returns 409
+(`routers/deeds_crud.py:184-193`) — so this is not reachable through
+the ordinary builder today. It is a *latent* violation: the guard lives
+one layer above the destructive statement, and any future path that
+reaches the store directly inherits the overwrite.
+
+This matters more than an ordinary data bug because the hash is the
+verification substrate. Doctrine §3 removed QR codes from recorded pages
+on the reasoning that "verification survives as data" — that data is
+`deed_pdfs.sha256`. A silent overwrite invalidates every prior
+verification of that document without leaving a trace that anything
+changed.
+
+**Ruling.** Two parts, deliberately separated by size:
+
+1. **Insert-or-refuse (minimal, ADMIN1).** A store against an existing
+   row whose hash differs is a **loud refusal**, surfaced to the
+   operator — never an overwrite. Re-storing identical bytes is a
+   no-op. This closes the destructive path without designing anything.
+2. **Supersession (its own designed ticket).** A corrected deed is a
+   NEW record that supersedes the old one, with both retained and the
+   relationship recorded — the pattern `document_authenticity` already
+   models with `status='superseded'` + `superseded_by`
+   (`database.py:296-298`) and which `deeds` has no equivalent of.
+   Designing that is not cleanup, and it is ledgered as such.
+
+**Consequence for the admin console.** No admin deed-edit capability
+ships until the supersession model exists. An "edit" affordance over a
+last-write-wins store is how an operator destroys an instrument while
+believing they corrected one.
+
+---
+
 ## Change log
 
 | Date | Change |
 |---|---|
+| 2026-08-03 | §9 added — stored instruments are never overwritten. ADMIN0 found `deed_pdfs` stored via `ON CONFLICT DO UPDATE SET pdf_data`, replacing prior bytes AND their sha256 in place; the draft-resume 409 guard sits a layer above it, making this latent rather than live. Ruled in two parts: insert-or-refuse in ADMIN1 (differing hash = loud refusal, identical = no-op), full supersession as its own designed ticket. No admin deed-edit until supersession exists. |
 | 2026-08-03 | §8 added — API doctrine boundary ruled: v1 = deed family only; affidavit/declaration families held pending per-family passes (execution-act instruments require human flows by design). A1 also recorded three never-run defects in the mounted `/api/v1` (tuple-read auth, unassigned `full_address`, metering aborting the deed transaction) — all three survived because the only tests bypassed the HTTP and database layers, the test-vs-production asymmetry lesson under invariant #4. |
 | 2026-07-28 | Initial sweep: partner-API chassis fix, AI-chat proxy honesty fix, proxy source-scan test, partner-render tests. Draft pending owner decisions on §7. |
 | 2026-07-28 | Owner rulings executed: /api/generate-deed excised (snapshot re-recorded), /api/ai/chat logged-in-only + guard test + no-key 503, recitals ruling recorded. Report finalized. |
