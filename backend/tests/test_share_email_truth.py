@@ -15,7 +15,7 @@ identical to "not configured," which is exactly what S1's first verdict
 """
 from unittest.mock import MagicMock, patch
 
-from utils.email import send_email, send_email_with_reason
+from utils.email import send_email_with_reason
 
 
 def test_env_contract_names_are_pinned(monkeypatch):
@@ -81,9 +81,6 @@ def test_success_returns_true_none(monkeypatch):
     with patch('sendgrid.SendGridAPIClient', fake_client):
         ok, reason = send_email_with_reason('to@test.dev', 's', '<p>b</p>')
     assert ok is True and reason is None
-    # back-compat wrapper agrees
-    with patch('sendgrid.SendGridAPIClient', fake_client):
-        assert send_email('to@test.dev', 's', '<p>b</p>') is True
 
 
 def test_share_endpoint_carries_the_reason():

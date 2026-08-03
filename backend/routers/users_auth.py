@@ -104,26 +104,41 @@ async def register_user(user: UserRegister = Body(...)):
                 new_user_id = result[0]
             conn.commit()
 
-        # Phase 7: Send admin notification for new user registration
+        # E1: admin signup notice — this import failed silently on every
+        # registration since Phase 7 (the function never existed). It exists
+        # now; owner-ruled minimal content (registrant email + timestamp).
         try:
             from utils.notifications import notify_new_user_registration
 
             admin_email = os.getenv('ADMIN_EMAIL', 'admin@deedpro.com')
 
-            notification_sent = notify_new_user_registration(
+            admin_ok, admin_reason = notify_new_user_registration(
                 admin_email=admin_email,
                 user_email=user.email.lower(),
                 user_name=user.full_name,
                 user_id=new_user_id or 0
             )
 
-            if notification_sent:
+            if admin_ok:
                 print(f"[Phase 7] ✅ Admin notification sent for new user: {user.email}")
             else:
-                print(f"[Phase 7] ⚠️ Failed to send admin notification for new user")
+                print(f"[Phase 7] ⚠️ Admin notification not sent: {admin_reason}")
         except Exception as notif_error:
             # Don't fail registration if notification fails
             print(f"[Phase 7] ⚠️ Admin notification error (non-blocking): {notif_error}")
+
+        # E1: welcome email to the registrant (lifecycle gap — there was
+        # no first-touch email at all).
+        try:
+            from utils.notifications import send_welcome_with_reason
+
+            welcome_ok, welcome_reason = send_welcome_with_reason(
+                user.email.lower(), clean_profile_text(user.full_name) or ""
+            )
+            if not welcome_ok:
+                print(f"[E1] ⚠️ Welcome email not sent: {welcome_reason}")
+        except Exception as welcome_error:
+            print(f"[E1] ⚠️ Welcome email error (non-blocking): {welcome_error}")
 
         # F2: mint the session at registration so signup lands in the app
         # logged in. Claims are identical to /users/login's token (sub, email,

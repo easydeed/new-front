@@ -145,7 +145,10 @@ def share_deed_for_approval(share_data: ShareDeedCreate, user_id: int = Depends(
             recipient_name=share_data.recipient_name,
             owner_name=owner_name,
             deed_type=deed_type,
-            share_link=approval_url
+            share_link=approval_url,
+            # E1: the invite now says what/where/until-when, not a bare link.
+            property_address=property_address,
+            expires_at=expires_at.strftime('%B %d, %Y'),
         )
 
         if email_sent:
@@ -241,7 +244,7 @@ def resend_approval_email(shared_deed_id: int, user_id: int = Depends(get_curren
 
     try:
         from datetime import timezone
-        from utils.notifications import send_email
+        from utils.notifications import send_share_reminder_with_reason
 
         with db.conn.cursor() as cur:
             # Get the share details
@@ -296,41 +299,30 @@ def resend_approval_email(shared_deed_id: int, user_id: int = Depends(get_curren
             # Calculate hours remaining
             hours_remaining = max(0, int((expires_at - now).total_seconds() / 3600))
 
-            # Send reminder email
-            subject = f"Reminder: Deed Review Pending - {property_address}"
-            html_content = f"""
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #1a1a1a;">Review Reminder</h2>
-                <p>This is a reminder that <strong>{owner_name}</strong> is waiting for your review of a deed:</p>
-
-                <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                    <p style="margin: 5px 0;"><strong>Deed Type:</strong> {deed_type}</p>
-                    <p style="margin: 5px 0;"><strong>Property:</strong> {property_address}</p>
-                    <p style="margin: 5px 0; color: #e53e3e;"><strong>Expires in:</strong> {hours_remaining} hours</p>
-                </div>
-
-                <a href="{approval_url}"
-                   style="display: inline-block; background: #7C4DFF; color: white; padding: 12px 24px;
-                          text-decoration: none; border-radius: 6px; font-weight: bold;">
-                    Review Deed Now
-                </a>
-
-                <p style="color: #666; font-size: 14px; margin-top: 30px;">
-                    If you did not expect this email, you can safely ignore it.
-                </p>
-            </div>
-            """
-
-            email_sent = send_email(recipient_email, subject, html_content)
+            # Send reminder email (E1: branded template via the one transport)
+            email_sent, email_error = send_share_reminder_with_reason(
+                recipient_email=recipient_email,
+                # deed_shares stores no recipient name; template greets generically.
+                recipient_name="",
+                owner_name=owner_name,
+                deed_type=deed_type,
+                property_address=property_address,
+                share_link=approval_url,
+                hours_remaining=hours_remaining
+            )
 
             db.conn.commit()
 
-            print(f"[Sharing] ✅ Reminder sent for share {share_id}, email_sent={email_sent}")
+            if email_sent:
+                print(f"[Sharing] ✅ Reminder sent for share {share_id}")
+            else:
+                print(f"[Sharing] ⚠️ Reminder email failed for share {share_id}: {email_error}")
 
             return {
                 "success": True,
-                "message": "Reminder sent",
+                "message": "Reminder sent" if email_sent else "Reminder recorded but email failed",
                 "email_sent": email_sent,
+                "email_error": email_error,
                 "expires_at": expires_at.isoformat()
             }
 
@@ -552,7 +544,8 @@ def submit_approval_response(approval_token: str, response: ApprovalResponse):
             # Get share details WITH property address and owner info
             cur.execute("""
                 SELECT ds.id, ds.status, ds.expires_at, ds.owner_user_id, ds.deed_id,
-                       ds.recipient_email, d.property_address, u.email as owner_email
+                       ds.recipient_email, d.property_address, u.email as owner_email,
+                       u.full_name as owner_name
                 FROM deed_shares ds
                 JOIN deeds d ON d.id = ds.deed_id
                 LEFT JOIN users u ON u.id = ds.owner_user_id
@@ -574,6 +567,7 @@ def submit_approval_response(approval_token: str, response: ApprovalResponse):
                 recipient_email = share.get('recipient_email')
                 property_address = share.get('property_address')
                 owner_email = share.get('owner_email')
+                owner_name = share.get('owner_name')
             else:
                 share_id = share[0]
                 current_status = share[1]
@@ -583,6 +577,8 @@ def submit_approval_response(approval_token: str, response: ApprovalResponse):
                 recipient_email = share[5]
                 property_address = share[6]
                 owner_email = share[7]
+                owner_name = share[8]
+            owner_name = owner_name or "there"
 
             # Check if expired
             now = datetime.now(timezone.utc)
@@ -611,44 +607,45 @@ def submit_approval_response(approval_token: str, response: ApprovalResponse):
 
                 print(f"[Sharing] ✅ Deed approved: share_id={share_id}")
 
-                # Send approval notification to owner
+                # E1: the in-app record comes FIRST — an approval must be
+                # unlosable regardless of email transport. Before this, the
+                # approval existed only as an email; a transport failure
+                # erased the event from the owner's world entirely.
                 try:
-                    from utils.notifications import send_email
+                    from utils.notifications import create_notification
+
+                    notification_id = create_notification(
+                        db.conn,
+                        user_id=owner_id,
+                        ntype="share_approved",
+                        title="Deed approved",
+                        message=f"{recipient_email or 'A reviewer'} approved {property_address or 'your deed'}",
+                        link=f"/shared-deeds?focus={share_id}"
+                    )
+                    print(f"[Sharing] ✅ Approval notification created: ID {notification_id}")
+                except Exception as notif_error:
+                    db.conn.rollback()
+                    print(f"[Sharing] ⚠️ Approval notification error (non-blocking): {notif_error}")
+
+                # Then the email (E1: branded template, reason surfaced)
+                try:
+                    from utils.notifications import send_share_approved_with_reason
 
                     if owner_email:
                         app_url = os.getenv('FRONTEND_URL', 'https://deedpro-frontend-new.vercel.app')
-                        view_link = f"{app_url}/past-deeds"
-
-                        subject = f"✓ Deed Approved - {property_address}"
-                        html_content = f"""
-                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                            <div style="background: #10B981; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
-                                <h2 style="margin: 0;">✓ Deed Approved</h2>
-                            </div>
-
-                            <div style="padding: 20px; background: #f9fafb; border-radius: 0 0 8px 8px;">
-                                <p>Great news! Your deed has been approved:</p>
-
-                                <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                                    <p style="margin: 5px 0;"><strong>Deed Type:</strong> {deed_type}</p>
-                                    <p style="margin: 5px 0;"><strong>Property:</strong> {property_address}</p>
-                                    <p style="margin: 5px 0;"><strong>Approved by:</strong> {recipient_email}</p>
-                                </div>
-
-                                <p>The deed is ready for recording.</p>
-
-                                <a href="{view_link}"
-                                   style="display: inline-block; background: #7C4DFF; color: white; padding: 12px 24px;
-                                          text-decoration: none; border-radius: 6px; font-weight: bold;">
-                                    View Deed
-                                </a>
-                            </div>
-                        </div>
-                        """
-
-                        email_sent = send_email(owner_email, subject, html_content)
+                        email_sent, email_error = send_share_approved_with_reason(
+                            owner_email=owner_email,
+                            owner_name=owner_name,
+                            deed_type=deed_type,
+                            property_address=property_address,
+                            reviewer_email=recipient_email,
+                            comments=(response.comments or "").strip() or None,
+                            view_link=f"{app_url}/shared-deeds?focus={share_id}"
+                        )
                         if email_sent:
                             print(f"[Sharing] ✅ Approval email sent to {owner_email}")
+                        else:
+                            print(f"[Sharing] ⚠️ Approval email not sent: {email_error}")
                 except Exception as email_err:
                     print(f"[Sharing] ⚠️ Approval email error (non-blocking): {email_err}")
 
@@ -675,25 +672,27 @@ def submit_approval_response(approval_token: str, response: ApprovalResponse):
 
             print(f"[REJECTION BUNDLE] ✅ Feedback saved: share_id={share_id}, length={len(comments)}")
 
-            # 2. Send email notification to owner
+            # 2. Send email notification to owner (E1: branded template,
+            # reason surfaced instead of a swallowed boolean)
             try:
-                from utils.notifications import send_email, render_rejection_email
+                from utils.notifications import send_share_rejected_with_reason
 
                 if owner_email:
                     link = f"{os.getenv('FRONTEND_URL', 'https://deedpro-frontend-new.vercel.app')}/shared-deeds?focus={share_id}"
-                    subject = "🔄 Deed Changes Requested - DeedPro"
-                    html = render_rejection_email(
-                        property_address or "your property",
-                        recipient_email or "Reviewer",
-                        comments,
-                        link
+                    email_sent, email_error = send_share_rejected_with_reason(
+                        owner_email=owner_email,
+                        owner_name=owner_name,
+                        deed_type=deed_type,
+                        property_address=property_address,
+                        reviewer_email=recipient_email or "Reviewer",
+                        comments=comments,
+                        view_link=link
                     )
-                    email_sent = send_email(owner_email, subject, html)
 
                     if email_sent:
                         print(f"[REJECTION BUNDLE] ✅ Email sent to owner: {owner_email}")
                     else:
-                        print(f"[REJECTION BUNDLE] ⚠️ Email send failed (non-blocking)")
+                        print(f"[REJECTION BUNDLE] ⚠️ Email not sent: {email_error}")
             except Exception as email_error:
                 # Don't fail the request if email fails
                 print(f"[REJECTION BUNDLE] ⚠️ Email error (non-blocking): {email_error}")

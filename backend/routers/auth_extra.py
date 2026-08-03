@@ -12,12 +12,22 @@ try:
     # Project-local utilities
     from database import get_db_connection
     from auth import create_access_token, get_password_hash, AuthUtils, ALGORITHM, SECRET_KEY
-    from utils.email import send_email, email_configured  # Phase 7.5: Relative import first
+    from utils.email import email_configured  # Phase 7.5: Relative import first
+    from utils.notifications import (
+        send_password_reset_with_reason,
+        send_verify_email_with_reason,
+        send_password_changed_with_reason,
+    )
 except Exception as e:
     # Fallback names if modules are under different paths; adjust as needed in your repo
     from backend.database import get_db_connection  # type: ignore
     from backend.auth import create_access_token, get_password_hash, AuthUtils, ALGORITHM, SECRET_KEY  # type: ignore
-    from backend.utils.email import send_email, email_configured  # Phase 7.5: Absolute fallback
+    from backend.utils.email import email_configured  # Phase 7.5: Absolute fallback
+    from backend.utils.notifications import (  # type: ignore
+        send_password_reset_with_reason,
+        send_verify_email_with_reason,
+        send_password_changed_with_reason,
+    )
 
 router = APIRouter()
 
@@ -73,16 +83,14 @@ def forgot_password(payload: ForgotPasswordRequest):
             expires_delta=timedelta(hours=RESET_TOKEN_TTL_HOURS)
         )
         reset_url = f"{FRONTEND_URL}/reset-password?token={reset_token}"
-        sent = send_email(
-            to=email,
-            subject="Reset your DeedPro password",
-            body=f"<p>Hi {full_name},</p><p>Click <a href='{reset_url}'>here</a> to reset your password. This link expires in {RESET_TOKEN_TTL_HOURS} hour(s).</p>"
+        sent, reason = send_password_reset_with_reason(
+            email, full_name, reset_url, RESET_TOKEN_TTL_HOURS
         )
         if not sent:
-            # Provider configured but the send failed: log loudly, keep the
-            # generic message (a distinct error here would leak that the
-            # account exists).
-            print(f"[forgot-password] send_email failed for an existing account")
+            # Provider configured but the send failed: log loudly WITH the
+            # reason, keep the generic message (a distinct error here would
+            # leak that the account exists).
+            print(f"[forgot-password] send failed for an existing account: {reason}")
         return {"message": "If the email exists, we sent a reset link."}
     except HTTPException:
         raise
@@ -110,8 +118,20 @@ def reset_password(payload: ResetPasswordRequest):
     try:
         conn = get_db_connection()
         with conn.cursor() as cur:
-            cur.execute("UPDATE users SET password_hash = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s", (hashed, user_id))
+            cur.execute("UPDATE users SET password_hash = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s RETURNING email, full_name", (hashed, user_id))
+            updated = cur.fetchone()
             conn.commit()
+        # E1: security notice on successful change (lifecycle gap — a
+        # credential change left no trace in the user's inbox). Best-effort:
+        # the reset itself already succeeded.
+        if updated:
+            u_email, u_name = updated[0], updated[1] or ""
+            try:
+                pc_sent, pc_reason = send_password_changed_with_reason(u_email, u_name)
+                if not pc_sent:
+                    print(f"[reset-password] changed-notice not sent: {pc_reason}")
+            except Exception as pc_err:
+                print(f"[reset-password] changed-notice error (non-blocking): {pc_err}")
         return {"message": "Password reset successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail="Failed to reset password")
@@ -134,11 +154,9 @@ def request_verify_email(payload: VerifyEmailRequest):
             expires_delta=timedelta(hours=VERIFY_TOKEN_TTL_HOURS)
         )
         verify_url = f"{FRONTEND_URL}/verify-email?token={token}"
-        send_email(
-            to=email,
-            subject="Verify your DeedPro email",
-            body=f"<p>Hi {full_name or 'there'},</p><p>Click <a href='{verify_url}'>here</a> to verify your email.</p>"
-        )
+        v_sent, v_reason = send_verify_email_with_reason(email, full_name or "", verify_url)
+        if not v_sent:
+            print(f"[verify-email] send failed: {v_reason}")
         return {"message": "If the email exists, we sent a verification link."}
     except Exception:
         raise HTTPException(status_code=500, detail="Failed to send verification email")

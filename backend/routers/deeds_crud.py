@@ -248,7 +248,9 @@ def create_deed_endpoint(deed: DeedCreate, user_id: int = Depends(get_current_us
                 # the helper gained property_address/preview_link — this
                 # call failed on EVERY generation until 2026-07-28.
                 frontend_url = os.getenv("FRONTEND_URL", "https://deedpro-frontend-new.vercel.app")
-                notification_sent = send_deed_completion_notification(
+                # E1: sender returns (ok, reason) — the reason is logged,
+                # never swallowed into a bare boolean.
+                email_ok, email_reason = send_deed_completion_notification(
                     user_email=user_email,
                     user_name=user_name,
                     deed_type=deed_type,
@@ -257,10 +259,10 @@ def create_deed_endpoint(deed: DeedCreate, user_id: int = Depends(get_current_us
                     preview_link=f"{frontend_url}/past-deeds?highlight={deed_id}",
                 )
 
-                if notification_sent:
+                if email_ok:
                     print(f"[Phase 7] ✅ Deed completion email sent to {user_email}")
                 else:
-                    print(f"[Phase 7] ⚠️ Failed to send deed completion email")
+                    print(f"[Phase 7] ⚠️ Completion email not sent: {email_reason}")
     except Exception as notif_error:
         # Don't fail the request if notification fails
         print(f"[Phase 7] ⚠️ Notification error (non-blocking): {notif_error}")

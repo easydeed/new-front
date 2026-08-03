@@ -6,7 +6,7 @@ def email_configured() -> bool:
     return bool(os.getenv('SENDGRID_API_KEY'))
 
 
-def send_email_with_reason(to: str, subject: str, body: str):
+def send_email_with_reason(to: str, subject: str, body: str, text: Optional[str] = None):
     """Send email via SendGrid. Returns (ok, reason) — reason is None on
     success and a human-actionable string on failure.
 
@@ -37,7 +37,10 @@ def send_email_with_reason(to: str, subject: str, body: str):
     try:
         from sendgrid import SendGridAPIClient
         from sendgrid.helpers.mail import Mail
-        msg = Mail(from_email=from_email, to_emails=to, subject=subject, html_content=body)
+        # E1: every send carries a plain-text alternative part when the
+        # template provides one (deliverability — multipart/alternative).
+        msg = Mail(from_email=from_email, to_emails=to, subject=subject,
+                   html_content=body, plain_text_content=text)
         sg = SendGridAPIClient(api_key)
         resp = sg.send(msg)
         if 200 <= resp.status_code < 300:
@@ -53,15 +56,3 @@ def send_email_with_reason(to: str, subject: str, body: str):
         reason += ", DEFAULT sender — set SENDGRID_FROM_EMAIL)" if from_defaulted else ")"
         print(f"[email:error] {reason}")
         return False, reason
-
-
-def send_email(to: str, subject: str, body: str) -> bool:
-    """Back-compat boolean wrapper over send_email_with_reason.
-
-    Invariant #4 (doctrine sweep): returning True while only printing to the
-    console is a fabricated success — it let /users/forgot-password tell
-    users "reset link sent" with no email infrastructure configured at all.
-    Callers that treat email as optional already handle False.
-    """
-    ok, _ = send_email_with_reason(to, subject, body)
-    return ok
