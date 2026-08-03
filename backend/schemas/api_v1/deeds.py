@@ -7,12 +7,12 @@ from datetime import datetime
 from enum import Enum
 
 
-class DeedType(str, Enum):
-    GRANT_DEED = "grant_deed"
-    QUITCLAIM_DEED = "quitclaim_deed"
-    INTERSPOUSAL_TRANSFER = "interspousal_transfer"
-    WARRANTY_DEED = "warranty_deed"
-    TAX_DEED = "tax_deed"
+from services.api_catalog import API_DEED_TYPES, rules_for
+
+# A2: derived from the FORMS registry (via services/form_families), deed
+# family only per the Flag-4 doctrine ruling. The old hardcoded five-value
+# list silently omitted four deed-family instruments the chassis renders.
+DeedType = Enum("DeedType", {t.upper(): t for t in API_DEED_TYPES}, type=str)
 
 
 class TaxBasis(str, Enum):
@@ -45,14 +45,33 @@ class PropertyModel(BaseModel):
         return v.upper()
 
 
+class EntityModel(BaseModel):
+    """Recitals an entity grantor's deed prints about itself. Required for
+    the entity deed types (see api_catalog.TYPE_REQUIREMENTS) — the deed
+    recites them mid-sentence, so an absent value prints a blank line
+    inside a granting clause."""
+    entity_state: Optional[str] = Field(
+        None, description="State under whose laws the entity is organized (e.g. 'California')")
+    partnership_type: Optional[str] = Field(
+        None, description="Partnership type recited on the deed (e.g. 'general partnership')")
+
+
 class GrantorModel(BaseModel):
     name: str = Field(..., description="Grantor name(s), uppercase recommended")
     address: Optional[AddressModel] = None
+    entity: Optional[EntityModel] = Field(
+        None, description="Required for entity deed types (grant_deed_corp, grant_deed_partnership)")
 
 
 class GranteeModel(BaseModel):
     name: str = Field(..., description="Grantee name(s), uppercase recommended")
-    vesting: str = Field(..., description="Vesting clause (e.g., 'a married couple as joint tenants')")
+    # A2: optional at the schema level because two instruments FIX their
+    # own vesting and refuse a supplied value; per-type enforcement lives
+    # in CreateDeedRequest.check_type_rules so the message can say why.
+    vesting: Optional[str] = Field(
+        None, description="Vesting clause (e.g., 'a married couple as joint tenants'). "
+                          "Required for most deed types; refused for the fixed-vesting "
+                          "instruments, whose title is itself the vesting decision.")
 
 
 class TransferTaxModel(BaseModel):
@@ -94,7 +113,52 @@ class CreateDeedRequest(BaseModel):
     transfer_tax: TransferTaxModel
     recording: RecordingModel
     options: Optional[DeedOptionsModel] = DeedOptionsModel()
-    
+
+    @validator("recording")
+    def check_type_rules(cls, v, values):
+        """A2 — per-instrument facts and refusals, matching what the
+        wizard's backend enforces for the same instruments. Runs on the
+        last field so the earlier ones are present in `values`.
+
+        Two refusals matter doctrinally:
+        - A fixed-vesting instrument (joint tenancy, CP with right of
+          survivorship) states its vesting on its face and its template
+          never reads a supplied value. Accepting one and dropping it
+          would silently discard a caller's legal input, so we refuse it
+          and say which instrument decided.
+        - An entity deed recites the entity's organizing state mid
+          granting-clause. Missing, it prints a blank line inside the
+          recital — a defective instrument, not a partial one.
+        """
+        deed_type = values.get("deed_type")
+        grantee = values.get("grantee")
+        grantor = values.get("grantor")
+        if deed_type is None:
+            return v
+        rules = rules_for(deed_type.value if hasattr(deed_type, "value") else str(deed_type))
+        supplied_vesting = (getattr(grantee, "vesting", None) or "").strip() if grantee else ""
+
+        if rules.fixed_vesting and supplied_vesting:
+            raise ValueError(
+                f"This instrument fixes its own vesting — {rules.note} "
+                "Remove grantee.vesting, or choose a deed type whose vesting you set."
+            )
+        if rules.requires_vesting and not supplied_vesting:
+            raise ValueError("grantee.vesting is required for this deed type")
+
+        if rules.required_entity_facts:
+            entity = getattr(grantor, "entity", None)
+            missing = [f for f in rules.required_entity_facts
+                       if not (getattr(entity, f, None) or "").strip()]
+            if missing:
+                raise ValueError(
+                    "This instrument recites facts about the grantor entity that are "
+                    f"missing: {', '.join('grantor.entity.' + f for f in missing)}. "
+                    + rules.note
+                )
+        return v
+
+
     class Config:
         json_schema_extra = {
             "example": {
