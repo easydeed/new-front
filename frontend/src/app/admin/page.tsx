@@ -7,6 +7,7 @@ import DeedsTab from './components/DeedsTab';
 import VerificationTab from './components/VerificationTab';
 import RevenueTab from './components/RevenueTab';
 import SystemTab from './components/SystemTab';
+import ApiTab from './components/ApiTab';
 import { FEATURE_FLAGS } from '@/config/featureFlags';
 import './styles/tokens.css';
 import './styles/admin-honest.css';
@@ -38,10 +39,17 @@ const TABS: Record<string, { title: string; description: string; component: () =
     description: 'Stripe revenue analytics',
     component: () => <RevenueTab/> 
   },
-  system: { 
-    title: 'System', 
+  system: {
+    title: 'System',
     description: 'Health and PDF statistics',
-    component: () => <SystemTab/> 
+    component: () => <SystemTab/>
+  },
+  // A3: partner API administration. The backend key CRUD existed since
+  // the public-API work with no frontend calling it.
+  api: {
+    title: 'API',
+    description: 'Partner API keys, usage, and access inquiries',
+    component: () => <ApiTab/>
   },
 };
 
