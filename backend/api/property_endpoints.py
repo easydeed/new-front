@@ -8,7 +8,7 @@ from typing import Dict, Optional
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from pydantic import BaseModel, Field
 import psycopg2
-from psycopg2.extras import RealDictCursor
+from db_rows import ROW_FACTORY
 
 from auth import get_current_user_id
 
@@ -49,12 +49,11 @@ class PropertyValidationResponse(BaseModel):
 # Initialize router
 router = APIRouter(prefix="/api/property", tags=["Property Integration"])
 
-# Database connection helper
-def get_db_connection():
-    """Get database connection for property caching"""
-    import os
-    db_url = os.getenv("DATABASE_URL") or os.getenv("DB_URL")
-    return psycopg2.connect(db_url, cursor_factory=RealDictCursor)
+# Database connection: the ONE helper (db_rows.py explains why there is
+# only one). This module used to define a third private get_db_connection
+# with its own row factory — the same ambiguity that 401'd every partner
+# API key for months, one copy further from where anyone would look.
+from database import get_db_connection
 
 
 # Service instances

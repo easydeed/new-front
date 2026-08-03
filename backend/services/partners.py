@@ -5,7 +5,6 @@ CRUD operations for Industry Partners (org-scoped)
 
 from typing import List, Dict, Optional
 from database import get_db_connection
-from psycopg2.extras import RealDictCursor
 
 
 def list_partners(organization_id: str, active_only: bool = True) -> List[Dict]:
@@ -15,7 +14,7 @@ def list_partners(organization_id: str, active_only: bool = True) -> List[Dict]:
         return []
     
     try:
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor = conn.cursor()
         
         query = """
             SELECT 
@@ -61,7 +60,7 @@ def create_partner(organization_id: str, user_id: int, data: Dict) -> Optional[D
         return None
     
     try:
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor = conn.cursor()
         
         cursor.execute("""
             INSERT INTO partners (
@@ -125,7 +124,7 @@ def get_partner(partner_id: str, organization_id: str = None) -> Optional[Dict]:
         return None
     
     try:
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor = conn.cursor()
         
         query = """
             SELECT 
@@ -168,7 +167,7 @@ def update_partner(partner_id: str, organization_id: str, data: Dict) -> Optiona
         return None
     
     try:
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor = conn.cursor()
         
         # Build dynamic update query
         update_fields = []
@@ -288,7 +287,7 @@ def list_all_partners(active_only: bool = False) -> List[Dict]:
         return []
     
     try:
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor = conn.cursor()
         
         query = """
             SELECT 

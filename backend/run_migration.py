@@ -25,14 +25,12 @@ from pathlib import Path
 
 try:
     import psycopg2
-    from psycopg2.extras import RealDictCursor
-except ImportError:
+    except ImportError:
     print("[!] psycopg2 not installed. Installing...")
     import subprocess
     subprocess.check_call([sys.executable, "-m", "pip", "install", "psycopg2-binary"])
     import psycopg2
-    from psycopg2.extras import RealDictCursor
-
+    
 
 # Default database URL (can be overridden by environment variable)
 DEFAULT_DATABASE_URL = "postgresql://deedpro_user:4MkRMdYMHnnoUwvD03rI3kVfjMLwV6j3@dpg-d208q5umcj7s73as68g0-a.ohio-postgres.render.com/deedpro"
@@ -91,7 +89,7 @@ def get_file_checksum(filepath):
 
 def get_applied_migrations(conn):
     """Get list of already applied migrations."""
-    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+    with conn.cursor() as cur:
         cur.execute("SELECT filename, checksum, applied_at, success FROM _migrations ORDER BY applied_at")
         return {row['filename']: row for row in cur.fetchall()}
 

@@ -12,12 +12,14 @@ import psycopg2
 from dotenv import load_dotenv
 from fastapi import HTTPException
 
+from db_rows import ROW_FACTORY
+
 load_dotenv()
 
 # Database connection with auto-reconnect support
 DB_URL = os.getenv("DATABASE_URL") or os.getenv("DB_URL")
 if DB_URL:
-    conn = psycopg2.connect(DB_URL, connect_timeout=10)
+    conn = psycopg2.connect(DB_URL, cursor_factory=ROW_FACTORY, connect_timeout=10)
 else:
     conn = None
     print("Warning: No database connection URL found")
@@ -60,7 +62,7 @@ def get_db_connection():
         global conn
         print(f"⚠️ Database connection lost ({reason}), reconnecting...")
         try:
-            conn = psycopg2.connect(DB_URL, connect_timeout=10)
+            conn = psycopg2.connect(DB_URL, cursor_factory=ROW_FACTORY, connect_timeout=10)
             print("✅ Database reconnected successfully")
         except Exception as reconnect_error:
             print(f"❌ Failed to reconnect to database: {reconnect_error}")
@@ -69,7 +71,7 @@ def get_db_connection():
     try:
         if conn is None or conn.closed:
             print("⚠️ Database connection closed, reconnecting...")
-            conn = psycopg2.connect(DB_URL, connect_timeout=10)
+            conn = psycopg2.connect(DB_URL, cursor_factory=ROW_FACTORY, connect_timeout=10)
             print("✅ Database reconnected successfully")
         else:
             # Liveness probe. ANY psycopg2 error here means the shared
