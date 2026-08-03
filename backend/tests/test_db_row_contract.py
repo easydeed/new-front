@@ -76,13 +76,20 @@ def test_no_third_connection_helper():
 
 
 def test_rows_answer_to_both_access_styles():
-    """The contract itself: DictCursor rows support index AND key access,
-    so neither reading style can be 'the wrong one'. RealDictCursor rows
-    raise KeyError on row[0]; plain tuples raise TypeError on row['x'].
-    Either exclusive choice recreates the bug class."""
-    from db_rows import ROW_FACTORY
-    from psycopg2.extras import DictCursor
-    assert ROW_FACTORY is DictCursor
+    """The contract itself: rows support index AND key access, so neither
+    reading style can be 'the wrong one'. RealDictCursor rows raise
+    KeyError on row[0]; plain tuples raise TypeError on row['x']. Either
+    exclusive choice recreates the bug class.
+
+    ADMIN1.5: this asserted `ROW_FACTORY is DictCursor` — pinning the
+    IMPLEMENTATION rather than the property. DictCursor satisfied both
+    access styles and silently failed a third requirement nobody had
+    written down: serialising as a JSON object. The row type is
+    HybridRow now, and the assertions below describe what is required of
+    it rather than which class provides it."""
+    from db_rows import ROW_FACTORY, HybridRow
+    assert issubclass(HybridRow, dict)
+    assert hasattr(ROW_FACTORY, "__mro__")
 
 
 @pytest.mark.skipif(not os.getenv("DATABASE_URL"), reason="live test DB required")
@@ -122,15 +129,42 @@ def test_the_notifications_router_can_now_read_its_own_rows():
         assert row["title"] is not None
 
 
+def test_row_type_serialises_as_a_json_object():
+    """The guarantee this pin SHOULD have made in #107.
+
+    That PR chose DictCursor for its dual access styles and noted, as a
+    caveat, that DictRow is a list subclass and so would serialise as a
+    JSON array. It then pinned the caveat by grepping for
+    `return cur.fetchall()` written literally — which the real call
+    sites do not do. They assign first:
+
+        rows = cur.fetchall()
+        return {"items": rows}
+
+    So the admin console's user and deed lists shipped serialising as
+    arrays, every by-name read came back undefined, and the drill-downs
+    requested `/admin/users/undefined/real`. The lesson is that a
+    grep-for-a-shape pin guards the shape, not the property; this asserts
+    the PROPERTY, which no call-site spelling can route around.
+    """
+    from db_rows import ROW_FACTORY, HybridRow
+    assert issubclass(HybridRow, dict), (
+        "rows must be a dict subclass or FastAPI emits arrays and every "
+        "consumer reading by name gets undefined"
+    )
+    assert ROW_FACTORY.__name__ == "HybridCursor"
+
+
 def test_rows_are_never_returned_raw_from_an_endpoint():
-    """The one caveat of DictRow: it is a list subclass, so returning one
-    straight out of a handler would serialize as a JSON array instead of
-    an object. Call sites build their responses explicitly; keep it so."""
+    """Belt to the braces above: even with a dict-subclass row type,
+    handing raw rows to the client leaks column layout into the API
+    contract. Kept, and widened to catch the assign-then-return form
+    that the original pattern list missed."""
     offenders = []
     for path in (BACKEND / "routers").rglob("*.py"):
         src = path.read_text(encoding="utf-8", errors="ignore")
-        for pattern in [r"return\s+cur\.fetchone\(\)", r"return\s+cursor\.fetchone\(\)",
-                        r"return\s+cur\.fetchall\(\)", r"return\s+cursor\.fetchall\(\)"]:
+        for pattern in [r"return\s+cur(?:sor)?\.fetch(?:one|all)\(\)",
+                        r"return\s+\[?\s*dict\(r\)\s+for", ]:
             if re.search(pattern, src):
                 offenders.append(str(path.relative_to(BACKEND)))
     assert offenders == [], f"raw row returned to the client in: {offenders}"

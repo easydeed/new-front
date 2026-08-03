@@ -220,7 +220,7 @@ export const AdminApi = {
   searchUsers: (page = 1, limit = 25, search = '') =>
     http<Paged<UserRow>>(`/admin/users/search?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`),
   
-  getUser: (id: number) => http<UserDetail>(`/admin/users/${id}/real`),
+  getUser: (id: number) => http<UserDetail>(`/admin/users/${id}`),
 
   // Deeds Management — /admin/deeds/search is the real endpoint: honest
   // statuses (draft/completed/deleted) and a working status + user filter.

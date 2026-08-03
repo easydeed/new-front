@@ -97,7 +97,29 @@ audit-log shape, supersession + VERIFY1 parked)._
 
 ## Approved wave — ADMIN (ADMIN0 audit, 2026-08-03)
 
-Order approved: **ADMIN1 → 2 → 3 → 4 → 5 → 6.**
+Order **re-approved 2026-08-03** after the browser audit:
+**ADMIN1 ✅ → BILL1 ✅ → ADMIN1.5 (+ADMIN-BRAND) → ADMIN3 → ADMIN2 →
+ADMIN4 → ADMIN5 → ADMIN6.**
+
+ADMIN3 was **promoted above ADMIN2**: it answers the 3 AM question, and
+ADMIN2's queue surface depends on knowing what failed. ADMIN5 needs a
+real API key minted before per-key usage is testable — owner action when
+we reach it.
+
+- **ADMIN1.5 — serializer contract.** Fired after a browser audit found
+  the Users and Deeds tabs blank and their drill-downs requesting
+  `/admin/users/undefined/real` → 422. Root cause was a regression from
+  PR #107, not a fossil: that PR moved every connection to psycopg2's
+  `DictCursor` for its dual access styles, and a `DictRow` is a LIST
+  subclass, so rows serialised as JSON arrays and every by-name read
+  came back undefined. Fixed at the row type (`HybridRow` — dict
+  subclass AND index-addressable), with the field contract pinned
+  against real serialised output.
+- **ADMIN-BRAND** — the console adopts the BRAND2 tokens. Rides with or
+  immediately after ADMIN1.5. Not cosmetic: the current orange palette
+  predates the brand and collides with doctrine, since amber now means
+  unconfirmed external data. Decorative amber/violet dies; the doctrinal
+  colors appear in admin only with their meanings.
 
 - **ADMIN1 — truth pass + operator home.** Kills the fabricated System
   values (`pdf_engine` hardcoded `"up"`, `avg_time_ms` never assigned,

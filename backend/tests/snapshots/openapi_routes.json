@@ -93,19 +93,11 @@
  ],
  [
   "GET",
-  "/admin/users"
- ],
- [
-  "GET",
   "/admin/users/search"
  ],
  [
   "GET",
   "/admin/users/{user_id}"
- ],
- [
-  "GET",
-  "/admin/users/{user_id}/real"
  ],
  [
   "GET",

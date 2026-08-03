@@ -78,6 +78,15 @@ export default function DeedsTab(){
               </td></tr>
             ) : rows.length === 0 ? (
               <tr><td colSpan={6} style={{opacity:.75}}>No deeds</td></tr>
+            ) : rows[0] && rows[0].id === undefined ? (
+              // Hardening (see UsersTab): a broken row shape announces
+              // itself instead of rendering a table of blanks whose
+              // drill-down then requests /admin/deeds/undefined.
+              <tr><td colSpan={6} style={{color:'var(--dp-danger)'}}>
+                Deed rows arrived without an <code>id</code> field — the API
+                response shape does not match what this table reads. Not
+                rendering rows, because they would be blank.
+              </td></tr>
             ) : rows.map(d => (
               <tr key={d.id}>
                 <td>{d.id}</td>
