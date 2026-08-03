@@ -4,8 +4,8 @@
 (not only in chat) so the list survives context windows. No credential
 values ever appear in this file — item names and status only.
 
-_Last corrected: 2026-08-03 (owner board sync — four environment items
-closed; privileged-account audit executed)._
+_Last corrected: 2026-08-03 (ADMIN0 rulings recorded: wave order,
+audit-log shape, supersession + VERIFY1 parked)._
 
 ## Open — owner's card
 
@@ -95,7 +95,68 @@ closed; privileged-account audit executed)._
   furniture; blank execution marks; parties-JSONB migration; declaration
   family; FORMS_TRIAGE correction note).
 
+## Approved wave — ADMIN (ADMIN0 audit, 2026-08-03)
+
+Order approved: **ADMIN1 → 2 → 3 → 4 → 5 → 6.**
+
+- **ADMIN1 — truth pass + operator home.** Kills the fabricated System
+  values (`pdf_engine` hardcoded `"up"`, `avg_time_ms` never assigned,
+  `weasyprint_count` asserted equal to a deed count) — each gets a real
+  probe or an honest absence, and the System tab fails loudly instead of
+  rendering zeros that read as measurements. Also: the Revenue
+  silent-zero dies (a missing table must not render as `$0`); the
+  Overview QR silent-zero dies; the 7-day activity feed that
+  `/admin/dashboard` already computes and discards gets rendered; and
+  the §9 insert-or-refuse fix is absorbed here. **H1 adoption rides
+  along:** the billing tables and `partners` are outside
+  `create_tables()` and adopt into it — adopt-vs-create branch decided
+  by the owner's production table check. **GATED on that paste.**
+- **ADMIN2 — share lifecycle console.** The largest visibility hole:
+  `deed_shares` records sent → viewed → approved/rejected/revoked/
+  expired plus rejection feedback, and no admin surface reads any of it.
+- **ADMIN3 — email outcome persistence.** Generalize the one working
+  pattern (`api_key_requests.notify_error`) to the other ten templates;
+  10 of 11 send outcomes are currently printed and discarded.
+- **ADMIN4 — admin audit log.** UNBLOCKED by the ruling below.
+- **ADMIN5 — orphan wiring.** ~18 admin endpoints have no caller; the
+  cheap wins are per-key error rates, deed PDF open, a partners tab,
+  payments detail, and API-key reactivation (deactivation is currently
+  one-way in the UI only).
+- **ADMIN6 — trends.** **Derives from existing tables** by ruling; no
+  rollup emission unless queries prove slow.
+
+### ADMIN4 audit-log ruling (owner, 2026-08-03) — build to this
+
+- **Scope:** privileged mutations only — not every read, not every write.
+- **Prior values:** captured. Role, status, and limit changes record the
+  old → new values **verbatim**; personal fields (email, name, phone)
+  are **masked** rather than stored in the clear.
+- **Retention:** indefinite.
+- **Surface:** admin-visible, **read-only, append-only, no delete path**,
+  and that absence is **pinned** by test — a log with a delete path is a
+  log that can be edited by whoever is being logged.
+- Note for the builder: nothing exists today. `get_current_admin`
+  already returns the actor's email and every handler discards it, so
+  actor threading is the first task, not the last.
+
 ## Parked tickets (scoped, not scheduled)
+
+- **Deed supersession model** (doctrine §9, 2026-08-03) — a corrected
+  deed is a NEW record superseding the old, both retained, relationship
+  recorded. `document_authenticity` already models this shape
+  (`status='superseded'` + `superseded_by`); `deeds` has no equivalent.
+  This is design work, not cleanup, and is explicitly NOT to be absorbed
+  into an admin ticket. **Blocks:** any admin deed-edit capability.
+- **VERIFY1 — wizard-deed public verification** (ADMIN0 finding, queued
+  AFTER the admin wave; roadmap, not admin). `create_document_authenticity`
+  (`routers/verification.py:227`) has zero callers — the only live writer
+  of `document_authenticity` is the partner-API lane
+  (`routers/api_v1/router.py:438`). So wizard deeds carry a stored
+  `deed_pdfs.sha256` but no verifiable short code, and the admin
+  Verification tab shows API-lane documents only. Whether public
+  verifiability was ever intended for wizard deeds is a product
+  question — doctrine §3 removed QR codes from recorded pages on the
+  reasoning that "verification survives as data."
 
 - **Connection-helper LIFECYCLE collapse** — parked 2026-08-03 by owner
   ruling; explicitly NOT to be absorbed into another ticket. PR #107
