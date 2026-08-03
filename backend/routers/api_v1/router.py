@@ -7,6 +7,7 @@ from typing import Optional
 from datetime import datetime
 import json
 import io
+import os
 import time
 
 from database import get_db_connection
@@ -94,54 +95,65 @@ async def get_api_key(
     
     try:
         cursor = conn.cursor()
-        
-        # Look up key by prefix
+
+        # Look up key by prefix. A1 fix: database.get_db_connection hands
+        # out RealDictCursor connections — rows are DICTS. The original
+        # code tuple-unpacked them, so key_hash became the literal string
+        # 'key_hash' and every valid key 401'd. This path had never run.
         cursor.execute("""
-            SELECT id, key_hash, name, organization_id, scopes, 
+            SELECT id, key_hash, name, organization_id, scopes,
                    rate_limit_hour, rate_limit_day, is_active, is_test
-            FROM api_keys 
+            FROM api_keys
             WHERE key_prefix = %s
         """, (key_prefix,))
-        
+
         row = cursor.fetchone()
         if not row:
             raise HTTPException(
                 status_code=401,
                 detail={"code": "UNAUTHORIZED", "message": "Invalid API key"}
             )
-        
-        api_key_id, key_hash, name, org_id, scopes, rate_hour, rate_day, is_active, is_test = row
-        api_key_id = str(api_key_id)  # Convert UUID to string for JSON serialization
-        
+
+        api_key_id = str(row['id'])  # UUID → string for JSON serialization
+        key_hash = row['key_hash']
+        name = row['name']
+        org_id = row['organization_id']
+        scopes = row['scopes']
+        rate_hour = row['rate_limit_hour'] or 100
+        rate_day = row['rate_limit_day'] or 1000
+        is_active = row['is_active']
+        is_test = row['is_test']
+
         # Validate hash
         if not validate_api_key(full_key, key_hash):
             raise HTTPException(
                 status_code=401,
                 detail={"code": "UNAUTHORIZED", "message": "Invalid API key"}
             )
-        
+
         if not is_active:
             raise HTTPException(
                 status_code=403,
                 detail={"code": "FORBIDDEN", "message": "API key is deactivated"}
             )
-        
+
         # Check rate limits
         now = datetime.utcnow()
         hour_key = now.strftime('%Y%m%d%H')
         day_key = now.strftime('%Y%m%d')
-        
-        # Get current counts
+
+        # Get current counts (dict rows here too — the original indexed
+        # positionally and crashed)
         cursor.execute("""
-            SELECT window_type, request_count 
-            FROM api_rate_limits 
+            SELECT window_type, request_count
+            FROM api_rate_limits
             WHERE api_key_id = %s AND (
                 (window_type = 'hour' AND window_key = %s) OR
                 (window_type = 'day' AND window_key = %s)
             )
         """, (api_key_id, hour_key, day_key))
-        
-        limits = {row[0]: row[1] for row in cursor.fetchall()}
+
+        limits = {r['window_type']: r['request_count'] for r in cursor.fetchall()}
         hour_count = limits.get('hour', 0)
         day_count = limits.get('day', 0)
         
@@ -211,6 +223,95 @@ def add_rate_limit_headers(response: Response, api_key: dict):
     response.headers["X-RateLimit-Remaining"] = str(api_key.get("rate_limit_remaining", 0))
 
 
+def _api_base_url() -> str:
+    return os.getenv("API_BASE_URL", "https://deedpro-main-api.onrender.com")
+
+
+def _verification_base_url() -> str:
+    return os.getenv("FRONTEND_URL", "https://deedpro-frontend-new.vercel.app")
+
+
+def _client_ip(request: Optional[Request]) -> Optional[str]:
+    """ip_address is INET — a non-address value (TestClient sends the
+    literal 'testclient') raises, and a raise inside the transaction
+    aborts it. Validate here; unparseable hosts meter as NULL."""
+    import ipaddress
+    host = request.client.host if request and request.client else None
+    if not host:
+        return None
+    try:
+        ipaddress.ip_address(host)
+        return host
+    except ValueError:
+        return None
+
+
+def _log_usage(cursor, api_key_id: str, endpoint: str, method: str,
+               status_code: int, started_at: float, request: Optional[Request]):
+    """Metering (Flag-3 ruling: free manual keys, but metering from day
+    one — pricing later prices from data, not guesses).
+
+    SAVEPOINT is load-bearing, not decoration. A bare try/except around a
+    failing INSERT leaves the transaction ABORTED in Postgres: the
+    subsequent commit() then discards everything silently — the deed row,
+    the authenticity record, all of it — while the caller still gets a
+    200 with a deed_id that does not exist. (Caught by the A1 harness;
+    same class as the poisoned-connection outage.) The savepoint confines
+    a metering failure to itself: the deed always survives its meter.
+    """
+    try:
+        cursor.execute("SAVEPOINT usage_log")
+        response_time_ms = int((time.time() - started_at) * 1000)
+        user_agent = (request.headers.get("user-agent", "") or "")[:500] if request else None
+        cursor.execute("""
+            INSERT INTO api_usage_log (api_key_id, endpoint, method, status_code, response_time_ms, ip_address, user_agent)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (api_key_id, endpoint, method, status_code, response_time_ms,
+              _client_ip(request), user_agent))
+        cursor.execute("RELEASE SAVEPOINT usage_log")
+    except Exception as log_err:
+        try:
+            cursor.execute("ROLLBACK TO SAVEPOINT usage_log")
+        except Exception:
+            pass
+        print(f"[api-v1] usage log failed (non-blocking): {log_err}")
+
+
+def _deed_response_payload(deed_id: str, document_id: str, deed_type: str,
+                           status: str, created_at, property_address: str,
+                           apn: Optional[str], county: Optional[str],
+                           grantor_name: Optional[str], grantee_name: Optional[str],
+                           transfer_tax_amount, transfer_tax_exempt) -> DeedResponse:
+    """One response shape for fresh creates and idempotent replays."""
+    return DeedResponse(
+        success=True,
+        data=DeedDataResponse(
+            deed_id=deed_id,
+            document_id=document_id,
+            deed_type=deed_type,
+            status=status,
+            created_at=created_at,
+            urls=DeedUrlsModel(
+                pdf=f"{_api_base_url()}/api/v1/deeds/{deed_id}/pdf",
+                verification=f"{_verification_base_url()}/verify/{document_id}"
+            ),
+            property=DeedPropertyResponse(
+                address=property_address,
+                apn=apn,
+                county=county
+            ),
+            parties=DeedPartiesResponse(
+                grantor=grantor_name.split(',')[0].strip() if grantor_name else None,
+                grantee=grantee_name.split(',')[0].strip() if grantee_name else None
+            ),
+            transfer_tax=DeedTransferTaxResponse(
+                amount=f"${transfer_tax_amount:.2f}" if transfer_tax_amount else None,
+                exempt=bool(transfer_tax_exempt)
+            )
+        )
+    )
+
+
 # ============================================================================
 # DEED ENDPOINTS
 # ============================================================================
@@ -219,25 +320,55 @@ def add_rate_limit_headers(response: Response, api_key: dict):
 async def create_deed(
     request: Request,
     deed_request: CreateDeedRequest,
-    api_key: dict = Depends(get_api_key)
+    api_key: dict = Depends(get_api_key),
+    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key",
+                                            description="Optional client-chosen key; retries with the same key return the original deed instead of generating a duplicate")
 ):
     """
     Generate a new deed document.
-    
+
     Returns the deed metadata including PDF download URL and verification URL.
     """
     start_time = time.time()
-    
+
     conn = get_db_connection()
     if not conn:
         raise HTTPException(status_code=500, detail={"code": "INTERNAL_ERROR", "message": "Database unavailable"})
-    
+
     try:
         cursor = conn.cursor()
-        
+
+        # A1: idempotent replay — platforms retry, and a retried create
+        # must not mint a second instrument. Same (key, Idempotency-Key)
+        # → the original deed's response, byte-for-byte shape.
+        if idempotency_key:
+            cursor.execute("""
+                SELECT deed_id, document_id, deed_type, status, created_at,
+                       property_address, property_apn, property_county,
+                       grantor_name, grantee_name,
+                       transfer_tax_amount, transfer_tax_exempt
+                FROM api_deeds
+                WHERE api_key_id = %s AND idempotency_key = %s
+            """, (api_key["id"], idempotency_key))
+            existing = cursor.fetchone()
+            if existing:
+                _log_usage(cursor, api_key["id"], "/api/v1/deeds", "POST", 200, start_time, request)
+                conn.commit()
+                return _deed_response_payload(
+                    existing['deed_id'], existing['document_id'], existing['deed_type'],
+                    existing['status'], existing['created_at'], existing['property_address'],
+                    existing['property_apn'], existing['property_county'],
+                    existing['grantor_name'], existing['grantee_name'],
+                    existing['transfer_tax_amount'], existing['transfer_tax_exempt'])
+
         # Generate unique IDs
         deed_id = generate_deed_id()
         document_id = generate_document_id()
+
+        # A1 fix: full_address was referenced three times below but never
+        # assigned — POST /api/v1/deeds NameError'd on every call, ever.
+        p = deed_request.property
+        full_address = f"{p.address}, {p.city}, {p.state} {p.zip}"
         
         # Build deed data for template
         deed_data = {
@@ -306,7 +437,7 @@ async def create_deed(
             deed_request.grantee.name[:50],
             content_hash
         ))
-        authenticity_id = cursor.fetchone()[0]
+        authenticity_id = cursor.fetchone()['id']
         
         # Store API deed record
         transfer_tax_amount = None
@@ -316,14 +447,15 @@ async def create_deed(
             except:
                 pass
         
+        created_at = datetime.utcnow()
         cursor.execute("""
             INSERT INTO api_deeds (
                 deed_id, document_id, api_key_id, deed_type, status,
                 property_address, property_city, property_county, property_apn,
                 grantor_name, grantee_name,
                 transfer_tax_amount, transfer_tax_exempt,
-                pdf_data, request_data, authenticity_id
-            ) VALUES (%s, %s, %s, %s, 'completed', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                pdf_data, request_data, authenticity_id, idempotency_key
+            ) VALUES (%s, %s, %s, %s, 'completed', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             deed_id,
             document_id,
@@ -339,52 +471,20 @@ async def create_deed(
             deed_request.transfer_tax.exempt,
             pdf_bytes,
             json.dumps(deed_request.dict(), default=str),
-            authenticity_id
+            authenticity_id,
+            idempotency_key
         ))
-        
-        # Log the request
-        response_time_ms = int((time.time() - start_time) * 1000)
-        client_ip = request.client.host if request.client else None
-        user_agent = request.headers.get("user-agent", "")
-        
-        cursor.execute("""
-            INSERT INTO api_usage_log (api_key_id, endpoint, method, status_code, response_time_ms, ip_address, user_agent)
-            VALUES (%s, '/api/v1/deeds', 'POST', 200, %s, %s, %s)
-        """, (api_key["id"], response_time_ms, client_ip, user_agent[:500] if user_agent else None))
-        
+
+        _log_usage(cursor, api_key["id"], "/api/v1/deeds", "POST", 200, start_time, request)
+
         conn.commit()
-        
-        # Build response
-        base_url = "https://deedpro-main-api.onrender.com"
-        verification_base = "https://deedpro-frontend-new.vercel.app"
-        
-        return DeedResponse(
-            success=True,
-            data=DeedDataResponse(
-                deed_id=deed_id,
-                document_id=document_id,
-                deed_type=deed_request.deed_type.value,
-                status="completed",
-                created_at=datetime.utcnow(),
-                urls=DeedUrlsModel(
-                    pdf=f"{base_url}/api/v1/deeds/{deed_id}/pdf",
-                    verification=f"{verification_base}/verify/{document_id}"
-                ),
-                property=DeedPropertyResponse(
-                    address=full_address,
-                    apn=deed_request.property.apn,
-                    county=deed_request.property.county
-                ),
-                parties=DeedPartiesResponse(
-                    grantor=deed_request.grantor.name.split(',')[0].strip(),
-                    grantee=deed_request.grantee.name.split(',')[0].strip()
-                ),
-                transfer_tax=DeedTransferTaxResponse(
-                    amount=f"${transfer_tax_amount:.2f}" if transfer_tax_amount else None,
-                    exempt=deed_request.transfer_tax.exempt
-                )
-            )
-        )
+
+        return _deed_response_payload(
+            deed_id, document_id, deed_request.deed_type.value, "completed",
+            created_at, full_address, deed_request.property.apn,
+            deed_request.property.county, deed_request.grantor.name,
+            deed_request.grantee.name, transfer_tax_amount,
+            deed_request.transfer_tax.exempt)
         
     except HTTPException:
         raise
@@ -403,17 +503,19 @@ async def create_deed(
 
 @router.get("/deeds/{deed_id}")
 async def get_deed(
+    request: Request,
     deed_id: str,
     api_key: dict = Depends(get_api_key)
 ):
     """Get deed metadata by deed_id."""
+    start_time = time.time()
     conn = get_db_connection()
     if not conn:
         raise HTTPException(status_code=500, detail={"code": "INTERNAL_ERROR", "message": "Database unavailable"})
-    
+
     try:
         cursor = conn.cursor()
-        
+
         cursor.execute("""
             SELECT deed_id, document_id, deed_type, status, created_at,
                    property_address, property_apn, property_county,
@@ -422,46 +524,41 @@ async def get_deed(
             FROM api_deeds
             WHERE deed_id = %s AND api_key_id = %s
         """, (deed_id, api_key["id"]))
-        
+
         row = cursor.fetchone()
         if not row:
             raise HTTPException(
                 status_code=404,
                 detail={"code": "NOT_FOUND", "message": "Deed not found"}
             )
-        
-        (deed_id, document_id, deed_type, status, created_at,
-         property_address, property_apn, property_county,
-         grantor_name, grantee_name,
-         transfer_tax_amount, transfer_tax_exempt) = row
-        
-        base_url = "https://deedpro-main-api.onrender.com"
-        verification_base = "https://deedpro-frontend-new.vercel.app"
-        
+
+        _log_usage(cursor, api_key["id"], "/api/v1/deeds/{deed_id}", "GET", 200, start_time, request)
+        conn.commit()
+
         return {
             "success": True,
             "data": {
-                "deed_id": deed_id,
-                "document_id": document_id,
-                "deed_type": deed_type,
-                "status": status,
-                "created_at": created_at.isoformat() if created_at else None,
+                "deed_id": row['deed_id'],
+                "document_id": row['document_id'],
+                "deed_type": row['deed_type'],
+                "status": row['status'],
+                "created_at": row['created_at'].isoformat() if row['created_at'] else None,
                 "urls": {
-                    "pdf": f"{base_url}/api/v1/deeds/{deed_id}/pdf",
-                    "verification": f"{verification_base}/verify/{document_id}"
+                    "pdf": f"{_api_base_url()}/api/v1/deeds/{row['deed_id']}/pdf",
+                    "verification": f"{_verification_base_url()}/verify/{row['document_id']}"
                 },
                 "property": {
-                    "address": property_address,
-                    "apn": property_apn,
-                    "county": property_county
+                    "address": row['property_address'],
+                    "apn": row['property_apn'],
+                    "county": row['property_county']
                 },
                 "parties": {
-                    "grantor": grantor_name.split(',')[0].strip() if grantor_name else None,
-                    "grantee": grantee_name.split(',')[0].strip() if grantee_name else None
+                    "grantor": row['grantor_name'].split(',')[0].strip() if row['grantor_name'] else None,
+                    "grantee": row['grantee_name'].split(',')[0].strip() if row['grantee_name'] else None
                 }
             }
         }
-        
+
     finally:
         cursor.close()
         conn.close()
@@ -469,32 +566,37 @@ async def get_deed(
 
 @router.get("/deeds/{deed_id}/pdf")
 async def download_deed_pdf(
+    request: Request,
     deed_id: str,
     api_key: dict = Depends(get_api_key)
 ):
     """Download the generated PDF document."""
+    start_time = time.time()
     conn = get_db_connection()
     if not conn:
         raise HTTPException(status_code=500, detail={"code": "INTERNAL_ERROR", "message": "Database unavailable"})
-    
+
     try:
         cursor = conn.cursor()
-        
+
         cursor.execute("""
             SELECT pdf_data, document_id
             FROM api_deeds
             WHERE deed_id = %s AND api_key_id = %s
         """, (deed_id, api_key["id"]))
-        
+
         row = cursor.fetchone()
         if not row:
             raise HTTPException(
                 status_code=404,
                 detail={"code": "NOT_FOUND", "message": "Deed not found"}
             )
-        
-        pdf_data, document_id = row
-        
+
+        pdf_data, document_id = row['pdf_data'], row['document_id']
+
+        _log_usage(cursor, api_key["id"], "/api/v1/deeds/{deed_id}/pdf", "GET", 200, start_time, request)
+        conn.commit()
+
         if not pdf_data:
             raise HTTPException(
                 status_code=404,
@@ -516,6 +618,7 @@ async def download_deed_pdf(
 
 @router.get("/deeds")
 async def list_deeds(
+    request: Request,
     page: int = 1,
     limit: int = 20,
     deed_type: Optional[str] = None,
@@ -525,6 +628,7 @@ async def list_deeds(
     api_key: dict = Depends(get_api_key)
 ):
     """List all deeds created by your API key."""
+    start_time = time.time()
     if limit > 100:
         limit = 100
     
@@ -556,11 +660,11 @@ async def list_deeds(
             params.append(to_date)
         
         where_sql = " AND ".join(where_clauses)
-        
+
         # Get total count
-        cursor.execute(f"SELECT COUNT(*) FROM api_deeds WHERE {where_sql}", params)
-        total = cursor.fetchone()[0]
-        
+        cursor.execute(f"SELECT COUNT(*) AS count FROM api_deeds WHERE {where_sql}", params)
+        total = cursor.fetchone()['count']
+
         # Get paginated results
         offset = (page - 1) * limit
         cursor.execute(f"""
@@ -570,20 +674,23 @@ async def list_deeds(
             ORDER BY created_at DESC
             LIMIT %s OFFSET %s
         """, params + [limit, offset])
-        
+
         deeds = []
         for row in cursor.fetchall():
             deeds.append({
-                "deed_id": row[0],
-                "document_id": row[1],
-                "deed_type": row[2],
-                "status": row[3],
-                "created_at": row[4].isoformat() if row[4] else None,
-                "property_address": row[5]
+                "deed_id": row['deed_id'],
+                "document_id": row['document_id'],
+                "deed_type": row['deed_type'],
+                "status": row['status'],
+                "created_at": row['created_at'].isoformat() if row['created_at'] else None,
+                "property_address": row['property_address']
             })
-        
+
         total_pages = (total + limit - 1) // limit
-        
+
+        _log_usage(cursor, api_key["id"], "/api/v1/deeds", "GET", 200, start_time, request)
+        conn.commit()
+
         return {
             "success": True,
             "data": {
@@ -693,7 +800,12 @@ async def verify_document(document_id: str):
         """, (document_id,))
         
         row = cursor.fetchone()
-        if not row:
+        if row:
+            (doc_id, deed_type, address, county, grantor, grantee, created_at, status) = (
+                row['short_code'], row['document_type'], row['property_address'],
+                row['county'], row['grantor_display'], row['grantee_display'],
+                row['generated_at'], row['status'])
+        else:
             # Also check api_deeds
             cursor.execute("""
                 SELECT document_id, deed_type, property_address, property_county,
@@ -702,11 +814,12 @@ async def verify_document(document_id: str):
                 WHERE document_id = %s
             """, (document_id,))
             row = cursor.fetchone()
-        
-        if not row:
-            return {"valid": False, "message": "Document not found"}
-        
-        (doc_id, deed_type, address, county, grantor, grantee, created_at, status) = row
+            if not row:
+                return {"valid": False, "message": "Document not found"}
+            (doc_id, deed_type, address, county, grantor, grantee, created_at, status) = (
+                row['document_id'], row['deed_type'], row['property_address'],
+                row['property_county'], row['grantor_name'], row['grantee_name'],
+                row['created_at'], row['status'])
         
         # Abbreviate names for privacy
         grantor_abbrev = grantor.split()[0] + " " + grantor.split()[-1][0] + "." if grantor and len(grantor.split()) > 1 else grantor

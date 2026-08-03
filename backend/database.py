@@ -131,6 +131,172 @@ def create_tables():
                 integrations_enabled BOOLEAN,
                 priority_support BOOLEAN
             )""",
+            # ── A1: API lane under the ONE SCHEMA AUTHORITY ──────────────
+            # The mounted /api/v1 depended on tables that existed only in
+            # hand-run migration files (001/005). Both branches are safe
+            # here: CREATE IF NOT EXISTS no-ops where a hand-run migration
+            # already made the table; the ALTER ladder retrofits any
+            # missing Gen-3 columns onto a Gen-2-era (001-shaped) table.
+            """CREATE TABLE IF NOT EXISTS api_keys (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                key_prefix TEXT NOT NULL,
+                key_hash TEXT NOT NULL,
+                name TEXT,
+                company TEXT,
+                user_id TEXT,
+                organization_id INT,
+                scopes TEXT[] DEFAULT ARRAY['deed:create','deed:read'],
+                is_active BOOLEAN DEFAULT TRUE,
+                is_test BOOLEAN DEFAULT FALSE,
+                rate_limit_hour INT DEFAULT 100,
+                rate_limit_day INT DEFAULT 1000,
+                created_by_email TEXT,
+                last_used_at TIMESTAMPTZ,
+                created_at TIMESTAMPTZ DEFAULT now(),
+                revoked_at TIMESTAMPTZ
+            )""",
+            "ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS name TEXT",
+            "ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS organization_id INT",
+            "ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS is_test BOOLEAN DEFAULT FALSE",
+            "ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS rate_limit_hour INT DEFAULT 100",
+            "ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS rate_limit_day INT DEFAULT 1000",
+            "ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS created_by_email TEXT",
+            "ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS last_used_at TIMESTAMPTZ",
+            # 001's company was NOT NULL; Gen-3 creates don't set it — the
+            # admin mint would violate the constraint on a migrated table.
+            # GUARDED, and the guard is load-bearing: schema convergence
+            # runs in a daemon thread at startup (see _converge_schema_
+            # with_retry) while the app already serves traffic, and a bare
+            # ALTER takes ACCESS EXCLUSIVE on a table that in-flight
+            # requests hold FK locks on — that deadlocks (observed in the
+            # A1 harness). The DO block takes no lock when the column is
+            # already nullable, which is every run after the first.
+            """DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'api_keys' AND column_name = 'company'
+                      AND is_nullable = 'NO'
+                ) THEN
+                    ALTER TABLE api_keys ALTER COLUMN company DROP NOT NULL;
+                END IF;
+            END $$""",
+            "CREATE INDEX IF NOT EXISTS idx_api_keys_prefix ON api_keys(key_prefix)",
+            """CREATE TABLE IF NOT EXISTS api_deeds (
+                id SERIAL PRIMARY KEY,
+                deed_id VARCHAR(50) UNIQUE NOT NULL,
+                document_id VARCHAR(20) UNIQUE NOT NULL,
+                api_key_id UUID REFERENCES api_keys(id),
+                deed_type VARCHAR(50),
+                status VARCHAR(20) DEFAULT 'completed',
+                property_address TEXT,
+                property_city VARCHAR(100),
+                property_county VARCHAR(100),
+                property_apn VARCHAR(50),
+                grantor_name TEXT,
+                grantee_name TEXT,
+                transfer_tax_amount DECIMAL(10,2),
+                transfer_tax_exempt BOOLEAN,
+                pdf_data BYTEA,
+                request_data JSONB,
+                authenticity_id UUID,
+                idempotency_key TEXT,
+                created_at TIMESTAMPTZ DEFAULT now()
+            )""",
+            "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS idempotency_key TEXT",
+            """CREATE UNIQUE INDEX IF NOT EXISTS uq_api_deeds_idempotency
+               ON api_deeds(api_key_id, idempotency_key)
+               WHERE idempotency_key IS NOT NULL""",
+            "CREATE INDEX IF NOT EXISTS idx_api_deeds_key ON api_deeds(api_key_id)",
+            """CREATE TABLE IF NOT EXISTS api_usage_log (
+                id SERIAL PRIMARY KEY,
+                api_key_id UUID REFERENCES api_keys(id),
+                endpoint VARCHAR(200),
+                method VARCHAR(10),
+                status_code INT,
+                response_time_ms INT,
+                ip_address INET,
+                user_agent VARCHAR(500),
+                error_message TEXT,
+                created_at TIMESTAMPTZ DEFAULT now()
+            )""",
+            "CREATE INDEX IF NOT EXISTS idx_api_usage_log_key ON api_usage_log(api_key_id, created_at)",
+            """CREATE TABLE IF NOT EXISTS api_rate_limits (
+                id SERIAL PRIMARY KEY,
+                api_key_id UUID,
+                window_type VARCHAR(10),
+                window_key VARCHAR(20),
+                request_count INT DEFAULT 1,
+                created_at TIMESTAMPTZ DEFAULT now(),
+                UNIQUE(api_key_id, window_type, window_key)
+            )""",
+            # Same-invariant gap, declared (not silently absorbed — named
+            # in the A1 report): the LIVE verification system and the E1
+            # in-app notification writes also depended on hand-run
+            # migrations. 004's FK (created_by_user_id UUID REFERENCES
+            # users(id)) cannot apply against SERIAL users.id — corrected
+            # to INTEGER here. Notifications use the 20251011 shape the
+            # code actually reads (read/read_at, not is_read).
+            """CREATE TABLE IF NOT EXISTS document_authenticity (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                short_code VARCHAR(16) UNIQUE NOT NULL,
+                document_type VARCHAR(50) NOT NULL,
+                property_address TEXT,
+                property_apn VARCHAR(50),
+                county VARCHAR(100),
+                grantor_display VARCHAR(255),
+                grantee_display VARCHAR(255),
+                content_hash VARCHAR(64) NOT NULL,
+                pdf_hash VARCHAR(64),
+                generated_at TIMESTAMPTZ DEFAULT now(),
+                first_verified_at TIMESTAMPTZ,
+                last_verified_at TIMESTAMPTZ,
+                verification_count INTEGER DEFAULT 0,
+                organization_id UUID,
+                created_by_user_id INTEGER REFERENCES users(id),
+                status VARCHAR(20) DEFAULT 'active',
+                revoked_at TIMESTAMPTZ,
+                revoked_reason TEXT,
+                superseded_by UUID REFERENCES document_authenticity(id),
+                deed_id INTEGER,
+                CONSTRAINT valid_status CHECK (status IN ('active', 'revoked', 'superseded'))
+            )""",
+            "CREATE INDEX IF NOT EXISTS idx_doc_auth_short_code ON document_authenticity(short_code)",
+            """CREATE TABLE IF NOT EXISTS verification_log (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                document_id UUID REFERENCES document_authenticity(id) ON DELETE CASCADE,
+                verified_at TIMESTAMPTZ DEFAULT now(),
+                verification_method VARCHAR(20) NOT NULL,
+                result VARCHAR(20) NOT NULL,
+                ip_hash VARCHAR(64),
+                user_agent_hash VARCHAR(64),
+                country_code VARCHAR(2),
+                error_message TEXT
+            )""",
+            """CREATE TABLE IF NOT EXISTS notifications (
+                id SERIAL PRIMARY KEY,
+                type VARCHAR(50),
+                title TEXT NOT NULL,
+                message TEXT,
+                severity VARCHAR(20) DEFAULT 'info',
+                payload JSONB,
+                link TEXT,
+                created_at TIMESTAMPTZ DEFAULT now()
+            )""",
+            "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS severity VARCHAR(20) DEFAULT 'info'",
+            "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS payload JSONB",
+            "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS link TEXT",
+            """CREATE TABLE IF NOT EXISTS user_notifications (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                notification_id INTEGER NOT NULL REFERENCES notifications(id) ON DELETE CASCADE,
+                read BOOLEAN NOT NULL DEFAULT FALSE,
+                read_at TIMESTAMPTZ,
+                created_at TIMESTAMPTZ DEFAULT now()
+            )""",
+            "ALTER TABLE user_notifications ADD COLUMN IF NOT EXISTS read BOOLEAN NOT NULL DEFAULT FALSE",
+            "ALTER TABLE user_notifications ADD COLUMN IF NOT EXISTS read_at TIMESTAMPTZ",
+            "CREATE INDEX IF NOT EXISTS idx_user_notifications_unread ON user_notifications(user_id, read)",
         ]:
             cursor.execute(stmt)
 
