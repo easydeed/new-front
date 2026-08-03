@@ -94,7 +94,12 @@ def test_subscription_deleted_downgrades_user_to_free():
         }},
     })
     assert resp.status_code == 200
-    assert len(statements_matching(session, "UPDATE subscriptions")) == 1
+    # BILL1 changed the statement shape deliberately: the handler was
+    # UPDATE-only, so a subscription we had never seen had no row to
+    # update and the event wrote nothing. It upserts now — the intent
+    # this test guards (the subscriptions table is touched, and the user
+    # is downgraded below) is unchanged.
+    assert len(statements_matching(session, "INSERT INTO subscriptions")) == 1
     downgrades = statements_matching(session, "UPDATE users SET plan = 'free'")
     assert len(downgrades) == 1
     assert downgrades[0][1] == {"cust": "cus_abc"}

@@ -9,6 +9,138 @@ from .services.stripe_helpers import init_stripe, calc_stripe_fee
 
 router = APIRouter()
 
+
+def _ts(value):
+    """Stripe sends unix seconds; the columns are timestamps."""
+    try:
+        return datetime.utcfromtimestamp(int(value)) if value else None
+    except (TypeError, ValueError, OSError):
+        return None
+
+
+def _first_price(sub: dict) -> dict:
+    try:
+        return (sub.get("items", {}).get("data") or [{}])[0].get("price") or {}
+    except (AttributeError, IndexError, TypeError):
+        return {}
+
+
+def _resolve_user_id(db: Session, customer_id):
+    """Map a Stripe customer back to our user. None when unknown — the
+    row is still worth storing; an orphaned subscription we can see beats
+    one we cannot."""
+    if not customer_id:
+        return None
+    row = db.execute(
+        text("SELECT id FROM users WHERE stripe_customer_id = :cust LIMIT 1"),
+        {"cust": customer_id},
+    ).fetchone()
+    return row[0] if row else None
+
+
+def upsert_subscription(db: Session, sub: dict):
+    """BILL1 — the write that never existed.
+
+    Lineage, for the record: this pipeline has been broken three
+    independent ways, each hidden behind the last.
+      1. T1 — a legacy inline webhook shadowed this router, so none of
+         these handlers ran at all.
+      2. ADMIN1 — the `subscriptions` table did not exist in production,
+         so every statement here addressed nothing.
+      3. This — even with the router live and the table present, the
+         handler was UPDATE-only. `customer.subscription.created` had no
+         row to update, so it wrote nothing and returned {"ok": true}.
+         A fabricated success on the billing path.
+
+    Now an upsert: insert on first sight, update on every event after.
+    `plan_name` and `status` are NOT NULL, so both always resolve to
+    something real or to an explicitly-marked placeholder — never to an
+    invented claim about the customer's state.
+    """
+    price = _first_price(sub)
+    sid = sub.get("id")
+    if not sid:
+        return 0
+
+    user_id = _resolve_user_id(db, sub.get("customer"))
+
+    # plan_name is NOT NULL. Prefer Stripe's own label; fall back to the
+    # plan we already recorded on the user; last resort is a marker that
+    # reads as unknown rather than as a plan someone chose.
+    plan_name = price.get("nickname")
+    if not plan_name and user_id is not None:
+        row = db.execute(text("SELECT plan FROM users WHERE id = :uid"),
+                         {"uid": user_id}).fetchone()
+        plan_name = row[0] if row and row[0] else None
+    plan_name = plan_name or "unknown"
+
+    result = db.execute(text("""
+        INSERT INTO subscriptions (
+            user_id, stripe_subscription_id, status, plan_name,
+            current_period_start, current_period_end,
+            current_plan_price_cents, mrr_cents, cancel_at_period_end,
+            created_at, updated_at
+        ) VALUES (
+            :uid, :sid, :status, :plan,
+            :period_start, :period_end,
+            :price_cents, :mrr, :cancel_at_period_end,
+            now(), now()
+        )
+        ON CONFLICT (stripe_subscription_id) DO UPDATE SET
+            user_id = COALESCE(EXCLUDED.user_id, subscriptions.user_id),
+            status = EXCLUDED.status,
+            plan_name = CASE WHEN EXCLUDED.plan_name = 'unknown'
+                             THEN subscriptions.plan_name
+                             ELSE EXCLUDED.plan_name END,
+            current_period_start = COALESCE(EXCLUDED.current_period_start, subscriptions.current_period_start),
+            current_period_end = COALESCE(EXCLUDED.current_period_end, subscriptions.current_period_end),
+            current_plan_price_cents = COALESCE(EXCLUDED.current_plan_price_cents, subscriptions.current_plan_price_cents),
+            mrr_cents = COALESCE(EXCLUDED.mrr_cents, subscriptions.mrr_cents),
+            cancel_at_period_end = COALESCE(EXCLUDED.cancel_at_period_end, subscriptions.cancel_at_period_end),
+            updated_at = now()
+        RETURNING id
+    """), {
+        "uid": user_id,
+        "sid": sid,
+        "status": sub.get("status") or "incomplete",
+        "plan": plan_name,
+        "period_start": _ts(sub.get("current_period_start")),
+        "period_end": _ts(sub.get("current_period_end")),
+        "price_cents": price.get("unit_amount"),
+        # A cancelled subscription contributes no recurring revenue. Left
+        # as the raw amount otherwise; MRR normalisation across billing
+        # intervals is not attempted here and is not claimed to be.
+        "mrr": 0 if sub.get("status") in ("canceled", "incomplete_expired")
+               else price.get("unit_amount"),
+        "cancel_at_period_end": sub.get("cancel_at_period_end"),
+    })
+    return 1 if result.fetchone() else 0
+
+
+def ensure_subscription_row(db: Session, subscription_id, customer_id, plan):
+    """Checkout completed: make sure the subscription exists even if the
+    `customer.subscription.created` event is delayed or lost.
+
+    Deliberately DO NOTHING on conflict — checkout carries no
+    subscription status, so it must never overwrite a real one that
+    already arrived. The placeholder status is Stripe's own
+    `incomplete` ("created, not confirmed"), corrected by the first
+    subscription event. We do not write `active` here: we have not
+    observed it.
+    """
+    if not subscription_id:
+        return 0
+    user_id = _resolve_user_id(db, customer_id)
+    result = db.execute(text("""
+        INSERT INTO subscriptions (
+            user_id, stripe_subscription_id, status, plan_name, created_at, updated_at
+        ) VALUES (:uid, :sid, 'incomplete', :plan, now(), now())
+        ON CONFLICT (stripe_subscription_id) DO NOTHING
+        RETURNING id
+    """), {"uid": user_id, "sid": subscription_id, "plan": plan or "unknown"})
+    return 1 if result.fetchone() else 0
+
+
 @router.post("/payments/webhook")
 async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     s = get_settings()
@@ -41,26 +173,25 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             db.execute(text(
                 "UPDATE users SET plan = :plan, updated_at = now() WHERE id = :uid"
             ), {"plan": plan, "uid": uid})
-            db.commit()
+        # BILL1: a subscription checkout must leave a subscription row.
+        # Previously nothing here or downstream ever inserted one.
+        #
+        # The outcome is deliberately NOT added to the response body:
+        # that body is Stripe's, it only needs a 2xx, and the six-flow
+        # baseline pins its shape. Our evidence that the write happened
+        # belongs in the database and on the Revenue tab — which is
+        # exactly where the BILL1 harness looks for it.
+        ensure_subscription_row(
+            db, sess.get("subscription"), sess.get("customer"), plan)
+        db.commit()
         return {"ok": True}
 
-    # --- Subscription lifecycle (assumes 'subscriptions' table exists) ---
+    # --- Subscription lifecycle ---
+    # BILL1: this was UPDATE-only, so `customer.subscription.created`
+    # had nothing to update and silently wrote nothing. It upserts now.
     if etype in ("customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"):
         sub = obj
-        # Best-effort update; adapt columns as needed
-        db.execute(text("""
-            UPDATE subscriptions
-            SET status = :status,
-                cancel_at_period_end = COALESCE(:cancel_at_period_end, cancel_at_period_end),
-                mrr_cents = COALESCE(:mrr, mrr_cents),
-                updated_at = now()
-            WHERE stripe_subscription_id = :sid
-        """), {
-            "status": sub.get("status"),
-            "cancel_at_period_end": sub.get("cancel_at_period_end"),
-            "mrr": (sub.get("items", {}).get("data",[{}])[0].get("price",{}).get("unit_amount") or 0),
-            "sid": sub.get("id")
-        })
+        upsert_subscription(db, sub)
         if etype == "customer.subscription.deleted" and sub.get("customer"):
             # Ported from the legacy webhook: a cancelled subscription
             # downgrades the user back to the free plan.
