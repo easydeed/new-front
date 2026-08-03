@@ -268,6 +268,116 @@ def create_tables():
                 created_at TIMESTAMPTZ DEFAULT now(),
                 UNIQUE(api_key_id, window_type, window_key)
             )""",
+            # ── ADMIN1: the last tables outside the one authority ────────
+            # ADMIN0 found live code depending on tables create_tables()
+            # never made. Production check (2026-08-03): invoices,
+            # payment_history and partners EXIST (hand-run migrations);
+            # subscriptions was MISSING ENTIRELY — which is why the
+            # Revenue tab's $0 was never a real zero, it was the
+            # no-table branch of a try/except (see services/revenue.py,
+            # fixed in this same pass to fail loudly instead).
+            #
+            # Shapes below match migrations/phase23/*.sql and
+            # migrations/add_partners_table_v2.py exactly, so the CREATEs
+            # no-op against the existing production tables; the ALTER
+            # ladders converge any column the code needs.
+            """CREATE TABLE IF NOT EXISTS partners (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                organization_id VARCHAR(255) NOT NULL DEFAULT 'default-org',
+                created_by_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                category VARCHAR(50) NOT NULL DEFAULT 'other',
+                role VARCHAR(50) NOT NULL DEFAULT 'other',
+                company_name VARCHAR(255) NOT NULL,
+                contact_name VARCHAR(255),
+                email VARCHAR(255),
+                phone VARCHAR(50),
+                address_line1 VARCHAR(255),
+                address_line2 VARCHAR(255),
+                city VARCHAR(100),
+                state VARCHAR(50),
+                postal_code VARCHAR(20),
+                notes TEXT,
+                is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )""",
+            "CREATE INDEX IF NOT EXISTS idx_partners_org ON partners(organization_id)",
+            "CREATE INDEX IF NOT EXISTS idx_partners_active ON partners(is_active)",
+            """CREATE TABLE IF NOT EXISTS invoices (
+                id SERIAL PRIMARY KEY,
+                user_id INT,
+                api_key_prefix TEXT,
+                invoice_number VARCHAR(50) UNIQUE NOT NULL,
+                stripe_invoice_id VARCHAR(255) UNIQUE,
+                subtotal_cents INT NOT NULL,
+                tax_cents INT DEFAULT 0,
+                discount_cents INT DEFAULT 0,
+                total_cents INT NOT NULL,
+                amount_paid_cents INT DEFAULT 0,
+                amount_due_cents INT NOT NULL,
+                currency VARCHAR(3) DEFAULT 'USD',
+                status VARCHAR(20) NOT NULL,
+                billing_period_start TIMESTAMPTZ NOT NULL,
+                billing_period_end TIMESTAMPTZ NOT NULL,
+                due_date TIMESTAMP NOT NULL,
+                paid_at TIMESTAMP,
+                voided_at TIMESTAMP,
+                line_items JSONB NOT NULL,
+                notes TEXT,
+                invoice_pdf_url TEXT,
+                created_at TIMESTAMPTZ DEFAULT now(),
+                updated_at TIMESTAMPTZ DEFAULT now()
+            )""",
+            """CREATE TABLE IF NOT EXISTS payment_history (
+                id SERIAL PRIMARY KEY,
+                invoice_id INT REFERENCES invoices(id),
+                user_id INT,
+                stripe_payment_intent_id VARCHAR(255) UNIQUE,
+                stripe_charge_id VARCHAR(255),
+                amount_cents INT NOT NULL,
+                currency VARCHAR(3) DEFAULT 'USD',
+                status VARCHAR(20) NOT NULL,
+                payment_method VARCHAR(50),
+                stripe_fee_cents INT DEFAULT 0,
+                net_amount_cents INT NOT NULL,
+                failure_code VARCHAR(50),
+                failure_message TEXT,
+                refunded_at TIMESTAMP,
+                refund_reason TEXT,
+                refund_amount_cents INT,
+                created_at TIMESTAMPTZ DEFAULT now()
+            )""",
+            "CREATE INDEX IF NOT EXISTS idx_payment_history_status ON payment_history(status, created_at)",
+            # CREATED FRESH — this one did not exist in production at all.
+            # Base shape from scripts/init_db.py (the only prior CREATE)
+            # plus the columns phase23_006's ALTER-IF-EXISTS ladder adds,
+            # since that migration could never have applied to a table
+            # that was never created.
+            """CREATE TABLE IF NOT EXISTS subscriptions (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                stripe_subscription_id VARCHAR(255) UNIQUE,
+                status VARCHAR(50) NOT NULL,
+                current_period_start TIMESTAMP,
+                current_period_end TIMESTAMP,
+                plan_name VARCHAR(50) NOT NULL,
+                current_plan_price_cents INT,
+                billing_cycle VARCHAR(20),
+                auto_renew BOOLEAN DEFAULT TRUE,
+                cancel_at_period_end BOOLEAN DEFAULT FALSE,
+                cancellation_reason TEXT,
+                mrr_cents INT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )""",
+            "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS current_plan_price_cents INT",
+            "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS billing_cycle VARCHAR(20)",
+            "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS auto_renew BOOLEAN DEFAULT TRUE",
+            "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS cancel_at_period_end BOOLEAN DEFAULT FALSE",
+            "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS cancellation_reason TEXT",
+            "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS mrr_cents INT",
+            "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR(255)",
+            "CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe ON subscriptions(stripe_subscription_id)",
             # Same-invariant gap, declared (not silently absorbed — named
             # in the A1 report): the LIVE verification system and the E1
             # in-app notification writes also depended on hand-run

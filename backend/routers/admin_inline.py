@@ -345,43 +345,92 @@ def admin_system_overview():
     except Exception as e:
         print(f"Stripe health check failed: {e}")
 
-    # PDF engine status — WeasyPrint is THE engine (PS2; PDFShift removed).
+    # PDF engine — WeasyPrint is THE engine (PS2; PDFShift removed).
+    #
+    # ADMIN1 kill-list item 1: this used to be the literal
+    # `{"status": "up"}` with no probe of any kind, so the engine
+    # rendered green on the one screen an operator opens during an
+    # incident — even if WeasyPrint could not render a page. It is a
+    # real probe now: render a minimal document and see if bytes come
+    # back. Cheap (a few ms, no network) and it fails the way the real
+    # thing fails, because it IS the real thing.
     pdf_primary = "WeasyPrint"
+    pdf_status = "down"
+    pdf_probe_error = None
+    try:
+        from pdf_engine import render_pdf
+        probe = render_pdf("<html><body>ok</body></html>")
+        pdf_status = "up" if probe[:5] == b"%PDF-" else "down"
+        if pdf_status == "down":
+            pdf_probe_error = "renderer returned non-PDF bytes"
+    except Exception as e:
+        pdf_probe_error = f"{type(e).__name__}: {str(e)[:200]}"
+        print(f"PDF engine health check failed: {pdf_probe_error}")
 
-    # Get PDF generation stats from deeds table
+    # ADMIN1 kill-list items 2 and 3.
+    #
+    # `weasyprint_count` was assigned `= total_generated` — an assertion
+    # dressed as a measurement — and `total_generated` itself counted
+    # deeds in status 'completed', which is deed STATE, not evidence a
+    # PDF exists. `deed_pdfs` is the table that knows: one row per deed
+    # whose bytes we actually stored. Counting there also makes the
+    # stuck-deed gap visible (completed deeds with no stored artifact),
+    # which is one of the recurring shell pastes ADMIN0 catalogued.
+    #
+    # `avg_time_ms` was initialised to 0 and never assigned. Nothing in
+    # the platform times a render, so there is no honest number to show:
+    # it is reported as null and the UI renders an em-dash. An absence
+    # stated is worth more than a zero that reads as a measurement.
     pdf_stats = {
-        "total_generated": 0,
-        "weasyprint_count": 0,
-        "avg_time_ms": 0,
+        "stored_pdfs": 0,
+        "completed_deeds": 0,
+        "completed_without_pdf": 0,
+        "avg_time_ms": None,  # not measured anywhere — see above
+        "engine": pdf_primary,
         "by_type": {}
     }
 
     try:
         with db.conn.cursor() as cur:
-            # Total deeds with PDFs (completed deeds)
-            cur.execute("SELECT COUNT(*) FROM deeds WHERE status = 'completed'")
-            pdf_stats["total_generated"] = cur.fetchone()[0] or 0
-            pdf_stats["weasyprint_count"] = pdf_stats["total_generated"]
+            cur.execute("SELECT COUNT(*) FROM deed_pdfs")
+            pdf_stats["stored_pdfs"] = cur.fetchone()[0] or 0
 
-            # By deed type
+            cur.execute("SELECT COUNT(*) FROM deeds WHERE status = 'completed'")
+            pdf_stats["completed_deeds"] = cur.fetchone()[0] or 0
+
+            # The H1 silent-store class, finally countable from the console.
             cur.execute("""
-                SELECT deed_type, COUNT(*) as count
-                FROM deeds
-                WHERE status = 'completed'
-                GROUP BY deed_type
+                SELECT COUNT(*) FROM deeds d
+                LEFT JOIN deed_pdfs p ON p.deed_id = d.id
+                WHERE d.status = 'completed' AND p.deed_id IS NULL
+            """)
+            pdf_stats["completed_without_pdf"] = cur.fetchone()[0] or 0
+
+            cur.execute("""
+                SELECT d.deed_type, COUNT(*) as count
+                FROM deed_pdfs p JOIN deeds d ON d.id = p.deed_id
+                GROUP BY d.deed_type
                 ORDER BY count DESC
             """)
             for row in cur.fetchall():
                 pdf_stats["by_type"][row[0]] = row[1]
 
     except Exception as e:
+        # Not swallowed into zeros: the caller is told the numbers are
+        # unavailable rather than shown a confident 0.
         print(f"PDF stats error: {e}")
+        pdf_stats = {**pdf_stats, "error": f"{type(e).__name__}: {str(e)[:200]}"}
 
     return {
         "health": {
             "database": {"status": db_status, "latency_ms": db_latency},
-            "pdf_engine": {"status": "up", "primary": pdf_primary},
-            "sitex": {"status": "unknown", "last_call": None},
+            "pdf_engine": {"status": pdf_status, "primary": pdf_primary,
+                           "error": pdf_probe_error},
+            # SiteX has no health probe. Rather than reporting a
+            # hardcoded "unknown" that looks like a checked result, say
+            # plainly that nothing checks it.
+            "sitex": {"status": "not_monitored",
+                      "note": "no health probe exists for this integration"},
             "stripe": {"status": stripe_status}
         },
         "pdf_stats": pdf_stats

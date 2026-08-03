@@ -155,22 +155,75 @@ def ensure_deed_pdfs_table(conn):
         conn.commit()
 
 
+class StoredPdfConflict(Exception):
+    """A different artifact is already stored for this deed.
+
+    Raised instead of overwriting. Carries both hashes so the operator
+    sees what would have been destroyed.
+    """
+
+    def __init__(self, deed_id: int, stored_sha256: str, incoming_sha256: str):
+        self.deed_id = deed_id
+        self.stored_sha256 = stored_sha256
+        self.incoming_sha256 = incoming_sha256
+        super().__init__(
+            f"Deed {deed_id} already has a stored PDF with a different hash "
+            f"(stored {stored_sha256[:12]}…, incoming {incoming_sha256[:12]}…). "
+            "Refusing to overwrite a recorded instrument — a correction must "
+            "supersede the original, not replace it."
+        )
+
+
 def store_deed_pdf(conn, deed_id: int, pdf_bytes: bytes) -> str:
-    """Persist the PDF bytes and stamp pdf_url + sha256 on the deed row."""
+    """Persist the PDF bytes and stamp pdf_url + sha256 on the deed row.
+
+    INSERT-OR-REFUSE (doctrine §9, ADMIN1). This was
+    `ON CONFLICT DO UPDATE SET pdf_data = EXCLUDED.pdf_data`, which
+    replaced the stored bytes AND their sha256 in place. `deed_pdfs` is
+    keyed by deed_id — one row per deed — so the prior artifact was
+    simply gone, with nothing recording that it had existed.
+
+    That hash is the verification substrate: doctrine §3 removed QR
+    codes from recorded pages on the reasoning that "verification
+    survives as data," and the data is this column. A silent overwrite
+    invalidates every prior verification of the document and leaves no
+    trace that anything changed.
+
+    So: re-storing identical bytes is a no-op (idempotent regeneration
+    is legitimate — the H1 self-heal path relies on it), and re-storing
+    DIFFERENT bytes raises StoredPdfConflict for the caller to surface.
+    Replacing an instrument is a supersession decision, not a storage
+    detail; the supersession model is a separate ledgered ticket, and
+    until it exists the honest answer is to refuse.
+    """
     digest = hashlib.sha256(pdf_bytes).hexdigest()
     stamp = json.dumps({
         "pdf_sha256": digest,
         "pdf_generated_at": datetime.now(timezone.utc).isoformat(),
     })
     with conn.cursor() as cur:
+        # DO NOTHING, not DO UPDATE: the insert is attempted atomically
+        # and simply declines if a row already exists. Deliberately not a
+        # SELECT-then-INSERT — two concurrent self-heal downloads would
+        # both see "no row" and the second would hit a primary-key
+        # violation. This way the loser of that race falls through to the
+        # hash comparison below and, for identical bytes, succeeds.
         cur.execute("""
             INSERT INTO deed_pdfs (deed_id, pdf_data, sha256, generated_at)
             VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
-            ON CONFLICT (deed_id) DO UPDATE
-                SET pdf_data = EXCLUDED.pdf_data,
-                    sha256 = EXCLUDED.sha256,
-                    generated_at = CURRENT_TIMESTAMP
+            ON CONFLICT (deed_id) DO NOTHING
+            RETURNING deed_id
         """, (deed_id, psycopg2.Binary(pdf_bytes), digest))
+
+        if cur.fetchone() is None:
+            # Something is already stored. Identical bytes → no-op (the
+            # deed row's stamp still refreshes below, so the H1 self-heal
+            # path keeps working). Different bytes → refuse.
+            cur.execute("SELECT sha256 FROM deed_pdfs WHERE deed_id = %s", (deed_id,))
+            row = cur.fetchone()
+            stored_sha = row[0] if row else None
+            if stored_sha != digest:
+                raise StoredPdfConflict(deed_id, stored_sha or "unknown", digest)
         cur.execute("""
             UPDATE deeds
             SET pdf_url = %s,

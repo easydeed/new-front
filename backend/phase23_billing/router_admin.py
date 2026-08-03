@@ -15,10 +15,24 @@ router = APIRouter(prefix="/admin", tags=["admin-billing"],
 
 @router.get("/revenue")
 def revenue(db: Session = Depends(get_db)):
+    """ADMIN1: read failures travel to the operator.
+
+    Every read here used to collapse to 0 on any exception, so a missing
+    table rendered as a confident $0 on the money screen. The reads now
+    return UNKNOWN (null) plus a reason, and this endpoint aggregates
+    those reasons into `errors` — the tab shows a banner rather than a
+    number nobody can trust.
+    """
+    overview = get_revenue_overview(db)
+    breakdown, breakdown_errors = monthly_breakdown(db)
+    mrr = mrr_arr(db)
+
+    errors = overview.pop("errors", []) + breakdown_errors + mrr.pop("errors", [])
     return {
-        "overview": get_revenue_overview(db),
-        "monthly_breakdown": monthly_breakdown(db),
-        "mrr_arr": mrr_arr(db)
+        "overview": overview,
+        "monthly_breakdown": breakdown,
+        "mrr_arr": mrr,
+        "errors": errors,
     }
 
 @router.get("/invoices")
