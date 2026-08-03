@@ -108,7 +108,16 @@ check) and **#114** the rest of the sharpened scope (reconciliation,
 stats-honesty relapse sweep, frictions). **ADMIN-BRAND is #115**, stacked
 on #114 because both touch the same three components.
 
-**Next: ADMIN3** (email outcome persistence).
+**Next: ADMIN2** (share lifecycle console) — ADMIN3 shipped as #116.
+
+### Ledgered trigger — browser-audit re-run
+
+Owner-set, 2026-08-03: when **ADMIN-BRAND (#115) and ADMIN3 (#116) are
+merged AND deployed**, re-run the browser click-drill audit. The last
+run's five drills went fail, fail, unanswerable, empty, unverifiable.
+The re-run is the before/after that shows whether the wave did what it
+claimed — and it is a production click-through, so it is the owner's,
+not delegable.
 
 ADMIN3 was **promoted above ADMIN2**: it answers the 3 AM question, and
 ADMIN2's queue surface depends on knowing what failed. ADMIN5 needs a
@@ -174,9 +183,22 @@ we reach it.
 - **ADMIN2 — share lifecycle console.** The largest visibility hole:
   `deed_shares` records sent → viewed → approved/rejected/revoked/
   expired plus rejection feedback, and no admin surface reads any of it.
-- **ADMIN3 — email outcome persistence.** Generalize the one working
-  pattern (`api_key_requests.notify_error`) to the other ten templates;
-  10 of 11 send outcomes are currently printed and discarded.
+- **ADMIN3 — email outcome persistence (#116).** Generalize the one
+  working pattern (`api_key_requests.notify_error`) to the other ten
+  templates; 10 of 11 send outcomes were printed and discarded.
+  **Built as a choke point, not eleven edits:** every sender already
+  ended in one call to the transport, so persistence went there. Adding
+  it at eleven call sites would have repeated the reason the gap
+  existed — `api_key_requests` persisted its outcome only because that
+  table is a work queue somebody stares at; nothing made the other ten
+  hurt, so nothing fixed them. New `email_log` table (in
+  `create_tables()` per H1) carrying the S1 diagnosis string rather than
+  a boolean, plus an **Emails** tab linked from the sidebar.
+  Two design notes worth keeping: the recorder uses its OWN autocommit
+  connection (writing into the caller's transaction is the A1 metering
+  defect that silently discarded a deed), and its failures are caught —
+  a ledger write must never 500 a registration — so they are caught
+  LOUDLY and the tab states it shows attempts it managed to record.
 - **ADMIN4 — admin audit log.** UNBLOCKED by the ruling below.
 - **ADMIN5 — orphan wiring.** ~18 admin endpoints have no caller; the
   cheap wins are per-key error rates, deed PDF open, a partners tab,
