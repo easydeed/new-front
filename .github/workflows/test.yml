@@ -17,11 +17,15 @@ jobs:
         JWT_SECRET_KEY: ci-test-secret
       run: pytest tests/ -q
 
-  tsc-report:
-    # Non-blocking type-check report (116 known pre-existing errors; burn-down
-    # is opportunistic — see docs/ARCHITECTURE.md known quirks).
+  # RED-H1.1: the frontend suite now RUNS. It did not before.
+  #
+  # 486 tests across 34 suites existed and no workflow invoked jest. Every
+  # "jest 486 passed" line in every PR body this project has shipped was a
+  # local run, on trust. A frontend regression could merge green.
+  #
+  # Blocking, and that is the point: if something is red the wave stops.
+  frontend-tests:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4
@@ -29,5 +33,48 @@ jobs:
         node-version: '20'
     - working-directory: frontend
       run: npm ci
+    - name: Jest (blocking)
+      working-directory: frontend
+      run: npx jest --ci
+
+  tsc-baseline:
+    # RED-H1.1: was `tsc-report`, `continue-on-error: true`, with a comment
+    # claiming "116 known pre-existing errors" against a baseline that has
+    # been frozen at 94 for weeks. A documented invariant that no machine
+    # checks is a preference.
+    #
+    # The tsc-only-goes-down rule is now enforced: the job fails if the
+    # count EXCEEDS the baseline, and tells you to lower the baseline if it
+    # drops. Note the `|| true` below is NOT a swallowed failure — tsc
+    # exits non-zero whenever any error exists, so it would abort the step
+    # before the count could be compared. The gate is the comparison, and
+    # the comparison exits 1.
+    runs-on: ubuntu-latest
+    env:
+      TSC_BASELINE: 94
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
     - working-directory: frontend
-      run: npx tsc --noEmit | tail -5
+      run: npm ci
+    - name: Type errors must not exceed the frozen baseline
+      working-directory: frontend
+      run: |
+        # Measure on a clean tree. A stale .next/ makes tsc type-check
+        # GENERATED route types too, so a build artifact from a deleted
+        # route reports errors for a page that no longer exists — found
+        # exactly that way: 99 with residue, 94 without.
+        rm -rf .next
+        npx tsc --noEmit > tsc.out 2>&1 || true
+        COUNT=$(grep -c "error TS" tsc.out || true)
+        echo "tsc errors: $COUNT (baseline $TSC_BASELINE)"
+        if [ "$COUNT" -gt "$TSC_BASELINE" ]; then
+          echo "::error::tsc regressed: $COUNT errors, baseline is $TSC_BASELINE"
+          grep "error TS" tsc.out | tail -20
+          exit 1
+        fi
+        if [ "$COUNT" -lt "$TSC_BASELINE" ]; then
+          echo "::notice::tsc improved to $COUNT — lower TSC_BASELINE in this file to lock the gain in."
+        fi

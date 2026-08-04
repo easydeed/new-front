@@ -553,10 +553,16 @@ export default function RegisterPage() {
             </form>
           </div>
 
-          {/* Trust footer */}
+          {/* Trust footer — RED-H1.1.
+              Was: "Bank-level security · State-specific compliance built in".
+              "Bank-level security" is an unearned security claim of exactly
+              the kind the standing rule bans, and "compliance built in"
+              implied a certification nobody holds. What replaces them is
+              what the product actually does: California templates and a
+              per-field confirmation record. Both are checkable. */}
           <p className="flex items-center justify-center gap-1.5 text-xs text-gray-400">
             <ShieldCheck className="w-3.5 h-3.5" />
-            Bank-level security &middot; State-specific compliance built in
+            California recorder-formatted deeds &middot; every field confirmed before it prints
           </p>
         </div>
       </main>

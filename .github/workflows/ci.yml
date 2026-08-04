@@ -29,6 +29,18 @@ jobs:
         run: |
           cd backend || echo "backend missing"
           python -m pip install -r requirements.txt
+      # RED-H1.1. BLOCKING, and deliberately placed before the test step so
+      # it fails fast and loudly.
+      #
+      # This is the gate whose absence let a SOC 2 badge, an ALTA Best
+      # Practices badge and eight fictitious title-software integrations sit
+      # in the tree after an audit had already found and fixed one of them.
+      # A human audit checks the files a human thinks of; this checks all of
+      # them, on every push. No `|| true`, no `continue-on-error` — the
+      # whole value is that the claim cannot ship.
+      - name: Banned compliance/integration claims
+        run: python scripts/check_banned_claims.py
+
       - name: Backend unit tests
         env:
           JWT_SECRET_KEY: ci-test-secret

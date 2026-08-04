@@ -31,7 +31,20 @@ const protectedRoutes = [
   '/account-settings',
   '/admin',
   '/team',
-  '/security',
+  // RED-H1.1: '/security' is gone — the route was DELETED, not gutted.
+  // It rendered entirely fabricated telemetry: invented login events with
+  // invented IPs, an invented "Multiple rapid login attempts detected /
+  // Automated Bot" incident, a fake IP whitelist, a fake last-scan
+  // timestamp, and an audit-log toggle wired to nothing.
+  //
+  // That is not overstated copy. It is a fabricated INCIDENT REPORT —
+  // a page telling an officer that an intrusion against their account was
+  // detected and investigated, when no such detection exists. Removing
+  // only its SOC2 badge would have left the invention behind and made it
+  // read as more credible, not less.
+  //
+  // A security page returns when RED-S3 ships real session telemetry to
+  // put on it. Until then the honest number of security pages is zero.
   '/api-key-request'
 ]
 

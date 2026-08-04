@@ -280,7 +280,7 @@ export default function ApiKeyRequest() {
                     required
                     rows={3}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-tertiary focus:ring-2 focus:ring-blue-100"
-                    placeholder="Describe how you plan to use the DeedPro API (e.g., integrate with SoftPro, automate deed generation, etc.)"
+                    placeholder="Describe how you plan to use the DeedPro API (e.g., integrate with SoftPro, automate deed generation, etc.)" // banned-claims: allow describes what the APPLICANT would build, not something we offer
                   />
                 </div>
                 <div className="grid md:grid-cols-2 gap-6">
@@ -368,7 +368,7 @@ export default function ApiKeyRequest() {
                       value={formData.current_software}
                       onChange={handleInputChange}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-tertiary focus:ring-2 focus:ring-blue-100"
-                      placeholder="SoftPro 360, Qualia, RamQuest, etc."
+                      placeholder="SoftPro 360, Qualia, RamQuest, etc." // banned-claims: allow asks which system the customer already runs; an answer field, not a claim
                     />
                   </div>
                 )}

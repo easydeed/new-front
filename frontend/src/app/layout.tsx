@@ -16,8 +16,12 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "DeedPro - AI-Enhanced Real Estate Deed Platform",
-  description: "Transform deed creation with AI assistance, seamless integrations, and enterprise API. Trusted by 1,200+ escrow officers.",
-  keywords: "real estate, deed creation, AI assistance, SoftPro, Qualia, API integration",
+  // RED-H1.1: "seamless integrations" and the SoftPro/Qualia keywords sold
+  // title-software integrations that do not exist in this codebase in any
+  // form — not a client, not a stub. "Trusted by 1,200+ escrow officers"
+  // went with them: nothing in the product measures it.
+  description: "California deed preparation for escrow and title professionals. Recorder-formatted PDFs, with every field confirmed before it prints.",
+  keywords: "real estate, deed preparation, California deeds, grant deed, quitclaim deed, escrow, title",
   authors: [{ name: "DeedPro Team" }],
   openGraph: {
     title: "DeedPro - AI-Enhanced Real Estate Deed Platform",
