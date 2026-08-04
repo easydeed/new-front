@@ -39,62 +39,28 @@ export interface AIValidation {
 }
 
 // System prompts for different AI tasks
-const SYSTEM_PROMPTS = {
-  vestingGuidance: `You are an expert California real estate title officer. Your role is to help users understand vesting options when transferring property.
+/**
+ * RED-H1.3 — the prompt TEXT moved to the server.
+ *
+ * These were full system prompts sent in the request body. The endpoint
+ * used whatever the client supplied, which meant any authenticated user
+ * could POST an arbitrary system prompt and an arbitrary max_tokens
+ * against the company's OpenAI key.
+ *
+ * What travels now is a KEY. The server owns the text
+ * (backend/services/ai_prompts.py), owns the token ceiling, meters per
+ * user, and logs every exchange. An unknown key is refused, not
+ * defaulted.
+ */
+const PROMPT_KEYS = {
+  vestingGuidance: 'vesting_guidance',
+  deedTypeAdvisor: 'deed_type_advisor',
+  legalDescriptionReview: 'legal_description_review',
+  preSubmitReview: 'pre_submit_review',
+  generalAssistant: 'general_assistant',
+} as const
 
-Be concise but thorough. Focus on practical implications:
-- Tax consequences
-- Estate planning effects
-- Rights of survivorship
-- Creditor protection
-
-Always recommend consulting with an attorney or tax advisor for complex situations.
-
-Respond in 2-3 sentences maximum unless asked for more detail.`,
-
-  deedTypeAdvisor: `You are an expert California real estate title officer. Your role is to help users select the appropriate deed type for their transaction.
-
-Consider:
-- Relationship between parties (spouses, family, unrelated)
-- Whether consideration is being exchanged
-- Documentary Transfer Tax implications
-- Title insurance implications
-- Warranties being provided
-
-Respond in 2-3 sentences maximum.`,
-
-  legalDescriptionReview: `You are an expert California real estate title officer reviewing a legal description.
-
-Check for:
-- Completeness (does it fully describe the parcel?)
-- Common errors (missing tract info, incomplete metes and bounds)
-- References to recorded documents (are book/page numbers included?)
-- Consistency with APN if provided
-
-Flag any concerns concisely.`,
-
-  preSubmitReview: `You are an expert California real estate title officer doing a final review before a deed is generated.
-
-Check for:
-- Consistency between all fields
-- Common errors (single grantee with joint tenancy vesting)
-- Missing required information
-- DTT calculation accuracy
-- Proper party naming conventions
-
-List any issues found. If everything looks good, say so briefly.`,
-
-  generalAssistant: `You are an expert California real estate title officer assistant in DeedPro, a deed generation application.
-
-Answer questions about:
-- California deed types (Grant, Quitclaim, Interspousal, Warranty, Tax)
-- Vesting options and implications
-- Documentary Transfer Tax rules and exemptions
-- Legal descriptions
-- Recording requirements
-
-Be concise, accurate, and helpful. If something requires legal advice, recommend consulting an attorney.`,
-}
+type PromptKey = (typeof PROMPT_KEYS)[keyof typeof PROMPT_KEYS]
 
 class AIAssistantService {
   private apiKey: string | null = null
@@ -118,7 +84,7 @@ class AIAssistantService {
    * Make an AI request through the backend proxy
    */
   private async makeRequest(
-    systemPrompt: string,
+    promptKey: PromptKey,
     userPrompt: string,
     maxTokens: number = 400
   ): Promise<string> {
@@ -137,7 +103,7 @@ class AIAssistantService {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
-          system: systemPrompt,
+          prompt_key: promptKey,
           message: userPrompt,
           max_tokens: maxTokens,
         }),
@@ -171,7 +137,7 @@ Briefly explain what this vesting means and flag any concerns (e.g., if joint te
 
     try {
       const response = await this.makeRequest(
-        SYSTEM_PROMPTS.vestingGuidance,
+        PROMPT_KEYS.vestingGuidance,
         prompt,
         300
       )
@@ -217,7 +183,7 @@ Is ${context.currentDeedType} the best choice? If not, what would you recommend 
 
     try {
       const response = await this.makeRequest(
-        SYSTEM_PROMPTS.deedTypeAdvisor,
+        PROMPT_KEYS.deedTypeAdvisor,
         prompt,
         300
       )
@@ -263,7 +229,7 @@ Flag any concerns about completeness or accuracy.`
 
     try {
       const response = await this.makeRequest(
-        SYSTEM_PROMPTS.legalDescriptionReview,
+        PROMPT_KEYS.legalDescriptionReview,
         prompt,
         400
       )
@@ -315,7 +281,7 @@ List any issues or concerns. If everything looks correct, say "No issues found."
 
     try {
       const response = await this.makeRequest(
-        SYSTEM_PROMPTS.preSubmitReview,
+        PROMPT_KEYS.preSubmitReview,
         prompt,
         500
       )
@@ -350,14 +316,19 @@ List any issues or concerns. If everything looks correct, say "No issues found."
    * Answer a user question about deeds/title
    */
   async askQuestion(question: string, context: Partial<AIContext>): Promise<string> {
-    const systemPrompt = `${SYSTEM_PROMPTS.generalAssistant}
+    // RED-H1.3: the file context used to be appended to the SYSTEM
+    // prompt. It belongs in the user message — context is data the
+    // officer is working with, not an instruction about how the model
+    // should behave, and the system prompt is no longer the client's to
+    // write in any case.
+    const withContext = `${question}
 
 Current context:
 - Deed Type: ${context.deedType || "Not selected"}
 - County: ${context.county || "Not specified"}`
 
     try {
-      const response = await this.makeRequest(systemPrompt, question, 600)
+      const response = await this.makeRequest(PROMPT_KEYS.generalAssistant, withContext, 600)
       return response
     } catch (error) {
       console.error("AI question error:", error)
@@ -381,7 +352,7 @@ Is this exemption likely valid? What documentation might they need?`
 
     try {
       const response = await this.makeRequest(
-        SYSTEM_PROMPTS.generalAssistant,
+        PROMPT_KEYS.generalAssistant,
         prompt,
         300
       )
