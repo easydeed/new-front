@@ -137,39 +137,39 @@ describe('U2.2 — no immortal toasts', () => {
 
 describe('U2.3 — immutability copy carries the correction path', () => {
   /**
-   * T-0 CHANGED THIS PIN DELIBERATELY. Worth reading, because the pin was
-   * doing its job and was still wrong.
+   * FULL CIRCLE, and worth reading as one story.
    *
-   * U2.3's intent is right and survives intact: telling an officer the
-   * document is immutable, without telling them what to do about it, is a
-   * dead end on the one screen where they are deciding whether to press
-   * the button. The copy must carry a path forward.
+   * U2.3 originally asserted three strings, "Generate a corrected deed"
+   * and "the record keeps both" among them. Its INTENT was right: telling
+   * an officer a document is immutable, without telling them what to do
+   * about it, is a dead end on the one screen where they decide whether
+   * to press the button.
    *
-   * What U2.3 could not know is that the path it pinned did not exist.
-   * "Generate a corrected deed — the record keeps both" describes
-   * SUPERSESSION, and `deeds` has no lineage: no superseded_by, no status
-   * beyond draft/completed/deleted, nothing relating the two rows. Both
-   * deeds are kept, so the sentence is half true, and the half that is
-   * false is the word "corrected" — it promises a recorded relationship.
+   * T-0 discovered the path it pinned did not exist — `deeds` had no
+   * lineage, so "corrected" promised a relationship nothing recorded.
+   * The pin was rewritten to assert the INTENT (a path forward is
+   * offered) rather than the SPELLING of one promise, and a negative
+   * assertion kept the false version from returning by accident.
    *
-   * So the pin now asserts the INTENT (a path forward is offered) rather
-   * than the SPELLING of a specific promise. T-5 builds the lineage; when
-   * it exists, the stronger sentence can come back and this pin can go
-   * back to naming it.
+   * T-5 built the lineage. The sentence is true now, so the negative
+   * assertion retires with the condition that justified it, and the pin
+   * names the path again — plus the clause T-0's absence taught us to
+   * add: a correction is a NEW INSTRUMENT.
    */
   it('the gate modal tells the officer what to do about immutability', () => {
     const src = readSource('features', 'builder', 'DeedBuilder.tsx');
     expect(src).toContain('stored immutably');
-    // A path forward, stated in terms of what is true today.
     expect(src).toMatch(/cannot be edited/i);
-    expect(src).toMatch(/make any changes now/i);
+    expect(src).toMatch(/corrected deed/i);
+    expect(src).toMatch(/record keeps\s*\n?\s*both/i);
   });
 
-  it('and does not describe a correction the record cannot show', () => {
-    const src = readSource('features', 'builder', 'DeedBuilder.tsx')
-      .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-    expect(src).not.toContain('Generate a corrected deed');
-    expect(src).not.toContain('the record keeps both');
+  it('and does not let "corrected" imply the original was un-recorded', () => {
+    // The whole point of lineage over editing: both documents exist, the
+    // relationship is recorded, and the correction still has to be signed.
+    const src = readSource('features', 'builder', 'DeedBuilder.tsx');
+    expect(src).toMatch(/new instrument/i);
+    expect(src).toMatch(/own signing and notarisation/i);
   });
 });
 

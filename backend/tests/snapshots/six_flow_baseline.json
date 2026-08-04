@@ -40,6 +40,8 @@
       "requested_by",
       "sales_price",
       "status",
+      "superseded_at",
+      "superseded_by",
       "updated_at",
       "user_id",
       "vesting"
@@ -66,6 +68,8 @@
       "role",
       "sales_price",
       "status",
+      "superseded_at",
+      "superseded_by",
       "updated_at",
       "user_id",
       "vesting"

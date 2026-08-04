@@ -98,35 +98,45 @@ describe('one truth: the counter derives from gate math', () => {
 });
 
 /**
- * T-0 — the gate does not promise a record it cannot keep.
+ * T-5 — the promise returns, because the record now keeps it.
  *
- * RETIRE THIS BLOCK IN T-5, not before. The sentence it forbids is not
- * wrong forever; it is wrong *today*. "Generate a corrected deed — the
- * record keeps both" describes supersession lineage, and `deeds` has
- * none: no superseded_by, no status past draft/completed/deleted, no
- * surface relating the pair. `document_authenticity` has the shape
- * (status + superseded_by self-FK) and is written only by the partner-API
- * lane, so no wizard deed has ever had a lineage row.
+ * The T-0 block lived here and forbade the words "corrected deed" and
+ * "record keeps both". Its docstring named its own retirement condition:
+ * delete it in the same PR that mirrors document_authenticity's lineage
+ * onto `deeds`. That PR is this one, so it is gone.
  *
- * When T-5 mirrors that shape onto `deeds`, the sentence becomes true and
- * should come back — delete this describe block in the same PR that makes
- * it honest, so the copy and the record change together.
+ * What replaces it is the inverse pin. The sentence is now true and must
+ * STAY true — if the lineage were ever removed, the copy would go back to
+ * promising a relationship nothing records, and this fails.
  */
-describe('T-0 — the generation gate claims only what the record holds', () => {
+describe('T-5 — the gate promises lineage, and the record keeps it', () => {
   const src = fs.readFileSync(
     path.join(__dirname, '..', 'features', 'builder', 'DeedBuilder.tsx'), 'utf8');
-  // The explanatory comment necessarily quotes the removed sentence.
   const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
-  it('does not offer a "corrected deed" whose correction is recorded nowhere', () => {
-    expect(code).not.toMatch(/corrected deed/i);
-    expect(code).not.toMatch(/record keeps both/i);
+  it('offers the corrected-deed path again', () => {
+    expect(code).toMatch(/corrected deed/i);
+    expect(code).toMatch(/record keeps\s*\n?\s*both/i);
   });
 
-  it('still tells the officer the document is final and uneditable', () => {
-    // Removing the false half must not remove the true warning with it.
+  it('and says plainly that a correction is a NEW instrument', () => {
+    // The part officers most need to hear: we record the relationship,
+    // we do not un-record documents.
+    expect(code).toMatch(/new instrument/i);
+    expect(code).toMatch(/own signing and notarisation/i);
+  });
+
+  it('still warns the generated document cannot be edited', () => {
     expect(code).toContain('stored immutably');
     expect(code).toMatch(/cannot be edited/i);
+  });
+
+  it('the lineage the copy promises actually exists in the schema', () => {
+    // The pin that keeps copy and record together in BOTH directions.
+    const schema = fs.readFileSync(
+      path.join(__dirname, '..', '..', '..', 'backend', 'database.py'), 'utf8');
+    expect(schema).toContain('superseded_by INTEGER REFERENCES deeds(id)');
+    expect(schema).toContain('superseded_at TIMESTAMPTZ');
   });
 });
 

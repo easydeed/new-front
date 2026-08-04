@@ -601,6 +601,115 @@ def _pcor_deed_row(deed_id: int, user_id: int) -> dict:
     return dict(deed)
 
 
+class SupersedeRequest(BaseModel):
+    """The correcting instrument's id. It must already be generated —
+    lineage points at a document, not at an intention."""
+    superseded_by: int
+
+
+@router.post("/deeds/{deed_id}/supersede")
+def supersede_endpoint(deed_id: int, body: SupersedeRequest,
+                       user_id: int = Depends(get_current_user_id)):
+    """T-5 — record that a new instrument replaces this one.
+
+    A NEW ROW AND A POINTER. The superseded deed is not edited, not
+    deleted, and not hidden: its PDF, hash and status all stay exactly as
+    they were, and the single write here is `superseded_by` going from
+    NULL to the new document's id.
+
+    The pointer is written once. A second write would silently redirect
+    history, which is the harm §9 refuses on the artifacts and this
+    refuses on the lineage.
+    """
+    from services.supersession import SupersessionRefused, validate_supersession
+
+    old = _pcor_deed_row(deed_id, user_id)
+    new_row = _pcor_deed_row(body.superseded_by, user_id)
+    try:
+        validate_supersession(old, new_row)
+    except SupersessionRefused as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+    with db.conn.cursor() as cur:
+        # Guarded in SQL as well as in Python: the IS NULL predicate makes
+        # the write-once rule true even under a concurrent second request,
+        # which the application check alone cannot promise.
+        cur.execute("""
+            UPDATE deeds
+               SET superseded_by = %s, superseded_at = now()
+             WHERE id = %s AND superseded_by IS NULL
+            RETURNING id, superseded_by, superseded_at
+        """, (body.superseded_by, deed_id))
+        updated = cur.fetchone()
+        if updated is None:
+            db.conn.rollback()
+            raise HTTPException(
+                status_code=409,
+                detail="This document was superseded by another request "
+                       "moments ago. Reload to see the current version.")
+        db.conn.commit()
+
+    return {
+        "superseded": deed_id,
+        "superseded_by": updated["superseded_by"],
+        "superseded_at": updated["superseded_at"].isoformat() if updated["superseded_at"] else None,
+        "note": "The superseded document is unchanged and still readable. "
+                "A corrected deed is a new instrument and requires its own "
+                "execution — we record the relationship, we do not un-record "
+                "documents.",
+    }
+
+
+@router.get("/deeds/{deed_id}/lineage")
+def lineage_endpoint(deed_id: int, user_id: int = Depends(get_current_user_id)):
+    """The correction chain, forwards and backwards, all of it readable.
+
+    The history is the feature, not the embarrassment: an officer asked
+    six months later which version was recorded needs to see both and see
+    which replaced which.
+    """
+    from services.supersession import lineage_state
+
+    row = _pcor_deed_row(deed_id, user_id)
+    with db.conn.cursor() as cur:
+        cur.execute("""
+            WITH RECURSIVE forward AS (
+                SELECT id, deed_type, status, superseded_by, superseded_at, created_at
+                  FROM deeds WHERE id = %s
+                UNION ALL
+                SELECT d.id, d.deed_type, d.status, d.superseded_by, d.superseded_at, d.created_at
+                  FROM deeds d JOIN forward f ON d.id = f.superseded_by
+            )
+            SELECT * FROM forward
+        """, (deed_id,))
+        forward = [dict(r) for r in cur.fetchall()]
+
+        cur.execute("""
+            SELECT id, deed_type, status, superseded_by, superseded_at, created_at
+              FROM deeds WHERE superseded_by = %s AND user_id = %s
+        """, (deed_id, row.get("user_id")))
+        supersedes = [dict(r) for r in cur.fetchall()]
+
+    def shape(r):
+        return {
+            "id": r["id"],
+            "deed_type": r["deed_type"],
+            "status": r["status"],
+            "lineage_state": lineage_state(r),
+            "superseded_by": r.get("superseded_by"),
+            "superseded_at": r["superseded_at"].isoformat() if r.get("superseded_at") else None,
+            "created_at": r["created_at"].isoformat() if r.get("created_at") else None,
+        }
+
+    return {
+        "deed_id": deed_id,
+        "lineage_state": lineage_state(row),
+        "chain": [shape(r) for r in forward],
+        "supersedes": [shape(r) for r in supersedes],
+        "current_version": shape(forward[-1])["id"] if forward else deed_id,
+    }
+
+
 @router.get("/deeds/{deed_id}/matter")
 def matter_endpoint(deed_id: int, user_id: int = Depends(get_current_user_id)):
     """T-4 — the other documents on this file.
