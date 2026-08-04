@@ -36,6 +36,13 @@ export interface DttBreakdown {
   cityRateUnknown?: boolean;
   /** The place whose rate is unknown, for the officer-facing prompt. */
   unknownPlace?: string;
+  /**
+   * T-2a. A high-value bracket applies and we deliberately did NOT
+   * compute a city portion. Carries the measure's NAME and never a rate —
+   * tier schedules move (Measure ULA's thresholds adjust annually) and a
+   * stale number that looks confident is the failure being avoided.
+   */
+  cityTierFlag?: { measure: string; threshold: number; boundaries?: number[] };
 }
 
 export function computeDttBreakdown(value: DTTData | null): DttBreakdown | null {
@@ -48,12 +55,18 @@ export function computeDttBreakdown(value: DTTData | null): DttBreakdown | null 
   let cityTax = 0;
   let cityRateUnknown = false;
   let unknownPlace: string | undefined;
+  let cityTierFlag: DttBreakdown['cityTierFlag'];
 
   // The city portion applies only where the property actually sits in a
   // city. `areaType` remains the officer's statement about the property.
   if (value.areaType === 'city') {
-    const rate = cityDttRate(value.cityName);
-    if (rate.state === 'rated') {
+    const rate = cityDttRate(value.cityName, amount);
+    if (rate.state === 'tiered') {
+      // No city portion computed. The flag is the answer.
+      cityTierFlag = {
+        measure: rate.measure, threshold: rate.threshold, boundaries: rate.boundaries,
+      };
+    } else if (rate.state === 'rated') {
       cityTax = (amount / 1000) * rate.ratePer1000;
     } else if (rate.state === 'unknown') {
       cityRateUnknown = true;
@@ -67,5 +80,6 @@ export function computeDttBreakdown(value: DTTData | null): DttBreakdown | null 
     city: cityTax > 0 ? cityTax.toFixed(2) : null,
     total: (countyTax + cityTax).toFixed(2),
     ...(cityRateUnknown ? { cityRateUnknown, unknownPlace } : {}),
+    ...(cityTierFlag ? { cityTierFlag } : {}),
   };
 }

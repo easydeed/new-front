@@ -152,15 +152,40 @@ def test_entity_slot_is_absent_for_ordinary_deeds():
 # ── One rates source ─────────────────────────────────────────────────
 
 def _registry_places():
-    """Parse the TS registry. T-2 moved the rates out of dttCalc.ts and
-    into lib/jurisdictions.ts, so the mirror reads the registry."""
+    """Parse the TS registry.
+
+    T-2a: entries became multi-line and gained `tieredAbove` and `source`,
+    so the flat one-line regex this used no longer matches. Walk each
+    object's braces instead of pattern-matching a formatting choice — the
+    pin is about the FACTS in the registry, not how prettier wrapped them.
+    """
     src = (BACKEND.parent / "frontend/src/lib/jurisdictions.ts").read_text(encoding="utf-8")
+    block = src[src.index("export const PLACES"):src.index("/**\n * Normalize for comparison")]
     out = []
-    for city, county, inc, rate in re.findall(
-            r"\{ city: '([^']+)', county: '([^']+)', incorporated: (true|false), "
-            r"dttRatePer1000: ([\d.]+|null) \}", src):
-        out.append((city, county, inc == "true",
-                    None if rate == "null" else float(rate)))
+    for m in re.finditer(r"city: '([^']+)'", block):
+        obj_start = block.rfind("{", 0, m.start())
+        depth, i = 0, obj_start
+        while i < len(block):
+            if block[i] == "{":
+                depth += 1
+            elif block[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    break
+            i += 1
+        txt = block[obj_start:i + 1]
+
+        def fld(name, pat):
+            mm = re.search(name + r":\s*" + pat, txt)
+            return mm.group(1) if mm else None
+
+        rate = fld("dttRatePer1000", r"([\d._]+|null)")
+        out.append((
+            m.group(1),
+            fld("county", r"'([^']+)'"),
+            fld("incorporated", r"(true|false)") == "true",
+            None if rate in (None, "null") else float(rate.replace("_", "")),
+        ))
     return out
 
 
@@ -169,13 +194,9 @@ def test_backend_rates_mirror_the_officer_facing_calculator():
     that differs between the wizard and the API is a number headed for a
     legal declaration under two different values.
 
-    T-2 REWROTE THIS PIN. It used to parse dttCalc.ts for a literal city
-    array, an if/else chain of `cityLower.includes(...)` branches, and a
-    trailing `else` default rate — i.e. it asserted the SHAPE of the old
-    substring matcher. That matcher is the defect this ticket removed (it
-    charged South San Francisco the City of San Francisco's rate), so a
-    pin shaped like it could not survive the fix. It compares the two
-    REGISTRIES now, which is the property it always meant to protect.
+    T-2 rewrote this pin (it used to assert the SHAPE of the substring
+    matcher that ticket removed). T-2a widened its parser when the rows
+    gained tier and source fields.
     """
     from services.jurisdictions import PLACES
 
@@ -183,6 +204,46 @@ def test_backend_rates_mirror_the_officer_facing_calculator():
     py = [(p.city, p.county, p.incorporated, p.dtt_rate_per_1000) for p in PLACES]
     assert py == ts, "the registries disagree — one surface would declare a different tax"
     assert COUNTY_RATE_PER_1000 == 1.10
+
+
+def test_the_la_county_set_is_closed_at_five():
+    """T-2a owner sign-off. Every LA County row is an affirmative fact —
+    a rate or a verified zero — never an unknown, because 'not among the
+    five' is knowledge about this county rather than a gap in it."""
+    from services.jurisdictions import PLACES, city_dtt_rate
+
+    la = [p for p in PLACES if p.county == "Los Angeles"]
+    rated = sorted(p.city for p in la
+                   if p.dtt_rate_per_1000 is not None and p.dtt_rate_per_1000 > 0)
+    assert rated == sorted([
+        "Culver City", "Los Angeles", "Pomona", "Redondo Beach", "Santa Monica"])
+    assert all(p.dtt_rate_per_1000 is not None for p in la), \
+        "an LA County row went back to unknown — the set is closed"
+    # And the three that were wrongly rated $2.20 levy nothing.
+    for city in ("Long Beach", "Inglewood", "Pasadena"):
+        assert city_dtt_rate(city).state == "none"
+
+
+def test_tiers_are_flagged_and_never_priced():
+    """RULED: name the measure, state no rate. Measure ULA's thresholds
+    adjust annually — a compiled-in rate goes stale while still printing a
+    confident number, and understating a City of LA transfer by ULA's
+    margin is the failure being avoided."""
+    from services.jurisdictions import city_dtt_rate as rate_of
+
+    low = rate_of("Los Angeles", 1_000_000)
+    assert low.state == "rated" and low.rate_per_1000 == 4.50
+
+    high = rate_of("Los Angeles", 6_000_000)
+    assert high.state == "tiered"
+    assert high.measure == "Measure ULA"
+    assert high.rate_per_1000 is None, "the flag must never carry a rate"
+
+    d = compute_dtt(6_000_000, "Los Angeles")
+    assert d["city_tax"] == 0.0, "no city portion may be computed above the tier"
+    assert d["city_tier_measure"] == "Measure ULA"
+    # The county portion does not tier and is still computed.
+    assert d["county_tax"] == 6600.0
 
 
 def test_there_is_no_generic_fallback_city_rate():
@@ -254,6 +315,10 @@ def test_known_city_rates():
     assert city_rate_per_1000("Los Angeles") == 4.50
     assert city_rate_per_1000("San Francisco") == 7.50
     assert city_rate_per_1000("Oakland") == 15.00
-    assert city_rate_per_1000("Pasadena") == 2.20
+    # T-2a: Pasadena was $2.20 here and levies NOTHING (owner sign-off,
+    # PCT chart). Pomona is the surviving $2.20 city.
+    assert city_rate_per_1000("Pasadena") is None
+    assert city_rate_per_1000("Pomona") == 2.20
+    assert city_rate_per_1000("Santa Monica") == 3.00
     # County portion alone on a $500k transfer.
     assert compute_dtt(500_000, None)["total_tax"] == 550.0

@@ -347,6 +347,27 @@ export function TransferTaxSection({
                   produced for South San Francisco — it just costs the
                   other party. Amber, because it is a real value the
                   officer must not take at face value. */}
+              {/* T-2a — the tiered high-value bracket, FLAGGED not computed.
+                  Measure ULA's thresholds adjust annually; Measure GS and
+                  Measure RE have their own brackets. A rate compiled into
+                  the registry would go stale silently while still printing
+                  a confident number, and understating a City of LA
+                  transfer by ULA's margin (base 0.45% against 4%) is the
+                  failure being avoided. So: name the measure, state no
+                  rate, compute no city portion. */}
+              {dttBreakdown.cityTierFlag && (
+                <div className="mt-2 ml-7 p-2.5 rounded-md border border-amber-300 bg-amber-50 text-sm text-amber-900">
+                  <span className="font-semibold">
+                    High-value transfer — tiered city tax applies
+                    {' '}({dttBreakdown.cityTierFlag.measure}).
+                  </span>{' '}
+                  Verify the current schedule and enter the city portion
+                  manually. No city amount is computed above $
+                  {dttBreakdown.cityTierFlag.threshold.toLocaleString()} —
+                  these tiers change, and a stale figure here would be worse
+                  than none.
+                </div>
+              )}
               {dttBreakdown.cityRateUnknown && (
                 <div className="mt-2 ml-7 p-2.5 rounded-md border border-amber-300 bg-amber-50 text-sm text-amber-900">
                   <span className="font-semibold">

@@ -65,9 +65,12 @@ describe('DTT rates — one source across the wire', () => {
       path.join(__dirname, '..', '..', '..', 'backend', 'services', 'jurisdictions.py'),
       'utf8'
     );
+    // T-2a: Place() gained tier + source fields, so match the first four
+    // positional args and stop — the pin is about rates, not arity.
     const pyRated = [...pyReg.matchAll(
-      /Place\("([^"]+)",\s*"[^"]+",\s*(?:True|False),\s*([\d.]+)\)/g
-    )].filter((m) => parseFloat(m[2]) > 0).map((m) => m[1].toLowerCase());
+      /Place\("([^"]+)",\s*"[^"]+",\s*(?:True|False),\s*([\d.]+|None),/g
+    )].filter((m) => m[2] !== 'None' && parseFloat(m[2]) > 0)
+      .map((m) => m[1].toLowerCase());
     expect(pyRated.sort()).toEqual([...CITIES_WITH_OWN_DTT].sort());
   });
 
@@ -86,9 +89,11 @@ describe('DTT rates — one source across the wire', () => {
     // dict literal that no longer exists.
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { cityDttRate } = require('@/lib/jurisdictions');
+    // T-2a corrected two of these and zeroed a third. Pasadena was $2.20
+    // here and levies nothing; Santa Monica and Culver City moved.
     for (const [city, rate] of [
       ['Los Angeles', 4.5], ['San Francisco', 7.5], ['Oakland', 15.0],
-      ['Pasadena', 2.2],
+      ['Santa Monica', 3.0], ['Culver City', 4.5], ['Pomona', 2.2],
     ] as Array<[string, number]>) {
       const r = cityDttRate(city);
       expect(r.state).toBe('rated');
@@ -137,7 +142,7 @@ describe('T-2 — the jurisdictions registry is mirrored element for element', (
   const { PLACES } = require('@/lib/jurisdictions');
 
   const pyPlaces = [...pyReg.matchAll(
-    /Place\("([^"]+)",\s*"([^"]+)",\s*(True|False),\s*([\d.]+|None)\)/g
+    /Place\("([^"]+)",\s*"([^"]+)",\s*(True|False),\s*([\d.]+|None),/g
   )].map((m) => ({
     city: m[1],
     county: m[2],
@@ -171,6 +176,11 @@ describe('T-2 — the jurisdictions registry is mirrored element for element', (
     expect(unknowns.length).toBeGreaterThan(0);
     expect(zeros).toContain('East Los Angeles');
     expect(unknowns).not.toContain('East Los Angeles');
+    // T-2a: the sign-off moved LA County rows from unknown to affirmative
+    // zero. Non-LA rows must NOT have crossed with them.
+    expect(zeros).toContain('Long Beach');
+    expect(unknowns).toContain('South San Francisco');
+    expect(unknowns).toContain('Palo Alto');
   });
 
   it('the backend refuses to guess for a place it does not hold', () => {
