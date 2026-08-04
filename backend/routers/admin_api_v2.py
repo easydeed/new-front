@@ -243,6 +243,135 @@ def export_deeds_csv(admin=Depends(get_current_admin)):
                     headers={"Content-Disposition": "attachment; filename=deeds.csv"})
 
 # ============================================================================
+# ADMIN3 — the email ledger, readable
+# ============================================================================
+#
+# Persistence without a reader is the defect this ticket exists to kill,
+# in a new costume: /admin/dashboard computed a 7-day activity feed for
+# three phases and no screen rendered it, so it may as well not have run.
+# A transport log nobody can open answers the 3 AM question exactly as
+# well as the stdout it replaced.
+
+EMAIL_SORTS: Dict[str, str] = {
+    "newest": "created_at DESC",
+    "oldest": "created_at ASC",
+}
+
+
+@router.get("/emails")
+def admin_email_log(
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=200),
+    status: Optional[str] = Query(None, description="sent|failed"),
+    template: Optional[str] = None,
+    search: Optional[str] = Query(None, description="recipient substring"),
+    sort: Optional[str] = None,
+    admin=Depends(get_current_admin),
+):
+    """Every send attempt we managed to record, newest first."""
+    order_sql = _order_by(EMAIL_SORTS, sort)
+    offset = (page - 1) * limit
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            where, params = [], []
+            if status:
+                if status.lower() not in ("sent", "failed"):
+                    raise HTTPException(status_code=400, detail="status must be sent or failed")
+                where.append("status = %s")
+                params.append(status.lower())
+            if template:
+                where.append("template = %s")
+                params.append(template)
+            if search:
+                where.append("LOWER(recipient) LIKE %s")
+                params.append(f"%{search.lower()}%")
+            where_sql = f"WHERE {' AND '.join(where)}" if where else ""
+
+            cur.execute(f"SELECT COUNT(*) AS count FROM email_log {where_sql}", params)
+            total = cur.fetchone()["count"]
+
+            cur.execute(f"""
+                SELECT id, template, recipient, subject, status, reason,
+                       user_id, context, created_at
+                FROM email_log
+                {where_sql}
+                ORDER BY {order_sql}
+                LIMIT %s OFFSET %s
+            """, params + [limit, offset])
+            rows = cur.fetchall()
+    finally:
+        conn.close()
+
+    return {"page": page, "limit": limit, "total": total,
+            "sort": (sort or DEFAULT_SORT).lower(), "items": rows}
+
+
+@router.get("/emails/stats")
+def admin_email_stats(days: int = Query(7, ge=1, le=90),
+                      admin=Depends(get_current_admin)):
+    """Sent/failed counts over a window, plus what actually went wrong.
+
+    `failures_by_reason` is the part worth having. A count of failures
+    tells an operator that something is broken; the S1 reason string
+    tells them it is an unverified sender identity, which is a fix
+    rather than an investigation.
+    """
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT COUNT(*) FILTER (WHERE status = 'sent')   AS sent,
+                       COUNT(*) FILTER (WHERE status = 'failed') AS failed,
+                       COUNT(*)                                  AS total,
+                       MIN(created_at)                           AS first_recorded
+                FROM email_log
+                WHERE created_at >= NOW() - (%s || ' days')::interval
+            """, (days,))
+            totals = cur.fetchone()
+
+            cur.execute("""
+                SELECT template,
+                       COUNT(*) FILTER (WHERE status = 'sent')   AS sent,
+                       COUNT(*) FILTER (WHERE status = 'failed') AS failed
+                FROM email_log
+                WHERE created_at >= NOW() - (%s || ' days')::interval
+                GROUP BY template
+                ORDER BY COUNT(*) DESC
+            """, (days,))
+            by_template = cur.fetchall()
+
+            cur.execute("""
+                SELECT reason, COUNT(*) AS count
+                FROM email_log
+                WHERE status = 'failed' AND reason IS NOT NULL
+                  AND created_at >= NOW() - (%s || ' days')::interval
+                GROUP BY reason
+                ORDER BY COUNT(*) DESC
+                LIMIT 10
+            """, (days,))
+            failures_by_reason = cur.fetchall()
+
+            # The window's oldest row overall — so the UI can say "we
+            # have only been recording since X" instead of letting a
+            # young table read as a quiet one.
+            cur.execute("SELECT MIN(created_at) AS since FROM email_log")
+            since = cur.fetchone()["since"]
+    finally:
+        conn.close()
+
+    return {
+        "window_days": days,
+        "sent": totals["sent"] or 0,
+        "failed": totals["failed"] or 0,
+        "total": totals["total"] or 0,
+        "recording_since": since.isoformat() if since else None,
+        "by_template": by_template,
+        "failures_by_reason": failures_by_reason,
+    }
+
+
+# ============================================================================
 # PHASE 12-3: USER CRUD OPERATIONS
 # ============================================================================
 

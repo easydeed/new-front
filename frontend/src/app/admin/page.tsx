@@ -8,6 +8,7 @@ import VerificationTab from './components/VerificationTab';
 import RevenueTab from './components/RevenueTab';
 import SystemTab from './components/SystemTab';
 import ApiTab from './components/ApiTab';
+import EmailsTab from './components/EmailsTab';
 import { FEATURE_FLAGS } from '@/config/featureFlags';
 import './styles/tokens.css';
 import './styles/admin-honest.css';
@@ -50,6 +51,13 @@ const TABS: Record<string, { title: string; description: string; component: () =
     title: 'API',
     description: 'Partner API keys, usage, and access inquiries',
     component: () => <ApiTab/>
+  },
+  // ADMIN3: eleven templates whose outcomes were printed and discarded.
+  // The transport is observable for the first time.
+  emails: {
+    title: 'Emails',
+    description: 'Every send attempt, and why the failures failed',
+    component: () => <EmailsTab/>
   },
 };
 

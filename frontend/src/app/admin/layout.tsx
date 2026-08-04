@@ -63,6 +63,12 @@ const Icons = {
       <line x1="21" y1="12" x2="9" y2="12"/>
     </svg>
   ),
+  Mail: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="2" y="4" width="20" height="16" rx="2"/>
+      <polyline points="2,7 12,13 22,7"/>
+    </svg>
+  ),
   Home: () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -81,6 +87,8 @@ const NAV_ITEMS = [
   // A3: reachable at last — the key admin screens existed but nothing
   // linked to them, so they could only be found by typing a URL.
   { id: 'api', label: 'API', icon: Icons.Plug, href: '/admin?tab=api' },
+  // ADMIN3: the transport ledger. Linked, not URL-only — the A3 lesson.
+  { id: 'emails', label: 'Emails', icon: Icons.Mail, href: '/admin?tab=emails' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

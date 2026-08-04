@@ -63,9 +63,16 @@ def test_request_table_is_in_the_schema_authority():
 
 
 def test_the_ops_email_uses_the_one_transport():
+    """ADMIN3: same deliberate correction as in test_email_system — this
+    matched the literal transport call inside the sender, so it broke
+    when a recording step was inserted in front of the transport without
+    changing anything it meant to protect. The property is that this
+    sender reaches the ONE transport; it now does so through the choke
+    point, which is where the outcome gets persisted."""
     from utils import notifications
     src = inspect.getsource(notifications.notify_api_key_request)
-    assert "send_email_with_reason" in src
+    assert '_send("admin_api_key_request"' in src
+    assert "send_email_with_reason" in inspect.getsource(notifications._send)
 
 
 # ── End to end (live DB) ─────────────────────────────────────────────

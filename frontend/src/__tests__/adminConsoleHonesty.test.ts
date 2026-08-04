@@ -165,6 +165,59 @@ describe('search says which of its three states it is in', () => {
   }
 });
 
+describe('ADMIN3 — the email ledger states what it can and cannot know', () => {
+  const src = readAdmin('components', 'EmailsTab.tsx');
+
+  it('says recording is best-effort rather than implying completeness', () => {
+    // The recorder must never break a send, so it swallows its own
+    // failures. A screen built on a best-effort log that presents itself
+    // as complete is a fabricated success one level up.
+    expect(src).toContain('not a proof of');
+    expect(src).toContain('completeness');
+  });
+
+  it('states when recording began', () => {
+    // Without this a table created yesterday reads exactly like a quiet
+    // month, and "0 failures" over a window that predates the log is not
+    // a clean bill of health.
+    expect(src).toContain('recording_since');
+    expect(src).toContain('Recording began');
+  });
+
+  it('surfaces WHY sends failed, not just how many', () => {
+    expect(src).toContain('failures_by_reason');
+    expect(src).toContain('Why sends failed');
+  });
+
+  it('renders an em-dash, not a zero, when stats are unavailable', () => {
+    const code = withoutComments(src);
+    expect(code).not.toMatch(/stats\?\.\w+\s*\?\?\s*0/);
+    expect(code).toContain("stats?.sent ?? '—'");
+    expect(code).toContain('Not shown as zero');
+  });
+
+  it('does not compute a delivery rate out of nothing', () => {
+    // 0/0 renders as NaN% or, worse, 100%. An unattempted window has no
+    // rate, and saying so beats inventing one.
+    expect(src).toMatch(/stats && stats\.total > 0/);
+    expect(src).toContain('no attempts recorded');
+  });
+
+  it('distinguishes a failed request from an empty log', () => {
+    expect(src).toContain('not an empty log');
+  });
+
+  it('is reachable from the sidebar, not only by URL', () => {
+    // The A3 lesson: the API screens existed for months and nothing
+    // linked to them, so they could only be found by typing a URL.
+    const layout = readAdmin('layout.tsx');
+    expect(layout).toContain("id: 'emails'");
+    expect(layout).toContain('/admin?tab=emails');
+    const page = readAdmin('page.tsx');
+    expect(page).toContain('emails: {');
+  });
+});
+
 describe('the lists state their sort', () => {
   it('the sort options mirror the server allowlist', () => {
     const client = fs.readFileSync(

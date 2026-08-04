@@ -259,6 +259,47 @@ def create_tables():
                 created_at TIMESTAMPTZ DEFAULT now()
             )""",
             "CREATE INDEX IF NOT EXISTS idx_api_key_requests_status ON api_key_requests(status, created_at)",
+            # ── ADMIN3: the transport ledger ─────────────────────────────
+            # Eleven email templates. Ten of their outcomes were printed
+            # to stdout and discarded; only api_key_requests persisted
+            # one (notified_at / notify_error), and it did so because
+            # that table IS a queue somebody has to work.
+            #
+            # The consequence is the 3 AM question nobody could answer:
+            # a customer says "I never got the approval email" and the
+            # only record is a log line on a container that has since
+            # restarted. Render keeps stdout for a while; "a while" is
+            # not an answer to "did we send it, and what did SendGrid
+            # say?"
+            #
+            # One row per ATTEMPT, written at the single choke point
+            # every template already passes through (utils/notifications
+            # ._send). `reason` is the S1 diagnosis string — the same
+            # actionable text that already reaches the logs, e.g. "from
+            # address does not match a verified Sender Identity" — kept
+            # rather than reduced to a boolean, because the boolean was
+            # never the part anybody needed.
+            #
+            # `recipient` is stored in full, deliberately. ADMIN4's
+            # ruling masks personal fields in the AUDIT log, where the
+            # value is evidence about an admin's action. Here the
+            # address IS the operational fact: "did jane@escrow.com get
+            # it" cannot be answered against a mask.
+            """CREATE TABLE IF NOT EXISTS email_log (
+                id BIGSERIAL PRIMARY KEY,
+                template VARCHAR(64) NOT NULL,
+                recipient TEXT NOT NULL,
+                subject TEXT,
+                status VARCHAR(10) NOT NULL,
+                reason TEXT,
+                user_id INTEGER,
+                context JSONB,
+                created_at TIMESTAMPTZ DEFAULT now()
+            )""",
+            "CREATE INDEX IF NOT EXISTS idx_email_log_created ON email_log(created_at DESC)",
+            "CREATE INDEX IF NOT EXISTS idx_email_log_status ON email_log(status, created_at DESC)",
+            "CREATE INDEX IF NOT EXISTS idx_email_log_template ON email_log(template, created_at DESC)",
+            "CREATE INDEX IF NOT EXISTS idx_email_log_recipient ON email_log(LOWER(recipient))",
             """CREATE TABLE IF NOT EXISTS api_rate_limits (
                 id SERIAL PRIMARY KEY,
                 api_key_id UUID,
