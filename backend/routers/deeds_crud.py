@@ -601,6 +601,51 @@ def _pcor_deed_row(deed_id: int, user_id: int) -> dict:
     return dict(deed)
 
 
+@router.get("/deeds/{deed_id}/matter")
+def matter_endpoint(deed_id: int, user_id: int = Depends(get_current_user_id)):
+    """T-4 — the other documents on this file.
+
+    v1 threads by escrow number (then title order), which the builder has
+    collected and persisted since T2 and nothing has ever grouped by. No
+    schema change: the proper `matters` table waits until this proves the
+    workflow.
+    """
+    from services.matters import carry_forward, matter_key, party_names
+
+    row = _pcor_deed_row(deed_id, user_id)
+    key = matter_key(row)
+    if key is None:
+        return {"grouped": False,
+                "reason": "This document has no escrow or title order number, "
+                          "so there is nothing to group it by."}
+
+    kind, value = key
+    with db.conn.cursor() as cur:
+        cur.execute(f"""
+            SELECT id, deed_type, status, property_address, apn,
+                   grantor_name, grantee_name, parties, created_at
+            FROM deeds
+            WHERE user_id = %s AND id <> %s AND status <> 'deleted'
+              AND metadata->>%s = %s
+            ORDER BY created_at DESC
+        """, (row.get("user_id"), deed_id, kind, value))
+        siblings = [dict(r) for r in cur.fetchall()]
+
+    return {
+        "grouped": True,
+        "key": {"kind": kind, "value": value},
+        "documents": [{
+            "id": s_["id"],
+            "deed_type": s_["deed_type"],
+            "status": s_["status"],
+            "property_address": s_["property_address"],
+            "created_at": s_["created_at"].isoformat() if s_.get("created_at") else None,
+            "parties": party_names(s_),
+        } for s_ in siblings],
+        "carry_forward": carry_forward(row),
+    }
+
+
 @router.get("/deeds/{deed_id}/death-statement")
 def death_statement_status_endpoint(deed_id: int, user_id: int = Depends(get_current_user_id)):
     """T-3b — the BOE-502-D's availability and remaining asks.
