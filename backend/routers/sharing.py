@@ -32,6 +32,29 @@ class ApprovalResponse(BaseModel):
     approved: bool
     comments: Optional[str] = None
 
+
+def _valid_token_or_404(approval_token: str) -> str:
+    """`deed_shares.token` is a UUID column, so a malformed token is not
+    a miss — it is a TYPE ERROR from Postgres.
+
+    Found while pinning the pdf_data defect: every one of the three
+    public /approve/{token} endpoints passed the raw path segment
+    straight into `WHERE ds.token = %s`, and anything that is not a UUID
+    raised InvalidTextRepresentation. On the SHARED connection, that
+    aborts the transaction and Postgres then refuses every later query on
+    it — the same one-request poisoning the missing column caused, from
+    the same public URLs, reachable by typing nonsense after /approve/.
+
+    A malformed token cannot match any share, so 404 is both the correct
+    answer and the one that never touches the database.
+    """
+    import uuid
+    try:
+        uuid.UUID(approval_token)
+    except (ValueError, AttributeError, TypeError):
+        raise HTTPException(status_code=404, detail="Share not found")
+    return approval_token
+
 # Shared Deeds endpoints
 @router.post("/shared-deeds")
 def share_deed_for_approval(share_data: ShareDeedCreate, user_id: int = Depends(get_current_user_id)):
@@ -64,6 +87,15 @@ def share_deed_for_approval(share_data: ShareDeedCreate, user_id: int = Depends(
             if deed_row:
                 deed_type = deed_row[0] or deed_type
     except Exception as db_error:
+        # RED-H1.2b: rollback FIRST. Without it a failed statement leaves
+        # the shared transaction aborted and Postgres refuses every later
+        # query on that connection — one bad request breaks the next
+        # user's. Eight handlers in this file already did this; seven did
+        # not, and the half-applied pattern is what made it invisible.
+        try:
+            db.conn.rollback()
+        except Exception:
+            pass
         print(f"[Phase 7] Warning: Could not fetch owner/deed details: {db_error}")
 
     # Generate approval URL
@@ -417,6 +449,7 @@ def get_shared_deed_feedback(shared_deed_id: int, user_id: int = Depends(get_cur
 @router.get("/approve/{approval_token}")
 def view_shared_deed(approval_token: str):
     """Public endpoint for recipients to view shared deed - Enhanced with view tracking"""
+    approval_token = _valid_token_or_404(approval_token)
     if not db.conn:
         raise HTTPException(status_code=500, detail="Database connection unavailable")
 
@@ -499,6 +532,15 @@ def view_shared_deed(approval_token: str):
                     status = 'viewed'
                     print(f"[Sharing] ✅ First view tracked for share {share_id}")
                 except Exception as view_err:
+                    # RED-H1.2b: rollback FIRST. Without it a failed statement leaves
+                    # the shared transaction aborted and Postgres refuses every later
+                    # query on that connection — one bad request breaks the next
+                    # user's. Eight handlers in this file already did this; seven did
+                    # not, and the half-applied pattern is what made it invisible.
+                    try:
+                        db.conn.rollback()
+                    except Exception:
+                        pass
                     # Non-blocking - viewed_at column may not exist
                     print(f"[Sharing] ⚠️ Could not track view: {view_err}")
 
@@ -534,6 +576,7 @@ def view_shared_deed(approval_token: str):
 @router.post("/approve/{approval_token}")
 def submit_approval_response(approval_token: str, response: ApprovalResponse):
     """Submit approval or rejection response - REJECTION BUNDLE: Enhanced with feedback, email, and notifications"""
+    approval_token = _valid_token_or_404(approval_token)
     if not db.conn:
         raise HTTPException(status_code=500, detail="Database connection unavailable")
 
@@ -726,6 +769,15 @@ def submit_approval_response(approval_token: str, response: ApprovalResponse):
     except HTTPException:
         raise
     except Exception as e:
+        # RED-H1.2b: rollback FIRST. Without it a failed statement leaves
+        # the shared transaction aborted and Postgres refuses every later
+        # query on that connection — one bad request breaks the next
+        # user's. Eight handlers in this file already did this; seven did
+        # not, and the half-applied pattern is what made it invisible.
+        try:
+            db.conn.rollback()
+        except Exception:
+            pass
         print(f"[REJECTION BUNDLE] ❌ Error: {e}")
         import traceback
         traceback.print_exc()
@@ -738,6 +790,7 @@ def get_shared_deed_pdf(approval_token: str):
     Get the PDF for a shared deed.
     Requires valid, non-expired token.
     """
+    approval_token = _valid_token_or_404(approval_token)
     from fastapi.responses import Response
     from datetime import timezone
 
@@ -746,11 +799,34 @@ def get_shared_deed_pdf(approval_token: str):
 
     try:
         with db.conn.cursor() as cur:
+            # THE FIX. This read `d.pdf_data` — a column that does not
+            # exist on `deeds`.
+            #
+            # T2 moved the stored instrument to its own table. `deeds`
+            # kept `pdf_url` and never had `pdf_data`; the only other
+            # `pdf_data` in the schema belongs to `api_deeds`, a
+            # different table for the partner API. So this query did not
+            # return NULL — it raised UndefinedColumn, every single time,
+            # and EVERY review share has been serving a 500 since T2.
+            #
+            # Worse than the broken feature: it runs on the SHARED
+            # connection, and the handler below had no rollback. A failed
+            # statement leaves the transaction aborted, and Postgres then
+            # refuses every later query on that connection —
+            # "current transaction is aborted". That is precisely the
+            # 2026-08-01 outage, except reachable on demand by anyone
+            # holding a share link. Reproduced before fixing.
+            #
+            # LEFT JOIN, not JOIN: a deed with no stored PDF must still
+            # return its row so the pdf_url fallback and the honest 404
+            # below can run. An inner join would report "Share not found"
+            # for a share that plainly exists.
             cur.execute("""
                 SELECT ds.status, ds.expires_at,
-                       d.pdf_data, d.pdf_url, d.deed_type, d.property_address
+                       p.pdf_data, d.pdf_url, d.deed_type, d.property_address
                 FROM deed_shares ds
                 JOIN deeds d ON ds.deed_id = d.id
+                LEFT JOIN deed_pdfs p ON p.deed_id = d.id
                 WHERE ds.token = %s
             """, (approval_token,))
 
@@ -799,5 +875,14 @@ def get_shared_deed_pdf(approval_token: str):
     except HTTPException:
         raise
     except Exception as e:
+        # RED-H1.2b: rollback FIRST. Without it a failed statement leaves
+        # the shared transaction aborted and Postgres refuses every later
+        # query on that connection — one bad request breaks the next
+        # user's. Eight handlers in this file already did this; seven did
+        # not, and the half-applied pattern is what made it invisible.
+        try:
+            db.conn.rollback()
+        except Exception:
+            pass
         print(f"[Sharing] ❌ PDF access error: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve PDF")
