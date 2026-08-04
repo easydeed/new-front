@@ -24,27 +24,11 @@ BACKEND = Path(__file__).resolve().parents[1]
 LIVE_DB = os.getenv("DATABASE_URL")
 
 
-def code_only(src: str) -> str:
-    """Source with docstrings and comments removed.
-
-    Pins that forbid a pattern must read CODE, not prose: the comment
-    explaining why a pattern was removed necessarily contains it, and a
-    naive substring check then fails on its own explanation. (This has
-    now bitten four separate pins in this codebase — see the same helper
-    in the frontend's developerDocs and apiAccessFunnel suites.)
-    """
-    import ast
-    tree = ast.parse(src)
-    for node in ast.walk(tree):
-        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef,
-                             ast.AsyncFunctionDef)):
-            doc = ast.get_docstring(node, clean=False)
-            if doc:
-                src = src.replace(doc, "")
-    return "\n".join(
-        line for line in src.splitlines() if not line.strip().startswith("#")
-    )
-
+# T-3: the local code_only() lives in tests/source_text.py now — this
+# was one of four near-identical copies, and the copies had drifted
+# (one stripped comments but not docstrings, which is how the sixth
+# pin-trip-on-a-comment happened). Owner-ruled consolidation.
+from tests.source_text import code_only
 
 # ── The fabricated-health kill list ──────────────────────────────────
 
