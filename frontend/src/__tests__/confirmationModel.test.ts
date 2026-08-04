@@ -17,10 +17,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { collectCandidateFields, propertyCandidatesRemaining } from '../lib/provenance';
 import type { DeedBuilderState, PropertyData } from '../types/builder';
+import { codeOnly } from '../test-support/sourceText';
 
-function stripComments(source: string): string {
-  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
-}
 
 function readSource(...segments: string[]): string {
   return fs.readFileSync(path.join(__dirname, '..', ...segments), 'utf8');
@@ -74,7 +72,7 @@ describe('U2.1 — the accordion holds until present county fields are confirmed
   });
 
   it('PropertySection guards every auto-advance with the remaining-candidates check', () => {
-    const src = stripComments(
+    const src = codeOnly(
       readSource('components', 'builder', 'sections', 'PropertySection.tsx')
     );
     // Both fetch-success paths and the confirm/edit path advance only
@@ -111,13 +109,13 @@ describe('U2.1 — the gate modal never re-asks a field confirmed inline', () =>
 
 describe('U2.2 — no immortal toasts', () => {
   it('the Toaster renders close buttons and the route-dismiss sentinel is mounted', () => {
-    const layout = stripComments(readSource('app', 'layout.tsx'));
+    const layout = codeOnly(readSource('app', 'layout.tsx'));
     expect(layout).toContain('closeButton');
     expect(layout).toContain('<ToastRouteDismiss />');
   });
 
   it('ToastRouteDismiss dismisses on pathname change only — never on mount', () => {
-    const src = stripComments(readSource('components', 'ToastRouteDismiss.tsx'));
+    const src = codeOnly(readSource('components', 'ToastRouteDismiss.tsx'));
     expect(src).toContain('toast.dismiss()');
     expect(src).toContain('previous.current !== pathname');
   });
@@ -175,7 +173,7 @@ describe('U2.3 — immutability copy carries the correction path', () => {
 
 describe('U2.4 — no placeholder that reads as an entered value', () => {
   it('Transfer Value hints with words, not a plausible dollar amount', () => {
-    const src = stripComments(
+    const src = codeOnly(
       readSource('components', 'builder', 'sections', 'TransferTaxSection.tsx')
     );
     expect(src).not.toMatch(/placeholder="[\d,.]+"/);

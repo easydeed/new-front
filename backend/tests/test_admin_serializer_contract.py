@@ -31,6 +31,7 @@ import json
 import os
 
 import pytest
+from tests.source_text import code_only
 
 LIVE_DB = os.getenv("DATABASE_URL")
 pytestmark = pytest.mark.skipif(not LIVE_DB, reason="live test DB required")
@@ -156,7 +157,7 @@ def test_the_mock_half_of_the_split_is_deleted():
     """The deleted endpoints emitted a per-user monthly_revenue from
     hardcoded prices, `shared_deeds: 0`, and an empty `activity_log`."""
     from pathlib import Path
-    src = (Path(__file__).resolve().parents[1] / "routers/admin_inline.py").read_text()
+    src = code_only(Path(__file__).resolve().parents[1] / "routers/admin_inline.py")
     assert "TODO: Implement activity tracking table" not in src
     assert "TODO: Implement when shared_deeds table exists" not in src
 

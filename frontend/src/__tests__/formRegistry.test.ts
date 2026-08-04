@@ -13,6 +13,7 @@ import * as path from 'path';
 import { FORM_REGISTRY, SITUATION_GROUP_ORDER, formConfig, formFamily, hasVestingInput } from '../lib/formRegistry';
 import { DEED_LABELS, deedTypeLabel } from '../lib/deedTypes';
 import { isAffidavitType } from '../lib/deedValidation';
+import { codeOnly } from '../test-support/sourceText';
 
 function readSource(...segments: string[]): string {
   return fs.readFileSync(path.join(__dirname, '..', ...segments), 'utf8');
@@ -121,9 +122,7 @@ describe('FORMS registry — completeness and coherence', () => {
   it('a registry entry cannot smuggle a legal choice (no auto-apply field)', () => {
     // Strip comments first — the doctrine note ABOUT auto-apply must not
     // trip the scan for auto-apply code (the stripComments lesson).
-    const src = readSource('lib', 'formRegistry.ts')
-      .replace(/\/\*[\s\S]*?\*\//g, '')
-      .replace(/\/\/[^\n]*/g, '');
+    const src = codeOnly(readSource('lib', 'formRegistry.ts'));
     expect(src).not.toMatch(/auto[_-]?apply/i);
     for (const f of Object.values(FORM_REGISTRY)) {
       expect(Object.keys(f)).not.toContain('autoApply');

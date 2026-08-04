@@ -28,6 +28,7 @@
 import { describe, expect, it } from '@jest/globals';
 import * as fs from 'fs';
 import * as path from 'path';
+import { codeOnly } from '../test-support/sourceText';
 
 const ADMIN = path.join(__dirname, '..', 'app', 'admin');
 const TOKENS = path.join(ADMIN, 'styles', 'tokens.css');
@@ -43,7 +44,7 @@ function adminFiles(dir = ADMIN, acc: string[] = []): string[] {
 }
 
 function withoutComments(src: string): string {
-  return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  return codeOnly(src);
 }
 
 const FILES = adminFiles().map((f) => [path.relative(ADMIN, f), fs.readFileSync(f, 'utf8')] as const);

@@ -14,6 +14,7 @@ import os
 from unittest.mock import patch
 
 import pytest
+from tests.source_text import code_only
 
 LIVE_DB = os.getenv("DATABASE_URL")
 
@@ -58,7 +59,7 @@ def test_admin_queue_requires_admin():
 
 def test_request_table_is_in_the_schema_authority():
     from pathlib import Path
-    schema = (Path(__file__).resolve().parents[1] / "database.py").read_text(encoding="utf-8")
+    schema = code_only(Path(__file__).resolve().parents[1] / "database.py")
     assert "CREATE TABLE IF NOT EXISTS api_key_requests" in schema
 
 

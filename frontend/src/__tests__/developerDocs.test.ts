@@ -9,6 +9,7 @@
 import { describe, expect, it } from '@jest/globals';
 import * as fs from 'fs';
 import * as path from 'path';
+import { codeOnly } from '../test-support/sourceText';
 
 const page = fs.readFileSync(
   path.join(__dirname, '..', 'app', 'developers', 'page.tsx'), 'utf8'
@@ -36,10 +37,7 @@ const openapi = JSON.parse(fs.readFileSync(
  * explanation.
  */
 function withoutComments(src: string) {
-  return src
-    .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')  // JSX comments
-    .replace(/\/\*[\s\S]*?\*\//g, '')       // block comments
-    .replace(/^\s*\/\/.*$/gm, '');          // line comments
+  return codeOnly(src);
 }
 
 import { API_DEED_TYPES, HELD_FAMILIES } from '@/lib/apiDocs';

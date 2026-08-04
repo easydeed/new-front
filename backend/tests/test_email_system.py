@@ -40,6 +40,7 @@ from pathlib import Path
 import pytest
 
 from utils import email_templates
+from tests.source_text import code_only
 
 BACKEND = Path(__file__).resolve().parents[1]
 SNAP_DIR = Path(__file__).resolve().parent / "snapshots" / "emails"
@@ -136,7 +137,7 @@ def test_forbidden_strings_not_in_sender_source():
     for rel in ["utils/email_templates.py", "utils/notifications.py",
                 "utils/email.py", "routers/sharing.py", "routers/auth_extra.py",
                 "routers/deeds_crud.py", "routers/users_auth.py"]:
-        src = (BACKEND / rel).read_text(encoding="utf-8").lower()
+        src = code_only(BACKEND / rel).lower()
         for phrase in FORBIDDEN:
             assert phrase.lower() not in src, f"{rel} contains removed-for-cause copy: {phrase!r}"
 
@@ -172,7 +173,7 @@ def test_bodies_never_carry_full_address_or_legal_description():
     for name, (subject, html, text) in _samples().items():
         for part in (html, text):
             assert "Los Angeles, CA 90001" not in part, f"{name}: full address in body"
-    src = (BACKEND / "utils/email_templates.py").read_text(encoding="utf-8")
+    src = code_only(BACKEND / "utils/email_templates.py")
     assert "legal_description" not in src, "templates must never touch legal descriptions"
 
 
@@ -190,7 +191,7 @@ def test_sendgrid_client_touched_only_by_the_one_transport():
     for path in BACKEND.rglob("*.py"):
         if "tests" in path.parts or path.name == "email.py":
             continue
-        if "SendGridAPIClient" in path.read_text(encoding="utf-8", errors="ignore"):
+        if "SendGridAPIClient" in code_only(path.read_text(encoding="utf-8", errors="ignore")):
             offenders.append(str(path.relative_to(BACKEND)))
     assert offenders == [], f"second transport detected: {offenders}"
 

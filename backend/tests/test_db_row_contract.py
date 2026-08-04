@@ -22,6 +22,7 @@ import re
 from pathlib import Path
 
 import pytest
+from tests.source_text import code_only
 
 BACKEND = Path(__file__).resolve().parents[1]
 SKIP_DIRS = {"tests", "migrations", "scripts", "__pycache__"}
@@ -41,7 +42,7 @@ def test_exactly_one_row_factory_is_declared():
     for path in _source_files():
         if path.name == "db_rows.py":
             continue
-        src = path.read_text(encoding="utf-8", errors="ignore")
+        src = code_only(path.read_text(encoding="utf-8", errors="ignore"))
         if "cursor_factory=" in src and "ROW_FACTORY" not in src:
             offenders.append(str(path.relative_to(BACKEND)))
         if re.search(r"cursor_factory\s*=\s*RealDictCursor", src):
@@ -69,7 +70,7 @@ def test_no_third_connection_helper():
     for path in _source_files():
         if path.name in {"database.py", "db.py"}:
             continue
-        src = path.read_text(encoding="utf-8", errors="ignore")
+        src = code_only(path.read_text(encoding="utf-8", errors="ignore"))
         if re.search(r"^def get_db_connection\(", src, re.M):
             definers.append(str(path.relative_to(BACKEND)))
     assert definers == [], f"additional connection helpers: {definers}"
@@ -162,7 +163,7 @@ def test_rows_are_never_returned_raw_from_an_endpoint():
     that the original pattern list missed."""
     offenders = []
     for path in (BACKEND / "routers").rglob("*.py"):
-        src = path.read_text(encoding="utf-8", errors="ignore")
+        src = code_only(path.read_text(encoding="utf-8", errors="ignore"))
         for pattern in [r"return\s+cur(?:sor)?\.fetch(?:one|all)\(\)",
                         r"return\s+\[?\s*dict\(r\)\s+for", ]:
             if re.search(pattern, src):

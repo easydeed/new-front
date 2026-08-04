@@ -8,12 +8,13 @@ everywhere.
 import inspect
 import re
 from pathlib import Path
+from tests.source_text import code_only
 
 BACKEND = Path(__file__).resolve().parents[1]
 
 
 def _router_src():
-    return (BACKEND / "routers/api_v1/router.py").read_text(encoding="utf-8")
+    return code_only(BACKEND / "routers/api_v1/router.py")
 
 
 # ── The two defects that shipped and never ran ───────────────────────
@@ -61,7 +62,7 @@ def test_create_accepts_and_replays_idempotency_key():
     src = _router_src()
     assert 'alias="Idempotency-Key"' in src
     assert "WHERE api_key_id = %s AND idempotency_key = %s" in src
-    schema = (BACKEND / "database.py").read_text(encoding="utf-8")
+    schema = code_only(BACKEND / "database.py")
     assert "uq_api_deeds_idempotency" in schema, "replay needs the unique index"
 
 
@@ -70,7 +71,7 @@ def test_create_accepts_and_replays_idempotency_key():
 def test_api_tables_live_in_the_schema_authority():
     """The mounted /api/v1 depended on tables that existed only in
     hand-run migration files. H1: create_tables is the one authority."""
-    schema = (BACKEND / "database.py").read_text(encoding="utf-8")
+    schema = code_only(BACKEND / "database.py")
     for table in ["api_keys", "api_deeds", "api_usage_log", "api_rate_limits",
                   "document_authenticity", "notifications", "user_notifications"]:
         assert f"CREATE TABLE IF NOT EXISTS {table}" in schema, table
@@ -80,7 +81,7 @@ def test_lock_taking_ddl_is_guarded():
     """Schema convergence runs in a daemon thread while the app serves
     traffic. Unguarded ALTERs on FK-referenced tables take ACCESS
     EXCLUSIVE and deadlock against in-flight requests."""
-    schema = (BACKEND / "database.py").read_text(encoding="utf-8")
+    schema = code_only(BACKEND / "database.py")
     assert "ALTER TABLE api_keys ALTER COLUMN company DROP NOT NULL;" in schema
     assert "is_nullable = 'NO'" in schema, "the DROP NOT NULL must stay guarded"
 
