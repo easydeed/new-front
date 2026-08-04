@@ -24,34 +24,26 @@ any city at all, which invented tax for cities that levy none.
 """
 from typing import Optional, TypedDict
 
+from services.jurisdictions import PLACES as _PLACES, city_dtt_rate
+
 COUNTY_RATE_PER_1000 = 1.10
 
-# Cities with their own documentary transfer tax (order mirrors dttCalc.ts).
+# T-2: the city table and its matching moved to services/jurisdictions.py.
+# This module computes; the registry knows places. What lived here was a
+# flat name list matched with `if known in lowered` — substring matching,
+# which charged South San Francisco the City of San Francisco's rate.
+#
+# Kept as DERIVED back-compat exports so nothing hand-maintains a second
+# list beside the registry. That is precisely how the A2 fork survived in
+# a third file until T-2 found it.
 CITIES_WITH_OWN_DTT = [
-    "los angeles",
-    "san francisco",
-    "oakland",
-    "berkeley",
-    "san jose",
-    "sacramento",
-    "riverside",
-    "pomona",
-    "culver city",
-    "santa monica",
-    "redondo beach",
-    "inglewood",
-    "long beach",
-    "pasadena",
+    p.city.lower() for p in _PLACES
+    if p.dtt_rate_per_1000 is not None and p.dtt_rate_per_1000 > 0
 ]
-
-# Cities whose rate differs from the $2.20 default.
 CITY_RATES_PER_1000 = {
-    "los angeles": 4.50,
-    "san francisco": 7.50,
-    "oakland": 15.00,
+    p.city.lower(): p.dtt_rate_per_1000 for p in _PLACES
+    if p.dtt_rate_per_1000 is not None and p.dtt_rate_per_1000 > 0
 }
-DEFAULT_CITY_RATE_PER_1000 = 2.20
-
 
 class DttBreakdown(TypedDict):
     county_tax: float
@@ -60,20 +52,22 @@ class DttBreakdown(TypedDict):
     county_rate_per_1000: float
     city_rate_per_1000: Optional[float]
     city_levies_own_dtt: bool
+    # T-2: False when we do not KNOW the rate — distinct from knowing it
+    # is zero. Callers must ask rather than print a number.
+    city_rate_known: bool
 
 
 def city_rate_per_1000(city: Optional[str]) -> Optional[float]:
-    """None when the city levies no transfer tax of its own — distinct
-    from 0.0, which would read as 'levies one, and it is zero'."""
-    if not city:
-        return None
-    lowered = city.strip().lower()
-    if not any(known in lowered for known in CITIES_WITH_OWN_DTT):
-        return None
-    for known, rate in CITY_RATES_PER_1000.items():
-        if known in lowered:
-            return rate
-    return DEFAULT_CITY_RATE_PER_1000
+    """The rate, or None when no city portion applies.
+
+    T-2 NOTE: None is now ambiguous by necessity of the old signature — it
+    covers both "levies none" and "we do not know". Callers that need to
+    tell those apart must use `city_dtt_rate` from services.jurisdictions
+    (or read `city_rate_known` off compute_dtt). This wrapper survives for
+    the existing pins; the tri-state is the real contract.
+    """
+    rate = city_dtt_rate(city)
+    return rate.rate_per_1000 if rate.state == "rated" else None
 
 
 def compute_dtt(taxable_value: float, city: Optional[str] = None,
@@ -83,8 +77,15 @@ def compute_dtt(taxable_value: float, city: Optional[str] = None,
     value = max(0.0, float(taxable_value or 0))
     county_tax = (value / 1000.0) * COUNTY_RATE_PER_1000
 
-    rate = city_rate_per_1000(city) if apply_city_tax else None
+    # A caller that supplies no city is not asking about an unknown place —
+    # it is stating there is no city portion. Only a NAMED place we do not
+    # hold is "unknown".
+    resolved = city_dtt_rate(city) if (apply_city_tax and city) else None
+    rate = resolved.rate_per_1000 if resolved and resolved.state == "rated" else None
     city_tax = (value / 1000.0) * rate if rate else 0.0
+    # Unknown is not zero. A city we have never rated must not be
+    # reported as one that levies nothing.
+    known = resolved is None or resolved.state in ("rated", "none")
 
     return {
         "county_tax": round(county_tax, 2),
@@ -93,4 +94,5 @@ def compute_dtt(taxable_value: float, city: Optional[str] = None,
         "county_rate_per_1000": COUNTY_RATE_PER_1000,
         "city_rate_per_1000": rate,
         "city_levies_own_dtt": rate is not None,
+        "city_rate_known": known,
     }
