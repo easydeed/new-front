@@ -10,7 +10,13 @@ from jose import jwt, JWTError
 
 try:
     # Project-local utilities
-    from database import get_db_connection
+    # RED-H1.2: db_connection() closes on every exit. All four
+    # endpoints in this module are UNAUTHENTICATED (forgot-password,
+    # reset-password, both verify-email routes) and none of them
+    # closed its connection — four more anonymous leak vectors of the
+    # same class as the inquiry endpoint, and forgot-password sends
+    # an email too, so it carried both amplifiers.
+    from database import db_connection
     from auth import create_access_token, get_password_hash, AuthUtils, ALGORITHM, SECRET_KEY
     from utils.email import email_configured  # Phase 7.5: Relative import first
     from utils.notifications import (
@@ -20,7 +26,7 @@ try:
     )
 except Exception as e:
     # Fallback names if modules are under different paths; adjust as needed in your repo
-    from backend.database import get_db_connection  # type: ignore
+    from backend.database import db_connection  # type: ignore
     from backend.auth import create_access_token, get_password_hash, AuthUtils, ALGORITHM, SECRET_KEY  # type: ignore
     from backend.utils.email import email_configured  # Phase 7.5: Absolute fallback
     from backend.utils.notifications import (  # type: ignore
@@ -69,8 +75,7 @@ def forgot_password(payload: ForgotPasswordRequest):
         )
     email = payload.email.lower()
     try:
-        conn = get_db_connection()
-        with conn.cursor() as cur:
+        with db_connection() as conn, conn.cursor() as cur:
             cur.execute("SELECT id, full_name FROM users WHERE email = %s", (email,))
             row = cur.fetchone()
         if not row:
@@ -116,8 +121,7 @@ def reset_password(payload: ResetPasswordRequest):
 
     hashed = get_password_hash(payload.new_password)
     try:
-        conn = get_db_connection()
-        with conn.cursor() as cur:
+        with db_connection() as conn, conn.cursor() as cur:
             cur.execute("UPDATE users SET password_hash = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s RETURNING email, full_name", (hashed, user_id))
             updated = cur.fetchone()
             conn.commit()
@@ -140,8 +144,7 @@ def reset_password(payload: ResetPasswordRequest):
 def request_verify_email(payload: VerifyEmailRequest):
     email = payload.email.lower()
     try:
-        conn = get_db_connection()
-        with conn.cursor() as cur:
+        with db_connection() as conn, conn.cursor() as cur:
             cur.execute("SELECT id, full_name, verified FROM users WHERE email = %s", (email,))
             row = cur.fetchone()
         if not row:
@@ -172,8 +175,7 @@ def verify_email(token: str):
         raise HTTPException(status_code=400, detail="Invalid or expired token")
 
     try:
-        conn = get_db_connection()
-        with conn.cursor() as cur:
+        with db_connection() as conn, conn.cursor() as cur:
             cur.execute("UPDATE users SET verified = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = %s", (user_id,))
             conn.commit()
         return {"message": "Email verified"}
