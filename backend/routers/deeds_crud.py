@@ -4,7 +4,7 @@ from datetime import timezone
 from time import time
 from typing import Dict, Optional, Union
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 from psycopg2.extras import RealDictCursor
 from pydantic import BaseModel, Field
 
@@ -708,6 +708,34 @@ def lineage_endpoint(deed_id: int, user_id: int = Depends(get_current_user_id)):
         "supersedes": [shape(r) for r in supersedes],
         "current_version": shape(forward[-1])["id"] if forward else deed_id,
     }
+
+
+@router.post("/prelim/import")
+async def prelim_import_endpoint(file: UploadFile = File(...),
+                                 user_id: int = Depends(get_current_user_id)):
+    """T-6 — read a preliminary title report into CANDIDATES.
+
+    Nothing here reaches a deed. The response is a list of amber
+    candidates the officer confirms through the existing gate, exactly as
+    she confirms county-record data. This adds a source, not a lane.
+
+    A file we cannot read is a 422 with the reason in plain words — never
+    an empty success. An officer who thinks we read her prelim and found
+    little is worse off than one who knows we read nothing.
+    """
+    from services.prelim_import import PrelimUnreadable, import_prelim
+
+    raw = await file.read()
+    if len(raw) > 25 * 1024 * 1024:
+        raise HTTPException(status_code=413,
+                            detail="That file is larger than 25 MB.")
+    try:
+        return import_prelim(raw)
+    except PrelimUnreadable as e:
+        # 422, not 400: the request was well-formed and we understood it.
+        # What we could not do is READ THE DOCUMENT, and the message says
+        # which of the two reasons applies.
+        raise HTTPException(status_code=422, detail=str(e))
 
 
 @router.get("/deeds/{deed_id}/matter")

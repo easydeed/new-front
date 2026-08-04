@@ -421,6 +421,10 @@
  ],
  [
   "POST",
+  "/prelim/import"
+ ],
+ [
+  "POST",
   "/property/cache"
  ],
  [

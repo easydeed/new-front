@@ -578,6 +578,10 @@ const SOURCE_LABELS: Record<string, string> = {
   sitex: 'From county records',
   google: 'From Google',
   titlepoint: 'From TitlePoint',
+  // T-6: read out of the uploaded preliminary title report. Labelled by
+  // where it came FROM, because that is what the officer needs in order
+  // to decide whether to trust it at a glance.
+  prelim: 'From the prelim',
   user: 'Entered by you',
 };
 
