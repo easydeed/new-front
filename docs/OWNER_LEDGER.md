@@ -15,8 +15,8 @@ authority and it is re-ruled, not re-derived.
 
 | # | ticket | state |
 |---|---|---|
-| 1 | **RED-S1** — per-request pool, per-request transactions, induced-failure concurrency test, 20 RPS run, healing ladder RETIRED by the fix | next |
-| 2 | **RED-S2** — object storage for `deed_pdfs`, `ON DELETE CASCADE` removed, backup runbook, EXECUTED restore drill with hash verification | queued |
+| 1 | ~~**RED-S1**~~ — per-request pool, per-request transactions, induced-failure concurrency test, 20 RPS + burst run, healing ladder RETIRED | **SHIPPED** |
+| 2 | **RED-S2** — object storage for `deed_pdfs`, `ON DELETE CASCADE` removed, backup runbook, EXECUTED restore drill with hash verification | **next** |
 | 3 | **RED-S3** — sessions: refresh + revocation (jti), login lockout, edge rate limiting, and frontend expiry as pause → preserve → re-auth → resume, never data loss | queued |
 | 4 | **RED-S4** — recording fields (`recorded_at`, `instrument_number`) as officer-recorded statements, + the rate-registry version stamped into deed metadata at generation | queued |
 | 5 | **Doctrine ticket A** — vested-owner extraction SPLIT: names flow as fact-candidates; the vesting characterisation routes to the vesting section as a violet proposal, never a carried fact | queued (ruled) |
@@ -295,17 +295,22 @@ we reach it.
   question — doctrine §3 removed QR codes from recorded pages on the
   reasoning that "verification survives as data."
 
-- **Connection-helper LIFECYCLE collapse** — **THIS IS NOW RED-S1** (queue
-  position 1 above); it stopped being a parked item on 2026-08-04 and is
-  recorded here so the two names are not tracked as two tickets. Its
-  risk note below is still the reason it needs its own verification, and
-  RED0 sharpened it: the shared connection is not merely a lifecycle
-  inconsistency but a correctness defect under concurrency (one
-  transaction, up to 40 threadpool workers), and the #100 healing ladder
-  calls `rollback()` on other in-flight requests as a repair. RED-H1.2
-  moved the fresh-connection callers onto a closing context manager,
-  which removes the "their close() kills the shared connection" hazard
-  named below — the remaining work is the pool itself.
+- ~~**Connection-helper LIFECYCLE collapse**~~ — **RESOLVED AS RED-S1,
+  shipped 2026-08-04.** `db.conn` is now a per-request proxy over a
+  pooled connection; the shared connection and its healing ladder are
+  both gone. The risk note below was the right one and it is preserved
+  as the record of why this needed its own ticket — the direction chosen
+  was "converge on per-request", and the `close()` hazard it warned about
+  is handled by the proxy refusing `close()` outright (pinned).
+  **One thing it named is NOT done and is deliberately out of S1's
+  ruled scope:** `database.get_db_connection()` still opens a FRESH
+  connection per call rather than drawing from the pool. That is correct
+  (RED-H1.2 made every one of those close on every exit) but it means an
+  endpoint using both helpers holds two connections for one request.
+  Converging it is an efficiency change, not a correctness fix — it is
+  flagged here rather than folded in, because folding unruled work into
+  the ticket that fixes the outage is how a safe diff becomes an unsafe
+  one.
   Parked 2026-08-03 by owner
   ruling; explicitly NOT to be absorbed into another ticket. PR #107
   unified the ROW CONTRACT (one cursor factory, rows readable both
