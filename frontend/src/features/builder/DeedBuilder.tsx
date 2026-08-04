@@ -465,34 +465,75 @@ function DeedBuilderInner({ deedType, initialProperty, resumeDeedId }: DeedBuild
                 onNavigate={handleNavigateFromGate}
               />
 
-              {candidates.length > 0 && (
-                <div className="mt-4">
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">
-                    External data awaiting confirmation
-                  </h3>
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {candidates.map(({ key, label, field }) => (
-                      <div key={key} className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-xs font-medium text-amber-700 uppercase tracking-wide">
-                              {label} · {SOURCE_LABELS[field.source] || field.source}
-                            </p>
-                            <p className="text-sm text-gray-900 break-words">{field.value}</p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleConfirmField(key)}
-                            className="flex-shrink-0 bg-emerald-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-emerald-700"
-                          >
-                            Confirm
-                          </button>
+              {/* T-1 — CONFIRMATION RHYTHM. Presentation only.
+                  ─────────────────────────────────────────────────────────
+                  Nothing about the record changes here, and that is the
+                  point of the ticket. `stampConfirmed` still writes an
+                  individual `confirmedAt` per field; `handleConfirmAll`
+                  still walks `collectCandidateFields` one key at a time.
+                  A deed generated through the summary is byte-identical to
+                  one generated through five separate clicks.
+
+                  What changed is what the officer looks at. The gate used
+                  to render every candidate as its own amber card with its
+                  own green Confirm button, so a five-candidate deed showed
+                  five cards and five buttons stacked ABOVE the primary
+                  action — a wall of ceremony implying five decisions, in
+                  front of a workflow whose actual answer is almost always
+                  "yes, that is what the county says."
+
+                  The model was never per-field: entry has never blocked,
+                  the gate fires only at generate, and "Confirm all &
+                  generate" was already primary. The screen was arguing
+                  with its own design. Now it states the fact once and puts
+                  the per-field path behind a disclosure — still there for
+                  the moment an officer wants to look at one value, no
+                  longer the default posture. Same record, less nag. */}
+              {candidates.length > 0 && (() => {
+                const sources = Array.from(new Set(candidates.map((c) => c.field.source)));
+                const sourceLabel = sources.length === 1
+                  ? (SOURCE_LABELS[sources[0]] || sources[0]).toLowerCase()
+                  : 'external sources';
+                const n = candidates.length;
+                return (
+                  <div className="mt-4">
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <p className="text-sm text-amber-900">
+                        <span className="font-semibold">{n} field{n === 1 ? '' : 's'}</span>
+                        {' '}from {sourceLabel} {n === 1 ? 'is' : 'are'} awaiting your
+                        confirmation. Confirming records each one individually,
+                        with its own timestamp.
+                      </p>
+                      <details className="mt-2 group">
+                        <summary className="text-xs font-medium text-amber-800 cursor-pointer select-none hover:underline">
+                          Review them individually
+                        </summary>
+                        <div className="space-y-2 max-h-60 overflow-y-auto mt-2">
+                          {candidates.map(({ key, label, field }) => (
+                            <div key={key} className="p-3 bg-white border border-amber-200 rounded-lg">
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="text-xs font-medium text-amber-700 uppercase tracking-wide">
+                                    {label} · {SOURCE_LABELS[field.source] || field.source}
+                                  </p>
+                                  <p className="text-sm text-gray-900 break-words">{field.value}</p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleConfirmField(key)}
+                                  className="flex-shrink-0 bg-emerald-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-emerald-700"
+                                >
+                                  Confirm
+                                </button>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      </div>
-                    ))}
+                      </details>
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               <div className="flex items-center justify-end gap-3 mt-5">
                 <button
