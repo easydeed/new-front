@@ -4,8 +4,61 @@
 (not only in chat) so the list survives context windows. No credential
 values ever appear in this file — item names and status only.
 
-_Last corrected: 2026-08-03 (ADMIN1.5 split across #113/#114 recorded;
-ADMIN-BRAND #115 with its one extended reading flagged for the owner)._
+_Last corrected: 2026-08-04 (RED-H1 wave closed; the RED0 remediation
+queue re-sequenced by owner ruling; NOTARY1 and RED-S5 recorded as
+deferred-by-decision with named triggers)._
+
+## The queue — RED0 remediation, as ruled
+
+Owner-ruled order. Nothing here is "next" by inference; this list is the
+authority and it is re-ruled, not re-derived.
+
+| # | ticket | state |
+|---|---|---|
+| 1 | **RED-S1** — per-request pool, per-request transactions, induced-failure concurrency test, 20 RPS run, healing ladder RETIRED by the fix | next |
+| 2 | **RED-S2** — object storage for `deed_pdfs`, `ON DELETE CASCADE` removed, backup runbook, EXECUTED restore drill with hash verification | queued |
+| 3 | **RED-S3** — sessions: refresh + revocation (jti), login lockout, edge rate limiting, and frontend expiry as pause → preserve → re-auth → resume, never data loss | queued |
+| 4 | **RED-S4** — recording fields (`recorded_at`, `instrument_number`) as officer-recorded statements, + the rate-registry version stamped into deed metadata at generation | queued |
+| 5 | **Doctrine ticket A** — vested-owner extraction SPLIT: names flow as fact-candidates; the vesting characterisation routes to the vesting section as a violet proposal, never a carried fact | queued (ruled) |
+| 6 | **Doctrine ticket B** — the AI boundary: explain-yes / select-no, refusal behaviour pinned, ruled against the transcript evidence H1.3 is now logging | queued (ruled) |
+| 7 | **DX0** — investigation only, no build. Scoped to **partner #1 = TitleSense** | queued |
+| 8 | **TP0** — TitlePoint investigation, no build | queued |
+| — | **NOTARY1** | **deferred by decision** — see below |
+| — | **RED-S5** (org model) | **deferred by decision** — see below |
+
+**DX0 scope (ruled):** SDK shape, webhook events, API-key lifecycle for a
+KNOWN first consumer, the deep-link pattern (external finding → DeedPro
+opens with a document staged from the payload), and the inbound rule that
+**external interpretations arrive as PROPOSALS, never facts** —
+`titlesense` joins the source enum on that footing.
+
+### Deferred by decision — with the trigger that revives each
+
+Neither of these is blocked, unscoped or unfunded. Both are FINISHED
+thinking held back for a missing precondition, and both fire unchanged
+when their trigger arrives.
+
+- **NOTARY1 — the signing handoff.** Investigation complete and every
+  ruling stands: v1 is request + view + officer-marks-complete, built on
+  share machinery (notary partner category, `share_kind:
+  signing_request`, token package view with PCOR access and no
+  approve/reject branch, `share_signing_request` E1 template, matter File
+  status line). Completion is asserted by the OFFICER only in v1; no
+  notary-side negotiation UI, because the notary's existing text/phone
+  channel is the feature. All §4 nevers pin: no ranking, no marketplace,
+  no fees, no SOS verification, no RON surface, and the load-bearing one
+  — **the system never auto-asserts "signed and notarised"; completion is
+  always someone's recorded statement.**
+  **TRIGGER: a real design-partner user to hand it to.** Deferred because
+  a signing handoff with nobody signing is a feature with no feedback.
+- **RED-S5 — the org model.** Multi-user offices: assistant preps /
+  officer reviews / coverage when someone is out. Today `deeds` carries
+  one `user_id` and every query is scoped to it, so a colleague cannot
+  pick up a file and a departing employee's drafts leave with their
+  login. Design doc first.
+  **TRIGGER: the first multi-officer office.** This is the largest
+  product gap in the RED0 report (Reviewer 2, R2-5) and deferring it is a
+  sequencing call, not a disagreement with the finding.
 
 ## Open — owner's card
 
@@ -223,12 +276,14 @@ we reach it.
 
 ## Parked tickets (scoped, not scheduled)
 
-- **Deed supersession model** (doctrine §9, 2026-08-03) — a corrected
-  deed is a NEW record superseding the old, both retained, relationship
-  recorded. `document_authenticity` already models this shape
-  (`status='superseded'` + `superseded_by`); `deeds` has no equivalent.
-  This is design work, not cleanup, and is explicitly NOT to be absorbed
-  into an admin ticket. **Blocks:** any admin deed-edit capability.
+- ~~**Deed supersession model**~~ — **BUILT AND SHIPPED, T-5 (PR #124).**
+  Corrected 2026-08-04; this entry was stale for a day and is left
+  visible rather than deleted, because a parked list that quietly loses
+  entries cannot be trusted to still hold the others.
+  `deeds.superseded_by` / `superseded_at` exist, `services/supersession.py`
+  refuses every way the chain can be corrupted, and the T-0 copy pin
+  retired in the same diff that made its promise true. The admin
+  deed-edit capability it blocked is unblocked.
 - **VERIFY1 — wizard-deed public verification** (ADMIN0 finding, queued
   AFTER the admin wave; roadmap, not admin). `create_document_authenticity`
   (`routers/verification.py:227`) has zero callers — the only live writer
@@ -240,7 +295,18 @@ we reach it.
   question — doctrine §3 removed QR codes from recorded pages on the
   reasoning that "verification survives as data."
 
-- **Connection-helper LIFECYCLE collapse** — parked 2026-08-03 by owner
+- **Connection-helper LIFECYCLE collapse** — **THIS IS NOW RED-S1** (queue
+  position 1 above); it stopped being a parked item on 2026-08-04 and is
+  recorded here so the two names are not tracked as two tickets. Its
+  risk note below is still the reason it needs its own verification, and
+  RED0 sharpened it: the shared connection is not merely a lifecycle
+  inconsistency but a correctness defect under concurrency (one
+  transaction, up to 40 threadpool workers), and the #100 healing ladder
+  calls `rollback()` on other in-flight requests as a repair. RED-H1.2
+  moved the fresh-connection callers onto a closing context manager,
+  which removes the "their close() kills the shared connection" hazard
+  named below — the remaining work is the pool itself.
+  Parked 2026-08-03 by owner
   ruling; explicitly NOT to be absorbed into another ticket. PR #107
   unified the ROW CONTRACT (one cursor factory, rows readable both
   ways, pinned). What remains is that the two helpers differ in
