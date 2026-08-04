@@ -59,6 +59,11 @@ export function SuccessContent() {
     available: boolean; county?: string; form_code?: string; revision?: string;
     url?: string; still_needed?: string[]; reason?: string;
   } | null>(null);
+  // T-3b — the 502-D, offered on the death-affidavit success pages.
+  const [deathStatement, setDeathStatement] = useState<{
+    available: boolean; county?: string; form_code?: string;
+    still_needed?: string[];
+  } | null>(null);
 
   useEffect(() => {
     if (!deedId) return;
@@ -66,10 +71,12 @@ export function SuccessContent() {
       try {
         const api = process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com';
         const token = localStorage.getItem('access_token') || localStorage.getItem('token');
-        const res = await fetch(`${api}/deeds/${deedId}/pcor`, {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        if (res.ok) setPcor(await res.json());
+        const [pcorRes, dsRes] = await Promise.all([
+          fetch(`${api}/deeds/${deedId}/pcor`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`${api}/deeds/${deedId}/death-statement`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        ]);
+        if (pcorRes.ok) setPcor(await pcorRes.json());
+        if (dsRes.ok) setDeathStatement(await dsRes.json());
       } catch {
         // Passive: a failed check hides the offer rather than inventing one.
       }
@@ -130,22 +137,22 @@ export function SuccessContent() {
 
   // Same blob dance as the deed: a bare href cannot carry the auth
   // header. The file arrives UNFLATTENED — the buyer has to finish it.
-  const handleDownloadPcor = async () => {
+  const handleDownloadCompanion = async (slug: string, label: string) => {
     if (!deedId) return;
     const api = process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com';
     const token = localStorage.getItem('access_token') || localStorage.getItem('token');
-    const res = await fetch(`${api}/deeds/${deedId}/pcor.pdf`, {
+    const res = await fetch(`${api}/deeds/${deedId}/${slug}`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      toast.error(String(data.detail || 'Could not build the PCOR.'), { duration: 12000 });
+      toast.error(String(data.detail || `Could not build the ${label}.`), { duration: 12000 });
       return;
     }
     const url = window.URL.createObjectURL(await res.blob());
     const a = document.createElement('a');
     a.href = url;
-    a.download = `PCOR-deed-${deedId}.pdf`;
+    a.download = `${label}-deed-${deedId}.pdf`;
     a.click();
     window.URL.revokeObjectURL(url);
   };
@@ -305,7 +312,55 @@ export function SuccessContent() {
 
             {/* FORMS flag-4 ruling: companion-filing guidance — passive,
                 links the state form, never a block and never form-fill. */}
-            {formConfig(type)?.companionNotice && (
+            {/* T-3b — the notice cashes its check.
+                The FORMS flag-4 ruling made this passive guidance because
+                form-fill was Tier B and deferred: "counties commonly
+                require a BOE-502-D", here is a link to the state's page,
+                good luck. The pipeline exists now, so when we hold the
+                county's form the officer gets it FILLED instead of
+                pointed at. The passive notice survives underneath as the
+                fallback for counties we do not yet hold. */}
+            {deathStatement?.available && (
+              <div className="mb-6 rounded-xl border-2 border-[#7C4DFF]/30 bg-[#7C4DFF]/5 p-5">
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-800">
+                      {deathStatement.form_code} — Change in Ownership Statement,
+                      Death of Real Property Owner
+                    </p>
+                    <p className="text-sm text-slate-600 mt-1">
+                      Pre-filled with everything this affidavit already knows.
+                      {deathStatement.county} County asks for it after a
+                      recorded owner&apos;s death.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleDownloadCompanion('death-statement.pdf', 'BOE-502-D')}
+                    className="shrink-0 inline-flex items-center gap-2 bg-[#7C4DFF] hover:bg-[#6a3de8] text-white font-semibold px-4 py-2.5 rounded-lg transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download 502-D
+                  </button>
+                </div>
+                {!!deathStatement.still_needed?.length && (
+                  <div className="mt-4 pt-4 border-t border-[#7C4DFF]/20">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+                      Still yours to complete
+                    </p>
+                    <ul className="text-sm text-slate-700 space-y-1 list-disc list-inside">
+                      {deathStatement.still_needed.map((a, i) => <li key={i}>{a}</li>)}
+                    </ul>
+                    <p className="text-xs text-slate-500 mt-3">
+                      How title passed is a legal characterisation, so it is left
+                      for you to mark. The certification and signature are blank —
+                      the form stays fillable.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!deathStatement?.available && formConfig(type)?.companionNotice && (
               <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-900">
                 <p>{formConfig(type)!.companionNotice!.text}</p>
                 <a
@@ -362,7 +417,7 @@ export function SuccessContent() {
                     </p>
                   </div>
                   <button
-                    onClick={handleDownloadPcor}
+                    onClick={() => handleDownloadCompanion('pcor.pdf', 'PCOR')}
                     className="shrink-0 inline-flex items-center gap-2 bg-[#7C4DFF] hover:bg-[#6a3de8] text-white font-semibold px-4 py-2.5 rounded-lg transition-colors"
                   >
                     <Download className="w-4 h-4" />
