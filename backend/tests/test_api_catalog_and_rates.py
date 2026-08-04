@@ -25,7 +25,7 @@ from services.api_catalog import (
 from services.deed_pdf import TEMPLATE_BY_DEED_TYPE
 from services.dtt_rates import (
     CITIES_WITH_OWN_DTT, CITY_RATES_PER_1000, COUNTY_RATE_PER_1000,
-    DEFAULT_CITY_RATE_PER_1000, city_rate_per_1000, compute_dtt,
+    city_rate_per_1000, compute_dtt,
 )
 from services.form_families import FAMILY_BY_DEED_TYPE
 
@@ -151,29 +151,66 @@ def test_entity_slot_is_absent_for_ordinary_deeds():
 
 # ── One rates source ─────────────────────────────────────────────────
 
-def _ts_rates():
-    """Parse the officer-facing calculator's rates out of dttCalc.ts."""
-    src = DTT_CALC_TS.read_text(encoding="utf-8")
-    cities = re.search(r"CITIES_WITH_OWN_DTT\s*=\s*\[(.*?)\]", src, re.S).group(1)
-    city_list = re.findall(r"'([^']+)'", cities)
-    county = float(re.search(r"\(amount / 1000\) \* ([\d.]+)", src).group(1))
-    specials = {}
-    for city, rate in re.findall(
-            r"cityLower\.includes\('([^']+)'\)\)\s*\{\s*cityTax = \(amount / 1000\) \* ([\d.]+)", src):
-        specials[city] = float(rate)
-    default = float(re.findall(r"else \{\s*cityTax = \(amount / 1000\) \* ([\d.]+)", src)[0])
-    return city_list, county, specials, default
+def _registry_places():
+    """Parse the TS registry. T-2 moved the rates out of dttCalc.ts and
+    into lib/jurisdictions.ts, so the mirror reads the registry."""
+    src = (BACKEND.parent / "frontend/src/lib/jurisdictions.ts").read_text(encoding="utf-8")
+    out = []
+    for city, county, inc, rate in re.findall(
+            r"\{ city: '([^']+)', county: '([^']+)', incorporated: (true|false), "
+            r"dttRatePer1000: ([\d.]+|null) \}", src):
+        out.append((city, county, inc == "true",
+                    None if rate == "null" else float(rate)))
+    return out
 
 
 def test_backend_rates_mirror_the_officer_facing_calculator():
     """Same arrangement form_families.py has with formRegistry.ts: a rate
     that differs between the wizard and the API is a number headed for a
-    legal declaration under two different values."""
-    city_list, county, specials, default = _ts_rates()
-    assert CITIES_WITH_OWN_DTT == city_list
-    assert COUNTY_RATE_PER_1000 == county
-    assert CITY_RATES_PER_1000 == specials
-    assert DEFAULT_CITY_RATE_PER_1000 == default
+    legal declaration under two different values.
+
+    T-2 REWROTE THIS PIN. It used to parse dttCalc.ts for a literal city
+    array, an if/else chain of `cityLower.includes(...)` branches, and a
+    trailing `else` default rate — i.e. it asserted the SHAPE of the old
+    substring matcher. That matcher is the defect this ticket removed (it
+    charged South San Francisco the City of San Francisco's rate), so a
+    pin shaped like it could not survive the fix. It compares the two
+    REGISTRIES now, which is the property it always meant to protect.
+    """
+    from services.jurisdictions import PLACES
+
+    ts = _registry_places()
+    py = [(p.city, p.county, p.incorporated, p.dtt_rate_per_1000) for p in PLACES]
+    assert py == ts, "the registries disagree — one surface would declare a different tax"
+    assert COUNTY_RATE_PER_1000 == 1.10
+
+
+def test_there_is_no_generic_fallback_city_rate():
+    """DEFAULT_CITY_RATE_PER_1000 is deliberately gone.
+
+    A single fallback rate applied to "any city we don't have" is the
+    pre-X2.3 disease in a nicer coat: it invents a number for a place we
+    know nothing about. Every rate is per-place now, and a place we do
+    not hold resolves to UNKNOWN rather than to a default.
+    """
+    import ast
+
+    import services.dtt_rates as rates
+    assert not hasattr(rates, "DEFAULT_CITY_RATE_PER_1000")
+
+    # Strip DOCSTRINGS as well as comments. The module docstring recounts
+    # the rate history and necessarily quotes the old fallback figure —
+    # the sixth time in this codebase that a forbidden-pattern pin has
+    # tripped on the prose explaining the removal.
+    src = (BACKEND / "services/dtt_rates.py").read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            doc = ast.get_docstring(node, clean=False)
+            if doc:
+                src = src.replace(doc, "")
+    code = "\n".join(l for l in src.splitlines() if not l.strip().startswith("#"))
+    assert "2.20" not in code, "a fallback rate reappeared in code"
 
 
 def test_the_api_no_longer_carries_its_own_rate_table():
@@ -188,18 +225,35 @@ def test_the_api_no_longer_carries_its_own_rate_table():
     assert not re.search(r"/ 1000\)?\s*\*\s*[\d.]+", code), "rate math back in the router"
 
 
-def test_cities_without_their_own_dtt_are_charged_nothing():
-    """The pre-X2.3 disease: applying a generic city rate to any city at
-    all invented tax for cities that levy none."""
+def test_an_unheld_city_is_unknown_rather_than_free():
+    """T-2 sharpened X2.3. That fix stopped INVENTING a generic rate for
+    every city; this one stops inventing a ZERO for cities we have never
+    rated. Fresno contributed $0 and the total read as complete — but we
+    hold no Fresno rate, so the $0 was invented too. It just cost the
+    other party."""
     assert city_rate_per_1000("Fresno") is None
     assert compute_dtt(500_000, "Fresno")["city_tax"] == 0.0
-    assert compute_dtt(500_000, "Fresno")["city_levies_own_dtt"] is False
+    assert compute_dtt(500_000, "Fresno")["city_rate_known"] is False
+
+    # An affirmative zero is distinguishable from an unknown: East Los
+    # Angeles is unincorporated, so "levies none" is knowledge.
+    assert compute_dtt(500_000, "East Los Angeles")["city_rate_known"] is True
+    assert compute_dtt(500_000, "East Los Angeles")["city_tax"] == 0.0
+
+
+def test_substring_collisions_cannot_charge_a_neighbours_rate():
+    """The live defect, on the backend side of the wire."""
+    assert compute_dtt(1_000_000, "San Francisco")["city_tax"] == 7500.0
+    assert compute_dtt(1_000_000, "South San Francisco")["city_tax"] == 0.0
+    assert compute_dtt(1_000_000, "South San Francisco")["city_rate_known"] is False
+    assert compute_dtt(1_000_000, "Los Angeles")["city_tax"] == 4500.0
+    assert compute_dtt(1_000_000, "East Los Angeles")["city_tax"] == 0.0
 
 
 def test_known_city_rates():
     assert city_rate_per_1000("Los Angeles") == 4.50
     assert city_rate_per_1000("San Francisco") == 7.50
     assert city_rate_per_1000("Oakland") == 15.00
-    assert city_rate_per_1000("Pasadena") == DEFAULT_CITY_RATE_PER_1000
+    assert city_rate_per_1000("Pasadena") == 2.20
     # County portion alone on a $500k transfer.
     assert compute_dtt(500_000, None)["total_tax"] == 550.0

@@ -339,6 +339,24 @@ export function TransferTaxSection({
                   <> · City of {value.cityName}: ${dttBreakdown.city}</>
                 )}
               </div>
+              {/* T-2 — the unknown state, said out loud.
+                  This used to be indistinguishable from "levies none":
+                  a city we had never rated simply contributed $0 and the
+                  total read as complete. An invented $0 is the same class
+                  of error as the invented $7,500 substring matching
+                  produced for South San Francisco — it just costs the
+                  other party. Amber, because it is a real value the
+                  officer must not take at face value. */}
+              {dttBreakdown.cityRateUnknown && (
+                <div className="mt-2 ml-7 p-2.5 rounded-md border border-amber-300 bg-amber-50 text-sm text-amber-900">
+                  <span className="font-semibold">
+                    No rate on file for {dttBreakdown.unknownPlace || 'this city'}.
+                  </span>{' '}
+                  The county portion above is complete. Any city transfer tax
+                  must be confirmed against that city&apos;s current schedule
+                  and entered manually — it is not included in the total.
+                </div>
+              )}
             </div>
           )}
         </div>

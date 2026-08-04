@@ -8,6 +8,7 @@
  */
 
 import { addRecentProperty } from "./recentProperties"
+import { cityDttRate, isIncorporated } from "@/lib/jurisdictions"
 
 /**
  * Property data from SiteX enrichment
@@ -65,53 +66,43 @@ interface WizardState {
 }
 
 /**
- * Cities in California that have their own Documentary Transfer Tax.
- * These require selecting "City" in the DTT section.
- */
-const CITIES_WITH_OWN_DTT = [
-  "los angeles",
-  "san francisco",
-  "oakland",
-  "berkeley",
-  "san jose",
-  "sacramento",
-  "riverside",
-  "pomona",
-  "culver city",
-  "santa monica",
-  "redondo beach",
-  "hercules",
-  "hayward",
-  "richmond",
-  "alameda",
-  "albany",
-  "emeryville",
-  "piedmont",
-  "san leandro",
-  "san pablo",
-  "mountain view",
-  "palo alto",
-  "petaluma",
-  "santa rosa",
-  "sebastopol",
-  "cotati",
-  "cloverdale",
-]
-
-/**
- * Infer DTT area type based on city
+ * T-2 — THE THIRD COPY IS GONE.
+ *
+ * A2 unified the partner API's city table with dttCalc's and pinned them
+ * together. This file kept its own, and nobody noticed because nothing
+ * compared them. The two lists disagreed in both directions: this one
+ * carried Hayward, Richmond, Alameda, Palo Alto and a dozen more that
+ * dttCalc had never heard of, and it OMITTED Inglewood, Long Beach and
+ * Pasadena, which dttCalc rates.
+ *
+ * That omission had teeth. This list decides `areaType`, and `areaType`
+ * gates whether the city portion is computed at all — so a Long Beach
+ * property was prefilled "unincorporated" and its city transfer tax was
+ * silently skipped. Undercharging by exactly the mechanism that
+ * overcharged South San Francisco.
+ *
+ * Both questions now go to lib/jurisdictions.ts, and they are asked
+ * SEPARATELY, because they were never the same question: whether a place
+ * is incorporated is not whether it taxes. Glendale is an incorporated
+ * city that levies no DTT; the old code called it "unincorporated"
+ * because that produced the right tax by accident.
  */
 export function inferDTTAreaType(city: string): "city" | "unincorporated" {
   if (!city) return "unincorporated"
-  return CITIES_WITH_OWN_DTT.includes(city.toLowerCase()) ? "city" : "unincorporated"
+  // Only an affirmative "this place is unincorporated" may say so. An
+  // unknown place is NOT evidence of unincorporation — defaulting it to
+  // "unincorporated" is what silently skipped Long Beach's city tax.
+  return isIncorporated(city) === false ? "unincorporated" : "city"
 }
 
 /**
- * Check if a city has its own DTT
+ * Whether the city levies its own DTT. `false` means we KNOW it does not;
+ * unknown places are not asserted either way — computeDttBreakdown
+ * surfaces them to the officer instead of assuming.
  */
 export function cityHasOwnDTT(city: string): boolean {
   if (!city) return false
-  return CITIES_WITH_OWN_DTT.includes(city.toLowerCase())
+  return cityDttRate(city).state === "rated"
 }
 
 /**

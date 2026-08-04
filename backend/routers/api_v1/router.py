@@ -745,9 +745,25 @@ async def calculate_transfer_tax(
 
     city_breakdown = None
     if request.city:
-        if city_rate is None:
-            # Honest silence beats an invented number: cities absent from
-            # the own-DTT list levy no municipal transfer tax.
+        if city_rate is None and not dtt["city_rate_known"]:
+            # T-2: the third state, which used to be silently folded into
+            # "levies none". We do not hold this place, so we do not know.
+            # Saying "levies none" here was an invented $0 — the same class
+            # of error as the invented $7,500 substring matching produced
+            # for South San Francisco, just costing the other party.
+            city_breakdown = {
+                "name": request.city,
+                "rate": None,
+                "amount": 0.0,
+                "notes": (
+                    "No verified transfer-tax rate on file for this city. "
+                    "The county portion above is complete; confirm any city "
+                    "portion against the city's current schedule."
+                ),
+            }
+        elif city_rate is None:
+            # Honest silence beats an invented number: this place is on
+            # file and affirmatively levies no municipal transfer tax.
             city_breakdown = {
                 "name": request.city,
                 "rate": None,
