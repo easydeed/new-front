@@ -26,19 +26,11 @@ BACKEND = Path(__file__).resolve().parents[1]
 NOTIFICATIONS = BACKEND / "utils" / "notifications.py"
 
 
-def code_only(path: Path) -> str:
-    """Source minus docstrings and comments — a comment explaining a
-    removed pattern quotes it. (Fifth copy; the consolidation into a
-    shared util is ledgered as opportunistic.)"""
-    src = path.read_text(encoding="utf-8")
-    tree = ast.parse(src)
-    for node in ast.walk(tree):
-        if isinstance(node, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-            doc = ast.get_docstring(node, clean=False)
-            if doc:
-                src = src.replace(doc, "")
-    return "\n".join(l for l in src.splitlines() if not l.lstrip().startswith("#"))
-
+# T-3: the local code_only() lives in tests/source_text.py now — this
+# was one of four near-identical copies, and the copies had drifted
+# (one stripped comments but not docstrings, which is how the sixth
+# pin-trip-on-a-comment happened). Owner-ruled consolidation.
+from tests.source_text import code_only
 
 # ── The choke point ──────────────────────────────────────────────────
 

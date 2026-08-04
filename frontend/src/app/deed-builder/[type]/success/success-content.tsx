@@ -49,6 +49,33 @@ export function SuccessContent() {
   })();
 
   // Fetch deed details
+  // T-3 — the PCOR package. Every conveyance deed is legally incomplete
+  // without a concurrent BOE-502-A (R&T §480.3; the recorder may charge
+  // an extra $20 without one), and the deed already knows most of what it
+  // asks. The offer states what it still needs rather than a percentage:
+  // we fill nine of sixty-five text fields, and "80% prefilled" is a
+  // claim nothing supports.
+  const [pcor, setPcor] = useState<{
+    available: boolean; county?: string; form_code?: string; revision?: string;
+    url?: string; still_needed?: string[]; reason?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!deedId) return;
+    (async () => {
+      try {
+        const api = process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com';
+        const token = localStorage.getItem('access_token') || localStorage.getItem('token');
+        const res = await fetch(`${api}/deeds/${deedId}/pcor`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (res.ok) setPcor(await res.json());
+      } catch {
+        // Passive: a failed check hides the offer rather than inventing one.
+      }
+    })();
+  }, [deedId]);
+
   useEffect(() => {
     const fetchDeed = async () => {
       if (!deedId) {
@@ -99,6 +126,28 @@ export function SuccessContent() {
     }
     const blob = await response.blob();
     return window.URL.createObjectURL(blob);
+  };
+
+  // Same blob dance as the deed: a bare href cannot carry the auth
+  // header. The file arrives UNFLATTENED — the buyer has to finish it.
+  const handleDownloadPcor = async () => {
+    if (!deedId) return;
+    const api = process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com';
+    const token = localStorage.getItem('access_token') || localStorage.getItem('token');
+    const res = await fetch(`${api}/deeds/${deedId}/pcor.pdf`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      toast.error(String(data.detail || 'Could not build the PCOR.'), { duration: 12000 });
+      return;
+    }
+    const url = window.URL.createObjectURL(await res.blob());
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `PCOR-deed-${deedId}.pdf`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const handlePreview = async () => {
@@ -295,6 +344,46 @@ export function SuccessContent() {
                     <Copy className="w-5 h-5" />
                   )}
                 </button>
+              </div>
+            )}
+
+            {/* T-3 — the companion form, sitting next to the deed. */}
+            {pcor?.available && (
+              <div className="mb-8 rounded-xl border-2 border-[#7C4DFF]/30 bg-[#7C4DFF]/5 p-5">
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-800">
+                      {pcor.form_code} — Preliminary Change of Ownership Report
+                    </p>
+                    <p className="text-sm text-slate-600 mt-1">
+                      Pre-filled with everything your deed already knows.
+                      Required with this conveyance in {pcor.county} County
+                      (R&amp;T §480.3).
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleDownloadPcor}
+                    className="shrink-0 inline-flex items-center gap-2 bg-[#7C4DFF] hover:bg-[#6a3de8] text-white font-semibold px-4 py-2.5 rounded-lg transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download PCOR
+                  </button>
+                </div>
+                {!!pcor.still_needed?.length && (
+                  <div className="mt-4 pt-4 border-t border-[#7C4DFF]/20">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+                      The buyer still completes
+                    </p>
+                    <ul className="text-sm text-slate-700 space-y-1 list-disc list-inside">
+                      {pcor.still_needed.map((a, i) => <li key={i}>{a}</li>)}
+                    </ul>
+                    <p className="text-xs text-slate-500 mt-3">
+                      The certification and signature are left blank — that
+                      section is the buyer&apos;s sworn statement, and the form
+                      stays fillable so they can complete it.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 

@@ -185,6 +185,14 @@
  ],
  [
   "GET",
+  "/deeds/{deed_id}/pcor"
+ ],
+ [
+  "GET",
+  "/deeds/{deed_id}/pcor.pdf"
+ ],
+ [
+  "GET",
   "/docs"
  ],
  [

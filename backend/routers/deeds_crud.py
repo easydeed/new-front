@@ -521,6 +521,86 @@ def delete_deed_endpoint(deed_id: int, user_id: int = Depends(get_current_user_i
         print(f"Error deleting deed {deed_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete deed")
 
+@router.get("/deeds/{deed_id}/pcor")
+def pcor_status_endpoint(deed_id: int, user_id: int = Depends(get_current_user_id)):
+    """Is a PCOR available for this deed's county, and what will it still
+    need from the buyer?
+
+    T-3. The PCOR is the conveyance's legally required companion (R&T
+    §480.3 — a deed presented without one may be charged an extra $20 at
+    recording), and roughly the parts a deed already knows are the parts
+    an officer would otherwise retype.
+
+    This returns availability + the ASKS rather than a count or a
+    percentage. We fill nine text fields of sixty-five; "80% prefilled"
+    would be a claim we cannot support, and the standing rule is that
+    claims trace to something real.
+    """
+    row = _pcor_deed_row(deed_id, user_id)
+    from services.county_forms import lookup_form
+    from services.pcor_fill import values_from_deed
+
+    form = lookup_form(row.get("county") or "")
+    if form is None:
+        return {
+            "available": False,
+            "county": row.get("county"),
+            "reason": f"No PCOR on file for {row.get('county') or 'this county'}.",
+        }
+    _values, asks = values_from_deed(row)
+    return {
+        "available": True,
+        "county": form.county,
+        "form_code": form.form_code,
+        "revision": form.revision,
+        "county_revision": form.county_revision,
+        "url": f"/deeds/{deed_id}/pcor.pdf",
+        "still_needed": asks,
+    }
+
+
+@router.get("/deeds/{deed_id}/pcor.pdf")
+def pcor_download_endpoint(deed_id: int, user_id: int = Depends(get_current_user_id)):
+    """Stream the filled PCOR — UNFLATTENED, so the buyer can finish it.
+
+    Not stored and not hashed, deliberately. A deed is ours and is frozen
+    (doctrine §9); this is the buyer's form, and freezing a document
+    somebody else must complete and sign would be the wrong kind of
+    faithful.
+    """
+    from services.pcor_fill import PcorUnavailable, fill_pcor
+
+    row = _pcor_deed_row(deed_id, user_id)
+    try:
+        pdf_bytes, _asks = fill_pcor(row)
+    except PcorUnavailable as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition":
+                 f'attachment; filename="PCOR-deed-{deed_id}.pdf"'},
+    )
+
+
+def _pcor_deed_row(deed_id: int, user_id: int) -> dict:
+    """Owner-or-admin fetch, mirroring /download's access rule."""
+    if not db.conn:
+        raise HTTPException(status_code=500, detail="Database connection not available")
+    with db.conn.cursor() as cur:
+        cur.execute("""
+            SELECT d.*, u.role
+            FROM deeds d
+            LEFT JOIN users u ON u.id = %s
+            WHERE d.id = %s AND (d.user_id = %s OR u.role = 'admin')
+        """, (user_id, deed_id, user_id))
+        deed = cur.fetchone()
+    if not deed:
+        raise HTTPException(status_code=404, detail="Deed not found")
+    return dict(deed)
+
+
 @router.get("/deeds/{deed_id}/download")
 def download_deed_endpoint(deed_id: int, user_id: int = Depends(get_current_user_id)):
     """Stream the stored deed PDF; render+store on first request for legacy rows."""

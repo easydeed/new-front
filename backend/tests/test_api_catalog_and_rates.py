@@ -15,6 +15,8 @@ from pathlib import Path
 
 import pytest
 
+from tests.source_text import code_only
+
 from schemas.api_v1.deeds import (
     CreateDeedRequest, DeedType, EntityModel, GranteeModel, GrantorModel,
     PropertyModel, RecordingModel, ReturnToModel, TaxBasis, TransferTaxModel,
@@ -254,23 +256,14 @@ def test_there_is_no_generic_fallback_city_rate():
     know nothing about. Every rate is per-place now, and a place we do
     not hold resolves to UNKNOWN rather than to a default.
     """
-    import ast
-
     import services.dtt_rates as rates
     assert not hasattr(rates, "DEFAULT_CITY_RATE_PER_1000")
 
-    # Strip DOCSTRINGS as well as comments. The module docstring recounts
-    # the rate history and necessarily quotes the old fallback figure —
-    # the sixth time in this codebase that a forbidden-pattern pin has
-    # tripped on the prose explaining the removal.
-    src = (BACKEND / "services/dtt_rates.py").read_text(encoding="utf-8")
-    tree = ast.parse(src)
-    for node in ast.walk(tree):
-        if isinstance(node, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-            doc = ast.get_docstring(node, clean=False)
-            if doc:
-                src = src.replace(doc, "")
-    code = "\n".join(l for l in src.splitlines() if not l.strip().startswith("#"))
+    # T-3: was a fourth inline copy of the docstring-and-comment strip.
+    # The module docstring recounts the rate history and necessarily
+    # quotes the old fallback figure — the sixth pin-trip on prose
+    # explaining a removal, and the reason the helper is shared now.
+    code = code_only(BACKEND / "services/dtt_rates.py")
     assert "2.20" not in code, "a fallback rate reappeared in code"
 
 

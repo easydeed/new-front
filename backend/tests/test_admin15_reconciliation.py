@@ -32,27 +32,11 @@ ADMIN_INLINE = BACKEND / "routers" / "admin_inline.py"
 ADMIN_V2 = BACKEND / "routers" / "admin_api_v2.py"
 
 
-def code_only(path: Path) -> str:
-    """Source with docstrings and comments stripped.
-
-    A comment explaining why a pattern was removed necessarily quotes
-    that pattern, so a naive grep trips on the explanation. This has now
-    happened five times across four suites; the shared-util consolidation
-    is ledgered as opportunistic and this file uses the same helper shape
-    as its siblings so the eventual merge is mechanical.
-    """
-    src = path.read_text(encoding="utf-8")
-    tree = ast.parse(src)
-    for node in ast.walk(tree):
-        if isinstance(node, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-            doc = ast.get_docstring(node, clean=False)
-            if doc:
-                src = src.replace(doc, "")
-    return "\n".join(
-        line for line in src.splitlines()
-        if not line.lstrip().startswith("#")
-    )
-
+# T-3: the local code_only() lives in tests/source_text.py now — this
+# was one of four near-identical copies, and the copies had drifted
+# (one stripped comments but not docstrings, which is how the sixth
+# pin-trip-on-a-comment happened). Owner-ruled consolidation.
+from tests.source_text import code_only
 
 # ── The month boundary ───────────────────────────────────────────────
 
