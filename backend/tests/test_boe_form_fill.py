@@ -25,7 +25,7 @@ from pypdf import PdfReader, PdfWriter  # noqa: E402
 from services.county_forms import (  # noqa: E402
     CERTIFICATION_BLOCK, LA_BOE_502A_REV18, lookup_form,
 )
-from services.pcor_fill import PcorUnavailable, fill_pcor, values_from_deed  # noqa: E402
+from services.boe_form_fill import PcorUnavailable, fill_pcor, values_from_deed  # noqa: E402
 
 FORM = LA_BOE_502A_REV18
 
@@ -237,3 +237,155 @@ def test_both_revision_numbers_are_recorded():
     independently; tracking only one is how a mismatch goes unnoticed."""
     assert "REV 18" in FORM.revision
     assert FORM.county_revision and "ASSR-70" in FORM.county_revision
+
+
+# ══════════════════════════════════════════════════════════════════════
+# T-3b — the BOE-502-D on the same rails.
+#
+# The same three-layer guard, asserted independently: names against the
+# real /AcroForm, export values against each widget's own /_States_, and
+# a pinned digest with the swap executed rather than assumed. Nothing is
+# inherited from the 502-A's passing tests — a second form sharing the
+# machinery is exactly when a shared bug becomes invisible.
+# ══════════════════════════════════════════════════════════════════════
+from services.county_forms import (  # noqa: E402
+    DEATH_STATEMENT_CERTIFICATION, LA_BOE_502D_REV15,
+)
+from services.boe_form_fill import fill_death_statement, values_from_affidavit  # noqa: E402
+
+DFORM = LA_BOE_502D_REV15
+
+
+@pytest.fixture(scope="module")
+def d_fields():
+    return PdfReader(str(DFORM.path)).get_fields()
+
+
+def test_502d_stored_pdf_matches_the_mapped_revision():
+    digest = hashlib.sha256(DFORM.path.read_bytes()).hexdigest()
+    assert digest == DFORM.sha256
+
+
+def test_502d_every_mapped_field_exists(d_fields):
+    missing = [t.field for t in DFORM.text_fields if t.field not in d_fields]
+    assert missing == [], f"mapped 502-D fields absent from the PDF: {missing}"
+
+
+def test_502d_export_values_match_the_widgets_own_states(d_fields):
+    """Same trap family, independently verified. This form has its own
+    instance of the 502-A's question-H bug: "Is this property a family
+    farm? no" exports "/Yes", while three other NO boxes export "/No".
+    """
+    for c in DFORM.check_fields:
+        states = [str(s) for s in (d_fields[c.field].get("/_States_") or [])]
+        assert c.on_value in states, f"{c.key}: {c.on_value!r} not in {states!r}"
+
+    # The trap itself, recorded so a future mapper cannot assume.
+    farm_no = d_fields["Is this property a family farm? no 1"]
+    assert "/Yes" in [str(s) for s in farm_no["/_States_"]], (
+        "a NO checkbox exporting /Yes is the county's authoring error, and "
+        "the map must never infer this value"
+    )
+
+
+def test_502d_a_swapped_pdf_is_caught(tmp_path):
+    decoy = tmp_path / "boe502d_rev15.pdf"
+    w = PdfWriter()
+    w.add_blank_page(width=612, height=792)
+    with open(decoy, "wb") as fh:
+        w.write(fh)
+    assert hashlib.sha256(decoy.read_bytes()).hexdigest() != DFORM.sha256
+    assert DFORM.text_fields[0].field not in (PdfReader(str(decoy)).get_fields() or {})
+
+
+def test_502d_has_no_signature_field(d_fields):
+    assert [k for k, v in d_fields.items() if str(v.get("/FT")) == "/Sig"] == []
+
+
+@pytest.mark.parametrize("field_name", DEATH_STATEMENT_CERTIFICATION)
+def test_502d_certification_is_never_written(field_name, d_fields):
+    """Occurrence pin, one per element. Note the form's own wording on
+    the last of them — "Printed name of WET SIGNATURE ..." — which is as
+    explicit as a document gets about the act being a human's."""
+    assert field_name in d_fields
+    assert field_name not in [t.field for t in DFORM.text_fields]
+    assert field_name in DFORM.never_fill
+
+
+def test_502d_succession_checkboxes_are_never_pre_checked():
+    """How title passed is the legal characterisation at the heart of the
+    instrument. That it is DERIVABLE from the affidavit variant is
+    exactly why it must be proposed, not written."""
+    assert DFORM.check_fields == []
+
+
+def _affidavit_row(**over):
+    row = {
+        "county": "Los Angeles",
+        "apn": "5432-011-004",
+        "property_address": "77 HILLCREST RD",
+        "metadata": {
+            "property_city": "PASADENA",
+            "property_zip": "91106",
+            "affidavit": {
+                "affiantName": "ELENA V. MARQUEZ",
+                "decedentName": "ROBERT T. MARQUEZ",
+                "deathDate": "2026-03-14",
+            },
+        },
+    }
+    row.update(over)
+    return row
+
+
+def test_502d_fills_the_affidavit_facts():
+    pdf, _ = fill_death_statement(_affidavit_row())
+    f = PdfReader(io.BytesIO(pdf)).get_fields()
+    assert f["name of decedent"]["/V"] == "ROBERT T. MARQUEZ"
+    assert f["date of death"]["/V"] == "2026-03-14"
+    assert f["APN of real property"]["/V"] == "5432-011-004"
+    assert f["city of real property"]["/V"] == "PASADENA"
+
+
+def test_502d_output_is_unflattened():
+    pdf, _ = fill_death_statement(_affidavit_row())
+    reader = PdfReader(io.BytesIO(pdf))
+    assert "/AcroForm" in reader.trailer["/Root"]
+    assert len(reader.get_fields()) > 90
+
+
+def test_502d_certification_blank_on_real_output():
+    pdf, _ = fill_death_statement(_affidavit_row())
+    f = PdfReader(io.BytesIO(pdf)).get_fields()
+    for name in DEATH_STATEMENT_CERTIFICATION:
+        assert not f[name].get("/V"), f"certification field written: {name}"
+
+
+def test_502d_a_missing_death_date_becomes_an_ask():
+    """The affidavit variants differ in what they record; the JT variant
+    has no death date at all. An absent fact is asked for, never guessed."""
+    _v, asks = values_from_affidavit(_affidavit_row(
+        metadata={"affidavit": {"decedentName": "ROBERT T. MARQUEZ"}}))
+    assert any("Date of death" in a for a in asks)
+
+
+def test_502d_asks_name_the_legal_characterisation_as_the_officers():
+    _v, asks = values_from_affidavit(_affidavit_row())
+    joined = " ".join(asks).lower()
+    assert "how title passed" in joined
+    assert "yours to mark" in joined
+
+
+def test_502d_tracks_both_revision_tracks():
+    """The 502-D is at REV 15 (07-25) with the county overprint at
+    REV 10-25 — both NEWER than the 502-A's, and moving on their own
+    track. The second form is what makes two-track versioning concrete."""
+    assert "REV 15" in DFORM.revision
+    assert DFORM.county_revision and "ASSR-176" in DFORM.county_revision
+    assert DFORM.revision != LA_BOE_502A_REV18.revision
+
+
+def test_the_two_forms_are_separate_registry_entries():
+    assert lookup_form("Los Angeles", "BOE-502-A") is LA_BOE_502A_REV18
+    assert lookup_form("Los Angeles", "BOE-502-D") is DFORM
+    assert lookup_form("Los Angeles", "BOE-999") is None

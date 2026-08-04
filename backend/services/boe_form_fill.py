@@ -1,4 +1,11 @@
-"""T-3 — filling the PCOR from what the deed already knows.
+"""T-3 / T-3b — filling the county BOE forms from what the record knows.
+
+Two forms ride these rails: the BOE-502-A (PCOR, companion to a
+conveyance deed) and the BOE-502-D (Change in Ownership — Death of Real
+Property Owner, companion to a death affidavit). T-3b renamed this module
+from `pcor_fill` when the second one arrived — a module called pcor_fill
+that also fills the 502-D is exactly the drift this codebase keeps
+paying for.
 
 ═══ WHAT THIS PRODUCES ═══
 
@@ -125,26 +132,92 @@ def fill_pcor(row: Dict[str, Any], county: Optional[str] = None) -> Tuple[bytes,
         )
 
     values, asks = values_from_deed(row)
+    return _render(form, values), asks
+
+
+# ══ BOE-502-D — the death statement ══════════════════════════════════
+
+
+def values_from_affidavit(row: Dict[str, Any]) -> Tuple[Dict[str, str], list]:
+    """Map a death-affidavit deed row onto the 502-D's stable keys.
+
+    The source is `metadata.affidavit` — the facts the affidavit already
+    swore to (who died, when, under which recorded instrument) — plus the
+    property identity the deed carries. Those are FACTS and they fill.
+
+    What does not fill is how title passed. "Succession without a will",
+    "decree of distribution", "action of trustee": each is a legal
+    characterisation, and the fact that it is derivable from the
+    affidavit variant is precisely why it must be proposed rather than
+    written. Doctrine §1.
+    """
+    meta = row.get("metadata") or {}
+    aff = meta.get("affidavit") or {}
+    values: Dict[str, str] = {}
+    asks: list = []
+
+    if aff.get("decedentName"):
+        values["decedent_name"] = str(aff["decedentName"])
+    # The affidavit families spell the death date differently; both are
+    # the same fact and either is authoritative when present.
+    dod = aff.get("deathDate") or aff.get("dateOfDeath")
+    if dod:
+        values["date_of_death"] = str(dod)
+    if row.get("apn"):
+        values["apn"] = str(row["apn"])
+    if row.get("property_address"):
+        values["property_street"] = str(row["property_address"])
+    if meta.get("property_city"):
+        values["property_city"] = str(meta["property_city"])
+    if meta.get("property_zip"):
+        values["property_zip"] = str(meta["property_zip"])
+    if aff.get("affiantName"):
+        values["affiant_name_address"] = str(aff["affiantName"])
+
+    if not dod:
+        asks.append(
+            "Date of death — the affidavit variant on file did not record "
+            "one. The Assessor requires it."
+        )
+    asks.extend([
+        "How title passed (succession, decree of distribution, trustee "
+        "action, joint tenancy) — a legal characterisation, so it is "
+        "yours to mark",
+        "Beneficiaries and the percentage each received",
+        "Whether this was the decedent's principal residence",
+        "Attachments the county asks for: death certificate, will or "
+        "trust, and the deed under which the decedent acquired title",
+    ])
+    return values, asks
+
+
+def fill_death_statement(row: Dict[str, Any],
+                         county: Optional[str] = None) -> Tuple[bytes, list]:
+    """Fill the county's BOE-502-D from a death-affidavit row."""
+    county = county or row.get("county") or ""
+    form = lookup_form(county, "BOE-502-D")
+    if form is None:
+        raise PcorUnavailable(
+            f"No BOE-502-D on file for {county or 'this county'}."
+        )
+    values, asks = values_from_affidavit(row)
+    return _render(form, values), asks
+
+
+def _render(form: CountyForm, values: Dict[str, str]) -> bytes:
+    """Shared fill: map our keys onto the county's field names, set
+    NeedAppearances, and DO NOT flatten."""
     by_key = {t.key: t.field for t in form.text_fields}
     payload = {by_key[k]: v for k, v in values.items() if k in by_key and v}
 
     reader = PdfReader(str(form.path))
     writer = PdfWriter(clone_from=reader)
-    # Without this, written text carries no appearance stream and renders
-    # blank in several common viewers — including, in testing, the one an
-    # escrow officer is most likely to open it in.
     writer.set_need_appearances_writer(True)
-
     for page in writer.pages:
         try:
             writer.update_page_form_field_values(page, payload)
         except Exception:
-            # A page with no matching widgets is normal (this form is 4
-            # pages and our fields live on 1-2).
             pass
-
-    # NOT flattened. See the module docstring — the buyer has to be able
-    # to finish it.
     out = io.BytesIO()
     writer.write(out)
-    return out.getvalue(), asks
+    return out.getvalue()

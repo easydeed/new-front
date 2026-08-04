@@ -143,8 +143,71 @@ LA_BOE_502A_REV18 = CountyForm(
 )
 
 
+# ── The 502-D's certification block ──────────────────────────────────
+#
+# Same doctrine, different form, and it needed its own list because the
+# field names share nothing with the 502-A's. Note field 94 in
+# particular: "Printed name of wet signature ..." — the form itself calls
+# the signature WET, which is as explicit as a document gets about the
+# act being a human's. It stays blank like the rest.
+DEATH_STATEMENT_CERTIFICATION = [
+    "Name",
+    "title",
+    "date",
+    "telephone",
+    "area code",
+    "email",
+    "pt mailing address",
+    "pt mailing city",
+    "pt mailing state",
+    "pt mailing zip",
+    "Printed name of wet signature spouse/registered domestic partner/personal represenatitve to the left",
+]
+
+
+LA_BOE_502D_REV15 = CountyForm(
+    county="Los Angeles",
+    form_code="BOE-502-D",
+    revision="REV 15 (07-25)",
+    # NEWER than the 502-A's overprint, and on its own track entirely —
+    # which is the case for two-revision versioning made by the second
+    # form we added rather than argued in the abstract.
+    county_revision="ASSR-176 (REV. 10-25)",
+    path=FORMS_ROOT / "county/ca/los_angeles/boe502d_rev15.pdf",
+    sha256="cbe6b781f264200014bb88efd9d6bfe18aeca8a554a970454013639306a435f9",
+    source_url=(
+        "https://res.cloudinary.com/los-angeles-county-assessor/image/upload/"
+        "v1622784606/Form/BOE-502-D.pdf"
+    ),
+    text_fields=[
+        TextField("decedent_name", "name of decedent"),
+        TextField("date_of_death", "date of death"),
+        TextField("apn", "APN of real property"),
+        TextField("property_street", "street address of real property"),
+        TextField("property_city", "city of real property"),
+        TextField("property_zip", "zip of real property"),
+        TextField("affiant_name_address", "name and mailing address"),
+    ],
+    # EMPTY, for the same reason as the 502-A's.
+    #
+    # This form's checkboxes are the succession questions — "succession
+    # without a will", "decree of distribution pursuant to will", "action
+    # of trustee pursuant to terms of a trust", "affidavit of death of
+    # joint tenant", and the beneficiary-relationship set. Every one is a
+    # statement about HOW title passed, which is the legal characterisation
+    # at the heart of the instrument. Doctrine §1: proposed, accepted,
+    # never applied.
+    #
+    # They are derivable from the affidavit variant, and that derivation
+    # belongs in the officer's violet proposal — not here.
+    check_fields=[],
+    never_fill=DEATH_STATEMENT_CERTIFICATION,
+)
+
+
 REGISTRY: Dict[str, CountyForm] = {
     "los angeles:BOE-502-A": LA_BOE_502A_REV18,
+    "los angeles:BOE-502-D": LA_BOE_502D_REV15,
 }
 
 

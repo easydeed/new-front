@@ -181,6 +181,14 @@
  ],
  [
   "GET",
+  "/deeds/{deed_id}/death-statement"
+ ],
+ [
+  "GET",
+  "/deeds/{deed_id}/death-statement.pdf"
+ ],
+ [
+  "GET",
   "/deeds/{deed_id}/download"
  ],
  [

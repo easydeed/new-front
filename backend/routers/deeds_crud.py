@@ -538,7 +538,7 @@ def pcor_status_endpoint(deed_id: int, user_id: int = Depends(get_current_user_i
     """
     row = _pcor_deed_row(deed_id, user_id)
     from services.county_forms import lookup_form
-    from services.pcor_fill import values_from_deed
+    from services.boe_form_fill import values_from_deed
 
     form = lookup_form(row.get("county") or "")
     if form is None:
@@ -568,7 +568,7 @@ def pcor_download_endpoint(deed_id: int, user_id: int = Depends(get_current_user
     somebody else must complete and sign would be the wrong kind of
     faithful.
     """
-    from services.pcor_fill import PcorUnavailable, fill_pcor
+    from services.boe_form_fill import PcorUnavailable, fill_pcor
 
     row = _pcor_deed_row(deed_id, user_id)
     try:
@@ -599,6 +599,58 @@ def _pcor_deed_row(deed_id: int, user_id: int) -> dict:
     if not deed:
         raise HTTPException(status_code=404, detail="Deed not found")
     return dict(deed)
+
+
+@router.get("/deeds/{deed_id}/death-statement")
+def death_statement_status_endpoint(deed_id: int, user_id: int = Depends(get_current_user_id)):
+    """T-3b — the BOE-502-D's availability and remaining asks.
+
+    Its own endpoint rather than a polymorphic one: this attaches to the
+    death-affidavit family, draws on entirely different facts (decedent,
+    date of death) and asks the officer entirely different questions than
+    the PCOR does. Two named routes read more honestly than one that
+    changes meaning depending on what it is pointed at.
+    """
+    row = _pcor_deed_row(deed_id, user_id)
+    from services.county_forms import lookup_form
+    from services.boe_form_fill import values_from_affidavit
+
+    form = lookup_form(row.get("county") or "", "BOE-502-D")
+    if form is None:
+        return {
+            "available": False,
+            "county": row.get("county"),
+            "reason": f"No BOE-502-D on file for {row.get('county') or 'this county'}.",
+        }
+    _values, asks = values_from_affidavit(row)
+    return {
+        "available": True,
+        "county": form.county,
+        "form_code": form.form_code,
+        "revision": form.revision,
+        "county_revision": form.county_revision,
+        "url": f"/deeds/{deed_id}/death-statement.pdf",
+        "still_needed": asks,
+    }
+
+
+@router.get("/deeds/{deed_id}/death-statement.pdf")
+def death_statement_download_endpoint(deed_id: int, user_id: int = Depends(get_current_user_id)):
+    """Stream the filled 502-D — unflattened, like the PCOR."""
+    from services.boe_form_fill import PcorUnavailable, fill_death_statement
+
+    row = _pcor_deed_row(deed_id, user_id)
+    try:
+        pdf_bytes, _asks = fill_death_statement(row)
+    except PcorUnavailable as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition":
+                 f'attachment; filename="BOE-502-D-deed-{deed_id}.pdf"'},
+    )
 
 
 @router.get("/deeds/{deed_id}/download")

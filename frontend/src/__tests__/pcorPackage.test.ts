@@ -50,7 +50,40 @@ describe('T-3 — the PCOR package offer', () => {
   });
 
   it('downloads through an authenticated blob fetch, not a bare href', () => {
-    expect(code).toContain('/pcor.pdf');
+    expect(code).toContain("'pcor.pdf'");
+    expect(code).toContain("'death-statement.pdf'");
     expect(code).toMatch(/Authorization.*Bearer/);
+  });
+});
+
+describe('T-3b — the BOE-502-D offer', () => {
+  it('is offered filled when we hold the county form', () => {
+    expect(code).toContain('deathStatement?.available');
+    expect(code).toContain('Change in Ownership Statement');
+    expect(code).toContain('Pre-filled with everything this affidavit already knows');
+  });
+
+  it('claims no percentage here either', () => {
+    // Scoped to CLAIMS, not to the character: this file also contains a
+    // CSS keyframe block whose 0%/50%/100% are not assertions about
+    // anything. A pin that cannot tell a claim from a stylesheet is a pin
+    // that gets deleted by the next person who trips on it.
+    expect(code).not.toMatch(/\d+%\s*(pre-?filled|complete|done|filled)/i);
+  });
+
+  it('the passive notice survives ONLY as the fallback', () => {
+    // The FORMS flag-4 notice was passive because form-fill was deferred.
+    // It must not disappear — counties we do not hold still need it — but
+    // it must not compete with a filled form either.
+    expect(code).toContain('!deathStatement?.available && formConfig(type)?.companionNotice');
+  });
+
+  it('says the legal characterisation is the officer\'s to mark', () => {
+    expect(code).toMatch(/How title passed is a legal characterisation/);
+  });
+
+  it('says the certification is blank and the form stays fillable', () => {
+    expect(code).toMatch(/certification and signature are blank/);
+    expect(code).toMatch(/stays fillable/);
   });
 });
