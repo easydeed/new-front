@@ -113,6 +113,29 @@ def create_tables():
             # store_deed_pdf stamps completed-on-store (PR #41); the ALTER
             # only ever ran in the test harness. Now it runs here.
             "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP",
+            # ── T-5: correction lineage ──────────────────────────────────
+            #
+            # Mirrors document_authenticity's proven shape — a pointer to
+            # the instrument that replaced this one, plus when. That table
+            # has carried `status='superseded' + superseded_by` since the
+            # verification work; `deeds` has had no equivalent, which is
+            # why the generation gate's "generate a corrected deed — the
+            # record keeps both" was a promise with nothing behind it
+            # (T-0 removed the sentence; this ticket earns it back).
+            #
+            # ONE DELIBERATE DIVERGENCE FROM THAT SHAPE, flagged in the
+            # T-5 report: the lineage state is DERIVED from this pointer
+            # rather than added to `deeds.status`. That column already
+            # carries a lifecycle vocabulary in active use
+            # (draft/completed/deleted) and the admin console filters on
+            # it. Adding 'superseded' would make it mutually exclusive
+            # with 'completed', and those are orthogonal facts — a
+            # superseded deed is still a completed deed. It was recorded,
+            # it exists, and pretending otherwise is the un-recording this
+            # ticket refuses to do.
+            "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS superseded_by INTEGER REFERENCES deeds(id)",
+            "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS superseded_at TIMESTAMPTZ",
+            "CREATE INDEX IF NOT EXISTS idx_deeds_superseded_by ON deeds(superseded_by)",
             """CREATE TABLE IF NOT EXISTS deed_pdfs (
                 deed_id INTEGER PRIMARY KEY REFERENCES deeds(id) ON DELETE CASCADE,
                 pdf_data BYTEA NOT NULL,

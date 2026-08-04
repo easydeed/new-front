@@ -317,6 +317,39 @@ ships until the supersession model exists. An "edit" affordance over a
 last-write-wins store is how an operator destroys an instrument while
 believing they corrected one.
 
+**UPDATE — T-5, 2026-08-04: the parked model is built.** `deeds` now
+carries `superseded_by` (self-FK) and `superseded_at`, mirroring
+`document_authenticity`'s proven shape.
+
+Supersession is **a new row and a pointer**. The superseded deed is not
+edited, not deleted and not hidden: its PDF, hash, status and content are
+untouched, and the single write is `superseded_by` going from NULL to the
+correcting document's id — guarded `WHERE superseded_by IS NULL` so the
+pointer is written once even under concurrency. A pin asserts the
+supersede path writes those two columns and nothing else, because
+supersession that learns to edit content is editing *with a lineage row
+for cover*, which is worse than editing openly.
+
+**One deliberate divergence from `document_authenticity`'s shape.** That
+table folds lineage into `status` (`active|revoked|superseded`). `deeds`
+derives it from the pointer instead, because `deeds.status` already
+carries a lifecycle vocabulary in active use (`draft|completed|deleted`).
+Overloading it would make "superseded" exclusive with "completed", and
+those are orthogonal: **a superseded deed is still a completed deed.** It
+was generated, it exists in the world, and saying otherwise is the
+un-recording this model refuses.
+
+**The history is visible by design.** A superseded deed stays fully
+readable with its state shown, and the lineage view returns both
+directions. Hiding it would recreate in the UI exactly the un-recording
+the data model refuses.
+
+**And the officer is told the truth about what a correction is:** a new
+instrument, requiring its own signing and notarisation. We record the
+relationship; we do not un-record documents. That sentence returned to
+the generation gate in this same change — T-0 had removed it precisely
+because the record could not keep it.
+
 ---
 
 ## §10 — Facts carry between documents; legal choices do not
@@ -365,6 +398,7 @@ proposal and the officer's acceptance is what writes it. (T-3/T-3b:
 
 | Date | Change |
 |---|---|
+| 2026-08-04 | §9's parked supersession model BUILT (T-5). `deeds.superseded_by` + `superseded_at` mirror `document_authenticity`'s shape; lineage state is derived rather than folded into `deeds.status`, because a superseded deed is still a completed deed. Supersession is a pointer written once (SQL-guarded), never a mutation — pinned. The T-0 copy removal reversed in the same diff that made the promise true. |
 | 2026-08-04 | §10 added — facts carry between documents with their ORIGINAL provenance (never re-stamped, always marked `carriedFrom`); legal choices never carry. T-4's matter grouping made the question live: an accepted DTT exemption travelling to the next instrument would be an auto-applied legal choice wearing the officer's own signature. Corollary recorded from T-3b: derivability is a reason for restraint, not licence — being derivably right is what makes something a legal conclusion. |
 | 2026-08-03 | §9 added — stored instruments are never overwritten. ADMIN0 found `deed_pdfs` stored via `ON CONFLICT DO UPDATE SET pdf_data`, replacing prior bytes AND their sha256 in place; the draft-resume 409 guard sits a layer above it, making this latent rather than live. Ruled in two parts: insert-or-refuse in ADMIN1 (differing hash = loud refusal, identical = no-op), full supersession as its own designed ticket. No admin deed-edit until supersession exists. |
 | 2026-08-03 | §8 added — API doctrine boundary ruled: v1 = deed family only; affidavit/declaration families held pending per-family passes (execution-act instruments require human flows by design). A1 also recorded three never-run defects in the mounted `/api/v1` (tuple-read auth, unassigned `full_address`, metering aborting the deed transaction) — all three survived because the only tests bypassed the HTTP and database layers, the test-vs-production asymmetry lesson under invariant #4. |

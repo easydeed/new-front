@@ -193,6 +193,10 @@
  ],
  [
   "GET",
+  "/deeds/{deed_id}/lineage"
+ ],
+ [
+  "GET",
   "/deeds/{deed_id}/matter"
  ],
  [
@@ -394,6 +398,10 @@
  [
   "POST",
   "/deeds/drafts"
+ ],
+ [
+  "POST",
+  "/deeds/{deed_id}/supersede"
  ],
  [
   "POST",

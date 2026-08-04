@@ -431,29 +431,25 @@ function DeedBuilderInner({ deedType, initialProperty, resumeDeedId }: DeedBuild
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
             <div className="w-full max-w-xl bg-white rounded-xl shadow-2xl p-6 max-h-[85vh] overflow-y-auto">
               <h2 className="text-lg font-semibold text-gray-900 mb-1">Ready to generate?</h2>
-              {/* T-0 — INTERIM COPY, and the reason is worth reading before
-                  anyone "improves" it back.
-
-                  This paragraph used to end: "Need changes? Generate a
-                  corrected deed — the record keeps both." Both halves of
-                  that sentence sound true and the pair is not. Generating
-                  again does keep both rows — but nothing records that the
-                  second deed corrects the first. There is no lineage: no
-                  superseded_by, no status beyond draft/completed/deleted,
-                  no surface that shows the pair as related. The word
-                  "corrected" promised a relationship the record does not
-                  hold, on the one screen where an officer is deciding
-                  whether it is safe to press the button.
-
-                  T-5 builds that lineage (document_authenticity already
-                  proves the shape: status + superseded_by self-FK). When it
-                  is real, the sentence comes back as truth and the pin in
-                  gateTruth.test.ts retires with it. Until then the copy
-                  says only what is true today: a generated deed cannot be
-                  edited, so changes belong here, before the button. */}
+              {/* T-5 — THE SENTENCE IS TRUE NOW, so it comes back.
+                  T-0 deleted "Generate a corrected deed — the record keeps
+                  both" because `deeds` had no lineage: both rows existed
+                  but nothing recorded that one corrected the other, so the
+                  word "corrected" promised a relationship the record did
+                  not hold. This ticket mirrored document_authenticity's
+                  shape onto `deeds` (superseded_by + superseded_at), and
+                  the T-0 pin in gateTruth.test.ts retires in this same
+                  diff — the copy and the record change together, which is
+                  what its docstring said would happen.
+                  The added clause is the part officers most need to hear:
+                  a corrected deed is a NEW INSTRUMENT. We record the
+                  relationship; we do not un-record documents. */}
               <p className="text-sm text-gray-500 mb-4">
                 The generated document is final and stored immutably — it
-                cannot be edited afterwards, so make any changes now.
+                cannot be edited afterwards. Need changes? Generate a
+                corrected deed and link it to this one: the record keeps
+                both and shows which replaced which. The correction is a
+                new instrument and needs its own signing and notarisation.
                 Resolve the items below first.
               </p>
 
