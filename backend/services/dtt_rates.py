@@ -55,6 +55,9 @@ class DttBreakdown(TypedDict):
     # T-2: False when we do not KNOW the rate — distinct from knowing it
     # is zero. Callers must ask rather than print a number.
     city_rate_known: bool
+    # Set when a tiered high-value bracket applies. Names the measure and
+    # never a rate — flag over stale math.
+    city_tier_measure: Optional[str]
 
 
 def city_rate_per_1000(city: Optional[str]) -> Optional[float]:
@@ -80,12 +83,15 @@ def compute_dtt(taxable_value: float, city: Optional[str] = None,
     # A caller that supplies no city is not asking about an unknown place —
     # it is stating there is no city portion. Only a NAMED place we do not
     # hold is "unknown".
-    resolved = city_dtt_rate(city) if (apply_city_tax and city) else None
+    resolved = city_dtt_rate(city, value) if (apply_city_tax and city) else None
     rate = resolved.rate_per_1000 if resolved and resolved.state == "rated" else None
     city_tax = (value / 1000.0) * rate if rate else 0.0
     # Unknown is not zero. A city we have never rated must not be
     # reported as one that levies nothing.
-    known = resolved is None or resolved.state in ("rated", "none")
+    known = resolved is None or resolved.state in ("rated", "none", "tiered")
+    # T-2a: a high-value bracket applies and we deliberately computed NO
+    # city portion. The measure is named; no rate is stated.
+    tier = (resolved.measure if resolved and resolved.state == "tiered" else None)
 
     return {
         "county_tax": round(county_tax, 2),
@@ -95,4 +101,5 @@ def compute_dtt(taxable_value: float, city: Optional[str] = None,
         "city_rate_per_1000": rate,
         "city_levies_own_dtt": rate is not None,
         "city_rate_known": known,
+        "city_tier_measure": tier,
     }

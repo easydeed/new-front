@@ -745,7 +745,22 @@ async def calculate_transfer_tax(
 
     city_breakdown = None
     if request.city:
-        if city_rate is None and not dtt["city_rate_known"]:
+        if dtt.get("city_tier_measure"):
+            # T-2a: above the measure's threshold the city tax is tiered.
+            # We name the measure and state NO rate — the schedules move
+            # (Measure ULA's thresholds adjust annually) and a stale
+            # number that looks confident is the failure being avoided.
+            city_breakdown = {
+                "name": request.city,
+                "rate": None,
+                "amount": None,
+                "notes": (
+                    f"High-value transfer: a tiered city transfer tax applies "
+                    f"({dtt['city_tier_measure']}). Verify the current schedule — "
+                    f"no city amount is computed here."
+                ),
+            }
+        elif city_rate is None and not dtt["city_rate_known"]:
             # T-2: the third state, which used to be silently folded into
             # "levies none". We do not hold this place, so we do not know.
             # Saying "levies none" here was an invented $0 — the same class

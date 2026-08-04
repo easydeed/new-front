@@ -34,17 +34,19 @@ describe('T-2 — substring collisions cannot happen', () => {
   ];
 
   for (const [place, contained] of COLLISIONS) {
-    it(`"${place}" is never charged "${contained}"'s rate`, () => {
+    it(`"${place}" resolves independently of "${contained}"`, () => {
       const victim = cityDttRate(place);
       const container = cityDttRate(contained);
-      expect(container.state).toBe('rated');
-      // Whatever the victim resolves to, it is NOT the containing city's rate.
-      if (victim.state === 'rated') {
-        expect(victim.ratePer1000).not.toBe(
-          container.state === 'rated' ? container.ratePer1000 : null);
-      } else {
-        expect(['unknown', 'none']).toContain(victim.state);
+      // T-2a: Pasadena is now a verified ZERO (owner sign-off closed the
+      // LA set at five cities), so this pair no longer has a positive
+      // rate to inherit. The pin stays anyway — it guards the MECHANISM,
+      // and a future rate change to any container must not leak sideways.
+      if (container.state === 'rated') {
+        expect(victim.state === 'rated'
+          && victim.ratePer1000 === container.ratePer1000).toBe(false);
       }
+      // Each is resolved from its own row, never by containment.
+      expect(['unknown', 'none', 'rated', 'tiered']).toContain(victim.state);
     });
   }
 
@@ -107,9 +109,12 @@ describe('T-2 — unknown is never rendered as a rate', () => {
 describe('T-2 — incorporation and taxation are separate facts', () => {
   it('an incorporated city may levy no DTT', () => {
     // The pre-T-2 code called Glendale "unincorporated" because that
-    // produced the right tax by accident.
+    // produced the right tax by accident. Glendale is now an explicit
+    // row: incorporated, and verified to levy nothing.
+    expect(isIncorporated('Glendale')).toBe(true);
+    expect(cityDttRate('Glendale').state).toBe('none');
     expect(isIncorporated('South Pasadena')).toBe(true);
-    expect(cityDttRate('South Pasadena').state).toBe('unknown');
+    expect(cityDttRate('South Pasadena').state).toBe('none');
   });
 
   it('an unknown place asserts neither', () => {
@@ -140,5 +145,89 @@ describe('T-2 — the registry is the only list', () => {
       // A literal array of quoted city names is the shape of a fork.
       expect(src).not.toMatch(/=\s*\[\s*\n?\s*["']los angeles["']/i);
     }
+  });
+});
+
+/**
+ * T-2a — OWNER SIGN-OFF. Rates verified against the PCT published chart
+ * and an escrow professional's desk experience, 2026-08-04.
+ */
+describe('T-2a — the verified LA County set', () => {
+  const FIVE = ['Los Angeles', 'Santa Monica', 'Culver City', 'Pomona', 'Redondo Beach'];
+
+  it('exactly five LA County cities levy their own DTT', () => {
+    const laRated = PLACES
+      .filter((p) => p.county === 'Los Angeles'
+        && p.dttRatePer1000 !== null && p.dttRatePer1000 > 0)
+      .map((p) => p.city);
+    expect(laRated.sort()).toEqual([...FIVE].sort());
+  });
+
+  it('the corrected rates are the signed-off ones', () => {
+    expect(cityDttRate('Santa Monica')).toEqual({ state: 'rated', ratePer1000: 3.00 });
+    expect(cityDttRate('Culver City', 1_000_000)).toEqual({ state: 'rated', ratePer1000: 4.50 });
+    expect(cityDttRate('Los Angeles')).toEqual({ state: 'rated', ratePer1000: 4.50 });
+  });
+
+  it('Long Beach, Inglewood and Pasadena levy NOTHING — the $2.20 was wrong', () => {
+    for (const city of ['Long Beach', 'Inglewood', 'Pasadena']) {
+      expect(cityDttRate(city).state).toBe('none');
+    }
+  });
+
+  it('every LA County row is an affirmative fact, never an unknown', () => {
+    // The closed-set ruling is what licenses this: "not among the five"
+    // is knowledge about the county, not a gap in it.
+    for (const p of PLACES.filter((x) => x.county === 'Los Angeles')) {
+      expect(p.dttRatePer1000).not.toBeNull();
+    }
+  });
+
+  it('non-LA counties keep the honest gap', () => {
+    // Explicitly NOT resolved by this sign-off, and must not be quietly
+    // folded in later.
+    expect(cityDttRate('South San Francisco').state).toBe('unknown');
+    expect(cityDttRate('Palo Alto').state).toBe('unknown');
+  });
+
+  it('every verified rate cites its source', () => {
+    for (const p of PLACES.filter((x) => x.county === 'Los Angeles')) {
+      expect(p.source).toBeTruthy();
+    }
+  });
+});
+
+describe('T-2a — tiers are FLAGGED, never computed', () => {
+  it('a high-value City of LA transfer states no city rate at all', () => {
+    const r = cityDttRate('Los Angeles', 6_000_000);
+    expect(r.state).toBe('tiered');
+    expect(r).not.toHaveProperty('ratePer1000');
+    expect(r.state === 'tiered' && r.measure).toBe('Measure ULA');
+  });
+
+  it('below the threshold the base rate still applies', () => {
+    expect(cityDttRate('Los Angeles', 1_000_000)).toEqual(
+      { state: 'rated', ratePer1000: 4.50 });
+  });
+
+  it('the breakdown computes NO city portion above the threshold', () => {
+    const b = computeDttBreakdown({ ...ONE_MILLION, transferValue: '6000000',
+      cityName: 'Los Angeles' })!;
+    expect(b.city).toBeNull();
+    expect(b.cityTierFlag?.measure).toBe('Measure ULA');
+    // The county portion — which does not tier — is still computed.
+    expect(b.county).toBe('6600.00');
+  });
+
+  it('Culver City tiers from its lowest bracket boundary', () => {
+    const r = cityDttRate('Culver City', 2_000_000);
+    expect(r.state).toBe('tiered');
+    expect(r.state === 'tiered' && r.boundaries).toEqual([1_500_000, 3_000_000, 10_000_000]);
+  });
+
+  it('the flag never carries a rate — that is the whole ruling', () => {
+    const b = computeDttBreakdown({ ...ONE_MILLION, transferValue: '9000000',
+      cityName: 'Santa Monica' })!;
+    expect(JSON.stringify(b.cityTierFlag)).not.toMatch(/rate/i);
   });
 });

@@ -49,14 +49,35 @@
  * The difference between `0` and `null` is the whole point. Absence of
  * knowledge must not render as a fact.
  *
- * ═══ RATE PROVENANCE — OWNER'S ESCROW REVIEW PENDING ═══
+ * ═══ RATE PROVENANCE — OWNER SIGN-OFF RECEIVED (2026-08-04) ═══
  *
- * Every non-null rate below is carried forward UNCHANGED from the
- * pre-T-2 tables. None of them were verified by this ticket. They are
- * approximations of tiered municipal schedules and remain the owner's
- * escrow review to confirm against current published schedules — the
- * open ledger item. Entries marked `null` are the honest gaps that
- * review should fill; they are not omissions to be "fixed" by guessing.
+ * Every Los Angeles County row below is verified against TWO independent
+ * sources, both cited per row:
+ *
+ *   [PCT]   PCT published transfer-tax chart, pct.com/resources/transfer-tax,
+ *           fetched August 2026.
+ *   [OWNER] Owner verification — practising escrow professional, LA County
+ *           desk experience — signed off 2026-08-04.
+ *
+ * THE LA COUNTY CITY-DTT SET IS A CLOSED SET OF FIVE: Los Angeles, Santa
+ * Monica, Culver City, Pomona, Redondo Beach. Every other incorporated
+ * city in the county levies NO city transfer tax — county $1.10/$1,000
+ * only. That is why the LA rows below carry `0` (affirmative knowledge)
+ * rather than `null` (absence of knowledge): the set being closed is
+ * itself the fact.
+ *
+ * RESOLVED: Long Beach, Inglewood and Pasadena were rated $2.20 here and
+ * levy nothing. The claim came from the dttCalc own-DTT list (mirrored
+ * into dtt_rates.py), NOT from the propertyPrefill fork — that fork
+ * OMITTED all three, which is why prefill marked them "unincorporated"
+ * and skipped their city tax. So the two forks were wrong in opposite
+ * directions about the same three cities, and the fork that looked
+ * broken was accidentally right. Both are now the same, correct, zero.
+ *
+ * NON-LA COUNTIES ARE STILL UNVERIFIED. Rows outside LA County keep
+ * whatever they had: carried-forward rates where one existed, `null`
+ * where none did. The honest-gap path stays open for them until each
+ * county gets this same treatment.
  */
 
 export interface RecorderPrefs {
@@ -76,6 +97,26 @@ export interface County {
   pcorRouting?: PcorRouting;
 }
 
+/**
+ * A high-value bracket exists above `amount`, created by `measure`.
+ *
+ * RULED: we FLAG, we do not compute. Tier schedules move — Measure ULA's
+ * thresholds adjust annually — and a rate compiled into this file goes
+ * stale silently while continuing to produce confident numbers. Above the
+ * threshold the product says a tiered tax applies and to verify the
+ * current schedule, and it states NO rate. An honest flag beats stale
+ * math, and understating a City of LA transfer by an order of magnitude
+ * (base 0.45% against ULA's 4%) is the failure mode being avoided.
+ */
+export interface TierThreshold {
+  /** Consideration at or above which the flag fires. */
+  amount: number;
+  /** Ballot measure that created the bracket — named, never rated. */
+  measure: string;
+  /** Further bracket boundaries, for the officer-facing note. */
+  boundaries?: number[];
+}
+
 export interface Place {
   /** Canonical display name. */
   city: string;
@@ -83,6 +124,10 @@ export interface Place {
   incorporated: boolean;
   /** See RATE SEMANTICS above. `null` means unknown, never zero. */
   dttRatePer1000: number | null;
+  /** Present where a high-value bracket exists. Flagged, never computed. */
+  tieredAbove?: TierThreshold;
+  /** Source citation. Required for every verified rate. */
+  source?: string;
 }
 
 /** The merged view a caller gets back: place facts + its county's facts. */
@@ -112,28 +157,90 @@ export const COUNTIES: Record<string, County> = {
  * silent behavior change.
  */
 export const PLACES: Place[] = [
-  // ── Los Angeles County — incorporated, rate carried forward ─────────
-  { city: 'Los Angeles', county: 'Los Angeles', incorporated: true, dttRatePer1000: 4.50 },
-  { city: 'Culver City', county: 'Los Angeles', incorporated: true, dttRatePer1000: 2.20 },
-  { city: 'Santa Monica', county: 'Los Angeles', incorporated: true, dttRatePer1000: 2.20 },
-  { city: 'Redondo Beach', county: 'Los Angeles', incorporated: true, dttRatePer1000: 2.20 },
-  { city: 'Inglewood', county: 'Los Angeles', incorporated: true, dttRatePer1000: 2.20 },
-  { city: 'Long Beach', county: 'Los Angeles', incorporated: true, dttRatePer1000: 2.20 },
-  { city: 'Pasadena', county: 'Los Angeles', incorporated: true, dttRatePer1000: 2.20 },
-  { city: 'Pomona', county: 'Los Angeles', incorporated: true, dttRatePer1000: 2.20 },
+  // ══ Los Angeles County — THE FIVE. Closed set, owner-confirmed. ══
+  {
+    city: 'Los Angeles', county: 'Los Angeles', incorporated: true,
+    dttRatePer1000: 4.50,
+    // Measure ULA adds a high-value bracket whose thresholds ADJUST
+    // ANNUALLY — the single clearest argument for flagging over
+    // computing. Base 0.45% vs ULA's 4% is an order of magnitude.
+    tieredAbove: { amount: 5_000_000, measure: 'Measure ULA' },
+    source: 'PCT chart pct.com/resources/transfer-tax (Aug 2026) + owner verification 2026-08-04',
+  },
+  {
+    city: 'Santa Monica', county: 'Los Angeles', incorporated: true,
+    // CORRECTED from $2.20. The carried-forward figure was wrong.
+    dttRatePer1000: 3.00,
+    tieredAbove: { amount: 5_000_000, measure: 'Measure SM ($6.00 tier); Measure GS beyond' },
+    source: 'PCT chart pct.com/resources/transfer-tax (Aug 2026) + owner verification 2026-08-04',
+  },
+  {
+    city: 'Culver City', county: 'Los Angeles', incorporated: true,
+    // CORRECTED from $2.20. Base bracket ~0.45% = $4.50 per $1,000.
+    dttRatePer1000: 4.50,
+    tieredAbove: {
+      amount: 1_500_000, measure: 'Measure RE',
+      boundaries: [1_500_000, 3_000_000, 10_000_000],
+    },
+    source: 'PCT chart pct.com/resources/transfer-tax (Aug 2026) + owner verification 2026-08-04',
+  },
+  {
+    city: 'Pomona', county: 'Los Angeles', incorporated: true,
+    dttRatePer1000: 2.20, source: 'PCT chart pct.com/resources/transfer-tax (Aug 2026) + owner verification 2026-08-04',
+  },
+  {
+    city: 'Redondo Beach', county: 'Los Angeles', incorporated: true,
+    dttRatePer1000: 2.20, source: 'PCT chart pct.com/resources/transfer-tax (Aug 2026) + owner verification 2026-08-04',
+  },
 
-  // ── Los Angeles County — UNINCORPORATED. Structural fact, not a rate
-  //    lookup: unincorporated territory levies no municipal transfer tax,
-  //    so 0 here is affirmative knowledge. Both of these were charged the
-  //    City of Los Angeles' $4.50 by substring matching.
-  { city: 'East Los Angeles', county: 'Los Angeles', incorporated: false, dttRatePer1000: 0 },
-  { city: 'Lake Los Angeles', county: 'Los Angeles', incorporated: false, dttRatePer1000: 0 },
+  // ══ Los Angeles County — levies NONE. Affirmative, not absence. ══
+  // These are `0`, not `null`, because the five-city set above is CLOSED:
+  // "not among the five" is knowledge about this county, not a gap.
+  //
+  // Long Beach, Inglewood and Pasadena were rated $2.20 here and levy
+  // nothing — see the RESOLVED note in the header for which fork made
+  // that claim and which one was accidentally right.
+  { city: 'Long Beach', county: 'Los Angeles', incorporated: true, dttRatePer1000: 0, source: 'PCT chart pct.com/resources/transfer-tax (Aug 2026) + owner verification 2026-08-04' },
+  { city: 'Inglewood', county: 'Los Angeles', incorporated: true, dttRatePer1000: 0, source: 'PCT chart pct.com/resources/transfer-tax (Aug 2026) + owner verification 2026-08-04' },
+  { city: 'Pasadena', county: 'Los Angeles', incorporated: true, dttRatePer1000: 0, source: 'PCT chart pct.com/resources/transfer-tax (Aug 2026) + owner verification 2026-08-04' },
+  { city: 'Torrance', county: 'Los Angeles', incorporated: true, dttRatePer1000: 0, source: 'PCT chart pct.com/resources/transfer-tax (Aug 2026) + owner verification 2026-08-04' },
+  { city: 'Glendale', county: 'Los Angeles', incorporated: true, dttRatePer1000: 0, source: 'PCT chart pct.com/resources/transfer-tax (Aug 2026) + owner verification 2026-08-04' },
+  { city: 'Burbank', county: 'Los Angeles', incorporated: true, dttRatePer1000: 0, source: 'PCT chart pct.com/resources/transfer-tax (Aug 2026) + owner verification 2026-08-04' },
+  { city: 'Downey', county: 'Los Angeles', incorporated: true, dttRatePer1000: 0, source: 'PCT chart pct.com/resources/transfer-tax (Aug 2026) + owner verification 2026-08-04' },
+  { city: 'Norwalk', county: 'Los Angeles', incorporated: true, dttRatePer1000: 0, source: 'PCT chart pct.com/resources/transfer-tax (Aug 2026) + owner verification 2026-08-04' },
+  { city: 'Compton', county: 'Los Angeles', incorporated: true, dttRatePer1000: 0, source: 'PCT chart pct.com/resources/transfer-tax (Aug 2026) + owner verification 2026-08-04' },
+  { city: 'Carson', county: 'Los Angeles', incorporated: true, dttRatePer1000: 0, source: 'PCT chart pct.com/resources/transfer-tax (Aug 2026) + owner verification 2026-08-04' },
+  { city: 'Lakewood', county: 'Los Angeles', incorporated: true, dttRatePer1000: 0, source: 'PCT chart pct.com/resources/transfer-tax (Aug 2026) + owner verification 2026-08-04' },
+  { city: 'El Monte', county: 'Los Angeles', incorporated: true, dttRatePer1000: 0, source: 'PCT chart pct.com/resources/transfer-tax (Aug 2026) + owner verification 2026-08-04' },
+  { city: 'West Covina', county: 'Los Angeles', incorporated: true, dttRatePer1000: 0, source: 'PCT chart pct.com/resources/transfer-tax (Aug 2026) + owner verification 2026-08-04' },
+  { city: 'Whittier', county: 'Los Angeles', incorporated: true, dttRatePer1000: 0, source: 'PCT chart pct.com/resources/transfer-tax (Aug 2026) + owner verification 2026-08-04' },
+  { city: 'Lynwood', county: 'Los Angeles', incorporated: true, dttRatePer1000: 0, source: 'PCT chart pct.com/resources/transfer-tax (Aug 2026) + owner verification 2026-08-04' },
+  { city: 'Paramount', county: 'Los Angeles', incorporated: true, dttRatePer1000: 0, source: 'PCT chart pct.com/resources/transfer-tax (Aug 2026) + owner verification 2026-08-04' },
+  // South Pasadena resolves by the CLOSED-SET ruling rather than by its
+  // own line in the chart: an LA County city that is not one of the five
+  // levies none. Flagged as an inference in the T-2a report, not silently
+  // folded in with the enumerated sixteen.
+  { city: 'South Pasadena', county: 'Los Angeles', incorporated: true,
+    dttRatePer1000: 0,
+    source: 'Derived from the closed-set ruling (owner, 2026-08-04)' },
+
+  // ── Los Angeles County — UNINCORPORATED. Structural fact rather than a
+  //    chart lookup: unincorporated territory levies no municipal transfer
+  //    tax, so 0 here is affirmative for a second, independent reason.
+  //    Both of these were charged the City of Los Angeles' $4.50 by the
+  //    substring matcher T-2 removed, and they are the proof cases the
+  //    collision pins fire on — they must not leave this list.
+  { city: 'East Los Angeles', county: 'Los Angeles', incorporated: false,
+    dttRatePer1000: 0,
+    source: 'Unincorporated territory levies no municipal transfer tax (structural); closed-set ruling (owner, 2026-08-04)' },
+  { city: 'Lake Los Angeles', county: 'Los Angeles', incorporated: false,
+    dttRatePer1000: 0,
+    source: 'Unincorporated territory levies no municipal transfer tax (structural); closed-set ruling (owner, 2026-08-04)' },
 
   // ── Collision guards: real places whose names CONTAIN a rated place's
   //    name. Listed with null rather than omitted, so the lookup answers
   //    "I know this place and I do not know its rate" instead of falling
   //    through to a neighbour's number.
-  { city: 'South Pasadena', county: 'Los Angeles', incorporated: true, dttRatePer1000: null },
   { city: 'South San Francisco', county: 'San Mateo', incorporated: true, dttRatePer1000: null },
   { city: 'West Sacramento', county: 'Yolo', incorporated: true, dttRatePer1000: null },
 
@@ -209,16 +316,41 @@ export type CityRate =
   | { state: 'rated'; ratePer1000: number }
   /** Known and affirmatively levies none. */
   | { state: 'none' }
+  /**
+   * A high-value bracket applies. We name the measure and REFUSE to state
+   * a rate — see TierThreshold. The caller must not compute a city
+   * portion from the base rate here: understating a City of LA transfer
+   * by ULA's margin is worse than declining to answer.
+   */
+  | { state: 'tiered'; measure: string; threshold: number; boundaries?: number[] }
   /** We do not know — the officer is asked. NEVER rendered as a number. */
   | { state: 'unknown'; place: string };
 
-export function cityDttRate(city: string | null | undefined): CityRate {
+/**
+ * @param consideration when supplied, a place with a tier threshold at or
+ *        below it resolves to `tiered` instead of `rated`.
+ */
+export function cityDttRate(
+  city: string | null | undefined,
+  consideration?: number,
+): CityRate {
   const hit = lookupJurisdiction(city);
   // Narrow explicitly: `hit.place` only exists on the not-known arm, and
   // the discriminant has to be read as `=== false` for TS to see it.
   if (hit.known === false) return { state: 'unknown', place: hit.place };
-  const rate = hit.jurisdiction.dttRatePer1000;
-  if (rate === null) return { state: 'unknown', place: hit.jurisdiction.city };
+  const j = hit.jurisdiction;
+  const rate = j.dttRatePer1000;
+  if (rate === null) return { state: 'unknown', place: j.city };
+
+  if (j.tieredAbove && typeof consideration === 'number'
+      && consideration >= j.tieredAbove.amount) {
+    return {
+      state: 'tiered',
+      measure: j.tieredAbove.measure,
+      threshold: j.tieredAbove.amount,
+      boundaries: j.tieredAbove.boundaries,
+    };
+  }
   if (rate === 0) return { state: 'none' };
   return { state: 'rated', ratePer1000: rate };
 }
