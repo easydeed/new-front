@@ -1,7 +1,10 @@
 import json
 import os
+from contextlib import contextmanager
+
 import psycopg2
 from dotenv import load_dotenv
+from fastapi import HTTPException
 
 from db_rows import ROW_FACTORY
 
@@ -27,6 +30,52 @@ def get_db_connection():
     except Exception as e:
         print(f"Database connection error: {e}")
         return None
+
+
+@contextmanager
+def db_connection(unavailable_detail="Database unavailable"):
+    """A connection that closes on EVERY path out. RED-H1.2.
+
+    ═══ WHY THIS EXISTS ═══
+
+    `get_db_connection()` opens a real socket. Every caller was then
+    responsible for closing it — and callers raise. `api_key_requests`
+    opened four connections and closed each one on exactly one of its
+    three exits; `admin_api_v2` opened eighteen and closed two.
+
+    A leaked connection is not garbage-collected in any useful sense:
+    Postgres holds the backend process open until the client goes away or
+    a timeout fires, and the instance has a hard `max_connections`. Leak
+    enough and the database stops accepting new work — for everyone, not
+    just the leaking endpoint.
+
+    The worst instance was on the PUBLIC, unauthenticated inquiry
+    endpoint, where the leaking path was the cheapest one to hit: send a
+    whitespace-only company name, get a 400, leak a connection. No
+    account, no rate limit, a few hundred requests to take the product
+    down. That is a denial of service reachable by anyone with curl, and
+    it was a missing `finally`.
+
+    So this replaces the discipline with a mechanism. `with
+    db_connection() as conn:` closes on return, on raise, on
+    HTTPException, on anything — because the fix for "everyone must
+    remember" is never "remind everyone."
+
+    The 503 is raised INSIDE the manager rather than returning None, so
+    `if not conn` checks cannot be forgotten either.
+    """
+    conn = get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=503, detail=unavailable_detail)
+    try:
+        yield conn
+    finally:
+        try:
+            conn.close()
+        except Exception as e:
+            # A close that fails is worth a line, never an exception: it
+            # would mask whatever the caller was actually raising.
+            print(f"[db_connection] close failed: {e}")
 
 def create_tables():
     conn = get_db_connection()

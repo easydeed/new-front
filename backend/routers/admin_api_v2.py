@@ -10,14 +10,19 @@ except Exception:
     # If project uses package style imports
     from backend.auth import get_current_admin  # type: ignore
 
+# RED-H1.2: this module opened EIGHTEEN connections and closed TWO. Every
+# admin page view leaked Postgres backends until the instance hit
+# max_connections. All seventeen call sites now take `db_connection()`,
+# which closes on every exit — including the `raise HTTPException(404)`
+# paths, which is where most of them were escaping.
 try:
-    from database import get_db_connection
+    from database import db_connection
 except Exception:
-    from backend.database import get_db_connection  # type: ignore
+    from backend.database import db_connection  # type: ignore
 
 router = APIRouter(prefix="/admin", tags=["Admin v2"])
 
-# Note: get_db_connection() uses RealDictCursor, so fetchall() already returns dicts
+# Note: connections use RealDictCursor, so fetchall() already returns dicts
 # No need for a _dictify helper function
 
 # ── Sort whitelists (ADMIN1.5 frictions) ─────────────────────────────
@@ -74,8 +79,7 @@ def admin_users_search(
     """
     order_sql = _order_by(USER_SORTS, sort)
     offset = (page - 1) * limit
-    conn = get_db_connection()
-    with conn.cursor() as cur:
+    with db_connection() as conn, conn.cursor() as cur:
         where = []
         params: List[Any] = []
         if search:
@@ -114,8 +118,7 @@ def admin_user_detail(user_id: int, admin=Depends(get_current_admin)):
     `activity_log`) and is deleted, so the honest one takes the plain
     path and sits alongside the PUT and DELETE already there.
     """
-    conn = get_db_connection()
-    with conn.cursor() as cur:
+    with db_connection() as conn, conn.cursor() as cur:
         cur.execute("""
             SELECT id, email, full_name, COALESCE(role,'') as role, plan, company_name, company_type,
                    phone, state, verified, stripe_customer_id, last_login, created_at, is_active
@@ -156,8 +159,7 @@ def admin_deeds_search(
     """
     order_sql = _order_by(DEED_SORTS, sort)
     offset = (page - 1) * limit
-    conn = get_db_connection()
-    with conn.cursor() as cur:
+    with db_connection() as conn, conn.cursor() as cur:
         where = []
         params: List[Any] = []
         if search:
@@ -196,8 +198,7 @@ def admin_deeds_search(
 
 @router.get("/deeds/{deed_id}")
 def admin_deed_detail(deed_id: int, admin=Depends(get_current_admin)):
-    conn = get_db_connection()
-    with conn.cursor() as cur:
+    with db_connection() as conn, conn.cursor() as cur:
         cur.execute("""
             SELECT d.*, u.email as user_email
             FROM deeds d
@@ -211,10 +212,9 @@ def admin_deed_detail(deed_id: int, admin=Depends(get_current_admin)):
 
 @router.get("/export/users.csv")
 def export_users_csv(admin=Depends(get_current_admin)):
-    conn = get_db_connection()
     output = io.StringIO()
     writer = csv.writer(output)
-    with conn.cursor() as cur:
+    with db_connection() as conn, conn.cursor() as cur:
         cur.execute("""
             SELECT id, email, full_name, role, plan, created_at, last_login, is_active
             FROM users ORDER BY created_at DESC
@@ -227,10 +227,9 @@ def export_users_csv(admin=Depends(get_current_admin)):
 
 @router.get("/export/deeds.csv")
 def export_deeds_csv(admin=Depends(get_current_admin)):
-    conn = get_db_connection()
     output = io.StringIO()
     writer = csv.writer(output)
-    with conn.cursor() as cur:
+    with db_connection() as conn, conn.cursor() as cur:
         cur.execute("""
             SELECT d.id, d.deed_type, d.status, d.property_address, d.apn, d.county, d.created_at, d.updated_at, u.email
             FROM deeds d LEFT JOIN users u ON u.id = d.user_id
@@ -271,37 +270,33 @@ def admin_email_log(
     """Every send attempt we managed to record, newest first."""
     order_sql = _order_by(EMAIL_SORTS, sort)
     offset = (page - 1) * limit
-    conn = get_db_connection()
-    try:
-        with conn.cursor() as cur:
-            where, params = [], []
-            if status:
-                if status.lower() not in ("sent", "failed"):
-                    raise HTTPException(status_code=400, detail="status must be sent or failed")
-                where.append("status = %s")
-                params.append(status.lower())
-            if template:
-                where.append("template = %s")
-                params.append(template)
-            if search:
-                where.append("LOWER(recipient) LIKE %s")
-                params.append(f"%{search.lower()}%")
-            where_sql = f"WHERE {' AND '.join(where)}" if where else ""
+    with db_connection() as conn, conn.cursor() as cur:
+        where, params = [], []
+        if status:
+            if status.lower() not in ("sent", "failed"):
+                raise HTTPException(status_code=400, detail="status must be sent or failed")
+            where.append("status = %s")
+            params.append(status.lower())
+        if template:
+            where.append("template = %s")
+            params.append(template)
+        if search:
+            where.append("LOWER(recipient) LIKE %s")
+            params.append(f"%{search.lower()}%")
+        where_sql = f"WHERE {' AND '.join(where)}" if where else ""
 
-            cur.execute(f"SELECT COUNT(*) AS count FROM email_log {where_sql}", params)
-            total = cur.fetchone()["count"]
+        cur.execute(f"SELECT COUNT(*) AS count FROM email_log {where_sql}", params)
+        total = cur.fetchone()["count"]
 
-            cur.execute(f"""
-                SELECT id, template, recipient, subject, status, reason,
-                       user_id, context, created_at
-                FROM email_log
-                {where_sql}
-                ORDER BY {order_sql}
-                LIMIT %s OFFSET %s
-            """, params + [limit, offset])
-            rows = cur.fetchall()
-    finally:
-        conn.close()
+        cur.execute(f"""
+            SELECT id, template, recipient, subject, status, reason,
+                   user_id, context, created_at
+            FROM email_log
+            {where_sql}
+            ORDER BY {order_sql}
+            LIMIT %s OFFSET %s
+        """, params + [limit, offset])
+        rows = cur.fetchall()
 
     return {"page": page, "limit": limit, "total": total,
             "sort": (sort or DEFAULT_SORT).lower(), "items": rows}
@@ -317,48 +312,44 @@ def admin_email_stats(days: int = Query(7, ge=1, le=90),
     tells them it is an unverified sender identity, which is a fix
     rather than an investigation.
     """
-    conn = get_db_connection()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT COUNT(*) FILTER (WHERE status = 'sent')   AS sent,
-                       COUNT(*) FILTER (WHERE status = 'failed') AS failed,
-                       COUNT(*)                                  AS total,
-                       MIN(created_at)                           AS first_recorded
-                FROM email_log
-                WHERE created_at >= NOW() - (%s || ' days')::interval
-            """, (days,))
-            totals = cur.fetchone()
+    with db_connection() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT COUNT(*) FILTER (WHERE status = 'sent')   AS sent,
+                   COUNT(*) FILTER (WHERE status = 'failed') AS failed,
+                   COUNT(*)                                  AS total,
+                   MIN(created_at)                           AS first_recorded
+            FROM email_log
+            WHERE created_at >= NOW() - (%s || ' days')::interval
+        """, (days,))
+        totals = cur.fetchone()
 
-            cur.execute("""
-                SELECT template,
-                       COUNT(*) FILTER (WHERE status = 'sent')   AS sent,
-                       COUNT(*) FILTER (WHERE status = 'failed') AS failed
-                FROM email_log
-                WHERE created_at >= NOW() - (%s || ' days')::interval
-                GROUP BY template
-                ORDER BY COUNT(*) DESC
-            """, (days,))
-            by_template = cur.fetchall()
+        cur.execute("""
+            SELECT template,
+                   COUNT(*) FILTER (WHERE status = 'sent')   AS sent,
+                   COUNT(*) FILTER (WHERE status = 'failed') AS failed
+            FROM email_log
+            WHERE created_at >= NOW() - (%s || ' days')::interval
+            GROUP BY template
+            ORDER BY COUNT(*) DESC
+        """, (days,))
+        by_template = cur.fetchall()
 
-            cur.execute("""
-                SELECT reason, COUNT(*) AS count
-                FROM email_log
-                WHERE status = 'failed' AND reason IS NOT NULL
-                  AND created_at >= NOW() - (%s || ' days')::interval
-                GROUP BY reason
-                ORDER BY COUNT(*) DESC
-                LIMIT 10
-            """, (days,))
-            failures_by_reason = cur.fetchall()
+        cur.execute("""
+            SELECT reason, COUNT(*) AS count
+            FROM email_log
+            WHERE status = 'failed' AND reason IS NOT NULL
+              AND created_at >= NOW() - (%s || ' days')::interval
+            GROUP BY reason
+            ORDER BY COUNT(*) DESC
+            LIMIT 10
+        """, (days,))
+        failures_by_reason = cur.fetchall()
 
-            # The window's oldest row overall — so the UI can say "we
-            # have only been recording since X" instead of letting a
-            # young table read as a quiet one.
-            cur.execute("SELECT MIN(created_at) AS since FROM email_log")
-            since = cur.fetchone()["since"]
-    finally:
-        conn.close()
+        # The window's oldest row overall — so the UI can say "we
+        # have only been recording since X" instead of letting a
+        # young table read as a quiet one.
+        cur.execute("SELECT MIN(created_at) AS since FROM email_log")
+        since = cur.fetchone()["since"]
 
     return {
         "window_days": days,
@@ -382,8 +373,7 @@ def admin_update_user(
     admin=Depends(get_current_admin)
 ):
     """Update user fields - Phase 12-3"""
-    conn = get_db_connection()
-    with conn.cursor() as cur:
+    with db_connection() as conn, conn.cursor() as cur:
         # Build dynamic UPDATE query
         set_clauses = []
         params = []
@@ -411,8 +401,7 @@ def admin_update_user(
 @router.delete("/users/{user_id}")
 def admin_delete_user(user_id: int, admin=Depends(get_current_admin)):
     """Soft delete user (set is_active = false) - Phase 12-3"""
-    conn = get_db_connection()
-    with conn.cursor() as cur:
+    with db_connection() as conn, conn.cursor() as cur:
         # Check if user exists
         cur.execute("SELECT id FROM users WHERE id = %s", (user_id,))
         if not cur.fetchone():
@@ -430,8 +419,7 @@ def admin_delete_user(user_id: int, admin=Depends(get_current_admin)):
 @router.delete("/deeds/{deed_id}")
 def admin_delete_deed(deed_id: int, admin=Depends(get_current_admin)):
     """Soft delete a deed (set status to 'deleted') - Phase 5B"""
-    conn = get_db_connection()
-    with conn.cursor() as cur:
+    with db_connection() as conn, conn.cursor() as cur:
         # Check if deed exists
         cur.execute("SELECT id, status FROM deeds WHERE id = %s", (deed_id,))
         row = cur.fetchone()
@@ -458,8 +446,7 @@ def admin_get_deed_pdf(deed_id: int, admin=Depends(get_current_admin)):
     
     Returns the stored PDF URL or regenerates the PDF if needed.
     """
-    conn = get_db_connection()
-    with conn.cursor() as cur:
+    with db_connection() as conn, conn.cursor() as cur:
         # Get deed with PDF info
         cur.execute("""
             SELECT id, deed_type, status, pdf_url, property_address, 
@@ -505,8 +492,7 @@ def list_api_keys(
 ):
     """List all API keys with usage statistics."""
     offset = (page - 1) * limit
-    conn = get_db_connection()
-    with conn.cursor() as cur:
+    with db_connection() as conn, conn.cursor() as cur:
         # Get total count
         cur.execute("SELECT COUNT(*) as count FROM api_keys")
         total = cur.fetchone()['count']
@@ -549,8 +535,7 @@ def create_api_key(
     
     full_key, key_prefix, key_hash = gen_key(is_test=is_test)
     
-    conn = get_db_connection()
-    with conn.cursor() as cur:
+    with db_connection() as conn, conn.cursor() as cur:
         # Use gen_random_uuid() for UUID id
         cur.execute("""
             INSERT INTO api_keys (id, key_prefix, key_hash, name, is_test, rate_limit_hour, rate_limit_day, created_by_email, is_active, created_at)
@@ -583,8 +568,7 @@ def get_api_key(
     admin=Depends(get_current_admin)
 ):
     """Get API key details and usage statistics."""
-    conn = get_db_connection()
-    with conn.cursor() as cur:
+    with db_connection() as conn, conn.cursor() as cur:
         cur.execute("""
             SELECT id, key_prefix, name, is_active, is_test,
                    rate_limit_hour, rate_limit_day, created_at, last_used_at, created_by_email
@@ -644,8 +628,7 @@ def update_api_key(
     admin=Depends(get_current_admin)
 ):
     """Update API key settings."""
-    conn = get_db_connection()
-    with conn.cursor() as cur:
+    with db_connection() as conn, conn.cursor() as cur:
         # Build update query dynamically
         updates = []
         params = []
@@ -691,8 +674,7 @@ def delete_api_key(
     admin=Depends(get_current_admin)
 ):
     """Deactivate (soft delete) an API key."""
-    conn = get_db_connection()
-    with conn.cursor() as cur:
+    with db_connection() as conn, conn.cursor() as cur:
         cur.execute("""
             UPDATE api_keys SET is_active = false
             WHERE id = %s

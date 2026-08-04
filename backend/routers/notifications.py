@@ -4,7 +4,8 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import os, json
 from auth import get_current_user_id  # Phase 7.5: Absolute import for Render compatibility
-from database import get_db_connection  # Phase 7.5: Absolute import for Render compatibility
+# RED-H1.2: was get_db_connection with three opens and zero closes.
+from database import db_connection
 
 router = APIRouter()
 
@@ -25,8 +26,7 @@ def feature_enabled() -> bool:
 def list_notifications(user_id: int = Depends(get_current_user_id)):
     if not feature_enabled():
         return []
-    conn = get_db_connection()
-    with conn.cursor() as cur:
+    with db_connection() as conn, conn.cursor() as cur:
         cur.execute(
             """
             SELECT n.id, n.type, n.title, n.message, n.severity, n.payload, n.created_at,
@@ -65,8 +65,7 @@ def mark_read(body: MarkReadIn, user_id: int = Depends(get_current_user_id)):
         return {"success": False, "message": "Notifications disabled"}
     if not body.ids:
         return {"success": True}
-    conn = get_db_connection()
-    with conn.cursor() as cur:
+    with db_connection() as conn, conn.cursor() as cur:
         cur.execute(
             """
             UPDATE user_notifications
@@ -83,8 +82,7 @@ def mark_read(body: MarkReadIn, user_id: int = Depends(get_current_user_id)):
 def unread_count(user_id: int = Depends(get_current_user_id)):
     if not feature_enabled():
         return {"count": 0}
-    conn = get_db_connection()
-    with conn.cursor() as cur:
+    with db_connection() as conn, conn.cursor() as cur:
         cur.execute(
             """
             SELECT COUNT(*) as count
