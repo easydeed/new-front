@@ -54,6 +54,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# RED-S1: one connection per request, checked out here and returned here.
+#
+# Registered AFTER the metrics middleware below, which means Starlette
+# runs it FIRST — the connection is bound before any handler touches
+# `db.conn` and returned after the response is produced.
+#
+# Before this, every request shared one connection and therefore one
+# TRANSACTION: request B's commit() could commit request A's uncommitted
+# write, and request C's rollback() could discard both. The 2026-08-01
+# outage was that defect reached from a failing query; #130 found it
+# reachable from a public URL with a single GET.
+#
+# The scope is a contextvar rather than a thread-local because this app
+# serves BOTH sync endpoints (which run in the threadpool, one thread per
+# request) and async ones (which share a thread). Starlette copies the
+# context into the threadpool worker, so both see their own connection; a
+# thread-local would silently hand every concurrent async request the
+# same one and reintroduce exactly the bug being removed.
+@app.middleware("http")
+async def db_connection_middleware(request: Request, call_next):
+    import db as _db
+    with _db.request_connection():
+        return await call_next(request)
+
+
 # Phase 6-2: Metrics tracking middleware
 @app.middleware("http")
 async def metrics_middleware(request: Request, call_next):
