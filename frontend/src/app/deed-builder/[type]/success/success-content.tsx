@@ -64,6 +64,16 @@ export function SuccessContent() {
     available: boolean; county?: string; form_code?: string;
     still_needed?: string[];
   } | null>(null);
+  // T-4 — the file. The escrow number the officer already typed becomes
+  // the thread between her deed, her affidavit and their state forms.
+  const [matter, setMatter] = useState<{
+    grouped: boolean;
+    key?: { kind: string; value: string };
+    documents?: Array<{ id: number; deed_type: string; status: string;
+                        property_address?: string; created_at?: string;
+                        parties: string[] }>;
+    carry_forward?: { not_carried?: string[] };
+  } | null>(null);
 
   useEffect(() => {
     if (!deedId) return;
@@ -71,12 +81,14 @@ export function SuccessContent() {
       try {
         const api = process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com';
         const token = localStorage.getItem('access_token') || localStorage.getItem('token');
-        const [pcorRes, dsRes] = await Promise.all([
+        const [pcorRes, dsRes, matterRes] = await Promise.all([
           fetch(`${api}/deeds/${deedId}/pcor`, { headers: { 'Authorization': `Bearer ${token}` } }),
           fetch(`${api}/deeds/${deedId}/death-statement`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`${api}/deeds/${deedId}/matter`, { headers: { 'Authorization': `Bearer ${token}` } }),
         ]);
         if (pcorRes.ok) setPcor(await pcorRes.json());
         if (dsRes.ok) setDeathStatement(await dsRes.json());
+        if (matterRes.ok) setMatter(await matterRes.json());
       } catch {
         // Passive: a failed check hides the offer rather than inventing one.
       }
@@ -312,6 +324,68 @@ export function SuccessContent() {
 
             {/* FORMS flag-4 ruling: companion-filing guidance — passive,
                 links the state form, never a block and never form-fill. */}
+            {/* T-4 — the file. Same property, next document: the
+                officer's own escrow number is the thread, and starting a
+                related instrument carries the facts she already
+                confirmed — with their ORIGINAL confirmation timestamps,
+                marked as carried. What does NOT carry is named out loud
+                (doctrine §10): a transfer-tax treatment is a decision
+                about an instrument, not a fact about a property, and an
+                exemption travelling forward would be an auto-applied
+                legal choice wearing her own signature. */}
+            {matter?.grouped && (
+              <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-800">
+                      File {matter.key?.value}
+                    </p>
+                    <p className="text-sm text-slate-600 mt-0.5">
+                      {matter.documents?.length
+                        ? `${matter.documents.length} other document${matter.documents.length === 1 ? '' : 's'} on this file.`
+                        : 'This is the first document on this file.'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => router.push(
+                      `/create-deed?carryFrom=${deedId}`)}
+                    className="shrink-0 inline-flex items-center gap-2 border-2 border-[#7C4DFF] text-[#7C4DFF] hover:bg-[#7C4DFF]/5 font-semibold px-4 py-2.5 rounded-lg transition-colors"
+                  >
+                    Start related document
+                  </button>
+                </div>
+
+                {!!matter.documents?.length && (
+                  <ul className="mt-4 pt-4 border-t border-slate-200 space-y-2">
+                    {matter.documents.map((d) => (
+                      <li key={d.id} className="text-sm text-slate-700 flex items-baseline gap-2 flex-wrap">
+                        <button
+                          onClick={() => router.push(`/past-deeds?highlight=${d.id}`)}
+                          className="font-medium text-[#7C4DFF] hover:underline"
+                        >
+                          #{d.id} {d.deed_type?.replace(/[-_]/g, ' ')}
+                        </button>
+                        <span className="text-slate-500">{d.status}</span>
+                        {!!d.parties.length && (
+                          <span className="text-slate-500 truncate">
+                            · {d.parties.join(', ')}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {!!matter.carry_forward?.not_carried?.length && (
+                  <p className="mt-4 text-xs text-slate-500">
+                    Carried forward: the property facts you already confirmed,
+                    with their original confirmation times. Not carried:{' '}
+                    {matter.carry_forward.not_carried.join('; ')}.
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* T-3b — the notice cashes its check.
                 The FORMS flag-4 ruling made this passive guidance because
                 form-fill was Tier B and deferred: "counties commonly

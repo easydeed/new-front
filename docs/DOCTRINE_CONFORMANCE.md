@@ -319,10 +319,53 @@ believing they corrected one.
 
 ---
 
+## §10 — Facts carry between documents; legal choices do not
+
+**Ruled T-4, 2026-08-04.**
+
+An officer working one escrow file produces several instruments about
+the same property. Re-asking her for the APN she confirmed an hour ago
+is busywork, so **facts carry forward** when she starts a related
+document.
+
+They carry with their **original provenance** — the original source and
+the original `confirmedAt`, never a fresh stamp. A confirmation records
+a moment a human looked at a value and said yes; re-stamping it on copy
+would forge a second look that never happened, and the record would
+claim two confirmations where there was one. Every carried field is
+additionally marked `carriedFrom`, because inherited data must never
+present itself on screen as freshly entered.
+
+**Legal choices never carry**, and this is the sharper half. The
+documentary-transfer-tax treatment, an exemption claim, the
+characterisation of how title passed — each is a decision *about an
+instrument*, not a fact about a property. R&T 11927 accepted on Monday's
+interspousal transfer is not thereby correct on Tuesday's quitclaim.
+
+Carrying one would auto-apply a legal choice to a document nobody has
+read yet — §1's exact prohibition — and it would do so **wearing the
+officer's own recorded acceptance**, which makes it worse than a plain
+auto-apply rather than better: the record would show a human decision
+where none occurred.
+
+The keys are enumerated in `services/matters.LEGAL_CHOICE_KEYS` and
+pinned one test per key by name.
+
+**Corollary — derivability is a reason for restraint, not licence.**
+The affidavit variant tells us how title passed. The temptation is to
+pre-check the succession box on the BOE-502-D because we are so
+obviously right. But being *derivably* right is what makes it a legal
+conclusion rather than an observation — so it arrives as a violet
+proposal and the officer's acceptance is what writes it. (T-3/T-3b:
+`check_fields` empty and pinned empty on both county forms.)
+
+---
+
 ## Change log
 
 | Date | Change |
 |---|---|
+| 2026-08-04 | §10 added — facts carry between documents with their ORIGINAL provenance (never re-stamped, always marked `carriedFrom`); legal choices never carry. T-4's matter grouping made the question live: an accepted DTT exemption travelling to the next instrument would be an auto-applied legal choice wearing the officer's own signature. Corollary recorded from T-3b: derivability is a reason for restraint, not licence — being derivably right is what makes something a legal conclusion. |
 | 2026-08-03 | §9 added — stored instruments are never overwritten. ADMIN0 found `deed_pdfs` stored via `ON CONFLICT DO UPDATE SET pdf_data`, replacing prior bytes AND their sha256 in place; the draft-resume 409 guard sits a layer above it, making this latent rather than live. Ruled in two parts: insert-or-refuse in ADMIN1 (differing hash = loud refusal, identical = no-op), full supersession as its own designed ticket. No admin deed-edit until supersession exists. |
 | 2026-08-03 | §8 added — API doctrine boundary ruled: v1 = deed family only; affidavit/declaration families held pending per-family passes (execution-act instruments require human flows by design). A1 also recorded three never-run defects in the mounted `/api/v1` (tuple-read auth, unassigned `full_address`, metering aborting the deed transaction) — all three survived because the only tests bypassed the HTTP and database layers, the test-vs-production asymmetry lesson under invariant #4. |
 | 2026-07-28 | Initial sweep: partner-API chassis fix, AI-chat proxy honesty fix, proxy source-scan test, partner-render tests. Draft pending owner decisions on §7. |

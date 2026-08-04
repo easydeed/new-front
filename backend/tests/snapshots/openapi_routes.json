@@ -193,6 +193,10 @@
  ],
  [
   "GET",
+  "/deeds/{deed_id}/matter"
+ ],
+ [
+  "GET",
   "/deeds/{deed_id}/pcor"
  ],
  [

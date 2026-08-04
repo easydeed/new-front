@@ -87,3 +87,31 @@ describe('T-3b — the BOE-502-D offer', () => {
     expect(code).toMatch(/stays fillable/);
   });
 });
+
+describe('T-4 — the file, and what it refuses to carry', () => {
+  it('threads documents by the officer\'s own escrow number', () => {
+    expect(code).toContain('matter?.grouped');
+    expect(code).toMatch(/File \{matter\.key\?\.value\}/);
+  });
+
+  it('offers "start related document"', () => {
+    expect(code).toContain('Start related document');
+    expect(code).toContain('carryFrom=');
+  });
+
+  it('says the carried facts keep their ORIGINAL confirmation times', () => {
+    // Doctrine §10: a re-stamped confirmation forges a second look.
+    expect(code).toMatch(/original confirmation times/i);
+  });
+
+  it('names what did not carry rather than leaving a silent gap', () => {
+    // A blank transfer-tax section looks like a bug; naming the omission
+    // is the difference between deliberate and forgotten.
+    expect(code).toContain('not_carried');
+    expect(code).toMatch(/Not carried:/);
+  });
+
+  it('does not present a first document as an error', () => {
+    expect(code).toMatch(/first document on this file/);
+  });
+});
