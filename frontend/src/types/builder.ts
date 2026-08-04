@@ -5,7 +5,14 @@
  * confirms; we record the confirmation. AI/auto-fill never silently writes a
  * confirmed legal value.
  */
-export type FieldSource = 'sitex' | 'google' | 'user' | 'titlepoint' | 'ai_suggested';
+/**
+ * T-6 added 'prelim': a value read deterministically out of an uploaded
+ * preliminary title report. Deliberately NOT 'ai_suggested' — a labelled
+ * pattern match is not a suggestion, and mislabelling it would smuggle in
+ * the LLM ruling that has not been made.
+ */
+export type FieldSource =
+  | 'sitex' | 'google' | 'user' | 'titlepoint' | 'prelim' | 'ai_suggested';
 export type FieldStatus = 'candidate' | 'confirmed';
 
 /**
