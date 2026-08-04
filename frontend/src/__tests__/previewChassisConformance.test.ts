@@ -32,13 +32,11 @@ import {
   TOD_REVOCATION_STATEMENT,
   TOD_WITNESS_INSTRUCTION,
 } from '../lib/deedFurniture';
+import { codeOnly } from '../test-support/sourceText';
 
 /** Strip // and /* comments so prose about a disease can't trip the scan. */
-function stripComments(source: string): string {
-  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
-}
 
-const PANEL = stripComments(
+const PANEL = codeOnly(
   fs.readFileSync(
     path.join(__dirname, '..', 'components', 'builder', 'PreviewPanel.tsx'),
     'utf8'

@@ -16,6 +16,7 @@
 import { describe, expect, it } from '@jest/globals';
 import * as fs from 'fs';
 import * as path from 'path';
+import { codeOnly } from '../test-support/sourceText';
 
 function readAdmin(...segments: string[]): string {
   return fs.readFileSync(
@@ -24,7 +25,7 @@ function readAdmin(...segments: string[]): string {
 
 /** Comments explaining a removed pattern quote that pattern. */
 function withoutComments(src: string): string {
-  return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  return codeOnly(src);
 }
 
 describe('the two deed windows are labelled and reconciled', () => {

@@ -12,6 +12,7 @@
 import { describe, expect, it } from '@jest/globals';
 import * as fs from 'fs';
 import * as path from 'path';
+import { codeOnly } from '../test-support/sourceText';
 
 const APP_DIR = path.join(__dirname, '..', 'app');
 
@@ -126,7 +127,7 @@ describe('HX0 — route-level auth guards', () => {
 
     const middleware = fs.readFileSync(
       path.join(__dirname, '..', '..', 'middleware.ts'), 'utf8');
-    const code = middleware.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[^\S\n]*\/\/.*$/gm, '');
+    const code = codeOnly(middleware);
     expect(code).not.toMatch(/['"]\/security['"]/);
   });
 

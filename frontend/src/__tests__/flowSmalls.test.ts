@@ -12,10 +12,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { deedTypeLabel, DEED_LABELS } from '../lib/deedTypes';
 import { formatSuggestionSecondary } from '../lib/addressLabels';
+import { codeOnly } from '../test-support/sourceText';
 
-function stripComments(source: string): string {
-  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
-}
 
 function readSource(...segments: string[]): string {
   return fs.readFileSync(path.join(__dirname, '..', ...segments), 'utf8');
@@ -36,8 +34,8 @@ describe('U3 — deed types display as names, not slugs', () => {
   });
 
   it('the builder header and Past Deeds read from the SAME map', () => {
-    const builder = stripComments(readSource('features', 'builder', 'DeedBuilder.tsx'));
-    const pastDeeds = stripComments(readSource('app', 'past-deeds', 'page.tsx'));
+    const builder = codeOnly(readSource('features', 'builder', 'DeedBuilder.tsx'));
+    const pastDeeds = codeOnly(readSource('app', 'past-deeds', 'page.tsx'));
     expect(builder).toContain("from '@/lib/deedTypes'");
     expect(pastDeeds).toContain('deedTypeLabel(deed.deed_type)');
     // The old raw-slug cell is gone.
@@ -46,7 +44,7 @@ describe('U3 — deed types display as names, not slugs', () => {
   });
 
   it('Past Deeds rows carry grantee and doc id', () => {
-    const pastDeeds = stripComments(readSource('app', 'past-deeds', 'page.tsx'));
+    const pastDeeds = codeOnly(readSource('app', 'past-deeds', 'page.tsx'));
     expect(pastDeeds).toContain('deed.grantee_name');
     // X2.7 promoted the doc id from an under-address line to its own column.
     expect(pastDeeds).toContain('>#{deed.id}</td>');
@@ -67,7 +65,7 @@ describe('U3 — autocomplete secondary labels: "City, CA", no county mash', () 
   });
 
   it('the dropdown renders through the formatter', () => {
-    const src = stripComments(
+    const src = codeOnly(
       readSource('components', 'builder', 'sections', 'PropertySection.tsx')
     );
     expect(src).toContain('formatSuggestionSecondary(prediction.structured_formatting.secondary_text)');
@@ -76,7 +74,7 @@ describe('U3 — autocomplete secondary labels: "City, CA", no county mash', () 
 
 describe('U3 — deterministic lookup: suggestion click always fetches', () => {
   it('handleSelectAddress ends by fetching with the parsed address it just built', () => {
-    const src = stripComments(
+    const src = codeOnly(
       readSource('components', 'builder', 'sections', 'PropertySection.tsx')
     );
     expect(src).toContain('fetchPropertyData(parsed)');
@@ -85,7 +83,7 @@ describe('U3 — deterministic lookup: suggestion click always fetches', () => {
 
 describe('U3 — explicit confirm advances the accordion', () => {
   it('GrantorSection advances on confirm and edit-save, never on keystrokes', () => {
-    const src = stripComments(
+    const src = codeOnly(
       readSource('components', 'builder', 'sections', 'GrantorSection.tsx')
     );
     expect((src.match(/onComplete\?\.\(\)/g) || []).length).toBe(2);
@@ -94,14 +92,14 @@ describe('U3 — explicit confirm advances the accordion', () => {
   });
 
   it('InputPanel wires grantor completion to the grantee section', () => {
-    const src = stripComments(readSource('components', 'builder', 'InputPanel.tsx'));
+    const src = codeOnly(readSource('components', 'builder', 'InputPanel.tsx'));
     expect(src).toContain("onComplete={() => onSectionChange('grantee')}");
   });
 });
 
 describe('U3 — grantee input auto-uppercases (already true; pinned so it stays)', () => {
   it('the input maps its value through toUpperCase', () => {
-    const src = stripComments(
+    const src = codeOnly(
       readSource('components', 'builder', 'sections', 'GranteeSection.tsx')
     );
     expect(src).toContain('onChange(e.target.value.toUpperCase())');
@@ -110,7 +108,7 @@ describe('U3 — grantee input auto-uppercases (already true; pinned so it stays
 
 describe('U3 — downloads acknowledge themselves', () => {
   it('Past Deeds tracks the in-flight download and toasts the outcome', () => {
-    const src = stripComments(readSource('app', 'past-deeds', 'page.tsx'));
+    const src = codeOnly(readSource('app', 'past-deeds', 'page.tsx'));
     expect(src).toContain('setDownloadingId(deed.id)');
     expect(src).toContain('PDF downloaded');
     // Failure surfaces the endpoint's real reason, not a shrug.
@@ -120,13 +118,13 @@ describe('U3 — downloads acknowledge themselves', () => {
 
 describe('U3 — the builder names its way home; no dead affordances', () => {
   it('the header link says Dashboard and the handler-less Help button is gone', () => {
-    const src = stripComments(readSource('components', 'builder', 'BuilderHeader.tsx'));
+    const src = codeOnly(readSource('components', 'builder', 'BuilderHeader.tsx'));
     expect(src).toContain('Dashboard');
     expect(src).not.toContain('HelpCircle');
   });
 
   it('the dashboard greeting makes no chat promise', () => {
-    const src = stripComments(readSource('components', 'ui', 'AIGreeting.tsx'));
+    const src = codeOnly(readSource('components', 'ui', 'AIGreeting.tsx'));
     expect(src).not.toContain('How can I help');
   });
 });

@@ -15,6 +15,7 @@
 import { describe, expect, it } from '@jest/globals';
 import * as fs from 'fs';
 import * as path from 'path';
+import { codeOnly } from '../test-support/sourceText';
 
 const API_ROOT = path.join(__dirname, '..', 'app', 'api');
 
@@ -29,9 +30,6 @@ function collectRouteFiles(dir: string): string[] {
 }
 
 /** Strip // and /* comments so prose about a disease can't trip the scan. */
-function stripComments(source: string): string {
-  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
-}
 
 /** Extract the body of every catch block via brace matching. */
 function catchBodies(source: string): string[] {
@@ -62,7 +60,7 @@ describe('proxy error honesty (doctrine sweep)', () => {
   it.each(files.map((f) => [path.relative(API_ROOT, f), f]))(
     '%s never swallows failures',
     (_rel, file) => {
-      const src = stripComments(fs.readFileSync(file as string, 'utf8'));
+      const src = codeOnly(fs.readFileSync(file as string, 'utf8'));
 
       // 1. The 200-[] disease: no bare empty-array responses.
       expect(src).not.toMatch(/\.json\(\s*\[\s*\]/);

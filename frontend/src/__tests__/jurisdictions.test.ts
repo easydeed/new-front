@@ -18,6 +18,7 @@
 import { describe, expect, it } from '@jest/globals';
 import { cityDttRate, isIncorporated, lookupJurisdiction, PLACES } from '@/lib/jurisdictions';
 import { computeDttBreakdown } from '@/lib/dttCalc';
+import { codeOnly } from '../test-support/sourceText';
 
 const ONE_MILLION = {
   isExempt: false, exemptReason: '', transferValue: '1000000',
@@ -140,8 +141,8 @@ describe('T-2 — the registry is the only list', () => {
     const fs = require('fs');
     const path = require('path');
     for (const rel of [['lib', 'dttCalc.ts'], ['services', 'propertyPrefill.ts']]) {
-      const src: string = fs.readFileSync(path.join(__dirname, '..', ...rel), 'utf8')
-        .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+      const src: string = codeOnly(
+        fs.readFileSync(path.join(__dirname, '..', ...rel), 'utf8'));
       // A literal array of quoted city names is the shape of a fork.
       expect(src).not.toMatch(/=\s*\[\s*\n?\s*["']los angeles["']/i);
     }

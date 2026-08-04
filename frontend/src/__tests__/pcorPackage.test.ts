@@ -10,11 +10,12 @@
 import { describe, expect, it } from '@jest/globals';
 import * as fs from 'fs';
 import * as path from 'path';
+import { codeOnly } from '../test-support/sourceText';
 
 const SRC = fs.readFileSync(
   path.join(__dirname, '..', 'app', 'deed-builder', '[type]', 'success',
             'success-content.tsx'), 'utf8');
-const code = SRC.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+const code = codeOnly(SRC);
 
 describe('T-3 — the PCOR package offer', () => {
   it('uses the ruled copy and states the statutory basis', () => {

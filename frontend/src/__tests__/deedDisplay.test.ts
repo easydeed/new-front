@@ -10,12 +10,10 @@
 import { describe, expect, it } from '@jest/globals';
 import * as fs from 'fs';
 import * as path from 'path';
+import { codeOnly } from '../test-support/sourceText';
 
-function stripComments(source: string): string {
-  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
-}
 
-const PANEL = stripComments(
+const PANEL = codeOnly(
   fs.readFileSync(
     path.join(__dirname, '..', 'components', 'builder', 'PreviewPanel.tsx'),
     'utf8'

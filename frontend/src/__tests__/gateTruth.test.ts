@@ -14,6 +14,7 @@ import * as path from 'path';
 import { collectCandidateFields } from '../lib/provenance';
 import { deriveSectionTruth } from '../lib/deedValidation';
 import type { DeedBuilderState } from '../types/builder';
+import { codeOnly } from '../test-support/sourceText';
 
 function baseState(overrides: Partial<DeedBuilderState> = {}): DeedBuilderState {
   return {
@@ -112,7 +113,7 @@ describe('one truth: the counter derives from gate math', () => {
 describe('T-5 — the gate promises lineage, and the record keeps it', () => {
   const src = fs.readFileSync(
     path.join(__dirname, '..', 'features', 'builder', 'DeedBuilder.tsx'), 'utf8');
-  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const code = codeOnly(src);
 
   it('offers the corrected-deed path again', () => {
     expect(code).toMatch(/corrected deed/i);
@@ -157,7 +158,7 @@ describe('T-5 — the gate promises lineage, and the record keeps it', () => {
 describe('T-1 — collapsing the display does not collapse the record', () => {
   const src = fs.readFileSync(
     path.join(__dirname, '..', 'features', 'builder', 'DeedBuilder.tsx'), 'utf8');
-  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const code = codeOnly(src);
 
   it('confirm-all still stamps field by field, not in bulk', () => {
     // The bulk handler maps over candidates and hands stampConfirmed the

@@ -15,6 +15,7 @@
 import { describe, expect, it } from '@jest/globals';
 import * as fs from 'fs';
 import * as path from 'path';
+import { codeOnly } from '../test-support/sourceText';
 
 function readSource(...segments: string[]) {
   return fs.readFileSync(path.join(__dirname, '..', ...segments), 'utf8');
@@ -26,9 +27,7 @@ function readSource(...segments: string[]) {
  * and a naive source match then fails on its own explanation.
  */
 function withoutComments(src: string) {
-  return src
-    .replace(/\/\*[\s\S]*?\*\//g, '')   // block and JSX comments
-    .replace(/^\s*\/\/.*$/gm, '');       // line comments
+  return codeOnly(src);       // line comments
 }
 
 const requestPage = readSource('app', 'api-key-request', 'page.tsx');
