@@ -372,6 +372,36 @@ def create_tables():
             "CREATE INDEX IF NOT EXISTS idx_email_log_status ON email_log(status, created_at DESC)",
             "CREATE INDEX IF NOT EXISTS idx_email_log_template ON email_log(template, created_at DESC)",
             "CREATE INDEX IF NOT EXISTS idx_email_log_recipient ON email_log(LOWER(recipient))",
+            # RED-H1.3 — the AI exchange log.
+            #
+            # Nothing recorded what the assistant told an escrow officer.
+            # The confirmation trail can prove exactly what DATA she
+            # accepted and can prove nothing about what the machine said
+            # to her before she accepted it — which is adversarially
+            # perfect in the wrong direction: the record incriminates the
+            # human and exonerates the software.
+            #
+            # It also means the UPL question cannot be ASSESSED. Nobody
+            # can read a hundred real exchanges and say whether they
+            # constitute advice on instrument selection, because a
+            # hundred real exchanges do not exist anywhere. This table is
+            # the precondition for that ruling, not the ruling.
+            """CREATE TABLE IF NOT EXISTS ai_exchange_log (
+                id BIGSERIAL PRIMARY KEY,
+                user_id INTEGER,
+                prompt_key VARCHAR(64) NOT NULL,
+                user_message TEXT,
+                response TEXT,
+                model VARCHAR(64),
+                max_tokens INTEGER,
+                status VARCHAR(16) NOT NULL,
+                error TEXT,
+                request_tag VARCHAR(80),
+                created_at TIMESTAMPTZ DEFAULT now()
+            )""",
+            "CREATE INDEX IF NOT EXISTS idx_ai_log_user_created ON ai_exchange_log(user_id, created_at DESC)",
+            "CREATE INDEX IF NOT EXISTS idx_ai_log_created ON ai_exchange_log(created_at DESC)",
+            "CREATE INDEX IF NOT EXISTS idx_ai_log_key ON ai_exchange_log(prompt_key, created_at DESC)",
             """CREATE TABLE IF NOT EXISTS api_rate_limits (
                 id SERIAL PRIMARY KEY,
                 api_key_id UUID,

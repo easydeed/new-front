@@ -30,10 +30,15 @@ export async function POST(request: NextRequest) {
         "Content-Type": "application/json",
         ...(authHeader ? { Authorization: authHeader } : {}),
       },
+      // RED-H1.3: forwards a prompt_key, never prompt text. This proxy
+      // used to pass `system` straight through, which is how a
+      // client-supplied system prompt reached OpenAI on our key. Passing
+      // it now would simply be rejected by the backend, but the field is
+      // gone from here too so nothing re-learns the old shape.
       body: JSON.stringify({
-        system: body.system || "",
+        prompt_key: body.prompt_key,
         message: body.message,
-        max_tokens: body.max_tokens || 400,
+        max_tokens: body.max_tokens || undefined,
       }),
     })
 
