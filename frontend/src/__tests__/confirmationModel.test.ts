@@ -136,11 +136,40 @@ describe('U2.2 — no immortal toasts', () => {
 });
 
 describe('U2.3 — immutability copy carries the correction path', () => {
-  it('the gate modal explains how to fix a generated deed', () => {
+  /**
+   * T-0 CHANGED THIS PIN DELIBERATELY. Worth reading, because the pin was
+   * doing its job and was still wrong.
+   *
+   * U2.3's intent is right and survives intact: telling an officer the
+   * document is immutable, without telling them what to do about it, is a
+   * dead end on the one screen where they are deciding whether to press
+   * the button. The copy must carry a path forward.
+   *
+   * What U2.3 could not know is that the path it pinned did not exist.
+   * "Generate a corrected deed — the record keeps both" describes
+   * SUPERSESSION, and `deeds` has no lineage: no superseded_by, no status
+   * beyond draft/completed/deleted, nothing relating the two rows. Both
+   * deeds are kept, so the sentence is half true, and the half that is
+   * false is the word "corrected" — it promises a recorded relationship.
+   *
+   * So the pin now asserts the INTENT (a path forward is offered) rather
+   * than the SPELLING of a specific promise. T-5 builds the lineage; when
+   * it exists, the stronger sentence can come back and this pin can go
+   * back to naming it.
+   */
+  it('the gate modal tells the officer what to do about immutability', () => {
     const src = readSource('features', 'builder', 'DeedBuilder.tsx');
     expect(src).toContain('stored immutably');
-    expect(src).toContain('Generate a corrected deed');
-    expect(src).toContain('the record keeps both');
+    // A path forward, stated in terms of what is true today.
+    expect(src).toMatch(/cannot be edited/i);
+    expect(src).toMatch(/make any changes now/i);
+  });
+
+  it('and does not describe a correction the record cannot show', () => {
+    const src = readSource('features', 'builder', 'DeedBuilder.tsx')
+      .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    expect(src).not.toContain('Generate a corrected deed');
+    expect(src).not.toContain('the record keeps both');
   });
 });
 
