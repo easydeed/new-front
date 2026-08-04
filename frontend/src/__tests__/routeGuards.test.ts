@@ -92,12 +92,42 @@ describe('HX0 — route-level auth guards', () => {
     expect(unguarded).toEqual([]);
   });
 
-  it('the audited leak specifically: /security and /team mount the guard', () => {
-    for (const route of ['security', 'team']) {
-      const src = fs.readFileSync(path.join(APP_DIR, route, 'page.tsx'), 'utf8');
-      expect(src).toContain('useRequireAuth');
-      expect(src).toContain('if (!checked) return null;');
-    }
+  it('the audited leak specifically: /team mounts the guard', () => {
+    // /security was the other half of this pin. RED-H1.1 DELETED that
+    // route rather than guarding it — see the next test.
+    const src = fs.readFileSync(path.join(APP_DIR, 'team', 'page.tsx'), 'utf8');
+    expect(src).toContain('useRequireAuth');
+    expect(src).toContain('if (!checked) return null;');
+  });
+
+  it('RED-H1.1 — /security is GONE, not guarded', () => {
+    /**
+     * The strongest form of "this page cannot leak" is that the page does
+     * not exist. HX0 fixed the route's AUTH; it did not ask whether the
+     * page should exist, and the answer turned out to be no.
+     *
+     * What it rendered was fabricated telemetry end to end: invented login
+     * events with invented IP addresses, an invented "Multiple rapid login
+     * attempts detected / Automated Bot" high-risk incident, a fake IP
+     * whitelist, a fake last-security-scan timestamp, a hardcoded
+     * "Compliance Score 94% — SOC2 • GDPR • CCPA", and an audit-log toggle
+     * wired to nothing.
+     *
+     * A fabricated incident report is worse than a fabricated badge: a
+     * badge overclaims, but this told an officer that an attack on their
+     * account had been detected and handled. Guarding it would have
+     * restricted the invention to paying customers.
+     *
+     * This pin retires when a security page returns with real session
+     * telemetry behind it (RED-S3) — and whatever returns must not
+     * reintroduce mock data, which is what the second assertion guards.
+     */
+    expect(fs.existsSync(path.join(APP_DIR, 'security'))).toBe(false);
+
+    const middleware = fs.readFileSync(
+      path.join(__dirname, '..', '..', 'middleware.ts'), 'utf8');
+    const code = middleware.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[^\S\n]*\/\/.*$/gm, '');
+    expect(code).not.toMatch(/['"]\/security['"]/);
   });
 
   it('the builder pages mount the guard', () => {
