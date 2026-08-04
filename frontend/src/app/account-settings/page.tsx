@@ -356,13 +356,19 @@ function BillingTab({
       key: "professional",
       name: "Professional",
       price: "$29",
-      features: ["Unlimited deeds", "Advanced AI assistance", "SoftPro integration", "Priority support"],
+      // RED-H1.1: "SoftPro integration" removed — it does not exist, and
+      // this list is a PURCHASE surface: a logged-in officer reads it while
+      // deciding whether to upgrade.
+      features: ["Unlimited deeds", "Advanced AI assistance", "Priority support"],
     },
     {
       key: "enterprise",
       name: "Enterprise",
       price: "$99",
-      features: ["Everything in Pro", "Qualia integration", "API access", "Team management", "24/7 support"],
+      // RED-H1.1: "Qualia integration" removed (does not exist). "Team
+      // management" removed too — `deeds` carries a single user_id and
+      // every query is scoped to it; there is no team model to manage.
+      features: ["Everything in Pro", "API access", "24/7 support"],
     },
   ]
 

@@ -21,7 +21,6 @@ interface SecurityMetrics {
   failed_attempts_24h: number;
   unique_ips_24h: number;
   deeds_created_24h: number;
-  compliance_score: number;
   last_security_scan: string;
 }
 
@@ -97,7 +96,6 @@ export default function SecurityDashboard() {
       failed_attempts_24h: 3,
       unique_ips_24h: 5,
       deeds_created_24h: 12,
-      compliance_score: 94,
       last_security_scan: '2025-01-08 10:00:00'
     };
 
@@ -222,14 +220,15 @@ export default function SecurityDashboard() {
           marginBottom: '2rem',
           padding: '0 1rem'
         }}>
+          {/* RED-H1.1: the "Compliance Score — 94% — SOC2 • GDPR • CCPA"
+              tile is gone. It was the single worst instance of the banned
+              class: not just an unearned certification, but a NUMBER
+              attached to one, which implies a measurement against a
+              standard nobody has audited us to. Removing only the
+              subtitle would have left "Compliance Score: 94%", which is
+              the same claim with the evidence filed off. The tile was the
+              claim, so the tile goes. */}
           {securityMetrics && [
-            {
-              title: 'Compliance Score',
-              value: `${securityMetrics.compliance_score}%`,
-              subtitle: 'SOC2 • GDPR • CCPA',
-              icon: '🛡️',
-              color: '#10B981'
-            },
             {
               title: 'Logins (24h)',
               value: securityMetrics.total_logins_24h.toString(),

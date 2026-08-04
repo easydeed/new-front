@@ -52,8 +52,12 @@ export default function LandingPage() {
                 </h1>
 
                 <p className="mt-8 text-xl sm:text-xl text-gray-800 max-w-2xl leading-loose">
-                  DeedPro combines an AI‑assisted wizard, SmartReview, and integrations built for title workflows—so
-                  your team ships clean documents on the first pass.
+                  {/* RED-H1.1: "...and integrations built for title
+                      workflows" was the same false claim as the removed
+                      integrations section, sitting in the first paragraph a
+                      visitor reads. */}
+                  A guided wizard for California deeds: county records and title reports prefill what they can, your
+                  officer confirms every field, and the recorder-formatted PDF is hash-stamped when it prints.
                 </p>
 
                 <div className="mt-12 flex flex-col sm:flex-row gap-6">
@@ -217,40 +221,52 @@ export default function LandingPage() {
                 </p>
               </div>
 
-              {/* Feature 3: Instant Integrations */}
+              {/* Feature 3 — RED-H1.1 REPLACEMENT. What was here:
+                  "Instant Integrations", a card listing SoftPro, Qualia and
+                  RamQuest each beside a PULSING GREEN DOT, under the word
+                  "Connected".
+
+                  That is not overstated copy — it is a fabricated system
+                  state. A green pulse next to a vendor name reads as a live
+                  connection, and there is no SoftPro, Qualia or RamQuest
+                  client anywhere in this codebase. A visitor could not have
+                  told the difference between that card and a real status
+                  panel, which is the whole problem with it.
+
+                  Its replacement describes the confirmation record, which
+                  ships and is checkable: every field carries its own source
+                  and its own confirmation timestamp. COPY PENDING OWNER
+                  REVIEW — the claim is true, the wording is mine. */}
               <div className="group text-center">
                 <div className="bg-gray-50 rounded-xl p-6 shadow-lg border border-gray-200 mb-6 group-hover:border-[#7C4DFF] transition-all">
                   <div className="bg-white rounded-lg p-4 border border-[#7C4DFF]/20">
                     <div className="flex items-center justify-between mb-3">
                       <Badge className="bg-[#7C4DFF]/10 text-[#7C4DFF] border border-[#7C4DFF]/20 text-xs font-semibold">
-                        API
+                        Record
                       </Badge>
                       <Zap className="h-5 w-5 text-[#7C4DFF]" />
                     </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-gray-600 font-medium">SoftPro</span>
-                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                    <div className="space-y-2.5">
+                      <div className="flex items-center gap-2 text-xs">
+                        <Check className="h-4 w-4 text-green-600" />
+                        <span className="text-gray-700 font-medium">Every field shows its source</span>
                       </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-gray-600 font-medium">Qualia</span>
-                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                      <div className="flex items-center gap-2 text-xs">
+                        <Check className="h-4 w-4 text-green-600" />
+                        <span className="text-gray-700 font-medium">Confirmed one at a time</span>
                       </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-gray-600 font-medium">RamQuest</span>
-                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                      <div className="flex items-center gap-2 text-xs">
+                        <Check className="h-4 w-4 text-green-600" />
+                        <span className="text-gray-700 font-medium">Corrections keep both versions</span>
                       </div>
-                    </div>
-                    <div className="mt-3 text-xs text-[#7C4DFF] font-semibold flex items-center justify-center gap-1">
-                      <div className="h-1.5 w-1.5 rounded-full bg-[#7C4DFF] animate-pulse" />
-                      <span>Connected</span>
                     </div>
                   </div>
                 </div>
 
-                <h3 className="text-2xl font-bold text-[#1F2B37] mb-4">Instant Integrations</h3>
+                <h3 className="text-2xl font-bold text-[#1F2B37] mb-4">Nothing Reaches the Deed Unseen</h3>
                 <p className="text-lg text-gray-600 leading-loose">
-                  SoftPro, Qualia, and major title software. Fits your existing workflow seamlessly.
+                  County-record and title-report data arrive as candidates, never as answers. Your officer confirms each
+                  one, and the record keeps who confirmed what, and when.
                 </p>
               </div>
             </div>
@@ -526,35 +542,23 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* 6. INTEGRATIONS */}
-        <section id="integrations" aria-label="Compatible Software" className="py-28 bg-white">
-          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-            <div className="text-center mb-16">
-              <Badge className="bg-[#4F76F6]/10 text-[#4F76F6] border border-[#4F76F6]/20 text-lg font-semibold px-6 py-3 mb-6">
-                Integrations
-              </Badge>
-              <h2 className="text-4xl sm:text-5xl font-bold text-[#1F2B37] tracking-tight mb-6">
-                Works with your existing tools
-              </h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-loose">
-                Seamless integration with leading title and escrow software.
-              </p>
-            </div>
+        {/* 6. INTEGRATIONS — REMOVED, RED-H1.1.
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-              {["SoftPro", "Qualia", "RamQuest", "ResWare", "Closer's Choice", "ClosingVue", "E-Closing", "SigniX"].map(
-                (name) => (
-                  <div
-                    key={name}
-                    className="flex items-center justify-center p-8 rounded-xl border border-dashed border-[#7C4DFF]/60 hover:border-[#4F76F6] hover:bg-[#7C4DFF]/5 transition-colors grayscale hover:grayscale-0 opacity-70 hover:opacity-100"
-                  >
-                    <div className="text-lg font-bold text-gray-700">{name}</div>
-                  </div>
-                ),
-              )}
-            </div>
-          </div>
-        </section>
+            This section was headed "Works with your existing tools /
+            Seamless integration with leading title and escrow software"
+            over a grid of EIGHT named products: SoftPro, Qualia, RamQuest,
+            ResWare, Closer's Choice, ClosingVue, E-Closing, SigniX.
+
+            Not one of them is integrated. There is no client, no webhook
+            handler, no field mapping, no stub, for any of the eight. The
+            section was removed rather than reworded, because there is no
+            true version of it to write — a heading over an empty grid
+            still promises what the heading says.
+
+            The two in-page links that pointed here now point at #api,
+            which describes something that exists. If integrations get
+            built, this section comes back with the products that are
+            actually wired, and no others. */}
 
         {/* 7. COMPARISON TABLE */}
         <section aria-label="Comparison" className="py-28 bg-gray-50">
@@ -610,23 +614,25 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* 8. API / INTEGRATIONS SECTION */}
-        <section aria-label="API" className="py-28 bg-[#1F2B37]">
+        {/* 8. API SECTION — carries id="api" since RED-H1.1, because the
+            two in-page "Explore Integrations" links used to target the
+            removed #integrations section and would otherwise scroll
+            nowhere. */}
+        <section id="api" aria-label="API" className="py-28 bg-[#1F2B37]">
           <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <div>
                 <div className="flex items-center gap-4 mb-6">
                   <Badge className="bg-[#4F76F6]/10 text-[#4F76F6] border border-[#4F76F6]/20 text-lg font-semibold px-6 py-3">
                     <Zap className="h-4 w-4 mr-2" />
-                    API & Integrations
+                    Deed API
                   </Badge>
-                  <div className="flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-full">
-                    <div className="relative flex items-center justify-center">
-                      <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                      <div className="absolute h-2 w-2 rounded-full bg-green-500 animate-ping" />
-                    </div>
-                    <span className="text-sm font-semibold text-green-400">API Status: OK</span>
-                  </div>
+                  {/* RED-H1.1: a pulsing green "API Status: OK" pill lived
+                      here. It was hardcoded — no health check, no fetch,
+                      nothing behind it. It would have rendered "OK" during
+                      a total outage, which is the one moment a status
+                      indicator exists for. A status light that cannot go
+                      red is not a status light. */}
                 </div>
 
                 <h2 className="text-4xl sm:text-5xl font-bold text-white tracking-tight mb-6">
@@ -636,8 +642,13 @@ export default function LandingPage() {
                 </h2>
 
                 <p className="text-xl text-gray-300 leading-loose mb-8">
-                  Integrate DeedPro into your existing workflow. Works seamlessly with SoftPro, Qualia, and all major
-                  title software platforms.
+                  {/* RED-H1.1: was "Works seamlessly with SoftPro, Qualia,
+                      and all major title software platforms." No such
+                      integration exists. What the API does today is what it
+                      says now — deed generation over REST, which is real
+                      and documented at /developers. */}
+                  Generate a recorder-formatted California deed from your own system over REST, and get back the same
+                  PDF the app produces. Keys are issued after a conversation.
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4">
@@ -653,7 +664,7 @@ export default function LandingPage() {
                     variant="outline"
                     className="border-white/30 text-white hover:bg-white/10 font-bold px-8 py-8 bg-transparent"
                   >
-                    <a href="#integrations">Explore Integrations</a>
+                    <a href="#api">Explore the API</a>
                   </Button>
                 </div>
 
@@ -796,7 +807,6 @@ Content-Type: application/json
                     "Priority support",
                     "API access",
                     "Custom branding",
-                    "SoftPro & Qualia integration",
                   ],
                   cta: "Start 14-day trial",
                   popular: true,
@@ -898,8 +908,14 @@ Content-Type: application/json
                   a: "Yes—for now. The data models and recording nuances are CA‑specific.",
                 },
                 {
-                  q: "Does it work with SoftPro?",
-                  a: "Yes. We designed the flows to play nicely with SoftPro and similar systems.",
+                  // RED-H1.1. This answer used to be "Yes. We designed the
+                  // flows to play nicely with SoftPro and similar systems."
+                  // There is no SoftPro integration in this codebase — no
+                  // client, no webhook, no stub. The question is one people
+                  // genuinely ask, so it stays; a truthful "no" is the only
+                  // copy here that cannot overclaim.
+                  q: "Does it connect to SoftPro, Qualia, or ResWare?", // banned-claims: allow the question a truthful "no" answers; naming the systems is what makes the denial useful
+                  a: "Not today. Property details can come from a county-record lookup or a preliminary title report you upload; everything else is entered here. Title-software integration is not built yet, and we would rather say so than let you find out on your first file.",
                 },
                 {
                   q: "What deed types do you support?",
@@ -965,7 +981,7 @@ Content-Type: application/json
                     </a>
                   </li>
                   <li>
-                    <a href="#integrations" className="hover:text-[#7C4DFF] transition-colors">
+                    <a href="#api" className="hover:text-[#7C4DFF] transition-colors">
                       Integrations
                     </a>
                   </li>
