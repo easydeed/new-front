@@ -64,6 +64,7 @@ concurrency argument above does not apply to it.
 import contextlib
 import os
 import threading
+import time
 from contextvars import ContextVar
 from typing import Optional
 
@@ -86,7 +87,10 @@ DB_URL = os.getenv("DATABASE_URL") or os.getenv("DB_URL")
 # turns a load spike into "FATAL: too many connections" for everyone,
 # which is the failure this ticket exists to prevent, wearing a new hat.
 POOL_MIN = int(os.getenv("DB_POOL_MIN", "1"))
-POOL_MAX = int(os.getenv("DB_POOL_MAX", "20"))
+# Default raised to the threadpool width: 40 sync endpoints can be in
+# flight at once, so a smaller ceiling guarantees contention the app
+# creates for itself.
+POOL_MAX = int(os.getenv("DB_POOL_MAX", "40"))
 
 _pool: Optional[_pgpool.ThreadedConnectionPool] = None
 _pool_lock = threading.Lock()
@@ -146,6 +150,43 @@ def _standalone_connection():
         return _standalone
 
 
+# How long a request waits for a free connection before giving up.
+CHECKOUT_TIMEOUT_S = float(os.getenv("DB_POOL_TIMEOUT", "10"))
+
+
+def _checkout(p):
+    """Wait for a connection; 503 only if the wait genuinely expires.
+
+    FOUND BY THE S1 PROOF ITSELF, on a wider burst than the run that
+    shipped it (35 concurrent scopes against a pool of 20 rather than
+    25). psycopg2's ThreadedConnectionPool.getconn() does NOT block when
+    the pool is exhausted — it raises PoolError immediately. So a burst
+    wider than DB_POOL_MAX turned into hard 500s.
+
+    That was a failure mode S1 INTRODUCED. The shared connection could
+    not exhaust a pool because there was no pool; trading one defect for
+    a smaller one is still trading.
+
+    A short spike should WAIT — connections free in milliseconds — and
+    only a genuine, sustained overload should be refused, with a 503 that
+    says "try again" rather than a 500 that says "something broke".
+    """
+    deadline = time.monotonic() + CHECKOUT_TIMEOUT_S
+    delay = 0.005
+    while True:
+        try:
+            return p.getconn()
+        except _pgpool.PoolError:
+            if time.monotonic() >= deadline:
+                raise HTTPException(
+                    status_code=503,
+                    detail="The service is busy. Please try again in a moment.",
+                    headers={"Retry-After": "1"},
+                )
+            time.sleep(delay)
+            delay = min(delay * 2, 0.1)
+
+
 @contextlib.contextmanager
 def request_connection():
     """Check a connection out for one request and put it back after.
@@ -160,7 +201,7 @@ def request_connection():
         yield None
         return
 
-    conn_obj = p.getconn()
+    conn_obj = _checkout(p)
     token = _current.set(conn_obj)
     try:
         yield conn_obj
