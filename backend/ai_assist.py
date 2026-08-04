@@ -4,13 +4,15 @@ from typing import Optional
 import os
 from dotenv import load_dotenv
 
-# For OpenAI integration (install with: pip install openai)
-try:
-    import openai
-    OPENAI_AVAILABLE = True
-except ImportError:
-    OPENAI_AVAILABLE = False
-    print("Warning: OpenAI package not installed. AI assistance will use mock responses.")
+# RED-H1.4: the `import openai` try/except that lived here is gone, and
+# so is the SDK from requirements.
+#
+# It set OPENAI_AVAILABLE, which nothing ever read, and printed a warning
+# about falling back to "mock responses" that no longer exist. The one
+# real call to OpenAI in this codebase (api/ai_assist.py) is an httpx
+# POST to the REST endpoint and never touched the SDK — so the package
+# was pure install weight, and the dead flag implied a degraded mode the
+# product does not have.
 
 load_dotenv()
 
