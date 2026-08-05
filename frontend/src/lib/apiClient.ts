@@ -18,6 +18,7 @@
  * generic toasts — but a 401 is NEVER silent, that's the whole bug.
  */
 import { toast } from 'sonner';
+import { getAccessToken, handleUnauthorized } from './session';
 
 export class SessionExpiredError extends Error {
   constructor() {
@@ -49,19 +50,25 @@ export const navigation = {
   },
 };
 
-function handleSessionExpired(): void {
-  toast.error('Your session has expired — please sign in again to continue.', {
-    id: 'session-expired', // one toast, however many calls fail behind it
-    duration: 10000,
-  });
-  try {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('token'); // pre-AuthManager fossil key (G1)
-    localStorage.removeItem('user_data');
-  } catch {
-    /* storage unavailable — redirect is still the surface */
-  }
+/**
+ * RED-S3: a 401 is a PAUSE, not an ending.
+ *
+ * This used to toast, wipe storage and redirect — which destroyed
+ * whatever the officer was typing, because the builder's state lives in
+ * React and the redirect takes the page with it. That is the 4:40
+ * Thursday: come back from a phone call, press a button, lose the deed.
+ *
+ * Now the first move is a silent refresh. If it works she never learns
+ * anything happened; the caller retries and the request succeeds. Only
+ * when the refresh token is genuinely gone does she see a sign-in
+ * screen — and her work is snapshotted BEFORE the navigation that would
+ * have destroyed it.
+ */
+async function handleSessionExpired(): Promise<boolean> {
+  const recovered = await handleUnauthorized(navigation.current());
+  if (recovered) return true;
   navigation.goTo(`/login?expired=1&redirect=${encodeURIComponent(navigation.current())}`);
+  return false;
 }
 
 /**
@@ -79,15 +86,18 @@ export async function apiFetch(
     : `${apiBase()}${path}`;
   const label = opts.label || `${(init.method || 'GET').toUpperCase()} ${path}`;
 
-  const headers = new Headers(init.headers || {});
-  if (!opts.noAuth && !headers.has('Authorization')) {
-    const token = localStorage.getItem('access_token') || localStorage.getItem('token');
-    if (token) headers.set('Authorization', `Bearer ${token}`);
-  }
+  const withAuth = (): Headers => {
+    const h = new Headers(init.headers || {});
+    if (!opts.noAuth && !h.has('Authorization')) {
+      const token = getAccessToken();
+      if (token) h.set('Authorization', `Bearer ${token}`);
+    }
+    return h;
+  };
 
   let response: Response;
   try {
-    response = await fetch(url, { ...init, headers });
+    response = await fetch(url, { ...init, headers: withAuth() });
   } catch (err) {
     if (!opts.silent) {
       toast.error(`${label}: network error — could not reach the server.`);
@@ -96,8 +106,20 @@ export async function apiFetch(
   }
 
   if (response.status === 401) {
-    handleSessionExpired();
-    throw new SessionExpiredError();
+    // ONE retry, and only after a successful refresh. A loop here would
+    // hammer the login endpoint on a genuinely dead session; retrying
+    // without a fresh token would just 401 again.
+    const recovered = await handleSessionExpired();
+    if (!recovered) throw new SessionExpiredError();
+    try {
+      response = await fetch(url, { ...init, headers: withAuth() });
+    } catch (err) {
+      if (!opts.silent) {
+        toast.error(`${label}: network error — could not reach the server.`);
+      }
+      throw err;
+    }
+    if (response.status === 401) throw new SessionExpiredError();
   }
 
   if (!response.ok && !opts.silent) {

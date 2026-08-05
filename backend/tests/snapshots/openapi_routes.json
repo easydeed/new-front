@@ -453,6 +453,10 @@
  ],
  [
   "POST",
+  "/users/logout"
+ ],
+ [
+  "POST",
   "/users/profile/enhanced"
  ],
  [

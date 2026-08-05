@@ -4,6 +4,7 @@ from datetime import timedelta, datetime
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Body, Depends, Request
+from fastapi.security import HTTPBearer
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr, Field, validator
 from jose import jwt, JWTError
@@ -36,6 +37,11 @@ except Exception as e:
     )
 
 router = APIRouter()
+
+# auto_error=False: logout must work even without a valid bearer — an
+# officer whose token already expired still expects the button to end
+# the session rather than 401 at her.
+_bearer = HTTPBearer(auto_error=False)
 
 EMAIL_VERIFICATION_REQUIRED = os.getenv("EMAIL_VERIFICATION_REQUIRED", "false").lower() == "true"
 REFRESH_TOKENS_ENABLED = os.getenv("REFRESH_TOKENS_ENABLED", "false").lower() == "true"
@@ -188,17 +194,120 @@ class RefreshTokenRequest(BaseModel):
 
 @router.post("/users/refresh-token")
 def refresh_token(payload: RefreshTokenRequest):
-    if not REFRESH_TOKENS_ENABLED:
-        raise HTTPException(status_code=403, detail="Refresh tokens disabled")
+    """Exchange a refresh token for a new pair, rotating as it goes.
+
+    RED-S3 replaced a stub. What was here decoded the token, checked a
+    `type` claim the rest of the codebase never wrote, and minted a new
+    access token — with a comment admitting it: "In production you'd
+    verify token hash in DB; omitted for brevity in this starter."
+
+    So it was an endpoint shaped like refresh, with no storage, no
+    rotation and no revocation. It was gated off, which is the only
+    reason it was not a hole.
+
+    ROTATION. Each use retires the presented token and issues a new one
+    in the same family. A stolen refresh token is therefore usable at
+    most once.
+
+    REPLAY DETECTION. If an already-rotated token is presented again,
+    two parties hold it and we cannot tell which is the officer — so the
+    entire family is revoked and both must sign in again. Losing a
+    session is a smaller harm than letting a thief keep one.
+    """
+    import db
+    from auth import (TOKEN_TYPE_REFRESH, create_refresh_token, is_revoked,
+                      revoke_refresh_family)
+
     try:
         claims = jwt.decode(payload.refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
-        if claims.get("type") != "refresh":
-            raise HTTPException(status_code=400, detail="Invalid refresh token")
-        user_id = int(claims.get("sub"))
     except JWTError:
-        raise HTTPException(status_code=400, detail="Invalid or expired token")
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
 
-    # In production you'd verify token hash in DB; omitted for brevity in this starter
-    # Issue a short-lived access token
-    new_access = create_access_token(data={"sub": str(user_id)}, expires_delta=timedelta(minutes=30))
-    return {"access_token": new_access, "token_type": "bearer"}
+    if claims.get("typ") != TOKEN_TYPE_REFRESH:
+        raise HTTPException(status_code=401, detail="Not a refresh token")
+
+    jti = claims.get("jti")
+    family = claims.get("fam")
+    user_id = int(claims.get("sub"))
+    if not jti or not family:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+    if is_revoked(jti):
+        # Already dead — and if it belongs to a live family, its presence
+        # here means someone kept a copy.
+        revoke_refresh_family(family, "replay")
+        raise HTTPException(status_code=401,
+                            detail="This session has ended. Please sign in again.")
+
+    with db.conn.cursor() as cur:
+        cur.execute("""SELECT used_at, revoked_at FROM refresh_tokens
+                       WHERE jti = %s AND user_id = %s""", (jti, user_id))
+        row = cur.fetchone()
+    if row is None:
+        raise HTTPException(status_code=401, detail="Unknown refresh token")
+
+    used_at = row["used_at"] if isinstance(row, dict) else row[0]
+    revoked_at = row["revoked_at"] if isinstance(row, dict) else row[1]
+    if revoked_at is not None or used_at is not None:
+        # THE replay case: this token was already exchanged.
+        revoke_refresh_family(family, "replay")
+        raise HTTPException(
+            status_code=401,
+            detail="This session was ended for security. Please sign in again.")
+
+    new_refresh, new_jti, _ = create_refresh_token(user_id, family=family)
+    with db.conn.cursor() as cur:
+        cur.execute("""UPDATE refresh_tokens
+                       SET used_at = NOW(), replaced_by = %s WHERE jti = %s""",
+                    (new_jti, jti))
+        cur.execute("""INSERT INTO revoked_tokens (jti, user_id, reason)
+                       VALUES (%s,%s,'rotated') ON CONFLICT (jti) DO NOTHING""",
+                    (jti, user_id))
+        db.conn.commit()
+
+    with db.conn.cursor() as cur:
+        cur.execute("SELECT email, role FROM users WHERE id = %s", (user_id,))
+        u = cur.fetchone()
+    email = (u["email"] if isinstance(u, dict) else u[0]) if u else None
+    role = (u["role"] if isinstance(u, dict) else u[1]) if u else "user"
+
+    new_access = create_access_token(
+        data={"sub": str(user_id), "email": email, "role": role or "user"})
+    return {"access_token": new_access, "refresh_token": new_refresh,
+            "token_type": "bearer"}
+
+
+@router.post("/users/logout")
+def logout(payload: Optional[RefreshTokenRequest] = None,
+           credentials=Depends(_bearer)):
+    """End the session — for real.
+
+    "Logout" was a localStorage delete on the client. The token itself
+    stayed valid for the rest of its 30 minutes, so a copy taken from a
+    shared machine kept working after the officer had visibly signed
+    out.
+    """
+    from auth import revoke_jti, revoke_refresh_family
+
+    revoked = []
+    if credentials is not None:
+        try:
+            claims = jwt.decode(credentials.credentials, SECRET_KEY,
+                                algorithms=[ALGORITHM])
+            if claims.get("jti"):
+                revoke_jti(claims["jti"], int(claims.get("sub") or 0), "logout")
+                revoked.append("access")
+        except JWTError:
+            pass
+
+    if payload and payload.refresh_token:
+        try:
+            claims = jwt.decode(payload.refresh_token, SECRET_KEY,
+                                algorithms=[ALGORITHM])
+            if claims.get("fam"):
+                revoke_refresh_family(claims["fam"], "logout")
+                revoked.append("refresh-family")
+        except JWTError:
+            pass
+
+    return {"success": True, "revoked": revoked}
