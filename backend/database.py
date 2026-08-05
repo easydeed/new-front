@@ -449,6 +449,39 @@ def create_tables():
                 attempted_at TIMESTAMPTZ DEFAULT now()
             )""",
             "CREATE INDEX IF NOT EXISTS idx_login_attempts_email ON login_attempts(LOWER(email), attempted_at DESC)",
+            # RED-S4 — recording state.
+            #
+            # RED0 R2-7/R3-8: `deeds` had NO recording fields at all. The
+            # status vocabulary ran draft -> completed -> deleted, where
+            # "completed" means only THAT WE RENDERED A PDF.
+            #
+            # So the single most important fact in the life of any deed —
+            # that it recorded, when, and under what instrument number —
+            # had no home. Two consequences, both load-bearing:
+            #
+            #   1. The officer's own log stayed the system of record, so
+            #      the product was a step in her process rather than her
+            #      process.
+            #   2. supersession.py reasons about "instruments that already
+            #      exist in the world" and enforces it with
+            #      `status == 'completed'` — which cannot tell a deed that
+            #      recorded last Tuesday from one that was generated,
+            #      previewed and thrown away. walk_chain returns a lineage
+            #      that looks authoritative and answers the drafting
+            #      history, not the county's record.
+            #
+            # OFFICER-RECORDED, by ruling. We do not learn this from the
+            # county — there is no e-recording integration and inventing
+            # one would be the fabricated-success disease. These columns
+            # hold HER STATEMENT that it recorded, with her name and the
+            # time she said so, which is the same posture as the notary
+            # handoff: completion is always someone's recorded statement,
+            # never the system's assertion.
+            "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS recorded_at TIMESTAMPTZ",
+            "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS instrument_number VARCHAR(64)",
+            "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS recording_asserted_by INTEGER",
+            "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS recording_asserted_at TIMESTAMPTZ",
+            "CREATE INDEX IF NOT EXISTS idx_deeds_recorded ON deeds(recorded_at) WHERE recorded_at IS NOT NULL",
             # RED-H1.3 — the AI exchange log.
             #
             # Nothing recorded what the assistant told an escrow officer.

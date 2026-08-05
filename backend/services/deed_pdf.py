@@ -206,9 +206,31 @@ def store_deed_pdf(conn, deed_id: int, pdf_bytes: bytes) -> str:
     until it exists the honest answer is to refuse.
     """
     digest = hashlib.sha256(pdf_bytes).hexdigest()
+    # RED-S4: which rate table produced this deed's number.
+    #
+    # RED0 R3-3 — the officer's confirmation records that she accepted A
+    # NUMBER; nothing recorded which schedule produced it. A deed
+    # generated under last March's rate is indistinguishable from one
+    # generated today, so the audit trail cannot answer the only question
+    # a dispute asks: was this the right rate ON THAT DATE.
+    #
+    # Both the human version string and the content fingerprint are
+    # stamped. The version is a promise someone remembered to update; the
+    # fingerprint is the machine's check on that promise, and the pair
+    # disagreeing is itself the signal.
+    try:
+        from services.jurisdictions import REGISTRY_VERSION, registry_fingerprint
+        rates = {"rate_registry_version": REGISTRY_VERSION,
+                 "rate_registry_fingerprint": registry_fingerprint()}
+    except Exception as e:
+        # Never block a deed on a provenance stamp — but never pretend it
+        # is there either.
+        rates = {"rate_registry_version": None,
+                 "rate_registry_error": f"{type(e).__name__}"}
     stamp = json.dumps({
         "pdf_sha256": digest,
         "pdf_generated_at": datetime.now(timezone.utc).isoformat(),
+        **rates,
     })
     with conn.cursor() as cur:
         # DO NOTHING, not DO UPDATE: the insert is attempted atomically

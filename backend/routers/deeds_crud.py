@@ -883,3 +883,101 @@ def download_deed_endpoint(deed_id: int, user_id: int = Depends(get_current_user
             status_code=500,
             detail=f"Failed to generate deed PDF — {type(e).__name__}: {str(e)[:200]}",
         )
+
+
+# ─────────────────────────────────────────────────────────────────────
+# RED-S4 — recording, as the officer's statement
+# ─────────────────────────────────────────────────────────────────────
+
+class RecordingAssertion(BaseModel):
+    """What she says happened at the recorder.
+
+    Not what we observed. There is no e-recording integration, and
+    inventing one — deriving "recorded" from anything we can see — would
+    be the fabricated-success disease in the one place it would do the
+    most damage.
+
+    Same posture the notary handoff was ruled into: the system NEVER
+    auto-asserts that a document was recorded. Completion is always
+    someone's recorded statement, attributable to them.
+    """
+    recorded_at: str = Field(..., description="Date the county recorded it (ISO or YYYY-MM-DD)")
+    instrument_number: str = Field(..., min_length=1, max_length=64)
+
+
+@router.post("/deeds/{deed_id}/recording")
+def assert_recording(deed_id: int, payload: RecordingAssertion,
+                     user_id: int = Depends(get_current_user_id)):
+    """Record that this deed was recorded — as HER statement.
+
+    Why this matters beyond bookkeeping (RED0 R3-8): `supersession.py`
+    reasons about "instruments that already exist in the world" and
+    enforces it with `status == 'completed'`, which means only that a PDF
+    was rendered. Until now nothing could distinguish a deed that
+    recorded last Tuesday from one generated, previewed and discarded —
+    so `walk_chain` returned a lineage that looked authoritative while
+    answering the drafting history rather than the county's record.
+
+    ONE ASSERTION, like the artifact it describes. A recording that is
+    already asserted is not silently overwritten; changing it is a
+    correction, and corrections are supersession's business (§9's posture
+    applied to the statement rather than the bytes).
+    """
+    from datetime import datetime as _dt
+
+    if not db.conn:
+        raise HTTPException(status_code=500, detail="Database connection not available")
+
+    try:
+        when = _dt.fromisoformat(payload.recorded_at.replace("Z", "+00:00"))
+    except ValueError:
+        raise HTTPException(status_code=400,
+                            detail="recorded_at must be a date (YYYY-MM-DD or ISO timestamp)")
+
+    with db.conn.cursor() as cur:
+        cur.execute("SELECT user_id, status, recorded_at, instrument_number "
+                    "FROM deeds WHERE id = %s", (deed_id,))
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Deed not found")
+        if (row["user_id"] if isinstance(row, dict) else row[0]) != user_id:
+            raise HTTPException(status_code=403, detail="Not your deed")
+
+        status_ = row["status"] if isinstance(row, dict) else row[1]
+        already = row["recorded_at"] if isinstance(row, dict) else row[2]
+        existing_no = row["instrument_number"] if isinstance(row, dict) else row[3]
+
+        if status_ != "completed":
+            # A draft has not been executed, notarised or taken anywhere.
+            raise HTTPException(
+                status_code=400,
+                detail="Only a generated document can be marked recorded. "
+                       "A draft has not been executed yet.")
+
+        if already is not None:
+            raise HTTPException(
+                status_code=409,
+                detail=f"This deed is already recorded as instrument "
+                       f"{existing_no} on {already.date().isoformat()}. "
+                       f"If that is wrong, the correction is a new "
+                       f"instrument that supersedes this one.")
+
+        cur.execute("""
+            UPDATE deeds
+            SET recorded_at = %s,
+                instrument_number = %s,
+                recording_asserted_by = %s,
+                recording_asserted_at = NOW()
+            WHERE id = %s
+        """, (when, payload.instrument_number.strip(), user_id, deed_id))
+        db.conn.commit()
+
+    return {
+        "success": True,
+        "deed_id": deed_id,
+        "recorded_at": when.isoformat(),
+        "instrument_number": payload.instrument_number.strip(),
+        # Said plainly in the response, because the UI should say it too.
+        "note": "Recorded per your entry. DeedPro does not verify this "
+                "with the county.",
+    }

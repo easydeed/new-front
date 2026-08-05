@@ -52,6 +52,42 @@ def lineage_state(row: Dict[str, Any]) -> str:
     return "superseded" if is_superseded(row) else "active"
 
 
+def is_recorded(row: Dict[str, Any]) -> bool:
+    """Did the officer state that this one recorded? RED-S4.
+
+    The distinction this module's docstring rests on — a draft you may
+    edit versus an instrument in the world you may only supersede — was
+    enforced by `status == 'completed'`, which means ONLY that a PDF was
+    rendered. So a deed generated, previewed and thrown away was
+    indistinguishable from one that now encumbers real title.
+
+    That is not merely imprecise. `walk_chain` returns a lineage that
+    LOOKS authoritative, and an officer asking six months later "which
+    version recorded?" — the exact scenario this file's docstring
+    invokes — was getting the drafting history instead.
+
+    Note what this is NOT: verification. It is her recorded statement,
+    with her name and the moment she made it. We never learn this from
+    the county, and a system that inferred it would be asserting
+    something nobody checked.
+    """
+    return row.get("recorded_at") is not None
+
+
+def recorded_in_chain(rows_by_id: Dict[int, Dict[str, Any]],
+                      start_id: int) -> List[int]:
+    """The ids in this chain the officer has stated recorded.
+
+    Usually zero or one. MORE THAN ONE IS NOT AN ERROR TO SUPPRESS: a
+    correcting deed is a new instrument requiring its own execution, and
+    both it and the original can genuinely have been recorded. Surfacing
+    two is the honest answer to "what is on record", and hiding one would
+    recreate the un-recording the data model refuses.
+    """
+    return [i for i in walk_chain(rows_by_id, start_id)
+            if is_recorded(rows_by_id.get(i) or {})]
+
+
 def validate_supersession(old: Optional[Dict[str, Any]],
                           new: Optional[Dict[str, Any]]) -> None:
     """Every way this can be wrong, refused by name.

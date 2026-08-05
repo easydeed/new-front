@@ -30,6 +30,43 @@ that review should fill — not omissions to be closed by guessing.
 """
 from typing import Dict, List, NamedTuple, Optional
 
+# RED-S4 — the version stamped onto every deed at generation.
+#
+# RED0 R3-3: a deed generated last March under the then-correct rate is
+# indistinguishable in the record from one generated today. The officer's
+# confirmation records that she accepted A NUMBER; nothing records which
+# rate table produced it. So the audit trail cannot answer the only
+# question that matters in a dispute — was this the right rate ON THAT
+# DATE — and the honest answer today is "we don't know".
+#
+# The stamp does not make the rate right. It makes the rate ANSWERABLE,
+# which is the precondition for ever showing it was right.
+#
+# BUMP THIS whenever a rate, a tier threshold, or the membership of the
+# place list changes. A pinned test fails if the registry's content hash
+# moves without this string moving, so it cannot be forgotten quietly.
+REGISTRY_VERSION = "2026-08-04.1"
+
+
+def registry_fingerprint() -> str:
+    """A content hash of the rate-bearing data.
+
+    The version string is a human promise; this is the machine's check on
+    it. Together they answer "which table produced this number" even if
+    someone edits a rate and forgets the bump — because then the two
+    disagree and a test says so.
+    """
+    import hashlib
+    import json
+    payload = [
+        (p.city, p.county, p.dtt_rate_per_1000,
+         (p.tiered_above.amount, p.tiered_above.measure, tuple(p.tiered_above.boundaries or ())) if p.tiered_above else None)
+        for p in sorted(PLACES, key=lambda x: (x.county, x.city))
+    ]
+    return hashlib.sha256(
+        json.dumps(payload, sort_keys=True, default=str).encode()
+    ).hexdigest()[:16]
+
 
 class Tier(NamedTuple):
     """A high-value bracket. FLAGGED, never computed — see the TS mirror:
