@@ -176,13 +176,14 @@ def part2_load():
     print(f"      requests: {total} in {elapsed:.1f}s "
           f"({total / elapsed:.1f}/s effective)")
     print(f"      ok: {results['ok']}   5xx/exceptions: {results['err']} {errors or ''}")
+    import db as _dbm
     print(f"      pg_stat_activity peak: {peak} connections "
-          f"(samples: {len(samples)}, pool max {os.getenv('DB_POOL_MAX', '20')})")
+          f"(samples: {len(samples)}, pool max {_dbm.POOL_MAX})")
 
     check("no request returned 5xx or raised", results["err"] == 0, str(errors))
+    import db as _db
     check("connections stayed bounded by the pool",
-          0 < peak <= int(os.getenv("DB_POOL_MAX", "20")) + 5,
-          f"peak {peak}")
+          0 < peak <= _db.POOL_MAX + 5, f"peak {peak}, ceiling {_db.POOL_MAX}")
 
     # A paced 20 RPS of millisecond responses is only ever ~1-2 requests
     # in flight, so the number above says little about the pool under
@@ -256,7 +257,13 @@ def part3_burst(client):
 
     peak_scopes = inflight["peak"]
     peak_conns = max(conn_samples) if conn_samples else -1
-    pool_max = int(os.getenv("DB_POOL_MAX", "20"))
+    # Read the REAL ceiling rather than re-deriving it from an env
+    # default. A gate that hardcodes its own copy of a constant measures
+    # against the wrong number the moment the constant moves — which is
+    # exactly what happened here: db.py's default became 40 and this
+    # still compared against 20, failing a run that was behaving
+    # correctly. A gate that misfires is as useless as one that flatters.
+    pool_max = db.POOL_MAX
     print(f"      peak concurrent request scopes: {peak_scopes}")
     print(f"      peak pg_stat_activity: {peak_conns} (pool max {pool_max})")
 

@@ -10,6 +10,7 @@ import hashlib
 import json
 import os
 from datetime import datetime, timezone
+from typing import Optional
 
 import psycopg2
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -143,10 +144,18 @@ def render_deed_pdf(row) -> bytes:
 
 
 def ensure_deed_pdfs_table(conn):
+    """RED-S2: RESTRICT, not CASCADE — and see database.py for the why.
+
+    This CREATE is a second copy of a statement that also lives in
+    `database.create_tables()`, which is the one schema authority (H1).
+    It exists because db.py calls it at import to guarantee the table
+    before anything reads it. Both copies now say RESTRICT; if they ever
+    disagree again, a pinned test fails.
+    """
     with conn.cursor() as cur:
         cur.execute("""
             CREATE TABLE IF NOT EXISTS deed_pdfs (
-                deed_id INTEGER PRIMARY KEY REFERENCES deeds(id) ON DELETE CASCADE,
+                deed_id INTEGER PRIMARY KEY REFERENCES deeds(id) ON DELETE RESTRICT,
                 pdf_data BYTEA NOT NULL,
                 sha256 VARCHAR(64) NOT NULL,
                 generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -234,7 +243,103 @@ def store_deed_pdf(conn, deed_id: int, pdf_bytes: bytes) -> str:
             WHERE id = %s
         """, (f"/deeds/{deed_id}/download", stamp, deed_id))
         conn.commit()
+
+    # RED-S2: the second copy.
+    #
+    # Until this ticket, the line above was the ONLY place a generated
+    # instrument existed. Losing the database lost every deed and the
+    # sha256 that made each one verifiable, in one event.
+    #
+    # Written AFTER the commit, deliberately. The database row is the
+    # system of record; a store that is slow or down must not hold up an
+    # officer's deed, and a rolled-back transaction must not leave an
+    # orphan artifact claiming to be an instrument that was never stored.
+    #
+    # The failure is RECORDED, not swallowed (invariant #4). The
+    # precedent is the email path: a failed send does not lose the lead,
+    # it writes `notify_error` on the row so the queue shows it flagged.
+    # Same shape here — `artifact_error` on the deed's metadata, and a
+    # loud log. An officer is never blocked by it; an operator can always
+    # find it.
+    _mirror_to_artifact_store(conn, deed_id, pdf_bytes, digest)
     return digest
+
+
+def _mirror_to_artifact_store(conn, deed_id: int, pdf_bytes: bytes, digest: str):
+    from services.artifact_store import artifact_key, get_store
+
+    key = artifact_key(deed_id, digest)
+    try:
+        store = get_store()
+        store.put(key, pdf_bytes)
+        note = json.dumps({"artifact_key": key, "artifact_store": store.name,
+                           "artifact_error": None})
+    except Exception as e:
+        # Loud, recorded, and non-blocking — in that order.
+        print(f"[artifact-store] ❌ SECOND COPY FAILED for deed {deed_id} "
+              f"({key}): {type(e).__name__}: {e}")
+        note = json.dumps({"artifact_key": key, "artifact_store": None,
+                           "artifact_error": f"{type(e).__name__}: {str(e)[:300]}"})
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE deeds
+                SET metadata = COALESCE(metadata, '{}'::jsonb) || %s::jsonb
+                WHERE id = %s
+            """, (note, deed_id))
+            conn.commit()
+    except Exception as e:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        print(f"[artifact-store] could not record mirror state for deed "
+              f"{deed_id}: {e}")
+
+
+def read_stored_pdf(conn, deed_id: int) -> Optional[bytes]:
+    """The stored instrument, from the database or the second copy.
+
+    Order matters and is the opposite of what you might expect: the
+    DATABASE is tried first, because it is the system of record and its
+    bytes are the ones the sha256 was computed over at generation. The
+    object store is the fallback for exactly the case this ticket exists
+    for — the row is gone or unreadable.
+
+    Both paths hash-verify before returning. A second copy that returns
+    the wrong bytes is worse than one that returns nothing, because the
+    caller would have no way to tell.
+    """
+    from services.artifact_store import artifact_key, get_store, verify
+
+    stored_sha = None
+    with conn.cursor() as cur:
+        cur.execute("SELECT pdf_data, sha256 FROM deed_pdfs WHERE deed_id = %s",
+                    (deed_id,))
+        row = cur.fetchone()
+        if row:
+            data = bytes(row["pdf_data"] if isinstance(row, dict) else row[0])
+            stored_sha = row["sha256"] if isinstance(row, dict) else row[1]
+            if verify(data, stored_sha):
+                return data
+            print(f"[artifact-store] ⚠️ deed {deed_id}: stored bytes do NOT "
+                  f"match their recorded sha256 — falling back to the "
+                  f"second copy")
+
+    if not stored_sha:
+        with conn.cursor() as cur:
+            cur.execute("SELECT metadata->>'pdf_sha256' AS s FROM deeds WHERE id = %s",
+                        (deed_id,))
+            r = cur.fetchone()
+            stored_sha = (r["s"] if isinstance(r, dict) else r[0]) if r else None
+    if not stored_sha:
+        return None
+
+    data = get_store().get(artifact_key(deed_id, stored_sha))
+    if data is not None and verify(data, stored_sha):
+        return data
+    return None
 
 
 def generate_and_store(conn, row) -> str:

@@ -185,12 +185,48 @@ def create_tables():
             "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS superseded_by INTEGER REFERENCES deeds(id)",
             "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS superseded_at TIMESTAMPTZ",
             "CREATE INDEX IF NOT EXISTS idx_deeds_superseded_by ON deeds(superseded_by)",
+            # RED-S2: RESTRICT, not CASCADE.
+            #
+            # §9 refuses to OVERWRITE a stored instrument, and the
+            # application enforces that carefully. The schema meanwhile
+            # handed DELETE a cascade: remove a deed row and its PDF and
+            # sha256 went with it, silently, in the same statement.
+            #
+            # The doctrine guarded one verb. A cleanup script — `DELETE
+            # FROM deeds WHERE created_at < ...`, the kind somebody
+            # writes on a Friday — would have taken every notarised
+            # instrument with it and left nothing to prove what had been
+            # there.
+            #
+            # RESTRICT makes that impossible: the delete fails while an
+            # artifact exists, and removing the artifact becomes a
+            # deliberate act rather than a side effect. Deletion is
+            # already SOFT everywhere in this product (status='deleted'),
+            # so nothing legitimate is blocked by this.
             """CREATE TABLE IF NOT EXISTS deed_pdfs (
-                deed_id INTEGER PRIMARY KEY REFERENCES deeds(id) ON DELETE CASCADE,
+                deed_id INTEGER PRIMARY KEY REFERENCES deeds(id) ON DELETE RESTRICT,
                 pdf_data BYTEA NOT NULL,
                 sha256 VARCHAR(64) NOT NULL,
                 generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )""",
+            # Existing databases were created with CASCADE, and a
+            # CREATE TABLE IF NOT EXISTS does not alter them. Rebuild the
+            # constraint by name, idempotently.
+            """DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM pg_constraint c
+                    JOIN pg_class t ON t.oid = c.conrelid
+                    WHERE t.relname = 'deed_pdfs'
+                      AND c.contype = 'f'
+                      AND c.confdeltype = 'c'
+                ) THEN
+                    ALTER TABLE deed_pdfs DROP CONSTRAINT deed_pdfs_deed_id_fkey;
+                    ALTER TABLE deed_pdfs
+                        ADD CONSTRAINT deed_pdfs_deed_id_fkey
+                        FOREIGN KEY (deed_id) REFERENCES deeds(id) ON DELETE RESTRICT;
+                END IF;
+            END $$;""",
             """CREATE TABLE IF NOT EXISTS deed_shares (
                 id SERIAL PRIMARY KEY,
                 deed_id INT NOT NULL,
