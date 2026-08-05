@@ -401,6 +401,10 @@
  ],
  [
   "POST",
+  "/deeds/{deed_id}/recording"
+ ],
+ [
+  "POST",
   "/deeds/{deed_id}/supersede"
  ],
  [
