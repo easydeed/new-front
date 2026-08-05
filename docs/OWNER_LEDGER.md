@@ -32,6 +32,42 @@ opens with a document staged from the payload), and the inbound rule that
 **external interpretations arrive as PROPOSALS, never facts** —
 `titlesense` joins the source enum on that footing.
 
+#### DX0 pre-inputs — relayed from the TitleSense contract work
+
+Recorded 2026-08-04. **Ledger only; nothing fires early.** These are
+design inputs for DX0 when it is called, not scope changes to anything
+in flight. Sequence unchanged: S3 → S4 → doctrine A/B → DX0.
+
+1. **The source enum needs SUB-SOURCE granularity.**
+   `titlesense.prelim_extraction` and `titlesense.titlepoint` are the
+   same *proposal colour* and a different *warrant* — one is text pulled
+   off a document, the other is a title-plant search. The basis string
+   recorded at decision time must name **whose conclusion the officer
+   accepted**, not merely that something external suggested it.
+
+2. **`ClientRequestKey` round-trips as the matter/escrow join.** Inbound
+   envelopes carry it; DX0's staging endpoint should expect it rather
+   than inventing its own correlation.
+
+3. **`openness_basis` may arrive as `conflict`, and that is a
+   FIRST-CLASS DISPLAY STATE.** Two sources disagreeing about whether an
+   encumbrance is open surfaces to the officer as a disagreement and is
+   **never auto-reconciled**. Picking a winner silently would be
+   auto-applying a legal conclusion under a data label.
+
+4. **H1 v1 arrives with leaf fields marked `pending: live_capture`.**
+   DX0 designs against **envelope semantics only** and must not invent
+   leaf mappers. A mapper written against fields that do not exist yet
+   is a guess that will read as a contract.
+
+**Note for whoever runs DX0:** items 1 and 3 land on the seam the two
+queued doctrine tickets are about (RED0 R3-1/R3-2 — a derived legal
+observation presented as a fact). Item 1 says the record must name whose
+conclusion was accepted; item 3 says a disagreement is shown, not
+resolved. Both point the same way as doctrine ticket A, and both arrive
+before the first partner payload rather than during it — which is the
+whole value of having them written down now.
+
 ### Deferred by decision — with the trigger that revives each
 
 Neither of these is blocked, unscoped or unfunded. Both are FINISHED
