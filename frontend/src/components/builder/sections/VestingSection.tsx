@@ -6,7 +6,7 @@ import { useAIAssist } from "@/contexts/AIAssistContext"
 import { AISuggestion, AIHint } from "../AISuggestion"
 import { getVestingSuggestion, type VestingSuggestion } from "@/lib/ai-helpers"
 import { Scale, ShieldCheck, X } from "lucide-react"
-import type { LegalChoiceRecord } from "@/types/builder"
+import type { LegalChoiceRecord, VestingProposal } from "@/types/builder"
 
 interface VestingSectionProps {
   value: string
@@ -18,6 +18,14 @@ interface VestingSectionProps {
   deedType: string
   grantee: string
   decision?: LegalChoiceRecord
+  /**
+   * DOCTRINE A / H1 §2.2 — the vesting characterization that arrived welded
+   * to the county record's or the prelim's owner string. It is HOW THE
+   * CURRENT OWNER HOLDS TITLE, not how the grantees will hold it; it is
+   * offered here because that is the question it bears on, and it is offered
+   * as a proposal because answering that question is the officer's job.
+   */
+  recordProposal?: VestingProposal
 }
 
 export const VESTING_OPTIONS = [
@@ -51,11 +59,12 @@ const VESTING_EXPLANATIONS: Record<string, string> = {
   "trustee": "Property held by trustee for trust beneficiaries",
 }
 
-export function VestingSection({ value, onChange, granteeCount, deedType, grantee, decision }: VestingSectionProps) {
+export function VestingSection({ value, onChange, granteeCount, deedType, grantee, decision, recordProposal }: VestingSectionProps) {
   const { enabled: aiEnabled } = useAIAssist()
   const [showCustom, setShowCustom] = useState(false)
   const [customValue, setCustomValue] = useState("")
   const [suggestionApplied, setSuggestionApplied] = useState(false)
+  const [recordProposalDismissed, setRecordProposalDismissed] = useState(false)
 
   // Get AI suggestion
   const suggestion = useMemo(() => {
@@ -88,6 +97,22 @@ export function VestingSection({ value, onChange, granteeCount, deedType, grante
       status: "confirmed",
       confirmedAt: new Date().toISOString(),
     })
+  }
+
+  // DOCTRINE A — accepting the RECORD's characterization. Same rule as every
+  // other legal choice: the acceptance is the instruction, recorded with the
+  // source that claimed it and the basis line the officer actually read.
+  // Nothing here pre-selects, pre-fills or defaults; a proposal the officer
+  // never touches leaves the vesting unset.
+  const handleAcceptRecordProposal = () => {
+    if (!recordProposal) return
+    onChange(recordProposal.value, {
+      source: recordProposal.source,
+      status: "confirmed",
+      confirmedAt: new Date().toISOString(),
+      basis: recordProposal.basis,
+    })
+    setRecordProposalDismissed(true)
   }
 
   // Accepting the proposal records it as the authorized instruction, with
@@ -127,6 +152,43 @@ export function VestingSection({ value, onChange, granteeCount, deedType, grante
 
   return (
     <div className="space-y-4">
+      {/* DOCTRINE A / H1 §2.2 — the characterization that arrived attached to
+          the owner's name. Violet, dashed, unapplied: the same treatment the
+          AI proposal gets, because it is the same kind of thing — somebody
+          else's reading of a legal question that is the officer's to answer.
+          The heading says CURRENT because the commonest way to get this wrong
+          is to carry yesterday's vesting into tomorrow's deed. */}
+      {recordProposal && !value && !recordProposalDismissed && (
+        <div className="p-4 rounded-lg border-2 border-dashed border-violet-300 bg-violet-50">
+          <div className="flex items-center justify-between mb-1">
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-700 uppercase tracking-wide">
+              <Scale className="w-3.5 h-3.5" />
+              How title is held TODAY — proposed, not applied
+            </span>
+          </div>
+          <p className="text-sm font-semibold text-gray-900">&quot;{recordProposal.value}&quot;</p>
+          <p className="text-sm text-gray-700 mt-1">{recordProposal.basis}</p>
+          <div className="flex items-center gap-2 mt-3">
+            <button
+              type="button"
+              onClick={handleAcceptRecordProposal}
+              className="inline-flex items-center gap-1 bg-violet-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-violet-700"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              Use this vesting
+            </button>
+            <button
+              type="button"
+              onClick={() => setRecordProposalDismissed(true)}
+              className="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 px-2 py-1.5"
+            >
+              <X className="w-3.5 h-3.5" />
+              Dismiss — I&apos;ll choose manually
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* PROPOSED vesting — visually distinct from an applied value.
           Nothing is written to the deed until the officer accepts. */}
       {suggestion && !value && !suggestionApplied && (
@@ -160,8 +222,11 @@ export function VestingSection({ value, onChange, granteeCount, deedType, grante
         </div>
       )}
 
-      {/* Recorded instruction indicator */}
-      {decision?.source === "ai_suggested" && value && (
+      {/* Recorded instruction indicator. Any accepted PROPOSAL shows it —
+          not just the AI's. A vesting taken from the county record or the
+          prelim is equally somebody else's reading that the officer adopted,
+          and the record must say she adopted it. */}
+      {decision && decision.source !== "user" && value && (
         <div className="flex items-center gap-2 text-sm text-violet-700 bg-violet-50 border border-violet-200 px-3 py-2 rounded-lg">
           <ShieldCheck className="w-4 h-4" />
           Vesting accepted by you

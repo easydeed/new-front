@@ -201,7 +201,36 @@ def import_prelim(pdf_bytes: bytes) -> Dict[str, Any]:
 
     Raises PrelimUnreadable when there is no text layer — the caller
     surfaces that verbatim rather than rendering an empty result.
+
+    ═══ DOCTRINE A — FOUR OF THE FIVE FIELDS ARE FACTS ═══
+
+    `vested_owner` is not. What follows "vested in:" on a real report is a
+    NAME PLUS A LEGAL CHARACTERIZATION — "JOHN A. DOE AND JANE B. DOE,
+    HUSBAND AND WIFE AS JOINT TENANTS" — and this function used to put the
+    whole string in `candidates`, which is a fact position, as a single
+    amber value. H1 §2.2 forbids exactly that on the wire; RED0 found the
+    same defect from the inside (R3-2). The taxonomy was drawn by field
+    NAME rather than by CONTENT, and the one field whose content is mixed
+    slipped through on its label.
+
+    So the composite is split by `services.vesting_split`, the same module
+    the SiteX path uses, and lands in three different places:
+
+      candidates  the PARTIES, as a fact — amber, confirmable, unchanged
+                  in every other respect
+      proposals   the CHARACTERIZATION — violet, NOT confirmable by the
+                  field gate, reaching the deed only through an explicit
+                  acceptance that is recorded as a legal choice
+      verbatim    the composite as printed, for audit. A bare string, so
+                  nothing that walks `candidates` can pick it up.
+
+    A composite we cannot split confidently offers NEITHER half and lands
+    in `needs_review` instead: an honest "we could not separate this"
+    beats a confident wrong answer, and it is the same refusal posture as
+    the scanned-prelim path above.
     """
+    from services.vesting_split import as_candidates as split_owner
+
     text = read_text_or_refuse(pdf_bytes)
     template = pick_template(text)
     fields = extract_fields(text, template)
@@ -216,16 +245,49 @@ def import_prelim(pdf_bytes: bytes) -> Dict[str, Any]:
             "layout is one we have not seen. Nothing was extracted."
         )
 
+    candidates: List[Dict[str, Any]] = []
+    proposals: List[Dict[str, Any]] = []
+    verbatim: Dict[str, Any] = {}
+    needs_review: List[Dict[str, Any]] = []
+
+    for f in fields:
+        if f.key != "vested_owner":
+            candidates.append({"key": f.key, "label": f.label, "value": f.value,
+                               "source": "prelim", "status": "candidate"})
+            continue
+
+        split = split_owner(f.value, "prelim")
+        verbatim["vested_owner"] = {
+            "text": split["verbatim"],
+            "mixed_content": split["mixed_content"],
+        }
+        owner = split.get("owner")
+        if owner:
+            candidates.append({"key": "vested_owner", "label": f.label,
+                               **owner})
+        proposal = split.get("vesting_proposal")
+        if proposal:
+            proposals.append({"key": "vesting", "label": "Vesting",
+                              **proposal})
+        if split.get("needs_review"):
+            needs_review.append({"key": "vested_owner", "label": f.label,
+                                 "message": split["needs_review"],
+                                 "verbatim": split["verbatim"]})
+
     return {
         "underwriter": template.underwriter,
-        # Every value is a CANDIDATE. The gate is untouched: these arrive
-        # amber and the officer confirms them exactly as she confirms
-        # county-record data.
-        "candidates": [
-            {"key": f.key, "label": f.label, "value": f.value,
-             "source": "prelim", "status": "candidate"}
-            for f in fields
-        ],
+        # Every value here is a FACT and a CANDIDATE. The gate is
+        # untouched: these arrive amber and the officer confirms them
+        # exactly as she confirms county-record data.
+        "candidates": candidates,
+        # And every value here is an INTERPRETATION. 'proposed', not
+        # 'candidate' — a legal choice is never auto-applied and never
+        # sits in candidate state inside the deed.
+        "proposals": proposals,
+        # Audit only. Never rendered as a value, never confirmable.
+        "verbatim": verbatim,
+        # Read, but not separable. Not the same statement as "absent".
+        "needs_review": needs_review,
         "not_found": [
             FIELD_LABELS[k] for k in template.patterns
             if k not in {f.key for f in fields}

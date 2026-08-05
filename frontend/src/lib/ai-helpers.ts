@@ -1,64 +1,32 @@
-import type { DeedBuilderState, PropertyData, DTTData } from "@/types/builder"
 
-// ─────────────────────────────────────────────────────────────────
-// CONTEXT DETECTION
-// ─────────────────────────────────────────────────────────────────
-
-export interface AIContext {
-  ownershipType: "single" | "married" | "trust" | "entity" | "multiple" | "unknown"
-  flags: string[]
-}
-
-export function analyzePropertyContext(property: PropertyData | null): AIContext {
-  const context: AIContext = { ownershipType: "unknown", flags: [] }
-  
-  if (!property?.owner) return context
-  
-  const owner = property.owner.toUpperCase()
-
-  // Detect trust ownership
-  if (owner.includes("TRUST") || owner.includes("TRUSTEE") || owner.includes("TR ")) {
-    context.ownershipType = "trust"
-    context.flags.push("Property is currently held in a trust")
-    return context
-  }
-
-  // Detect entity ownership
-  if (
-    owner.includes(" LLC") ||
-    owner.includes(" INC") ||
-    owner.includes(" CORP") ||
-    owner.includes(" LP") ||
-    owner.includes(" LLP") ||
-    owner.includes("COMPANY")
-  ) {
-    context.ownershipType = "entity"
-    context.flags.push("Property owned by business entity")
-    return context
-  }
-
-  // Detect married couple patterns
-  if (
-    owner.includes("HUSBAND AND WIFE") ||
-    owner.includes("WIFE AND HUSBAND") ||
-    owner.includes("MARRIED") ||
-    owner.includes("H/W") ||
-    owner.includes("H&W")
-  ) {
-    context.ownershipType = "married"
-    return context
-  }
-
-  // Detect multiple owners (has "AND" but not obviously married)
-  if (owner.includes(" AND ") || owner.includes(" & ")) {
-    context.ownershipType = "multiple"
-    return context
-  }
-
-  // Single owner
-  context.ownershipType = "single"
-  return context
-}
+/**
+ * DOCTRINE A — `AIContext` and `analyzePropertyContext` were DELETED here.
+ *
+ * What it did: read `property.owner`, matched "HUSBAND AND WIFE" /
+ * "MARRIED" / "TRUSTEE" / " LLC" against it, and returned an
+ * `ownershipType` of "married" | "trust" | "entity" | "multiple" |
+ * "single" — a legal characterization of how title is held, derived by
+ * substring search over a name field.
+ *
+ * That is the same defect as `suggestVesting` in services/propertyPrefill,
+ * and the same defect RED0 named as R3-2: a taxonomy drawn by field NAME,
+ * reaching conclusions about CONTENT. Nothing imported it, which is the
+ * only reason no deed carries a conclusion it reached. A dormant code path
+ * is still a code path.
+ *
+ * It was also, as of the split, about to become quietly wrong: the vesting
+ * words it searched for no longer live in `property.owner` — they live in
+ * `property.ownerSplit.vestingProposal`, unaccepted. Every ownership it
+ * classified as "married" would have started coming back "multiple", and
+ * nothing would have said so. Deleting it beats fixing it: the honest
+ * source for how title is held is the record's own characterization,
+ * carried as a proposal the officer accepts, not an inference from
+ * somebody's surname.
+ *
+ * `getVestingSuggestion` below is a different thing and stays: it reads
+ * the GRANTEE the officer typed, proposes in violet, and is applied only
+ * by acceptance (§1, pinned in vestingDecision.test.ts).
+ */
 
 // ─────────────────────────────────────────────────────────────────
 // VESTING SUGGESTIONS

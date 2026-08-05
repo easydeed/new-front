@@ -128,7 +128,10 @@ def test_the_five_fields_come_out_of_a_real_shaped_prelim():
     result = import_prelim(_text_pdf(PRELIM_TEXT))
     by_key = {c["key"]: c["value"] for c in result["candidates"]}
     assert by_key["apn"] == "4291-013-027"
-    assert "MARIA L. TORRES" in by_key["vested_owner"]
+    # DOCTRINE A: the NAME, and only the name. `in` was the assertion this
+    # test shipped with, and it passed just as happily on the composite —
+    # which is how the defect survived a green suite.
+    assert by_key["vested_owner"] == "MARIA L. TORRES"
     assert "LOT 7 OF TRACT NO. 9021" in by_key["legal_description"]
     assert by_key["county"] == "Los Angeles"
     assert "1420 OCEAN AVE" in by_key["property_address"]
@@ -154,6 +157,125 @@ def test_fields_we_could_not_find_are_named():
     result = import_prelim(_text_pdf(text))
     assert "APN" in result["not_found"]
     assert not any(c["key"] == "apn" for c in result["candidates"])
+
+
+# ── Doctrine A: the one field whose content is mixed ─────────────────
+
+def test_the_characterization_does_not_ride_in_on_the_owner_name():
+    """H1 §2.2, from the inside. The prelim says
+
+        MARIA L. TORRES, a married woman as her sole and separate property
+
+    which is a fact welded to a legal conclusion. The conclusion must not
+    be sitting in `candidates` wearing the amber affordance built for
+    transcriptions."""
+    from services.vesting_split import MARKERS
+    import re
+
+    marker_rx = re.compile(
+        r"\b(?:" + "|".join(f"(?:{m})" for m in MARKERS) + r")\b", re.I)
+
+    result = import_prelim(_text_pdf(PRELIM_TEXT))
+    for c in result["candidates"]:
+        assert not marker_rx.search(c["value"]), (
+            f"{c['key']} carries a vesting characterization into a fact "
+            f"position: {c['value']!r}")
+
+
+def test_the_characterization_is_offered_as_a_proposal_instead():
+    result = import_prelim(_text_pdf(PRELIM_TEXT))
+    vesting = [p for p in result["proposals"] if p["key"] == "vesting"]
+    assert len(vesting) == 1
+    p = vesting[0]
+    assert p["value"] == "a married woman as her sole and separate property"
+    # 'proposed', NOT 'candidate' — the field gate must not be able to
+    # sweep a legal choice up with the APNs.
+    assert p["status"] == "proposed"
+    assert p["source"] == "prelim"
+    assert "preliminary title report" in p["basis"]
+    assert "CURRENT owner" in p["basis"], (
+        "the officer must be told this is how title is held TODAY, not how "
+        "the grantees will hold it")
+
+
+def test_the_composite_survives_verbatim_but_not_as_a_value():
+    result = import_prelim(_text_pdf(PRELIM_TEXT))
+    v = result["verbatim"]["vested_owner"]
+    assert v["text"] == (
+        "MARIA L. TORRES, a married woman as her sole and separate property")
+    assert v["mixed_content"] is True
+    # It is not in candidates, and it is not shaped like one.
+    assert v["text"] not in [c["value"] for c in result["candidates"]]
+    assert "status" not in v
+
+
+def test_a_bare_owner_name_is_left_alone():
+    """The common case must not be disturbed by the split: a name with no
+    characterization attached is a fact, whole, exactly as before."""
+    text = PRELIM_TEXT.replace(
+        "MARIA L. TORRES, a married woman as her sole and separate property",
+        "MARIA L. TORRES")
+    result = import_prelim(_text_pdf(text))
+    by_key = {c["key"]: c["value"] for c in result["candidates"]}
+    assert by_key["vested_owner"] == "MARIA L. TORRES"
+    assert result["proposals"] == []
+    assert result["verbatim"]["vested_owner"]["mixed_content"] is False
+    assert result["needs_review"] == []
+
+
+def test_an_unsplittable_vesting_line_offers_neither_half():
+    """Two owners with their own characterizations. Cutting at the first
+    marker would put the second owner inside the characterization and drop
+    a real party out of the fact position, so we do not cut at all."""
+    text = PRELIM_TEXT.replace(
+        "MARIA L. TORRES, a married woman as her sole and separate property",
+        "JOHN DOE, an unmarried man and MARY ROE, a single woman, "
+        "as tenants in common")
+    result = import_prelim(_text_pdf(text))
+
+    assert not any(c["key"] == "vested_owner" for c in result["candidates"]), \
+        "a name we could not isolate is not a fact"
+    assert result["proposals"] == [], \
+        "and a characterization we could not isolate is not a proposal"
+
+    review = result["needs_review"]
+    assert len(review) == 1
+    assert review[0]["key"] == "vested_owner"
+    assert "MARY ROE" in review[0]["verbatim"], "the original survives whole"
+    assert "yourself" in review[0]["message"]
+
+    # And this is NOT the same statement as "the field was absent".
+    assert "Vested owner" not in result["not_found"]
+
+
+def test_both_import_paths_use_the_same_split():
+    """T-6's parser and the SiteX path converge on ONE module. Two
+    implementations of this rule would drift, and the half that drifted
+    would go on landing composites in fact positions while the other
+    reported clean."""
+    from pathlib import Path
+    from tests.source_text import code_only
+
+    py = code_only(Path(__file__).resolve().parents[1] / "services/prelim_import.py")
+    assert "vesting_split" in py
+
+    ts = code_only((Path(__file__).resolve().parents[2] / "frontend" / "src" /
+                    "lib" / "sitexProperty.ts").read_text(encoding="utf-8"))
+    assert "ownerCandidates" in ts, \
+        "the SiteX path must go through the shared split, not its own"
+
+    # And the mapping is not ALSO done inline in the component — a second
+    # copy in the UI would be a second rule, and the one in the UI is the
+    # one nobody tests.
+    section = code_only((Path(__file__).resolve().parents[2] / "frontend" /
+                         "src" / "components" / "builder" / "sections" /
+                         "PropertySection.tsx").read_text(encoding="utf-8"))
+    assert "sitexProperty" in section
+    assert "mapSiteXResponse = " not in section, (
+        "the component defines its own county-record mapping again — that "
+        "mapping lives in lib/sitexProperty.ts precisely so the 'can a "
+        "characterization reach a fact position' question can be asked "
+        "without rendering a component, which is why nobody asked it")
 
 
 # ── Everything arrives amber, through the untouched gate ─────────────

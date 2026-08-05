@@ -80,14 +80,55 @@ def test_the_labels_match():
 
 
 def test_the_mixed_content_slot_is_flagged_and_cited():
-    """Row 3 is the one that does not map, and the map must say so
+    """Row 3 is the one whose content is mixed, and the map must say so
     against the section that legislates it — not in its own words."""
     text = MAP.read_text(encoding="utf-8")
     assert "vested_owner" in text
     assert "mixed_content" in text
     assert "2.2" in text, "the mixed-content rule must cite H1 §2.2"
-    # And it must be honest that the product currently violates it.
-    assert "forbids" in text or "does the thing the contract" in text
+
+
+def test_the_map_records_row_3_as_split_and_names_the_code_that_splits_it():
+    """Doctrine A resolved row 3. The map's job is now to describe the
+    resolution accurately enough that §10.1's mapping can be written
+    against it — three slots, not one, and a named module per side."""
+    text = MAP.read_text(encoding="utf-8")
+    section = text[text.index("## 3."):text.index("## 4.")]
+
+    for slot in ("vested_owner.parties",
+                 "vested_owner.vesting_characterization",
+                 "vested_owner.verbatim"):
+        assert slot in section, slot
+
+    # The modules, by path, on both sides of the language boundary.
+    assert "backend/services/vesting_split.py" in section
+    assert "frontend/src/lib/vestingSplit.ts" in section
+    assert "vesting_cases.json" in section, \
+        "the shared corpus is what stops the two from drifting"
+
+    # And the two statements that are easy to lose and expensive to lose:
+    # the refusal, and which question the characterization answers.
+    assert "needs_review" in section
+    assert "MARY ROE" in section, "the unsplittable case is named, not implied"
+    assert "TODAY" in section
+
+
+def test_the_split_slots_are_what_the_code_actually_produces():
+    """The map is checked against the parser in §1; row 3's three slots
+    must be checked too, or the one row that changed is the one row
+    nobody is verifying."""
+    from services.vesting_split import as_candidates
+
+    payload = as_candidates(
+        "JOHN A. DOE AND JANE B. DOE, HUSBAND AND WIFE AS JOINT TENANTS",
+        "prelim")
+    assert payload["owner"]["status"] == "candidate"
+    assert payload["vesting_proposal"]["status"] == "proposed"
+    assert payload["mixed_content"] is True
+    assert payload["verbatim"]
+
+    text = MAP.read_text(encoding="utf-8")
+    assert "'proposed'" in text or "`proposed`" in text or "proposed" in text
 
 
 def test_the_map_names_what_is_NOT_extracted():

@@ -132,6 +132,12 @@ RAW_TEXT_ALLOWED = {
     "test_red_h1_requirements.py": "requirements.txt is not Python; the encoding IS the subject",
     "test_source_text_helper.py": "this file tests the helper itself",
     "test_share_pdf_source.py": "reads SQL/schema from the database, not source text",
+    "test_prelim_field_map.py": (
+        "reads Markdown, not Python. It trips this pin because the "
+        "Markdown it checks NAMES a .py file — the field map has to cite "
+        "the module that performs the split, so the string '.py' appears "
+        "in an assertion about documentation. Stripping comments from a "
+        "doc would defeat the point of checking the doc."),
 }
 
 
