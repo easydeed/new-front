@@ -17,6 +17,90 @@ jobs:
         JWT_SECRET_KEY: ci-test-secret
       run: pytest tests/ -q
 
+  # RED-S4, first commit: the proof harnesses stop being merge-day
+  # ceremonies.
+  #
+  # S1, S2 and S3 each shipped with a runnable proof, and none of them ran
+  # anywhere but on the author's machine when the author remembered. That
+  # is not a gate; it is a habit.
+  #
+  # The argument is not theoretical. S1's concurrency proof caught a bug
+  # IN S1 — psycopg2's getconn() raises rather than blocks when the pool
+  # is exhausted, so a burst wider than DB_POOL_MAX became hard 500s — and
+  # it surfaced only because one run's burst happened to be wider than the
+  # last. Every future catch of that kind was, until this job existed, a
+  # function of luck and diligence. CI exists to replace exactly that.
+  #
+  # A Postgres service container is what these need and what the rest of
+  # the suite has been skipping for: dozens of tests carry
+  # `skipif(not DATABASE_URL)` and have therefore never run in CI either.
+  # They do now.
+  proof-harnesses:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: deedpro_ci
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+          - 5432:5432
+    env:
+      DATABASE_URL: postgresql://postgres:ci@localhost:5432/deedpro_ci
+      JWT_SECRET_KEY: ci-test-secret
+      ARTIFACT_STORE: filesystem
+      ARTIFACT_FS_ROOT: /tmp/ci-artifacts
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    - name: Install backend dependencies
+      run: pip install -r backend/requirements.txt
+
+    # pg_dump/pg_restore are REAL tools in the S2 drill, not stand-ins, so
+    # the client major must match the server major — an older pg_dump
+    # refuses a newer server outright ("server version mismatch"), which
+    # would fail the drill for a reason that has nothing to do with the
+    # thing it proves.
+    - name: Install postgresql-client 16 (matching the service)
+      run: |
+        sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+        curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/pgdg.gpg
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq postgresql-client-16
+        pg_dump --version
+
+    # The DB-backed tests, which the no-Postgres job silently skips.
+    - name: Backend suite WITH a database
+      working-directory: backend
+      run: pytest tests/ -q
+
+    - name: S1 — concurrency proof (pool, induced failure, burst)
+      working-directory: backend
+      run: python scripts/s1_concurrency_proof.py
+
+    - name: S2 — restore drill (dump, restore, hash-verify, second copy)
+      working-directory: backend
+      run: python scripts/s2_restore_drill.py
+
+    - name: S3 — the Thursday walkthrough
+      working-directory: backend
+      run: python scripts/s3_thursday_walkthrough.py
+
+    - name: Six-flow baseline
+      working-directory: backend
+      run: python scripts/six_flow_baseline.py verify
+
+    - name: API baseline
+      working-directory: backend
+      run: python scripts/api_baseline.py verify
+
   # RED-H1.1: the frontend suite now RUNS. It did not before.
   #
   # 486 tests across 34 suites existed and no workflow invoked jest. Every
