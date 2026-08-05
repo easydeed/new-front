@@ -9,7 +9,7 @@ import os
 
 import psycopg2
 import stripe
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional
 
@@ -205,8 +205,34 @@ async def register_user(user: UserRegister = Body(...)):
         raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
 @router.post("/users/login")
-async def login_user(credentials: UserLogin = Body(...)):
-    """Authenticate user and return JWT token"""
+async def login_user(credentials: UserLogin = Body(...), request: Request = None):
+    """Authenticate user and return an access + refresh pair.
+
+    RED-S3 added two things this handler never had:
+
+    LOCKOUT. There was NO throttle of any kind on password guessing —
+    unlimited attempts against bcrypt at whatever rate the host would
+    serve. Now: repeated failures for one email lock it briefly, and the
+    lock is announced rather than disguised as a wrong password, because
+    an officer who has genuinely forgotten needs to know why the right
+    password stopped working.
+
+    A REFRESH TOKEN. The 30-minute access token used to be the whole
+    session, so "logged out mid-file" was the normal experience. The
+    access token stays 30 minutes — short is the point — and the refresh
+    token is what lets the officer come back to the deed she was
+    typing.
+    """
+    from services.login_guard import (check_lockout, record_attempt)
+    _ip = None
+    try:
+        _ip = request.client.host if request and request.client else None
+        _fwd = request.headers.get("x-forwarded-for") if request else None
+        if _fwd:
+            _ip = _fwd.split(",")[0].strip()
+    except Exception:
+        pass
+    check_lockout(credentials.email.lower())
     # Poisoned-conn hotfix: bind before try — if get_db_connection raises,
     # the except block's rollback used to hit an UnboundLocalError.
     conn = None
@@ -223,6 +249,10 @@ async def login_user(credentials: UserLogin = Body(...)):
             user = cur.fetchone()
 
         if not user:
+            # Recorded too: otherwise the lockout counts only attempts
+            # against addresses that exist, which is both weaker and a
+            # user-enumeration signal in the timing.
+            record_attempt(credentials.email.lower(), _ip, succeeded=False)
             raise HTTPException(status_code=401, detail="Invalid email or password")
 
         # Phase 7.5 FIX: Handle both RealDictCursor (dict) and regular cursor (tuple)
@@ -240,12 +270,15 @@ async def login_user(credentials: UserLogin = Body(...)):
             raise HTTPException(status_code=401, detail="Account is deactivated")
 
         if not verify_password(credentials.password, password_hash):
+            record_attempt(credentials.email.lower(), _ip, succeeded=False)
             raise HTTPException(status_code=401, detail="Invalid email or password")
 
         # Update last login
         with conn.cursor() as cur:
             cur.execute("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = %s", (user_id,))
             conn.commit()
+
+        record_attempt(credentials.email.lower(), _ip, succeeded=True)
 
         # Create access token (AdminFix: include role for admin access)
         access_token = create_access_token(
@@ -255,9 +288,12 @@ async def login_user(credentials: UserLogin = Body(...)):
                 "role": role or "user"  # Default to "user" if role is None
             }
         )
+        from auth import create_refresh_token
+        refresh_token, _, _ = create_refresh_token(user_id)
 
         return {
             "access_token": access_token,
+            "refresh_token": refresh_token,
             "token_type": "bearer",
             "user": {
                 "id": user_id,

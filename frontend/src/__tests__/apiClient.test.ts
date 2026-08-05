@@ -23,6 +23,11 @@ jest.mock('sonner', () => ({
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { apiFetch, SessionExpiredError, navigation } = require('../lib/apiClient');
+// require, not import: the sonner mock factory closes over `toastError`,
+// which is declared below the imports — a static import of session pulls
+// sonner in before that binding exists.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { discardSnapshot, peekSnapshot, registerSnapshotProvider } = require('../lib/session');
 
 let redirectedTo = '';
 
@@ -72,17 +77,87 @@ describe('X1 — apiFetch loud failures', () => {
     expect(msg).toContain('db exploded');
   });
 
-  it('401 is the session-expired state: toast, cleared auth, redirect, thrown error', async () => {
+  it('401 with NO refresh token is still the session-expired state', async () => {
+    /**
+     * RED-S3 changed the copy, and the change is the point. It used to
+     * say "your session has expired — please sign in again", which is
+     * true and useless: it tells an officer mid-deed that her work is
+     * gone. It now promises the resume, because the resume now exists.
+     *
+     * Everything else this pinned still holds: auth cleared, redirect
+     * carrying the return path, SessionExpiredError thrown so callers
+     * stop.
+     */
     global.fetch = jest.fn(async () => mockResponse(401, { detail: 'Could not validate credentials' })) as any;
 
     await expect(apiFetch('/shared-deeds', { method: 'POST' })).rejects.toBeInstanceOf(
       SessionExpiredError
     );
     expect(toastError).toHaveBeenCalled();
-    expect(String(toastError.mock.calls[0][0])).toContain('session has expired');
+    expect(String(toastError.mock.calls[0][0])).toMatch(/session expired/i);
+    expect(String(toastError.mock.calls[0][0])).toMatch(/back exactly where you were/i);
     expect(localStorage.getItem('access_token')).toBeNull();
     expect(redirectedTo).toContain('/login?expired=1');
     expect(redirectedTo).toContain(encodeURIComponent('/past-deeds'));
+  });
+
+  it('RED-S3 — a 401 with a live refresh token is INVISIBLE to the officer', async () => {
+    /**
+     * THE Thursday, at the client. She presses a button at 4:55, the
+     * access token is stale, and she must never find out: refresh,
+     * retry, succeed. No toast, no redirect, no lost work.
+     */
+    localStorage.setItem('refresh_token', 'good-refresh');
+    let call = 0;
+    global.fetch = jest.fn(async (url: any) => {
+      const u = String(url);
+      if (u.includes('/users/refresh-token')) {
+        return mockResponse(200, { access_token: 'fresh', refresh_token: 'rotated' });
+      }
+      call += 1;
+      return call === 1 ? mockResponse(401) : mockResponse(200, { ok: true });
+    }) as any;
+
+    const res = await apiFetch('/deeds');
+    expect(res.status).toBe(200);
+    expect(redirectedTo).toBe('');
+    expect(toastError).not.toHaveBeenCalled();
+    expect(localStorage.getItem('access_token')).toBe('fresh');
+    expect(localStorage.getItem('refresh_token')).toBe('rotated');
+  });
+
+  it('RED-S3 — her work is PRESERVED before the redirect, not after', async () => {
+    /**
+     * Order is the whole thing. Once the route changes, the React state
+     * holding her deed is gone and no later step can recover it. So the
+     * snapshot must be taken while the page still exists.
+     */
+    registerSnapshotProvider(() => ({ route: '/deed-builder', state: { apn: '4290-012-034' } }));
+    global.fetch = jest.fn(async () => mockResponse(401)) as any;
+
+    await expect(apiFetch('/deeds')).rejects.toBeInstanceOf(SessionExpiredError);
+
+    const snap = peekSnapshot();
+    expect(snap).not.toBeNull();
+    expect((snap!.state as any).apn).toBe('4290-012-034');
+    registerSnapshotProvider(null);
+    discardSnapshot();
+  });
+
+  it('RED-S3 — a dead refresh token does not loop', async () => {
+    localStorage.setItem('refresh_token', 'dead');
+    let refreshCalls = 0;
+    global.fetch = jest.fn(async (url: any) => {
+      if (String(url).includes('/users/refresh-token')) {
+        refreshCalls += 1;
+        return mockResponse(401, { detail: 'This session has ended.' });
+      }
+      return mockResponse(401);
+    }) as any;
+
+    await expect(apiFetch('/deeds')).rejects.toBeInstanceOf(SessionExpiredError);
+    expect(refreshCalls).toBe(1);
+    expect(redirectedTo).toContain('/login?expired=1');
   });
 
   it('silent mutes generic failures but NEVER a 401', async () => {

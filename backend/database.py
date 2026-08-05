@@ -408,6 +408,47 @@ def create_tables():
             "CREATE INDEX IF NOT EXISTS idx_email_log_status ON email_log(status, created_at DESC)",
             "CREATE INDEX IF NOT EXISTS idx_email_log_template ON email_log(template, created_at DESC)",
             "CREATE INDEX IF NOT EXISTS idx_email_log_recipient ON email_log(LOWER(recipient))",
+            # RED-S3 — sessions that can be ended.
+            #
+            # Before this, a leaked token was valid for up to 30 minutes
+            # and there was no mechanism to kill it: no jti, so no name to
+            # revoke, so "logout" was a localStorage delete while the
+            # token kept working.
+            """CREATE TABLE IF NOT EXISTS revoked_tokens (
+                jti VARCHAR(64) PRIMARY KEY,
+                user_id INTEGER,
+                reason VARCHAR(32),
+                revoked_at TIMESTAMPTZ DEFAULT now()
+            )""",
+            "CREATE INDEX IF NOT EXISTS idx_revoked_user ON revoked_tokens(user_id)",
+            # `family` ties every rotation of one login together, so a
+            # replayed (already-rotated) token can take the whole family
+            # down rather than leaving a thief and an officer sharing a
+            # session nobody can tell apart.
+            """CREATE TABLE IF NOT EXISTS refresh_tokens (
+                jti VARCHAR(64) PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                family VARCHAR(64) NOT NULL,
+                issued_at TIMESTAMPTZ DEFAULT now(),
+                expires_at TIMESTAMPTZ NOT NULL,
+                used_at TIMESTAMPTZ,
+                replaced_by VARCHAR(64),
+                revoked_at TIMESTAMPTZ,
+                revoke_reason VARCHAR(32)
+            )""",
+            "CREATE INDEX IF NOT EXISTS idx_refresh_family ON refresh_tokens(family)",
+            "CREATE INDEX IF NOT EXISTS idx_refresh_user ON refresh_tokens(user_id)",
+            # Login attempts, for lockout. There was NO throttle of any
+            # kind on password guessing — unlimited attempts against
+            # bcrypt at whatever rate the host would serve.
+            """CREATE TABLE IF NOT EXISTS login_attempts (
+                id BIGSERIAL PRIMARY KEY,
+                email TEXT NOT NULL,
+                ip TEXT,
+                succeeded BOOLEAN NOT NULL,
+                attempted_at TIMESTAMPTZ DEFAULT now()
+            )""",
+            "CREATE INDEX IF NOT EXISTS idx_login_attempts_email ON login_attempts(LOWER(email), attempted_at DESC)",
             # RED-H1.3 — the AI exchange log.
             #
             # Nothing recorded what the assistant told an escrow officer.

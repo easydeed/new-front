@@ -5,6 +5,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 import os
+import uuid
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -15,6 +16,26 @@ if not SECRET_KEY:
     raise RuntimeError("JWT_SECRET_KEY environment variable must be set!")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+# RED-S3. The 30-minute access token stays SHORT on purpose — a leaked
+# one should stop working quickly. What was missing is everything around
+# it:
+#
+#   - no refresh, so 30 minutes meant "logged out mid-file", which is how
+#     an escrow officer loses a deed at 4:40 on a Thursday;
+#   - no `jti`, so no token could ever be identified;
+#   - and therefore NO REVOCATION. A leaked token was valid for up to 30
+#     minutes and there was no mechanism on earth to kill it. "Logout"
+#     was a localStorage delete — the token itself kept working.
+#
+# A refresh token lets the short access token stay short. Rotation on
+# every use means a stolen refresh token is usable at most once, and the
+# theft is DETECTABLE: when the legitimate holder presents the token that
+# was already rotated, that is a replay, and the whole family dies.
+REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "14"))
+
+TOKEN_TYPE_ACCESS = "access"
+TOKEN_TYPE_REFRESH = "refresh"
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -31,16 +52,111 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    """Create a JWT access token"""
+    """Create a JWT access token.
+
+    RED-S3: every token now carries a `jti`. Without one there is no name
+    to revoke, which is why "logout" used to be a localStorage delete
+    while the token itself kept working until it expired.
+    """
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+
+    to_encode.update({
+        "exp": expire,
+        "jti": to_encode.get("jti") or uuid.uuid4().hex,
+        "typ": TOKEN_TYPE_ACCESS,
+    })
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def create_refresh_token(user_id, family: Optional[str] = None) -> tuple:
+    """Issue a refresh token and record it. Returns (token, jti, family).
+
+    `family` ties every rotation of one login together. Rotation issues a
+    new token and retires the old one; if a RETIRED token is ever
+    presented again, that is a replay — the legitimate holder and a thief
+    both have it — and the correct response is to kill the whole family
+    rather than guess which one is which.
+    """
+    jti = uuid.uuid4().hex
+    family = family or uuid.uuid4().hex
+    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    token = jwt.encode(
+        {"sub": str(user_id), "jti": jti, "fam": family,
+         "typ": TOKEN_TYPE_REFRESH, "exp": expire},
+        SECRET_KEY, algorithm=ALGORITHM)
+    _record_refresh(jti, int(user_id), family, expire)
+    return token, jti, family
+
+
+def _record_refresh(jti, user_id, family, expires_at):
+    import db
+    try:
+        with db.conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO refresh_tokens (jti, user_id, family, expires_at)
+                VALUES (%s, %s, %s, %s) ON CONFLICT (jti) DO NOTHING
+            """, (jti, user_id, family, expires_at))
+            db.conn.commit()
+    except Exception as e:
+        try:
+            db.conn.rollback()
+        except Exception:
+            pass
+        # A refresh token we cannot record is one we cannot revoke, which
+        # is the whole point of the ticket. Refuse rather than hand out a
+        # credential outside the system that governs it.
+        raise HTTPException(status_code=500,
+                            detail="Could not establish the session") from e
+
+
+def revoke_jti(jti: str, user_id: Optional[int] = None, reason: str = "logout"):
+    """Kill one token by name."""
+    import db
+    with db.conn.cursor() as cur:
+        cur.execute("""
+            INSERT INTO revoked_tokens (jti, user_id, reason)
+            VALUES (%s, %s, %s) ON CONFLICT (jti) DO NOTHING
+        """, (jti, user_id, reason))
+        db.conn.commit()
+
+
+def revoke_refresh_family(family: str, reason: str = "replay"):
+    """Kill every refresh token descended from one login.
+
+    Used when a retired token is replayed. Both the officer and whoever
+    took the token lose the session — which is right: we cannot tell them
+    apart, and the safe assumption when a credential is being used twice
+    is that one of the two is not the officer.
+    """
+    import db
+    with db.conn.cursor() as cur:
+        cur.execute("""
+            UPDATE refresh_tokens SET revoked_at = NOW(), revoke_reason = %s
+            WHERE family = %s AND revoked_at IS NULL
+        """, (reason, family))
+        cur.execute("""
+            INSERT INTO revoked_tokens (jti, user_id, reason)
+            SELECT jti, user_id, %s FROM refresh_tokens WHERE family = %s
+            ON CONFLICT (jti) DO NOTHING
+        """, (reason, family))
+        db.conn.commit()
+
+
+def is_revoked(jti: str) -> bool:
+    if not jti:
+        # A token with no jti predates RED-S3. It cannot be revoked and
+        # therefore cannot be trusted; treated as revoked so the old
+        # unrevocable tokens drain out rather than living their full 30
+        # minutes past a deploy.
+        return True
+    import db
+    with db.conn.cursor() as cur:
+        cur.execute("SELECT 1 FROM revoked_tokens WHERE jti = %s", (jti,))
+        return cur.fetchone() is not None
 
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
     """Verify and decode a JWT token"""
@@ -52,6 +168,21 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) 
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Could not validate credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        # RED-S3: a REFRESH token is not a credential for the API. It
+        # buys a new access token and nothing else — otherwise the
+        # 14-day token silently becomes a 14-day API key.
+        if payload.get("typ") == TOKEN_TYPE_REFRESH:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Refresh tokens cannot be used to call the API",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        if is_revoked(payload.get("jti")):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="This session has ended. Please sign in again.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         return payload
