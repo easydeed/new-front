@@ -218,6 +218,10 @@ export function InputPanel({
               onChange(vestingDecision ? { vesting, vestingDecision } : { vesting })
             }
             decision={state.vestingDecision}
+            /* Doctrine A: the characterization the county record / prelim
+               shipped welded to the owner's name arrives here as a proposal,
+               never as a value. */
+            recordProposal={state.property?.ownerSplit?.vestingProposal}
             granteeCount={countGrantees(state.grantee)}
             deedType={state.deedType}
             grantee={state.grantee}

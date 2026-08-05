@@ -7,6 +7,7 @@ import { useAIAssist } from "@/contexts/AIAssistContext"
 import { AISuggestion } from "../AISuggestion"
 import { ConfirmableField } from "../ConfirmableField"
 import { propertyCandidatesRemaining } from "@/lib/provenance"
+import { mapSiteXResponse } from "@/lib/sitexProperty"
 import { formatSuggestionSecondary } from "@/lib/addressLabels"
 
 interface PropertySectionProps {
@@ -475,49 +476,6 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
     }
   }
 
-  // Map SiteX response to PropertyData
-  const mapSiteXResponse = (data: {
-    address?: string;
-    city?: string;
-    county?: string;
-    state?: string;
-    zip_code?: string;
-    zip?: string;
-    apn?: string;
-    legal_description?: string;
-    primary_owner?: { full_name?: string };
-    secondary_owner?: { full_name?: string };
-    owner_name?: string;
-  }, fallbackAddress: string): PropertyData => {
-    const apn = data.apn || ''
-    const legalDescription = data.legal_description || ''
-    const owner = data.owner_name || formatOwnerName(data.primary_owner, data.secondary_owner)
-
-    // SiteX-sourced legal values arrive as unverified candidates. The officer
-    // must confirm (or edit) each one before it counts as authorized.
-    const candidate = (value: string): Sourced<string> => ({
-      value,
-      source: 'sitex',
-      status: 'candidate',
-    })
-
-    return {
-      address: data.address || fallbackAddress,
-      city: data.city || '',
-      county: data.county || '',
-      state: data.state || 'California',
-      zip: data.zip_code || data.zip || '',
-      apn,
-      legalDescription,
-      owner,
-      provenance: {
-        apn: candidate(apn),
-        legalDescription: candidate(legalDescription),
-        owner: candidate(owner),
-      },
-    }
-  }
-
   // Reset to search
   const handleReset = () => {
     setSearchQuery("")
@@ -637,10 +595,33 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
               onConfirm={() => confirmField('owner')}
               onEdit={(v) => editField('owner', v)}
             />
+          ) : value.ownerSplit?.needsReview ? (
+            /* DOCTRINE A — we read something and could not split it. That is
+               not "no owner returned", and saying so would be untrue. The
+               original is shown as printed, nothing is offered for
+               confirmation, and the officer types both halves. */
+            <div className="p-3 border border-amber-200 bg-amber-50 rounded-lg space-y-2">
+              <p className="text-sm text-amber-800">{value.ownerSplit.needsReview}</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wide">As printed</p>
+              <p className="text-sm font-mono text-gray-700 break-words">
+                {value.ownerSplit.verbatim}
+              </p>
+            </div>
           ) : (
             <p className="text-sm text-gray-500 p-3 border border-gray-200 rounded-lg">
               Current owner: not returned by county records. The grantor you
               enter is what prints on the deed.
+            </p>
+          )}
+          {/* DOCTRINE A / H1 §2.2 — the composite the record actually
+              returned, for audit. Shown, never offered: there is no confirm
+              affordance here because this is not a value, it is two things
+              that were printed together. */}
+          {value.ownerSplit?.mixedContent && !value.ownerSplit.needsReview && (
+            <p className="text-xs text-gray-500 px-3">
+              County record as printed:{' '}
+              <span className="font-mono text-gray-600">{value.ownerSplit.verbatim}</span>
+              {' — '}the vesting words are handled in the Vesting section, not here.
             </p>
           )}
           {hasValue('legalDescription') && (
@@ -795,16 +776,4 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
   )
 }
 
-// Helper to format owner names
-function formatOwnerName(primary?: { full_name?: string }, secondary?: { full_name?: string }): string {
-  const names: string[] = []
-  
-  if (primary?.full_name) {
-    names.push(primary.full_name.toUpperCase())
-  }
-  if (secondary?.full_name) {
-    names.push(secondary.full_name.toUpperCase())
-  }
-  
-  return names.join(' AND ') || ''
-}
+

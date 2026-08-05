@@ -38,6 +38,42 @@ export interface Sourced<T> {
 }
 
 /**
+ * Doctrine A — an INTERPRETATION offered for acceptance.
+ *
+ * Deliberately not a Sourced<string>: 'proposed' is not a FieldStatus, so
+ * nothing in the confirmation model (collectCandidateFields, the gate
+ * modal, propertyCandidatesRemaining) can pick this up and offer it beside
+ * an APN. A characterization must never be confirmable by the affordance
+ * built for transcriptions — that is the whole defect H1 §2.2 legislates
+ * and RED0 found from the inside.
+ *
+ * Acceptance produces a LegalChoiceRecord, exactly as the AI vesting
+ * proposal does. Until then the value is displayed and applied nowhere.
+ */
+export interface VestingProposal {
+  value: string;
+  source: FieldSource;
+  status: 'proposed';
+  /** Whose reading it is, and which question it answers (H1 §2.3). */
+  basis: string;
+}
+
+/**
+ * Doctrine A — what a mixed-content owner string decomposed into.
+ *
+ * `verbatim` is audit-only: a bare string, not a Sourced<>, because
+ * nothing that lacks the shape of a confirmable field can be confirmed by
+ * accident. `needsReview` set means we could not split the string and
+ * NEITHER half is offered — the officer types both.
+ */
+export interface OwnerSplit {
+  verbatim: string;
+  mixedContent: boolean;
+  vestingProposal?: VestingProposal;
+  needsReview?: string;
+}
+
+/**
  * Provenance for the SiteX-sourced PropertyData fields covered by Ticket #1.
  * Kept alongside the bare values so the deed PDF/generation path (which reads
  * property.apn etc.) is unchanged by this ticket.
@@ -62,6 +98,13 @@ export interface PropertyData {
    * and the generation payload continue to work against the bare value fields.
    */
   provenance?: PropertyProvenance;
+  /**
+   * Doctrine A: what the county record's owner string decomposed into.
+   * `owner` above carries the PARTIES only; the vesting characterization
+   * that arrived welded to them lives here as a proposal and reaches the
+   * deed only through the officer's acceptance.
+   */
+  ownerSplit?: OwnerSplit;
 }
 
 export interface DTTData {

@@ -1,0 +1,169 @@
+{
+  "_readme": [
+    "Doctrine A — the shared corpus. THE SPLIT IS ONE RULE IN TWO LANGUAGES.",
+    "",
+    "backend/services/vesting_split.py and frontend/src/lib/vestingSplit.ts are",
+    "the same law written twice, because one runs on the prelim path (Python)",
+    "and one runs on the SiteX path (TypeScript). Two implementations of a rule",
+    "drift; that is not a risk, it is a schedule.",
+    "",
+    "So neither implementation is the authority — THIS FILE is. Both test",
+    "suites read it and assert the same split on every case. A change to one",
+    "side that the other does not make fails in the language that did not",
+    "change, which is the only failure mode that catches a one-sided edit.",
+    "",
+    "A marker-list mirror test also pins the patterns character-for-character.",
+    "That guards the spelling. This corpus guards the property. Both are here",
+    "because a pin that guards a spelling does not guard a property.",
+    "",
+    "`parties: null` means: nothing may be offered as a fact from this string.",
+    "`absent: true` means the splitter returns nothing at all (U0)."
+  ],
+  "cases": [
+    {
+      "input": "JOHN A. DOE AND JANE B. DOE, HUSBAND AND WIFE AS JOINT TENANTS",
+      "verbatim": "JOHN A. DOE AND JANE B. DOE, HUSBAND AND WIFE AS JOINT TENANTS",
+      "parties": "JOHN A. DOE AND JANE B. DOE",
+      "characterization": "HUSBAND AND WIFE AS JOINT TENANTS",
+      "mixed_content": true,
+      "needs_review": false,
+      "why": "H1 §2.2's own example. Two names, one characterization, one split."
+    },
+    {
+      "input": "JOHN A. DOE",
+      "verbatim": "JOHN A. DOE",
+      "parties": "JOHN A. DOE",
+      "characterization": null,
+      "mixed_content": false,
+      "needs_review": false,
+      "why": "A bare name is a fact, whole. The common case, and it must not be disturbed."
+    },
+    {
+      "input": "MARIA GONZALEZ, A SINGLE WOMAN",
+      "verbatim": "MARIA GONZALEZ, A SINGLE WOMAN",
+      "parties": "MARIA GONZALEZ",
+      "characterization": "A SINGLE WOMAN",
+      "mixed_content": true,
+      "needs_review": false,
+      "why": "Marital status is a characterization even when it names no tenancy."
+    },
+    {
+      "input": "JOHN DOE AND JANE DOE, HUSBAND AND WIFE, AS COMMUNITY PROPERTY WITH RIGHT OF SURVIVORSHIP",
+      "verbatim": "JOHN DOE AND JANE DOE, HUSBAND AND WIFE, AS COMMUNITY PROPERTY WITH RIGHT OF SURVIVORSHIP",
+      "parties": "JOHN DOE AND JANE DOE",
+      "characterization": "HUSBAND AND WIFE, AS COMMUNITY PROPERTY WITH RIGHT OF SURVIVORSHIP",
+      "mixed_content": true,
+      "needs_review": false,
+      "why": "Two adjacent markers separated by nothing but punctuation are ONE characterization, not an ambiguity."
+    },
+    {
+      "input": "ROBERT SMITH AND LINDA SMITH, TRUSTEES OF THE SMITH FAMILY TRUST DATED JANUARY 5, 2011",
+      "verbatim": "ROBERT SMITH AND LINDA SMITH, TRUSTEES OF THE SMITH FAMILY TRUST DATED JANUARY 5, 2011",
+      "parties": "ROBERT SMITH AND LINDA SMITH",
+      "characterization": "TRUSTEES OF THE SMITH FAMILY TRUST DATED JANUARY 5, 2011",
+      "mixed_content": true,
+      "needs_review": false,
+      "why": "The trust's name is a fact, but it arrives welded to a CAPACITY. The whole tail is proposed rather than half of it silently promoted."
+    },
+    {
+      "input": "PATRICIA WONG, A WIDOW",
+      "verbatim": "PATRICIA WONG, A WIDOW",
+      "parties": "PATRICIA WONG",
+      "characterization": "A WIDOW",
+      "mixed_content": true,
+      "needs_review": false,
+      "why": "Short characterizations are still characterizations."
+    },
+    {
+      "input": "ACME HOLDINGS, LLC",
+      "verbatim": "ACME HOLDINGS, LLC",
+      "parties": "ACME HOLDINGS, LLC",
+      "characterization": null,
+      "mixed_content": false,
+      "needs_review": false,
+      "why": "An entity's NAME includes its suffix. Stripping 'LLC' would corrupt the fact — the marker requires the article ('a California limited liability company'), which is the recital, not the name."
+    },
+    {
+      "input": "ACME HOLDINGS, LLC, A CALIFORNIA LIMITED LIABILITY COMPANY",
+      "verbatim": "ACME HOLDINGS, LLC, A CALIFORNIA LIMITED LIABILITY COMPANY",
+      "parties": "ACME HOLDINGS, LLC",
+      "characterization": "A CALIFORNIA LIMITED LIABILITY COMPANY",
+      "mixed_content": true,
+      "needs_review": false,
+      "why": "The entity recital is the characterization; the name keeps its suffix."
+    },
+    {
+      "input": "DOE JOHN A & DOE JANE B",
+      "verbatim": "DOE JOHN A & DOE JANE B",
+      "parties": "DOE JOHN A & DOE JANE B",
+      "characterization": null,
+      "mixed_content": false,
+      "needs_review": false,
+      "why": "County-record surname-first format. Ugly, but entirely fact — and it must not be mistaken for mixed content."
+    },
+    {
+      "input": "HUSBAND AND WIFE AS JOINT TENANTS",
+      "verbatim": "HUSBAND AND WIFE AS JOINT TENANTS",
+      "parties": null,
+      "characterization": "HUSBAND AND WIFE AS JOINT TENANTS",
+      "mixed_content": true,
+      "needs_review": true,
+      "why": "A characterization with no name in front of it. There is no fact to offer, and inventing one from the characterization would be exactly backwards."
+    },
+    {
+      "input": "JOHN DOE, AN UNMARRIED MAN AND MARY ROE, A SINGLE WOMAN, AS TENANTS IN COMMON",
+      "verbatim": "JOHN DOE, AN UNMARRIED MAN AND MARY ROE, A SINGLE WOMAN, AS TENANTS IN COMMON",
+      "parties": null,
+      "characterization": null,
+      "mixed_content": true,
+      "needs_review": true,
+      "why": "THE CASE THAT MATTERS. Splitting at the first marker would put MARY ROE inside the characterization and drop a real owner out of the fact position — a missing grantor is worse than an unsplit string. A name between two markers means we cannot split confidently, so we do not."
+    },
+    {
+      "input": "JOHN DOE, A MARRIED MAN, AS HIS SOLE AND SEPARATE PROPERTY",
+      "verbatim": "JOHN DOE, A MARRIED MAN, AS HIS SOLE AND SEPARATE PROPERTY",
+      "parties": "JOHN DOE",
+      "characterization": "A MARRIED MAN, AS HIS SOLE AND SEPARATE PROPERTY",
+      "mixed_content": true,
+      "needs_review": false,
+      "why": "Two markers, no name between them — one characterization."
+    },
+    {
+      "input": "John Doe and Jane Doe, husband and wife as joint tenants",
+      "verbatim": "John Doe and Jane Doe, husband and wife as joint tenants",
+      "parties": "John Doe and Jane Doe",
+      "characterization": "husband and wife as joint tenants",
+      "mixed_content": true,
+      "needs_review": false,
+      "why": "Not every source shouts. The split is case-insensitive; the OUTPUT keeps the source's casing, because a verbatim that has been re-cased is not a verbatim."
+    },
+    {
+      "input": "JOHN DOE,\nA SINGLE MAN",
+      "verbatim": "JOHN DOE, A SINGLE MAN",
+      "parties": "JOHN DOE",
+      "characterization": "A SINGLE MAN",
+      "mixed_content": true,
+      "needs_review": false,
+      "why": "A PDF text layer wraps mid-line. The wrap is layout, not content, so runs of whitespace normalise to one space before anything is matched — otherwise the marker straddles a newline and is never found."
+    },
+    {
+      "input": "  JOHN A. DOE,  ",
+      "verbatim": "JOHN A. DOE",
+      "parties": "JOHN A. DOE",
+      "characterization": null,
+      "mixed_content": false,
+      "needs_review": false,
+      "why": "Edge whitespace and a dangling separator are trimmed. A trailing comma is punctuation left over from the line above it, not part of anyone's name."
+    },
+    {
+      "input": "",
+      "absent": true,
+      "why": "U0 — absence is not a candidate. An empty string produces NOTHING, not an empty candidate for the officer to confirm."
+    },
+    {
+      "input": "   ",
+      "absent": true,
+      "why": "Whitespace is absence."
+    }
+  ]
+}

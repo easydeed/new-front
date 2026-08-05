@@ -26,7 +26,7 @@ accident: it is the set an officer retypes from a prelim every time.
 |---|---|---|---|---|---|---|
 | 1 | `apn` | APN | `property.apn` | `apn` | string | **amber** — candidate |
 | 2 | `legal_description` | Legal description | `property.legalDescription` | `legal_description` | string (long) | **amber** — candidate |
-| 3 | `vested_owner` | Vested owner | `property.owner` | `current_owner` | string | **amber** — candidate ⚠️ **see §3** |
+| 3 | `vested_owner` | Vested owner | `property.owner` (**parties only**) | `current_owner` | string | **amber** — candidate ⚠️ **see §3** |
 | 4 | `county` | County | `property.county` | `county` | string | **amber** — candidate |
 | 5 | `property_address` | Property address | `property.address` | `property_address` | string | **amber** — candidate |
 
@@ -72,7 +72,7 @@ Row 3 does not. See below.
 
 ---
 
-## 3. ⚠️ Row 3 is mixed content — the one slot that does not map
+## 3. Row 3 is mixed content — split, as of Doctrine A
 
 `vested_owner` is extracted by this pattern
 (`prelim_import.py`, `_VESTED`):
@@ -94,21 +94,13 @@ precisely the case H1 §2.2 legislates:
 > as a single value in a fact position. The composite may be carried in
 > `verbatim` for audit, flagged `mixed_content: true`.
 
-**Today DeedPro does the thing the contract forbids**: the composite
-lands whole in `property.owner`, a fact position, as a single candidate.
-RED0 found the same defect from the inside (R3-2) — the taxonomy is
-drawn by field *name* rather than by *content*, and the one field whose
-content is mixed slipped through on its label.
+**Until Doctrine A, DeedPro did the thing the contract forbids**: the
+composite landed whole in `property.owner`, a fact position, as a single
+candidate. RED0 found the same defect from the inside (R3-2) — the
+taxonomy is drawn by field *name* rather than by *content*, and the one
+field whose content is mixed slipped through on its label.
 
-So this row is the mapping's open edge, and it is open on **both** sides
-of the wire for the same reason.
-
-**Resolved by Doctrine A** (queued, ruled): extraction emits names as
-fact-candidates and the vesting characterization as a separate violet
-proposal; the composite is carried verbatim for audit, flagged
-`mixed_content`; no code path may write a characterization into a
-confirmed field without an acceptance record. When that ships, row 3
-becomes:
+**Doctrine A shipped the split.** Row 3 now lands in three places:
 
 | extraction key | lands as | position | arrives |
 |---|---|---|---|
@@ -116,9 +108,55 @@ becomes:
 | `vested_owner.vesting_characterization` | vesting section | **interpretation** | **violet — proposal**, acceptance recorded |
 | `vested_owner.verbatim` | audit only | neither | `mixed_content: true` |
 
-**This table is the acceptance criterion for Doctrine A**, and it is
-also what §10.1's mapping work should be written against — not against
-today's single slot, which is the defect.
+That table was written as Doctrine A's acceptance criterion before the
+work started, and it is what §10.1's mapping should be written against.
+
+**In the code:** `backend/services/vesting_split.py` and
+`frontend/src/lib/vestingSplit.ts` — one rule in two languages, held
+together by the shared corpus at `backend/services/vesting_cases.json`
+which both test suites read. The prelim parser and the county-record
+(SiteX) mapping both go through it; neither has its own.
+
+**On the wire**, `import_prelim` now returns:
+
+```
+candidates    facts only — the PARTIES, amber, confirmable
+proposals     the CHARACTERIZATION — status 'proposed', never
+              'candidate', carrying a basis naming its claimant
+verbatim      {vested_owner: {text, mixed_content}} — audit only, a bare
+              string so nothing that walks `candidates` can offer it
+needs_review  read but not separable. NOT the same as `not_found`.
+```
+
+### The one thing this split refuses to do
+
+A composite with a name on **both** sides of a characterization —
+
+```
+JOHN DOE, AN UNMARRIED MAN AND MARY ROE, A SINGLE WOMAN,
+AS TENANTS IN COMMON
+```
+
+— is not split at all. Cutting at the first marker would file MARY ROE
+inside the characterization and drop a real owner out of the fact
+position; a missing grantor is worse than an unsplit string. Both halves
+are withheld, the original is shown as printed, and the officer types
+them. Same posture as §5's refusals: an honest "we could not separate
+this" beats a confident wrong answer.
+
+### And the characterization is the OLD one
+
+`vested_owner` says how the **current** owner holds title. It is not how
+the grantees will hold title under the deed being drafted. The proposal
+is labelled "How title is held TODAY", its basis says so in words, and
+nothing is pre-selected from it — the officer's acceptance is what writes
+a vesting, recorded as a legal choice with the basis she read.
+
+A mapping note for §10.1: structured `prelim_data` arriving already split
+(H1 §2.2 requires TitleSense to emit it split) maps straight onto these
+three slots. Structured data arriving UNSPLIT is a contract violation on
+the sender's side, and DeedPro will split it again rather than trust it —
+the internal rule does not defer to the wire on this.
 
 ---
 

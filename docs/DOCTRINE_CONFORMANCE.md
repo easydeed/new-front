@@ -394,10 +394,110 @@ proposal and the officer's acceptance is what writes it. (T-3/T-3b:
 
 ---
 
+## §11 — A field's kind is decided by its content, not its name
+
+**Ruled Doctrine A, 2026-08-05.** The internal statement of
+`docs/integrations/H1_CONTRACT.md` §2.2.
+
+**Statement.** §1 says a legal choice is never auto-applied. §11 is what
+§1 needs in order to mean anything: the system must be able to *tell*
+which values are legal choices. It had been telling by **field name** —
+`vesting` is a legal choice, `owner` is a fact — and that works right up
+until a single field carries both.
+
+One does. A preliminary report says
+
+> Title to said estate or interest at the date hereof is vested in:
+> **JOHN A. DOE AND JANE B. DOE, HUSBAND AND WIFE AS JOINT TENANTS**
+
+and a county record returns the same composite as `OwnerName`. The left
+half is a transcription. The right half is a legal characterization with
+consequences for survivorship, severability, who must sign, and the form
+of the next instrument. Both arrived in `property.owner` — a fact
+position — as one amber candidate.
+
+**Why that is worse than a plain auto-apply.** The officer was asked to
+confirm a legal conclusion using the affordance built for confirming an
+APN, and her confirmation was then recorded as if she had checked a
+transcription. §1 was not bypassed; it was satisfied on paper by a record
+that described the wrong act. RED0 found it from the inside (R3-2); H1
+§2.2 legislates it on the wire. Same defect, two vantage points.
+
+**The rule.** Mixed content is emitted **split, never whole**.
+
+| half | position | arrives as |
+|---|---|---|
+| the parties | fact | amber candidate — confirmable, unchanged |
+| the characterization | interpretation | **violet proposal** — `status: 'proposed'`, never `'candidate'`, carrying a basis that names its claimant |
+| the composite | neither | `verbatim`, audit only, `mixed_content: true` — a bare string, so nothing that walks the candidate list can offer it |
+
+`'proposed'` is deliberately not a member of `FieldStatus`. That is the
+enforcement, not the labelling: the generation gate
+(`collectCandidateFields`, `propertyCandidatesRemaining`) is
+type-incapable of picking a proposal up and offering it beside an APN.
+
+**And when we cannot tell, we say so.** A composite with a name on both
+sides of a characterization —
+`JOHN DOE, AN UNMARRIED MAN AND MARY ROE, A SINGLE WOMAN, AS TENANTS IN
+COMMON` — is not split at all. Cutting at the first marker files MARY ROE
+inside the characterization and drops a real owner out of the fact
+position; a missing grantor is worse than an unsplit string. Both halves
+are withheld, the original is shown as printed, and the officer types
+them. Same posture as T-6's refusal on a scanned prelim.
+
+**Corollary — the characterization we read is the OLD one.** It says how
+the *current* owner holds title, not how the grantees will hold it. The
+two questions are answered in the same words, which is exactly why the
+proposal is labelled "How title is held TODAY", why its basis says so in
+a sentence, and why nothing is pre-selected from it. Related to §10's
+corollary: being derivably right is what makes something a conclusion.
+
+**Corollary — a dormant code path is still a code path.** Doctrine A
+deleted `suggestVesting`/`detectMarriedCouple` from
+`services/propertyPrefill.ts`, which inferred *community property with
+right of survivorship* from two owners sharing a last word, and wrote it
+into `state.vesting` with no acceptance record. Nothing imported it —
+which is the only reason no deed carries a vesting DeedPro invented from
+a surname match. It was deleted rather than deprecated because "no code
+path may write a characterization into a confirmed field without an
+acceptance record" includes the paths not currently called.
+
+**Habitats checked.**
+- T-6 prelim import (`services/prelim_import.import_prelim`)
+- County-record prefill (`lib/sitexProperty.mapSiteXResponse`)
+- The dormant enrichment prefill (`services/propertyPrefill.ts`)
+- The generation gate (`lib/provenance.collectCandidateFields`)
+
+**Enforced by.** One rule in two languages —
+`backend/services/vesting_split.py` and
+`frontend/src/lib/vestingSplit.ts` — held together by a shared corpus,
+`backend/services/vesting_cases.json`, that **both** test suites read. A
+change made in one language and not the other fails in the language that
+did not change, which is the only failure mode that catches a one-sided
+edit.
+
+- `backend/tests/test_vesting_split.py` (corpus; position; marker mirror)
+- `frontend/src/__tests__/vestingSplit.test.ts` (same corpus; position
+  asked of the real county-record mapping; gate cannot offer a proposal)
+- `backend/tests/test_prelim_import.py` (no marker in any candidate;
+  proposal is `'proposed'`; unsplittable offers neither half)
+- `backend/tests/test_prelim_field_map.py` (the map describes the split
+  the code performs)
+
+**A note on the pin that would have caught it earlier.** The test that
+shipped with T-6 asserted `"MARIA L. TORRES" in by_key["vested_owner"]`.
+That passes just as happily on the composite. The assertion is now
+equality, and the property pin does not ask about the splitter at all —
+it asks whether anything in a fact position matches a characterization
+marker, of every corpus case, on both import paths.
+
+---
+
 ## Change log
 
 | Date | Change |
 |---|---|
+| 2026-08-05 | §11 added (Doctrine A) — a field's kind is decided by its content, not its name. `vested_owner` carried a name PLUS a legal characterization into a fact position on both import paths, so the officer confirmed a legal conclusion with the affordance built for an APN and the record described the wrong act. Split into fact / violet proposal / audit `verbatim`; `'proposed'` deliberately outside `FieldStatus` so the generation gate is type-incapable of offering it. Unsplittable composites offer NEITHER half. `suggestVesting` (community property inferred from a shared surname) deleted from the dormant prefill — a dormant code path is still a code path. One rule in two languages, pinned by a corpus both suites read. |
 | 2026-08-04 | §9's parked supersession model BUILT (T-5). `deeds.superseded_by` + `superseded_at` mirror `document_authenticity`'s shape; lineage state is derived rather than folded into `deeds.status`, because a superseded deed is still a completed deed. Supersession is a pointer written once (SQL-guarded), never a mutation — pinned. The T-0 copy removal reversed in the same diff that made the promise true. |
 | 2026-08-04 | §10 added — facts carry between documents with their ORIGINAL provenance (never re-stamped, always marked `carriedFrom`); legal choices never carry. T-4's matter grouping made the question live: an accepted DTT exemption travelling to the next instrument would be an auto-applied legal choice wearing the officer's own signature. Corollary recorded from T-3b: derivability is a reason for restraint, not licence — being derivably right is what makes something a legal conclusion. |
 | 2026-08-03 | §9 added — stored instruments are never overwritten. ADMIN0 found `deed_pdfs` stored via `ON CONFLICT DO UPDATE SET pdf_data`, replacing prior bytes AND their sha256 in place; the draft-resume 409 guard sits a layer above it, making this latent rather than live. Ruled in two parts: insert-or-refuse in ADMIN1 (differing hash = loud refusal, identical = no-op), full supersession as its own designed ticket. No admin deed-edit until supersession exists. |

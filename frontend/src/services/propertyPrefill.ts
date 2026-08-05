@@ -9,6 +9,7 @@
 
 import { addRecentProperty } from "./recentProperties"
 import { cityDttRate, isIncorporated } from "@/lib/jurisdictions"
+import { splitVestedOwner } from "@/lib/vestingSplit"
 
 /**
  * Property data from SiteX enrichment
@@ -121,40 +122,40 @@ export function formatGrantorName(primaryOwner?: string, secondaryOwner?: string
 }
 
 /**
- * Detect if names suggest a married couple
+ * DOCTRINE A — `suggestVesting` and `detectMarriedCouple` were DELETED here.
+ *
+ * What they did:
+ *
+ *     one owner                      → "Sole and Separate Property"
+ *     two owners, same last name     → "Community Property with Right of
+ *                                       Survivorship"
+ *     two owners, different surnames → "Tenants in Common"
+ *
+ * and `prefillFromEnrichment` wrote the result straight into
+ * `state.vesting` with no acceptance record, no basis, and no violet.
+ *
+ * Every line of that is a legal conclusion reached by comparing the last
+ * word of two strings. A shared surname is not a marriage — it is siblings,
+ * a parent and child, a coincidence. Different surnames are not tenancy in
+ * common — married couples routinely keep their own names. And "sole and
+ * separate" is a statement about a spouse's interest, asserted here about
+ * people whose marital status we never learned.
+ *
+ * Nothing imported these, which is the only reason no deed carries a
+ * vesting DeedPro invented from a surname match. But a dormant path is
+ * still a path, sitting in `services/` under an inviting name, and the next
+ * person wiring county-record prefill would have found it and used it. So
+ * it is deleted rather than deprecated: Doctrine A's pin is that no code
+ * path may write a characterization into a confirmed field without an
+ * acceptance record, and "no code path" includes the ones not currently
+ * called.
+ *
+ * The vesting a county record ACTUALLY reports is different in kind — it is
+ * an observation, not an inference — and it now travels the supported
+ * route: `lib/vestingSplit.ts` separates it from the owner's name, and it
+ * reaches the deed only through the officer's explicit acceptance in the
+ * Vesting section, recorded as a legal choice with its basis.
  */
-export function detectMarriedCouple(name1: string, name2: string): boolean {
-  if (!name1 || !name2) return false
-
-  // Check if they share a last name
-  const lastName1 = name1.split(" ").pop()?.toLowerCase()
-  const lastName2 = name2.split(" ").pop()?.toLowerCase()
-
-  return lastName1 === lastName2 && lastName1 !== undefined
-}
-
-/**
- * Suggest vesting based on property data
- */
-export function suggestVesting(
-  primaryOwner?: string,
-  secondaryOwner?: string
-): string | null {
-  if (!primaryOwner) return null
-
-  // Single owner
-  if (!secondaryOwner) {
-    return "Sole and Separate Property"
-  }
-
-  // Two owners with same last name - likely married
-  if (detectMarriedCouple(primaryOwner, secondaryOwner)) {
-    return "Community Property with Right of Survivorship"
-  }
-
-  // Two owners with different last names
-  return "Tenants in Common"
-}
 
 /**
  * Main prefill function - populates wizard state from SiteX data
@@ -165,7 +166,11 @@ export function prefillFromEnrichment(
 ): WizardState {
   const primaryOwnerName = propertyData.primary_owner?.full_name || ""
   const secondaryOwnerName = propertyData.secondary_owner?.full_name || ""
-  const grantorName = formatGrantorName(primaryOwnerName, secondaryOwnerName)
+  // DOCTRINE A: the joined owner string may be a name PLUS a vesting
+  // characterization. Only the parties may become the grantor.
+  const grantorSplit = splitVestedOwner(
+    formatGrantorName(primaryOwnerName, secondaryOwnerName))
+  const grantorName = grantorSplit?.parties ?? ""
   const dttAreaType = inferDTTAreaType(propertyData.city)
   const legalDesc = propertyData.legal_description || propertyData.legalDescription || ""
 
@@ -181,11 +186,6 @@ export function prefillFromEnrichment(
       legalDescription: legalDesc,
     })
   }
-
-  // Suggest vesting if not already set
-  const suggestedVesting = currentState.vesting
-    ? currentState.vesting
-    : suggestVesting(primaryOwnerName, secondaryOwnerName) || ""
 
   return {
     ...currentState,
@@ -218,8 +218,13 @@ export function prefillFromEnrichment(
     areaType: dttAreaType,
     cityName: dttAreaType === "city" ? propertyData.city : "",
 
-    // Vesting hint
-    vesting: propertyData.vesting_type || suggestedVesting,
+    // DOCTRINE A: vesting is NOT prefilled. `vesting_type` is the county
+    // record's reading of how the CURRENT owner holds title, and writing it
+    // here would answer a different question (how the grantees will hold it)
+    // with no acceptance record and no basis shown. It travels as a proposal
+    // on `property.ownerSplit.vestingProposal` instead, and the officer's
+    // acceptance in the Vesting section is what writes it.
+    vesting: currentState.vesting,
 
     // Metadata for AI assistance
     _enriched: true,
