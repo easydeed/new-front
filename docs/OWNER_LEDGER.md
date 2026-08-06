@@ -375,3 +375,30 @@ we reach it.
 - **"Compact chassis" CSS variant** — consider if more one-page
   instruments accumulate (spike report note; the inline-acknowledgment
   mode of PR #87 covers the current cases).
+- **H1.3 usage-evidence review** (Doctrine B, deferred 2026-08-06 —
+  **deferred, not cancelled**). Doctrine B shipped on the boundary
+  alone: explain-yes / select-no decides `deed_type_advisor` regardless
+  of what officers ask, because a "help users select" prompt cannot
+  survive select-no. What the evidence would have shaped is **how much
+  explanation** officers actually want, and the
+  explain-only-vs-delete call on `deed_type_advisor` deserves it too.
+  The review did not happen because the evidence does not exist yet:
+  `ai_exchange_log` landed 2026-08-04 (PR #128) and held **zero rows**
+  two days later. Empty because the table is new, not because the
+  review is unwanted.
+  **Trigger — whichever comes first:** ~100 real exchanges accumulated,
+  OR the first design-partner month completes.
+  **On firing:** read the log; append real questions and real answers to
+  `backend/services/ai_boundary_cases.json` (which is built to receive
+  them — today's cases are honest reconstructions and say so); tune the
+  explain-only prompt's depth against what was actually asked; and give
+  the explain-only-vs-delete call its evidence.
+  **The query (read-only, owner-side — production Postgres is Tier 3):**
+  ```sql
+  SELECT prompt_key, status, count(*) AS n,
+         count(boundary_flags) AS flagged,
+         min(created_at) AS first, max(created_at) AS last
+  FROM ai_exchange_log GROUP BY 1,2 ORDER BY n DESC;
+  ```
+  `boundary_flags` is NULL when the response was clean, so
+  `WHERE boundary_flags IS NOT NULL` is the whole conformance audit.

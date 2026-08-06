@@ -493,10 +493,126 @@ marker, of every corpus case, on both import paths.
 
 ---
 
+## §12 — The AI boundary: explain yes, select no (closes R3-5)
+
+**Ruled Doctrine B, 2026-08-06.** The third citizen.
+
+**Why there is a third citizen.** Every earlier section governs DATA —
+which values may be prefilled (§1), what a confirmation stamps (§10),
+whether a field's content matches its name (§11). Two kinds of thing were
+legislated: facts and legal choices. RED0's R3-5 named the third, and it
+had no law at all.
+
+The assistant emits **prose** to an escrow officer inside a deed builder.
+That is the largest legal-influence surface in the product, and it had no
+suggestion marker, no confirmation, and — until RED-H1.3 — no record. The
+confirmation trail could prove exactly which data the officer accepted
+and nothing whatsoever about what the machine told her first. In a
+dispute that asymmetry points one way: the record incriminates the human
+and exonerates the software.
+
+**Statement.** The assistant may **explain** what an instrument does. It
+may not tell the officer which instrument to **use**.
+
+| | |
+|---|---|
+| allowed | "A quitclaim conveys whatever interest the grantor has, with no warranties. A grant deed carries the two implied warranties of Civil Code §1113." |
+| allowed | "Interspousal transfers are commonly exempt under R&T §11927." |
+| **forbidden** | "You should use a quitclaim deed for this." |
+| **forbidden** | "An interspousal transfer deed is the right choice here." |
+| **forbidden** | "I'd go with a grant deed." |
+
+The line is not about tone, hedging or confidence. It is about **who
+decides**. Every allowed sentence leaves the officer holding the
+decision; every forbidden one takes it. A *correct* recommendation is
+still a recommendation — correctness is not the test.
+
+**Why the line is drawn at selection and not at silence.** An officer who
+understands the difference between a grant deed and a quitclaim decides
+better. Deleting the explanation would make the product worse and the
+officer no safer. Selecting the instrument, by contrast, is the largest
+legal choice in the workflow — it determines warranties, transfer-tax
+treatment, reassessment exposure, and what her carrier says afterwards.
+That is the thing a non-attorney provider is most exposed on, and it was
+being done by a prompt that read, verbatim, *"help users select the
+appropriate deed type for their transaction."*
+
+**Three layers, and what each one actually does.**
+
+1. **The prompt states the boundary** (`services/ai_prompts.py`,
+   `_STANDING`). This is the layer that **prevents**. RED-H1.3 shipped
+   "do not provide legal advice"; that is a disclaimer, and a model can
+   satisfy it while telling an officer which deed to draw. The standing
+   instruction now names the act it forbids and the sentence it expects
+   instead — *the choice is theirs*.
+2. **The server scans every response** (`services/ai_boundary.scan`) for
+   recommendation language **pointed at an instrument**, and records what
+   it finds in `ai_exchange_log.boundary_flags`, NULL when clean. This
+   layer **detects**.
+3. **The tests ask the forbidden questions**
+   (`tests/test_doctrine_b_ai_boundary.py`) against a corpus of the
+   answers a model actually gives, asserting explanation-present /
+   selection-absent / deferral-present on the compliant ones and a catch
+   on the violating ones.
+
+**The scanner flags; it does not block.** Stated plainly because a reader
+who assumes otherwise trusts something that does not exist: **a flagged
+response is still returned to the officer.** Blocking on a pattern match
+would let a false positive swallow a correct answer mid-file with nothing
+on screen to say so. The prompt is the prevention; this is the instrument
+panel, and what it buys is that "is the assistant staying inside the
+line?" becomes a query rather than an assurance. If flags accumulate, the
+escalation is a prompt change or a hard refusal — ruled on the flag data,
+which is the mistake RED-H1.3 declined to repeat by ruling before
+evidence existed.
+
+**`deed_type_advisor` was rewritten, not deleted.** The key name is
+unchanged (the client sends it; renaming would be a breaking change
+wearing a doctrine fix's clothes) and its instruction is now the
+permitted half. That call was made on the boundary alone: the usage
+evidence RED-H1.3 built the log to collect did not exist — two days of an
+empty table — and the boundary decides the prompt regardless, because a
+"help users select" prompt cannot survive select-no. What the evidence
+would have shaped is *how much* explanation officers want. Deferred with
+a trigger, in OWNER_LEDGER; not a pending gate.
+
+**MATCH STATEMENTS, NOT STRINGS.** The word "recommend" is not a
+violation — "recommend consulting an attorney" is the *opposite* of
+selecting, and it appears in our own shipped prompts. What makes a
+sentence a selection is a recommendation cue aimed at an instrument
+name, which is why the scanner pairs cue with instrument inside a
+proximity window and allowlists professional referral.
+
+**And the instrument list is built from the deed-type registry**
+(`form_families.FAMILY_BY_DEED_TYPE`), so a new form cannot enter the
+product and stay invisible to the scanner. Same failure mode as A2's
+third city list: a hand-kept copy nobody compares.
+
+**The suite passed on its first run, which is why it was not trusted.**
+A corpus and a matcher written in the same sitting agree with each other
+by construction. Probing with phrasings the corpus did not contain found
+three defects immediately — two false positives ("the parties *may use* a
+grant deed", "officers commonly *use* a grant deed": describing practice
+is not directing this officer) and one false negative ("a quitclaim deed
+*is what you want*", the same statement the cue list already caught, in
+the other word order). All three are pinned in the corpus's `probes`
+section, with the fixes, so they cannot regress.
+
+**Enforced by.**
+- `backend/tests/test_doctrine_b_ai_boundary.py` — transcript cases,
+  phrasing probes, prompt content, scanner properties, response-path wiring
+- `backend/tests/test_red_h1_ai_containment.py` — the containment
+  guarantees, with H1.3's flag-and-pin **retired in this diff**: it
+  demanded a warning label for a defect that no longer exists, and a
+  placeholder outlives its purpose the moment the ruling lands.
+
+---
+
 ## Change log
 
 | Date | Change |
 |---|---|
+| 2026-08-06 | §12 added (Doctrine B) — the AI boundary, explain-yes/select-no; closes RED0 R3-5. The third citizen: earlier sections legislate facts and legal choices, and the assistant emits PROSE, which had neither a suggestion marker nor a confirmation nor (until H1.3) a record. Three layers: the system prompt STATES the boundary (prevents), a server-side scanner pairs recommendation cues with instrument names and records findings in `ai_exchange_log.boundary_flags` (detects, does not block — a flagged response still reaches the officer, and blocking on a pattern would let a false positive swallow a correct answer), transcript-style tests ask the forbidden questions. `deed_type_advisor` REWRITTEN to explain-only, not deleted: the boundary decides the prompt regardless of usage evidence, and deleting would remove the permitted half. H1.3's flag-and-pin retired in the same diff that cured its condition. Usage-evidence tuning deferred with a trigger (OWNER_LEDGER) — the log was two days old and empty. |
 | 2026-08-05 | §11 added (Doctrine A) — a field's kind is decided by its content, not its name. `vested_owner` carried a name PLUS a legal characterization into a fact position on both import paths, so the officer confirmed a legal conclusion with the affordance built for an APN and the record described the wrong act. Split into fact / violet proposal / audit `verbatim`; `'proposed'` deliberately outside `FieldStatus` so the generation gate is type-incapable of offering it. Unsplittable composites offer NEITHER half. `suggestVesting` (community property inferred from a shared surname) deleted from the dormant prefill — a dormant code path is still a code path. One rule in two languages, pinned by a corpus both suites read. |
 | 2026-08-04 | §9's parked supersession model BUILT (T-5). `deeds.superseded_by` + `superseded_at` mirror `document_authenticity`'s shape; lineage state is derived rather than folded into `deeds.status`, because a superseded deed is still a completed deed. Supersession is a pointer written once (SQL-guarded), never a mutation — pinned. The T-0 copy removal reversed in the same diff that made the promise true. |
 | 2026-08-04 | §10 added — facts carry between documents with their ORIGINAL provenance (never re-stamped, always marked `carriedFrom`); legal choices never carry. T-4's matter grouping made the question live: an accepted DTT exemption travelling to the next instrument would be an auto-applied legal choice wearing the officer's own signature. Corollary recorded from T-3b: derivability is a reason for restraint, not licence — being derivably right is what makes something a legal conclusion. |
