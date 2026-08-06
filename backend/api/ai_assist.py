@@ -29,16 +29,23 @@ So the confirmation trail could prove precisely what data the officer
 accepted, and nothing whatsoever about what the machine told her first.
 That asymmetry points the wrong way in a dispute.
 
-═══ CONTAINMENT, NOT THE BOUNDARY RULING ═══
+═══ DOCTRINE B — THE BOUNDARY, AND WHERE IT IS ENFORCED ═══
 
-This ticket bounds the mechanism. What the assistant may and may not SAY
-— the explain-yes / select-no boundary — is a doctrine ruling that has
-not been applied here, and `services/ai_prompts.py` flags the prompt that
-makes it urgent (`deed_type_advisor` literally instructs the model to
-help select an instrument).
+RED-H1.3 bounded the mechanism and left the content alone. Doctrine B
+rules the content: EXPLAIN YES, SELECT NO (`services/ai_boundary.py`,
+`docs/DOCTRINE_CONFORMANCE.md` §12). Three layers, and this file holds
+the second:
 
-Containment first, because the boundary cannot be ruled on evidence that
-does not exist. Now it will exist.
+  1. the system prompt STATES the boundary — `services/ai_prompts.py`
+  2. every response is SCANNED here and what it finds is recorded
+  3. the forbidden questions are asked in the tests
+
+Layer 2 flags; it does not block. A flagged response is still returned
+to the officer, because blocking on a pattern match would let a false
+positive swallow a correct answer mid-file with nothing on screen to say
+so. The prompt is the prevention. This is the instrument panel — and it
+is what makes "is the assistant staying inside the line?" a question
+with an answer rather than an assurance.
 """
 import asyncio
 import logging
@@ -52,6 +59,7 @@ from pydantic import BaseModel, Field
 
 from auth import get_current_user_id
 from database import db_connection
+from services.ai_boundary import flags_json
 from services.ai_prompts import (
     HARD_MAX_TOKENS,
     PROMPTS,
@@ -94,7 +102,7 @@ class ChatResponse(BaseModel):
 
 
 def _log_exchange(user_id, prompt_key, message, response, max_tokens,
-                  status, error, request_tag):
+                  status, error, request_tag, boundary_flags=None):
     """Record every exchange. Never let logging break the response.
 
     A failure to log is a real problem — it is the whole point of the
@@ -106,10 +114,10 @@ def _log_exchange(user_id, prompt_key, message, response, max_tokens,
             cur.execute("""
                 INSERT INTO ai_exchange_log (
                     user_id, prompt_key, user_message, response, model,
-                    max_tokens, status, error, request_tag
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    max_tokens, status, error, request_tag, boundary_flags
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (user_id, prompt_key, message, response, AI_MODEL,
-                  max_tokens, status, error, request_tag))
+                  max_tokens, status, error, request_tag, boundary_flags))
             conn.commit()
     except Exception as e:
         logger.error(f"[ai] FAILED TO LOG EXCHANGE (user={user_id}): {e}")
@@ -182,8 +190,22 @@ async def ai_chat(request: ChatRequest, user_id: int = Depends(get_current_user_
                 return ChatResponse(success=False, error="AI service temporarily unavailable")
 
             ai_response = response.json()["choices"][0]["message"]["content"]
+
+            # DOCTRINE B layer 2. Read before returning, recorded beside
+            # the exchange that produced it. `flags_json` returns None on
+            # a clean response, so a compliant exchange costs nothing and
+            # `WHERE boundary_flags IS NOT NULL` is the whole audit.
+            #
+            # The response is returned either way — see the module
+            # docstring for why a detector here and not a filter.
+            flags = flags_json(ai_response)
+            if flags:
+                logger.warning(
+                    "[ai] BOUNDARY FLAG user=%s key=%s tag=%s %s",
+                    user_id, request.prompt_key, request_tag, flags)
+
             _log_exchange(user_id, request.prompt_key, request.message, ai_response,
-                          capped, "ok", None, request_tag)
+                          capped, "ok", None, request_tag, flags)
             return ChatResponse(success=True, response=ai_response)
 
     except asyncio.TimeoutError:

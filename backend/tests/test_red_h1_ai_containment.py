@@ -89,13 +89,30 @@ def test_every_prompt_carries_the_standing_not_the_decider_instruction():
         assert "You do not make decisions" in ai_prompts.system_prompt(key)
 
 
-def test_the_instrument_selection_prompt_is_flagged_where_it_lives():
-    """`deed_type_advisor` instructs the model to help SELECT a deed
-    type. Containment does not fix that — the boundary ruling does — but
-    the next reader must not have to discover it."""
-    raw = (BACKEND / "services" / "ai_prompts.py").read_text(encoding="utf-8")
-    assert "deed_type_advisor" in raw
-    assert "instrument selection" in raw.lower()
+def test_the_instrument_selection_prompt_no_longer_needs_flagging():
+    """RETIRED BY DOCTRINE B, in the diff that cured its condition.
+
+    This pin used to assert that `ai_prompts.py` FLAGGED `deed_type_advisor`
+    as instrument selection — a marker held in place so the next reader
+    would not have to discover a live problem for themselves. It was a
+    placeholder for a ruling, and a placeholder outlives its purpose the
+    moment the ruling lands.
+
+    Doctrine B rewrote the prompt to explain-only. There is nothing left
+    to flag, so what is asserted now is the cure rather than the warning:
+    the prompt does not instruct selection, and it does carry the
+    boundary. The full boundary suite is
+    `tests/test_doctrine_b_ai_boundary.py`.
+
+    Leaving the old pin standing would have been worse than deleting it —
+    it would have gone on demanding a warning label for a defect that no
+    longer exists, and the next contributor would have restored the
+    warning to make the test pass.
+    """
+    from services import ai_prompts
+    prompt = ai_prompts.PROMPTS["deed_type_advisor"]
+    assert "select the appropriate deed type" not in prompt.lower()
+    assert "you may not SELECT" in ai_prompts.system_prompt("deed_type_advisor")
 
 
 # ── 2. max_tokens is a ceiling ────────────────────────────────────────

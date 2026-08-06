@@ -1,9 +1,16 @@
 /**
  * AI Assistant Service
  * 
- * Provides AI-powered guidance for deed creation using Anthropic Claude.
- * Offers contextual help for vesting, deed type selection, and validation.
- * 
+ * Provides AI-powered guidance for deed creation.
+ * Offers contextual help for vesting, deed type EXPLANATION, and validation.
+ *
+ * DOCTRINE B (docs/DOCTRINE_CONFORMANCE.md §12) — explain yes, select no.
+ * The system prompts live on the server (RED-H1.3) but the USER MESSAGES
+ * are composed here, and a message that asks the model to recommend will
+ * get a recommendation whatever the system prompt says. So no prompt in
+ * this file asks which instrument to use, and no display gate is keyed on
+ * recommendation language. Pinned in `__tests__/aiBoundaryClient.test.ts`.
+ *
  * Part 2.1 of DeedPro Wizard Integration
  */
 
@@ -163,23 +170,58 @@ Briefly explain what this vesting means and flag any concerns (e.g., if joint te
   }
 
   /**
-   * Suggest the best deed type based on context
+   * DOCTRINE B — explain how the deed types differ. Do not choose.
+   *
+   * This method was `suggestDeedType`, and it was the boundary's problem
+   * from the other end. RED-H1.3 moved the SYSTEM prompt to the server
+   * so the client could no longer define the assistant's role — but the
+   * USER MESSAGE is still composed here, and this one asked, verbatim:
+   *
+   *     Is ${currentDeedType} the best choice? If not, what would you
+   *     recommend and why?
+   *
+   * A server-side instruction saying "you may not select" and a user
+   * message saying "what would you recommend" are an argument, and the
+   * boundary does not win every round of it. The reliable fix is to stop
+   * asking the forbidden question, not to out-shout it.
+   *
+   * THE SHARPER HALF was the display gate. It read:
+   *
+   *     if (response.includes("recommend") || includes("suggest")
+   *         || includes("consider")) { show it } else { return null }
+   *
+   * — the UI surfaced the answer ONLY when it contained recommendation
+   * language, and silently discarded every compliant explanation. So
+   * Doctrine B's prompt rewrite, shipped alone, would have made this
+   * feature look broken: the model would start explaining instead of
+   * recommending, the filter would drop every answer, and nothing would
+   * appear on screen. A display gate keyed on the forbidden word does
+   * not enforce the boundary — it inverts it.
+   *
+   * Renamed rather than kept: a method called `suggestDeedType` that
+   * returns an explanation is §11's defect in a function name — the
+   * taxonomy drawn by label rather than by content. Nothing imported it,
+   * so the rename costs nothing; leaving the old name would have cost
+   * the next reader their assumption.
    */
-  async suggestDeedType(context: {
+  async explainDeedTypeOptions(context: {
     relationship: string
     hasConsideration: boolean
     currentDeedType: string
     grantorName: string
     granteeName: string
   }): Promise<AIGuidance | null> {
-    const prompt = `User is creating a ${context.currentDeedType}.
+    const prompt = `User is preparing a ${context.currentDeedType}.
 
 Grantor: ${context.grantorName}
 Grantee: ${context.granteeName}
 Relationship between parties: ${context.relationship}
 Is consideration being exchanged: ${context.hasConsideration ? "Yes" : "No/Gift"}
 
-Is ${context.currentDeedType} the best choice? If not, what would you recommend and why?`
+Explain how ${context.currentDeedType} differs from the other California \
+deed types that could carry this transfer — warranties, transfer tax \
+treatment, reassessment exposure. Do not tell the user which to use; the \
+choice is theirs.`
 
     try {
       const response = await this.makeRequest(
@@ -188,22 +230,17 @@ Is ${context.currentDeedType} the best choice? If not, what would you recommend 
         300
       )
 
-      // Only show if suggesting a different deed type
-      if (
-        response.toLowerCase().includes("recommend") ||
-        response.toLowerCase().includes("suggest") ||
-        response.toLowerCase().includes("consider")
-      ) {
-        return {
-          type: "suggestion",
-          title: "Deed Type Suggestion",
-          message: response,
-        }
-      }
+      if (!response.trim()) return null
 
-      return null
+      // Shown as an EXPLANATION, unfiltered. No keyword gate: the old
+      // one displayed only the answers that crossed the line.
+      return {
+        type: "info",
+        title: "How these deed types differ",
+        message: response,
+      }
     } catch (error) {
-      console.error("AI deed type suggestion error:", error)
+      console.error("AI deed type explanation error:", error)
       return null
     }
   }

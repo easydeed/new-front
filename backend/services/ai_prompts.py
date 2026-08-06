@@ -12,44 +12,63 @@ The client now sends a KEY. The prompt text lives here, and a key that is
 not in this registry is refused rather than defaulted — because a default
 would recreate the hole with extra steps.
 
-═══ WHAT THIS TICKET DOES NOT DO ═══
+═══ DOCTRINE B — THE BOUNDARY IS NOW APPLIED HERE ═══
 
-This is CONTAINMENT. The prompts below are ported VERBATIM from
-`frontend/src/services/aiAssistant.ts`. Their content has not been
-touched, and one of them deserves the reader's attention:
+RED-H1.3 contained the mechanism and deliberately left the content
+alone, flagging one prompt for the reader's attention:
 
-    `deed_type_advisor` instructs the model to help a user "select the
+    `deed_type_advisor` instructed the model to help a user "select the
     appropriate deed type for their transaction."
 
 That is instrument selection — the thing the doctrine's whole
 suggest/confirm/record architecture exists to keep in the officer's
 hands, and the thing a non-attorney provider recommending it is most
-exposed on. It has been live, driven by a prompt the CLIENT supplied,
-with no confirmation gate and no record.
+exposed on. It was live, driven by a prompt the CLIENT supplied, with no
+confirmation gate and no record.
 
-Moving it here does not make it safe. It makes it OURS, visible in one
-file, and logged — which is the precondition for ruling on it at all.
-What the assistant may and may not say is a doctrine ruling (the
-explain-yes / select-no boundary), and it is deliberately NOT applied
-here. When it is, this file is where it lands.
+Doctrine B rules the boundary: **explain yes, select no**
+(`services/ai_boundary.py`, `docs/DOCTRINE_CONFORMANCE.md` §12). Two
+things changed in this file:
+
+  1. `_STANDING` now STATES the boundary rather than gesturing at it.
+     "Do not provide legal advice" is a disclaimer; "you may explain,
+     you may not select, and when asked to choose say the choice is
+     theirs" is an instruction with an observable failure mode.
+
+  2. `deed_type_advisor` was REWRITTEN, not deleted. Its purpose is now
+     explaining how instruments differ — the half the boundary permits,
+     and the half that makes an officer decide better. Deleting it would
+     have removed the explanation and left her no safer.
+
+That rewrite was made on the boundary ruling alone. The usage evidence
+RED-H1.3 built the log to collect did not exist yet (two days of an
+empty table), and the boundary decides the prompt regardless of what the
+log holds — a "help users select" prompt cannot survive select-no. What
+the evidence would have shaped is HOW MUCH explanation officers want,
+which is ledgered as a deferred tuning pass, not a pending gate.
 """
 from typing import Dict, Optional
 
-# The one guardrail that ships with containment, because it costs nothing
-# and its absence is indefensible: every response is prefixed by a
-# standing instruction that the model is not the decider. It does not
-# resolve the UPL question — a disclaimer never has — but a bounded
-# system prompt is strictly better than one the caller writes.
+from services.ai_boundary import BOUNDARY
+
+# Every response carries a standing instruction that the model is not the
+# decider. RED-H1.3 shipped the first sentence of this because a bounded
+# system prompt beats one the caller writes; Doctrine B added the
+# boundary itself, because "do not provide legal advice" is a phrase a
+# model can satisfy while telling an officer which deed to draw.
+#
+# This is the layer that PREVENTS. `ai_boundary.scan` only detects.
 _STANDING = (
     "You are assisting a California escrow or title professional who is "
     "preparing a document. You do not make decisions: the professional "
     "using this software decides, and their confirmation is what records. "
     "Never state that a choice has been made or applied. Do not provide "
-    "legal advice."
+    "legal advice.\n\n"
+    f"{BOUNDARY}"
 )
 
-# Ported verbatim from the client. Content unchanged by ruling — see the
-# module docstring.
+# Ported from the client by RED-H1.3. `deed_type_advisor` was rewritten
+# by Doctrine B; the rest stand as ported.
 PROMPTS: Dict[str, str] = {
     "vesting_guidance": (
         "You are an expert California real estate title officer. Your role is to "
@@ -60,16 +79,24 @@ PROMPTS: Dict[str, str] = {
         "Always recommend consulting with an attorney or tax advisor for complex "
         "situations.\n\nRespond in 2-3 sentences maximum unless asked for more detail."
     ),
-    # ⚠️ INSTRUMENT SELECTION — see the module docstring. Ported as-is;
-    # the boundary ruling is pending and lands here.
+    # DOCTRINE B — rewritten. This prompt used to say "help users select
+    # the appropriate deed type for their transaction". The key name is
+    # unchanged because the client sends it and renaming it would be a
+    # breaking change dressed as a doctrine fix; what it INSTRUCTS is
+    # now the permitted half.
     "deed_type_advisor": (
         "You are an expert California real estate title officer. Your role is to "
-        "help users select the appropriate deed type for their transaction.\n\n"
-        "Consider:\n- Relationship between parties (spouses, family, unrelated)\n"
-        "- Whether consideration is being exchanged\n"
-        "- Documentary Transfer Tax implications\n"
-        "- Title insurance implications\n- Warranties being provided\n\n"
-        "Respond in 2-3 sentences maximum."
+        "EXPLAIN how deed types differ so the professional can decide between "
+        "them. You do not choose for them and you do not recommend one.\n\n"
+        "When asked which instrument to use, set out how the candidates differ "
+        "on:\n- Warranties given or withheld\n"
+        "- Documentary Transfer Tax treatment and common exemptions\n"
+        "- Reassessment exposure\n"
+        "- Relationship between the parties, and what that changes\n"
+        "- Whether consideration is exchanged, and what that changes\n\n"
+        "Then say plainly that the choice is theirs. Never name one instrument "
+        "as the right, best or appropriate one for their situation.\n\n"
+        "Respond in 2-3 sentences maximum unless asked for more detail."
     ),
     "legal_description_review": (
         "You are an expert California real estate title officer reviewing a legal "

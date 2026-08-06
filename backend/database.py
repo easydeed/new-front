@@ -507,8 +507,18 @@ def create_tables():
                 status VARCHAR(16) NOT NULL,
                 error TEXT,
                 request_tag VARCHAR(80),
-                created_at TIMESTAMPTZ DEFAULT now()
+                created_at TIMESTAMPTZ DEFAULT now(),
+                -- DOCTRINE B: what the boundary scanner found in this
+                -- response, as JSON, or NULL when it found nothing.
+                -- NULL-when-clean on purpose: a compliant exchange costs
+                -- no storage and `WHERE boundary_flags IS NOT NULL` is
+                -- the entire audit query.
+                boundary_flags TEXT
             )""",
+            # For tables created before Doctrine B. Idempotent, and it
+            # runs on every boot like the rest of the ladder above.
+            "ALTER TABLE ai_exchange_log ADD COLUMN IF NOT EXISTS boundary_flags TEXT",
+            "CREATE INDEX IF NOT EXISTS idx_ai_log_flagged ON ai_exchange_log(created_at DESC) WHERE boundary_flags IS NOT NULL",
             "CREATE INDEX IF NOT EXISTS idx_ai_log_user_created ON ai_exchange_log(user_id, created_at DESC)",
             "CREATE INDEX IF NOT EXISTS idx_ai_log_created ON ai_exchange_log(created_at DESC)",
             "CREATE INDEX IF NOT EXISTS idx_ai_log_key ON ai_exchange_log(prompt_key, created_at DESC)",
