@@ -50,6 +50,39 @@ Same lesson as everywhere else in this project, in its narrowest form:
 match STATEMENTS, not strings. A tokenizer knows what a comment is; a
 pattern only knows what one looks like.
 
+═══ RANGE-BASED PINS ARE THE SAME FAMILY ═══
+
+Owner-ruled after the eighth trip (PARTNER1). The rule reads as being
+about forbidden STRINGS, and every earlier occurrence was one — a price,
+a claim, a removed symbol name. It is not limited to strings.
+
+PARTNER1's brand pass forbade emoji on a screen that had shipped them as
+button labels. The pin was a CHARACTER RANGE:
+
+    expect(RAW).not.toMatch(/[\\u{1F300}-\\u{1FAFF}\\u{2190}-\\u{27BF}]/u)
+
+and it failed — on the ═══ rule characters in its own header comment,
+because U+2500–U+257F (box drawing) sits inside U+2190–U+27BF. Same
+shape as all eight: the prose describing the forbidden thing contains
+the forbidden thing. Nothing about it being a range rather than a
+literal changed that.
+
+So the rule generalises: **any pin whose pattern could match decorative
+or explanatory text runs against `code_only()` output, not raw source.**
+Strings, regexes, character classes, Unicode ranges — the question is
+only whether the pattern can hit a comment, and a wide range can hit far
+more of one than a literal can.
+
+Two corollaries worth stating, because the range case has them and the
+string case does not:
+
+  - Keep the range no wider than the thing you are forbidding. The emoji
+    pin wanted emoji and dingbats; it asked for arrows, maths, box
+    drawing and geometric shapes as well, and got what it asked for.
+  - A pin that must read prose (checking a header cites a doctrine
+    section, say) is a different question and should read RAW
+    deliberately, saying so at the call site.
+
 ═══ WHAT IT DOES NOT DO ═══
 
 It does not strip ordinary string literals. A pin searching for a value

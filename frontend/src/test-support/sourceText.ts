@@ -39,6 +39,37 @@
  * difference between a comment and text that looks like one; a pattern
  * only knows the spelling.
  *
+ * ═══ RANGE-BASED PINS ARE THE SAME FAMILY ═══
+ *
+ * Owner-ruled after the eighth trip (PARTNER1). The rule reads as being
+ * about forbidden STRINGS — a price, a claim, a removed symbol name —
+ * and it is not limited to them.
+ *
+ * PARTNER1's brand pass forbade emoji on a screen that had shipped them
+ * as button labels. The pin was a CHARACTER RANGE:
+ *
+ *     expect(RAW).not.toMatch(/[\u{1F300}-\u{1FAFF}\u{2190}-\u{27BF}]/u)
+ *
+ * and it failed on the rule characters in its own header comment,
+ * because box drawing (U+2500–U+257F) sits inside U+2190–U+27BF. Same
+ * shape as all eight: prose describing the forbidden thing contains the
+ * forbidden thing. Being a range rather than a literal changed nothing.
+ *
+ * So: ANY pin whose pattern could match decorative or explanatory text
+ * runs against codeOnly() output, not raw source. Strings, regexes,
+ * character classes, Unicode ranges — the only question is whether the
+ * pattern can hit a comment, and a wide range hits far more of one than
+ * a literal can.
+ *
+ * Two corollaries the range case has and the string case does not:
+ *
+ *   - Keep the range no wider than the thing forbidden. The emoji pin
+ *     wanted emoji and dingbats; it asked for arrows, maths, box drawing
+ *     and geometric shapes too, and got what it asked for.
+ *   - A pin that MUST read prose (checking a header cites a doctrine
+ *     section) is a different question — read RAW deliberately and say
+ *     so at the call site.
+ *
  * ═══ WHAT IT DOES NOT DO ═══
  *
  * It does not strip string literals — a pin looking for a value that
