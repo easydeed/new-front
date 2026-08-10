@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import Sidebar from "@/components/Sidebar"
 import { User, CreditCard, Bell, Lock, Code, Check, Copy, Loader2 } from "lucide-react"
 import { toast } from "sonner"
+import { TIERS, priceLabel } from "@/lib/pricing"
 
 type Tab = "profile" | "billing" | "notifications" | "security" | "widget"
 
@@ -119,13 +120,28 @@ export default function AccountSettingsPageV0() {
     }
   }
 
+  /**
+   * PRICING1 — this handed the customer a script tag for a file that
+   * does not exist.
+   *
+   * The snippet pointed at `https://deedpro.com/widget.js` and
+   * `/embed/<key>`. There is no widget.js in `frontend/public`, no
+   * `/embed/` route in the backend, and no embed handler anywhere. The
+   * add-on was priced at $49/month on the screen above.
+   *
+   * Same class as the SSO/SAML and custom-branding claims this ticket
+   * deletes, and worse in one respect: those were bullet points, this
+   * had a price and a Copy button, so a customer could pay and then
+   * paste a broken tag into their own site.
+   *
+   * Copying is disabled rather than the tab deleted — removing a product
+   * surface is the owner's call, and this is the honest holding
+   * position. Flagged in the PRICING1 report.
+   */
   const copySnippet = () => {
-    const embedKey = userProfile?.embed_key || "YOUR_EMBED_KEY"
-    const snippet = `<script src="https://deedpro.com/widget.js" data-key="${embedKey}"></script>
-<iframe src="https://deedpro.com/embed/${embedKey}" width="100%" height="600"></iframe>`
-
-    navigator.clipboard.writeText(snippet)
-    toast.success("Embed snippet copied to clipboard!")
+    toast.error(
+      "The embeddable widget is not available yet — there is nothing to embed."
+    )
   }
 
   const tabs = [
@@ -351,38 +367,10 @@ function BillingTab({
   // Subscription button that 404s because they have no Stripe customer.
   const currentPlan = userProfile?.plan || "free"
 
-  const plans = [
-    {
-      key: "free",
-      name: "Free",
-      price: "$0",
-      // TRIAL1: "5 deeds/month" removed. check_plan_limits is never
-      // called and plan_limits is never seeded, so the limit was never
-      // enforced. An unenforced limit written on a purchase surface is a
-      // promise we are not keeping — in our favour, which is the
-      // harmless direction, and still not something to leave written
-      // down.
-      features: ["All deed types", "Basic AI assistance", "Standard templates", "Email support"],
-    },
-    {
-      key: "professional",
-      name: "Professional",
-      price: "$29",
-      // RED-H1.1: "SoftPro integration" removed — it does not exist, and
-      // this list is a PURCHASE surface: a logged-in officer reads it while
-      // deciding whether to upgrade.
-      features: ["Unlimited deeds", "Advanced AI assistance", "Priority support"],
-    },
-    {
-      key: "enterprise",
-      name: "Enterprise",
-      price: "$99",
-      // RED-H1.1: "Qualia integration" removed (does not exist). "Team
-      // management" removed too — `deeds` carries a single user_id and
-      // every query is scoped to it; there is no team model to manage.
-      features: ["Everything in Pro", "API access", "24/7 support"],
-    },
-  ]
+  // PRICING1: one source. This array carried its own prices —
+  // Professional at $29 while the marketing page said $149 for the same
+  // plan, and neither matched what Stripe would charge.
+  const plans = TIERS
 
   return (
     <div className="space-y-8">
@@ -397,7 +385,7 @@ function BillingTab({
               <p className="text-slate-600">Your current subscription</p>
             </div>
             <div className="text-right">
-              <div className="text-3xl font-bold text-[#7C4DFF]">{plans.find((p) => p.key === currentPlan)?.price}</div>
+              <div className="text-3xl font-bold text-[#7C4DFF]">{(() => { const t = plans.find((p) => p.key === currentPlan); return t ? priceLabel(t) : ''; })()}</div>
               <div className="text-sm text-slate-600">per month</div>
             </div>
           </div>
@@ -437,8 +425,16 @@ function BillingTab({
                   </div>
                 )}
                 <h4 className="text-2xl font-bold text-slate-800 mb-2">{plan.name}</h4>
-                <div className="text-3xl font-bold text-[#7C4DFF] mb-1">{plan.price}</div>
-                {plan.price !== "Free" && <div className="text-sm text-slate-600 mb-6">per month</div>}
+                <div className="text-3xl font-bold text-[#7C4DFF] mb-1">
+                  {priceLabel(plan)}
+                  <span className="text-sm font-normal text-slate-500">{plan.cadence}</span>
+                </div>
+                {plan.badge && (
+                  <div className="inline-block mb-2 rounded-md bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-600">
+                    {plan.badge}
+                  </div>
+                )}
+                <p className="text-sm text-slate-600 mb-6">{plan.blurb}</p>
                 <ul className="space-y-3 mb-6">
                   {plan.features.map((feature, idx) => (
                     <li key={idx} className="flex items-start gap-2 text-sm text-slate-700">
@@ -448,15 +444,22 @@ function BillingTab({
                   ))}
                 </ul>
                 <button
-                  onClick={() => !isCurrent && onUpgrade(plan.key)}
-                  disabled={isCurrent}
+                  onClick={() => plan.purchasable && !isCurrent && onUpgrade(plan.key)}
+                  disabled={isCurrent || !plan.purchasable}
                   className={`w-full py-3 rounded-lg font-semibold transition-all ${
-                    isCurrent
+                    isCurrent || !plan.purchasable
                       ? "bg-slate-300 text-slate-500 cursor-not-allowed"
                       : "bg-[#7C4DFF] hover:bg-[#6a3de8] text-white shadow-md hover:shadow-lg"
                   }`}
                 >
-                  {isCurrent ? "Current Plan" : `Upgrade to ${plan.name}`}
+                  {/* PRICING1: a tier with no product behind it gets no
+                      buy control — Business needs the org model (RED-S5)
+                      that does not exist. */}
+                  {!plan.purchasable
+                    ? "Not yet available"
+                    : isCurrent
+                      ? "Current Plan"
+                      : `Upgrade to ${plan.name}`}
                 </button>
               </div>
             )
@@ -673,8 +676,11 @@ function WidgetTab({
             <p className="text-slate-600">Widget Add-On Status</p>
           </div>
           <div className="text-right">
-            <div className="text-3xl font-bold text-[#7C4DFF]">{widgetEnabled ? "$49" : "N/A"}</div>
-            {widgetEnabled && <div className="text-sm text-slate-600">per month</div>}
+            {/* PRICING1: the $49 was a second hardcoded price, and it
+                priced something that does not exist — see the note on
+                copySnippet. No figure until there is a product to
+                attach it to. */}
+            <div className="text-3xl font-bold text-slate-400">—</div>
           </div>
         </div>
       </div>
@@ -711,11 +717,9 @@ function WidgetTab({
           <div className="text-6xl mb-4">🔧</div>
           <h3 className="text-2xl font-bold text-slate-800 mb-3">Widget Add-On Not Enabled</h3>
           <p className="text-slate-600 mb-6">Contact your administrator to enable the widget add-on for your account</p>
-          <div className="bg-slate-100 rounded-lg p-4 inline-block">
-            <p className="text-sm text-slate-700">
-              <strong>💡 Widget Add-On:</strong> $49/month additional charge
-            </p>
-          </div>
+          {/* PRICING1: the price came off with the product. There is no
+              widget.js and no /embed route — quoting a monthly figure for
+              it was the same defect as the SSO line this ticket deletes. */}
         </div>
       )}
     </div>

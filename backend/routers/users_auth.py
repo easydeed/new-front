@@ -445,7 +445,13 @@ TRIAL_PERIOD_DAYS = 14
 # A fourth key ('starter') lived only in the billing UI and matched
 # nothing, which is why every free user saw a blank plan card.
 FREE_PLAN = 'free'
-PAID_PLANS = ('professional', 'enterprise')
+# PRICING1: Enterprise deleted. Its differentiators were SSO/SAML and
+# custom branding — zero files each, and now banned outright by the
+# claims gate. `business` is priced and visible on the pricing surfaces
+# and is NOT here, because it is not purchasable until the org model
+# (RED-S5) exists: a plan key the checkout accepts is a plan somebody
+# can buy.
+PAID_PLANS = ('professional',)
 
 
 @router.post("/users/upgrade")
@@ -500,14 +506,35 @@ async def upgrade_plan(req: UpgradeRequest, user_id: int = Depends(get_current_u
         # 7-day trial on the session is a promise broken on day 8.
         trial_days = int(os.getenv('STRIPE_TRIAL_PERIOD_DAYS', str(TRIAL_PERIOD_DAYS)))
 
-        # Map plans to Stripe price IDs (create these in your Stripe dashboard)
-        price_map = {
-            'professional': os.getenv('STRIPE_PROFESSIONAL_PRICE_ID', 'price_professional_default'),
-            'enterprise': os.getenv('STRIPE_ENTERPRISE_PRICE_ID', 'price_enterprise_default')
-        }
+        # PRICING1 — NO PLACEHOLDER FALLBACK.
+        #
+        # This read `os.getenv('STRIPE_PROFESSIONAL_PRICE_ID',
+        # 'price_professional_default')`. With the env var unset it
+        # handed Stripe the literal string 'price_professional_default',
+        # which is not a price ID, and Checkout failed with a Stripe
+        # error the officer saw as "Upgrade failed".
+        #
+        # That was the SECOND independent break in the paid path — the
+        # first was the row unpack (TRIAL1) — and it had the same
+        # quality: a default that made an unconfigured system look
+        # configured. An unconfigured service is an error, not a
+        # fabricated value. Same rule the AI endpoint follows for a
+        # missing OPENAI_API_KEY, and the same rule §4 states generally.
+        if req.plan not in PAID_PLANS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid plan selection. Available: {list(PAID_PLANS)}")
 
-        if req.plan not in price_map:
-            raise HTTPException(status_code=400, detail="Invalid plan selection")
+        price_map = {'professional': os.getenv('STRIPE_PROFESSIONAL_PRICE_ID')}
+        price_id = price_map.get(req.plan)
+        if not price_id:
+            # NAMED reason. "Upgrade failed" sent an operator looking at
+            # Stripe; this sends them to the variable that is missing.
+            logger_detail = (
+                f"Billing is not configured for the {req.plan} plan "
+                f"(STRIPE_{req.plan.upper()}_PRICE_ID is not set).")
+            print(f"[billing] {logger_detail}")
+            raise HTTPException(status_code=503, detail=logger_detail)
 
         # Create Stripe Checkout session
         session = stripe.checkout.Session.create(
@@ -516,7 +543,7 @@ async def upgrade_plan(req: UpgradeRequest, user_id: int = Depends(get_current_u
             metadata={'plan': req.plan, 'user_id': str(user_id)},
             payment_method_types=['card'],
             line_items=[{
-                'price': price_map[req.plan],
+                'price': price_id,
                 'quantity': 1
             }],
             mode='subscription',
@@ -529,6 +556,16 @@ async def upgrade_plan(req: UpgradeRequest, user_id: int = Depends(get_current_u
 
         return {"session_url": session.url, "session_id": session.id}
 
+    except HTTPException:
+        # PRICING1: the broad handler below was re-wrapping our OWN
+        # HTTPExceptions into 500s — so the deliberate, named
+        # "STRIPE_PROFESSIONAL_PRICE_ID is not set" 503 reached the
+        # officer as "Upgrade failed: 503: ..." with a 500 status.
+        #
+        # Found by this ticket's own test, not by reading. A precise
+        # error message is worthless if the layer above flattens it, and
+        # doctrine §4 is about the message the human actually sees.
+        raise
     except stripe.error.StripeError as e:
         raise HTTPException(status_code=400, detail=f"Stripe error: {str(e)}")
     except Exception as e:

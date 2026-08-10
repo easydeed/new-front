@@ -174,6 +174,29 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             db.execute(text(
                 "UPDATE users SET plan = :plan, updated_at = now() WHERE id = :uid"
             ), {"plan": plan, "uid": uid})
+        elif uid is not None and not plan:
+            # PRICING1 — THE FOUNDING-RATE TRAP, made loud.
+            #
+            # A Stripe PAYMENT LINK carries `client_reference_id` if you
+            # set one, but it carries `metadata.plan` only if you set
+            # that TOO. With the reference alone this branch used to fall
+            # through and return {"ok": true}: Stripe recorded a
+            # successful payment, the customer was charged, the plan
+            # stayed 'free', and nothing anywhere said so.
+            #
+            # Verified against the live handler before this was written —
+            # client_reference_id alone gives HTTP 200 and plan
+            # unchanged.
+            #
+            # We do NOT guess the plan from the price. Inferring which
+            # product somebody bought is the same class of move the whole
+            # doctrine refuses, and a founding-rate price ID would not
+            # match the standard one anyway. So: refuse silently to
+            # guess, and refuse loudly to be quiet.
+            print(f"[billing] PAID BUT NOT UPGRADED: checkout completed for "
+                  f"user {uid} with no metadata.plan — the Payment Link or "
+                  f"Checkout session must set metadata={{'plan': '<key>'}}. "
+                  f"The customer has been charged and their plan is unchanged.")
         # BILL1: a subscription checkout must leave a subscription row.
         # Previously nothing here or downstream ever inserted one.
         #

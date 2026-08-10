@@ -11,6 +11,7 @@
 import { describe, expect, it } from '@jest/globals';
 import * as fs from 'fs';
 import * as path from 'path';
+import { codeOnly } from '../test-support/sourceText';
 
 const APP_DIR = path.join(__dirname, '..', 'app');
 
@@ -99,9 +100,33 @@ describe('HM1 — dead promises stay dead', () => {
     expect(ALL).not.toContain('href="/security"');
   });
 
-  it('Contact Sales is owner-gated — hidden until an address exists', () => {
-    expect(PAGE).toContain('CONTACT_SALES_EMAIL');
-    expect(PAGE).toContain('Contact information coming soon');
+  it('there is no Contact Sales path at all — the tier it belonged to is gone', () => {
+    /*
+     * RETIRED BY PRICING1, in the diff that cured its condition.
+     *
+     * This asserted that Contact Sales was GATED on an address that had
+     * never been set, so the button rendered "Contact information coming
+     * soon" — a holding position, and an honest one while an Enterprise
+     * tier existed.
+     *
+     * PRICING1 deleted that tier: its differentiators were SSO/SAML and
+     * custom branding, zero files each. A CTA for a tier that does not
+     * exist cannot be honestly gated, only removed — and removing it
+     * satisfies the original intent (a dead promise is not presented as
+     * live) more completely than gating ever did.
+     *
+     * The pin now asserts the stronger fact. Left as a gate assertion it
+     * would have demanded the machinery for a button with nothing behind
+     * it, and the next contributor would have restored the button to go
+     * green.
+     */
+    // codeOnly, because the comment recording the removal necessarily
+    // names the thing removed — the twelfth trip of that family, and the
+    // helper exists precisely so it costs one import instead of a
+    // debugging session.
+    const code = codeOnly(PAGE);
+    expect(code).not.toContain('Contact Sales');
+    expect(code).not.toContain('CONTACT_SALES_EMAIL');
   });
 });
 

@@ -77,6 +77,15 @@ RULES = [
          "A claim with no definition and no audit behind it. The product "
          "has no session revocation and no rate limiting."),
     Rule("military-grade", r"military[\s\-]?grade", "Marketing language for a claim nobody measured."),
+    # PRICING1: the third spelling of the same unmeasured claim. It sat
+    # on the marketing page directly above "Security you can verify in
+    # the product — not badges", which is the sentence it contradicts.
+    # Two rules for two phrasings and a miss on the third is the pattern
+    # this gate keeps repeating: enumerate the property, not the
+    # examples that prompted it.
+    Rule("enterprise-grade", r"enterprise[\s\-]?grade",
+         "Same class as bank-level and military-grade: a superlative with "
+         "no definition and no audit behind it."),
     # The `[^.\n]{0,24}?` gap is the whole point. The first version of this
     # rule required the keyword to follow the percentage immediately, and
     # it pinned the four spellings that happened to exist. Its own test
