@@ -155,7 +155,12 @@ def request_verify_email(payload: VerifyEmailRequest):
             row = cur.fetchone()
         if not row:
             return {"message": "If the email exists, we sent a verification link."}
-        user_id, full_name, verified = row
+        # `verified` destructured to the STRING 'verified' — always
+        # truthy — so an unverified user asking for a verification link
+        # was told "Email already verified" and never got one.
+        user_id = row['id']
+        full_name = row['full_name']
+        verified = row['verified']
         if verified:
             return {"message": "Email already verified"}
         token = create_access_token(

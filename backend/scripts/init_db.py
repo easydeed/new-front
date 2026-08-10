@@ -1,4 +1,5 @@
 import psycopg2
+from db_rows import ROW_FACTORY
 from dotenv import load_dotenv
 import os
 from passlib.context import CryptContext
@@ -18,7 +19,7 @@ def init_database():
             print("❌ Error: DATABASE_URL or DB_URL not found in environment variables")
             return False
             
-        conn = psycopg2.connect(db_url)
+        conn = psycopg2.connect(db_url, cursor_factory=ROW_FACTORY)
         print("✅ Connected to database successfully")
         
         with conn.cursor() as cur:
@@ -272,7 +273,8 @@ def init_database():
             print(f"   👥 Total Users: {user_count}")
             print(f"   📄 Total Deeds: {deed_count}")
             print("   💼 Plan Distribution:")
-            for plan, count in plan_stats:
+            for _r in plan_stats:
+                plan, count = _r['plan'], _r['count']
                 print(f"      {plan.capitalize()}: {count} users")
             
             print("\n🔑 Test Accounts Created:")

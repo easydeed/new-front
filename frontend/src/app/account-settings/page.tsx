@@ -343,14 +343,26 @@ function BillingTab({
   onManageSubscription: () => void
   saving: boolean
 }) {
-  const currentPlan = userProfile?.plan || "starter"
+  // ONE VOCABULARY (TRIAL1). This read `|| "starter"` while the database
+  // stores 'free', so every free user fell through every comparison
+  // below: `currentPlan !== "starter"` was true, the "Current Plan"
+  // card rendered, and `plans.find(p => p.key === 'free')` was
+  // undefined — a blank name over a blank price, above a Manage
+  // Subscription button that 404s because they have no Stripe customer.
+  const currentPlan = userProfile?.plan || "free"
 
   const plans = [
     {
-      key: "starter",
-      name: "Starter",
-      price: "Free",
-      features: ["5 deeds/month", "Basic AI assistance", "Standard templates", "Email support"],
+      key: "free",
+      name: "Free",
+      price: "$0",
+      // TRIAL1: "5 deeds/month" removed. check_plan_limits is never
+      // called and plan_limits is never seeded, so the limit was never
+      // enforced. An unenforced limit written on a purchase surface is a
+      // promise we are not keeping — in our favour, which is the
+      // harmless direction, and still not something to leave written
+      // down.
+      features: ["All deed types", "Basic AI assistance", "Standard templates", "Email support"],
     },
     {
       key: "professional",
@@ -375,7 +387,7 @@ function BillingTab({
   return (
     <div className="space-y-8">
       {/* Current Plan Status */}
-      {currentPlan !== "starter" && (
+      {currentPlan !== "free" && (
         <div className="bg-slate-50 border border-[#7C4DFF]/30 rounded-xl p-6">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
@@ -455,7 +467,7 @@ function BillingTab({
       {/* Payment Methods */}
       <div>
         <h3 className="text-xl font-bold text-slate-800 mb-6">Payment Methods</h3>
-        {currentPlan === "starter" ? (
+        {currentPlan === "free" ? (
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 text-center">
             <CreditCard className="w-12 h-12 mx-auto mb-3 text-slate-400" />
             <p className="text-slate-600 mb-4">No payment method on file</p>
@@ -489,7 +501,7 @@ function BillingTab({
       {/* Billing History */}
       <div>
         <h3 className="text-xl font-bold text-slate-800 mb-6">Billing History</h3>
-        {currentPlan === "starter" ? (
+        {currentPlan === "free" ? (
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 text-center">
             <p className="text-slate-600">No billing history yet.</p>
             <p className="text-sm text-slate-500 mt-1">Your invoices will appear here once you upgrade to a paid plan.</p>

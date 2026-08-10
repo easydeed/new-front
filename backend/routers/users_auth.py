@@ -255,16 +255,18 @@ async def login_user(credentials: UserLogin = Body(...), request: Request = None
             record_attempt(credentials.email.lower(), _ip, succeeded=False)
             raise HTTPException(status_code=401, detail="Invalid email or password")
 
-        # Phase 7.5 FIX: Handle both RealDictCursor (dict) and regular cursor (tuple)
-        if isinstance(user, dict):
-            user_id = user.get('id')
-            password_hash = user.get('password_hash')
-            full_name = user.get('full_name')
-            plan = user.get('plan')
-            is_active = user.get('is_active')
-            role = user.get('role')
-        else:
-            user_id, password_hash, full_name, plan, is_active, role = user
+        # This branched on isinstance(user, dict) because the codebase
+        # once had two cursor factories. It has one (db_rows.ROW_FACTORY,
+        # pinned), so the tuple branch was unreachable — and unreachable
+        # is the worst place for this pattern to live, because it reads
+        # as proof that destructuring is a supported way to read a row.
+        # It is not. Read by key, always.
+        user_id = user['id']
+        password_hash = user['password_hash']
+        full_name = user['full_name']
+        plan = user['plan']
+        is_active = user['is_active']
+        role = user['role']
 
         if not is_active:
             raise HTTPException(status_code=401, detail="Account is deactivated")
@@ -431,6 +433,21 @@ async def patch_user_profile(
             print(f"[PROFILE PATCH ROLLBACK ERROR] {rollback_error}")
         raise HTTPException(status_code=500, detail=f"Profile update failed: {str(e)}")
 
+# TRIAL1 — the canonical trial length, and the ONE place it is written
+# on the server. The marketing page states the same number and a test
+# compares them, because a trial whose advertised length and actual
+# length differ is discovered by the customer, on the day it ends.
+TRIAL_PERIOD_DAYS = 14
+
+# The canonical plan vocabulary. `users.plan` DEFAULT is 'free',
+# registration writes 'free', and the webhook downgrades to 'free' on
+# cancellation — so 'free' is what the database means by the free tier.
+# A fourth key ('starter') lived only in the billing UI and matched
+# nothing, which is why every free user saw a blank plan card.
+FREE_PLAN = 'free'
+PAID_PLANS = ('professional', 'enterprise')
+
+
 @router.post("/users/upgrade")
 async def upgrade_plan(req: UpgradeRequest, user_id: int = Depends(get_current_user_id)):
     """Initiate plan upgrade via Stripe Checkout"""
@@ -446,7 +463,15 @@ async def upgrade_plan(req: UpgradeRequest, user_id: int = Depends(get_current_u
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        customer_id, email, full_name = user
+        # ROW CONTRACT (db_rows.py): a HybridRow is a DICT subclass with
+        # integer indexing bolted on. It overrides __getitem__, NOT
+        # __iter__ — so destructuring it yields COLUMN NAMES, silently.
+        # `customer_id` became the string 'stripe_customer_id', which is
+        # truthy, so the Stripe customer was never created and Checkout
+        # was called with customer='stripe_customer_id'. Nobody could pay.
+        customer_id = user['stripe_customer_id']
+        email = user['email']
+        full_name = user['full_name']
 
         # Create Stripe customer if not exists
         if not customer_id:
@@ -461,6 +486,19 @@ async def upgrade_plan(req: UpgradeRequest, user_id: int = Depends(get_current_u
             with db.conn.cursor() as cur:
                 cur.execute("UPDATE users SET stripe_customer_id = %s WHERE id = %s", (customer_id, user_id))
                 db.conn.commit()
+
+        # TRIAL1 — the free trial the marketing page has been promising.
+        #
+        # Card up front, N days free, auto-converts. Stripe runs the whole
+        # thing; nothing here tracks trial state, which is the point — a
+        # trial clock we kept ourselves would be a second source of truth
+        # about whether somebody has paid.
+        #
+        # 0 disables it, which is how you turn the trial off without a
+        # deploy. The value is MIRRORED on the marketing page and pinned
+        # (test_trial1_paid_path.py): a "14-day trial" in the copy and a
+        # 7-day trial on the session is a promise broken on day 8.
+        trial_days = int(os.getenv('STRIPE_TRIAL_PERIOD_DAYS', str(TRIAL_PERIOD_DAYS)))
 
         # Map plans to Stripe price IDs (create these in your Stripe dashboard)
         price_map = {
@@ -485,6 +523,8 @@ async def upgrade_plan(req: UpgradeRequest, user_id: int = Depends(get_current_u
             success_url=f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/account-settings?success=true",
             cancel_url=f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/account-settings?canceled=true",
             allow_promotion_codes=True,
+            **({'subscription_data': {'trial_period_days': trial_days}}
+               if trial_days > 0 else {}),
         )
 
         return {"session_url": session.url, "session_id": session.id}

@@ -351,7 +351,7 @@ def check_plan_limits(user_id: int, action: str = "deed_creation") -> dict:
             if not result:
                 return {"allowed": False, "message": "User not found"}
 
-            plan = result[0]
+            plan = result['plan']
 
             # Get plan limits
             cur.execute("""
@@ -363,7 +363,13 @@ def check_plan_limits(user_id: int, action: str = "deed_creation") -> dict:
             if not limits:
                 return {"allowed": True, "message": "No limits configured"}
 
-            max_deeds, max_api_calls = limits
+            # Uncalled today (TRIAL1's audit found zero call sites), and
+            # fixed anyway: wiring it up as it stood would have compared
+            # the string 'max_deeds_per_month' against 0, raised
+            # TypeError, been swallowed by the except, and returned
+            # "allowing action" — a limit check that always says yes.
+            max_deeds = limits['max_deeds_per_month']
+            max_api_calls = limits['api_calls_per_month']
 
             if action == "deed_creation" and max_deeds > 0:
                 # Check monthly deed count
@@ -371,7 +377,7 @@ def check_plan_limits(user_id: int, action: str = "deed_creation") -> dict:
                     SELECT COUNT(*) FROM deeds
                     WHERE user_id = %s AND created_at >= DATE_TRUNC('month', CURRENT_DATE)
                 """, (user_id,))
-                deed_count = cur.fetchone()[0]
+                deed_count = cur.fetchone()['count']
 
                 if deed_count >= max_deeds:
                     return {

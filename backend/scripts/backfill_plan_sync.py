@@ -29,6 +29,7 @@ import sys
 from datetime import datetime, timezone
 
 import psycopg2
+from db_rows import ROW_FACTORY
 import stripe
 
 
@@ -106,7 +107,7 @@ def main():
             if customer not in expected or created > expected[customer][1]:
                 expected[customer] = (plan, created)
 
-    conn = psycopg2.connect(db_url)
+    conn = psycopg2.connect(db_url, cursor_factory=ROW_FACTORY)
     missed_upgrades = []   # (user_id, email, current_plan, expected_plan, sub_created)
     downgrade_candidates = []  # (user_id, email, current_plan)
     with conn.cursor() as cur:
@@ -118,7 +119,9 @@ def main():
 
     unmapped_customers = {cust for _, cust in unmapped.values() if cust}
     matched_customers = set()
-    for user_id, email, current_plan, customer_id in rows:
+    for _r in rows:
+        user_id, email, current_plan, customer_id = (
+            _r['id'], _r['email'], _r['plan'], _r['stripe_customer_id'])
         if customer_id in expected:
             matched_customers.add(customer_id)
             expected_plan, sub_created = expected[customer_id]

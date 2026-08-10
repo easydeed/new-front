@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from sqlalchemy import text
 import json
+import os
 
 from .deps import get_db, get_settings, get_logger
 from .services.stripe_helpers import init_stripe, calc_stripe_fee
@@ -301,6 +302,68 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             "net": amount - fee
         })
         db.commit()
+        return {"ok": True}
+
+    # ── Renewal failure — the event dunning actually runs on ──────────
+    #
+    # TRIAL1. `payment_intent.payment_failed` was handled below, and it is
+    # the WRONG event for a subscription: it fires for one-off payment
+    # intents and wrote a payment_history row with user_id NULL, so a
+    # failed RENEWAL produced an unattributable row and no notification.
+    # A customer whose card expired kept full access, silently, forever.
+    #
+    # This is invoice.payment_failed: it carries the subscription and the
+    # customer, so the user can actually be resolved and told.
+    if etype == "invoice.payment_failed":
+        inv = obj
+        customer_id = inv.get("customer")
+        user_id = _resolve_user_id(db, customer_id)
+        amount = int(inv.get("amount_due") or 0)
+        currency = (inv.get("currency") or "usd").upper()
+
+        db.execute(text("""
+            INSERT INTO payment_history (invoice_id, user_id, stripe_payment_intent_id,
+                                         amount_cents, currency, status, payment_method,
+                                         failure_code, failure_message)
+            VALUES (NULL, :uid, :pi, :amt, :cur, 'failed', 'card', :code, :msg)
+        """), {
+            "uid": user_id,
+            "pi": inv.get("payment_intent"),
+            "amt": amount,
+            "cur": currency,
+            "code": "invoice_payment_failed",
+            "msg": (inv.get("last_finalization_error") or {}).get("message")
+                   or "Subscription renewal payment failed",
+        })
+        db.commit()
+
+        # Tell them. Through the E1 transport, so the attempt is on the
+        # record even when the send fails — a dunning email we cannot
+        # prove we sent is ADMIN3's problem all over again.
+        #
+        # Wrapped because notifying is strictly less important than
+        # returning 2xx to Stripe: an exception here would make Stripe
+        # retry an event we already recorded.
+        if user_id:
+            try:
+                row = db.execute(text(
+                    "SELECT email, full_name FROM users WHERE id = :uid"
+                ), {"uid": user_id}).mappings().first()
+                if row and row.get("email"):
+                    from utils.notifications import send_payment_failed_with_reason
+                    amount_text = f" of ${amount / 100:,.2f}" if amount else ""
+                    base = os.getenv("FRONTEND_URL", "http://localhost:3000")
+                    ok, reason = send_payment_failed_with_reason(
+                        row["email"], row.get("full_name") or "",
+                        amount_text, f"{base}/account-settings",
+                        user_id=user_id)
+                    if not ok:
+                        print(f"[billing] payment-failed email not sent "
+                              f"(user={user_id}): {reason}")
+            except Exception as e:
+                print(f"[billing] payment-failed notification error "
+                      f"(user={user_id}): {e}")
+
         return {"ok": True}
 
     if etype == "payment_intent.payment_failed":

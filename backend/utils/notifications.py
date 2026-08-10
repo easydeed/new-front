@@ -23,6 +23,8 @@ TEMPLATES = (
     "share_invite", "share_reminder", "share_approved", "share_rejected",
     "deed_completed", "password_reset", "verify_email", "password_changed",
     "welcome", "admin_api_key_request", "admin_new_user",
+    # TRIAL1 — renewal failure. The event dunning actually runs on.
+    "payment_failed",
 )
 
 
@@ -170,6 +172,21 @@ def send_verify_email_with_reason(user_email: str, full_name: str,
 def send_password_changed_with_reason(user_email: str, full_name: str) -> SendResult:
     return _send("password_changed", user_email,
                  email_templates.password_changed(full_name))
+
+
+def send_payment_failed_with_reason(user_email: str, full_name: str,
+                                    amount_text: str, billing_url: str,
+                                    user_id: Optional[int] = None) -> SendResult:
+    """TRIAL1 — tell the customer their renewal failed.
+
+    Goes through the one transport like every other send, so the attempt
+    lands in `email_log` whether or not it reaches them. A dunning email
+    nobody can prove we sent is the same problem ADMIN3 fixed for the
+    other ten templates.
+    """
+    return _send("payment_failed", user_email,
+                 email_templates.payment_failed(full_name, amount_text, billing_url),
+                 user_id=user_id)
 
 
 def send_welcome_with_reason(user_email: str, full_name: str) -> SendResult:

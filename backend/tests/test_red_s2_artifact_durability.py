@@ -30,6 +30,8 @@ import pytest
 BACKEND = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND))
 
+from db_rows import ROW_FACTORY  # noqa: E402
+
 from services import artifact_store as store_mod  # noqa: E402
 from tests.source_text import code_only  # noqa: E402
 
@@ -152,7 +154,7 @@ def test_the_live_constraint_is_restrict():
     import psycopg2
     from database import create_tables
     create_tables()
-    c = psycopg2.connect(LIVE_DB, connect_timeout=10)
+    c = psycopg2.connect(LIVE_DB, cursor_factory=ROW_FACTORY, connect_timeout=10)
     try:
         with c.cursor() as cur:
             cur.execute("""
@@ -162,7 +164,8 @@ def test_the_live_constraint_is_restrict():
             """)
             rows = cur.fetchall()
         assert rows, "no foreign key found on deed_pdfs"
-        for (deltype,) in rows:
+        for _r in rows:
+            deltype = _r["confdeltype"]
             assert deltype == "r", f"expected RESTRICT, got confdeltype={deltype!r}"
     finally:
         c.close()
@@ -174,7 +177,7 @@ def test_deleting_a_deed_with_an_artifact_is_refused():
     from database import create_tables
     create_tables()
     tag = uuid.uuid4().hex[:10]
-    c = psycopg2.connect(LIVE_DB, connect_timeout=10)
+    c = psycopg2.connect(LIVE_DB, cursor_factory=ROW_FACTORY, connect_timeout=10)
     try:
         with c.cursor() as cur:
             cur.execute("INSERT INTO users (email, password_hash) VALUES (%s,%s) RETURNING id",

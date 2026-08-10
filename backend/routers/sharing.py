@@ -430,7 +430,13 @@ def get_shared_deed_feedback(shared_deed_id: int, user_id: int = Depends(get_cur
             row = cur.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Shared deed not found")
-        feedback, feedback_at, feedback_by, owner_user_id = row
+        # `owner_user_id` destructured to the string 'owner_user_id', so
+        # `owner_user_id != user_id` was ALWAYS true: the deed's own owner
+        # got a permanent 403 reading feedback on her own shared deed.
+        feedback = row['feedback']
+        feedback_at = row['feedback_at']
+        feedback_by = row['feedback_by']
+        owner_user_id = row['owner_user_id']
         if owner_user_id != user_id:
             raise HTTPException(status_code=403, detail="You don't have permission to view this feedback")
         return {
