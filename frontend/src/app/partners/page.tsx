@@ -1,6 +1,52 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+/**
+ * PARTNER1 — the Partners screen.
+ *
+ * ═══ PART 1: THE BUG ═══
+ *
+ * A partner's address prints on the deed. D2 wired it end to end:
+ * `partners/selectlist` assembles a one-line mailing address server-side,
+ * `RecordingSection` fills `requestedByAddress` when a partner is chosen,
+ * `PreviewPanel` renders it, and all five chassis print it in the
+ * Recording Requested By block.
+ *
+ * Every link in that chain worked. The address was always empty anyway,
+ * because THIS SCREEN never captured it.
+ *
+ * The columns exist (`partners.address_line1/2, city, state,
+ * postal_code`), the API models accept them, `create_partner` and
+ * `update_partner` write them, `list_partners` returns them — and the
+ * form rendered six inputs, none of which were an address. `blank()` did
+ * not even seed the keys.
+ *
+ * The sharpest part: the OTHER two partner-creation surfaces
+ * (`QuickAddPartnerModal`, opened from the builder's Recording section,
+ * and `AddPartnerModal`) both capture address correctly. So the same
+ * partner got an address when created inside the deed builder and none
+ * when created from the page built for managing partners — and this page
+ * is the only place to EDIT, so the gap could not be repaired either.
+ *
+ * A partner with no address now surfaces as an editable gap ("Add
+ * address"), never as a silent blank that reaches a document.
+ *
+ * ═══ PART 2: BRAND AND UX ═══
+ *
+ * This screen predates BRAND2. It used flat blue/red buttons with emoji
+ * glyphs, and Quick Stats in a fourth palette (blue/emerald/amber) — the
+ * amber being the one that matters, because BRAND.md reserves amber for
+ * "unconfirmed external data" and a partner count is neither. Colour
+ * carrying a meaning somewhere else must not be spent on decoration here.
+ *
+ * Now: brand purple for primary, ghost for cancel, red as outline for
+ * delete, lucide icons throughout, one accent for stats with zero-values
+ * in muted gray, and category chips in semantic neutral tones.
+ */
+
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  Plus, Pencil, Trash2, X, Save, Search, Users, MapPin, Mail, Loader2,
+} from 'lucide-react';
 import Sidebar from '../../components/Sidebar';
 import '../../styles/dashboard.css';
 
@@ -25,25 +71,54 @@ type Partner = {
   created_at?: string;
 };
 
+/** Title Case for a snake_case enum. Display only — never written back. */
+function titleCase(value?: string): string {
+  if (!value) return '';
+  return value
+    .split('_')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
+/**
+ * The one-line address, assembled exactly as the backend's `_addr()` does
+ * for the selectlist. Mirrored deliberately: what the officer reads in
+ * this table must be what lands in the deed's requested-by block, and a
+ * second formatting rule here would drift from the one that prints.
+ */
+export function partnerAddressLine(p: Partial<Partner>): string {
+  const street = [p.address_line1, p.address_line2]
+    .map((s) => (s || '').trim()).filter(Boolean).join(' ');
+  const locality = [p.state, p.postal_code]
+    .map((s) => (s || '').trim()).filter(Boolean).join(' ');
+  const city = (p.city || '').trim();
+  const tail = [city, locality].filter(Boolean).join(', ');
+  return [street, tail].filter(Boolean).join(', ');
+}
+
 export default function PartnersPage() {
   const [items, setItems] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState<Partial<Partner> | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [query, setQuery] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const token = () =>
+    typeof window !== 'undefined'
+      ? localStorage.getItem('token') || localStorage.getItem('access_token')
+      : null;
 
   const load = () => {
     setLoading(true);
-    const token = typeof window !== 'undefined' 
-      ? (localStorage.getItem('token') || localStorage.getItem('access_token'))
-      : null;
-    
-    fetch('/api/partners', { 
+    const t = token();
+    fetch('/api/partners', {
       credentials: 'include',
-      headers: {
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      }
+      headers: { ...(t ? { Authorization: `Bearer ${t}` } : {}) },
     })
-      .then(r => r.json()).then(d => setItems(d.items || d || []))
+      .then((r) => r.json())
+      .then((d) => setItems(d.items || d || []))
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
   };
@@ -58,72 +133,108 @@ export default function PartnersPage() {
       phone: '',
       category: 'title_company',
       role: 'title_officer',
+      // PARTNER1: these five were absent, which is the entire bug. An
+      // address the form never seeds is an address the form never sends.
+      address_line1: '',
+      address_line2: '',
+      city: '',
+      state: 'CA',
+      postal_code: '',
       is_active: true,
-      notes: ''
+      notes: '',
     };
   }
 
   function save(it: Partial<Partner>) {
+    if (!(it.company_name || '').trim()) {
+      setFormError('Company name is required.');
+      return;
+    }
+    setFormError(null);
+    setSaving(true);
     const method = it.id ? 'PUT' : 'POST';
     const url = it.id ? `/api/partners/${it.id}` : '/api/partners';
-    const token = typeof window !== 'undefined' 
-      ? (localStorage.getItem('token') || localStorage.getItem('access_token'))
-      : null;
-    
+    const t = token();
+
     fetch(url, {
       method,
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        ...(t ? { Authorization: `Bearer ${t}` } : {}),
       },
       credentials: 'include',
-      body: JSON.stringify(it)
-    }).then(r => r.json())
-    .then(() => { 
-      setEditing(null); 
-      setShowForm(false);
-      load(); 
-    });
+      body: JSON.stringify(it),
+    })
+      .then(async (r) => {
+        if (!r.ok) {
+          const body = await r.json().catch(() => ({}));
+          throw new Error(body?.detail || `Save failed (${r.status})`);
+        }
+        return r.json();
+      })
+      .then(() => {
+        setEditing(null);
+        setShowForm(false);
+        load();
+      })
+      .catch((e) => setFormError(e instanceof Error ? e.message : 'Save failed'))
+      .finally(() => setSaving(false));
   }
 
   function del(id: string) {
     if (!confirm('Delete this partner?')) return;
-    const token = typeof window !== 'undefined' 
-      ? (localStorage.getItem('token') || localStorage.getItem('access_token'))
-      : null;
-    
-    fetch(`/api/partners/${id}`, { 
-      method: 'DELETE', 
+    const t = token();
+    fetch(`/api/partners/${id}`, {
+      method: 'DELETE',
       credentials: 'include',
-      headers: {
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      }
-    })
-      .then(() => load());
+      headers: { ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+    }).then(() => {
+      setEditing(null);
+      setShowForm(false);
+      load();
+    });
   }
 
-  function getCategoryBadge(category: string) {
-    const colors: Record<string, string> = {
-      title_company: '#3b82f6',
-      real_estate: '#10b981',
-      lender: '#f59e0b',
-      other: '#6b7280'
+  /**
+   * Category chips in SEMANTIC NEUTRAL tones.
+   *
+   * The old chips used blue / emerald / amber. Amber is the problem:
+   * BRAND.md reserves it for "unconfirmed external data", and an officer
+   * scanning for the amber that means "no human has said yes to this" was
+   * reading past a lender count. A partner's category is a label, not a
+   * state, so it gets slate weights — distinguishable, and carrying no
+   * meaning borrowed from the doctrine palette.
+   */
+  function categoryChip(category: string) {
+    const tone: Record<string, string> = {
+      title_company: 'bg-slate-100 text-slate-700 ring-slate-200',
+      real_estate: 'bg-slate-50 text-slate-600 ring-slate-200',
+      lender: 'bg-gray-100 text-gray-700 ring-gray-300',
+      other: 'bg-gray-50 text-gray-500 ring-gray-200',
     };
-    const color = colors[category] || colors.other;
     return (
-      <span style={{
-        padding: '4px 8px',
-        borderRadius: '6px',
-        fontSize: '0.75rem',
-        fontWeight: '500',
-        background: `${color}15`,
-        color: color,
-        whiteSpace: 'nowrap'
-      }}>
-        {category.replace('_', ' ')}
+      <span
+        className={`inline-block whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${tone[category] || tone.other}`}
+      >
+        {titleCase(category)}
       </span>
     );
   }
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((p) =>
+      [p.company_name, p.contact_name, p.email, p.phone, p.city, p.address_line1]
+        .some((f) => (f || '').toLowerCase().includes(q))
+    );
+  }, [items, query]);
+
+  const missingAddress = items.filter((p) => !partnerAddressLine(p)).length;
+
+  /** One accent for stats; a zero is muted, not shouted. */
+  const statValue = (n: number) =>
+    n === 0 ? 'text-gray-400' : 'text-brand-600';
 
   return (
     <div className="flex bg-gray-50 min-h-screen">
@@ -131,220 +242,388 @@ export default function PartnersPage() {
       <main className="flex-1 p-4 md:p-8 overflow-auto">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Industry Partners</h1>
               <p className="text-gray-500 mt-1">
                 {items.length} partner{items.length !== 1 ? 's' : ''}
               </p>
             </div>
-            <button 
-              className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors" 
-              onClick={() => { 
-                setEditing(blank()); 
-                setShowForm(true); 
-              }}
+            <button
+              className="inline-flex items-center gap-2 bg-brand-500 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 transition-colors"
+              onClick={() => { setEditing(blank()); setFormError(null); setShowForm(true); }}
             >
-              <span>➕</span> Add New Partner
+              <Plus className="w-4 h-4" /> Add New Partner
             </button>
           </div>
 
-          {/* Edit Form (when active) */}
-          {showForm && editing && (
-            <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">{editing.id ? 'Edit Partner' : 'New Partner'}</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Company Name *</label>
-                  <input 
-                    value={editing.company_name || ''} 
-                    onChange={e => setEditing({...editing, company_name: e.target.value})} 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Pacific Coast Title"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Contact Name</label>
-                  <input 
-                    value={editing.contact_name || ''} 
-                    onChange={e => setEditing({...editing, contact_name: e.target.value})} 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="John Smith"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input 
-                    value={editing.email || ''} 
-                    onChange={e => setEditing({...editing, email: e.target.value})} 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="john@pct.com"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                  <input 
-                    value={editing.phone || ''} 
-                    onChange={e => setEditing({...editing, phone: e.target.value})} 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="(555) 123-4567"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                  <select 
-                    value={editing.category || 'title_company'} 
-                    onChange={e => setEditing({...editing, category: e.target.value})} 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c.replace('_',' ')}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                  <select 
-                    value={editing.role || 'title_officer'} 
-                    onChange={e => setEditing({...editing, role: e.target.value})} 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    {ROLES.map(r => <option key={r} value={r}>{r.replace('_',' ')}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                <textarea 
-                  value={editing.notes || ''} 
-                  onChange={e => setEditing({...editing, notes: e.target.value})} 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[80px]"
-                  placeholder="Additional notes..."
-                />
-              </div>
-              <div className="flex gap-2 mt-4">
-                <button 
-                  className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                  onClick={() => save(editing)}
-                >
-                  {editing.id ? '💾 Update' : '➕ Create'}
-                </button>
-                {editing.id && (
-                  <button 
-                    className="inline-flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition-colors"
-                    onClick={() => del(editing.id!)}
-                  >
-                    🗑️ Delete
-                  </button>
-                )}
-                <button 
-                  className="inline-flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
-                  onClick={() => { setEditing(null); setShowForm(false); }}
-                >
-                  ✖️ Cancel
-                </button>
-              </div>
+          {/* PARTNER1: partners with no address are named, once, with the
+              way to fix them. An address missing here becomes a blank
+              line on a recorded document, so silence is the one thing
+              this must not do. */}
+          {!loading && missingAddress > 0 && (
+            <div className="flex items-start gap-2 mb-4 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700">
+              <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-400" />
+              <span>
+                {missingAddress} partner{missingAddress !== 1 ? 's have' : ' has'} no
+                address on file. The address prints in the deed&apos;s
+                &ldquo;Recording Requested By&rdquo; block — add one so it is not
+                blank on the document.
+              </span>
             </div>
           )}
 
-          {/* Partners Table */}
+          {/* Search — only once there is enough to search through. */}
+          {items.length > 5 && (
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search partners by name, contact, email or city"
+                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              />
+            </div>
+          )}
+
+          {/* Partners Table. Lower-priority columns (email/phone) drop out
+              at narrow widths rather than forcing a horizontal scroll. */}
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
+            <table className="w-full table-fixed">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="w-[30%] text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Company</th>
+                  <th className="w-[26%] text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Address</th>
+                  <th className="hidden lg:table-cell w-[14%] text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Contact</th>
+                  <th className="w-[14%] text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Category</th>
+                  <th className="hidden xl:table-cell w-[12%] text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
+                  <th className="w-[80px] text-right px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {loading && (
                   <tr>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Company</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Contact</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Category</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Role</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Phone</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Added</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                    <td colSpan={6} className="text-center py-10 text-gray-500">
+                      <Loader2 className="w-5 h-5 animate-spin inline-block mr-2 align-text-bottom" />
+                      Loading partners…
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {loading && (
-                    <tr>
-                      <td colSpan={8} className="text-center py-8 text-gray-500">
-                        Loading partners...
+                )}
+
+                {/* A real empty state: what this is for, and the way in. */}
+                {!loading && items.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-14">
+                      <div className="text-center max-w-sm mx-auto">
+                        <Users className="w-8 h-8 mx-auto text-gray-300" />
+                        <h3 className="mt-3 font-semibold text-gray-900">No partners yet</h3>
+                        <p className="mt-1 text-sm text-gray-500">
+                          Add the title companies, agents and lenders you work with.
+                          Choosing one while drafting fills the deed&apos;s Recording
+                          Requested By block, including its address.
+                        </p>
+                        <button
+                          className="mt-4 inline-flex items-center gap-2 bg-brand-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-brand-600 transition-colors"
+                          onClick={() => { setEditing(blank()); setFormError(null); setShowForm(true); }}
+                        >
+                          <Plus className="w-4 h-4" /> Add your first partner
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+
+                {!loading && items.length > 0 && filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="text-center py-10 text-gray-500 text-sm">
+                      No partners match &ldquo;{query}&rdquo;.
+                    </td>
+                  </tr>
+                )}
+
+                {!loading && filtered.map((p) => {
+                  const address = partnerAddressLine(p);
+                  return (
+                    <tr key={p.id} className="hover:bg-gray-50 align-top">
+                      <td className="px-4 py-4 font-medium text-gray-900 break-words">
+                        {p.company_name}
+                        <span className="lg:hidden block text-sm font-normal text-gray-500">
+                          {p.contact_name || ''}
+                        </span>
                       </td>
-                    </tr>
-                  )}
-                  {!loading && items.length === 0 && (
-                    <tr>
-                      <td colSpan={8} className="text-center py-8 text-gray-500">
-                        No partners yet. Click "Add New Partner" to get started.
+                      <td className="px-4 py-4 text-sm text-gray-600 break-words">
+                        {address || (
+                          /* An editable gap, never a silent blank. */
+                          <button
+                            onClick={() => { setEditing(p); setFormError(null); setShowForm(true); }}
+                            className="inline-flex items-center gap-1 text-brand-600 hover:text-brand-700 hover:underline"
+                          >
+                            <MapPin className="w-3.5 h-3.5" /> Add address
+                          </button>
+                        )}
                       </td>
-                    </tr>
-                  )}
-                  {!loading && items.map((p) => (
-                    <tr key={p.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 font-medium text-gray-900">{p.company_name}</td>
-                      <td className="px-6 py-4 text-gray-600">{p.contact_name || '—'}</td>
-                      <td className="px-6 py-4">{getCategoryBadge(p.category)}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{p.role?.replace('_',' ')}</td>
-                      <td className="px-6 py-4">
+                      <td className="hidden lg:table-cell px-4 py-4 text-gray-600 break-words">
+                        {p.contact_name || '—'}
+                      </td>
+                      <td className="px-4 py-4">{categoryChip(p.category)}</td>
+                      <td className="hidden xl:table-cell px-4 py-4 break-words">
                         {p.email ? (
-                          <a href={`mailto:${p.email}`} className="text-blue-600 hover:underline">
-                            {p.email}
+                          <a href={`mailto:${p.email}`} className="text-brand-600 hover:underline inline-flex items-center gap-1">
+                            <Mail className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span className="break-all">{p.email}</span>
                           </a>
                         ) : '—'}
                       </td>
-                      <td className="px-6 py-4 text-gray-600">{p.phone || '—'}</td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex gap-2">
-                          <button 
-                            className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors"
-                            onClick={() => { 
-                              setEditing(p); 
-                              setShowForm(true); 
-                            }}
+                      <td className="px-4 py-4">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            aria-label={`Edit ${p.company_name}`}
+                            title="Edit"
+                            className="p-2 rounded-md text-gray-500 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+                            onClick={() => { setEditing(p); setFormError(null); setShowForm(true); }}
                           >
-                            ✏️ Edit
+                            <Pencil className="w-4 h-4" />
                           </button>
-                          <button 
-                            className="text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition-colors"
+                          <button
+                            aria-label={`Delete ${p.company_name}`}
+                            title="Delete"
+                            className="p-2 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                             onClick={() => del(p.id)}
                           >
-                            🗑️
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
 
-          {/* Stats Card */}
+          {/* Quick Stats — ONE accent, zeros muted. */}
           {items.length > 0 && (
             <div className="bg-white rounded-xl border border-gray-200 p-6 mt-6">
               <h4 className="text-lg font-semibold text-gray-900 mb-4">Quick Stats</h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="text-sm text-gray-500">Total Partners</div>
-                  <div className="text-2xl font-bold text-blue-600">{items.length}</div>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="text-sm text-gray-500">Title Companies</div>
-                  <div className="text-2xl font-bold text-blue-500">{items.filter(p => p.category === 'title_company').length}</div>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="text-sm text-gray-500">Real Estate</div>
-                  <div className="text-2xl font-bold text-emerald-500">{items.filter(p => p.category === 'real_estate').length}</div>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="text-sm text-gray-500">Lenders</div>
-                  <div className="text-2xl font-bold text-amber-500">{items.filter(p => p.category === 'lender').length}</div>
-                </div>
+                {[
+                  { label: 'Total Partners', n: items.length },
+                  { label: 'Title Companies', n: items.filter((p) => p.category === 'title_company').length },
+                  { label: 'Real Estate', n: items.filter((p) => p.category === 'real_estate').length },
+                  { label: 'Lenders', n: items.filter((p) => p.category === 'lender').length },
+                ].map((s) => (
+                  <div key={s.label} className="bg-gray-50 rounded-lg p-4">
+                    <div className="text-sm text-gray-500">{s.label}</div>
+                    <div className={`text-2xl font-bold ${statValue(s.n)}`}>{s.n}</div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
         </div>
       </main>
+
+      {/* Edit form as a SLIDE-OVER. It used to open as a card above the
+          table, pushing the list below the fold — so editing a partner
+          cost you the sight of every other partner. */}
+      {showForm && editing && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div
+            className="absolute inset-0 bg-gray-900/30"
+            onClick={() => { setEditing(null); setShowForm(false); }}
+            aria-hidden
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={editing.id ? 'Edit partner' : 'New partner'}
+            className="relative h-full w-full max-w-lg bg-white shadow-xl overflow-y-auto"
+          >
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {editing.id ? 'Edit Partner' : 'New Partner'}
+              </h3>
+              <button
+                aria-label="Close"
+                className="p-2 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+                onClick={() => { setEditing(null); setShowForm(false); }}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-4">
+              {formError && (
+                <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {formError}
+                </p>
+              )}
+
+              <Field label="Company Name *">
+                <input
+                  value={editing.company_name || ''}
+                  onChange={(e) => setEditing({ ...editing, company_name: e.target.value })}
+                  className={inputCls}
+                  placeholder="Pacific Coast Title"
+                />
+              </Field>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="Contact Name">
+                  <input
+                    value={editing.contact_name || ''}
+                    onChange={(e) => setEditing({ ...editing, contact_name: e.target.value })}
+                    className={inputCls}
+                    placeholder="John Smith"
+                  />
+                </Field>
+                <Field label="Phone">
+                  <input
+                    value={editing.phone || ''}
+                    onChange={(e) => setEditing({ ...editing, phone: e.target.value })}
+                    className={inputCls}
+                    placeholder="(555) 123-4567"
+                  />
+                </Field>
+              </div>
+
+              <Field label="Email">
+                <input
+                  value={editing.email || ''}
+                  onChange={(e) => setEditing({ ...editing, email: e.target.value })}
+                  className={inputCls}
+                  placeholder="john@pct.com"
+                />
+              </Field>
+
+              {/* PARTNER1 — the fields this form never had. */}
+              <div className="pt-2 border-t border-gray-100">
+                <p className="text-sm font-semibold text-gray-900">Mailing address</p>
+                <p className="text-xs text-gray-500 mt-0.5 mb-3">
+                  Prints in the deed&apos;s &ldquo;Recording Requested By&rdquo; block when
+                  this partner is selected.
+                </p>
+                <div className="space-y-4">
+                  <Field label="Address Line 1">
+                    <input
+                      value={editing.address_line1 || ''}
+                      onChange={(e) => setEditing({ ...editing, address_line1: e.target.value })}
+                      className={inputCls}
+                      placeholder="1234 Wilshire Blvd"
+                    />
+                  </Field>
+                  <Field label="Address Line 2">
+                    <input
+                      value={editing.address_line2 || ''}
+                      onChange={(e) => setEditing({ ...editing, address_line2: e.target.value })}
+                      className={inputCls}
+                      placeholder="Suite 500"
+                    />
+                  </Field>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <Field label="City">
+                      <input
+                        value={editing.city || ''}
+                        onChange={(e) => setEditing({ ...editing, city: e.target.value })}
+                        className={inputCls}
+                        placeholder="Los Angeles"
+                      />
+                    </Field>
+                    <Field label="State">
+                      <input
+                        value={editing.state || ''}
+                        onChange={(e) => setEditing({ ...editing, state: e.target.value })}
+                        className={inputCls}
+                        placeholder="CA"
+                        maxLength={2}
+                      />
+                    </Field>
+                    <Field label="ZIP">
+                      <input
+                        value={editing.postal_code || ''}
+                        onChange={(e) => setEditing({ ...editing, postal_code: e.target.value })}
+                        className={inputCls}
+                        placeholder="90017"
+                      />
+                    </Field>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-100">
+                <Field label="Category">
+                  <select
+                    value={editing.category || 'title_company'}
+                    onChange={(e) => setEditing({ ...editing, category: e.target.value })}
+                    className={inputCls}
+                  >
+                    {CATEGORIES.map((c) => <option key={c} value={c}>{titleCase(c)}</option>)}
+                  </select>
+                </Field>
+                <Field label="Role">
+                  <select
+                    value={editing.role || 'title_officer'}
+                    onChange={(e) => setEditing({ ...editing, role: e.target.value })}
+                    className={inputCls}
+                  >
+                    {ROLES.map((r) => <option key={r} value={r}>{titleCase(r)}</option>)}
+                  </select>
+                </Field>
+              </div>
+
+              <Field label="Notes">
+                <textarea
+                  value={editing.notes || ''}
+                  onChange={(e) => setEditing({ ...editing, notes: e.target.value })}
+                  className={`${inputCls} min-h-[80px]`}
+                  placeholder="Additional notes…"
+                />
+              </Field>
+            </div>
+
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 flex flex-wrap items-center gap-2">
+              <button
+                disabled={saving}
+                className="inline-flex items-center gap-2 bg-brand-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-brand-600 disabled:opacity-60 transition-colors"
+                onClick={() => save(editing)}
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {editing.id ? 'Update' : 'Create'}
+              </button>
+              {/* Ghost cancel — the way out is not a competing button. */}
+              <button
+                className="inline-flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                onClick={() => { setEditing(null); setShowForm(false); }}
+              >
+                Cancel
+              </button>
+              {editing.id && (
+                /* Red as OUTLINE, never a filled block: a destructive
+                   action should be findable, not the loudest thing on
+                   screen. */
+                <button
+                  className="ml-auto inline-flex items-center gap-2 border border-red-300 text-red-700 px-4 py-2 rounded-lg font-medium hover:bg-red-50 transition-colors"
+                  onClick={() => del(editing.id!)}
+                >
+                  <Trash2 className="w-4 h-4" /> Delete
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const inputCls =
+  'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500';
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      {children}
     </div>
   );
 }
