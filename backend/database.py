@@ -241,6 +241,35 @@ def create_tables():
                 viewed_at TIMESTAMPTZ, view_count INT DEFAULT 0,
                 last_reminder_sent_at TIMESTAMPTZ, reminder_count INT DEFAULT 0
             )""",
+            # ── NOTARY1: the signing handoff ─────────────────────────────
+            #
+            # A share is now one of two KINDS. A review share asks a
+            # colleague to approve; a signing request asks a notary to
+            # pick a time. They travel the same token machinery and mean
+            # different things, so the kind is a column rather than an
+            # inference from which fields happen to be set.
+            #
+            # THE STATE IS DERIVED, NOT STORED IN `status`, and that is
+            # T-5's ruling transferred verbatim. `deed_shares.status`
+            # carries sent/viewed/approved/rejected/revoked/expired — a
+            # vocabulary in active use. "Scheduled" is ORTHOGONAL to
+            # "viewed": a scheduled-and-viewed request must be
+            # expressible, and folding scheduled into that column makes
+            # the two mutually exclusive, exactly as adding 'superseded'
+            # to deeds.status would have made a superseded deed stop
+            # being a completed one.
+            #
+            # `scheduled_by` records WHICH HUMAN asserted the time — the
+            # notary tapping a window, or the officer recording an
+            # agreement reached by phone. Both are real; they are not the
+            # same fact; the record keeps them apart. Mirrors RED-S4's
+            # recording_asserted_by/_at exactly.
+            "ALTER TABLE deed_shares ADD COLUMN IF NOT EXISTS share_kind VARCHAR(24) NOT NULL DEFAULT 'review'",
+            "ALTER TABLE deed_shares ADD COLUMN IF NOT EXISTS proposed_windows JSONB",
+            "ALTER TABLE deed_shares ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMPTZ",
+            "ALTER TABLE deed_shares ADD COLUMN IF NOT EXISTS scheduled_by VARCHAR(16)",
+            "ALTER TABLE deed_shares ADD COLUMN IF NOT EXISTS scheduled_asserted_at TIMESTAMPTZ",
+            "CREATE INDEX IF NOT EXISTS idx_deed_shares_kind ON deed_shares(share_kind, created_at DESC)",
             """CREATE TABLE IF NOT EXISTS plan_limits (
                 plan_name VARCHAR(50) PRIMARY KEY,
                 max_deeds_per_month INT,

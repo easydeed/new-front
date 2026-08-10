@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Sidebar from "@/components/Sidebar"
-import { Send, Eye, Clock, CheckCircle, XCircle, AlertCircle, RotateCw, X, Plus, FileText, MessageSquare } from "lucide-react"
+import { Send, Eye, Clock, CheckCircle, XCircle, AlertCircle, RotateCw, X, Plus, FileText, MessageSquare, CalendarClock } from "lucide-react"
 import { toast } from "sonner"
 import { SessionExpiredError, apiFetch } from "@/lib/apiClient"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
@@ -19,6 +19,20 @@ interface SharedDeed {
   viewed_at?: string
   response_date?: string
   feedback?: string
+  /**
+   * NOTARY1. `share_type` is now the real kind ("review" or
+   * "signing_request") rather than the constant "review" it used to be.
+   *
+   * `signing_summary` is a SENTENCE THE SERVER WROTE, and it is rendered
+   * verbatim on purpose: the backend's scheduling_label() is the only
+   * place that turns a scheduling state into words, so that "scheduled"
+   * can never drift into a claim that the signing will happen. This
+   * screen does not compose its own version, and must not start.
+   */
+  share_type?: string
+  signing_summary?: string | null
+  scheduled_at?: string | null
+  scheduled_by?: string | null
 }
 
 // Issue labels for structured feedback
@@ -229,6 +243,12 @@ export default function SharedDeedsPageV0() {
   }
 
   const canRemind = (deed: SharedDeed) => {
+    // NOTARY1: the reminder template says "waiting on your review," which
+    // is the wrong question to re-ask a notary. Rather than send a notary
+    // an email about a review she was never asked for, the button is
+    // absent until there is a reminder written for her — and the server
+    // refuses the call too, so this is a rule and not a hidden button.
+    if (deed.share_type === "signing_request") return false
     return !["expired", "approved", "rejected", "revoked"].includes(deed.status)
   }
 
@@ -356,6 +376,15 @@ export default function SharedDeedsPageV0() {
                           <td className="py-4 px-6">
                             <div className="flex flex-col gap-2">
                               {getStatusBadge(deed.status)}
+                              {deed.share_type === "signing_request" && (
+                                <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600">
+                                  <CalendarClock className="h-3 w-3" />
+                                  Signing request
+                                </span>
+                              )}
+                              {deed.signing_summary && (
+                                <span className="text-xs text-slate-500">{deed.signing_summary}</span>
+                              )}
                               {deed.status === "rejected" && (
                                 <button
                                   onClick={() => handleViewFeedback(deed.id)}

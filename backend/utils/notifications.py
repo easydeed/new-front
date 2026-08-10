@@ -25,6 +25,10 @@ TEMPLATES = (
     "welcome", "admin_api_key_request", "admin_new_user",
     # TRIAL1 — renewal failure. The event dunning actually runs on.
     "payment_failed",
+    # NOTARY1 — the two ends of the signing handoff. Officer→notary asks
+    # about availability; notary→officer (or officer→herself) records a
+    # time. There is deliberately no third: no signer is ever emailed.
+    "share_signing_request", "signing_time_recorded",
 )
 
 
@@ -82,7 +86,8 @@ def _record(template: str, recipient: str, subject: str, ok: bool,
 
 def _send(template: str, recipient: str, rendered, *,
           user_id: Optional[int] = None,
-          context: Optional[Dict[str, Any]] = None) -> SendResult:
+          context: Optional[Dict[str, Any]] = None,
+          attachments: Optional[list] = None) -> SendResult:
     """Render → send → record. THE choke point.
 
     Every template goes through here, which is the whole design: the
@@ -94,7 +99,7 @@ def _send(template: str, recipient: str, rendered, *,
     never got it because nothing forced them to.
     """
     subject, html, text = rendered
-    ok, reason = send_email_with_reason(recipient, subject, html, text)
+    ok, reason = send_email_with_reason(recipient, subject, html, text, attachments)
     _record(template, recipient, subject, ok, reason, user_id, context)
     return ok, reason
 
@@ -187,6 +192,43 @@ def send_payment_failed_with_reason(user_email: str, full_name: str,
     return _send("payment_failed", user_email,
                  email_templates.payment_failed(full_name, amount_text, billing_url),
                  user_id=user_id)
+
+
+def send_signing_request_with_reason(recipient_email: str, recipient_name: str,
+                                     owner_name: str, deed_type: str,
+                                     property_address: Optional[str], share_link: str,
+                                     window_texts, expires_at: Optional[str] = None,
+                                     attachments: Optional[list] = None) -> SendResult:
+    """NOTARY1 — officer → notary, with a calendar file per proposed time.
+
+    The attachments ride the ONE transport (ruling 4: the .ics ships via
+    the existing E1 path), so a signing request that failed to send is
+    recorded in `email_log` exactly like every other template. An
+    attachment path that grew its own sender would have put the most
+    time-sensitive email in the product outside the ledger.
+    """
+    return _send("share_signing_request", recipient_email,
+                 email_templates.share_signing_request(
+                     recipient_name, owner_name, deed_type, property_address,
+                     window_texts, share_link, expires_at),
+                 context={"deed_type": deed_type, "windows": len(window_texts or [])},
+                 attachments=attachments)
+
+
+def send_signing_time_recorded_with_reason(owner_email: str, owner_name: str,
+                                           deed_type: str, property_address: Optional[str],
+                                           notary_email: str, when_text: str,
+                                           asserted_note: str, view_link: str,
+                                           user_id: Optional[int] = None,
+                                           attachments: Optional[list] = None) -> SendResult:
+    """NOTARY1 — a time is on the record; tell the officer who said so."""
+    return _send("signing_time_recorded", owner_email,
+                 email_templates.signing_time_recorded(
+                     owner_name, deed_type, property_address, notary_email,
+                     when_text, asserted_note, view_link),
+                 user_id=user_id,
+                 context={"deed_type": deed_type, "notary": notary_email},
+                 attachments=attachments)
 
 
 def send_welcome_with_reason(user_email: str, full_name: str) -> SendResult:

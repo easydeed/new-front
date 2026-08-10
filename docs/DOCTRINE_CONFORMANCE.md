@@ -608,10 +608,116 @@ section, with the fixes, so they cannot regress.
 
 ---
 
+## §13 — An arrangement is not an act; the system never asserts a signing occurred
+
+**Ruled NOTARY1, 2026-08-10.**
+
+**Why this needed a section at all.** A scheduled time looks like the
+least legally freighted thing in the product. Nobody's rights change
+because a calendar says Tuesday, so this needs none of the violet
+machinery a vesting choice needs (§1) and none of the immutability a
+stored instrument needs (§9).
+
+The risk is the opposite one. It is that a *low-stakes* fact acquires
+authority nobody granted it, quietly, because the words drifted. "Nora
+said she is free at 10" becomes "the signing is scheduled for 10" becomes
+"the signing happened at 10" — and the last of those is a claim about a
+**notarial act**, which is a legal event with a legal record kept by
+somebody who is not us.
+
+**Statement.** The product records that an arrangement was **made**. It
+knows nothing about whether the arrangement was **kept**, and says
+nothing about it.
+
+| | |
+|---|---|
+| allowed | "Notary confirmed availability for September 1, 2026 at 10:00 AM" |
+| allowed | "You recorded a signing time of September 1, 2026 at 10:00 AM" |
+| allowed | "Signing request sent — 2 times proposed, none chosen yet" |
+| forbidden | "The signing is confirmed for September 1" |
+| forbidden | "This deed was signed and notarized on September 1" |
+| forbidden | anything derived from the clock passing a scheduled time |
+
+**Three rules follow, and each has a pin.**
+
+1. **No auto-completion, no timer, no inference from a passed window.** A
+   time that has come and gone is not evidence that anybody met. There is
+   no scheduler, no background job, and `scheduling_state()` is
+   type-incapable of returning a state meaning "happened" — pinned by
+   walking its AST rather than by reading its source, so the vocabulary
+   is checked and not the spelling.
+2. **`completed` is officer-only.** The notary is not our user, has no
+   account, and a tap on a public token is not an attestation that a
+   notarial act was performed. The tap records availability.
+3. **The words are written once.** `services/signing.scheduling_label()`
+   is the only function in the product that turns a scheduling state into
+   a sentence. Both frontends render its output verbatim and both suites
+   pin that they do not compose their own — because "scheduled" drifting
+   into a promise is a *wording* failure, and a wording failure spreads
+   one screen at a time.
+
+**The assertion shape mirrors RED-S4 exactly.** `scheduled_at` beside
+`scheduled_by` beside `scheduled_asserted_at`, the same trio as
+`recorded_at` / `recording_asserted_by` / `recording_asserted_at`. The
+system's knowledge of a signing time is always somebody's statement, and
+the record keeps the two possible somebodies apart: a notary who tapped a
+window, and an officer recording something agreed on the phone (owner
+ruling 3). Both are humans; they are different humans, and a record that
+blurred them would let a phone call become the notary's own assertion.
+
+**The state is DERIVED, not a status value (T-5, transferred verbatim).**
+T-5 refused to add `superseded` to `deeds.status` because a superseded
+deed is still a completed deed — two orthogonal facts cannot share one
+column without one of them becoming unsayable. A signing request that has
+been VIEWED and SCHEDULED is the normal case, so `scheduled` never enters
+`deed_shares.status`; `scheduled_at` is its own column and the state is
+computed from it.
+
+**No signer contact, anywhere (owner ruling 1).** Signers — grantors and
+grantees — are consumers. They have no account, never agreed to our
+terms, cannot see what we hold and cannot ask us to delete it. Storing a
+grantor's email would change what a database dump IS, and it would do so
+to automate a message the officer is better placed to send herself. So
+the product coordinates officer↔notary and stops: it captures no signer
+contact information, stores none, and messages no signer. `deeds` carries
+party NAMES because names print on the instrument; that is the whole of
+it.
+
+This is pinned **fail-closed**, the way the row-contract sweep is: the
+pins sweep the entire backend and the entire frontend for a field shaped
+like a way to reach a grantor or grantee, so the field cannot arrive in
+some unrelated ticket six months from now and be noticed by a customer
+first.
+
+**One expiry semantic per link (owner ruling 2).** An expired or revoked
+token is expired or revoked for everything it reaches — the deed, the
+PDF, and the PCOR answer identically. "Which URL did you ask" is not a
+property a permission may have. Applied as a class rather than to the
+PCOR it was asked about, which is how the second defect below surfaced.
+
+**Enforced by.**
+- `backend/tests/test_notary1_signing.py` — the fail-closed signer sweep,
+  the derived-state pins, the vocabulary pin, the assertion shape, one
+  expiry semantic across four routes, and the whole handoff end to end
+- `frontend/src/__tests__/signingHandoff.test.ts` — the same signer sweep
+  over the TypeScript tree, and that no screen writes its own sentence
+
+**Two defects found on the way past, both pre-existing, both fixed here.**
+`POST /shared-deeds` never checked whose deed it was sharing — any
+authenticated user could mint a share link for anyone's deed and read the
+address, APN, county, party names and stored PDF through it. And
+`GET /approve/{token}` returned 410 only while the status was still
+`sent`, so a link that had been opened once kept serving the deed
+forever after expiry, while the PDF route next door refused it. Both are
+recorded in full in the PR and pinned as classes, not sites.
+
+---
+
 ## Change log
 
 | Date | Change |
 |---|---|
+| 2026-08-10 | §13 added (NOTARY1) — an arrangement is not an act. A scheduled signing time is the least legally freighted fact in the product, which is exactly the risk: authority acquired by wording drift rather than by decision. Three pinned rules: nothing infers a signing from a passed window (`scheduling_state()` is AST-pinned type-incapable of a "happened" state), `completed` stays officer-only, and `scheduling_label()` is the single place a scheduling state becomes a sentence. Assertion shape mirrors RED-S4 (`scheduled_at` / `scheduled_by` / `scheduled_asserted_at`), keeping the notary's tap and the officer's phone call apart. State DERIVED, never folded into `deed_shares.status` — T-5's ruling transferred verbatim. No signer contact anywhere, pinned fail-closed across both trees. One expiry semantic per link, applied as a class. Two pre-existing defects fixed in passing: share creation never checked deed ownership (cross-user deed disclosure), and an opened link kept serving the deed after expiry. |
 | 2026-08-06 | §12 added (Doctrine B) — the AI boundary, explain-yes/select-no; closes RED0 R3-5. The third citizen: earlier sections legislate facts and legal choices, and the assistant emits PROSE, which had neither a suggestion marker nor a confirmation nor (until H1.3) a record. Three layers: the system prompt STATES the boundary (prevents), a server-side scanner pairs recommendation cues with instrument names and records findings in `ai_exchange_log.boundary_flags` (detects, does not block — a flagged response still reaches the officer, and blocking on a pattern would let a false positive swallow a correct answer), transcript-style tests ask the forbidden questions. `deed_type_advisor` REWRITTEN to explain-only, not deleted: the boundary decides the prompt regardless of usage evidence, and deleting would remove the permitted half. H1.3's flag-and-pin retired in the same diff that cured its condition. Usage-evidence tuning deferred with a trigger (OWNER_LEDGER) — the log was two days old and empty. |
 | 2026-08-05 | §11 added (Doctrine A) — a field's kind is decided by its content, not its name. `vested_owner` carried a name PLUS a legal characterization into a fact position on both import paths, so the officer confirmed a legal conclusion with the affordance built for an APN and the record described the wrong act. Split into fact / violet proposal / audit `verbatim`; `'proposed'` deliberately outside `FieldStatus` so the generation gate is type-incapable of offering it. Unsplittable composites offer NEITHER half. `suggestVesting` (community property inferred from a shared surname) deleted from the dormant prefill — a dormant code path is still a code path. One rule in two languages, pinned by a corpus both suites read. |
 | 2026-08-04 | §9's parked supersession model BUILT (T-5). `deeds.superseded_by` + `superseded_at` mirror `document_authenticity`'s shape; lineage state is derived rather than folded into `deeds.status`, because a superseded deed is still a completed deed. Supersession is a pointer written once (SQL-guarded), never a mutation — pinned. The T-0 copy removal reversed in the same diff that made the promise true. |

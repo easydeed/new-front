@@ -402,3 +402,58 @@ we reach it.
   ```
   `boundary_flags` is NULL when the response was clean, so
   `WHERE boundary_flags IS NOT NULL` is the whole conformance audit.
+
+- **NOTARY1 deferrals** (2026-08-10, all deferred WITH triggers — the
+  first slice is officer↔notary coordination and nothing else):
+
+  - **Signer contact and messaging.** DEFERRED WITH A HIGH BAR, not
+    parked. Owner ruling 1 is that the officer relays; the product holds
+    no signer contact and messages no signer. It is pinned fail-closed
+    in both suites, so building this is a deliberate act that trips a
+    test, which is the intent.
+    **Trigger:** a design partner asks for it *by name* AND a consumer
+    privacy posture exists to hold it against (what we store, for how
+    long, how a non-user asks us to delete it). Volume alone is not the
+    trigger; the trigger is having an answer to "what are you doing with
+    my client's phone number."
+  - **Counter-proposal loop** (the notary offers a time the officer did
+    not propose). Today she picks one of up to three, or they settle it
+    on the phone and the officer records it — both paths work, and the
+    second is not a workaround so much as what people actually do.
+    **Trigger:** officers report the phone-call path being used *because*
+    no window fit, more than occasionally. Until then a negotiation UI is
+    machinery for a conversation that takes fifteen seconds.
+  - **Calendar sync** (two-way, CalDAV/Google). The `.ics` attachment
+    ships now and covers "put it in my calendar."
+    **Trigger:** a partner asks for availability to be *read* from a
+    calendar rather than a file being sent to one — that is a different
+    product with OAuth, token refresh and a support surface, and it
+    should not arrive by increment.
+  - **The `matters` table.** Signing requests hang off a deed today. A
+    matter with several instruments signed in one sitting wants one
+    arrangement, not one per deed.
+    **Trigger:** the matters work itself (T-4's grouping is derived, not
+    a table); this rides it rather than preceding it.
+  - **RED-S5** (organization-scoped partners) — see the interaction
+    below, which is the reason it is named here.
+
+- **RED-S5 consequence, recorded now so it is not discovered as a bug**
+  (2026-08-10, NOTARY1 §6): **partners are scoped `user-{id}`.** A notary
+  added by one officer is invisible to her colleague at the same company,
+  who must add the same notary again, under her own account, with her own
+  typo. Nothing here is broken — it is what user-scoped partners *mean* —
+  but a two-officer design partner will experience it as a bug on their
+  second week, and "we know, it is the org-scoping ticket" is a much
+  better answer than discovering it live. It gets worse rather than
+  better as the partner list becomes load-bearing, which the signing
+  handoff makes it.
+  **Trigger:** the first design partner with more than one officer.
+
+- **A reminder written for a notary.** The signing request has no resend
+  today: the `share_reminder` template says "waiting on your review,"
+  which is the wrong question to re-ask somebody who was asked about her
+  availability. Both the button and the endpoint refuse it rather than
+  send the wrong words.
+  **Trigger:** the first signing request that goes unanswered long enough
+  for an officer to ask for a nudge. It is a template plus a route
+  branch, not a design question.
