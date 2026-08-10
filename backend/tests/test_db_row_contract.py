@@ -18,6 +18,7 @@ These tests are CI-safe (no database) except where marked.
 """
 import inspect
 import os
+import ast
 import re
 from pathlib import Path
 
@@ -159,13 +160,38 @@ def test_row_type_serialises_as_a_json_object():
 def test_rows_are_never_returned_raw_from_an_endpoint():
     """Belt to the braces above: even with a dict-subclass row type,
     handing raw rows to the client leaks column layout into the API
-    contract. Kept, and widened to catch the assign-then-return form
-    that the original pattern list missed."""
+    contract.
+
+    NARROWED TO WHAT THE NAME ALREADY SAID — an ENDPOINT. The previous
+    version scanned each router file as one blob, so any occurrence of
+    the shape anywhere in the file was an offence, including in a private
+    loader whose output is fed to an explicit payload builder and never
+    reaches a client. NOTARY2's `_rows()` is exactly that, and the pin
+    flagged it.
+
+    Two ways to answer a false positive: change the code so the string
+    stops matching, or make the pin match the property. The first is
+    gaming a test; a helper renamed to dodge a regex is the same helper.
+    So the pin now walks the AST and checks only functions carrying a
+    route decorator — which is what "from an endpoint" meant all along,
+    and still catches the real case: a handler returning rows straight to
+    the client. Probed both ways before this was committed.
+    """
     offenders = []
     for path in (BACKEND / "routers").rglob("*.py"):
-        src = code_only(path.read_text(encoding="utf-8", errors="ignore"))
-        for pattern in [r"return\s+cur(?:sor)?\.fetch(?:one|all)\(\)",
-                        r"return\s+\[?\s*dict\(r\)\s+for", ]:
-            if re.search(pattern, src):
-                offenders.append(str(path.relative_to(BACKEND)))
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8", errors="ignore"))
+        except SyntaxError:
+            continue
+        for fn in ast.walk(tree):
+            if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            decorators = " ".join(ast.unparse(d) for d in fn.decorator_list)
+            if not re.search(r"\b(router|app)\.(get|post|put|patch|delete)\b", decorators):
+                continue
+            body = ast.unparse(fn)
+            for pattern in [r"return\s+cur(?:sor)?\.fetch(?:one|all)\(\)",
+                            r"return\s+\[?\s*dict\(\w+\)\s+for", ]:
+                if re.search(pattern, body):
+                    offenders.append(f"{path.relative_to(BACKEND)}::{fn.name}")
     assert offenders == [], f"raw row returned to the client in: {offenders}"

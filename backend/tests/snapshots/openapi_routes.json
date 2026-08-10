@@ -285,6 +285,18 @@
  ],
  [
   "GET",
+  "/signing-requests/v2"
+ ],
+ [
+  "GET",
+  "/signing-requests/v2/{request_id}"
+ ],
+ [
+  "GET",
+  "/signing/{token}"
+ ],
+ [
+  "GET",
   "/usage/limit-check/user/{user_id}"
  ],
  [
@@ -462,6 +474,34 @@
  [
   "POST",
   "/signing-requests"
+ ],
+ [
+  "POST",
+  "/signing-requests/v2"
+ ],
+ [
+  "POST",
+  "/signing-requests/v2/{request_id}/cancel"
+ ],
+ [
+  "POST",
+  "/signing-requests/v2/{request_id}/override"
+ ],
+ [
+  "POST",
+  "/signing/{token}/answer"
+ ],
+ [
+  "POST",
+  "/signing/{token}/decline/{window_id}"
+ ],
+ [
+  "POST",
+  "/signing/{token}/propose"
+ ],
+ [
+  "POST",
+  "/signing/{token}/windows"
  ],
  [
   "POST",
