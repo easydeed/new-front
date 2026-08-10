@@ -15,6 +15,7 @@ from unittest.mock import patch
 
 import pytest
 from tests.source_text import code_only
+from db_rows import ROW_FACTORY
 
 LIVE_DB = os.getenv("DATABASE_URL")
 
@@ -86,7 +87,7 @@ def client_and_token():
     email = "funnel@apirequest.test"
     password = "Funnel!Passw0rd"
     import psycopg2
-    conn = psycopg2.connect(LIVE_DB)
+    conn = psycopg2.connect(LIVE_DB, cursor_factory=ROW_FACTORY)
     conn.autocommit = True
     with conn.cursor() as cur:
         cur.execute("DELETE FROM api_key_requests WHERE email = %s", ("dana@pacificcoastescrow.example",))
@@ -122,7 +123,7 @@ def test_request_is_stored_and_owner_is_notified(client_and_token):
     assert notify.called
 
     import psycopg2
-    conn = psycopg2.connect(LIVE_DB)
+    conn = psycopg2.connect(LIVE_DB, cursor_factory=ROW_FACTORY)
     with conn.cursor() as cur:
         cur.execute("""SELECT company_name, email, status, notified_at, notify_error
                        FROM api_key_requests WHERE id = %s""", (body["request_id"],))
@@ -151,11 +152,12 @@ def test_a_failed_email_still_keeps_the_request(client_and_token):
     assert "SENDGRID_API_KEY" in body["email_error"]
 
     import psycopg2
-    conn = psycopg2.connect(LIVE_DB)
+    conn = psycopg2.connect(LIVE_DB, cursor_factory=ROW_FACTORY)
     with conn.cursor() as cur:
         cur.execute("SELECT notified_at, notify_error FROM api_key_requests WHERE id = %s",
                     (body["request_id"],))
-        notified_at, notify_error = cur.fetchone()
+        _r = cur.fetchone()
+        notified_at, notify_error = _r['notified_at'], _r['notify_error']
     conn.close()
     assert notified_at is None
     assert "SENDGRID_API_KEY" in notify_error
@@ -173,7 +175,7 @@ def test_the_queue_lists_it_for_an_admin_only(client_and_token):
                       headers={"Authorization": f"Bearer {token}"}).status_code == 403
 
     import psycopg2
-    conn = psycopg2.connect(LIVE_DB)
+    conn = psycopg2.connect(LIVE_DB, cursor_factory=ROW_FACTORY)
     conn.autocommit = True
     with conn.cursor() as cur:
         cur.execute("UPDATE users SET role = 'admin' WHERE email = %s", ("funnel@apirequest.test",))
@@ -231,7 +233,7 @@ def test_anonymous_inquiry_is_stored_and_queued():
     from main import app
     import psycopg2
 
-    conn = psycopg2.connect(LIVE_DB)
+    conn = psycopg2.connect(LIVE_DB, cursor_factory=ROW_FACTORY)
     conn.autocommit = True
     with conn.cursor() as cur:
         cur.execute("DELETE FROM api_key_requests WHERE email = %s", ("ops@coastlinetitle.example",))
@@ -248,7 +250,7 @@ def test_anonymous_inquiry_is_stored_and_queued():
     assert "reach out" in body["message"].lower()
     assert notify.called
 
-    conn = psycopg2.connect(LIVE_DB)
+    conn = psycopg2.connect(LIVE_DB, cursor_factory=ROW_FACTORY)
     with conn.cursor() as cur:
         cur.execute("""SELECT user_id, company_name, email, status
                        FROM api_key_requests WHERE id = %s""", (body["request_id"],))

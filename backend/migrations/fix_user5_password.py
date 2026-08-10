@@ -7,6 +7,7 @@ Password: Test123!
 import os
 import sys
 import psycopg2
+from db_rows import ROW_FACTORY
 from passlib.hash import bcrypt
 
 # Add parent directory to path
@@ -30,7 +31,7 @@ def set_user5_password():
     try:
         # Connect
         print("📡 Connecting to database...")
-        conn = psycopg2.connect(database_url)
+        conn = psycopg2.connect(database_url, cursor_factory=ROW_FACTORY)
         cursor = conn.cursor()
         print("✅ Connected")
         print()
@@ -48,7 +49,7 @@ def set_user5_password():
                 print(f"  - User #{row[0]}: {row[1]}")
             return False
         
-        user_id, email, name = user
+        user_id, email, name = user['id'], user['email'], user['full_name']
         print(f"✅ Found: User #{user_id} - {name} ({email})")
         print()
         

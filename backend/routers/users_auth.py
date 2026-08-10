@@ -255,16 +255,18 @@ async def login_user(credentials: UserLogin = Body(...), request: Request = None
             record_attempt(credentials.email.lower(), _ip, succeeded=False)
             raise HTTPException(status_code=401, detail="Invalid email or password")
 
-        # Phase 7.5 FIX: Handle both RealDictCursor (dict) and regular cursor (tuple)
-        if isinstance(user, dict):
-            user_id = user.get('id')
-            password_hash = user.get('password_hash')
-            full_name = user.get('full_name')
-            plan = user.get('plan')
-            is_active = user.get('is_active')
-            role = user.get('role')
-        else:
-            user_id, password_hash, full_name, plan, is_active, role = user
+        # This branched on isinstance(user, dict) because the codebase
+        # once had two cursor factories. It has one (db_rows.ROW_FACTORY,
+        # pinned), so the tuple branch was unreachable — and unreachable
+        # is the worst place for this pattern to live, because it reads
+        # as proof that destructuring is a supported way to read a row.
+        # It is not. Read by key, always.
+        user_id = user['id']
+        password_hash = user['password_hash']
+        full_name = user['full_name']
+        plan = user['plan']
+        is_active = user['is_active']
+        role = user['role']
 
         if not is_active:
             raise HTTPException(status_code=401, detail="Account is deactivated")
@@ -446,7 +448,15 @@ async def upgrade_plan(req: UpgradeRequest, user_id: int = Depends(get_current_u
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        customer_id, email, full_name = user
+        # ROW CONTRACT (db_rows.py): a HybridRow is a DICT subclass with
+        # integer indexing bolted on. It overrides __getitem__, NOT
+        # __iter__ — so destructuring it yields COLUMN NAMES, silently.
+        # `customer_id` became the string 'stripe_customer_id', which is
+        # truthy, so the Stripe customer was never created and Checkout
+        # was called with customer='stripe_customer_id'. Nobody could pay.
+        customer_id = user['stripe_customer_id']
+        email = user['email']
+        full_name = user['full_name']
 
         # Create Stripe customer if not exists
         if not customer_id:

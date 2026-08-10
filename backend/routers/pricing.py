@@ -168,7 +168,10 @@ async def update_price(update: PriceUpdate, admin: str = Depends(get_current_adm
             if not result:
                 raise HTTPException(status_code=404, detail="Plan not found")
 
-            old_price_id, product_id = result
+            # Destructured to the column names, so Stripe was asked to
+            # create a price on product 'stripe_product_id'.
+            old_price_id = result['stripe_price_id']
+            product_id = result['stripe_product_id']
 
         # Create new price in Stripe (prices are immutable)
         new_price = stripe.Price.create(
