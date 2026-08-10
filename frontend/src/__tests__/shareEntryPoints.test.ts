@@ -49,7 +49,11 @@ describe('Part B — two distinct actions on the deed', () => {
     expect(PAGE).toContain('setReviewDeedId(deed.id)');
     expect(PAGE).toContain('setSigningDeedId(deed.id)');
     expect(PAGE).toContain('<ShareForReviewModal');
-    expect(PAGE).toContain('<SigningRequestModal');
+    // NOTARY2 replaced SigningRequestModal (officer proposes windows)
+    // with RequestSigningModal (the notary posts them) — §13.1's reversal
+    // reaching the surface. The PROPERTY is unchanged: this button opens
+    // the signing flow and the other opens the review flow.
+    expect(PAGE).toContain('<RequestSigningModal');
   });
 
   it('the old inline share modal is deleted, not kept alongside', () => {

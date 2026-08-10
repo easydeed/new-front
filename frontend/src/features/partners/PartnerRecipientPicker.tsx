@@ -41,6 +41,11 @@ import { categoryLabel, roleLabel } from '@/lib/partnerRegistry';
 export interface Recipient {
   email: string;
   name: string;
+  /** NOTARY2: the notary's company appears on the SIGNER surface — a
+   * consumer told a stranger is coming to their home should know who and
+   * from where (owner ruling 2). So it travels with the pick rather than
+   * being looked up again later from an id that may be null. */
+  company?: string;
   /** Set when she picked from the rolodex; absent for a typed address. */
   partnerId?: string;
 }
@@ -92,6 +97,7 @@ export function PartnerRecipientPicker({
     onChange({
       email: p.email,
       name: p.contact_name || p.company_name || p.label,
+      company: p.company_name || (p.contact_name ? p.label : undefined),
       partnerId: p.id,
     });
     setOpen(false);
