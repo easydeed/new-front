@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import Script from "next/script";
 import "./globals.css";
 // Phase 24-A: vibrancy-boost.css DELETED - V0 design system taking over
@@ -7,11 +7,40 @@ import "./globals.css";
 import { Toaster } from 'sonner'; // UI Polish: Toast notifications
 import { ToastRouteDismiss } from '@/components/ToastRouteDismiss';
 
-const inter = Inter({ 
-  subsets: ["latin"],
-  weight: ['400', '500', '600', '700'],
+/**
+ * Inter, SELF-HOSTED. Was `next/font/google`, which fetches from
+ * fonts.googleapis.com AT BUILD TIME.
+ *
+ * ═══ WHY THIS MATTERS MORE THAN A FLAKY BUILD ═══
+ *
+ * That fetch failed once in CI with `NextFontError: Failed to fetch
+ * Inter from Google Fonts`, on a pull request that changed only backend
+ * files. The re-run was green. The cost of leaving it is not the reruns:
+ * **a gate that fails for reasons unrelated to the diff trains people to
+ * re-run rather than read**, and that is how a real failure eventually
+ * gets waved through.
+ *
+ * There is an honesty point too. A build that can fail because a
+ * third-party CDN is unreachable is not hermetic, and the same build
+ * produces the PDFs this product's customers record at a county.
+ *
+ * ═══ ONE FILE, FOUR WEIGHTS ═══
+ *
+ * Inter v20's latin subset is a VARIABLE font: Google serves the same
+ * woff2 for 400, 500, 600 and 700, so `weight: '100 900'` below is the
+ * file's real range rather than a widening of what we had. 47KB, latin
+ * only, committed beside this file.
+ *
+ * BRAND2 already did this for Plus Jakarta Sans (see
+ * `components/brand/Logo.tsx`, pinned in brandLogo.test.tsx). Inter was
+ * the only remaining build-time font fetch; there are now none.
+ */
+const inter = localFont({
+  src: './fonts/Inter-latin-variable.woff2',
+  weight: '100 900',
   display: 'swap',
-  variable: '--font-inter'
+  variable: '--font-inter',
+  fallback: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
 });
 
 export const metadata: Metadata = {
