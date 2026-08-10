@@ -95,6 +95,30 @@ imports, not the set of files that exist.** When the import graph grows,
 re-run the sweeps against the new graph rather than assuming the last
 green run still describes the product.
 
+## Deployed services
+
+Both rules below are owner-set, from the purge cron's four-failure
+deployment (2026-08-11; full account in `OWNER_LEDGER.md`).
+
+**Every Render service pins `PYTHON_VERSION` explicitly.** Not only the
+ones that have broken. A service without an explicit version inherits
+whatever Render's default is on the day it builds, so the runtime can
+change under a service nobody touched — which is how the cron's first
+build died compiling Rust for a `pydantic_core` with no 3.14 wheel.
+
+**Any service handed a `DATABASE_URL` is verified against the API's
+before it is trusted.** Compare `current_database()`, host and port from
+both sides. A connection that SUCCEEDS tells you nothing about whether it
+is the right database: the cron connected happily to a second, older
+Postgres in the same account and reported a missing table. "Table does
+not exist" and "you are looking at the wrong server" produce the same
+error message, and the first reading is the one that wastes an afternoon.
+
+Corollary for anything with a specific table to find: assert it at
+startup and NAME THE DATABASE in the failure. "signing_participants not
+found in deedpro_database on dpg-d1vb…" ends the investigation in one
+run; "relation does not exist" starts a schema hunt.
+
 ## Pull requests and stacking
 
 **A squash-merged base does not carry its stack.** Stacking PR B on PR

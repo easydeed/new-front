@@ -517,3 +517,93 @@ we reach it.
   derives from it, and a pin fails if any surface grows its own list.
   `QuickAddPartnerModal` had no importers at the time; it was aligned
   anyway rather than left dead, because NOTARY2 Part B revives it.
+
+## Purge cron — deployed 2026-08-11, after four sequential failures
+
+The NOTARY2 signer-contact purge now runs on a Render Cron Job. Owner
+ruling 3's hard requirement is **met**: the cron exists before the first
+real signer email, which matters because the privacy statement will name
+a retention window and that converts the practice into a promise.
+
+Current state: **green — "purged contact details on 0 participant rows."**
+Zero is the correct answer today; there are no signing requests old
+enough to purge. The number to watch is `--status`'s `overdue`, which is
+rows that SHOULD be purged and are not.
+
+**The four failures, in order, because each one is a different lesson:**
+
+1. **Python 3.14.** Render defaults a NEW service to the newest Python,
+   where `pydantic_core` has no wheel — so pip falls back to building
+   from source, and the Rust build then fails on a read-only filesystem.
+   Two independent reasons it cannot work, which is why the error is
+   confusing: the first line blames Rust and the last blames permissions.
+   Fixed by pinning `PYTHON_VERSION` **to match `deedpro-main-api`** —
+   matching the API specifically, not merely pinning something, because
+   a cron running a different interpreter than the API it shares a
+   codebase with is a second class of bug waiting.
+2. **Internal hostname did not resolve.** Render's internal Postgres
+   hostname resolves from a web service and NOT from a cron service. The
+   External Database URL is required for cron.
+3. **`signing_participants` missing.** Read as "the schema has not
+   converged," which was wrong — the table was missing because of (4).
+4. **THE REAL ONE: the external URL pointed at a DIFFERENT DATABASE.**
+   `deedpro_database` on `dpg-d1vbos95pdvs73d2lvng`, not the API's
+   `deedpro` on `dpg-d208q5umcj7s73as68g0`. The cron had been connecting
+   successfully, to the wrong Postgres, and reporting a missing table.
+
+Failure 3 is the one worth sitting with. **A connection that succeeds
+tells you nothing about whether it is the right database.** "Table does
+not exist" and "you are looking at the wrong server" are the same error
+message, and the first reading is the one that wastes an afternoon.
+
+### Standing rule 1 — every Render service pins `PYTHON_VERSION`
+
+Not "the ones that have broken." A service without an explicit version
+inherits whatever Render's default happens to be on the day it builds,
+which means the runtime can change under a service that nobody touched.
+
+**Open item:** `render.yaml` in this repo pins `PYTHON_VERSION` for
+**nothing** — the main API included. Either the deployed services are
+configured in the Render dashboard and `render.yaml` is no longer
+authoritative (in which case the file is misleading and should say so),
+or it is authoritative and the main API has exactly the exposure the cron
+just demonstrated. Worth resolving; it is a deploy-topology question and
+therefore Tier 3.
+
+### Standing rule 2 — a `DATABASE_URL` is verified before it is trusted
+
+Any service handed a `DATABASE_URL` must be checked against the API's
+own, by identity rather than by the connection succeeding:
+
+```sql
+SELECT current_database(), inet_server_addr(), inet_server_port(),
+       current_setting('server_version');
+```
+
+Run it from the new service and from the API, and compare. A matching
+`current_database()` on a different host is still the wrong database —
+two instances can carry the same database name, and in this account they
+nearly did.
+
+The cheap version, for a service whose job involves a specific table:
+have the service assert the table exists at startup and say WHICH
+database it looked in when it does not. "signing_participants not found
+in deedpro_database on dpg-d1vb…" would have ended this in one run.
+
+### Owner item — a second Postgres instance exists in the account
+
+`deedpro_database` on `dpg-d1vbos95pdvs73d2lvng` is not the API's
+database and nothing in this repo references it. It may be a
+pre-engagement fossil. **Owner investigating.**
+
+Same class as the `deedpro-external-api` ghost service (deleted
+2026-08-03): infrastructure that exists, costs money, answers when
+something connects to it, and corresponds to no code. The pattern is
+worth naming — a ghost service returns 401s and a ghost database returns
+"table does not exist," and both look like bugs in the thing that found
+them rather than what they are.
+
+**Do not delete it on our say-so.** A database that might hold real rows
+from before this engagement is Tier 3 twice over: irreversible, and
+possibly somebody's data. The useful next step is read-only — list its
+tables and row counts — and that is the owner's to run.
