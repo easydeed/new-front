@@ -163,6 +163,15 @@ async def get_partners_selectlist(
                 'name': p['company_name'],
                 'category': p.get('category', 'other'),
                 'address': partner_address_line(p),
+                # PARTNER2/B: the rolodex is now a RECIPIENT picker, not
+                # only an address source. Sharing a deed or requesting a
+                # signing needs the person and their address — without
+                # these three the officer picks a partner and then
+                # retypes the email she already stored, which is the
+                # whole complaint this part answers.
+                'role': p.get('role', 'other'),
+                'contact_name': p.get('contact_name'),
+                'email': p.get('email'),
             }
             for p in partners
         ]
