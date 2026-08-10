@@ -12,6 +12,7 @@ import React, { useState, useEffect } from 'react';
 import { AuthManager } from '../utils/auth';
 import { LogoLockup, LogoMark } from '@/components/brand/Logo';
 import {
+  CalendarClock,
   LayoutDashboard,
   FilePlus2,
   Files,
@@ -31,6 +32,10 @@ const NAV_ITEMS = [
   { href: '/deed-builder', icon: FilePlus2, label: 'Create Deed' },
   { href: '/past-deeds', icon: Files, label: 'Past Deeds' },
   { href: '/shared-deeds', icon: Share2, label: 'Shared Deeds' },
+  // NOTARY2 Part D. A page nothing links to is a page nobody uses —
+  // the agenda's whole job is being the place she checks what is stuck,
+  // and that only works if it is one click from everywhere.
+  { href: '/signings', icon: CalendarClock, label: 'Signings' },
   { href: '/partners', icon: Users, label: 'Partners' },
   { href: '/account-settings', icon: Settings, label: 'Settings' },
 ];

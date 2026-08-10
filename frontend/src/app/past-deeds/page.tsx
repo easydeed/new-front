@@ -5,7 +5,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Sidebar from "@/components/Sidebar"
 import { FileText, Download, Share2, Trash2, AlertCircle, CheckCircle, Clock, X, Plus, Loader2, Search, CalendarClock } from "lucide-react"
-import { SigningRequestModal } from "@/features/signing/SigningRequestModal"
+import { RequestSigningModal } from "@/features/signing/RequestSigningModal"
 import { ShareForReviewModal } from "@/features/signing/ShareForReviewModal"
 import { PartnersProvider } from "@/features/partners/PartnersContext"
 import { toast } from "sonner"
@@ -429,9 +429,21 @@ export default function PastDeedsPageV0() {
           how the category lists diverged in the first place. */}
       {(signingDeedId !== null || reviewDeedId !== null) && (
         <PartnersProvider>
-          {signingDeedId !== null && (
-            <SigningRequestModal deedId={signingDeedId} onClose={() => setSigningDeedId(null)} />
-          )}
+          {signingDeedId !== null && (() => {
+            const deed = deeds.find((d) => d.id === signingDeedId);
+            return (
+              <RequestSigningModal
+                deedId={signingDeedId}
+                propertyAddress={deed?.property_address}
+                // The deed's party NAMES seed the signer rows. Names only:
+                // the deed has never held a way to reach anybody (§13.1)
+                // and does not start now — she types the addresses.
+                suggestedSigners={[deed?.grantee_name, ...Object.values(deed?.parties || {})]
+                  .filter((n): n is string => !!n && !!n.trim())}
+                onClose={() => setSigningDeedId(null)}
+              />
+            );
+          })()}
           {reviewDeedId !== null && (
             <ShareForReviewModal deedId={reviewDeedId} onClose={() => setReviewDeedId(null)} />
           )}

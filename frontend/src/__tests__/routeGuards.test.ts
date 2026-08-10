@@ -26,6 +26,17 @@ const PUBLIC_ROUTES = new Set([
   '/verify-email',
   '/verify/[code]', // public QR verification of recorded deeds
   '/approve/[token]', // public share-approval flow (token IS the auth)
+  // NOTARY2. The token IS the auth, as with /approve — but this one is
+  // different in kind and the difference is worth writing down: it is
+  // the FIRST CONSUMER SURFACE in this product. Everyone who has ever
+  // seen a DeedPro screen has been a professional under an engagement; a
+  // signer is a member of the public who got a text about their own
+  // house. It is unauthenticated by design (they have no account and
+  // must never need one), throttled per-token and per-IP server-side,
+  // and its payload is an allowlist pinned by exact key-set equality —
+  // see services/signing_surfaces.py. Being on this list is a decision,
+  // not an oversight.
+  '/signing/[token]',
   '/api-key-request', // partner lead form
   // A4: developer documentation. Public and indexable by ruling —
   // linked from the footer only while key issuance is manual, so it is
