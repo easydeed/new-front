@@ -532,12 +532,18 @@ rows that SHOULD be purged and are not.
 
 **The four failures, in order, because each one is a different lesson:**
 
-1. **Python 3.14.** Render defaulted the new service to 3.14, where
-   `pydantic_core` has no wheel and the build died compiling Rust. Fixed
-   by pinning `PYTHON_VERSION` to match the main API.
-2. **Internal hostname did not resolve.** The internal Postgres hostname
-   works from a web service and not from a cron service. Fixed with the
-   External Database URL.
+1. **Python 3.14.** Render defaults a NEW service to the newest Python,
+   where `pydantic_core` has no wheel — so pip falls back to building
+   from source, and the Rust build then fails on a read-only filesystem.
+   Two independent reasons it cannot work, which is why the error is
+   confusing: the first line blames Rust and the last blames permissions.
+   Fixed by pinning `PYTHON_VERSION` **to match `deedpro-main-api`** —
+   matching the API specifically, not merely pinning something, because
+   a cron running a different interpreter than the API it shares a
+   codebase with is a second class of bug waiting.
+2. **Internal hostname did not resolve.** Render's internal Postgres
+   hostname resolves from a web service and NOT from a cron service. The
+   External Database URL is required for cron.
 3. **`signing_participants` missing.** Read as "the schema has not
    converged," which was wrong — the table was missing because of (4).
 4. **THE REAL ONE: the external URL pointed at a DIFFERENT DATABASE.**
