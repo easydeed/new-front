@@ -7,6 +7,7 @@ import { Check, Zap, Lock, Clock, ArrowRight, Wand2, Sparkles, Shield, X, FileDi
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import StickyNav from "@/components/landing-v2/StickyNav"
+import { TIERS, priceLabel } from "@/lib/pricing"
 import { LogoLockupDark } from "@/components/brand/Logo"
 
 const AnimatedDeed = dynamic(() => import("@/components/landing-v2/AnimatedDeed"), {
@@ -20,7 +21,14 @@ const AnimatedDeed = dynamic(() => import("@/components/landing-v2/AnimatedDeed"
 
 // HM1: owner supplies the sales address; empty string keeps the button
 // hidden — a mailto to nowhere is a dead promise.
-const CONTACT_SALES_EMAIL = ""
+// PRICING1: Enterprise is gone, so the Contact Sales path goes with it.
+// It was gated on an address that was never set, so it rendered
+// "Contact information coming soon" — a tier nobody could buy, above a
+// contact route nobody could use.
+
+// TRIAL1's mirror reads this number off the page and compares it with
+// the server's TRIAL_PERIOD_DAYS. One number, stated once per side.
+const TRIAL_DAYS = 14
 
 export default function LandingPage() {
   return (
@@ -80,7 +88,7 @@ export default function LandingPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Check className="h-5 w-5 text-[#7C4DFF]" />
-                    <span className="font-medium">Free 14-day trial</span>
+                    <span className="font-medium">Free {TRIAL_DAYS}-day trial</span>
                   </div>
                 </div>
               </div>
@@ -736,10 +744,17 @@ Content-Type: application/json
                 Security & Compliance
               </Badge>
               <h2 className="text-4xl sm:text-5xl font-bold text-[#1F2B37] tracking-tight mb-6">
-                Enterprise-grade security
+                Security you can check yourself
               </h2>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-loose">
-                Security you can verify in the product — not badges.
+                {/* PRICING1: the heading here read "Enterprise-grade
+                    security" directly above a line promising no badges —
+                    the same unmeasured marketing phrase the claims gate
+                    already bans as "bank-level" and "military-grade". The
+                    three items below are all verifiable in the product,
+                    which is what the section was for. */}
+                No certifications to wave. These three are things you can
+                confirm on your own file.
               </p>
             </div>
 
@@ -789,60 +804,37 @@ Content-Type: application/json
             </div>
 
             <div className="grid md:grid-cols-3 gap-8">
-              {[
-                {
-                  name: "Starter",
-                  price: "$0",
-                  period: "forever",
-                  features: ["Email support", "Basic templates", "All deed types"],
-                  cta: "Start Free",
-                  popular: false,
-                },
-                {
-                  name: "Professional",
-                  price: "$149",
-                  period: "/month",
-                  features: [
-                    "Unlimited deeds",
-                    "Priority support",
-                    "API access",
-                  ],
-                  cta: "Start 14-day trial",
-                  popular: true,
-                },
-                {
-                  name: "Enterprise",
-                  price: "Custom",
-                  period: "",
-                  features: [
-                    "Volume pricing",
-                    "Dedicated support",
-
-                    "White-glove onboarding",
-                  ],
-                  cta: "Contact Sales",
-                  popular: false,
-                },
-              ].map((tier) => (
+              {/* PRICING1: one source. This array used to hold its own
+                  prices — Professional at $149 while the billing tab said
+                  $29 for the same plan. */}
+              {TIERS.map((tier) => (
                 <Card
-                  key={tier.name}
+                  key={tier.key}
                   className={`${
-                    tier.popular ? "ring-4 ring-[#7C4DFF] border-[#7C4DFF] shadow-2xl scale-105" : "border-gray-200"
+                    tier.key === "professional"
+                      ? "ring-4 ring-[#7C4DFF] border-[#7C4DFF] shadow-2xl scale-105"
+                      : "border-gray-200"
                   } transition-all hover:shadow-xl bg-white`}
                 >
                   <CardContent className="p-10">
-                    {tier.popular && (
+                    {tier.key === "professional" && (
                       <Badge className="bg-[#7C4DFF] text-white font-bold mb-6 px-5 py-2.5 text-base">
                         Most Popular
+                      </Badge>
+                    )}
+                    {tier.badge && (
+                      <Badge className="bg-gray-100 text-gray-600 font-semibold mb-6 px-5 py-2.5 text-base">
+                        {tier.badge}
                       </Badge>
                     )}
 
                     <h3 className="text-2xl font-bold text-[#1F2B37]">{tier.name}</h3>
 
-                    <div className="mt-6 mb-8">
-                      <span className="text-5xl font-bold text-[#1F2B37]">{tier.price}</span>
-                      <span className="text-lg text-gray-600">{tier.period}</span>
+                    <div className="mt-6 mb-3">
+                      <span className="text-5xl font-bold text-[#1F2B37]">{priceLabel(tier)}</span>
+                      <span className="text-lg text-gray-600">{tier.cadence}</span>
                     </div>
+                    <p className="text-base text-gray-600 mb-8">{tier.blurb}</p>
 
                     <ul className="space-y-4 mb-10">
                       {tier.features.map((f) => (
@@ -853,32 +845,27 @@ Content-Type: application/json
                       ))}
                     </ul>
 
-                    {/* HM1: Start/Trial → /register; Contact Sales is
-                        owner-gated (hidden until the address exists). */}
-                    {tier.cta === "Contact Sales" ? (
-                      CONTACT_SALES_EMAIL ? (
-                        <Button
-                          asChild
-                          className="w-full font-bold text-base py-8 bg-[#1F2B37] hover:bg-[#1F2B37]/90 text-white"
-                        >
-                          <a href={`mailto:${CONTACT_SALES_EMAIL}`}>{tier.cta}</a>
-                        </Button>
-                      ) : (
-                        <p className="text-center text-sm text-gray-500 py-4">
-                          Contact information coming soon
-                        </p>
-                      )
-                    ) : (
+                    {/* PRICING1: a tier we cannot deliver gets no buy
+                        control. Business is priced and visible so the
+                        ladder is legible, and it is not for sale until
+                        the org model (RED-S5) exists. */}
+                    {tier.purchasable ? (
                       <Button
                         asChild
                         className={`w-full font-bold text-base py-8 ${
-                          tier.popular
+                          tier.key === "professional"
                             ? "bg-[#7C4DFF] hover:bg-[#7C4DFF]/90 text-white"
                             : "bg-[#1F2B37] hover:bg-[#1F2B37]/90 text-white"
                         }`}
                       >
-                        <Link href="/register">{tier.cta}</Link>
+                        <Link href="/register">
+                          {tier.key === "free" ? "Start free" : `Start ${TRIAL_DAYS}-day trial`}
+                        </Link>
                       </Button>
+                    ) : (
+                      <p className="text-center text-sm text-gray-500 py-4">
+                        Not yet available
+                      </p>
                     )}
                   </CardContent>
                 </Card>
@@ -927,7 +914,15 @@ Content-Type: application/json
                   q: "Can I save partial work?",
                   a: "Yes. All wizard progress auto-saves. You can return anytime to complete.",
                 },
-                { q: "Is there API access?", a: "Yes. REST API available on Professional and Enterprise plans." },
+                {
+                  q: "Is there API access?",
+                  // PRICING1: this said "Professional and Enterprise
+                  // plans". Enterprise is gone, and API keys are issued
+                  // by hand from a request queue regardless of plan
+                  // (A3) — so "available on plan X" was never how it
+                  // worked.
+                  a: "There is a REST API for creating deeds. Keys are issued by request rather than switched on by plan — see the developer docs.",
+                },
                 {
                   q: "What about security?",
                   a: "Token-based sessions over encrypted transport, and every generated PDF is hash-stamped (SHA-256) and stored immutably. Formal certifications are on the roadmap — we'd rather show you the mechanism than a badge.",

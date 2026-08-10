@@ -46,12 +46,16 @@ def main():
     if not db_url or not stripe.api_key:
         sys.exit("DATABASE_URL and STRIPE_SECRET_KEY are required")
 
+    # PRICING1: 'enterprise' retired with the tier. Kept as a RECOGNISED
+    # token, not an offered one — a reconciliation script that stopped
+    # recognising a plan real subscriptions were sold under would report
+    # those customers as unmapped, which is a false alarm about revenue.
+    # What is sellable lives in users_auth.PAID_PLANS; this is history.
     KNOWN_PLANS = ("professional", "enterprise")
 
-    # Optional env override, same vars /users/upgrade uses — fine if absent.
+    # Optional env override, same var /users/upgrade uses — fine if absent.
     price_to_plan = {}
-    for env_var, plan in (("STRIPE_PROFESSIONAL_PRICE_ID", "professional"),
-                          ("STRIPE_ENTERPRISE_PRICE_ID", "enterprise")):
+    for env_var, plan in (("STRIPE_PROFESSIONAL_PRICE_ID", "professional"),):
         price_id = os.getenv(env_var)
         if price_id:
             price_to_plan[price_id] = plan

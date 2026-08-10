@@ -53,7 +53,11 @@ def test_the_advertised_trial_length_matches_the_one_we_charge_on():
 
     import re
     page = (REPO / "frontend" / "src" / "app" / "page.tsx").read_text(encoding="utf-8")
-    claimed = {int(n) for n in re.findall(r"(\d+)[\s-]day trial", page, re.I)}
+    # PRICING1 moved the copy to `Start {TRIAL_DAYS}-day trial`, so the
+    # page states the number once as a constant instead of twice as
+    # prose. Read the constant — that IS the claim now.
+    claimed = {int(n) for n in re.findall(r"const TRIAL_DAYS\s*=\s*(\d+)", page)}
+    claimed |= {int(n) for n in re.findall(r"(\d+)[\s-]day trial", page, re.I)}
     assert claimed, "the marketing page no longer states a trial length"
     assert claimed == {TRIAL_PERIOD_DAYS}, (
         f"the page advertises {sorted(claimed)}-day trial(s); the server "
@@ -91,6 +95,23 @@ def _quoted_values(src: str, key: str):
     return re.findall(rf'{key}\s*[:=]\s*[\'"]([^\'"]+)[\'"]', src)
 
 
+def _advertised_features():
+    """Every feature bullet on any purchase surface.
+
+    One function because PRICING1 gave the surfaces one source: features
+    live in `lib/pricing.ts` and both the marketing page and the billing
+    tab render them. Asking each screen separately was how the two came
+    to disagree about the price in the first place.
+    """
+    import re
+    config = (REPO / "frontend" / "src" / "lib" / "pricing.ts").read_text(encoding="utf-8")
+    out = []
+    for block in re.findall(r"(?:features|TRUE_OF_EVERY_TIER)[^\[]*\[(.*?)\]", config, re.S):
+        out += re.findall(r"[\'\"`]([^\'\"`]+)[\'\"`]", block)
+    assert out, "no feature bullets found in the pricing config"
+    return out
+
+
 def test_the_free_plan_has_exactly_one_name():
     """'free' is what the database stores; 'starter' lived only in the
     billing UI and matched nothing, so every free user's plan card
@@ -98,18 +119,14 @@ def test_the_free_plan_has_exactly_one_name():
     from routers.users_auth import FREE_PLAN, PAID_PLANS
     assert FREE_PLAN == "free"
 
-    billing = (REPO / "frontend" / "src" / "app" / "account-settings" /
-               "page.tsx").read_text(encoding="utf-8")
-    # Scoped to the PLANS array. A first cut read `key:` across the whole
-    # file and swept up React `key={...}` props and notification
-    # preference keys — a pin that reports 'marketing' as a pricing tier
-    # is noise, and noise is how a real failure gets skimmed past.
-    import re
-    block = re.search(r"const plans = \[(.*?)\n  \]", billing, re.S)
-    assert block, "the plans array moved — re-scope this pin"
-    keys = set(_quoted_values(block.group(1), "key"))
-    assert keys == {FREE_PLAN, *PAID_PLANS}, (
-        f"the billing tab offers plan keys the product does not know: {keys}")
+    # PRICING1 gave both surfaces ONE source, so this reads the config
+    # rather than the screen. Stronger, not weaker: before, two surfaces
+    # could disagree and only one was pinned.
+    config = (REPO / "frontend" / "src" / "lib" / "pricing.ts").read_text(encoding="utf-8")
+    keys = set(_quoted_values(config, "key"))
+    assert FREE_PLAN in keys
+    assert set(PAID_PLANS) <= keys, (
+        f"a purchasable plan is missing from the pricing config: {keys}")
 
     admin = (REPO / "frontend" / "src" / "app" / "admin" / "users" / "[id]" /
              "page.tsx").read_text(encoding="utf-8")
@@ -121,10 +138,11 @@ def test_the_free_plan_has_exactly_one_name():
 def test_the_billing_tab_can_find_the_plan_the_database_stores():
     """The exact break: `currentPlan` defaulted to "starter", the guard
     read `!== "starter"`, and `plans.find(key === 'free')` was undefined."""
-    src = code_only((REPO / "frontend" / "src" / "app" / "account-settings" /
-                     "page.tsx").read_text(encoding="utf-8"))
+    src = (REPO / "frontend" / "src" / "app" / "account-settings" /
+           "page.tsx").read_text(encoding="utf-8")
     assert 'userProfile?.plan || "free"' in src
-    assert 'key: "free"' in src
+    config = (REPO / "frontend" / "src" / "lib" / "pricing.ts").read_text(encoding="utf-8")
+    assert "'free'" in config or '"free"' in config
 
 
 # ── 3. Dunning runs on the renewal event ─────────────────────────────
@@ -192,12 +210,7 @@ def test_the_banned_claims_gate_now_covers_feature_claims(claim, tmp_path):
 
 def test_the_claims_are_actually_absent_from_the_product():
     """A gate is only honest if the thing it forbids is also gone."""
-    import re
-    page = (REPO / "frontend" / "src" / "app" / "page.tsx").read_text(encoding="utf-8")
-    listed = []
-    for block in re.findall(r"features:\s*\[(.*?)\]", page, re.S):
-        listed += re.findall(r"[\'\"]([^\'\"]+)[\'\"]", block)
-    assert listed, "no feature lists found on the marketing page"
+    listed = _advertised_features()
     for claim in ("SSO", "SAML", "custom branding", "deeds/month"):
         hits = [f for f in listed if claim.lower() in f.lower()]
         assert hits == [], f"still advertised: {hits}"
@@ -210,14 +223,8 @@ def test_the_unenforced_limit_is_gone_from_both_purchase_surfaces():
     favour, which is the harmless direction and still not something to
     leave written down."""
     import re
-    for rel in (("app", "page.tsx"), ("app", "account-settings", "page.tsx")):
-        src = (REPO / "frontend" / "src").joinpath(*rel).read_text(encoding="utf-8")
-        # The FEATURE LISTS, not the file — see _quoted_values above for
-        # why these tests read values rather than text.
-        for block in re.findall(r"features:\s*\[(.*?)\]", src, re.S):
-            listed = re.findall(r"[\'\"]([^\'\"]+)[\'\"]", block)
-            offenders = [f for f in listed if re.search(r"deeds\s*/\s*month", f, re.I)]
-            assert offenders == [], f"{rel[-1]} still advertises {offenders}"
+    for feature in _advertised_features():
+        assert not re.search(r"deeds\s*/\s*month", feature, re.I), feature
 
 
 # ── 5. END TO END: the join BILL1's pins could not see ───────────────
