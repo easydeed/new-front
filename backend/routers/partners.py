@@ -51,6 +51,48 @@ class PartnerUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
+def partner_address_line(p) -> str:
+    """The partner's mailing address as ONE line, for the deed.
+
+    PARTNER1 lifted this out of the selectlist endpoint's closure. It was
+    a nested function, so the only way to test what actually prints on a
+    deed was to render one — the same reason the SiteX mapping went
+    untested for months (DX0 §0). A rule that ends up as ink on a
+    recorded instrument should be reachable by a test that does not need
+    a PDF.
+
+    Empty in, empty out: a partner with no address must assemble to "",
+    never to stray punctuation. ", ," on a recorded document reads as
+    data that got lost, and it is worse than a blank because it is
+    visible.
+    """
+    street = " ".join(str(p.get(k) or "").strip()
+                      for k in ("address_line1", "address_line2")).strip()
+    locality = " ".join(str(p.get(k) or "").strip()
+                        for k in ("state", "postal_code")).strip()
+    city = str(p.get("city") or "").strip()
+    tail = ", ".join(x for x in (city, locality) if x)
+    return ", ".join(x for x in (street, tail) if x)
+
+
+def _require_company_name(value, *, required: bool):
+    """A partner with no company name has nothing to print.
+
+    `company_name` is NOT NULL in the schema and it is the line that
+    renders in the deed's Recording Requested By block. Blank input used
+    to reach the INSERT/UPDATE and fail on the constraint, which the
+    service caught and reported as `None` — surfacing to the officer as
+    "Partner not found", a 404 about a row that exists. Say the true
+    thing instead.
+    """
+    if value is None:
+        if required:
+            raise HTTPException(status_code=400, detail="Company name is required")
+        return
+    if not " ".join(str(value).split()):
+        raise HTTPException(status_code=400, detail="Company name is required")
+
+
 # Helper function to get user's organization
 def get_user_organization(user_id: int) -> str:
     """Get organization_id for user - uses user_id as unique org for data isolation"""
@@ -81,7 +123,8 @@ async def create_my_partner(
     """Create a new partner in current user's organization"""
     try:
         organization_id = get_user_organization(user_id)
-        
+        _require_company_name(payload.company_name, required=True)
+
         partner = create_partner(
             organization_id=organization_id,
             user_id=user_id,
@@ -114,19 +157,12 @@ async def get_partners_selectlist(
         # Simplify for dropdown. D2: the address rides along so selecting
         # a partner can fill the deed's "Recording Requested By" block —
         # the data always existed on the partner row; the deed never got it.
-        def _addr(p):
-            street = " ".join(str(p.get(k) or "").strip() for k in ("address_line1", "address_line2")).strip()
-            locality = " ".join(str(p.get(k) or "").strip() for k in ("state", "postal_code")).strip()
-            city = str(p.get("city") or "").strip()
-            tail = ", ".join(x for x in (city, locality) if x)
-            return ", ".join(x for x in (street, tail) if x)
-
         return [
             {
                 'id': p['id'],
                 'name': p['company_name'],
                 'category': p.get('category', 'other'),
-                'address': _addr(p),
+                'address': partner_address_line(p),
             }
             for p in partners
         ]
@@ -164,9 +200,11 @@ async def update_my_partner(
     """Update a partner (must belong to user's organization)"""
     try:
         organization_id = get_user_organization(user_id)
-        
+
         # Filter out None values
         update_data = {k: v for k, v in payload.dict().items() if v is not None}
+        if 'company_name' in update_data:
+            _require_company_name(update_data['company_name'], required=True)
         
         partner = update_partner(partner_id, organization_id, update_data)
         

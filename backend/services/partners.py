@@ -7,6 +7,50 @@ from typing import List, Dict, Optional
 from database import get_db_connection
 
 
+# PARTNER1 — light normalization at the write, the #72 profile-hygiene
+# pattern applied to the fields that PRINT.
+#
+# A partner's company name and address ride onto the deed's "Recording
+# Requested By" block, so '  Pacific  Coast Title ' becomes a document.
+# Whitespace is machine noise and is fixed here.
+#
+# CASE IS NEVER TOUCHED, and that is the whole judgement in this helper:
+# "COast TItle" is a typo the owner corrects, but auto-casing would also
+# rewrite PCT, McDonald, LLC and O'Brien — real names that a title-cased
+# "fix" corrupts. Surfacing a typo costs a glance; corrupting a company
+# name costs a re-recording.
+_NORMALIZED_FIELDS = (
+    "company_name", "contact_name", "phone",
+    "address_line1", "address_line2", "city", "postal_code",
+)
+
+
+def _clean(value):
+    """Trim + collapse internal whitespace. Blank collapses to None."""
+    if value is None:
+        return None
+    cleaned = " ".join(str(value).split())
+    return cleaned or None
+
+
+def normalize_partner_fields(data: Dict) -> Dict:
+    """Normalize only the keys PRESENT in `data`.
+
+    Presence matters: `update_partner` builds its SET clause from which
+    keys exist, so inventing keys here would silently overwrite columns
+    the caller never mentioned.
+    """
+    out = dict(data)
+    for key in _NORMALIZED_FIELDS:
+        if key in out:
+            out[key] = _clean(out[key])
+    # State is a two-letter code, not a name — casing it is not a
+    # judgement about anyone's spelling.
+    if "state" in out and out["state"]:
+        out["state"] = " ".join(str(out["state"]).split()).upper() or None
+    return out
+
+
 def list_partners(organization_id: str, active_only: bool = True) -> List[Dict]:
     """List all partners for an organization"""
     conn = get_db_connection()
@@ -61,7 +105,8 @@ def create_partner(organization_id: str, user_id: int, data: Dict) -> Optional[D
     
     try:
         cursor = conn.cursor()
-        
+        data = normalize_partner_fields(data)
+
         cursor.execute("""
             INSERT INTO partners (
                 organization_id, created_by_user_id,
@@ -168,7 +213,8 @@ def update_partner(partner_id: str, organization_id: str, data: Dict) -> Optiona
     
     try:
         cursor = conn.cursor()
-        
+        data = normalize_partner_fields(data)
+
         # Build dynamic update query
         update_fields = []
         params = []
