@@ -56,10 +56,18 @@ describe('X1 — session expiry is named at the login page', () => {
 });
 
 describe('X1 — renderer freeze: no full-viewport backdrop blur behind modals', () => {
+  // PARTNER2/B: past-deeds no longer OWNS a modal — its share flows moved
+  // into their own components — so the list follows the modals rather than
+  // the page that used to hold one. QuickAddPartnerModal is new to this
+  // list and was a live violation when it arrived: it kept `backdrop-blur`
+  // from before the X1 ruling because it had no importers at the time, and
+  // Part B revives it.
   const BLUR_SURFACES: Array<string[]> = [
-    ['app', 'past-deeds', 'page.tsx'],
     ['app', 'shared-deeds', 'page.tsx'],
     ['components', 'ui', 'ConfirmDialog.tsx'],
+    ['features', 'signing', 'ShareForReviewModal.tsx'],
+    ['features', 'signing', 'SigningRequestModal.tsx'],
+    ['features', 'partners', 'QuickAddPartnerModal.tsx'],
   ];
   for (const segments of BLUR_SURFACES) {
     it(`${segments.join('/')} dims without blurring`, () => {
@@ -70,10 +78,22 @@ describe('X1 — renderer freeze: no full-viewport backdrop blur behind modals',
   }
 });
 
-describe('X1 — share modal is viewport-safe', () => {
-  it('the modal is a flex column whose form body scrolls, keeping the footer reachable', () => {
-    const src = readSource('app', 'past-deeds', 'page.tsx');
-    expect(src).toMatch(/max-h-\[85vh\] flex flex-col/);
-    expect(src).toMatch(/onSubmit=\{handleShareSubmit\} className="[^"]*overflow-y-auto flex-1/);
-  });
+describe('X1 — the share modals are viewport-safe', () => {
+  // The PROPERTY: the panel is a flex column, its body scrolls, and the
+  // footer therefore stays reachable on a short viewport. Was pinned
+  // against one modal by its handler's NAME; both share modals now carry
+  // it, and naming the handler was pinning the spelling.
+  const MODALS: Array<string[]> = [
+    ['features', 'signing', 'ShareForReviewModal.tsx'],
+    ['features', 'signing', 'SigningRequestModal.tsx'],
+  ];
+  for (const segments of MODALS) {
+    it(`${segments.join('/')} scrolls its body, not its footer`, () => {
+      const src = readSource(...segments);
+      expect(src).toMatch(/max-h-\[85vh\] flex flex-col/);
+      expect(src).toMatch(/<form[^>]*className="flex flex-col min-h-0 flex-1"/);
+      expect(src).toMatch(/className="space-y-5 overflow-y-auto flex-1/);
+      expect(src).toMatch(/className="flex gap-3 pt-5 shrink-0"/);
+    });
+  }
 });

@@ -18,6 +18,7 @@
 import { useState } from "react"
 import { CalendarClock, Loader2, Plus, Trash2, X } from "lucide-react"
 import { apiFetch } from "@/lib/apiClient"
+import { PartnerRecipientPicker, Recipient } from "@/features/partners/PartnerRecipientPicker"
 
 const MAX_WINDOWS = 3
 
@@ -52,8 +53,9 @@ export function SigningRequestModal({
   deedId: number
   onClose: () => void
 }) {
-  const [notaryEmail, setNotaryEmail] = useState("")
-  const [notaryName, setNotaryName] = useState("")
+  // PARTNER2/B: the rolodex, not a text box. She filed her notary
+  // months ago; asking her to retype the address is the complaint.
+  const [notary, setNotary] = useState<Recipient | null>(null)
   const [location, setLocation] = useState("")
   const [windows, setWindows] = useState<Window[]>([{ start: "", end: "" }])
   const [submitting, setSubmitting] = useState(false)
@@ -77,8 +79,8 @@ export function SigningRequestModal({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             deed_id: deedId,
-            notary_email: notaryEmail,
-            notary_name: notaryName || undefined,
+            notary_email: notary?.email,
+            notary_name: notary?.name || undefined,
             location: location || undefined,
             proposed_windows: complete.map((w) => ({
               start: withOffset(w.start),
@@ -110,8 +112,8 @@ export function SigningRequestModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-[600px] w-full max-h-[90vh] overflow-y-auto p-8">
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-[600px] w-full max-h-[85vh] flex flex-col p-8">
+        <div className="flex items-center justify-between mb-6 shrink-0">
           <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
             <CalendarClock className="w-6 h-6 text-[#7C4DFF]" />
             Request a signing
@@ -146,7 +148,7 @@ export function SigningRequestModal({
               }`}
             >
               {result.emailSent
-                ? `Email sent to ${notaryEmail}.`
+                ? `Email sent to ${notary?.email}.`
                 : `The email did not go out${result.emailError ? `: ${result.emailError}` : ""}. Send the link below yourself.`}
             </div>
             {result.link && (
@@ -166,41 +168,25 @@ export function SigningRequestModal({
             </button>
           </div>
         ) : (
-          <form onSubmit={submit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Notary email <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="email"
-                required
-                value={notaryEmail}
-                onChange={(e) => setNotaryEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF]"
-                placeholder="notary@example.com"
-              />
-            </div>
+          <form onSubmit={submit} className="flex flex-col min-h-0 flex-1">
+            {/* X1: the body scrolls, the footer stays reachable. */}
+            <div className="space-y-5 overflow-y-auto flex-1 pr-1">
+            <PartnerRecipientPicker
+              value={notary}
+              onChange={setNotary}
+              suggestCategory="notary"
+              label="Ask a notary"
+            />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Notary name</label>
-                <input
-                  type="text"
-                  value={notaryName}
-                  onChange={(e) => setNotaryName(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Where</label>
-                <input
-                  type="text"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF]"
-                  placeholder="Defaults to the property address"
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Where</label>
+              <input
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF]"
+                placeholder="Defaults to the property address"
+              />
             </div>
 
             <div>
@@ -269,7 +255,9 @@ export function SigningRequestModal({
               signers are not contacted — that stays with you.
             </p>
 
-            <div className="flex gap-3">
+            </div>
+
+            <div className="flex gap-3 pt-5 shrink-0">
               <button
                 type="button"
                 onClick={onClose}
@@ -279,7 +267,7 @@ export function SigningRequestModal({
               </button>
               <button
                 type="submit"
-                disabled={submitting || !notaryEmail || complete.length === 0}
+                disabled={submitting || !notary?.email || complete.length === 0}
                 className="flex-1 px-4 py-3 bg-[#7C4DFF] hover:bg-[#6a3de8] text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
                 {submitting && <Loader2 className="w-4 h-4 animate-spin" />}

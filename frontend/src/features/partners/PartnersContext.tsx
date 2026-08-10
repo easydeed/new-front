@@ -33,6 +33,9 @@ export interface PartnerOption {
   contact_name?: string;
   /** D2: one-line mailing address, assembled server-side. */
   address?: string;
+  /** PARTNER2/B: the rolodex became a recipient picker. */
+  role?: string;
+  email?: string;
 }
 
 export interface CreatePartnerData {
@@ -132,6 +135,8 @@ export function PartnersProvider({ children }: { children: React.ReactNode }) {
         company_name: item.company_name,
         contact_name: item.contact_name,
         address: item.address || '',
+        role: item.role,
+        email: item.email,
       }));
 
       setPartners(normalized);
