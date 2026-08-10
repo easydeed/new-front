@@ -279,6 +279,34 @@ def password_changed(full_name) -> Rendered:
     return subject, _base("Password changed on your account", content, False), text
 
 
+def payment_failed(full_name, amount_text, attempt_url) -> Rendered:
+    """TRIAL1 — the renewal failed and the customer does not know.
+
+    Deliberately NOT a threat. A card expires; that is the ordinary
+    reason this fires, and the ordinary fix is thirty seconds in the
+    billing portal. What it must NOT do is imply the account is already
+    gone, because at this point it is not: Stripe retries, and the
+    account is untouched until it stops.
+    """
+    subject = "Your DeedPro payment didn't go through"
+    content = (
+        _p(f"Hi {_esc(full_name) or 'there'},")
+        + _p(f"We couldn't process your subscription payment{_esc(amount_text)}. "
+             "This is usually an expired or replaced card.")
+        + _p("Your account and your documents are unaffected. Update your "
+             "card and the payment will retry automatically.")
+        + _button(attempt_url, "Update payment method")
+        + _p('<span style="font-size:13px;color:#8a94a0;">If you have already '
+             "updated it, you can ignore this.</span>")
+    )
+    text = (
+        f"We couldn't process your DeedPro subscription payment{amount_text}. "
+        "This is usually an expired or replaced card. Your account and your "
+        f"documents are unaffected. Update your card here: {attempt_url}"
+    )
+    return subject, _base("Payment failed — your account is unaffected", content, False), text
+
+
 def welcome(full_name) -> Rendered:
     subject = "Welcome to DeedPro"
     url = _frontend_url()

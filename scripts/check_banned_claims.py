@@ -95,6 +95,30 @@ RULES = [
          "no webhook handler, no field mapping, not a stub. Naming one as a "
          "feature is the single claim most likely to drive a purchase and "
          "then be discovered false on the customer's first file."),
+
+    # ── TRIAL1: FEATURE claims, not just compliance claims ────────────
+    #
+    # The gate shipped covering certifications and security postures, and
+    # that framing was one category too narrow. A pricing page listing
+    # "SSO/SAML" and "Custom branding" passed cleanly — zero files
+    # implement either — while a page saying "SOC 2" failed. Both are
+    # things a buyer pays for and then does not receive; only one was
+    # guarded.
+    #
+    # Same blind spot RED0 found in the compliance sweep, one category
+    # over: the rule was drawn around the EXAMPLES that prompted it
+    # rather than around the property (a claim on a purchase surface
+    # that nothing implements).
+    Rule("SSO / SAML", r"\b(?:SSO|SAML|single[\s\-]sign[\s\-]on)\b",
+         "No SSO or SAML implementation exists — zero files, not a stub. "
+         "It appeared on the Enterprise tier of the pricing page, which "
+         "is a surface people buy from."),
+    Rule("custom branding / white-label", r"\b(?:custom branding|white[\s\-]label(?:ed|ing)?)\b",
+         "Nothing in the product themes a deed, an email or a portal per "
+         "customer. Listed on the Professional tier until TRIAL1."),
+    Rule("team management / seats", r"\b(?:team management|multi[\s\-]user seats?|user seats?)\b",
+         "`deeds` carries one user_id and every query is scoped to it. "
+         "There is no team model to manage (RED-S5, deferred by decision)."),
 ]
 
 

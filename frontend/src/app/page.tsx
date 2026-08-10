@@ -794,7 +794,7 @@ Content-Type: application/json
                   name: "Starter",
                   price: "$0",
                   period: "forever",
-                  features: ["5 deeds/month", "Email support", "Basic templates", "All deed types"],
+                  features: ["Email support", "Basic templates", "All deed types"],
                   cta: "Start Free",
                   popular: false,
                 },
@@ -806,7 +806,6 @@ Content-Type: application/json
                     "Unlimited deeds",
                     "Priority support",
                     "API access",
-                    "Custom branding",
                   ],
                   cta: "Start 14-day trial",
                   popular: true,
@@ -818,8 +817,7 @@ Content-Type: application/json
                   features: [
                     "Volume pricing",
                     "Dedicated support",
-                    "SSO/SAML",
-                    "SLA guarantee",
+
                     "White-glove onboarding",
                   ],
                   cta: "Contact Sales",

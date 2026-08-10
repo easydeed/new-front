@@ -433,6 +433,21 @@ async def patch_user_profile(
             print(f"[PROFILE PATCH ROLLBACK ERROR] {rollback_error}")
         raise HTTPException(status_code=500, detail=f"Profile update failed: {str(e)}")
 
+# TRIAL1 — the canonical trial length, and the ONE place it is written
+# on the server. The marketing page states the same number and a test
+# compares them, because a trial whose advertised length and actual
+# length differ is discovered by the customer, on the day it ends.
+TRIAL_PERIOD_DAYS = 14
+
+# The canonical plan vocabulary. `users.plan` DEFAULT is 'free',
+# registration writes 'free', and the webhook downgrades to 'free' on
+# cancellation — so 'free' is what the database means by the free tier.
+# A fourth key ('starter') lived only in the billing UI and matched
+# nothing, which is why every free user saw a blank plan card.
+FREE_PLAN = 'free'
+PAID_PLANS = ('professional', 'enterprise')
+
+
 @router.post("/users/upgrade")
 async def upgrade_plan(req: UpgradeRequest, user_id: int = Depends(get_current_user_id)):
     """Initiate plan upgrade via Stripe Checkout"""
@@ -472,6 +487,19 @@ async def upgrade_plan(req: UpgradeRequest, user_id: int = Depends(get_current_u
                 cur.execute("UPDATE users SET stripe_customer_id = %s WHERE id = %s", (customer_id, user_id))
                 db.conn.commit()
 
+        # TRIAL1 — the free trial the marketing page has been promising.
+        #
+        # Card up front, N days free, auto-converts. Stripe runs the whole
+        # thing; nothing here tracks trial state, which is the point — a
+        # trial clock we kept ourselves would be a second source of truth
+        # about whether somebody has paid.
+        #
+        # 0 disables it, which is how you turn the trial off without a
+        # deploy. The value is MIRRORED on the marketing page and pinned
+        # (test_trial1_paid_path.py): a "14-day trial" in the copy and a
+        # 7-day trial on the session is a promise broken on day 8.
+        trial_days = int(os.getenv('STRIPE_TRIAL_PERIOD_DAYS', str(TRIAL_PERIOD_DAYS)))
+
         # Map plans to Stripe price IDs (create these in your Stripe dashboard)
         price_map = {
             'professional': os.getenv('STRIPE_PROFESSIONAL_PRICE_ID', 'price_professional_default'),
@@ -495,6 +523,8 @@ async def upgrade_plan(req: UpgradeRequest, user_id: int = Depends(get_current_u
             success_url=f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/account-settings?success=true",
             cancel_url=f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/account-settings?canceled=true",
             allow_promotion_codes=True,
+            **({'subscription_data': {'trial_period_days': trial_days}}
+               if trial_days > 0 else {}),
         )
 
         return {"session_url": session.url, "session_id": session.id}

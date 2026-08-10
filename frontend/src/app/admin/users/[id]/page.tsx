@@ -286,8 +286,12 @@ export default function UserDetailPage() {
                   value={formData.plan || 'free'} 
                   onChange={e => setFormData({...formData, plan: e.target.value})}
                 >
+                  {/* TRIAL1: 'starter' removed. It was a fourth plan key
+                      nothing else in the product recognised — an admin
+                      setting it would have put the user in a state the
+                      billing tab, the webhook and plan_limits all read as
+                      unknown. */}
                   <option value="free">Free</option>
-                  <option value="starter">Starter</option>
                   <option value="professional">Professional</option>
                   <option value="enterprise">Enterprise</option>
                 </select>
