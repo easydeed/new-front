@@ -4,7 +4,8 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Sidebar from "@/components/Sidebar"
-import { FileText, Download, Share2, Trash2, AlertCircle, CheckCircle, Clock, X, Plus, Loader2, Search } from "lucide-react"
+import { FileText, Download, Share2, Trash2, AlertCircle, CheckCircle, Clock, X, Plus, Loader2, Search, CalendarClock } from "lucide-react"
+import { SigningRequestModal } from "@/features/signing/SigningRequestModal"
 import { toast } from "sonner"
 import { SessionExpiredError, apiFetch } from "@/lib/apiClient"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
@@ -48,6 +49,8 @@ export default function PastDeedsPageV0() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [shareModalOpen, setShareModalOpen] = useState(false)
+  // NOTARY1: which deed, if any, has an open signing-request modal.
+  const [signingDeedId, setSigningDeedId] = useState<number | null>(null)
   const [selectedDeedId, setSelectedDeedId] = useState<number | null>(null)
   const [shareError, setShareError] = useState<string | null>(null)
   const [shareLoading, setShareLoading] = useState(false)
@@ -444,6 +447,16 @@ export default function PastDeedsPageV0() {
                                 >
                                   <Share2 className="w-4 h-4" />
                                 </button>
+                                {/* NOTARY1: a different question from the one
+                                    the Share button asks — availability, not
+                                    approval — so it is a different button. */}
+                                <button
+                                  onClick={() => setSigningDeedId(deed.id)}
+                                  className="p-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors"
+                                  title="Request a signing"
+                                >
+                                  <CalendarClock className="w-4 h-4" />
+                                </button>
                               </>
                             )}
                             <button
@@ -663,6 +676,11 @@ export default function PastDeedsPageV0() {
             )}
           </div>
         </div>
+      )}
+
+      {/* NOTARY1 — request a signing (officer → notary) */}
+      {signingDeedId !== null && (
+        <SigningRequestModal deedId={signingDeedId} onClose={() => setSigningDeedId(null)} />
       )}
 
       {/* Delete Confirmation Dialog */}

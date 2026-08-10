@@ -3,8 +3,12 @@
  * Purpose: Type definitions for title companies, real estate partners, lenders
  */
 
-export type PartnerCategory = 'title_company' | 'real_estate' | 'lender';
-export type PartnerRole = 'title_officer' | 'realtor' | 'loan_officer';
+export type PartnerCategory =
+  | 'title_company' | 'escrow_company' | 'notary' | 'attorney'
+  | 'real_estate' | 'lender' | 'other';
+export type PartnerRole =
+  | 'title_officer' | 'escrow_officer' | 'notary_public' | 'attorney'
+  | 'realtor' | 'loan_officer' | 'other';
 
 export interface Partner {
   id: string;

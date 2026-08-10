@@ -50,8 +50,26 @@ import {
 import Sidebar from '../../components/Sidebar';
 import '../../styles/dashboard.css';
 
-const CATEGORIES = ['title_company', 'real_estate', 'lender', 'other'] as const;
-const ROLES = ['title_officer', 'realtor', 'loan_officer', 'other'] as const;
+/**
+ * NOTARY1 adds `notary` / `notary_public`: a signing request picks its
+ * notary from this list, so a notary who cannot be filed as one is a
+ * notary the officer records as "other" and then searches for by memory.
+ *
+ * `escrow_company` and `attorney` are not new — the builder's
+ * AddPartnerModal has offered them all along while this screen did not,
+ * so a partner added there arrived here as a category the edit dropdown
+ * could not represent and the chip rendered as "Other". Two live lists
+ * of the same enum had drifted; adding a third divergence on top of that
+ * is how the next one gets found by a customer.
+ */
+const CATEGORIES = [
+  'title_company', 'escrow_company', 'notary', 'attorney',
+  'real_estate', 'lender', 'other',
+] as const;
+const ROLES = [
+  'title_officer', 'escrow_officer', 'notary_public', 'attorney',
+  'realtor', 'loan_officer', 'other',
+] as const;
 
 type Partner = {
   id: string;
@@ -208,6 +226,9 @@ export default function PartnersPage() {
   function categoryChip(category: string) {
     const tone: Record<string, string> = {
       title_company: 'bg-slate-100 text-slate-700 ring-slate-200',
+      escrow_company: 'bg-slate-100 text-slate-600 ring-slate-200',
+      notary: 'bg-slate-100 text-slate-700 ring-slate-300',
+      attorney: 'bg-gray-100 text-gray-600 ring-gray-200',
       real_estate: 'bg-slate-50 text-slate-600 ring-slate-200',
       lender: 'bg-gray-100 text-gray-700 ring-gray-300',
       other: 'bg-gray-50 text-gray-500 ring-gray-200',
@@ -409,8 +430,8 @@ export default function PartnersPage() {
                 {[
                   { label: 'Total Partners', n: items.length },
                   { label: 'Title Companies', n: items.filter((p) => p.category === 'title_company').length },
+                  { label: 'Notaries', n: items.filter((p) => p.category === 'notary').length },
                   { label: 'Real Estate', n: items.filter((p) => p.category === 'real_estate').length },
-                  { label: 'Lenders', n: items.filter((p) => p.category === 'lender').length },
                 ].map((s) => (
                   <div key={s.label} className="bg-gray-50 rounded-lg p-4">
                     <div className="text-sm text-gray-500">{s.label}</div>

@@ -95,11 +95,19 @@ def test_a_malformed_token_is_a_type_error_not_a_miss(conn):
     conn.rollback()
 
 
-def test_all_three_public_token_endpoints_validate_before_querying():
-    src = code_only(SHARING.read_text(encoding="utf-8"))
-    assert src.count("_valid_token_or_404(approval_token)") == 3, (
-        "every public /approve/{token} endpoint must reject a malformed "
-        "token before it reaches Postgres")
+# The "every public token endpoint validates first" pin MOVED to
+# test_notary1_signing.py::test_every_public_token_endpoint_validates_first.
+#
+# It used to live here as `src.count("_valid_token_or_404(...)") == 3` — a
+# COUNT, which is a fact about the routes that existed that afternoon
+# rather than the property that matters. NOTARY1 added three more public
+# `/approve/{token}` endpoints and the pin's response was to demand a new
+# number; worse, it would have stayed GREEN for a fourth endpoint added
+# while a fifth quietly dropped its guard.
+#
+# It also could not run in CI's no-database job, because this module skips
+# wholesale without DATABASE_URL — a source pin sitting behind a database
+# requirement it never needed. Both problems are fixed by the move.
 
 
 def test_the_guard_rejects_garbage_and_accepts_a_uuid():

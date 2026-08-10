@@ -321,3 +321,73 @@ her clients herself, as she does today.
    wrong whenever the humans are efficient.)
 4. **`.ics` attachment in the confirmation email** — in the first slice or
    deferred?
+
+
+---
+
+# Addendum — NOTARY1, the build (2026-08-10)
+
+All four questions above were ruled and the recommended slice was built:
+NOTARY0 v1 + windows (option a) + officer-relays.
+
+## The rulings, as executed
+
+1. **Option A confirmed.** The officer relays; the product coordinates
+   officer↔notary and nothing else. No signer contact is captured,
+   stored or messaged, and there is no field that could carry one —
+   pinned **fail-closed** across the whole backend and the whole
+   frontend, so a `signer_email`-shaped field arriving in any future
+   ticket fails the suite rather than waiting to be noticed.
+2. **Expired token = no PCOR, matching the deed exactly.** Applied as a
+   class: the deed, the PDF and the PCOR answer an expired or revoked
+   token identically. This is what surfaced the second defect below.
+3. **The officer may record a time she agreed out of band.** Both paths
+   write `scheduled_by` + `scheduled_asserted_at`, so the notary's tap
+   and the officer's phone call stay distinguishable in the record.
+4. **The `.ics` ships in the first slice**, through the existing E1
+   transport — one `.ics` per proposed window on the request, and one for
+   the chosen time on the officer's confirmation. `METHOD:PUBLISH`, not
+   `REQUEST`: this is a copy of an arrangement, not an invitation from an
+   organiser expecting RSVPs.
+
+## Still not built, and why (unchanged from the investigation)
+
+- **Marketplace.** We would be introducing a notary the officer did not
+  choose, which is a different business with a different liability
+  posture. She picks from her own partner list.
+- **Ranking and reviews.** Ranking professionals is a claim about their
+  competence. We have no basis for one, and a five-star average is a
+  claim dressed as data.
+- **Fees.** Taking a cut of a notarial fee makes us a party to the
+  engagement. Not without a deliberate decision about what that makes us.
+- **RON.** A different regulatory surface with credential, recording and
+  storage obligations we have not assessed. Not "later" — not this
+  product without a deliberate decision.
+- **Availability sync.** A permanent maintenance tax for convenience the
+  `.ics` already provides. See the ledger's trigger.
+- **SMS.** New vendor, new consent regime (TCPA), new opt-out obligation,
+  and it messages consumers we have no relationship with. Option A avoids
+  the category entirely.
+- **Auto-completion.** Never, and it is now §13 rather than a preference.
+  A passed window is not a signing.
+
+## Two pre-existing defects found while building, both fixed here
+
+- **Share creation never checked deed ownership.** `POST /shared-deeds`
+  took `deed_id` from the request body, read the address and APN,
+  inserted a `deed_shares` row with `owner_user_id = <the caller>` and
+  returned a working token. Any authenticated user could enumerate deed
+  ids and read someone else's property address, APN, county, grantor and
+  grantee names, and the stored PDF — and let a third party "approve" it.
+  Reproduced against a real database with two users before the fix. Every
+  *other* share endpoint scoped by `owner_user_id`; creation was the one
+  that did not, which is why it survived.
+- **An opened link kept serving the deed after expiry.** The 410 fired
+  only while the status was still `sent`, so a link viewed once returned
+  the deed indefinitely, while the PDF route next door refused the same
+  token. Expiry that depends on which URL you ask is not expiry.
+
+Both are pinned as classes rather than sites: a sweep requires every
+function that writes a `deed_shares` row to have resolved the deed
+through the ownership check, and the expiry pin asserts all four routes
+agree.

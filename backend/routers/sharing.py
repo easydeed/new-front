@@ -1,6 +1,9 @@
 """Deed sharing + public approval endpoints (T8 split — moved verbatim from main.py)."""
+import json as _json
 import os
 from datetime import datetime, timedelta
+from datetime import datetime as _dt
+from datetime import timezone as _tz
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -8,6 +11,11 @@ from pydantic import BaseModel, field_validator
 
 import db
 from auth import get_current_user_id
+from services import signing
+# NOTARY1: the attachment CONSTRUCTOR only. The transport itself stays
+# behind utils.notifications — see the ADMIN3 pin, which exists because a
+# second module reaching for the sender is how the ledger loses rows.
+from utils.email import attachment as _ics_attachment
 
 router = APIRouter()
 
@@ -55,6 +63,49 @@ def _valid_token_or_404(approval_token: str) -> str:
         raise HTTPException(status_code=404, detail="Share not found")
     return approval_token
 
+
+def _owned_deed_or_404(deed_id: int, user_id: int) -> dict:
+    """The deed, ONLY if this caller owns it. Every share starts here.
+
+    FOUND WHILE BUILDING NOTARY1, and it is not a NOTARY1 defect — it is
+    live on main. `POST /shared-deeds` took `deed_id` from the request
+    body and never asked whose deed it was. It read the address and APN,
+    inserted a `deed_shares` row with `owner_user_id = <the caller>`, and
+    handed back a token.
+
+    So any authenticated user could enumerate deed ids, mint a share link
+    for somebody else's deed, and read it: property address, APN, county,
+    grantor and grantee names, and the stored PDF through
+    `/approve/{token}/pdf`. They could also let a third party "approve"
+    it. Reproduced against a real database before this was written, with
+    two users and one deed.
+
+    Every OTHER share endpoint — list, resend, revoke, delete, feedback —
+    already scoped by `owner_user_id`. Creation was the one that didn't,
+    which is why it survived: the surrounding code looked careful.
+
+    Admin is deliberately NOT an escape here. `_pcor_deed_row` lets an
+    admin read a deed for support; minting a share link is a grant to a
+    third party, and support access is not authority to hand a stranger a
+    URL. Read and grant are different verbs.
+    """
+    if not db.conn:
+        raise HTTPException(status_code=500, detail="Database connection not available")
+    with db.conn.cursor() as cur:
+        cur.execute("""
+            SELECT id, user_id, deed_type, property_address, apn, county
+            FROM deeds WHERE id = %s
+        """, (deed_id,))
+        row = cur.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Deed not found")
+    if row["user_id"] != user_id:
+        # 404, not 403: "this deed exists but is not yours" is an answer
+        # to a question the caller had no standing to ask, and it turns
+        # id enumeration into a working inventory of who owns what.
+        raise HTTPException(status_code=404, detail="Deed not found")
+    return dict(row)
+
 # Shared Deeds endpoints
 @router.post("/shared-deeds")
 def share_deed_for_approval(share_data: ShareDeedCreate, user_id: int = Depends(get_current_user_id)):
@@ -69,9 +120,13 @@ def share_deed_for_approval(share_data: ShareDeedCreate, user_id: int = Depends(
     expires_at = datetime.now(timezone.utc) + timedelta(hours=expires_in)
     approval_token = str(uuid.uuid4())
 
-    # Get the owner's name and deed details from database
+    # Whose deed is this? Asked FIRST and outside the swallowing try
+    # below — an authorization answer that degrades to a default is not
+    # an authorization check.
+    deed = _owned_deed_or_404(share_data.deed_id, user_id)
+    deed_type = deed.get("deed_type") or "deed"
+
     owner_name = "DeedPro User"  # Default
-    deed_type = "deed"  # Default
 
     try:
         with db.conn.cursor() as cur:
@@ -80,12 +135,6 @@ def share_deed_for_approval(share_data: ShareDeedCreate, user_id: int = Depends(
             owner_row = cur.fetchone()
             if owner_row:
                 owner_name = owner_row[0] or owner_name
-
-            # Get deed type
-            cur.execute("SELECT deed_type FROM deeds WHERE id = %s", (share_data.deed_id,))
-            deed_row = cur.fetchone()
-            if deed_row:
-                deed_type = deed_row[0] or deed_type
     except Exception as db_error:
         # RED-H1.2b: rollback FIRST. Without it a failed statement leaves
         # the shared transaction aborted and Postgres refuses every later
@@ -104,22 +153,11 @@ def share_deed_for_approval(share_data: ShareDeedCreate, user_id: int = Depends(
 
     # Phase 7.5: Save to deed_shares table (gap-plan fix)
     shared_deed_id = None
-    property_address = "Unknown"
-    apn = "Unknown"
+    property_address = deed.get("property_address") or "Unknown"
+    apn = deed.get("apn") or "Unknown"
 
     try:
         with db.conn.cursor() as cur:
-            # Get deed details
-            cur.execute("""
-                SELECT property_address, apn
-                FROM deeds
-                WHERE id = %s
-            """, (share_data.deed_id,))
-            deed_info = cur.fetchone()
-            if deed_info:
-                property_address = deed_info[0] or property_address
-                apn = deed_info[1] or apn
-
             # Insert into deed_shares table
             cur.execute("""
                 INSERT INTO deed_shares (
@@ -223,7 +261,11 @@ def list_shared_deeds(user_id: int = Depends(get_current_user_id)):
                     ds.updated_at,
                     d.property_address,
                     d.deed_type,
-                    u.full_name as owner_name
+                    u.full_name as owner_name,
+                    ds.share_kind,
+                    ds.proposed_windows,
+                    ds.scheduled_at,
+                    ds.scheduled_by
                 FROM deed_shares ds
                 JOIN deeds d ON ds.deed_id = d.id
                 JOIN users u ON ds.owner_user_id = u.id
@@ -248,7 +290,18 @@ def list_shared_deeds(user_id: int = Depends(get_current_user_id)):
                     "shared_with_email": row.get('recipient_email') if isinstance(row, dict) else row[3],
                     "status": row.get('status') if isinstance(row, dict) else row[4],
                     "message": f"Shared via link - expires {expires_at.strftime('%Y-%m-%d') if expires_at else 'never'}",
-                    "share_type": "review",
+                    # NOTARY1: was hardcoded "review", which was true until
+                    # this ticket and would have quietly stayed "true" for
+                    # every signing request afterwards.
+                    "share_type": (row.get('share_kind') if isinstance(row, dict) else None) or signing.SHARE_KIND_REVIEW,
+                    # The status LINE for the deed surface. Null for a
+                    # review; for a signing it is the one sentence
+                    # scheduling_label() writes, so this screen cannot
+                    # invent its own phrasing for an arrangement.
+                    "signing_summary": signing.scheduling_label(dict(row)) if isinstance(row, dict) else None,
+                    "scheduled_at": (lambda s: s.isoformat() if hasattr(s, 'isoformat') else s)(
+                        row.get('scheduled_at') if isinstance(row, dict) else None),
+                    "scheduled_by": row.get('scheduled_by') if isinstance(row, dict) else None,
                     "date": created_at.isoformat() if created_at else "",
                     "updated_at": updated_at.isoformat() if updated_at else "",
                     "property": (row.get('property_address') if isinstance(row, dict) else row[9]) or "",
@@ -283,7 +336,8 @@ def resend_approval_email(shared_deed_id: int, user_id: int = Depends(get_curren
             cur.execute("""
                 SELECT ds.id, ds.token, ds.recipient_email, ds.status, ds.expires_at,
                        d.deed_type, d.property_address, d.apn,
-                       u.email as owner_email, u.full_name as owner_name
+                       u.email as owner_email, u.full_name as owner_name,
+                       ds.share_kind  -- appended: row[9] below still means owner_name
                 FROM deed_shares ds
                 JOIN deeds d ON ds.deed_id = d.id
                 JOIN users u ON ds.owner_user_id = u.id
@@ -312,6 +366,17 @@ def resend_approval_email(shared_deed_id: int, user_id: int = Depends(get_curren
             # Check if can be resent
             if status in ('approved', 'rejected', 'revoked'):
                 raise HTTPException(status_code=400, detail=f"Cannot resend - share is {status}")
+
+            # NOTARY1: this sends the `share_reminder` template — "waiting
+            # on your review." A notary was asked about her availability,
+            # not for a review, and sending her the wrong question twice is
+            # worse than not nudging her at all. Refused here rather than
+            # only hidden in the UI.
+            if (dict(row) if isinstance(row, dict) else {}).get('share_kind') == signing.SHARE_KIND_SIGNING:
+                raise HTTPException(
+                    status_code=400,
+                    detail="There is no reminder for a signing request yet — "
+                           "the review reminder asks the wrong question.")
 
             # Check if expired and extend expiration by 24 hours
             now = datetime.now(timezone.utc)
@@ -470,7 +535,12 @@ def view_shared_deed(approval_token: str):
                     ds.status, ds.expires_at, ds.created_at, ds.viewed_at,
                     d.deed_type, d.property_address, d.apn, d.grantor_name, d.grantee_name,
                     d.county, d.pdf_url,
-                    u.full_name as owner_name, u.email as owner_email
+                    u.full_name as owner_name, u.email as owner_email,
+                    -- NOTARY1: appended, never inserted. The positional
+                    -- fallback below indexes this list; a column added in
+                    -- the middle would silently re-point every one of them.
+                    ds.share_kind, ds.proposed_windows, ds.scheduled_at,
+                    ds.scheduled_by, ds.scheduled_asserted_at
                 FROM deed_shares ds
                 JOIN deeds d ON d.id = ds.deed_id
                 LEFT JOIN users u ON u.id = ds.owner_user_id
@@ -520,10 +590,20 @@ def view_shared_deed(approval_token: str):
             now = datetime.now(timezone.utc)
             is_expired = expires_at < now if expires_at else False
 
-            # Update status to expired if needed
-            if is_expired and status == 'sent':
-                cur.execute("UPDATE deed_shares SET status = 'expired', updated_at = NOW() WHERE id = %s", (share_id,))
-                db.conn.commit()
+            # ONE EXPIRY SEMANTIC PER LINK (owner ruling 2, applied as a
+            # class rather than only to the PCOR it was asked about).
+            #
+            # This read `if is_expired and status == 'sent'`, so a link
+            # that had been OPENED ONCE — status 'viewed' — kept serving
+            # the deed after it expired: address, APN, county, grantor
+            # and grantee names, indefinitely. The PDF endpoint next door
+            # 410s on expiry regardless of status, so the same expired
+            # token answered one route and refused the other. Expiry that
+            # depends on which URL you ask is not expiry.
+            if is_expired:
+                if status in ('sent', 'viewed'):
+                    cur.execute("UPDATE deed_shares SET status = 'expired', updated_at = NOW() WHERE id = %s", (share_id,))
+                    db.conn.commit()
                 raise HTTPException(status_code=410, detail="This approval link has expired")
 
             # Track first view (only if status is still 'sent')
@@ -550,7 +630,17 @@ def view_shared_deed(approval_token: str):
                     # Non-blocking - viewed_at column may not exist
                     print(f"[Sharing] ⚠️ Could not track view: {view_err}")
 
-            can_approve = not is_expired and status in ('sent', 'viewed')
+            # NOTARY1 — what KIND of link is this? Read by name; the
+            # positional branch above predates these columns.
+            row_map = dict(share) if isinstance(share, dict) else {}
+            share_kind = row_map.get("share_kind") or signing.SHARE_KIND_REVIEW
+            is_signing = share_kind == signing.SHARE_KIND_SIGNING
+
+            # A signing request has no approve/reject, and the refusal is
+            # SERVER-SIDE as well (see submit_approval_response). A page
+            # that merely hides the buttons is a page, not a rule.
+            can_approve = (not is_expired and not is_signing
+                           and status in ('sent', 'viewed'))
 
             deed_data = {
                 "deed_id": deed_id,
@@ -566,7 +656,30 @@ def view_shared_deed(approval_token: str):
                 "can_approve": can_approve,
                 "status": status,
                 "pdf_url": pdf_url,
+                "share_kind": share_kind,
             }
+
+            if is_signing:
+                scheduled_at = row_map.get("scheduled_at")
+                deed_data["signing"] = {
+                    # DERIVED (T-5). `status` above still says sent/viewed
+                    # and knows nothing about scheduling — the two facts
+                    # are orthogonal and never share a column.
+                    "state": signing.scheduling_state(row_map),
+                    "summary": signing.scheduling_label(row_map),
+                    "windows": [
+                        {"index": i, "start": w.get("start"), "end": w.get("end"),
+                         "label": signing.window_label(w)}
+                        for i, w in enumerate(signing.windows_of(row_map))
+                    ],
+                    "scheduled_at": scheduled_at.isoformat() if hasattr(scheduled_at, "isoformat") else scheduled_at,
+                    "scheduled_by": row_map.get("scheduled_by"),
+                    # A window may still be chosen after one already was —
+                    # a notary who mis-tapped can correct it while the link
+                    # lives. What she cannot do is say the signing happened.
+                    "can_choose_window": not is_expired and status != 'revoked',
+                    "pcor_url": f"/approve/{approval_token}/pcor",
+                }
 
             print(f"[Sharing] ✅ Approval link accessed: share_id={share_id}, status={status}, can_approve={can_approve}")
 
@@ -594,7 +707,7 @@ def submit_approval_response(approval_token: str, response: ApprovalResponse):
             cur.execute("""
                 SELECT ds.id, ds.status, ds.expires_at, ds.owner_user_id, ds.deed_id,
                        ds.recipient_email, d.property_address, u.email as owner_email,
-                       u.full_name as owner_name
+                       u.full_name as owner_name, ds.share_kind
                 FROM deed_shares ds
                 JOIN deeds d ON d.id = ds.deed_id
                 LEFT JOIN users u ON u.id = ds.owner_user_id
@@ -635,6 +748,17 @@ def submit_approval_response(approval_token: str, response: ApprovalResponse):
 
             if is_expired:
                 raise HTTPException(status_code=410, detail="This approval link has expired")
+
+            # NOTARY1 — a signing request is not an approval request, and
+            # this is the rule rather than the UI's omission of two
+            # buttons. A notary saying "approved" would write an approval
+            # into the record on behalf of somebody who was asked a
+            # different question entirely.
+            if (dict(share) if isinstance(share, dict) else {}).get("share_kind") == signing.SHARE_KIND_SIGNING:
+                raise HTTPException(
+                    status_code=409,
+                    detail="This link is a signing request, not a review request. "
+                           "Choose a time instead; approval is not part of it.")
 
             # Allow approval from 'sent' or 'viewed' status
             if current_status not in ('sent', 'viewed'):
@@ -892,3 +1016,504 @@ def get_shared_deed_pdf(approval_token: str):
             pass
         print(f"[Sharing] ❌ PDF access error: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve PDF")
+
+
+# ══════════════════════════════════════════════════════════════════════
+# NOTARY1 — the signing handoff
+#
+# The doctrine lives in services/signing.py; this file is the wiring.
+# Four rules govern everything below, and they are the reason the code
+# looks more careful than "store a datetime" would suggest:
+#
+#   1. No signer contact. The product coordinates officer↔notary and
+#      nothing else; no endpoint here accepts, stores or sends to a
+#      signer's address. Pinned fail-closed in test_notary1_signing.py.
+#   2. The scheduling state is DERIVED from `scheduled_at` and never
+#      written into `deed_shares.status` (T-5's ruling).
+#   3. The system never asserts a signing OCCURRED. Nothing below sets
+#      anything to completed, and no passed window changes any state.
+#   4. Whoever asserted a time is on the row beside it (RED-S4's shape).
+# ══════════════════════════════════════════════════════════════════════
+
+
+class SigningRequestCreate(BaseModel):
+    """An officer asking a notary about availability.
+
+    Note what is NOT here: no signer name, email or phone, and no field
+    that could carry one. The notary's address is the only contact this
+    payload has ever held or may hold.
+    """
+    deed_id: int
+    notary_email: str
+    notary_name: Optional[str] = None
+    # [{"start": ISO-8601, "end": ISO-8601}] — one to three.
+    proposed_windows: list
+    location: Optional[str] = None
+    expires_in_hours: Optional[int] = 336  # 14 days
+
+    @field_validator('expires_in_hours')
+    @classmethod
+    def validate_expiry(cls, v):
+        if v is not None and (v < 1 or v > 720):
+            raise ValueError('Expiration must be between 1 and 720 hours')
+        return v
+
+
+class WindowChoice(BaseModel):
+    """The notary's answer: the INDEX of a window the officer offered.
+
+    Not a timestamp. Accepting a time from the request body would let
+    anyone holding the link assert an hour nobody proposed.
+    """
+    window_index: int
+
+
+class OfficerSchedule(BaseModel):
+    """Owner ruling 3: the officer may record a time she agreed out of
+    band. Either an offered window by index, or an explicit ISO time when
+    they settled on something that was never proposed."""
+    window_index: Optional[int] = None
+    scheduled_at: Optional[str] = None
+
+
+def _signing_share_by_token(approval_token: str, cur) -> dict:
+    """Load a signing share by token, with the link's OWN scoping.
+
+    Ruling 2, and it is a class rather than a special case: an expired or
+    revoked token is expired or revoked for everything it reaches. The
+    deed, the PDF and the PCOR answer identically, because "which URL did
+    you ask" is not a property a permission should have.
+    """
+    cur.execute("""
+        SELECT ds.id, ds.deed_id, ds.owner_user_id, ds.recipient_email,
+               ds.status, ds.expires_at, ds.share_kind, ds.proposed_windows,
+               ds.scheduled_at, ds.scheduled_by, ds.scheduled_asserted_at,
+               d.deed_type, d.property_address,
+               u.email AS owner_email, u.full_name AS owner_name
+        FROM deed_shares ds
+        JOIN deeds d ON d.id = ds.deed_id
+        LEFT JOIN users u ON u.id = ds.owner_user_id
+        WHERE ds.token = %s
+    """, (approval_token,))
+    row = cur.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="This link is invalid or does not exist")
+    row = dict(row)
+    if row.get("share_kind") != signing.SHARE_KIND_SIGNING:
+        raise HTTPException(status_code=404, detail="This link is not a signing request")
+    if row.get("status") == 'revoked':
+        raise HTTPException(status_code=403, detail="Access has been revoked")
+    expires_at = row.get("expires_at")
+    if expires_at and expires_at < datetime.now(_tz.utc):
+        raise HTTPException(status_code=410, detail="This link has expired")
+    return row
+
+
+@router.post("/signing-requests")
+def create_signing_request(payload: SigningRequestCreate,
+                           user_id: int = Depends(get_current_user_id)):
+    """Ask a notary whether she is free at one of these times."""
+    import uuid
+
+    deed = _owned_deed_or_404(payload.deed_id, user_id)
+
+    try:
+        windows = signing.normalize_windows(payload.proposed_windows)
+    except signing.SigningRequestError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    if len(windows) < signing.MIN_WINDOWS:
+        raise HTTPException(status_code=400,
+                            detail="Propose at least one time")
+
+    expires_at = datetime.now(_tz.utc) + timedelta(hours=payload.expires_in_hours or 336)
+    token = str(uuid.uuid4())
+
+    owner_name = "DeedPro User"
+    share_id = None
+    try:
+        with db.conn.cursor() as cur:
+            cur.execute("SELECT full_name FROM users WHERE id = %s", (user_id,))
+            owner_row = cur.fetchone()
+            if owner_row and owner_row[0]:
+                owner_name = owner_row[0]
+
+            cur.execute("""
+                INSERT INTO deed_shares (
+                    deed_id, owner_user_id, recipient_email, token,
+                    status, share_kind, proposed_windows, expires_at,
+                    created_at, updated_at
+                )
+                VALUES (%s, %s, %s, %s, 'sent', %s, %s::jsonb, %s, NOW(), NOW())
+                RETURNING id
+            """, (payload.deed_id, user_id, payload.notary_email, token,
+                  signing.SHARE_KIND_SIGNING, _json.dumps(windows), expires_at))
+            share_id = cur.fetchone()["id"]
+            db.conn.commit()
+    except HTTPException:
+        raise
+    except Exception as e:
+        try:
+            db.conn.rollback()
+        except Exception:
+            pass
+        print(f"[NOTARY1] ❌ Could not save signing request: {e}")
+        # §4: a request we did not store is not a request. Unlike the
+        # review path — which pre-dates the doctrine and still limps on
+        # to send an email after a failed insert — this one stops. A
+        # notary holding a link to a row that does not exist is worse
+        # than an officer who knows her request did not go out.
+        raise HTTPException(status_code=500, detail="Could not save the signing request")
+
+    app_url = os.getenv('FRONTEND_URL', 'https://deedpro-frontend-new.vercel.app')
+    link = f"{app_url}/approve/{token}"
+    address = deed.get("property_address") or ""
+    deed_type = deed.get("deed_type") or "deed"
+
+    # One .ics per proposed window, so she can hold the times. PUBLISH,
+    # not REQUEST: this is a copy of a proposal, not an invitation with
+    # an organiser awaiting an RSVP (see build_ics).
+    attachments = []
+    for i, w in enumerate(windows):
+        ics = signing.window_to_ics(
+            w,
+            summary=f"HOLD (proposed): notary signing — {address}" if address
+                    else "HOLD (proposed): notary signing",
+            location=payload.location or address or None,
+            description=(f"Proposed by {owner_name} via DeedPro. Not confirmed — "
+                         f"open {link} to say whether you are available."),
+            uid=f"{token}-proposed-{i}@deedpro",
+        )
+        if ics:
+            attachments.append(_ics_attachment(
+                f"proposed-time-{i + 1}.ics", ics, "text/calendar"))
+
+    email_sent, email_error = False, None
+    try:
+        from utils.notifications import send_signing_request_with_reason
+        email_sent, email_error = send_signing_request_with_reason(
+            recipient_email=payload.notary_email,
+            recipient_name=payload.notary_name or "",
+            owner_name=owner_name,
+            deed_type=deed_type,
+            property_address=address,
+            share_link=link,
+            window_texts=[signing.window_label(w) for w in windows],
+            expires_at=expires_at.strftime('%B %d, %Y'),
+            attachments=attachments,
+        )
+    except Exception as notif_error:
+        email_error = f"{type(notif_error).__name__}: {str(notif_error)[:200]}"
+        print(f"[NOTARY1] ⚠️ signing-request email error (non-blocking): {email_error}")
+
+    return {
+        "success": True,
+        "share_id": share_id,
+        "share_kind": signing.SHARE_KIND_SIGNING,
+        "token": token,
+        "link": link,
+        "windows": [{"index": i, "start": w["start"], "end": w["end"],
+                     "label": signing.window_label(w)}
+                    for i, w in enumerate(windows)],
+        "expires_at": expires_at.isoformat(),
+        "email_sent": email_sent,
+        "email_error": email_error,
+    }
+
+
+@router.post("/approve/{approval_token}/schedule")
+def notary_choose_window(approval_token: str, choice: WindowChoice):
+    """The notary taps a window. Public, token-scoped.
+
+    WHAT THIS RECORDS is availability — she is free then — and nothing
+    more. It is not an attestation that a notarial act was performed, it
+    does not complete anything, and no later moment turns it into one.
+    """
+    approval_token = _valid_token_or_404(approval_token)
+    if not db.conn:
+        raise HTTPException(status_code=500, detail="Database connection unavailable")
+
+    try:
+        with db.conn.cursor() as cur:
+            row = _signing_share_by_token(approval_token, cur)
+            window = signing.find_window(row, choice.window_index)
+            if window is None:
+                raise HTTPException(
+                    status_code=400,
+                    detail="That is not one of the proposed times")
+            try:
+                chosen = _dt.fromisoformat(window["start"])
+            except ValueError:
+                raise HTTPException(status_code=400, detail="That time could not be read")
+
+            cur.execute("""
+                UPDATE deed_shares
+                SET scheduled_at = %s,
+                    scheduled_by = %s,
+                    scheduled_asserted_at = NOW(),
+                    updated_at = NOW()
+                WHERE id = %s
+            """, (chosen, signing.ASSERTED_BY_NOTARY, row["id"]))
+            db.conn.commit()
+
+            fresh = dict(row)
+            fresh["scheduled_at"] = chosen
+            fresh["scheduled_by"] = signing.ASSERTED_BY_NOTARY
+
+        _tell_the_officer(row, window, signing.ASSERTED_BY_NOTARY)
+
+        return {
+            "success": True,
+            # The words come from one place so no surface can turn an
+            # arrangement into a promise (rule 3).
+            "message": signing.scheduling_label(fresh),
+            "state": signing.scheduling_state(fresh),
+            "scheduled_at": chosen.isoformat(),
+            "scheduled_by": signing.ASSERTED_BY_NOTARY,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        try:
+            db.conn.rollback()
+        except Exception:
+            pass
+        print(f"[NOTARY1] ❌ window selection error: {e}")
+        raise HTTPException(status_code=500, detail="Could not record that time")
+
+
+@router.post("/shared-deeds/{shared_deed_id}/schedule")
+def officer_record_schedule(shared_deed_id: int, payload: OfficerSchedule,
+                            user_id: int = Depends(get_current_user_id)):
+    """Owner ruling 3 — the officer records a time she agreed elsewhere.
+
+    Two people can settle a time on the phone in fifteen seconds, and a
+    product that then insists the notary tap a link is a product being
+    fussy about its own bookkeeping. So this path exists — and it writes
+    `scheduled_by = 'officer'`, because the record must not claim the
+    notary asserted something she said over the phone to one person.
+    """
+    if not db.conn:
+        raise HTTPException(status_code=500, detail="Database connection not available")
+
+    try:
+        with db.conn.cursor() as cur:
+            cur.execute("""
+                SELECT ds.id, ds.owner_user_id, ds.share_kind, ds.status,
+                       ds.proposed_windows, ds.recipient_email,
+                       d.deed_type, d.property_address
+                FROM deed_shares ds
+                JOIN deeds d ON d.id = ds.deed_id
+                WHERE ds.id = %s
+            """, (shared_deed_id,))
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Signing request not found")
+            row = dict(row)
+            if row["owner_user_id"] != user_id:
+                raise HTTPException(status_code=404, detail="Signing request not found")
+            if row.get("share_kind") != signing.SHARE_KIND_SIGNING:
+                raise HTTPException(
+                    status_code=400,
+                    detail="That share is a review request, which has no signing time")
+
+            if payload.window_index is not None:
+                window = signing.find_window(row, payload.window_index)
+                if window is None:
+                    raise HTTPException(status_code=400,
+                                        detail="That is not one of the proposed times")
+                raw = window["start"]
+            elif payload.scheduled_at:
+                raw = payload.scheduled_at
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Give either a proposed window or a time")
+
+            try:
+                chosen = _dt.fromisoformat(str(raw).replace("Z", "+00:00"))
+            except ValueError:
+                raise HTTPException(status_code=400,
+                                    detail="scheduled_at must be an ISO-8601 date and time")
+
+            cur.execute("""
+                UPDATE deed_shares
+                SET scheduled_at = %s,
+                    scheduled_by = %s,
+                    scheduled_asserted_at = NOW(),
+                    updated_at = NOW()
+                WHERE id = %s
+            """, (chosen, signing.ASSERTED_BY_OFFICER, shared_deed_id))
+            db.conn.commit()
+
+        fresh = dict(row)
+        fresh["scheduled_at"] = chosen
+        fresh["scheduled_by"] = signing.ASSERTED_BY_OFFICER
+        return {
+            "success": True,
+            "message": signing.scheduling_label(fresh),
+            "state": signing.scheduling_state(fresh),
+            "scheduled_at": chosen.isoformat(),
+            "scheduled_by": signing.ASSERTED_BY_OFFICER,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        try:
+            db.conn.rollback()
+        except Exception:
+            pass
+        print(f"[NOTARY1] ❌ officer schedule error: {e}")
+        raise HTTPException(status_code=500, detail="Could not record that time")
+
+
+def _tell_the_officer(row: dict, window: dict, asserted_by: str) -> None:
+    """In-app record first, then the email. Best-effort, never fatal.
+
+    E1's ordering, for E1's reason: the in-app notification is the
+    unlosable copy. A notary's chosen time that existed only as an email
+    would vanish on a transport failure, and the officer would be waiting
+    on an answer that already arrived.
+    """
+    app_url = os.getenv('FRONTEND_URL', 'https://deedpro-frontend-new.vercel.app')
+    address = row.get("property_address") or "your deed"
+    when_text = signing.window_label(window)
+    notary = row.get("recipient_email") or "The notary"
+
+    try:
+        from utils.notifications import create_notification
+        create_notification(
+            db.conn,
+            user_id=row.get("owner_user_id"),
+            ntype="signing_scheduled",
+            title="Notary confirmed availability",
+            message=f"{notary} is available {when_text} for {address}",
+            link=f"/shared-deeds?focus={row.get('id')}",
+        )
+    except Exception as notif_error:
+        try:
+            db.conn.rollback()
+        except Exception:
+            pass
+        print(f"[NOTARY1] ⚠️ notification error (non-blocking): {notif_error}")
+
+    owner_email = row.get("owner_email")
+    if not owner_email:
+        return
+    ics = signing.window_to_ics(
+        window,
+        summary=f"Notary signing — {address}",
+        location=address or None,
+        description=(f"{notary} said she is available at this time. "
+                     "DeedPro has not contacted the signers."),
+        uid=f"share-{row.get('id')}-scheduled@deedpro",
+    )
+    attachments = [_ics_attachment("signing.ics", ics, "text/calendar")] if ics else []
+    note = (f"{notary} chose a time for the signing."
+            if asserted_by == signing.ASSERTED_BY_NOTARY
+            else "A signing time was recorded.")
+    try:
+        from utils.notifications import send_signing_time_recorded_with_reason
+        ok, reason = send_signing_time_recorded_with_reason(
+            owner_email=owner_email,
+            owner_name=row.get("owner_name") or "there",
+            deed_type=row.get("deed_type") or "deed",
+            property_address=row.get("property_address"),
+            notary_email=notary,
+            when_text=when_text,
+            asserted_note=note,
+            view_link=f"{app_url}/shared-deeds?focus={row.get('id')}",
+            user_id=row.get("owner_user_id"),
+            attachments=attachments,
+        )
+        if not ok:
+            print(f"[NOTARY1] ⚠️ officer email not sent: {reason}")
+    except Exception as email_error:
+        print(f"[NOTARY1] ⚠️ officer email error (non-blocking): {email_error}")
+
+
+@router.get("/approve/{approval_token}/pcor")
+def signing_pcor_status(approval_token: str):
+    """Is there a PCOR for this deed's county, and what will it still need?
+
+    Token-scoped, signing links only. A review share asks somebody to
+    check the instrument; the PCOR is the companion form the signing
+    table needs, so it travels with the signing link and not with every
+    link we have ever issued.
+    """
+    approval_token = _valid_token_or_404(approval_token)
+    if not db.conn:
+        raise HTTPException(status_code=500, detail="Database connection unavailable")
+    from services.county_forms import lookup_form
+    from services.boe_form_fill import values_from_deed
+
+    row = _pcor_deed_for_token(approval_token)
+    form = lookup_form(row.get("county") or "")
+    if form is None:
+        return {
+            "available": False,
+            "county": row.get("county"),
+            "reason": f"No PCOR on file for {row.get('county') or 'this county'}.",
+        }
+    _values, asks = values_from_deed(row)
+    return {
+        "available": True,
+        "county": form.county,
+        "form_code": form.form_code,
+        "revision": form.revision,
+        "county_revision": form.county_revision,
+        "url": f"/approve/{approval_token}/pcor.pdf",
+        "still_needed": asks,
+    }
+
+
+@router.get("/approve/{approval_token}/pcor.pdf")
+def signing_pcor_download(approval_token: str):
+    """The filled PCOR, unflattened — the buyer still has to finish it.
+
+    Same posture as the authenticated route (§9: this is the buyer's
+    form, not our instrument, so it is neither stored nor hashed) and the
+    same expiry as the deed behind the same token (ruling 2).
+    """
+    approval_token = _valid_token_or_404(approval_token)
+    if not db.conn:
+        raise HTTPException(status_code=500, detail="Database connection unavailable")
+    from fastapi.responses import Response
+    from services.boe_form_fill import PcorUnavailable, fill_pcor
+
+    row = _pcor_deed_for_token(approval_token)
+    try:
+        pdf_bytes, _asks = fill_pcor(row)
+    except PcorUnavailable as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition":
+                 f'attachment; filename="PCOR-{row.get("id")}.pdf"'},
+    )
+
+
+def _pcor_deed_for_token(approval_token: str) -> dict:
+    """The deed behind a live signing token — the link IS the authority.
+
+    Mirrors `_pcor_deed_row`'s shape (`d.*`, so boe_form_fill sees the
+    same row it sees for the owner) and replaces its owner check with the
+    token's own scoping: signing kind, not revoked, not expired.
+    """
+    try:
+        with db.conn.cursor() as cur:
+            share = _signing_share_by_token(approval_token, cur)
+            cur.execute("SELECT * FROM deeds WHERE id = %s", (share["deed_id"],))
+            deed = cur.fetchone()
+    except HTTPException:
+        raise
+    except Exception as e:
+        try:
+            db.conn.rollback()
+        except Exception:
+            pass
+        print(f"[NOTARY1] ❌ PCOR token lookup error: {e}")
+        raise HTTPException(status_code=500, detail="Could not load the form")
+    if not deed:
+        raise HTTPException(status_code=404, detail="Deed not found")
+    return dict(deed)

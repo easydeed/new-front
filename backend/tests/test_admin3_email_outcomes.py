@@ -63,14 +63,15 @@ def test_no_module_outside_notifications_sends_mail():
 
 
 def test_every_template_routes_through_send():
-    """All twelve, named. A template that renders and sends without a
+    """All fourteen, named. A template that renders and sends without a
     `_send` name is a template whose rows land under the wrong label —
     which is worse than no label, because the log then lies quietly.
 
     The count is asserted as well as the set, and it is a TRIP-WIRE
     rather than a fact worth knowing: a new template must be a deliberate
     edit here, not something that arrives with a diff nobody read. It
-    fired as designed when TRIAL1 added `payment_failed` (11 -> 12)."""
+    fired as designed when TRIAL1 added `payment_failed` (11 -> 12) and
+    again when NOTARY1 added the two signing templates (12 -> 14)."""
     import sys
     sys.path.insert(0, str(BACKEND))
     from utils.notifications import TEMPLATES
@@ -81,7 +82,7 @@ def test_every_template_routes_through_send():
         f"declared TEMPLATES and actual _send labels disagree: "
         f"only-declared={set(TEMPLATES) - named}, only-used={named - set(TEMPLATES)}"
     )
-    assert len(TEMPLATES) == 12
+    assert len(TEMPLATES) == 14
 
 
 # ── The recorder's two constraints ───────────────────────────────────

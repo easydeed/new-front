@@ -115,6 +115,8 @@ export function AddPartnerModal({ isOpen, onClose, onSave }: AddPartnerModalProp
               >
                 <option value="title_company">Title Company</option>
                 <option value="escrow_company">Escrow Company</option>
+                {/* NOTARY1: the signing request picks from here too. */}
+                <option value="notary">Notary</option>
                 <option value="attorney">Attorney</option>
                 <option value="real_estate">Real Estate Office</option>
                 <option value="lender">Lender</option>

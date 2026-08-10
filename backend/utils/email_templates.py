@@ -352,6 +352,93 @@ def admin_api_key_request(company_name, contact_email, business_type,
     return subject, _base(f"API access request from {company_name}", content, False), text
 
 
+def share_signing_request(recipient_name, owner_name, deed_type, property_address,
+                          window_texts, share_link, expires_at: Optional[str]) -> Rendered:
+    """NOTARY1 — to the notary: here is the document, here are the times.
+
+    `window_texts` arrives already formatted. The renderer does not know
+    how to say a date, deliberately: signing.window_label() says it once,
+    and a template that reformatted times would be a second place for the
+    wording to drift.
+
+    Two things this email must not say, and both are doctrine rather than
+    taste. It does not ask the notary to CONFIRM the signing — she is
+    telling us when she is free, and the difference between availability
+    and attendance is the whole of rule 3. And it names no signer,
+    because the product holds no signer contact and never messages one;
+    the officer arranges that leg herself.
+    """
+    addr = _short_addr(property_address)
+    subject = f"Signing request — {addr}" if addr else "Notary signing request"
+    times = "".join(
+        f'<tr><td style="padding:4px 0;font-size:14px;color:{INK};font-weight:600;">'
+        f"&bull;&nbsp;{_esc(w)}</td></tr>" for w in (window_texts or [])
+    )
+    times_block = (
+        '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:10px 0 4px 0;">'
+        f"{times}</table>" if times else ""
+    )
+    content = (
+        _p(f"Hi {_esc(recipient_name) or 'there'},")
+        + _p(f"<strong>{_esc(owner_name)}</strong> is asking whether you are available "
+             "to notarize a signing, and has proposed these times:")
+        + times_block
+        + _facts([("Document", deed_type), ("Property", addr),
+                  ("Requested by", owner_name), ("Link expires", expires_at or "")])
+        + _button(share_link, "Open the request and pick a time")
+        + _p('<span style="font-size:13px;color:#8a94a0;">Picking a time tells '
+             f"{_esc(owner_name)} you are available then; she confirms the appointment "
+             "with the signers herself. Calendar files for each proposed time are "
+             "attached so you can hold them.</span>")
+        + _p('<span style="font-size:13px;color:#8a94a0;">Anyone with this link can open '
+             "the document until it expires.</span>")
+    )
+    text = (
+        f"{owner_name} is asking whether you are available to notarize a signing.\n\n"
+        f"Document: {deed_type}\nProperty: {addr}\nLink expires: {expires_at or ''}\n\n"
+        "Proposed times:\n"
+        + "".join(f"  - {w}\n" for w in (window_texts or []))
+        + f"\nOpen the request and pick a time: {share_link}\n\n"
+        f"Picking a time tells {owner_name} you are available then; she confirms the "
+        "appointment with the signers herself."
+    )
+    return subject, _base(f"{owner_name} asked about your availability — {addr}",
+                          content, True), text
+
+
+def signing_time_recorded(owner_name, deed_type, property_address, notary_email,
+                          when_text, asserted_note, view_link) -> Rendered:
+    """NOTARY1 — to the officer: a time is on the record.
+
+    The subject and body say RECORDED, never "confirmed for" or "your
+    signing is set". A time in this system is an arrangement two people
+    made; the product knows the arrangement was made and knows nothing
+    about whether anybody keeps it. `asserted_note` carries who said so,
+    because per RED-S4 the system's knowledge is always somebody's
+    statement.
+    """
+    addr = _short_addr(property_address)
+    subject = f"Signing time recorded — {addr}" if addr else "Signing time recorded"
+    content = (
+        _p(f"Hi {_esc(owner_name)},")
+        + _p(_esc(asserted_note))
+        + _facts([("Time", when_text), ("Notary", notary_email),
+                  ("Document", deed_type), ("Property", addr)])
+        + _button(view_link, "Open in DeedPro")
+        + _p('<span style="font-size:13px;color:#8a94a0;">The signers have not been '
+             "contacted — DeedPro does not message them. A calendar file for this time "
+             "is attached.</span>")
+    )
+    text = (
+        f"{asserted_note}\n\n"
+        f"Time: {when_text}\nNotary: {notary_email}\n"
+        f"Document: {deed_type}\nProperty: {addr}\n\n"
+        f"Open: {view_link}\n\n"
+        "The signers have not been contacted — DeedPro does not message them."
+    )
+    return subject, _base(f"Signing time recorded — {addr}", content, True), text
+
+
 def admin_new_user(user_email, user_id, registered_at: Optional[str] = None) -> Rendered:
     """Ops ping (owner ruling): registrant email + timestamp — no more."""
     ts = registered_at or datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
