@@ -607,3 +607,105 @@ them rather than what they are.
 from before this engagement is Tier 3 twice over: irreversible, and
 possibly somebody's data. The useful next step is read-only — list its
 tables and row counts — and that is the owner's to run.
+
+## `render.yaml` — owner ruling, and which reality we are in (2026-08-11)
+
+**Ruling:** pin `PYTHON_VERSION` explicitly for every service defined in
+`render.yaml`, matching what production actually runs. Whichever of the
+two possibilities is true, the fix is the same — the repo should express
+the rule, and an unpinned runtime on the customer-facing API is the same
+latent failure the cron just demonstrated, one Render default bump away.
+
+**HELD, PENDING A VALUE.** The owner is reading the current version off
+`deedpro-main-api`. Not guessed: writing a plausible version into a
+deploy file is how a "fix" becomes an outage on the next deploy, and a
+wrong pin is worse than no pin because it looks deliberate.
+
+**The one-line change, ready to apply** — under `deedpro-main-api`'s
+`envVars`, alongside the existing entries:
+
+```yaml
+  - key: PYTHON_VERSION
+    value: "3.X.Y"        # ← the value from deedpro-main-api's dashboard
+```
+
+Landing it together with a pin — a test asserting every service block in
+`render.yaml` carries `PYTHON_VERSION` — so the rule survives the next
+service somebody adds. The pin is written and held with the value rather
+than committed failing.
+
+### Which reality we are in: the dashboard is authoritative
+
+The question was whether `render.yaml` describes production or the
+dashboard does. **It does not describe production, and this is checkable
+without any dashboard access:**
+
+`render.yaml` defines **exactly one service** — `deedpro-main-api` — plus
+a database reference. Production runs at minimum:
+
+| running | in `render.yaml`? |
+|---|---|
+| `deedpro-main-api` (web) | yes |
+| the purge cron job | **no** |
+| Postgres `deedpro` | by reference only |
+
+The cron the owner created and debugged over four failures **appears
+nowhere in this file.** So the file is already a partial description, and
+anything reading it as the deployment inventory is reading a subset that
+does not announce itself as one.
+
+That is worse than the version-pin problem it was found by. A config file
+that lies by OMISSION is harder to catch than one that lies by contents:
+nothing about `render.yaml` says "this is some of what runs."
+
+**Two ways to make it honest, and this is an owner call:**
+
+1. **Bring the cron into `render.yaml`** so the file is the inventory,
+   and keep it that way. More work, and it makes the repo the source of
+   truth for deploy topology — which is a real commitment, not a
+   formatting preference.
+2. **Say so at the top of the file** — a header stating that services are
+   managed in the Render dashboard and this file is a reference for the
+   main API only. Cheap, honest, and it stops the next person trusting
+   it.
+
+Doing neither leaves a file that will be believed. Recommended: (2) now,
+(1) if deploy topology ever gets complicated enough to need review.
+
+## TICKET — services assert their tables and name the database (queued)
+
+**Why it is a ticket rather than a note.** It cost an afternoon of the
+owner's time and two redeploys on an untested hypothesis. Invariant #4
+applied to diagnostics: an error that names its context is a different
+quality of error.
+
+`relation "signing_participants" does not exist` sent us hunting for a
+schema that had never run. The same failure, phrased with its context —
+
+```
+signing_participants not found in deedpro_database on dpg-d1vbos95… —
+expected deedpro on dpg-d208q5um…
+```
+
+— ends the investigation in one run and names the actual defect.
+
+**Scope.** A small startup assertion, used by any service that depends on
+specific tables:
+
+- `services/db_identity.py` — `assert_tables(conn, *names)` which, on a
+  miss, raises with `current_database()`, `inet_server_addr()`,
+  `inet_server_port()` and the missing table names in the message;
+- called from `scripts/purge_signer_contact.py` before it does anything;
+- an optional `--verify` flag printing the same identity block, so
+  "which database is this service on" is answerable without a psql
+  session;
+- the same call available to any future worker or cron.
+
+**Acceptance.** Pointing the purge script at the wrong database produces
+a message naming both databases; pointing it at the right one is silent.
+Tested by running it against a database that lacks the table.
+
+**Effort.** Half a day. **Not urgent** — the specific defect is fixed and
+the standing rule is recorded — but it is the difference between a rule
+people must remember and a mechanism that remembers for them, which is
+the same distinction the purge itself was held to.
