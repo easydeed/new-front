@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { PARTNER_CATEGORIES } from '@/lib/partnerRegistry';
+import { maskUS, normalizePhone } from '@/lib/phone';
 import { X, Sparkles } from 'lucide-react'
 
 interface AddPartnerModalProps {
@@ -42,7 +44,8 @@ export function AddPartnerModal({ isOpen, onClose, onSave }: AddPartnerModalProp
     setSaving(true)
     
     try {
-      await onSave(formData)
+      // Masked as typed, E.164 on the wire — one column, one shape.
+      await onSave({ ...formData, phone: normalizePhone(formData.phone) })
       // Reset form
       setFormData({
         company_name: '',
@@ -113,14 +116,13 @@ export function AddPartnerModal({ isOpen, onClose, onSave }: AddPartnerModalProp
                 onChange={(e) => handleChange('category', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               >
-                <option value="title_company">Title Company</option>
-                <option value="escrow_company">Escrow Company</option>
-                {/* NOTARY1: the signing request picks from here too. */}
-                <option value="notary">Notary</option>
-                <option value="attorney">Attorney</option>
-                <option value="real_estate">Real Estate Office</option>
-                <option value="lender">Lender</option>
-                <option value="other">Other</option>
+                {/* PARTNER2: derived. This list and the partners
+                    screen's had already diverged once — a partner added
+                    here arrived there as a category the edit dropdown
+                    could not represent. */}
+                {PARTNER_CATEGORIES.map((c) => (
+                  <option key={c.key} value={c.key}>{c.label}</option>
+                ))}
               </select>
             </div>
 
@@ -199,7 +201,7 @@ export function AddPartnerModal({ isOpen, onClose, onSave }: AddPartnerModalProp
             <input
               type="tel"
               value={formData.phone}
-              onChange={(e) => handleChange('phone', e.target.value)}
+              onChange={(e) => handleChange('phone', maskUS(e.target.value))}
               placeholder="(310) 555-1234"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
             />

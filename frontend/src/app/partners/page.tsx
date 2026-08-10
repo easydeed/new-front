@@ -48,28 +48,21 @@ import {
   Plus, Pencil, Trash2, X, Save, Search, Users, MapPin, Mail, Loader2,
 } from 'lucide-react';
 import Sidebar from '../../components/Sidebar';
+import {
+  PARTNER_CATEGORIES, categoryLabel, defaultRoleFor, roleBelongsTo,
+  roleLabel, rolesFor,
+} from '../../lib/partnerRegistry';
+import { formatPhone, maskUS, normalizePhone, phoneSearchKey } from '../../lib/phone';
 import '../../styles/dashboard.css';
 
 /**
- * NOTARY1 adds `notary` / `notary_public`: a signing request picks its
- * notary from this list, so a notary who cannot be filed as one is a
- * notary the officer records as "other" and then searches for by memory.
- *
- * `escrow_company` and `attorney` are not new — the builder's
- * AddPartnerModal has offered them all along while this screen did not,
- * so a partner added there arrived here as a category the edit dropdown
- * could not represent and the chip rendered as "Other". Two live lists
- * of the same enum had drifted; adding a third divergence on top of that
- * is how the next one gets found by a customer.
+ * PARTNER2: the two hand-kept arrays are gone. They had already diverged
+ * from the builder's list once (PARTNER1 aligned them by hand and noted
+ * that hand-alignment has a shelf life), and a third copy in
+ * QuickAddPartnerModal disagreed with both about whether `realtor` is a
+ * category or a role. Every surface now derives from `lib/partnerRegistry`,
+ * and a pin fails if any of them grows its own list again.
  */
-const CATEGORIES = [
-  'title_company', 'escrow_company', 'notary', 'attorney',
-  'real_estate', 'lender', 'other',
-] as const;
-const ROLES = [
-  'title_officer', 'escrow_officer', 'notary_public', 'attorney',
-  'realtor', 'loan_officer', 'other',
-] as const;
 
 type Partner = {
   id: string;
@@ -163,6 +156,15 @@ export default function PartnersPage() {
     };
   }
 
+  /** Open the editor on a stored row. The phone comes back as E.164 and
+   * is masked for reading — an officer opening a partner should not be
+   * shown "+16265550134" and asked to recognise her own entry. */
+  function edit(p: Partner) {
+    setEditing({ ...p, phone: formatPhone(p.phone) });
+    setFormError(null);
+    setShowForm(true);
+  }
+
   function save(it: Partial<Partner>) {
     if (!(it.company_name || '').trim()) {
       setFormError('Company name is required.');
@@ -181,7 +183,9 @@ export default function PartnersPage() {
         ...(t ? { Authorization: `Bearer ${t}` } : {}),
       },
       credentials: 'include',
-      body: JSON.stringify(it),
+      // Masked for her eyes, E.164 on the wire. The column has held
+      // eleven punctuation styles until now, none of them searchable.
+      body: JSON.stringify({ ...it, phone: normalizePhone(it.phone) }),
     })
       .then(async (r) => {
         if (!r.ok) {
@@ -237,7 +241,7 @@ export default function PartnersPage() {
       <span
         className={`inline-block whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${tone[category] || tone.other}`}
       >
-        {titleCase(category)}
+        {categoryLabel(category)}
       </span>
     );
   }
@@ -246,7 +250,9 @@ export default function PartnersPage() {
     const q = query.trim().toLowerCase();
     if (!q) return items;
     return items.filter((p) =>
-      [p.company_name, p.contact_name, p.email, p.phone, p.city, p.address_line1]
+      // phoneSearchKey so "(626) 555" finds a row stored as +16265550134.
+      // The raw substring match could not, whichever way either was typed.
+      [p.company_name, p.contact_name, p.email, phoneSearchKey(p.phone), p.city, p.address_line1]
         .some((f) => (f || '').toLowerCase().includes(q))
     );
   }, [items, query]);
@@ -376,7 +382,7 @@ export default function PartnersPage() {
                         {address || (
                           /* An editable gap, never a silent blank. */
                           <button
-                            onClick={() => { setEditing(p); setFormError(null); setShowForm(true); }}
+                            onClick={() => edit(p)}
                             className="inline-flex items-center gap-1 text-brand-600 hover:text-brand-700 hover:underline"
                           >
                             <MapPin className="w-3.5 h-3.5" /> Add address
@@ -401,7 +407,7 @@ export default function PartnersPage() {
                             aria-label={`Edit ${p.company_name}`}
                             title="Edit"
                             className="p-2 rounded-md text-gray-500 hover:text-brand-600 hover:bg-brand-50 transition-colors"
-                            onClick={() => { setEditing(p); setFormError(null); setShowForm(true); }}
+                            onClick={() => edit(p)}
                           >
                             <Pencil className="w-4 h-4" />
                           </button>
@@ -429,9 +435,17 @@ export default function PartnersPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
                   { label: 'Total Partners', n: items.length },
-                  { label: 'Title Companies', n: items.filter((p) => p.category === 'title_company').length },
-                  { label: 'Notaries', n: items.filter((p) => p.category === 'notary').length },
-                  { label: 'Real Estate', n: items.filter((p) => p.category === 'real_estate').length },
+                  // Derived from the registry rather than four hand-written
+                  // filters: adding a category should not require anybody
+                  // to remember this tile row exists.
+                  ...PARTNER_CATEGORIES
+                    .filter((c) => c.key !== 'other')
+                    .map((c) => ({
+                      label: c.pluralLabel,
+                      n: items.filter((p) => p.category === c.key).length,
+                    }))
+                    .filter((tile) => tile.n > 0)
+                    .slice(0, 3),
                 ].map((s) => (
                   <div key={s.label} className="bg-gray-50 rounded-lg p-4">
                     <div className="text-sm text-gray-500">{s.label}</div>
@@ -501,7 +515,7 @@ export default function PartnersPage() {
                 <Field label="Phone">
                   <input
                     value={editing.phone || ''}
-                    onChange={(e) => setEditing({ ...editing, phone: e.target.value })}
+                    onChange={(e) => setEditing({ ...editing, phone: maskUS(e.target.value) })}
                     className={inputCls}
                     placeholder="(555) 123-4567"
                   />
@@ -575,19 +589,42 @@ export default function PartnersPage() {
                 <Field label="Category">
                   <select
                     value={editing.category || 'title_company'}
-                    onChange={(e) => setEditing({ ...editing, category: e.target.value })}
+                    onChange={(e) => {
+                      // A role that does not belong to the new category
+                      // is reset rather than silently kept: "Notary /
+                      // Loan Officer" is a row the officer cannot find
+                      // later, and it reads as data we mangled.
+                      const category = e.target.value;
+                      setEditing({
+                        ...editing,
+                        category,
+                        role: roleBelongsTo(category, editing.role)
+                          ? editing.role
+                          : defaultRoleFor(category),
+                      });
+                    }}
                     className={inputCls}
                   >
-                    {CATEGORIES.map((c) => <option key={c} value={c}>{titleCase(c)}</option>)}
+                    {PARTNER_CATEGORIES.map((c) => (
+                      <option key={c.key} value={c.key}>{c.label}</option>
+                    ))}
                   </select>
                 </Field>
                 <Field label="Role">
                   <select
-                    value={editing.role || 'title_officer'}
+                    value={editing.role || defaultRoleFor(editing.category)}
                     onChange={(e) => setEditing({ ...editing, role: e.target.value })}
                     className={inputCls}
                   >
-                    {ROLES.map((r) => <option key={r} value={r}>{titleCase(r)}</option>)}
+                    {rolesFor(editing.category).map((r) => (
+                      <option key={r.key} value={r.key}>{r.label}</option>
+                    ))}
+                    {/* A stored role the current category does not offer
+                        is still shown, so re-categorising a partner never
+                        silently rewrites what she recorded. */}
+                    {editing.role && !roleBelongsTo(editing.category, editing.role) && (
+                      <option value={editing.role}>{roleLabel(editing.role)}</option>
+                    )}
                   </select>
                 </Field>
               </div>

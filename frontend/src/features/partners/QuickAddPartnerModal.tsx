@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { X, Building2, Loader2 } from 'lucide-react';
 import { usePartners, CreatePartnerData } from './PartnersContext';
+import { PARTNER_CATEGORIES, defaultRoleFor, roleBelongsTo, rolesFor } from '@/lib/partnerRegistry';
+import { maskUS, normalizePhone } from '@/lib/phone';
 import { toast } from 'sonner';
 
 interface QuickAddPartnerModalProps {
@@ -24,6 +26,7 @@ export function QuickAddPartnerModal({
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<CreatePartnerData>({
     category,
+    role: defaultRoleFor(category),
     company_name: initialName,
     contact_name: '',
     email: '',
@@ -46,7 +49,7 @@ export function QuickAddPartnerModal({
 
     setLoading(true);
     try {
-      const newPartner = await create(formData);
+      const newPartner = await create({ ...formData, phone: normalizePhone(formData.phone) });
       if (newPartner) {
         toast.success('Partner added successfully');
         onCreated({
@@ -62,14 +65,11 @@ export function QuickAddPartnerModal({
     }
   };
 
-  const categories = [
-    { value: 'title_company', label: 'Title Company' },
-    { value: 'escrow_company', label: 'Escrow Company' },
-    { value: 'lender', label: 'Lender' },
-    { value: 'realtor', label: 'Realtor' },
-    { value: 'attorney', label: 'Attorney' },
-    { value: 'other', label: 'Other' },
-  ];
+  // PARTNER2: derived. This list was the THIRD copy and the most wrong
+  // of the three — it had `realtor` as a CATEGORY, while everywhere else
+  // `realtor` is a role belonging to `real_estate`. Same word, two
+  // positions in the model, in one product.
+  const categories = PARTNER_CATEGORIES;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -110,13 +110,41 @@ export function QuickAddPartnerModal({
               </label>
               <select
                 value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                onChange={(e) => {
+                  const category = e.target.value;
+                  setFormData({
+                    ...formData,
+                    category,
+                    role: roleBelongsTo(category, formData.role)
+                      ? formData.role
+                      : defaultRoleFor(category),
+                  });
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               >
                 {categories.map((cat) => (
-                  <option key={cat.value} value={cat.value}>
+                  <option key={cat.key} value={cat.key}>
                     {cat.label}
                   </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Role — derived from the category above (PARTNER2). The two
+                lists were independent, which let a notary be filed as a
+                loan officer: not wrong in any way the system could see,
+                just useless when she later wants her notaries. */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Role
+              </label>
+              <select
+                value={formData.role || defaultRoleFor(formData.category)}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              >
+                {rolesFor(formData.category).map((r) => (
+                  <option key={r.key} value={r.key}>{r.label}</option>
                 ))}
               </select>
             </div>
@@ -171,7 +199,7 @@ export function QuickAddPartnerModal({
                 <input
                   type="tel"
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, phone: maskUS(e.target.value) })}
                   placeholder="(555) 123-4567"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
                 />

@@ -457,3 +457,63 @@ we reach it.
   **Trigger:** the first signing request that goes unanswered long enough
   for an officer to ask for a nudge. It is a template plus a route
   branch, not a design question.
+
+## NOTARY2 — the reversal, and what it obliges (2026-08-11)
+
+- **The signer-contact ruling is REVERSED.** Signers participate
+  directly; recorded in DOCTRINE_CONFORMANCE §13.1 with the owner's
+  reasoning ("the signers are the scheduling constraint, so routing
+  around them recreated the phone tag the feature exists to kill"), and
+  with NOTARY0b's superseded paragraph kept verbatim rather than
+  rewritten. §13 otherwise stands: booked is not happened.
+
+- **OWNER ITEM — a privacy statement covering non-users.** NOTARY0b's
+  own argument against involving signers was that they "cannot see what
+  we hold and cannot ask us to delete it." The reversal does not answer
+  that objection; it converts it into a requirement. What we hold about
+  a signer (name, email, optional phone, their answers), for how long
+  (90 days past completion or expiry, proposed), and how a non-user asks
+  for removal. **Should ship WITH NOTARY2's build, not after it** — the
+  first real signer email is the deadline. Not a machine decision.
+
+- **OWNER ITEM — transactional email to consumers.** Signer invitations
+  are transactional rather than marketing, but they reach somebody who
+  never signed up, from a brand they do not know. Worth a look before
+  the first send.
+
+- **OWNER ITEM (Tier 3) — a Render Cron Job for the purge.** There is
+  **no scheduler in this deployment**: no cron, no worker, no
+  APScheduler, no Celery; `render.yaml` defines web services only.
+  NOTARY2 will ship the purge as a function with two invocations — a
+  script ready for a cron service, and a throttled in-request sweep that
+  needs no topology change. The sweep is a real mechanism and it is
+  tested, but it runs only when somebody uses the product, so it LAGS
+  gracefully rather than failing. That is acceptable for a retention
+  practice and **not** acceptable as the backing for a stated deletion
+  window. If the privacy language says "within 90 days," the cron
+  service stops being optional. Creating it is a deploy-topology change,
+  which is Tier 3.
+
+- **OPEN QUESTION for the owner** — the notary's display name on the
+  signer token view. A consumer asked to meet a stranger arguably should
+  know who; equally it is another party's information on a surface whose
+  whole point is minimum. Currently proposed IN the allowlist. See
+  `docs/NOTARY2_PLAN.md` §2.
+
+- **SCOPE FLAG — NOTARY2 as specified is ~11.5 working days**, which is
+  past two weeks once anything goes wrong. Recommended cut: Part D's
+  month grid becomes a sorted agenda list in v1 (~1 day, and no workflow
+  depends on the grid). Recommended AGAINST cutting: the signer
+  counter-proposal loop, which is the second-largest saving and is
+  precisely the hole the reversal was made to close — cutting it spends
+  two weeks rebuilding Option A with extra steps.
+
+- **PARTNER2 note (2026-08-11): the fifth partner-category copy is gone.**
+  PARTNER1 aligned two lists by hand and said hand-alignment has a shelf
+  life; it did. A third copy in `QuickAddPartnerModal` had `realtor` as a
+  CATEGORY while everywhere else it is a role belonging to
+  `real_estate` — one word, two positions in the model, in one product.
+  There is now one registry (`lib/partnerRegistry.ts`), every surface
+  derives from it, and a pin fails if any surface grows its own list.
+  `QuickAddPartnerModal` had no importers at the time; it was aligned
+  anyway rather than left dead, because NOTARY2 Part B revives it.
