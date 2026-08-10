@@ -60,6 +60,86 @@ substantively incomplete deed; the legal-choice doctrine was unchanged.
   in the PR that re-records it.
 - The frontend `tsc` error baseline (currently **114**) may only go down.
 
+## Dead code and revived code
+
+**Reviving a dead file makes its violations live.** A file with no
+importers is outside the blast radius of every ruling made while it was
+dead — not because anybody exempted it, but because nothing pointed at it
+when the sweep ran. The moment a ticket imports it, everything the
+product decided in the interval applies to it retroactively and
+un-negotiably.
+
+The concrete instance, kept because the shape recurs:
+`QuickAddPartnerModal` still carried a full-viewport `backdrop-blur` from
+before the X1 renderer-freeze ruling, and a category list in which
+`realtor` was a CATEGORY where every live surface treated it as a role of
+`real_estate`. Both were harmless while nothing imported it. PARTNER2's
+Part B imported it, and both became live defects in the same commit.
+
+**What this means for a ticket that touches dead code:**
+
+1. *Leaving a dead file alone is correct* when nothing in the ticket
+   revives it. Cleaning up an unreferenced file is scope the owner did
+   not ask for.
+2. *Reviving one obliges you to bring it up to current doctrine* in the
+   same diff — every pin the product has added since it went dark. Not
+   as a follow-up ticket; the revival and the conformance are one change,
+   because a half-revived file is a live surface running an old rulebook.
+3. *Both of those can be true in consecutive tickets about the same file*,
+   and saying so plainly is better than pretending the first call was
+   wrong. PARTNER1's "leave the dead files alone" was right when it was
+   made and wrong the moment Part B revived them.
+
+The general form: **a pin's coverage is the set of files something
+imports, not the set of files that exist.** When the import graph grows,
+re-run the sweeps against the new graph rather than assuming the last
+green run still describes the product.
+
+## Pull requests and stacking
+
+**A squash-merged base does not carry its stack.** Stacking PR B on PR
+A's branch works until A is squash-merged — at which point the squash is
+a NEW commit on main, A's branch still exists unchanged, and B is still
+pointed at it. Merging B then lands B on A's branch instead of on main,
+reports "merged" truthfully, and leaves main without B's work.
+
+This happened with #146 → #147: Part A reached main, Part B did not, and
+the merge API said success both times. It was caught by checking that
+main actually contained the files rather than trusting the word "merged."
+
+**The operational rule: no stacking unless the child is re-based onto
+main before it is merged.** In practice that means either
+- open the second PR against `main` and wait for the first to land, or
+- cherry-pick onto a fresh branch off current main and re-open.
+
+**And the general form, which is the part worth keeping:** a merge
+reporting success is a statement about the merge, not about main. When a
+PR's whole point is that some code reaches production, verify the code
+reached the branch production deploys from. `git log origin/main` and
+`ls` cost five seconds.
+
+## Test helpers and persistent state
+
+**Any pin that reads a table surviving between runs must establish its
+own baseline.** A test asserting "a row with this template exists" or
+"this job has not run recently" is measuring the HISTORY of the test
+database, not the behaviour of the code under test — and it passes with
+the code deliberately broken, which is the worst failure a test has.
+
+Two instances, both found by mutation-probing a green result:
+- `email_log` (NOTARY1) — "the officer's email was attempted" was
+  satisfied by a row from an earlier run. Fixed with a high-water mark
+  (`MAX(id)`) taken before the action.
+- `system_jobs` (NOTARY2) — "the sweep ran" failed on the second
+  execution of the suite because the first had legitimately throttled it.
+  Fixed by deleting the job row in setup, and extended to assert the
+  throttle is a WINDOW rather than a one-shot.
+
+The two shapes of fix: **take a high-water mark before acting** when the
+table is append-only, or **reset the row in setup** when it is a
+singleton. Either way the test states what it depends on instead of
+inheriting it.
+
 ## Product doctrine (the why)
 
 **The two-tier rule.**
