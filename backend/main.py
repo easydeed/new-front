@@ -222,6 +222,12 @@ app.include_router(deeds_crud_router)
 from routers.sharing import router as sharing_router
 app.include_router(sharing_router)
 
+# NOTARY2 — the coordination loop. Its own router rather than more of
+# sharing.py: `deed_shares` is review-only from here, and the two files
+# now hold two different models of the same word.
+from routers.signing import router as signing_router
+app.include_router(signing_router, tags=["Signing"])
+
 from routers.pricing import router as pricing_router
 app.include_router(pricing_router)
 
