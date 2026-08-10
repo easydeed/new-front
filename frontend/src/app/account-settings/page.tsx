@@ -2,11 +2,11 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Sidebar from "@/components/Sidebar"
-import { User, CreditCard, Bell, Lock, Code, Check, Copy, Loader2 } from "lucide-react"
+import { User, CreditCard, Bell, Lock, Check, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { TIERS, priceLabel } from "@/lib/pricing"
 
-type Tab = "profile" | "billing" | "notifications" | "security" | "widget"
+type Tab = "profile" | "billing" | "notifications" | "security"
 
 interface UserProfile {
   first_name?: string
@@ -20,6 +20,15 @@ interface UserProfile {
   zip_code?: string
   plan?: string
   plan_limits?: any
+  /* PRICING1: the Widget Add-on TAB is deleted (owner-ruled). It priced
+     an unimplemented product at $49/month and handed the customer a
+     script tag for https://deedpro.com/widget.js — no such file, no
+     /embed route, no handler. A dead marketing component with a payment
+     button attached.
+
+     The FLAG stays: users.widget_addon is real data an admin may have
+     set, and dropping a column is not a UI ticket. It returns when
+     DX0's widget work actually ships. */
   widget_addon?: boolean
   embed_key?: string
 }
@@ -120,36 +129,12 @@ export default function AccountSettingsPageV0() {
     }
   }
 
-  /**
-   * PRICING1 — this handed the customer a script tag for a file that
-   * does not exist.
-   *
-   * The snippet pointed at `https://deedpro.com/widget.js` and
-   * `/embed/<key>`. There is no widget.js in `frontend/public`, no
-   * `/embed/` route in the backend, and no embed handler anywhere. The
-   * add-on was priced at $49/month on the screen above.
-   *
-   * Same class as the SSO/SAML and custom-branding claims this ticket
-   * deletes, and worse in one respect: those were bullet points, this
-   * had a price and a Copy button, so a customer could pay and then
-   * paste a broken tag into their own site.
-   *
-   * Copying is disabled rather than the tab deleted — removing a product
-   * surface is the owner's call, and this is the honest holding
-   * position. Flagged in the PRICING1 report.
-   */
-  const copySnippet = () => {
-    toast.error(
-      "The embeddable widget is not available yet — there is nothing to embed."
-    )
-  }
 
   const tabs = [
     { id: "profile" as Tab, label: "Profile", icon: User },
     { id: "billing" as Tab, label: "Billing", icon: CreditCard },
     { id: "notifications" as Tab, label: "Notifications", icon: Bell },
     { id: "security" as Tab, label: "Security", icon: Lock },
-    { id: "widget" as Tab, label: "Widget Add-on", icon: Code },
   ]
 
   if (loading) {
@@ -213,7 +198,6 @@ export default function AccountSettingsPageV0() {
               )}
               {activeTab === "notifications" && <NotificationsTab />}
               {activeTab === "security" && <SecurityTab />}
-              {activeTab === "widget" && <WidgetTab userProfile={userProfile} onCopySnippet={copySnippet} />}
             </div>
           </div>
         </div>
@@ -652,77 +636,3 @@ function SecurityTab() {
 }
 
 // Widget Tab Component
-function WidgetTab({
-  userProfile,
-  onCopySnippet,
-}: {
-  userProfile: UserProfile | null
-  onCopySnippet: () => void
-}) {
-  const widgetEnabled = userProfile?.widget_addon || false
-  const embedKey = userProfile?.embed_key || "YOUR_EMBED_KEY"
-
-  return (
-    <div className="space-y-8">
-      {/* Widget Status */}
-      <div
-        className={`rounded-xl p-6 border-2 ${
-          widgetEnabled ? "border-green-500 bg-green-50" : "border-slate-200 bg-slate-50"
-        }`}
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-2xl font-bold text-slate-800 mb-2">{widgetEnabled ? "✅ Enabled" : "❌ Disabled"}</h3>
-            <p className="text-slate-600">Widget Add-On Status</p>
-          </div>
-          <div className="text-right">
-            {/* PRICING1: the $49 was a second hardcoded price, and it
-                priced something that does not exist — see the note on
-                copySnippet. No figure until there is a product to
-                attach it to. */}
-            <div className="text-3xl font-bold text-slate-400">—</div>
-          </div>
-        </div>
-      </div>
-
-      {widgetEnabled ? (
-        <>
-          {/* Embed Key */}
-          <div className="bg-white border-2 border-green-500 rounded-xl p-6">
-            <h3 className="text-xl font-bold text-slate-800 mb-4">🔑 Your Embed Key</h3>
-            <div className="bg-slate-800 rounded-lg p-4 mb-4">
-              <code className="text-green-400 font-mono text-sm break-all">{embedKey}</code>
-            </div>
-            <button
-              onClick={onCopySnippet}
-              className="flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors"
-            >
-              <Copy className="w-4 h-4" />📋 Copy Embed Snippet
-            </button>
-          </div>
-
-          {/* Usage Instructions */}
-          <div className="bg-slate-50 rounded-xl p-6">
-            <h4 className="text-lg font-bold text-slate-800 mb-3">Usage Instructions</h4>
-            <ol className="list-decimal list-inside space-y-2 text-slate-700">
-              <li>Copy the embed snippet above</li>
-              <li>Paste it into your website's HTML</li>
-              <li>The widget will appear automatically</li>
-              <li>Customize styling via the widget dashboard</li>
-            </ol>
-          </div>
-        </>
-      ) : (
-        <div className="bg-blue-50 rounded-xl p-8 text-center">
-          <div className="text-6xl mb-4">🔧</div>
-          <h3 className="text-2xl font-bold text-slate-800 mb-3">Widget Add-On Not Enabled</h3>
-          <p className="text-slate-600 mb-6">Contact your administrator to enable the widget add-on for your account</p>
-          {/* PRICING1: the price came off with the product. There is no
-              widget.js and no /embed route — quoting a monthly figure for
-              it was the same defect as the SSO line this ticket deletes. */}
-        </div>
-      )}
-    </div>
-  )
-}
-

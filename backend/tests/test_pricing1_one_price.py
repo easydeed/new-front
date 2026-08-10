@@ -204,12 +204,17 @@ def test_the_upgrade_endpoint_refuses_when_billing_is_unconfigured():
     app.dependency_overrides[get_current_user_id] = lambda: 1
     client = TestClient(app, raise_server_exceptions=False)
 
+    from unittest.mock import MagicMock
+    conn = MagicMock()
+    conn.cursor.return_value.__enter__.return_value.fetchone.return_value = {
+        "stripe_customer_id": "cus_x", "email": "a@b.test", "full_name": "A"}
+
     env = {k: v for k, v in os.environ.items() if k != "STRIPE_PROFESSIONAL_PRICE_ID"}
     with patch.dict(os.environ, env, clear=True):
-        # Reach the price lookup without needing a database row.
-        with patch.object(ua.db, "conn") as conn:
-            conn.cursor.return_value.__enter__.return_value.fetchone.return_value = {
-                "stripe_customer_id": "cus_x", "email": "a@b.test", "full_name": "A"}
+        # `new=` explicitly: patch.object without it introspects the
+        # original, and `db.conn` is a proxy whose whole job is to react
+        # to attribute access. See test_the_connection_proxy_* below.
+        with patch.object(ua.db, "conn", new=conn):
             resp = client.post("/users/upgrade", json={"plan": "professional"})
 
     assert resp.status_code == 503, resp.text
@@ -362,3 +367,132 @@ def test_a_payment_link_without_metadata_does_not_silently_upgrade(capfd):
     out = capfd.readouterr().out
     assert "PAID BUT NOT UPGRADED" in out
     assert "metadata" in out, "the log must name the fix, not just the symptom"
+
+
+# ── 7. The proxy answers introspection without raising HTTP ──────────
+
+def test_the_connection_proxy_reports_absent_attributes_as_absent():
+    """`db.conn` used to raise HTTPException for EVERY attribute name, so
+    any library asking "what kind of object is this?" got an HTTP 500
+    from a line that never touched a database.
+
+    `hasattr` only swallows AttributeError, so the exception escaped:
+    `unittest.mock.patch.object(db, "conn")` probes `__func__` and then
+    `_is_coroutine` and blew up with "Database connection not
+    available". It cost a CI run that was green locally — and green
+    locally only because an earlier test had left a connection in the
+    contextvar, which makes it a failure that depends on test order.
+    """
+    import db as db_module
+
+    for probe in ("__func__", "_is_coroutine", "__await__", "not_a_real_attr"):
+        assert not hasattr(db_module.conn, probe), probe
+
+
+def test_a_real_attribute_still_resolves_or_fails_loudly(monkeypatch):
+    """The half that must NOT be softened — stated as the contract
+    actually is, rather than as I first assumed it.
+
+    My first version asserted that touching `db.conn.cursor` outside a
+    request always raises 500. It passed without a database and failed
+    with one, because `_active()` deliberately falls back to a
+    STANDALONE connection when DB_URL is set — that is how scripts and
+    the six-flow harness use the module. Asserting a contract I had not
+    read is the same error as a pin that guards a spelling.
+
+    The real contract, both halves:
+
+      DB_URL set    a real attribute resolves (standalone fallback)
+      DB_URL unset  a real attribute is a loud 500
+
+    Either way an ABSENT attribute is AttributeError, which is the
+    change this ticket made and the one the tests above pin.
+    """
+    from fastapi import HTTPException
+    import db as db_module
+
+    # `_active` is the one function the proxy consults, so simulating
+    # "no connection" means patching that — NOT the ContextVar's `get`,
+    # which a first cut tried and which leaked out of the test and broke
+    # six unrelated ones. A test that damages its neighbours is worse
+    # than the assertion it was making.
+    monkeypatch.setattr(db_module, "_active", lambda: None)
+    for real in ("cursor", "commit", "rollback"):
+        with pytest.raises(HTTPException) as excinfo:
+            getattr(db_module.conn, real)
+        assert excinfo.value.status_code == 500, real
+
+
+def test_patch_object_works_on_the_proxy_both_ways():
+    """The thing that actually broke. Pinned in both spellings, because
+    the one that failed is the one people reach for first."""
+    from unittest.mock import MagicMock, patch
+    import db as db_module
+
+    with patch.object(db_module, "conn", new=MagicMock()):
+        assert db_module.conn
+    with patch.object(db_module, "conn"):
+        assert db_module.conn
+
+
+# ── 8. The gate asserts the property, not the spellings ──────────────
+
+def _gate():
+    sys.path.insert(0, str(REPO / "scripts"))
+    import importlib
+    return importlib.import_module("check_banned_claims")
+
+
+@pytest.mark.parametrize("claim", [
+    # The two that were enumerated...
+    "bank-level security",
+    "military-grade encryption",
+    # ...the third that walked past both and prompted the ruling...
+    "Enterprise-grade security",
+    # ...and the ones nobody has written yet, which is the point.
+    "government-grade protection",
+    "hospital-grade privacy",
+    "industry-leading security",
+    "world-class infrastructure",
+    "carrier-class reliability",
+])
+def test_one_rule_covers_every_spelling_of_the_unearned_grade(claim):
+    """Owner-ruled after the enterprise-grade catch: assert the property
+    (unearned security framing), not a list of phrasings. Three
+    spellings of one claim with two of them enumerated is the pin
+    guarding a spelling while the property walks past."""
+    assert any(r.rx.search(claim) for r in _gate().RULES), claim
+
+
+@pytest.mark.parametrize("claim", [
+    "security certified by a third party",
+    "independently audited security",
+    "accredited privacy program",
+])
+def test_the_audit_half_of_the_property_is_covered_too(claim):
+    assert any(r.rx.search(claim) for r in _gate().RULES), claim
+
+
+@pytest.mark.parametrize("innocent", [
+    # Real vocabulary in this domain. A gate that cried about these is a
+    # gate people learn to skip.
+    "a certified copy of the recorded instrument",
+    "Certification of Trust under Probate Code 18100.5",
+    "commercial-grade paper stock",
+    "the county recorder certified the document",
+    "professional liability coverage",
+])
+def test_the_property_rule_does_not_swallow_real_domain_language(innocent):
+    hits = [r.name for r in _gate().RULES if r.rx.search(innocent)]
+    assert hits == [], f"{innocent!r} tripped {hits}"
+
+
+def test_the_enumerated_spellings_were_replaced_not_merely_supplemented():
+    """The ruling was to assert the property RATHER THAN enumerate. If
+    the old per-phrase rules were still here, the next contributor would
+    add a fourth phrase instead of trusting the shape."""
+    names = {r.name for r in _gate().RULES}
+    assert "bank-level security" not in names
+    assert "military-grade" not in names
+    assert "enterprise-grade" not in names
+    assert "unearned security grade" in names

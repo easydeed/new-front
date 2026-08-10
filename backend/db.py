@@ -233,6 +233,12 @@ def _active():
     return _standalone_connection()
 
 
+# What a real connection looks like. Used to tell "you are using the
+# database outside a request" (loud) from "you are asking whether this
+# object has a `_is_coroutine`" (it does not).
+from psycopg2.extensions import connection as _psycopg2_connection
+
+
 class _ConnectionProxy:
     """`db.conn`, resolving per request.
 
@@ -247,6 +253,38 @@ class _ConnectionProxy:
         return _active() is not None
 
     def __getattr__(self, name):
+        # PRICING1 — dunder probes get AttributeError, not a 500.
+        #
+        # This raised HTTPException for EVERY attribute name, including
+        # the special-method lookups library code performs routinely.
+        # `unittest.mock.patch.object` calls `hasattr(original,
+        # '__func__')` before patching; `hasattr` only swallows
+        # AttributeError, so an HTTP exception escaped from a
+        # introspection call and `patch.object(db, "conn")` failed with
+        # "Database connection not available" — from a line that was not
+        # touching the database.
+        #
+        # It cost a red CI run that was green locally, because whether it
+        # fires depends on whether an earlier test in the same session
+        # happened to leave a connection in the contextvar. A failure
+        # that depends on test ORDER is worse than a loud one.
+        #
+        # The loud behaviour is kept for real attributes — using `db.conn`
+        # outside a request is still a 500, which is the whole point of
+        # the proxy. Dunders are not that; they are Python asking what
+        # kind of object this is.
+        # A first cut special-cased dunders. That was the shape of the
+        # examples (`__func__`), not the property — `_is_coroutine` has
+        # one underscore and went straight through, which is the same
+        # enumerate-the-spellings mistake this codebase keeps making.
+        #
+        # The property: a name the real connection does not have is
+        # ABSENT, and absent is AttributeError whatever the connection
+        # state. A name it does have is a genuine use, and using
+        # `db.conn` outside a request is still a loud 500 — the entire
+        # point of the proxy, unchanged.
+        if not hasattr(_psycopg2_connection, name):
+            raise AttributeError(name)
         target = _active()
         if target is None:
             raise HTTPException(status_code=500,

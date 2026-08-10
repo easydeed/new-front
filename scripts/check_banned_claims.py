@@ -73,19 +73,45 @@ RULES = [
     Rule("HIPAA", r"\bHIPAA\b", "Not applicable and never assessed."),
     Rule("GDPR/CCPA compliance claim", r"\b(?:GDPR|CCPA)[\s\-]*(?:compliant|certified)\b",
          "No compliance assessment has been performed against either."),
-    Rule("bank-level security", r"bank[\s\-]?level\s+(?:security|encryption)",
-         "A claim with no definition and no audit behind it. The product "
-         "has no session revocation and no rate limiting."),
-    Rule("military-grade", r"military[\s\-]?grade", "Marketing language for a claim nobody measured."),
-    # PRICING1: the third spelling of the same unmeasured claim. It sat
-    # on the marketing page directly above "Security you can verify in
-    # the product — not badges", which is the sentence it contradicts.
-    # Two rules for two phrasings and a miss on the third is the pattern
-    # this gate keeps repeating: enumerate the property, not the
-    # examples that prompted it.
-    Rule("enterprise-grade", r"enterprise[\s\-]?grade",
-         "Same class as bank-level and military-grade: a superlative with "
-         "no definition and no audit behind it."),
+    # ── THE PROPERTY, not the spellings (owner-ruled, PRICING1) ───────
+    #
+    # This started as two rules for two phrasings: "bank-level security"
+    # and "military-grade". Then "Enterprise-grade security" turned up on
+    # the marketing page, directly above the line "Security you can
+    # verify in the product — not badges", and sailed through both.
+    #
+    # Three spellings of one claim, two of them enumerated, is the same
+    # mistake this codebase keeps making in different clothes — the pin
+    # guards a spelling and the property walks past it. So the rule now
+    # describes the SHAPE: any adjective borrowed as a grade or level,
+    # attached to a security noun. bank-level, military-grade,
+    # enterprise-grade, government-grade, hospital-grade,
+    # industry-leading — all one rule, and the next one nobody thought
+    # of is covered too.
+    #
+    # It stays scoped to SECURITY nouns deliberately. "Commercial-grade
+    # paper" is a fact about paper; the claim being forbidden is the
+    # unearned assurance about how safe something is.
+    Rule("unearned security grade",
+         r"\b[a-z]+[\s\-](?:grade|level|class)\s+"
+         r"(?:security|encryption|protection|infrastructure|reliability|privacy)\b"
+         r"|\b(?:industry[\s\-]leading|best[\s\-]in[\s\-]class|world[\s\-]class)\s+"
+         r"(?:security|encryption|protection|infrastructure|reliability|privacy)\b",
+         "A superlative used as a security grade, with no definition and "
+         "no audit behind it. Say what the product actually does — the "
+         "hash-stamped PDFs and the confirmation record are checkable; "
+         "'bank-level' is not."),
+    # The other half of the same property: claiming an AUDIT rather than
+    # a grade. Scoped tightly, because 'certified' is real vocabulary in
+    # this domain — a certified copy, a certification of trust — and a
+    # rule that flagged those would be noise nobody reads.
+    Rule("unearned security audit",
+         r"\b(?:security|privacy|data|infrastructure)[^.\n]{0,24}?"
+         r"\b(?:certified|accredited|independently audited)\b"
+         r"|\b(?:certified|accredited|independently audited)[^.\n]{0,24}?"
+         r"\b(?:security|privacy|infrastructure)\b",
+         "No security or privacy audit has been performed. Naming one is "
+         "the claim with contractual teeth."),
     # The `[^.\n]{0,24}?` gap is the whole point. The first version of this
     # rule required the keyword to follow the percentage immediately, and
     # it pinned the four spellings that happened to exist. Its own test
