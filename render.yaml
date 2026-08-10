@@ -1,3 +1,26 @@
+# ⚠️ THIS FILE IS NOT THE DEPLOYMENT INVENTORY.
+#
+# Services are managed in the Render dashboard. This file describes
+# `deedpro-main-api` and nothing else — the purge cron job
+# (`signer_contact_purge`, added 2026-08-11) runs in production and does
+# not appear here, and neither will anything else created in the
+# dashboard.
+#
+# Recorded because a config file that lies by OMISSION is harder to catch
+# than one that lies by contents: nothing about a YAML file announces
+# that it is a subset. Anyone reading this as "what runs" is reading a
+# partial list that does not say so.
+#
+# Owner-ruled 2026-08-11: every service defined here pins PYTHON_VERSION
+# explicitly, matching what `deedpro-main-api` actually runs. An unpinned
+# service inherits whatever Render's default is on the day it builds —
+# which is exactly how the cron's first build died compiling Rust for a
+# pydantic_core with no 3.14 wheel. The value is HELD pending the owner
+# reading it off the dashboard; it is not guessed, because a wrong pin in
+# a deploy file looks deliberate and fails on the next deploy.
+#
+# See docs/OWNER_LEDGER.md, "render.yaml — owner ruling".
+
 # Fixed monorepo deployment configuration
 services:
 # ============================================================================
