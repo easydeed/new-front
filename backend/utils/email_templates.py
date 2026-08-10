@@ -439,6 +439,148 @@ def signing_time_recorded(owner_name, deed_type, property_address, notary_email,
     return subject, _base(f"Signing time recorded — {addr}", content, True), text
 
 
+def notary_invited(notary_name, officer_name, officer_company, deed_type,
+                   property_address, county, link, expires_at) -> Rendered:
+    """NOTARY2 — officer → notary: post the times you are free.
+
+    Professional-to-professional. She gets the address, the instrument
+    and the county because she is going there to notarise that document;
+    what she does NOT get is any way to reach the signers, because she
+    has no reason to and the officer does.
+    """
+    addr = _short_addr(property_address)
+    subject = f"Signing request — {addr}" if addr else "Notary signing request"
+    content = (
+        _p(f"Hi {_esc(notary_name) or 'there'},")
+        + _p(f"<strong>{_esc(officer_name)}</strong>"
+             + (f" at {_esc(officer_company)}" if officer_company else "")
+             + " is asking whether you can notarize a signing.")
+        + _facts([("Document", deed_type), ("Property", addr),
+                  ("County", county), ("Link expires", expires_at or "")])
+        + _button(link, "Post the times you are free")
+        + _p('<span style="font-size:13px;color:#8a94a0;">The signers pick from the '
+             "times you post. When you and they land on the same one, it is booked and "
+             "everybody is told.</span>")
+    )
+    text = (
+        f"{officer_name} is asking whether you can notarize a signing.\n\n"
+        f"Document: {deed_type}\nProperty: {addr}\nCounty: {county}\n"
+        f"Link expires: {expires_at or ''}\n\n"
+        f"Post the times you are free: {link}\n\n"
+        "The signers pick from the times you post."
+    )
+    return subject, _base(f"{officer_name} asked about your availability", content, True), text
+
+
+def signing_windows_posted(signer_name, officer_name, officer_company, notary_name,
+                           property_street, window_texts, link) -> Rendered:
+    """NOTARY2 — to a SIGNER. The first email this product sends to
+    somebody who never signed up, and therefore the one that has to
+    introduce as well as ask.
+
+    A separate `signer_invited` existed for one commit and was DELETED
+    rather than wired: nothing sent it, because there is nothing to
+    invite a signer to until the notary has posted times. "Pick a time"
+    with no times is asking a consumer to do nothing. So this email does
+    both jobs, and there is one template instead of a dead one and a
+    terse one.
+
+    The signer surface's rules, in prose: plain language, the officer's
+    name leading, the property STREET only, one thing to do. No deed
+    type, no county, no APN, no party names — the allowlist is not a UI
+    concern, it is what we may say to this person at all.
+    """
+    subject = f"Pick a time to sign — {_short_addr(property_street)}"
+    times = "".join(f"  - {w}\n" for w in (window_texts or []))
+    listed = "".join(
+        f'<tr><td style="padding:4px 0;font-size:14px;color:{INK};font-weight:600;">'
+        f"&bull;&nbsp;{_esc(w)}</td></tr>" for w in (window_texts or []))
+    content = (
+        _p(f"Hi {_esc(signer_name) or 'there'},")
+        + _p(f"<strong>{_esc(officer_name)}</strong>"
+             + (f" at {_esc(officer_company)}" if officer_company else "")
+             + " is arranging the signing for your property and needs to know when "
+             "you are free.")
+        + _facts([("Property", _short_addr(property_street)),
+                  ("Your notary", notary_name)])
+        + _p(f"{_esc(notary_name) or 'The notary'} is free at these times:")
+        + ('<table role="presentation" cellpadding="0" cellspacing="0" '
+           f'style="margin:10px 0;">{listed}</table>' if listed else "")
+        + _button(link, "Pick one")
+        + _p('<span style="font-size:13px;color:#8a94a0;">A notary will meet you to '
+             "witness the signing. Everyone signing has to agree on the same time — you "
+             "will be told once one is settled. If none of these work, you can suggest "
+             "another.</span>")
+        + _p(f'<span style="font-size:13px;color:#8a94a0;">Questions about the '
+             f"paperwork? Ask {_esc(officer_name)}.</span>")
+    )
+    text = (
+        f"{officer_name} is arranging the signing for your property and needs to know "
+        f"when you are free.\n\n"
+        f"Property: {_short_addr(property_street)}\nYour notary: {notary_name}\n\n"
+        f"{notary_name or 'The notary'} is free at these times:\n\n{times}\n"
+        f"Pick one: {link}\n\n"
+        "A notary will meet you to witness the signing. Everyone signing has to agree "
+        f"on the same time. Questions about the paperwork? Ask {officer_name}."
+    )
+    return subject, _base(f"{officer_name} needs to know when you are free",
+                          content, False), text
+
+
+def signing_proposal_received(notary_name, signer_name, officer_name,
+                              property_address, window_text, link) -> Rendered:
+    """NOTARY2 — a signer suggested a time the notary did not offer."""
+    addr = _short_addr(property_address)
+    subject = f"A signer suggested a time — {addr}"
+    content = (
+        _p(f"Hi {_esc(notary_name) or 'there'},")
+        + _p(f"{_esc(signer_name) or 'A signer'} cannot make the times you posted for "
+             f"{_esc(officer_name)}'s signing, and suggested this instead:")
+        + _facts([("Suggested", window_text), ("Property", addr)])
+        + _button(link, "Accept or decline")
+        + _p('<span style="font-size:13px;color:#8a94a0;">Accepting it may book the '
+             "signing straight away, if everyone else has already agreed.</span>")
+    )
+    text = (f"{signer_name or 'A signer'} suggested a different time:\n\n"
+            f"Suggested: {window_text}\nProperty: {addr}\n\n"
+            f"Accept or decline: {link}")
+    return subject, _base("A signer suggested a different time", content, True), text
+
+
+def signing_booked(recipient_name, when_text, property_text, notary_name,
+                   officer_name, is_consumer: bool, link) -> Rendered:
+    """NOTARY2 — everybody, on convergence. Carries the .ics.
+
+    ONE TEMPLATE, TWO REGISTERS, chosen by `is_consumer` rather than by
+    two near-identical functions that drift. The professionals get the
+    full address and a link into the record; the signer gets the street
+    line and the officer's name, because that is all their surface may
+    carry and an email is not a loophole in it.
+
+    §13: "agreed", never "confirmed" and never "will happen". The
+    calendar file is METHOD:PUBLISH — a copy of an arrangement, not an
+    invitation expecting an RSVP.
+    """
+    subject = f"Signing time agreed — {property_text}"
+    who = f"{_esc(notary_name)}" if notary_name else "your notary"
+    body = (
+        _p(f"Hi {_esc(recipient_name) or 'there'},")
+        + _p("Everyone has agreed on a time. It is in the calendar file attached.")
+        + _facts([("Time", when_text), ("Property", property_text),
+                  ("Notary", notary_name),
+                  ("Arranged by", officer_name if is_consumer else None)])
+        + (_p(f'<span style="font-size:13px;color:#8a94a0;">{who} will meet you then. '
+              f"If anything changes, contact {_esc(officer_name)}.</span>")
+           if is_consumer else _button(link, "Open in DeedPro"))
+    )
+    text = (
+        "Everyone has agreed on a time.\n\n"
+        f"Time: {when_text}\nProperty: {property_text}\nNotary: {notary_name}\n"
+        + (f"Arranged by: {officer_name}\n" if is_consumer else f"\nOpen: {link}\n")
+    )
+    return subject, _base(f"Signing time agreed — {when_text}", body, not is_consumer), text
+
+
 def admin_new_user(user_email, user_id, registered_at: Optional[str] = None) -> Rendered:
     """Ops ping (owner ruling): registrant email + timestamp — no more."""
     ts = registered_at or datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")

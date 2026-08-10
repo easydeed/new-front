@@ -63,7 +63,7 @@ def test_no_module_outside_notifications_sends_mail():
 
 
 def test_every_template_routes_through_send():
-    """All fourteen, named. A template that renders and sends without a
+    """All eighteen, named. A template that renders and sends without a
     `_send` name is a template whose rows land under the wrong label —
     which is worse than no label, because the log then lies quietly.
 
@@ -71,7 +71,9 @@ def test_every_template_routes_through_send():
     rather than a fact worth knowing: a new template must be a deliberate
     edit here, not something that arrives with a diff nobody read. It
     fired as designed when TRIAL1 added `payment_failed` (11 -> 12) and
-    again when NOTARY1 added the two signing templates (12 -> 14)."""
+    again when NOTARY1 added the two signing templates (12 -> 14) and
+    again when NOTARY2 added the coordination loop's four (14 -> 18 — a fifth was written,
+    found to be unsendable, and deleted rather than wired)."""
     import sys
     sys.path.insert(0, str(BACKEND))
     from utils.notifications import TEMPLATES
@@ -82,7 +84,7 @@ def test_every_template_routes_through_send():
         f"declared TEMPLATES and actual _send labels disagree: "
         f"only-declared={set(TEMPLATES) - named}, only-used={named - set(TEMPLATES)}"
     )
-    assert len(TEMPLATES) == 14
+    assert len(TEMPLATES) == 18
 
 
 # ── The recorder's two constraints ───────────────────────────────────
@@ -280,3 +282,44 @@ def test_the_api_key_funnel_still_records_on_its_own_row():
     history. Both, deliberately."""
     src = (BACKEND / "routers" / "api_key_requests.py").read_text(encoding="utf-8")
     assert "notify_error = %s" in src
+
+
+def test_every_declared_template_has_a_sender_that_something_calls():
+    """A template nothing sends is dead code wearing a ledger name.
+
+    NOTARY2 wrote a `signer_invited` that was never reachable — there is
+    nothing to invite a signer to until the notary has posted times, so
+    the windows email was always their first contact. It passed every
+    other pin in this file: it was declared, it had a `_send` label, it
+    routed through the choke point. The only thing wrong with it was that
+    no code path led to it, which is exactly what this checks.
+
+    Deleted rather than wired, and the count moved 19 -> 18.
+    """
+    import sys
+    sys.path.insert(0, str(BACKEND))
+    from utils.notifications import TEMPLATES
+
+    src = code_only(NOTIFICATIONS)
+    # Map each template to the sender function that emits it.
+    senders = {}
+    for match in re.finditer(r"def (send_\w+|notify_\w+)\(", src):
+        body = src[match.end():]
+        nxt = re.search(r"\ndef ", body)
+        body = body[:nxt.start()] if nxt else body
+        for label in re.findall(r'_send\(\s*"([a-z_]+)"', body):
+            senders[label] = match.group(1)
+
+    callers = []
+    for path in BACKEND.rglob("*.py"):
+        if {"tests", "__pycache__"} & set(path.parts) or path.name == "notifications.py":
+            continue
+        callers.append(code_only(path))
+    everything = "\n".join(callers)
+
+    orphans = [t for t in TEMPLATES
+               if t in senders and f"{senders[t]}(" not in everything]
+    assert orphans == [], (
+        f"declared but unsendable — no code path reaches these: {orphans}. "
+        "Either wire them or delete them; a template nothing sends is dead "
+        "code that passes every other pin in this file.")

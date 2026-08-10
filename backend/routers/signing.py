@@ -228,6 +228,11 @@ def create_signing_request(payload: CreateSigningRequest,
         # link to a row that does not exist.
         raise HTTPException(status_code=500, detail="Could not create the signing request")
 
+    # Ask the notary. The SIGNERS are not emailed yet — there is nothing
+    # for them to answer until she posts times, and "pick a time" with no
+    # times is asking a consumer to do nothing.
+    _invite_notary(request_id)
+
     return {
         "success": True,
         "signing_request_id": request_id,
@@ -474,6 +479,15 @@ def notary_post_windows(token: str, payload: PostWindows, http_request: Request)
                 (window_id, me["id"], loop.ANSWER_AVAILABLE))
     db.conn.commit()
     _book_if_converged(me["signing_request_id"])
+    # Tell the signers only if there is still a question for them.
+    #
+    # The first version keyed off `_book_if_converged`'s return, which was
+    # wrong in a way a test caught: that function returns None BOTH when
+    # nothing converged AND when the request was already booked, so
+    # posting a spare time to a settled request emailed every signer
+    # "pick one" for a signing that was done. Two different situations
+    # behind one falsy value.
+    _tell_signers_windows_posted(me["signing_request_id"])
     return token_view(token, http_request)
 
 
@@ -557,6 +571,7 @@ def signer_propose(token: str, payload: ProposeIn, http_request: Request):
         cur.execute("UPDATE signing_requests SET signer_proposals = signer_proposals + 1, "
                     "updated_at = now() WHERE id = %s", (me["signing_request_id"],))
     db.conn.commit()
+    _tell_notary_of_proposal(me["signing_request_id"], me, window_id)
     return token_view(token, http_request)
 
 
@@ -610,6 +625,7 @@ def _book_if_converged(request_id: int) -> Optional[int]:
     if not won:
         return None
     _tell_everyone(request_id)
+    _tell_everyone_booked(request_id)
     return window_id
 
 
@@ -637,3 +653,172 @@ def _tell_everyone(request_id: int) -> None:
         except Exception:
             pass
         print(f"[NOTARY2] ⚠️ booking notification failed (non-blocking): {e}")
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Telling people
+#
+# Every send is best-effort and never fatal. A booking that HAPPENED must
+# not be undone because a mail server was slow — and every attempt lands
+# in `email_log` through the one transport regardless, so "did they get
+# it" is answerable at 3am (ADMIN3).
+# ══════════════════════════════════════════════════════════════════════
+
+def _party(world: Dict[str, Any], role: str) -> List[Dict[str, Any]]:
+    return [p for p in world["participants"]
+            if p["party_role"] == role and not p.get("revoked_at")]
+
+
+def _link(p: Dict[str, Any]) -> str:
+    return f"{APP_URL()}/signing/{p['token']}"
+
+
+def _officer_bits(world: Dict[str, Any]):
+    officer = world["officer"]
+    return officer.get("full_name") or "Your escrow officer", officer.get("company_name")
+
+
+def _invite_notary(request_id: int) -> None:
+    try:
+        world = _load(request_id)
+        notary = next(iter(_party(world, loop.ROLE_NOTARY)), None)
+        if not notary or not notary.get("email"):
+            return
+        name, company = _officer_bits(world)
+        from utils.notifications import send_notary_invited
+        ok, reason = send_notary_invited(
+            recipient_email=notary["email"],
+            notary_name=notary.get("display_name") or "",
+            officer_name=name, officer_company=company,
+            deed_type=world["deed"].get("deed_type") or "deed",
+            property_address=world["deed"].get("property_address"),
+            county=world["deed"].get("county"),
+            link=_link(notary),
+            expires_at=_fmt_day(world["request"].get("expires_at")),
+        )
+        if not ok:
+            print(f"[NOTARY2] ⚠️ notary invite not sent: {reason}")
+    except Exception as e:
+        print(f"[NOTARY2] ⚠️ notary invite failed (non-blocking): {e}")
+
+
+def _tell_signers_windows_posted(request_id: int) -> None:
+    """Each signer gets their OWN link. One shared link would let any
+    signer answer as another, and a consumer surface is not the place to
+    discover that."""
+    try:
+        world = _load(request_id)
+        if world["request"].get("booked_at") or world["request"].get("cancelled_at"):
+            return  # nothing left to ask them
+        tz = world["request"].get("tz_name")
+        live = [w for w in world["windows"] if not w.get("declined_at")]
+        if not live:
+            return
+        labels = [loop.window_label(w, tz) for w in live]
+        notary = next(iter(_party(world, loop.ROLE_NOTARY)), {})
+        name, company = _officer_bits(world)
+        from utils.notifications import send_signing_windows_posted
+        for signer in _party(world, loop.ROLE_SIGNER):
+            if not signer.get("email"):
+                continue
+            ok, reason = send_signing_windows_posted(
+                recipient_email=signer["email"],
+                signer_name=signer.get("display_name") or "",
+                officer_name=name, officer_company=company,
+                notary_name=notary.get("display_name"),
+                property_street=world["deed"].get("property_address"),
+                window_texts=labels, link=_link(signer))
+            if not ok:
+                print(f"[NOTARY2] ⚠️ signer notice not sent: {reason}")
+    except Exception as e:
+        print(f"[NOTARY2] ⚠️ signer notices failed (non-blocking): {e}")
+
+
+def _tell_notary_of_proposal(request_id: int, proposer: Dict[str, Any],
+                             window_id: int) -> None:
+    try:
+        world = _load(request_id)
+        notary = next(iter(_party(world, loop.ROLE_NOTARY)), None)
+        if not notary or not notary.get("email"):
+            return
+        window = next((w for w in world["windows"] if int(w["id"]) == int(window_id)), None)
+        if window is None:
+            return
+        name, _company = _officer_bits(world)
+        from utils.notifications import send_signing_proposal_received
+        send_signing_proposal_received(
+            recipient_email=notary["email"],
+            notary_name=notary.get("display_name") or "",
+            signer_name=proposer.get("display_name") or "A signer",
+            officer_name=name,
+            property_address=world["deed"].get("property_address"),
+            window_text=loop.window_label(window, world["request"].get("tz_name")),
+            link=_link(notary))
+    except Exception as e:
+        print(f"[NOTARY2] ⚠️ proposal notice failed (non-blocking): {e}")
+
+
+def _tell_everyone_booked(request_id: int) -> None:
+    """The `.ics` to all three parties, and the register differs by who.
+
+    The signer's copy carries the STREET LINE and the officer's name; the
+    professionals get the full address and a link into the record. An
+    email is not a loophole in the surface allowlist — what a party may
+    see does not widen because the channel changed.
+    """
+    try:
+        from utils.email import attachment
+        from utils.notifications import send_signing_booked
+
+        world = _load(request_id)
+        req, deed = world["request"], world["deed"]
+        tz = req.get("tz_name")
+        when = req.get("booked_at")
+        window = next((w for w in world["windows"]
+                       if w.get("starts_at") == when), None)
+        when_text = loop.window_label(window, tz) if window else str(when)
+        officer_name, _c = _officer_bits(world)
+        notary = next(iter(_party(world, loop.ROLE_NOTARY)), {})
+        full_address = deed.get("property_address") or ""
+        street = full_address.split(",")[0].strip()
+
+        ics = None
+        if window and hasattr(window.get("starts_at"), "astimezone"):
+            ics = signing_ics(window, full_address, officer_name)
+        files = [attachment("signing.ics", ics, "text/calendar")] if ics else []
+
+        for p in world["participants"]:
+            if p.get("revoked_at") or not p.get("email"):
+                continue
+            consumer = p["party_role"] == loop.ROLE_SIGNER
+            send_signing_booked(
+                recipient_email=p["email"],
+                recipient_name=p.get("display_name") or "",
+                when_text=when_text,
+                property_text=street if consumer else full_address,
+                notary_name=notary.get("display_name"),
+                officer_name=officer_name,
+                is_consumer=consumer,
+                link=f"{APP_URL()}/signings",
+                attachments=files)
+    except Exception as e:
+        print(f"[NOTARY2] ⚠️ booking notices failed (non-blocking): {e}")
+
+
+def signing_ics(window: Dict[str, Any], address: str, officer_name: str) -> bytes:
+    """METHOD:PUBLISH, per §13 — a copy of an arrangement people made, not
+    an invitation from an organiser expecting an RSVP. Reuses NOTARY1's
+    builder rather than a second one: two iCalendar writers is two places
+    for a timezone to go wrong."""
+    from services.signing import build_ics
+    return build_ics(
+        summary=f"Notary signing — {address}" if address else "Notary signing",
+        start=window["starts_at"], end=window["ends_at"],
+        location=address or None,
+        description=(f"Arranged through DeedPro by {officer_name}. "
+                     "Everyone involved agreed to this time."),
+        uid=f"signing-request-{window['signing_request_id']}@deedpro")
+
+
+def _fmt_day(value: Any) -> Optional[str]:
+    return value.strftime("%B %d, %Y") if hasattr(value, "strftime") else None
