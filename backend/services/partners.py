@@ -3,6 +3,7 @@ Partners Service
 CRUD operations for Industry Partners (org-scoped)
 """
 
+from services.phone import normalize_phone
 from typing import List, Dict, Optional
 from database import get_db_connection
 
@@ -48,6 +49,14 @@ def normalize_partner_fields(data: Dict) -> Dict:
     # judgement about anyone's spelling.
     if "state" in out and out["state"]:
         out["state"] = " ".join(str(out["state"]).split()).upper() or None
+    # PARTNER2: E.164 for anything US-shaped, verbatim for everything
+    # else. The browser already does this before it posts; doing it here
+    # too means the column's shape is a property of the STORAGE rather
+    # than of which client happened to write the row. Unparseable input
+    # survives untouched — see services/phone.py for why that is the
+    # rule and not an oversight.
+    if "phone" in out:
+        out["phone"] = normalize_phone(out["phone"]) or None
     return out
 
 

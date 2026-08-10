@@ -1,0 +1,77 @@
+{
+  "_comment": "PARTNER2 — the phone normalization corpus, read by BOTH suites. One rule in two languages; the corpus is the referee. Doctrine A's pattern (services/vesting_cases.json) applied to a smaller problem: the officer types in the browser and the API can be posted to directly, so the rule exists twice and must not drift. `stored` is what the column must hold; `display` is what a human must read back.",
+  "cases": [
+    {
+      "why": "the ordinary case — as she types it",
+      "input": "(626) 555-0134",
+      "stored": "+16265550134",
+      "display": "(626) 555-0134"
+    },
+    {
+      "why": "bare digits",
+      "input": "6265550134",
+      "stored": "+16265550134",
+      "display": "(626) 555-0134"
+    },
+    {
+      "why": "hyphens — the most common thing already in the column",
+      "input": "626-555-0134",
+      "stored": "+16265550134",
+      "display": "(626) 555-0134"
+    },
+    {
+      "why": "dots",
+      "input": "626.555.0134",
+      "stored": "+16265550134",
+      "display": "(626) 555-0134"
+    },
+    {
+      "why": "leading 1",
+      "input": "1 (626) 555-0134",
+      "stored": "+16265550134",
+      "display": "(626) 555-0134"
+    },
+    {
+      "why": "already E.164 — normalizing must be idempotent",
+      "input": "+16265550134",
+      "stored": "+16265550134",
+      "display": "(626) 555-0134"
+    },
+    {
+      "why": "surrounding whitespace",
+      "input": "  626 555 0134  ",
+      "stored": "+16265550134",
+      "display": "(626) 555-0134"
+    },
+    {
+      "why": "empty is empty, not '+1'",
+      "input": "",
+      "stored": "",
+      "display": ""
+    },
+    {
+      "why": "an extension is INFORMATION — kept verbatim, never truncated to fit the column's preferred shape",
+      "input": "(626) 555-0134 x220",
+      "stored": "(626) 555-0134 x220",
+      "display": "(626) 555-0134 x220"
+    },
+    {
+      "why": "an international number is not ours to reformat",
+      "input": "+44 20 7946 0958",
+      "stored": "+44 20 7946 0958",
+      "display": "+44 20 7946 0958"
+    },
+    {
+      "why": "a note the officer left herself is still data — we do not discard what we cannot parse",
+      "input": "ask for Dana",
+      "stored": "ask for Dana",
+      "display": "ask for Dana"
+    },
+    {
+      "why": "too few digits to be a US number — left alone rather than padded or rejected",
+      "input": "555-0134",
+      "stored": "555-0134",
+      "display": "555-0134"
+    }
+  ]
+}

@@ -673,7 +673,12 @@ been VIEWED and SCHEDULED is the normal case, so `scheduled` never enters
 `deed_shares.status`; `scheduled_at` is its own column and the state is
 computed from it.
 
-**No signer contact, anywhere (owner ruling 1).** Signers — grantors and
+**AMENDED 2026-08-11 (NOTARY2) — see the reversal below.** The paragraph
+that follows was the rule as NOTARY1 shipped it. It has been reversed by
+the owner and is kept verbatim, because a doctrine section that quietly
+rewrites its own history is worth less than one that shows its work.
+
+**No signer contact, anywhere (owner ruling 1, SUPERSEDED).** Signers — grantors and
 grantees — are consumers. They have no account, never agreed to our
 terms, cannot see what we hold and cannot ask us to delete it. Storing a
 grantor's email would change what a database dump IS, and it would do so
@@ -711,12 +716,68 @@ address, APN, county, party names and stored PDF through it. And
 forever after expiry, while the PDF route next door refused it. Both are
 recorded in full in the PR and pinned as classes, not sites.
 
+### §13.1 — The signer-contact reversal (2026-08-11, owner-ruled)
+
+**The ruling above is reversed.** Signers now participate directly: the
+notary posts availability, the signers pick or propose, and when they
+converge it is booked. The officer initiates and is notified; she does
+not gate the final time.
+
+**The owner's reasoning, recorded because a reversal without its argument
+is just churn:**
+
+> The signers are the scheduling constraint, so routing around them
+> recreated the phone tag the feature exists to kill.
+
+That is right, and it is worth being exact about how Option A came to
+look correct. Option A optimised for the cost it could SEE — data held
+about a non-user — and treated the officer's relaying as free. It is not
+free; it is the entire cost of the problem. A notary offers three
+windows, the officer phones two signers, one can do Tuesday and the other
+cannot, and she is back on the phone to the notary. The product had
+removed one leg of a three-leg negotiation and called it coordination.
+
+**What did NOT change.** Everything else in §13 stands. An arrangement is
+still not an act; booked is still not happened; there is still no
+auto-completion and no timer and no inference from a passed window;
+`completed` is still officer-asserted; no surface may render a booking as
+a claim that the signing will occur. The reversal is about *who may be
+contacted*, and nothing else.
+
+**What the pins become.** NOTARY1 pinned "no signer contact anywhere,"
+fail-closed across both trees, precisely so that adding it would be a
+deliberate act that trips a test rather than a diff nobody read. That pin
+did its job and is being ANSWERED, not deleted. It is retargeted to the
+narrower promise we can actually keep:
+
+| | |
+|---|---|
+| was | no signer contact exists anywhere in the product |
+| is | signer contact exists on ONE purgeable row, reaches no other table, and is deleted on a schedule by a mechanism with a test |
+
+Specifically, and pinned: no signer contact column on `deeds`, no
+contact-shaped key written into the `parties` JSONB, none on `users`,
+`partners`, or any other profile table, and exactly one table in the
+schema that holds it.
+
+**The obligation the reversal creates rather than removes.** NOTARY0b's
+argument against involving signers was that they "cannot see what we hold
+and cannot ask us to delete it." Reversing the ruling does not answer
+that objection — it converts it into a requirement. A retention rule
+(proposed: 90 days past completion or expiry) and a way for a non-user to
+ask for removal are now part of the feature, not adjacent to it, and the
+purge must be a MECHANISM rather than a discipline. Recorded in
+`OWNER_LEDGER.md` as an owner item, because what we tell a consumer about
+their data is not a machine decision.
+
+
 ---
 
 ## Change log
 
 | Date | Change |
 |---|---|
+| 2026-08-11 | §13.1 — the signer-contact ruling REVERSED (NOTARY2). Signers now participate directly; the notary posts availability, signers pick or propose, convergence books it, and the officer is notified rather than gating. Owner's reasoning recorded: the signers are the scheduling constraint, so routing around them recreated the phone tag the feature exists to kill — Option A had priced the officer's relaying at zero when it is the entire problem. The superseded paragraph is kept verbatim rather than rewritten. §13 otherwise stands unchanged: booked is still not happened. NOTARY1's fail-closed sweep is ANSWERED rather than deleted — retargeted from "no signer contact anywhere" to "one purgeable row, no other table, deleted by a mechanism with a test." The retention rule and a non-user's route to removal become part of the feature, ledgered as owner items. |
 | 2026-08-10 | §13 added (NOTARY1) — an arrangement is not an act. A scheduled signing time is the least legally freighted fact in the product, which is exactly the risk: authority acquired by wording drift rather than by decision. Three pinned rules: nothing infers a signing from a passed window (`scheduling_state()` is AST-pinned type-incapable of a "happened" state), `completed` stays officer-only, and `scheduling_label()` is the single place a scheduling state becomes a sentence. Assertion shape mirrors RED-S4 (`scheduled_at` / `scheduled_by` / `scheduled_asserted_at`), keeping the notary's tap and the officer's phone call apart. State DERIVED, never folded into `deed_shares.status` — T-5's ruling transferred verbatim. No signer contact anywhere, pinned fail-closed across both trees. One expiry semantic per link, applied as a class. Two pre-existing defects fixed in passing: share creation never checked deed ownership (cross-user deed disclosure), and an opened link kept serving the deed after expiry. |
 | 2026-08-06 | §12 added (Doctrine B) — the AI boundary, explain-yes/select-no; closes RED0 R3-5. The third citizen: earlier sections legislate facts and legal choices, and the assistant emits PROSE, which had neither a suggestion marker nor a confirmation nor (until H1.3) a record. Three layers: the system prompt STATES the boundary (prevents), a server-side scanner pairs recommendation cues with instrument names and records findings in `ai_exchange_log.boundary_flags` (detects, does not block — a flagged response still reaches the officer, and blocking on a pattern would let a false positive swallow a correct answer), transcript-style tests ask the forbidden questions. `deed_type_advisor` REWRITTEN to explain-only, not deleted: the boundary decides the prompt regardless of usage evidence, and deleting would remove the permitted half. H1.3's flag-and-pin retired in the same diff that cured its condition. Usage-evidence tuning deferred with a trigger (OWNER_LEDGER) — the log was two days old and empty. |
 | 2026-08-05 | §11 added (Doctrine A) — a field's kind is decided by its content, not its name. `vested_owner` carried a name PLUS a legal characterization into a fact position on both import paths, so the officer confirmed a legal conclusion with the affordance built for an APN and the record described the wrong act. Split into fact / violet proposal / audit `verbatim`; `'proposed'` deliberately outside `FieldStatus` so the generation gate is type-incapable of offering it. Unsplittable composites offer NEITHER half. `suggestVesting` (community property inferred from a shared surname) deleted from the dormant prefill — a dormant code path is still a code path. One rule in two languages, pinned by a corpus both suites read. |
