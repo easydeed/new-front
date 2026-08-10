@@ -95,6 +95,51 @@ imports, not the set of files that exist.** When the import graph grows,
 re-run the sweeps against the new graph rather than assuming the last
 green run still describes the product.
 
+## Pull requests and stacking
+
+**A squash-merged base does not carry its stack.** Stacking PR B on PR
+A's branch works until A is squash-merged — at which point the squash is
+a NEW commit on main, A's branch still exists unchanged, and B is still
+pointed at it. Merging B then lands B on A's branch instead of on main,
+reports "merged" truthfully, and leaves main without B's work.
+
+This happened with #146 → #147: Part A reached main, Part B did not, and
+the merge API said success both times. It was caught by checking that
+main actually contained the files rather than trusting the word "merged."
+
+**The operational rule: no stacking unless the child is re-based onto
+main before it is merged.** In practice that means either
+- open the second PR against `main` and wait for the first to land, or
+- cherry-pick onto a fresh branch off current main and re-open.
+
+**And the general form, which is the part worth keeping:** a merge
+reporting success is a statement about the merge, not about main. When a
+PR's whole point is that some code reaches production, verify the code
+reached the branch production deploys from. `git log origin/main` and
+`ls` cost five seconds.
+
+## Test helpers and persistent state
+
+**Any pin that reads a table surviving between runs must establish its
+own baseline.** A test asserting "a row with this template exists" or
+"this job has not run recently" is measuring the HISTORY of the test
+database, not the behaviour of the code under test — and it passes with
+the code deliberately broken, which is the worst failure a test has.
+
+Two instances, both found by mutation-probing a green result:
+- `email_log` (NOTARY1) — "the officer's email was attempted" was
+  satisfied by a row from an earlier run. Fixed with a high-water mark
+  (`MAX(id)`) taken before the action.
+- `system_jobs` (NOTARY2) — "the sweep ran" failed on the second
+  execution of the suite because the first had legitimately throttled it.
+  Fixed by deleting the job row in setup, and extended to assert the
+  throttle is a WINDOW rather than a one-shot.
+
+The two shapes of fix: **take a high-water mark before acting** when the
+table is append-only, or **reset the row in setup** when it is a
+singleton. Either way the test states what it depends on instead of
+inheriting it.
+
 ## Product doctrine (the why)
 
 **The two-tier rule.**

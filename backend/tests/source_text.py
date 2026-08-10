@@ -15,6 +15,32 @@ own local strip, and by T-2 there were four of them in this directory
 with slightly different behaviour — one stripped comments but not
 docstrings, which is exactly how the sixth trip happened.
 
+═══ A SECOND FAMILY, RECORDED HERE BECAUSE THIS IS WHERE PEOPLE LOOK ═══
+
+`code_only` solves pins that read SOURCE. There is a sibling problem for
+pins that read the DATABASE, and it has now bitten twice:
+
+**Any pin reading a table that survives between runs must establish its
+own baseline.** A test asserting "a row with this template exists" or
+"this job has not run recently" is measuring the history of the test
+database rather than the behaviour of the code — and it passes with the
+code deliberately broken, which is the worst thing a test can do.
+
+- `email_log` (NOTARY1): "the officer's email was attempted" was
+  satisfied by a row from an earlier run. Fixed with a high-water mark —
+  `MAX(id)` taken BEFORE the action, and the assertion scoped to rows
+  above it.
+- `system_jobs` (NOTARY2): "the sweep ran" failed on the suite's second
+  execution because the first had legitimately throttled it. Fixed by
+  resetting the singleton row in setup.
+
+Two shapes, matching the two shapes of table: **high-water mark** for
+append-only ledgers, **reset in setup** for singletons. Either way the
+test states what it depends on instead of inheriting it.
+
+Both were found by mutation-probing a green result, not by the suite
+going red — which is the argument for probing every green first run.
+
 T-3 consolidated the Python side. The eighth trip (RED-H1.4, on a
 comment recording an `OPENAI_AVAILABLE` removal) cost one import instead
 of a debugging session, which is the argument for this file.
