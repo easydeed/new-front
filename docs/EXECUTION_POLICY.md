@@ -60,6 +60,41 @@ substantively incomplete deed; the legal-choice doctrine was unchanged.
   in the PR that re-records it.
 - The frontend `tsc` error baseline (currently **114**) may only go down.
 
+## Dead code and revived code
+
+**Reviving a dead file makes its violations live.** A file with no
+importers is outside the blast radius of every ruling made while it was
+dead — not because anybody exempted it, but because nothing pointed at it
+when the sweep ran. The moment a ticket imports it, everything the
+product decided in the interval applies to it retroactively and
+un-negotiably.
+
+The concrete instance, kept because the shape recurs:
+`QuickAddPartnerModal` still carried a full-viewport `backdrop-blur` from
+before the X1 renderer-freeze ruling, and a category list in which
+`realtor` was a CATEGORY where every live surface treated it as a role of
+`real_estate`. Both were harmless while nothing imported it. PARTNER2's
+Part B imported it, and both became live defects in the same commit.
+
+**What this means for a ticket that touches dead code:**
+
+1. *Leaving a dead file alone is correct* when nothing in the ticket
+   revives it. Cleaning up an unreferenced file is scope the owner did
+   not ask for.
+2. *Reviving one obliges you to bring it up to current doctrine* in the
+   same diff — every pin the product has added since it went dark. Not
+   as a follow-up ticket; the revival and the conformance are one change,
+   because a half-revived file is a live surface running an old rulebook.
+3. *Both of those can be true in consecutive tickets about the same file*,
+   and saying so plainly is better than pretending the first call was
+   wrong. PARTNER1's "leave the dead files alone" was right when it was
+   made and wrong the moment Part B revived them.
+
+The general form: **a pin's coverage is the set of files something
+imports, not the set of files that exist.** When the import graph grows,
+re-run the sweeps against the new graph rather than assuming the last
+green run still describes the product.
+
 ## Product doctrine (the why)
 
 **The two-tier rule.**

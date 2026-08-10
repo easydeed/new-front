@@ -270,6 +270,134 @@ def create_tables():
             "ALTER TABLE deed_shares ADD COLUMN IF NOT EXISTS scheduled_by VARCHAR(16)",
             "ALTER TABLE deed_shares ADD COLUMN IF NOT EXISTS scheduled_asserted_at TIMESTAMPTZ",
             "CREATE INDEX IF NOT EXISTS idx_deed_shares_kind ON deed_shares(share_kind, created_at DESC)",
+            # ══ NOTARY2: the coordination loop ═══════════════════
+            #
+            # WHY NOT MORE COLUMNS ON deed_shares. NOTARY1 put the signing
+            # request there because one share = one recipient = one row,
+            # and there was one recipient. NOTARY2 is ONE REQUEST WITH N
+            # PARTICIPANTS, each holding their own token, seeing their own
+            # surface and recording their own answers. That is an
+            # aggregate with children; flattening it means either rows
+            # re-associated by convention or JSONB carrying identity and
+            # access — and identity and access are the two things that
+            # must be constrainable by the schema rather than by care.
+            #
+            # `deed_shares` therefore stays REVIEW-ONLY from here.
+            #
+            # THERE IS NO STATUS COLUMN, and that is T-5's ruling in its
+            # third application. The four states the owner named are all
+            # derivable and none is a fact of its own:
+            #     requested        no rows in signing_windows
+            #     windows posted   windows exist, nobody has converged
+            #     partially agreed some available answers, not a full set
+            #     booked           booked_at IS NOT NULL
+            # `cancelled_at` gets its own column for the same reason a
+            # status value would be wrong: a cancelled request that HAD
+            # been partially agreed must stay expressible.
+            """CREATE TABLE IF NOT EXISTS signing_requests (
+                id BIGSERIAL PRIMARY KEY,
+                deed_id INT NOT NULL REFERENCES deeds(id) ON DELETE CASCADE,
+                officer_user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                location TEXT,
+                -- ONE IANA ZONE PER REQUEST, not per-window offsets. A
+                -- signing happens at ONE PLACE, so the place's zone is a
+                -- property of the request. This also closes a NOTARY1
+                -- latent bug: that code stored ISO strings with offsets
+                -- in JSONB and assumed UTC when an offset was missing,
+                -- so a naive time produced a calendar file up to eight
+                -- hours out — silently, on the one artifact whose entire
+                -- job is to be at the right moment.
+                tz_name VARCHAR(64) NOT NULL DEFAULT 'America/Los_Angeles',
+                expires_at TIMESTAMPTZ NOT NULL,
+                cancelled_at TIMESTAMPTZ,
+                -- The RED-S4 trio. `booked_at` is WRITTEN rather than
+                -- derived, which looks like it contradicts the no-status
+                -- rule above and does not: an agreement is an EVENT WITH
+                -- A MOMENT (the last party's answer, not the moment
+                -- somebody ran the query), and the officer's override
+                -- must have something to disagree WITH. Written once,
+                -- SQL-guarded, exactly like T-5's supersession pointer.
+                booked_at TIMESTAMPTZ,
+                booked_by VARCHAR(16),          -- 'convergence' | 'officer'
+                booked_asserted_at TIMESTAMPTZ,
+                -- The round-trip cap's counter (owner ruling: 3,
+                -- AGGREGATE — two signers alternating twice each is six
+                -- emails and the same deadlock).
+                signer_proposals INT NOT NULL DEFAULT 0,
+                contact_purged_at TIMESTAMPTZ,
+                migrated_from_share_id INT,
+                created_at TIMESTAMPTZ DEFAULT now(),
+                updated_at TIMESTAMPTZ DEFAULT now()
+            )""",
+            # SIGNER CONTACT LIVES HERE AND NOWHERE ELSE (§13.1). One
+            # table, one row per participant, a purge stamp beside it, and
+            # a fail-closed sweep in the suite asserting no other table
+            # grows a contact-shaped column. `display_name` is deliberately
+            # NOT purged: a name is not contact information, and the
+            # record of who agreed to what must outlive our ability to
+            # reach them.
+            """CREATE TABLE IF NOT EXISTS signing_participants (
+                id BIGSERIAL PRIMARY KEY,
+                signing_request_id BIGINT NOT NULL
+                    REFERENCES signing_requests(id) ON DELETE CASCADE,
+                party_role VARCHAR(16) NOT NULL,        -- 'notary' | 'signer'
+                display_name VARCHAR(255),
+                company_name VARCHAR(255),             -- notary's, shown to signers
+                email VARCHAR(320),                    -- PURGEABLE for signers
+                phone VARCHAR(32),                     -- PURGEABLE for signers
+                partner_id UUID,                       -- the notary, from her rolodex
+                token UUID NOT NULL UNIQUE,
+                expires_at TIMESTAMPTZ NOT NULL,
+                revoked_at TIMESTAMPTZ,
+                last_viewed_at TIMESTAMPTZ,
+                reminders_sent INT NOT NULL DEFAULT 0,
+                contact_purged_at TIMESTAMPTZ,
+                created_at TIMESTAMPTZ DEFAULT now(),
+                updated_at TIMESTAMPTZ DEFAULT now()
+            )""",
+            """CREATE TABLE IF NOT EXISTS signing_windows (
+                id BIGSERIAL PRIMARY KEY,
+                signing_request_id BIGINT NOT NULL
+                    REFERENCES signing_requests(id) ON DELETE CASCADE,
+                starts_at TIMESTAMPTZ NOT NULL,
+                ends_at TIMESTAMPTZ NOT NULL,
+                origin VARCHAR(16) NOT NULL,   -- 'notary'|'signer_proposal'|'officer'
+                proposed_by BIGINT NOT NULL
+                    REFERENCES signing_participants(id) ON DELETE CASCADE,
+                declined_at TIMESTAMPTZ,
+                created_at TIMESTAMPTZ DEFAULT now()
+            )""",
+            # One answer per party per window; changing your mind is an
+            # UPDATE, not a second row. A history of a person's
+            # indecision is not something this product needs to keep.
+            """CREATE TABLE IF NOT EXISTS signing_responses (
+                id BIGSERIAL PRIMARY KEY,
+                window_id BIGINT NOT NULL
+                    REFERENCES signing_windows(id) ON DELETE CASCADE,
+                participant_id BIGINT NOT NULL
+                    REFERENCES signing_participants(id) ON DELETE CASCADE,
+                answer VARCHAR(16) NOT NULL,   -- 'available' | 'unavailable'
+                asserted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                UNIQUE (window_id, participant_id)
+            )""",
+            "CREATE INDEX IF NOT EXISTS idx_signing_requests_deed ON signing_requests(deed_id)",
+            "CREATE INDEX IF NOT EXISTS idx_signing_requests_officer ON signing_requests(officer_user_id, created_at DESC)",
+            "CREATE INDEX IF NOT EXISTS idx_signing_participants_request ON signing_participants(signing_request_id)",
+            "CREATE INDEX IF NOT EXISTS idx_signing_windows_request ON signing_windows(signing_request_id, starts_at)",
+            "CREATE INDEX IF NOT EXISTS idx_signing_responses_window ON signing_responses(window_id)",
+            # The purge job's working set: signer rows still holding
+            # contact details. Partial index — the purged majority is not
+            # what the sweep scans for.
+            "CREATE INDEX IF NOT EXISTS idx_signing_participants_unpurged ON signing_participants(signing_request_id) WHERE contact_purged_at IS NULL",
+            # The job ledger the throttled in-request sweep coordinates
+            # on. Not a scheduler; a record of when the sweep last ran, so
+            # concurrent requests do not all run it.
+            """CREATE TABLE IF NOT EXISTS system_jobs (
+                job_name VARCHAR(64) PRIMARY KEY,
+                last_run_at TIMESTAMPTZ,
+                last_result TEXT,
+                updated_at TIMESTAMPTZ DEFAULT now()
+            )""",
             """CREATE TABLE IF NOT EXISTS plan_limits (
                 plan_name VARCHAR(50) PRIMARY KEY,
                 max_deeds_per_month INT,
