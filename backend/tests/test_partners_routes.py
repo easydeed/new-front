@@ -48,8 +48,18 @@ def test_selectlist_resolves_to_selectlist_handler(client, path):
     assert res.status_code == 200
     # D2: the selectlist carries the partner's one-line address so
     # selecting a partner fills the deed's requesting-party block.
+    #
+    # PARTNER2/B added role, contact_name and email: the rolodex became a
+    # RECIPIENT picker, and without them the officer picks a partner and
+    # then retypes the address she already stored — the whole complaint.
+    #
+    # Asserted as an EXACT shape rather than a subset, deliberately. This
+    # endpoint's payload reaches a public-ish surface eventually, and a
+    # test that only checks the keys it remembers would not notice a
+    # fourth one arriving.
     assert res.json() == [
         {"id": "11111111-1111-1111-1111-111111111111",
          "name": "Pacific Coast Title", "category": "title",
-         "address": ""},
+         "address": "", "role": "other",
+         "contact_name": None, "email": None},
     ]

@@ -10,9 +10,14 @@ import { toast } from 'sonner';
 interface QuickAddPartnerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreated: (partner: { id: string; label: string }) => void;
+  /** PARTNER2/B: the email rides along, because the caller is now a
+   * RECIPIENT picker — a partner created mid-flow should be selectable
+   * immediately rather than requiring her to go and find it. */
+  onCreated: (partner: { id: string; label: string; email?: string }) => void;
   initialName?: string;
-  category?: string;
+  /** Named `initialCategory` because it SEEDS the form; the old name
+   * `category` read like it constrained what could be created. */
+  initialCategory?: string;
 }
 
 export function QuickAddPartnerModal({
@@ -20,8 +25,9 @@ export function QuickAddPartnerModal({
   onClose,
   onCreated,
   initialName = '',
-  category = 'title_company',
+  initialCategory = 'title_company',
 }: QuickAddPartnerModalProps) {
+  const category = initialCategory || 'title_company';
   const { create } = usePartners();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<CreatePartnerData>({
@@ -54,7 +60,8 @@ export function QuickAddPartnerModal({
         toast.success('Partner added successfully');
         onCreated({
           id: newPartner.id,
-          label: formData.company_name || formData.contact_name || '',
+          label: formData.contact_name || formData.company_name || '',
+          email: formData.email || undefined,
         });
         onClose();
       }
@@ -75,7 +82,7 @@ export function QuickAddPartnerModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/50"
         onClick={onClose}
       />
       

@@ -108,15 +108,22 @@ describe('X2.3 — DTT breakdown, no fabricated city tax', () => {
 
 describe('X2.4/5 — share modal honesty', () => {
   it('recipient name is optional; email is the identity', () => {
-    const src = readSource('app', 'past-deeds', 'page.tsx');
-    expect(src).toContain('Recipient Name <span className="text-slate-400 font-normal">(optional)</span>');
-    // The name input carries no `required`; the email input still does.
-    const nameBlock = src.substring(src.indexOf('Recipient Name'), src.indexOf('Recipient Email'));
-    expect(nameBlock).not.toContain('required');
+    // PARTNER2/B: the typed-name-and-email pair moved into the recipient
+    // picker, where the name is optional BY CONSTRUCTION — she picks a
+    // partner and the name comes with them, or types an address and the
+    // name field is marked optional. The property is unchanged: an email
+    // identifies a recipient and a name never gates the send.
+    const src = readSource('features', 'partners', 'PartnerRecipientPicker.tsx');
+    expect(src).toContain('Their name (optional)');
+    const nameInput = src.substring(src.indexOf('Their name (optional)') - 400,
+                                    src.indexOf('Their name (optional)'));
+    expect(nameInput).not.toContain('required');
+    // The email input is the one that identifies.
+    expect(src).toMatch(/type="email"[\s\S]{0,200}placeholder="name@example\.com"/);
   });
 
   it('expiry copy states what actually happens at expiry', () => {
-    const src = readSource('app', 'past-deeds', 'page.tsx');
+    const src = readSource('features', 'signing', 'ShareForReviewModal.tsx');
     expect(src).toContain('When the link expires it stops working');
     expect(src).toContain('the deed itself is unaffected');
   });

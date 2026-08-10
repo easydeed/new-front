@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation"
 import Sidebar from "@/components/Sidebar"
 import { FileText, Download, Share2, Trash2, AlertCircle, CheckCircle, Clock, X, Plus, Loader2, Search, CalendarClock } from "lucide-react"
 import { SigningRequestModal } from "@/features/signing/SigningRequestModal"
+import { ShareForReviewModal } from "@/features/signing/ShareForReviewModal"
+import { PartnersProvider } from "@/features/partners/PartnersContext"
 import { toast } from "sonner"
 import { SessionExpiredError, apiFetch } from "@/lib/apiClient"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
@@ -34,43 +36,23 @@ function partyNames(deed: Deed): string {
     .join("; ")
 }
 
-interface ShareFormData {
-  recipient_name: string
-  recipient_email: string
-  recipient_role: string
-  message: string
-  expires_in_hours: number
-}
-
 // ✅ PHASE 24-E: V0-generated Past Deeds page with all business logic preserved
 export default function PastDeedsPageV0() {
   const router = useRouter()
   const [deeds, setDeeds] = useState<Deed[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [shareModalOpen, setShareModalOpen] = useState(false)
   // NOTARY1: which deed, if any, has an open signing-request modal.
   const [signingDeedId, setSigningDeedId] = useState<number | null>(null)
-  const [selectedDeedId, setSelectedDeedId] = useState<number | null>(null)
-  const [shareError, setShareError] = useState<string | null>(null)
-  const [shareLoading, setShareLoading] = useState(false)
-  const [shareForm, setShareForm] = useState<ShareFormData>({
-    recipient_name: "",
-    recipient_email: "",
-    recipient_role: "Title Officer",
-    message: "",
-    expires_in_hours: 168, // 7 days default
-  })
+  // PARTNER2/B: and which has the review modal. Two states because two
+  // actions; a single "which modal" enum would have been the toggle this
+  // part exists to remove.
+  const [reviewDeedId, setReviewDeedId] = useState<number | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; deedId: number | null }>({
     isOpen: false,
     deedId: null,
   })
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
-  // S1: the share result panel — email status reported truthfully, and the
-  // review link surfaced for manual sending (shares must be usable even
-  // with no email transport configured).
-  const [shareResult, setShareResult] = useState<{ approvalUrl: string; emailSent: boolean; emailError?: string } | null>(null)
-  const [linkCopied, setLinkCopied] = useState(false)
   // X2.7: find a deed without scrolling — text search + status filter.
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "draft">("all")
@@ -140,58 +122,6 @@ export default function PastDeedsPageV0() {
       toast.error(err instanceof Error ? err.message : "PDF not available for this deed")
     } finally {
       setDownloadingId(null)
-    }
-  }
-
-  const handleShareClick = (deedId: number) => {
-    setSelectedDeedId(deedId)
-    setShareModalOpen(true)
-    setShareError(null)
-    setShareResult(null)
-    setLinkCopied(false)
-  }
-
-  const handleShareSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setShareLoading(true)
-    setShareError(null)
-
-    try {
-      const response = await apiFetch(
-        `/shared-deeds`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ deed_id: selectedDeedId, ...shareForm }),
-        },
-        { label: "Sharing deed" }
-      )
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}))
-        throw new Error(data.detail || `Failed to share deed (${response.status})`)
-      }
-
-      // S1: the backend says whether the email actually went out
-      // (email_sent) and hands back the review link — report THAT, never
-      // a fabricated "the recipient will receive an email."
-      const data = await response.json().catch(() => ({}))
-      setShareForm({
-        recipient_name: "",
-        recipient_email: "",
-        recipient_role: "Title Officer",
-        message: "",
-        expires_in_hours: 168,
-      })
-      setShareResult({
-        approvalUrl: data?.shared_deed?.approval_url || "",
-        emailSent: !!data?.email_sent,
-        emailError: typeof data?.email_error === "string" ? data.email_error : undefined,
-      })
-    } catch (err) {
-      setShareError(err instanceof Error ? err.message : "Failed to share deed")
-    } finally {
-      setShareLoading(false)
     }
   }
 
@@ -440,20 +370,25 @@ export default function PastDeedsPageV0() {
                                     <Download className="w-4 h-4" />
                                   )}
                                 </button>
+                                {/* PARTNER2/B: two actions, because they ask
+                                    two different questions. "Will you check
+                                    this?" and "are you free on Tuesday?" have
+                                    different recipients, different emails and
+                                    different outcomes — and the generic Share
+                                    button quietly meant "review" without ever
+                                    saying so. `share_kind` is set by which
+                                    button she pressed, never inferred. */}
                                 <button
-                                  onClick={() => handleShareClick(deed.id)}
+                                  onClick={() => setReviewDeedId(deed.id)}
                                   className="p-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors"
-                                  title="Share deed"
+                                  title="Share for review"
                                 >
                                   <Share2 className="w-4 h-4" />
                                 </button>
-                                {/* NOTARY1: a different question from the one
-                                    the Share button asks — availability, not
-                                    approval — so it is a different button. */}
                                 <button
                                   onClick={() => setSigningDeedId(deed.id)}
                                   className="p-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors"
-                                  title="Request a signing"
+                                  title="Request signing"
                                 >
                                   <CalendarClock className="w-4 h-4" />
                                 </button>
@@ -478,209 +413,29 @@ export default function PastDeedsPageV0() {
         </div>
       </main>
 
-      {/* Share Modal */}
-      {shareModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-[550px] w-full p-6 max-h-[85vh] flex flex-col">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-slate-800">Share Deed</h2>
-              <button
-                onClick={() => setShareModalOpen(false)}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5 text-slate-400 hover:text-slate-600" />
-              </button>
-            </div>
+      {/* PARTNER2/B: the inline share modal that used to live here is
+          GONE, not kept alongside the new one. It asked for a typed
+          email and a free-text role and produced a review share
+          without saying so; leaving it would have meant two code
+          paths creating the same kind of share with different
+          wording, which is the divergence this ticket is deleting
+          everywhere else. S1's honesty pins moved with it — see
+          ShareForReviewModal and __tests__/honestShare.test.ts. */}
 
-            {/* Error Banner */}
-            {shareError && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-red-600">{shareError}</p>
-              </div>
-            )}
-
-            {/* S1: result panel — the truth about what happened, plus the
-                review link so the share works even with no email transport. */}
-            {shareResult ? (
-              <div className="space-y-4 overflow-y-auto flex-1 min-h-0 pr-1">
-                <div className="flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-green-800 font-medium">
-                    Share saved — the review link is active until it expires.
-                  </p>
-                </div>
-
-                {shareResult.emailSent ? (
-                  <p className="text-sm text-slate-600">
-                    A notification email with the review link was sent to the recipient.
-                  </p>
-                ) : (
-                  <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                    <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm text-amber-800">
-                      <p>
-                        The notification email could <strong>not</strong> be sent.
-                        Copy the review link below and send it to the recipient yourself.
-                      </p>
-                      {shareResult.emailError && (
-                        <p className="mt-1 text-xs font-mono text-amber-700 break-words">
-                          {shareResult.emailError}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {shareResult.approvalUrl && (
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Review link</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        readOnly
-                        value={shareResult.approvalUrl}
-                        onFocus={(e) => e.target.select()}
-                        className="flex-1 px-3 py-2.5 text-sm font-mono border border-slate-300 rounded-lg bg-slate-50 text-slate-700"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText(shareResult.approvalUrl)
-                          setLinkCopied(true)
-                          setTimeout(() => setLinkCopied(false), 2000)
-                        }}
-                        className="px-4 py-2.5 bg-[#7C4DFF] hover:bg-[#6a3de8] text-white text-sm font-medium rounded-lg transition-colors flex-shrink-0"
-                      >
-                        {linkCopied ? "Copied!" : "Copy link"}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex justify-end pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShareModalOpen(false)
-                      setShareResult(null)
-                    }}
-                    className="px-6 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-lg transition-colors"
-                  >
-                    Done
-                  </button>
-                </div>
-              </div>
-            ) : (
-            <form onSubmit={handleShareSubmit} className="space-y-4 overflow-y-auto flex-1 min-h-0 pr-1">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Recipient Name <span className="text-slate-400 font-normal">(optional)</span>
-                </label>
-                <input
-                  type="text"
-                  value={shareForm.recipient_name}
-                  onChange={(e) => setShareForm({ ...shareForm, recipient_name: e.target.value })}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
-                  placeholder="John Doe"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Recipient Email <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={shareForm.recipient_email}
-                  onChange={(e) => setShareForm({ ...shareForm, recipient_email: e.target.value })}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
-                  placeholder="john@example.com"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Recipient Role</label>
-                <select
-                  value={shareForm.recipient_role}
-                  onChange={(e) => setShareForm({ ...shareForm, recipient_role: e.target.value })}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
-                >
-                  <option>Title Officer</option>
-                  <option>Lender</option>
-                  <option>Escrow Officer</option>
-                  <option>Attorney</option>
-                  <option>Other</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Message (Optional)</label>
-                <textarea
-                  rows={3}
-                  value={shareForm.message}
-                  onChange={(e) => setShareForm({ ...shareForm, message: e.target.value })}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors resize-none"
-                  placeholder="Add a message for the recipient..."
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Link Expires In</label>
-                <select
-                  value={shareForm.expires_in_hours}
-                  onChange={(e) => setShareForm({ ...shareForm, expires_in_hours: parseInt(e.target.value) })}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
-                >
-                  <option value="24">24 hours</option>
-                  <option value="72">3 days</option>
-                  <option value="168">7 days (recommended)</option>
-                  <option value="336">14 days</option>
-                  <option value="720">30 days</option>
-                </select>
-                {/* X2.5: say what expiry actually does. */}
-                <p className="text-xs text-slate-500 mt-1">
-                  When the link expires it stops working and the share is marked
-                  expired — the deed itself is unaffected, and you can share it
-                  again anytime.
-                </p>
-              </div>
-
-              {/* Footer Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShareModalOpen(false)}
-                  className="px-6 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={shareLoading}
-                  className="px-6 py-3 bg-[#7C4DFF] hover:bg-[#6a3de8] text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {shareLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    "Share Deed"
-                  )}
-                </button>
-              </div>
-            </form>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* NOTARY1 — request a signing (officer → notary) */}
-      {signingDeedId !== null && (
-        <SigningRequestModal deedId={signingDeedId} onClose={() => setSigningDeedId(null)} />
+      {/* PARTNER2/B — the two share actions, each with its own modal.
+          Both are wrapped in PartnersProvider so the recipient picker and
+          its inline "add a new partner" reuse the EXISTING partner path
+          rather than growing a fourth creation form — a fourth form is
+          how the category lists diverged in the first place. */}
+      {(signingDeedId !== null || reviewDeedId !== null) && (
+        <PartnersProvider>
+          {signingDeedId !== null && (
+            <SigningRequestModal deedId={signingDeedId} onClose={() => setSigningDeedId(null)} />
+          )}
+          {reviewDeedId !== null && (
+            <ShareForReviewModal deedId={reviewDeedId} onClose={() => setReviewDeedId(null)} />
+          )}
+        </PartnersProvider>
       )}
 
       {/* Delete Confirmation Dialog */}
