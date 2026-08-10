@@ -527,6 +527,60 @@ def signing_windows_posted(signer_name, officer_name, officer_company, notary_na
                           content, False), text
 
 
+def signing_reminder(recipient_name, officer_name, officer_company,
+                     notary_name, property_text, window_texts, link,
+                     is_consumer: bool) -> Rendered:
+    """NOTARY2 — the officer nudges somebody who has not answered.
+
+    ONE TEMPLATE FOR BOTH PARTIES, register chosen by `is_consumer` — the
+    same pattern as the booking notice, and for the same reason: two
+    near-identical templates drift, and the drift is invisible because
+    each one looks fine on its own.
+
+    NOTARY1 refused to reuse the review reminder for a signing because it
+    asked the wrong question ("waiting on your review"). This one asks
+    the SAME question the original ask did, with "still" in front of it —
+    a reminder that rephrases is a reminder the recipient has to re-read
+    from scratch.
+
+    No urgency theatre. Nothing here says "urgent", "immediately" or
+    "final notice": the officer chose to send this, the recipient has not
+    done anything wrong, and manufactured pressure on a consumer who is
+    doing us a favour is how a product gets ignored.
+    """
+    subject = f"Still need a time — {property_text}"
+    listed = "".join(
+        f'<tr><td style="padding:4px 0;font-size:14px;color:{INK};font-weight:600;">'
+        f"&bull;&nbsp;{_esc(w)}</td></tr>" for w in (window_texts or []))
+    if is_consumer:
+        body = (
+            _p(f"Hi {_esc(recipient_name) or 'there'},")
+            + _p(f"<strong>{_esc(officer_name)}</strong>"
+                 + (f" at {_esc(officer_company)}" if officer_company else "")
+                 + " is still waiting to hear which time works for you.")
+            + ('<table role="presentation" cellpadding="0" cellspacing="0" '
+               f'style="margin:10px 0;">{listed}</table>' if listed else "")
+            + _button(link, "Pick a time")
+            + _p(f'<span style="font-size:13px;color:#8a94a0;">If none of them work you '
+                 f"can suggest another, or just call {_esc(officer_name)}.</span>")
+        )
+        text = (f"{officer_name} is still waiting to hear which time works for you.\n\n"
+                + "".join(f"  - {w}\n" for w in (window_texts or []))
+                + f"\nPick a time: {link}\n\n"
+                f"If none of them work you can suggest another, or call {officer_name}.")
+    else:
+        body = (
+            _p(f"Hi {_esc(recipient_name) or 'there'},")
+            + _p(f"<strong>{_esc(officer_name)}</strong> is still waiting on times for "
+                 f"the signing at {_esc(property_text)}.")
+            + _button(link, "Post the times you are free")
+        )
+        text = (f"{officer_name} is still waiting on times for the signing at "
+                f"{property_text}.\n\nPost your availability: {link}")
+    return subject, _base(f"Still waiting on a time — {property_text}", body,
+                          not is_consumer), text
+
+
 def signing_proposal_received(notary_name, signer_name, officer_name,
                               property_address, window_text, link) -> Rendered:
     """NOTARY2 — a signer suggested a time the notary did not offer."""

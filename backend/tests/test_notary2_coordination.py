@@ -621,3 +621,136 @@ def test_purge_status_reports_what_is_overdue(conn):
     status = purge_status(conn)
     assert status["retention_days"] == loop.CONTACT_RETENTION_DAYS
     assert status["overdue"] >= 1
+
+
+# ══════════════════════════════════════════════════════════════════════
+# The NOTARY1 → NOTARY2 migration
+#
+# Written and tested for an expected ZERO rows. "There is probably no
+# data" is how data gets lost.
+# ══════════════════════════════════════════════════════════════════════
+
+def _notary1_share(conn, *, tag: str, windows, scheduled_at=None, scheduled_by=None):
+    """A NOTARY1-shaped signing share, in the old model."""
+    with conn.cursor() as cur:
+        cur.execute("INSERT INTO users (email, password_hash, full_name, role) "
+                    "VALUES (%s,'x','Dana','user') RETURNING id", (f"o-{tag}@n1.test",))
+        officer = cur.fetchone()["id"]
+        cur.execute("INSERT INTO deeds (user_id, deed_type, property_address, status) "
+                    "VALUES (%s,'grant_deed','1 Old Way, LA, CA','completed') "
+                    "RETURNING id", (officer,))
+        deed = cur.fetchone()["id"]
+        token = str(uuid.uuid4())
+        cur.execute(
+            """INSERT INTO deed_shares (deed_id, owner_user_id, recipient_email, token,
+                                        status, share_kind, proposed_windows, expires_at,
+                                        scheduled_at, scheduled_by, scheduled_asserted_at)
+               VALUES (%s,%s,%s,%s,'sent','signing_request',%s::jsonb,%s,%s,%s,%s)
+               RETURNING id""",
+            (deed, officer, "nora@notary.test", token, json.dumps(windows),
+             datetime.now(timezone.utc) + timedelta(days=10),
+             scheduled_at, scheduled_by,
+             datetime.now(timezone.utc) if scheduled_at else None))
+        return cur.fetchone()["id"], token
+
+
+@dbonly
+def test_the_migration_carries_a_notary1_request_across(conn):
+    from services.signing_migration import migrate
+    start = datetime.now(timezone.utc) + timedelta(days=3)
+    share_id, token = _notary1_share(
+        conn, tag=uuid.uuid4().hex[:6],
+        windows=[{"start": start.isoformat(),
+                  "end": (start + timedelta(hours=1)).isoformat()}])
+    report = migrate(conn)
+    assert report["migrated"] >= 1
+    with conn.cursor() as cur:
+        cur.execute("SELECT id FROM signing_requests WHERE migrated_from_share_id = %s",
+                    (share_id,))
+        request_id = cur.fetchone()["id"]
+        cur.execute("SELECT token, party_role FROM signing_participants "
+                    "WHERE signing_request_id = %s", (request_id,))
+        parts = cur.fetchall()
+    # THE LIVE LINK KEEPS WORKING. A migration that silently invalidates
+    # a link the officer already sent is one support ticket per row.
+    assert [str(p["token"]) for p in parts] == [token]
+    assert [p["party_role"] for p in parts] == ["notary"]
+
+
+@dbonly
+def test_the_officers_windows_are_not_relabelled_as_the_notarys(conn):
+    """NOTARY1's windows were the OFFICER's proposals. Marking them
+    `notary` would be the record claiming she offered times she never
+    saw."""
+    from services.signing_migration import migrate
+    start = datetime.now(timezone.utc) + timedelta(days=4)
+    share_id, _ = _notary1_share(
+        conn, tag=uuid.uuid4().hex[:6],
+        windows=[{"start": start.isoformat(),
+                  "end": (start + timedelta(hours=1)).isoformat()}])
+    migrate(conn)
+    with conn.cursor() as cur:
+        cur.execute("""SELECT w.origin FROM signing_windows w
+                         JOIN signing_requests r ON r.id = w.signing_request_id
+                        WHERE r.migrated_from_share_id = %s""", (share_id,))
+        assert [r["origin"] for r in cur.fetchall()] == ["officer"]
+
+
+@dbonly
+def test_who_asserted_the_old_time_survives_the_move(conn):
+    """NOTARY1 kept the notary's tap and the officer's phone call apart.
+    Flattening them here would lose the distinction the whole shape
+    exists to preserve."""
+    from services.signing_migration import migrate
+    start = datetime.now(timezone.utc) + timedelta(days=5)
+    share_id, _ = _notary1_share(
+        conn, tag=uuid.uuid4().hex[:6],
+        windows=[{"start": start.isoformat(),
+                  "end": (start + timedelta(hours=1)).isoformat()}],
+        scheduled_at=start, scheduled_by="officer")
+    migrate(conn)
+    with conn.cursor() as cur:
+        cur.execute("SELECT booked_by, booked_at FROM signing_requests "
+                    "WHERE migrated_from_share_id = %s", (share_id,))
+        row = cur.fetchone()
+    assert row["booked_by"] == "officer"
+    assert row["booked_at"] is not None
+
+
+@dbonly
+def test_a_naive_time_is_skipped_and_reported_not_guessed_at(conn):
+    """NOTARY1 assumed UTC for a time with no offset — the bug #149
+    closed. Carrying one forward would import the defect into the new
+    model, so it is refused and REPORTED."""
+    from services.signing_migration import migrate
+    share_id, _ = _notary1_share(
+        conn, tag=uuid.uuid4().hex[:6],
+        windows=[{"start": "2026-09-01T10:00:00", "end": "2026-09-01T11:00:00"}])
+    report = migrate(conn)
+    assert share_id in [s["share_id"] for s in report["skipped"]]
+    assert "offset" in report["skipped"][0]["why"]
+
+
+@dbonly
+def test_the_migration_is_idempotent(conn):
+    from services.signing_migration import migrate
+    start = datetime.now(timezone.utc) + timedelta(days=6)
+    _notary1_share(conn, tag=uuid.uuid4().hex[:6],
+                   windows=[{"start": start.isoformat(),
+                             "end": (start + timedelta(hours=1)).isoformat()}])
+    first = migrate(conn)
+    second = migrate(conn)
+    assert first["migrated"] >= 1
+    assert second["migrated"] == 0
+    assert "no NOTARY1 signing requests remain" in second["note"]
+
+
+@dbonly
+def test_the_report_distinguishes_nothing_to_do_from_a_broken_query(conn):
+    """"migrated 0" and "migrated 0 because the query found nothing" read
+    identically in a log, and only one of them is reassuring."""
+    from services.signing_migration import migrate
+    migrate(conn)  # drain anything left by other tests
+    report = migrate(conn)
+    assert report["found"] == 0
+    assert "no NOTARY1 signing requests remain" in report["note"]

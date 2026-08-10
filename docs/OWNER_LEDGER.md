@@ -658,7 +658,15 @@ That is worse than the version-pin problem it was found by. A config file
 that lies by OMISSION is harder to catch than one that lies by contents:
 nothing about `render.yaml` says "this is some of what runs."
 
-**Two ways to make it honest, and this is an owner call:**
+**OWNER RULING (2026-08-11): do the expensive half — but AFTER Part C.**
+Bring the purge cron, and any other service added outside the file, into
+`render.yaml`, and make the repo authoritative for deploy topology. Its
+own ticket, sequenced after NOTARY2 Part C completes rather than folded
+into this wave — a deploy-topology change landing in the middle of a
+feature wave is how a bad afternoon becomes a bad week. The interim
+header stands until then.
+
+**Two ways to make it honest, and the owner has now chosen (1):**
 
 1. **Bring the cron into `render.yaml`** so the file is the inventory,
    and keep it that way. More work, and it makes the repo the source of

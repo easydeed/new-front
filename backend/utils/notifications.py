@@ -35,7 +35,7 @@ TEMPLATES = (
     # tell everybody when it lands. There is deliberately no sixth for
     # "the signing happened," because nothing in this product knows that.
     "notary_invited", "signing_windows_posted",
-    "signing_proposal_received", "signing_booked",
+    "signing_proposal_received", "signing_booked", "signing_reminder",
 )
 
 
@@ -265,6 +265,16 @@ def send_signing_windows_posted(recipient_email: str, signer_name: str,
                      signer_name, officer_name, officer_company, notary_name,
                      property_street, window_texts, link),
                  context={"party": "signer", "windows": len(window_texts or [])})
+
+
+def send_signing_reminder(recipient_email: str, recipient_name: str,
+                          officer_name: str, officer_company: Optional[str],
+                          notary_name: Optional[str], property_text: str,
+                          window_texts, link: str, is_consumer: bool) -> SendResult:
+    return _send("signing_reminder", recipient_email, email_templates.signing_reminder(
+        recipient_name, officer_name, officer_company, notary_name,
+        property_text, window_texts, link, is_consumer),
+        context={"party": "signer" if is_consumer else "professional"})
 
 
 def send_signing_proposal_received(recipient_email: str, notary_name: str,

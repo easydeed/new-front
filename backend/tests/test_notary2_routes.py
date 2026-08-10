@@ -502,3 +502,109 @@ def test_windows_that_book_immediately_do_not_also_say_pick_a_time(world):
     pub.post(f"/signing/{tokens[loop.ROLE_NOTARY][0]}/windows",
              json={"windows": _windows(1, days_out=40)})
     assert 'signing_windows_posted' not in [t for t, _ in _sent_since(world["conn"], mark)]
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Reminders — officer-triggered, capped, and aimed only at silence
+# ══════════════════════════════════════════════════════════════════════
+
+def test_a_reminder_goes_only_to_people_who_have_answered_nothing(world):
+    """Somebody who said "not that time" HAS answered. Re-asking them the
+    same question is how a product teaches people to ignore it."""
+    _, tokens = _create(world)
+    pub = public()
+    officer = client_for(world["officer"])
+    pub.post(f"/signing/{tokens[loop.ROLE_NOTARY][0]}/windows", json={"windows": _windows()})
+    wid = pub.get(f"/signing/{tokens[loop.ROLE_SIGNER][0]}").json()["windows"][0]["id"]
+    pub.post(f"/signing/{tokens[loop.ROLE_SIGNER][0]}/answer",
+             json={"window_id": wid, "answer": "unavailable"})
+
+    mark = _mark(world["conn"])
+    r = officer.post(f"/signing-requests/v2/{world_request_id(world)}/remind")
+    assert r.status_code == 200, r.text
+    body = r.json()
+    # The notary answered by posting; signer 0 answered "no"; only signer
+    # 1 is silent.
+    assert [s["name"] for s in body["sent"]] == ["Signer 1"]
+    assert {s["why"] for s in body["skipped"]} == {"already answered"}
+    assert [t for t, _ in _sent_since(world["conn"], mark)] == ["signing_reminder"]
+
+
+def test_a_signer_is_not_chased_before_there_are_times_to_look_at(world):
+    """A reminder they cannot act on is noise aimed at the wrong person —
+    the request is waiting on the notary, not on them."""
+    _, _tokens = _create(world)
+    r = client_for(world["officer"]).post(
+        f"/signing-requests/v2/{world_request_id(world)}/remind")
+    body = r.json()
+    assert [s["name"] for s in body["sent"]] == ["Nora Vance"]
+    assert {s["why"] for s in body["skipped"]} == {"no times posted yet"}
+
+
+def test_the_reminder_cap_is_three_per_person(world):
+    _, _tokens = _create(world)
+    officer = client_for(world["officer"])
+    rid = world_request_id(world)
+    for _ in range(3):
+        officer.post(f"/signing-requests/v2/{rid}/remind")
+    body = officer.post(f"/signing-requests/v2/{rid}/remind").json()
+    assert body["sent"] == []
+    assert "reminded three times" in {s["why"] for s in body["skipped"]}
+
+
+def test_a_failed_send_still_counts_against_the_cap(world):
+    """Fail-closed. "The transport reported an error" is not proof
+    nothing arrived, and the two mistakes cost differently: undercounting
+    means a consumer gets an email they did not consent to."""
+    _, _tokens = _create(world)
+    officer = client_for(world["officer"])
+    rid = world_request_id(world)
+    officer.post(f"/signing-requests/v2/{rid}/remind")
+    with world["conn"].cursor() as cur:
+        cur.execute("SELECT reminders_sent FROM signing_participants "
+                    "WHERE signing_request_id = %s AND party_role = 'notary'", (rid,))
+        # No transport is configured in tests, so every send "fails".
+        assert cur.fetchone()["reminders_sent"] == 1
+
+
+def test_a_settled_signing_has_nobody_to_chase(world):
+    _, tokens = _create(world)
+    pub = public()
+    pub.post(f"/signing/{tokens[loop.ROLE_NOTARY][0]}/windows", json={"windows": _windows()})
+    wid = pub.get(f"/signing/{tokens[loop.ROLE_SIGNER][0]}").json()["windows"][0]["id"]
+    for t in tokens[loop.ROLE_SIGNER]:
+        pub.post(f"/signing/{t}/answer", json={"window_id": wid, "answer": "available"})
+    r = client_for(world["officer"]).post(
+        f"/signing-requests/v2/{world_request_id(world)}/remind")
+    assert r.status_code == 409
+
+
+def test_a_stranger_cannot_send_reminders_on_someone_elses_request(world):
+    _create(world)
+    r = client_for(world["stranger"]).post(
+        f"/signing-requests/v2/{world_request_id(world)}/remind")
+    assert r.status_code == 404
+
+
+def test_the_reminder_asks_the_same_question_the_original_ask_did(world):
+    """NOTARY1 refused to reuse the review reminder because it asked the
+    wrong question. A reminder that REPHRASES is one the recipient has to
+    re-read from scratch — and no urgency theatre on a consumer who is
+    doing us a favour."""
+    from utils import email_templates as t
+    subject, html, text = t.signing_reminder(
+        "Sam", "Dana Reyes", "Pacific Coast Title", "Nora", "9 Private Way",
+        ["Tuesday at 10:00 AM"], "http://x", True)
+    assert "still" in (subject + html).lower()
+    for pressure in ("urgent", "immediately", "final notice", "asap",
+                     "act now", "last chance"):
+        assert pressure not in html.lower(), f"urgency theatre: {pressure}"
+    # And it offers the way out that always works.
+    assert "call" in html.lower()
+
+
+def world_request_id(world) -> int:
+    with world["conn"].cursor() as cur:
+        cur.execute("SELECT id FROM signing_requests WHERE officer_user_id = %s "
+                    "ORDER BY id DESC LIMIT 1", (world["officer"],))
+        return cur.fetchone()["id"]

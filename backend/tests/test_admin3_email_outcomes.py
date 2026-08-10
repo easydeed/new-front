@@ -63,7 +63,7 @@ def test_no_module_outside_notifications_sends_mail():
 
 
 def test_every_template_routes_through_send():
-    """All eighteen, named. A template that renders and sends without a
+    """All nineteen, named. A template that renders and sends without a
     `_send` name is a template whose rows land under the wrong label —
     which is worse than no label, because the log then lies quietly.
 
@@ -84,7 +84,7 @@ def test_every_template_routes_through_send():
         f"declared TEMPLATES and actual _send labels disagree: "
         f"only-declared={set(TEMPLATES) - named}, only-used={named - set(TEMPLATES)}"
     )
-    assert len(TEMPLATES) == 18
+    assert len(TEMPLATES) == 19
 
 
 # ── The recorder's two constraints ───────────────────────────────────
