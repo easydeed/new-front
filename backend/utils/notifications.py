@@ -29,6 +29,13 @@ TEMPLATES = (
     # about availability; notary→officer (or officer→herself) records a
     # time. There is deliberately no third: no signer is ever emailed.
     "share_signing_request", "signing_time_recorded",
+    # NOTARY2 — the coordination loop. Five, and the count is the point:
+    # ask the notary, ask the signers, tell the signers when there is
+    # something to answer, tell the notary when a signer proposes, and
+    # tell everybody when it lands. There is deliberately no sixth for
+    # "the signing happened," because nothing in this product knows that.
+    "notary_invited", "signing_windows_posted",
+    "signing_proposal_received", "signing_booked",
 )
 
 
@@ -229,6 +236,64 @@ def send_signing_time_recorded_with_reason(owner_email: str, owner_name: str,
                  user_id=user_id,
                  context={"deed_type": deed_type, "notary": notary_email},
                  attachments=attachments)
+
+
+def send_notary_invited(recipient_email: str, notary_name: str, officer_name: str,
+                        officer_company: Optional[str], deed_type: str,
+                        property_address: Optional[str], county: Optional[str],
+                        link: str, expires_at: Optional[str]) -> SendResult:
+    return _send("notary_invited", recipient_email, email_templates.notary_invited(
+        notary_name, officer_name, officer_company, deed_type,
+        property_address, county, link, expires_at),
+        context={"deed_type": deed_type})
+
+
+def send_signing_windows_posted(recipient_email: str, signer_name: str,
+                                officer_name: str, officer_company: Optional[str],
+                                notary_name: Optional[str],
+                                property_street: Optional[str], window_texts,
+                                link: str) -> SendResult:
+    """The signer's FIRST and usually only email before it books.
+
+    The context recorded in `email_log` deliberately carries no property
+    detail — the ledger answers "did we send it", and a row that also
+    records whose house it was about is a second copy of the thing §13.1
+    limits to one table.
+    """
+    return _send("signing_windows_posted", recipient_email,
+                 email_templates.signing_windows_posted(
+                     signer_name, officer_name, officer_company, notary_name,
+                     property_street, window_texts, link),
+                 context={"party": "signer", "windows": len(window_texts or [])})
+
+
+def send_signing_proposal_received(recipient_email: str, notary_name: str,
+                                   signer_name: str, officer_name: str,
+                                   property_address: Optional[str],
+                                   window_text: str, link: str) -> SendResult:
+    return _send("signing_proposal_received", recipient_email,
+                 email_templates.signing_proposal_received(
+                     notary_name, signer_name, officer_name, property_address,
+                     window_text, link),
+                 context={"party": "notary"})
+
+
+def send_signing_booked(recipient_email: str, recipient_name: str, when_text: str,
+                        property_text: str, notary_name: Optional[str],
+                        officer_name: str, is_consumer: bool, link: str,
+                        user_id: Optional[int] = None,
+                        attachments: Optional[list] = None) -> SendResult:
+    """Everybody, on convergence — with the calendar file.
+
+    `is_consumer` picks the register AND what the body may contain: the
+    signer gets the street line, the professionals get the full address.
+    An email is not a loophole in the surface allowlist.
+    """
+    return _send("signing_booked", recipient_email, email_templates.signing_booked(
+        recipient_name, when_text, property_text, notary_name, officer_name,
+        is_consumer, link),
+        user_id=user_id, context={"party": "signer" if is_consumer else "professional"},
+        attachments=attachments)
 
 
 def send_welcome_with_reason(user_email: str, full_name: str) -> SendResult:

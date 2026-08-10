@@ -406,3 +406,99 @@ def test_the_agenda_shows_only_her_own(world):
     request_id, _ = _create(world)
     rows = client_for(world["stranger"]).get("/signing-requests/v2").json()
     assert all(r["id"] != request_id for r in rows)
+
+
+# ══════════════════════════════════════════════════════════════════════
+# The emails actually fire
+#
+# Every send in this loop is best-effort and non-fatal, which is correct
+# — a booking that happened must not be undone because a mail server was
+# slow — and it means a broken send makes NOTHING go red. So the ledger
+# is the assertion: `email_log` records every ATTEMPT through the one
+# transport (ADMIN3), configured or not.
+#
+# High-water marks throughout, per the rule these suites learned twice:
+# `email_log` survives between runs, so "a row with this template exists"
+# is satisfied by yesterday's row and passes with the code broken.
+# ══════════════════════════════════════════════════════════════════════
+
+def _mark(conn) -> int:
+    with conn.cursor() as cur:
+        cur.execute("SELECT COALESCE(MAX(id), 0) AS m FROM email_log")
+        return cur.fetchone()["m"]
+
+
+def _sent_since(conn, mark: int):
+    with conn.cursor() as cur:
+        cur.execute("SELECT template, recipient FROM email_log WHERE id > %s "
+                    "ORDER BY id", (mark,))
+        return [(r["template"], r["recipient"]) for r in (cur.fetchall() or [])]
+
+
+def test_creating_a_request_asks_the_notary_and_nobody_else(world):
+    """The signers are NOT emailed yet. "Pick a time" with no times is
+    asking a consumer to do nothing, and the first email this product
+    ever sends a member of the public should not be that."""
+    mark = _mark(world["conn"])
+    _create(world)
+    sent = _sent_since(world["conn"], mark)
+    assert [t for t, _ in sent] == ['notary_invited'], sent
+    assert sent[0][1] == 'nora@notary.test'
+
+
+def test_posting_windows_tells_every_signer_on_their_own_link(world):
+    _, tokens = _create(world)
+    mark = _mark(world["conn"])
+    public().post(f"/signing/{tokens[loop.ROLE_NOTARY][0]}/windows",
+                  json={"windows": _windows()})
+    sent = _sent_since(world["conn"], mark)
+    assert [t for t, _ in sent] == ['signing_windows_posted'] * 2, sent
+    assert {r for _, r in sent} == {'s0@example.test', 's1@example.test'}
+
+
+def test_a_proposal_tells_the_notary(world):
+    _, tokens = _create(world, signers=1)
+    pub = public()
+    pub.post(f"/signing/{tokens[loop.ROLE_NOTARY][0]}/windows", json={"windows": _windows(1)})
+    mark = _mark(world["conn"])
+    pub.post(f"/signing/{tokens[loop.ROLE_SIGNER][0]}/propose",
+             json=_windows(1, days_out=30)[0])
+    sent = _sent_since(world["conn"], mark)
+    assert [t for t, _ in sent] == ['signing_proposal_received'], sent
+    assert sent[0][1] == 'nora@notary.test'
+
+
+def test_booking_tells_everyone_once(world):
+    """All three parties, one email each. Not two for anybody: a person
+    who gets the same news twice stops reading the second one."""
+    _, tokens = _create(world)
+    pub = public()
+    pub.post(f"/signing/{tokens[loop.ROLE_NOTARY][0]}/windows", json={"windows": _windows()})
+    wid = pub.get(f"/signing/{tokens[loop.ROLE_SIGNER][0]}").json()["windows"][0]["id"]
+    pub.post(f"/signing/{tokens[loop.ROLE_SIGNER][0]}/answer",
+             json={"window_id": wid, "answer": "available"})
+    mark = _mark(world["conn"])
+    pub.post(f"/signing/{tokens[loop.ROLE_SIGNER][1]}/answer",
+             json={"window_id": wid, "answer": "available"})
+
+    sent = _sent_since(world["conn"], mark)
+    booked = [r for t, r in sent if t == 'signing_booked']
+    assert sorted(booked) == ['nora@notary.test', 's0@example.test', 's1@example.test']
+    assert len(booked) == len(set(booked)), "somebody was told twice"
+
+
+def test_windows_that_book_immediately_do_not_also_say_pick_a_time(world):
+    """A single-signer request where the notary posts a time the signer
+    has already agreed to would otherwise send "pick one" and "it is
+    booked" in the same minute."""
+    _, tokens = _create(world, signers=1)
+    pub = public()
+    pub.post(f"/signing/{tokens[loop.ROLE_NOTARY][0]}/windows", json={"windows": _windows(1)})
+    wid = pub.get(f"/signing/{tokens[loop.ROLE_SIGNER][0]}").json()["windows"][0]["id"]
+    pub.post(f"/signing/{tokens[loop.ROLE_SIGNER][0]}/answer",
+             json={"window_id": wid, "answer": "available"})
+    # Now a SECOND window posted after it is already booked.
+    mark = _mark(world["conn"])
+    pub.post(f"/signing/{tokens[loop.ROLE_NOTARY][0]}/windows",
+             json={"windows": _windows(1, days_out=40)})
+    assert 'signing_windows_posted' not in [t for t, _ in _sent_since(world["conn"], mark)]
