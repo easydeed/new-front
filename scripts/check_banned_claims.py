@@ -73,6 +73,47 @@ RULES = [
     Rule("HIPAA", r"\bHIPAA\b", "Not applicable and never assessed."),
     Rule("GDPR/CCPA compliance claim", r"\b(?:GDPR|CCPA)[\s\-]*(?:compliant|certified)\b",
          "No compliance assessment has been performed against either."),
+    # ── DASH1 item 8: OUR TICKET NUMBERS ARE NOT HER VOCABULARY ───────
+    #
+    # The admin Overview told the customer, in rendered text: "Neither is
+    # a trend; trends arrive with ADMIN6." ADMIN6 is an internal ticket
+    # identifier. It names nothing she can look up, promises a date
+    # nobody gave her, and reads as a defect number on a screen she paid
+    # for. Same species as a dead button — a surface referring to
+    # something that does not exist from where she is standing — and it
+    # arrived the same way: a note to the next developer, written in a
+    # string the customer reads.
+    #
+    # ═══ THIS RULE ENUMERATES, AND THAT IS DELIBERATE ═══
+    #
+    # Every other rule in this file matches a SHAPE, because guarding a
+    # spelling is how "enterprise-grade security" walked past two rules
+    # written for "bank-level" and "military-grade". The reflex here was
+    # the same: match `[A-Z]{2,}[0-9]+` — capitals then a digit, standing
+    # as a word — and be done.
+    #
+    # It was tried. It matched ADDRESS1, ADDRESS2 and SHA256 on the first
+    # run, and it would match ISO27001, UTF8, LINE2 and every form field
+    # anybody names that way. The shape of a ticket identifier is
+    # genuinely indistinguishable from the shape of a field name, and
+    # this file's own doctrine says what to do about that: a pattern
+    # smart enough to tell them apart is a classifier, and a classifier
+    # in a BLOCKING gate fails in whichever direction nobody predicted.
+    #
+    # So the prefixes are listed. Adding a ticket family means adding a
+    # word here, which is a real cost and a small one — and unlike the
+    # security-claim rules, the thing being guarded is OUR OWN
+    # vocabulary, which we control and can therefore enumerate honestly.
+    # Single-letter prefixes (S1, T5, X2, H2) are deliberately absent:
+    # one letter and a digit is a heading level, a form field or a
+    # version, and a gate that fires on `H2` is worse than the leak.
+    Rule("internal ticket identifier",
+         r"\b(?:ADMIN|DASH|DOCTRINE|DX|FLOW|NOTARY|PARTNER|PRICING|RED|TP|TRIAL|VERIFY)"
+         r"[0-9]+(?:\.[0-9]+)?[a-z]?\b",
+         "Internal ticket identifiers name nothing a customer can look "
+         "up and promise dates nobody gave them. Say what the screen "
+         "does today, or say the capability does not exist yet — "
+         "'trends arrive with ADMIN6' is a dead button in prose."),
     # ── THE PROPERTY, not the spellings (owner-ruled, PRICING1) ───────
     #
     # This started as two rules for two phrasings: "bank-level security"

@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 import { AuthManager } from '../utils/auth';
+import { apiFetch } from '@/lib/apiClient';
 import { LogoLockup, LogoMark } from '@/components/brand/Logo';
 import {
   CalendarClock,
@@ -27,17 +28,53 @@ import {
   ChevronRight,
 } from 'lucide-react';
 
-const NAV_ITEMS = [
-  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/deed-builder', icon: FilePlus2, label: 'Create Deed' },
-  { href: '/past-deeds', icon: Files, label: 'Past Deeds' },
-  { href: '/shared-deeds', icon: Share2, label: 'Shared Deeds' },
-  // NOTARY2 Part D. A page nothing links to is a page nobody uses —
-  // the agenda's whole job is being the place she checks what is stuck,
-  // and that only works if it is one click from everywhere.
-  { href: '/signings', icon: CalendarClock, label: 'Signings' },
-  { href: '/partners', icon: Users, label: 'Partners' },
-  { href: '/account-settings', icon: Settings, label: 'Settings' },
+/**
+ * DASH1 item 6 — THREE GROUPS, BECAUSE THEY ARE THREE KINDS OF VISIT.
+ *
+ * A flat list of seven says every destination is the same kind of thing.
+ * They are not: WORK is where she makes and finds documents, TRACKING is
+ * where she checks what other people owe her, and SETUP is where she
+ * goes twice a year. Grouping is not decoration — it tells her where to
+ * look before she has read the labels.
+ *
+ * `badge` names which count from `/dashboard/queue` rides on the item.
+ * Ambient waiting-signal does more for at-a-glance awareness than
+ * anything the dashboard carried before this ticket, because she sees it
+ * from every page rather than only from the one she starts on.
+ */
+type NavItem = {
+  href: string;
+  icon: typeof LayoutDashboard;
+  label: string;
+  badge?: 'signings' | 'shared_deeds';
+};
+
+const NAV_GROUPS: Array<{ title: string; items: NavItem[] }> = [
+  {
+    title: 'Work',
+    items: [
+      { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+      { href: '/deed-builder', icon: FilePlus2, label: 'Create Deed' },
+      { href: '/past-deeds', icon: Files, label: 'Past Deeds' },
+    ],
+  },
+  {
+    title: 'Tracking',
+    items: [
+      // NOTARY2 Part D. A page nothing links to is a page nobody uses —
+      // the agenda's whole job is being the place she checks what is
+      // stuck, and that only works if it is one click from everywhere.
+      { href: '/signings', icon: CalendarClock, label: 'Signings', badge: 'signings' },
+      { href: '/shared-deeds', icon: Share2, label: 'Shared Deeds', badge: 'shared_deeds' },
+    ],
+  },
+  {
+    title: 'Setup',
+    items: [
+      { href: '/partners', icon: Users, label: 'Partners' },
+      { href: '/account-settings', icon: Settings, label: 'Settings' },
+    ],
+  },
 ];
 
 const ADMIN_ITEM = { href: '/admin', icon: ShieldCheck, label: 'Admin' };
@@ -47,6 +84,31 @@ export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  /**
+   * DASH1 item 6 — the ambient waiting-signal.
+   *
+   * Best-effort and SILENT on failure, which is the opposite of the rule
+   * everywhere else in this codebase and is deliberate: a badge is an
+   * enrichment, not a claim. A missing badge says nothing; an error
+   * banner in the navigation of every page, because one background
+   * request failed, would be noise she cannot act on and cannot dismiss.
+   * The pages themselves report their own failures loudly.
+   */
+  const [badges, setBadges] = useState<Record<string, number> | null>(null);
+
+  useEffect(() => {
+    if (!localStorage.getItem('access_token')) return;
+    (async () => {
+      try {
+        const res = await apiFetch('/dashboard/queue', {}, {
+          label: 'Loading waiting counts', silent: true,
+        });
+        if (res.ok) setBadges((await res.json())?.badges ?? null);
+      } catch {
+        // See above: a badge that cannot load is a badge that is absent.
+      }
+    })();
+  }, []);
 
   // Check admin status on mount (localStorage isn't available during SSR)
   useEffect(() => {
@@ -63,41 +125,70 @@ export default function Sidebar() {
   const isActive = (href: string) =>
     pathname === href || !!pathname?.startsWith(`${href}/`);
 
-  const items = isAdmin ? [...NAV_ITEMS, ADMIN_ITEM] : NAV_ITEMS;
+  const groups = isAdmin
+    ? [...NAV_GROUPS, { title: 'Admin', items: [ADMIN_ITEM] }]
+    : NAV_GROUPS;
+
+  const navItem = (item: NavItem, collapsed: boolean) => {
+    const Icon = item.icon;
+    const active = isActive(item.href);
+    const count = item.badge ? badges?.[item.badge] ?? 0 : 0;
+    return (
+      <li key={item.href}>
+        <Link
+          href={item.href}
+          onClick={() => setIsMobileOpen(false)}
+          aria-current={active ? 'page' : undefined}
+          title={collapsed ? item.label : undefined}
+          className={`relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+            collapsed ? 'justify-center' : ''
+          } ${
+            active
+              ? 'bg-brand-50 text-brand-600'
+              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+          }`}
+        >
+          <span
+            className={`absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full bg-brand-500 transition-opacity ${
+              active ? 'opacity-100' : 'opacity-0'
+            }`}
+            aria-hidden="true"
+          />
+          <Icon className="w-5 h-5 flex-shrink-0" />
+          {!collapsed && <span className="truncate flex-1">{item.label}</span>}
+          {/* The badge counts what is WAITING, not what exists. Zero
+              renders nothing rather than a "0" — a badge saying zero is
+              a thing to read that says there is nothing to read. */}
+          {count > 0 && (
+            <span
+              className={`shrink-0 rounded-full bg-brand-100 text-brand-700 text-xs font-semibold ${
+                collapsed ? 'absolute top-1 right-1 px-1.5' : 'px-2 py-0.5'
+              }`}
+              aria-label={`${count} waiting`}
+            >
+              {count}
+            </span>
+          )}
+        </Link>
+      </li>
+    );
+  };
 
   const navList = (collapsed: boolean) => (
-    <ul className="flex-1 px-3 py-4 space-y-1 overflow-y-auto" aria-label="Primary">
-      {items.map((item) => {
-        const Icon = item.icon;
-        const active = isActive(item.href);
-        return (
-          <li key={item.href}>
-            <Link
-              href={item.href}
-              onClick={() => setIsMobileOpen(false)}
-              aria-current={active ? 'page' : undefined}
-              title={collapsed ? item.label : undefined}
-              className={`relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                collapsed ? 'justify-center' : ''
-              } ${
-                active
-                  ? 'bg-brand-50 text-brand-600'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-              }`}
-            >
-              <span
-                className={`absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full bg-brand-500 transition-opacity ${
-                  active ? 'opacity-100' : 'opacity-0'
-                }`}
-                aria-hidden="true"
-              />
-              <Icon className="w-5 h-5 flex-shrink-0" />
-              {!collapsed && <span className="truncate">{item.label}</span>}
-            </Link>
-          </li>
-        );
-      })}
-    </ul>
+    <nav className="flex-1 px-3 py-4 overflow-y-auto" aria-label="Primary">
+      {groups.map((group) => (
+        <div key={group.title} className="mb-4 last:mb-0">
+          {!collapsed && (
+            <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+              {group.title}
+            </p>
+          )}
+          <ul className="space-y-1">
+            {group.items.map((item) => navItem(item, collapsed))}
+          </ul>
+        </div>
+      ))}
+    </nav>
   );
 
   const brand = (collapsed: boolean) => (

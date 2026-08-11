@@ -96,6 +96,26 @@ def test_the_attention_count_is_stale_requests_and_nothing_else():
     assert payload["needs_attention"] == 1
 
 
+def test_a_badge_counts_presence_and_the_attention_number_counts_silence():
+    """Two numbers, two claims, and neither is the other.
+
+    A badge on Signings says "there are things here". The attention
+    number says "these have gone quiet". Collapsing them would make the
+    badge alarming and the attention number decorative.
+    """
+    payload = q.queue(
+        upcoming=[],
+        awaiting=[
+            dict(_awaiting(False), kind="signing"),
+            dict(_awaiting(True), kind="review"),
+            dict(_awaiting(False), kind="review"),
+        ],
+        idle_drafts=[],
+    )
+    assert payload["badges"] == {"signings": 1, "shared_deeds": 2}
+    assert payload["needs_attention"] == 1
+
+
 def test_the_payload_shape_is_asserted_by_equality():
     from services.officer_queue import QUEUE_KEYS
 
