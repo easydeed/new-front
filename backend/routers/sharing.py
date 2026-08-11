@@ -1020,29 +1020,6 @@ def get_shared_deed_pdf(approval_token: str):
 # ══════════════════════════════════════════════════════════════════════
 
 
-class SigningRequestCreate(BaseModel):
-    """An officer asking a notary about availability.
-
-    Note what is NOT here: no signer name, email or phone, and no field
-    that could carry one. The notary's address is the only contact this
-    payload has ever held or may hold.
-    """
-    deed_id: int
-    notary_email: str
-    notary_name: Optional[str] = None
-    # [{"start": ISO-8601, "end": ISO-8601}] — one to three.
-    proposed_windows: list
-    location: Optional[str] = None
-    expires_in_hours: Optional[int] = 336  # 14 days
-
-    @field_validator('expires_in_hours')
-    @classmethod
-    def validate_expiry(cls, v):
-        if v is not None and (v < 1 or v > 720):
-            raise ValueError('Expiration must be between 1 and 720 hours')
-        return v
-
-
 class WindowChoice(BaseModel):
     """The notary's answer: the INDEX of a window the officer offered.
 
@@ -1093,115 +1070,48 @@ def _signing_share_by_token(approval_token: str, cur) -> dict:
     return row
 
 
-@router.post("/signing-requests")
-def create_signing_request(payload: SigningRequestCreate,
-                           user_id: int = Depends(get_current_user_id)):
-    """Ask a notary whether she is free at one of these times."""
-    import uuid
-
-    deed = _owned_deed_or_404(payload.deed_id, user_id)
-
-    try:
-        windows = signing.normalize_windows(payload.proposed_windows)
-    except signing.SigningRequestError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    if len(windows) < signing.MIN_WINDOWS:
-        raise HTTPException(status_code=400,
-                            detail="Propose at least one time")
-
-    expires_at = datetime.now(_tz.utc) + timedelta(hours=payload.expires_in_hours or 336)
-    token = str(uuid.uuid4())
-
-    owner_name = "DeedPro User"
-    share_id = None
-    try:
-        with db.conn.cursor() as cur:
-            cur.execute("SELECT full_name FROM users WHERE id = %s", (user_id,))
-            owner_row = cur.fetchone()
-            if owner_row and owner_row[0]:
-                owner_name = owner_row[0]
-
-            cur.execute("""
-                INSERT INTO deed_shares (
-                    deed_id, owner_user_id, recipient_email, token,
-                    status, share_kind, proposed_windows, expires_at,
-                    created_at, updated_at
-                )
-                VALUES (%s, %s, %s, %s, 'sent', %s, %s::jsonb, %s, NOW(), NOW())
-                RETURNING id
-            """, (payload.deed_id, user_id, payload.notary_email, token,
-                  signing.SHARE_KIND_SIGNING, _json.dumps(windows), expires_at))
-            share_id = cur.fetchone()["id"]
-            db.conn.commit()
-    except HTTPException:
-        raise
-    except Exception as e:
-        try:
-            db.conn.rollback()
-        except Exception:
-            pass
-        print(f"[NOTARY1] ❌ Could not save signing request: {e}")
-        # §4: a request we did not store is not a request. Unlike the
-        # review path — which pre-dates the doctrine and still limps on
-        # to send an email after a failed insert — this one stops. A
-        # notary holding a link to a row that does not exist is worse
-        # than an officer who knows her request did not go out.
-        raise HTTPException(status_code=500, detail="Could not save the signing request")
-
-    app_url = os.getenv('FRONTEND_URL', 'https://deedpro-frontend-new.vercel.app')
-    link = f"{app_url}/approve/{token}"
-    address = deed.get("property_address") or ""
-    deed_type = deed.get("deed_type") or "deed"
-
-    # One .ics per proposed window, so she can hold the times. PUBLISH,
-    # not REQUEST: this is a copy of a proposal, not an invitation with
-    # an organiser awaiting an RSVP (see build_ics).
-    attachments = []
-    for i, w in enumerate(windows):
-        ics = signing.window_to_ics(
-            w,
-            summary=f"HOLD (proposed): notary signing — {address}" if address
-                    else "HOLD (proposed): notary signing",
-            location=payload.location or address or None,
-            description=(f"Proposed by {owner_name} via DeedPro. Not confirmed — "
-                         f"open {link} to say whether you are available."),
-            uid=f"{token}-proposed-{i}@deedpro",
-        )
-        if ics:
-            attachments.append(_ics_attachment(
-                f"proposed-time-{i + 1}.ics", ics, "text/calendar"))
-
-    email_sent, email_error = False, None
-    try:
-        from utils.notifications import send_signing_request_with_reason
-        email_sent, email_error = send_signing_request_with_reason(
-            recipient_email=payload.notary_email,
-            recipient_name=payload.notary_name or "",
-            owner_name=owner_name,
-            deed_type=deed_type,
-            property_address=address,
-            share_link=link,
-            window_texts=[signing.window_label(w) for w in windows],
-            expires_at=expires_at.strftime('%B %d, %Y'),
-            attachments=attachments,
-        )
-    except Exception as notif_error:
-        email_error = f"{type(notif_error).__name__}: {str(notif_error)[:200]}"
-        print(f"[NOTARY1] ⚠️ signing-request email error (non-blocking): {email_error}")
-
-    return {
-        "success": True,
-        "share_id": share_id,
-        "share_kind": signing.SHARE_KIND_SIGNING,
-        "token": token,
-        "link": link,
-        "windows": [{"index": i, "start": w["start"], "end": w["end"],
-                     "label": signing.window_label(w)}
-                    for i, w in enumerate(windows)],
-        "expires_at": expires_at.isoformat(),
-        "email_sent": email_sent,
-        "email_error": email_error,
-    }
+# ══════════════════════════════════════════════════════════════════════
+# FLOW1 item 6 — NOTARY1'S WRITE PATH IS RETIRED
+#
+# `POST /signing-requests` used to create a signing as a `deed_shares`
+# row with `share_kind='signing_request'` and a JSONB list of windows the
+# OFFICER had guessed at. §13.1 reversed that model: the notary posts her
+# own availability, signers answer, convergence books it — one aggregate
+# across four tables, in routers/signing.py. The NOTARY2 create path is
+# `POST /signing-requests/v2`.
+#
+# The old route's UI was deleted when NOTARY2 shipped, and #156 migrated
+# its rows. What remained was a LIVE ENDPOINT WITH NO CLIENT — writable
+# by anybody holding a token, tested against no screen, producing rows in
+# a model the product had stopped believing in. Every migration run after
+# such a call would have carried it across, so nothing would have been
+# lost; the objection is not data loss, it is that two writable models
+# for one act is one model too many, and the one nobody can see is the
+# one that rots.
+#
+# RETIRED ON EVIDENCE, NOT ON SCHEDULE. The owner ran
+# `migrate_notary1_signings.py --dry-run` against production —
+# found: 0, migrated: 0, "no NOTARY1 signing requests remain to migrate",
+# on database `deedpro` at 10.26.62.147, confirmed by the script's own
+# identity line. The removal is safe because that number was checked,
+# not because enough time had passed.
+#
+# WHAT DELIBERATELY STAYS. The `deed_shares` columns (`share_kind`,
+# `proposed_windows`, `scheduled_at`, `scheduled_by`,
+# `scheduled_asserted_at`) are NOT dropped: a column drop is
+# irreversible, production is not the only database this schema runs on,
+# and the migration script must keep being able to read a row it might
+# find somewhere else. The READ-side routes below
+# (`/approve/{t}/schedule`, `/shared-deeds/{id}/schedule`,
+# `/approve/{t}/pcor`) also stay, and they are now unreachable by
+# construction — `_signing_share_by_token` 404s anything that is not a
+# signing share, and nothing can create one. That is flagged rather than
+# decided: retiring them is a second removal with its own blast radius
+# and its own doctrine tests, and it was not what this ticket ruled.
+#
+# Pinned in tests/test_flow1_notary1_retired.py — the route is absent
+# from the table, and no backend source writes SHARE_KIND_SIGNING.
+# ══════════════════════════════════════════════════════════════════════
 
 
 @router.post("/approve/{approval_token}/schedule")

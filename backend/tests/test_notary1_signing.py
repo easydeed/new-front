@@ -106,16 +106,23 @@ def test_no_signer_contact_column_in_the_schema():
     assert offenders == [], f"schema would store signer contact data: {offenders}"
 
 
-def test_the_signing_request_payload_cannot_carry_a_signer():
-    """The API surface, field by field. A model is where this would
-    arrive first, and a `signer_email` there would be accepted, stored
-    and eventually emailed before anybody noticed."""
-    from routers.sharing import SigningRequestCreate
-    fields = set(SigningRequestCreate.model_fields)
-    assert fields == {"deed_id", "notary_email", "notary_name",
-                      "proposed_windows", "location", "expires_in_hours"}, (
-        f"the signing request payload changed: {sorted(fields)} — every new "
-        "field here is a new thing we hold about somebody")
+# FLOW1 item 6: `test_the_signing_request_payload_cannot_carry_a_signer`
+# RETIRED WITH THE MODEL IT GUARDED. It asserted the exact field set of
+# `SigningRequestCreate`, so that a `signer_email` could not arrive on
+# NOTARY1's create payload unnoticed. That route and that model are gone.
+#
+# It is NOT re-pointed at NOTARY2's create payload, and that is the
+# doctrinal part rather than a convenience: §13.1 REVERSED the no-signer
+# -contact ruling. `POST /signing-requests/v2` carries signer names,
+# emails and phones on purpose, into `signing_participants`, purged on a
+# schedule by a job with its own tests. A pin demanding the opposite
+# would be asserting a rule the owner overturned.
+#
+# The tree-wide sweep above (`test_no_signer_contact_field_exists_
+# anywhere`) is the one that still matters, and it was retargeted when
+# NOTARY2 shipped — from "no signer contact anywhere" to "one purgeable
+# row, no other table". Nothing about signer contact is unpinned by this
+# removal.
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -466,6 +473,56 @@ def _windows(days_out: int = 3):
             for h in (0, 24)]
 
 
+
+def _make_notary1_share(world, *, owner_index: int = 0,
+                        notary_email: str = "n@notary1.test",
+                        windows=None, expires_in_hours: int = 336) -> dict:
+    """A NOTARY1 signing share, INSERTED DIRECTLY.
+
+    ═══ WHY A FIXTURE AND NOT THE ROUTE ═══
+
+    FLOW1 item 6 retired `POST /signing-requests`. Every test below used
+    to build its subject by calling it, so removing the route would have
+    taken nine read-side pins with it — and those pins are not about
+    creating a NOTARY1 signing. They are about what the product does with
+    one that EXISTS: an expired link answers identically on the deed, the
+    PDF and the PCOR; a revoked link stops answering; a notary cannot
+    assert a time nobody proposed; a stranger cannot record a time on
+    somebody else's request; the reminder does not ask a notary about a
+    review; the officer's list carries the server's status line.
+
+    Those rules still matter, because the DATA still matters. The columns
+    were deliberately not dropped: production has zero such rows (owner's
+    dry-run, confirmed against `deedpro` at 10.26.62.147), but production
+    is not the only database this schema runs on, and the migration
+    script must keep being able to read a row it might find elsewhere.
+
+    Deleting the tests with the route would have been the easy read of
+    "retire the write path", and it would have unpinned the behaviour
+    that governs the data we chose to keep. So the fixture writes the row
+    the way the migration would find it, and the rules stay pinned.
+    """
+    import uuid as _uuid
+    from datetime import datetime as _dtc, timedelta as _td, timezone as _tzc
+
+    token = str(_uuid.uuid4())
+    windows = windows if windows is not None else _windows()
+    expires_at = _dtc.now(_tzc.utc) + _td(hours=expires_in_hours)
+    with world["conn"].cursor() as cur:
+        cur.execute("""
+            INSERT INTO deed_shares (
+                deed_id, owner_user_id, recipient_email, token,
+                status, share_kind, proposed_windows, expires_at,
+                created_at, updated_at
+            )
+            VALUES (%s, %s, %s, %s, 'sent', %s, %s::jsonb, %s, NOW(), NOW())
+            RETURNING id
+        """, (world["deeds"][0], world["users"][owner_index], notary_email,
+              token, signing.SHARE_KIND_SIGNING, json.dumps(windows), expires_at))
+        share_id = cur.fetchone()["id"]
+    return {"share_id": share_id, "token": token, "windows": windows}
+
+
 @dbonly
 def test_a_stranger_cannot_share_a_deed_they_do_not_own(world):
     """THE DEFECT, reproduced. Before the fix this returned 200 with the
@@ -480,13 +537,12 @@ def test_a_stranger_cannot_share_a_deed_they_do_not_own(world):
     assert "PRIVATE GRANTOR" not in r.text
 
 
-@dbonly
-def test_a_stranger_cannot_request_a_signing_on_someone_elses_deed(world):
-    officer, stranger = world["users"]
-    r = _client_for(stranger).post("/signing-requests", json={
-        "deed_id": world["deeds"][0], "notary_email": "n@notary1.test",
-        "proposed_windows": _windows()})
-    assert r.status_code == 404, r.text
+# FLOW1 item 6: `test_a_stranger_cannot_request_a_signing_on_someone_
+# elses_deed` retired with the route it exercised. The ownership rule it
+# guarded is NOT unpinned — `_owned_deed_or_404` still gates
+# `POST /shared-deeds` (pinned directly above) and `POST /signing-requests
+# /v2` (pinned in test_notary2_routes.py). What retired is the third
+# caller of that helper, not the helper or the rule.
 
 
 @dbonly
@@ -497,11 +553,7 @@ def test_the_whole_handoff(world):
     from main import app
 
     officer = world["users"][0]
-    created = _client_for(officer).post("/signing-requests", json={
-        "deed_id": world["deeds"][0], "notary_email": "notary@notary1.test",
-        "notary_name": "Nora", "proposed_windows": _windows()})
-    assert created.status_code == 200, created.text
-    token = created.json()["token"]
+    token = _make_notary1_share(world, notary_email="notary@notary1.test")["token"]
 
     public = TestClient(app)
     view = public.get(f"/approve/{token}")
@@ -574,9 +626,7 @@ def test_a_notary_cannot_assert_a_time_nobody_proposed(world):
     from fastapi.testclient import TestClient
     from main import app
     officer = world["users"][0]
-    token = _client_for(officer).post("/signing-requests", json={
-        "deed_id": world["deeds"][0], "notary_email": "n@notary1.test",
-        "proposed_windows": _windows()}).json()["token"]
+    token = _make_notary1_share(world)["token"]
     r = TestClient(app).post(f"/approve/{token}/schedule", json={"window_index": 7})
     assert r.status_code == 400
 
@@ -586,9 +636,7 @@ def test_the_officer_may_record_a_time_agreed_out_of_band(world):
     """Owner ruling 3 — and the record keeps the two assertions apart."""
     officer = world["users"][0]
     client = _client_for(officer)
-    made = client.post("/signing-requests", json={
-        "deed_id": world["deeds"][0], "notary_email": "n@notary1.test",
-        "proposed_windows": _windows()}).json()
+    made = _make_notary1_share(world)
     r = client.post(f"/shared-deeds/{made['share_id']}/schedule",
                     json={"scheduled_at": "2026-09-15T10:00:00-07:00"})
     assert r.status_code == 200, r.text
@@ -606,9 +654,7 @@ def test_the_officer_may_record_a_time_agreed_out_of_band(world):
 @dbonly
 def test_a_stranger_cannot_record_a_time_on_someone_elses_request(world):
     officer, stranger = world["users"]
-    made = _client_for(officer).post("/signing-requests", json={
-        "deed_id": world["deeds"][0], "notary_email": "n@notary1.test",
-        "proposed_windows": _windows()}).json()
+    made = _make_notary1_share(world)
     r = _client_for(stranger).post(f"/shared-deeds/{made['share_id']}/schedule",
                                    json={"window_index": 0})
     assert r.status_code == 404, r.text
@@ -628,9 +674,7 @@ def test_one_expiry_semantic_per_link(world):
     from main import app
 
     officer = world["users"][0]
-    made = _client_for(officer).post("/signing-requests", json={
-        "deed_id": world["deeds"][0], "notary_email": "n@notary1.test",
-        "proposed_windows": _windows()}).json()
+    made = _make_notary1_share(world)
     token = made["token"]
 
     public = TestClient(app)
@@ -653,9 +697,7 @@ def test_a_revoked_link_stops_answering(world):
     from main import app
     officer = world["users"][0]
     client = _client_for(officer)
-    made = client.post("/signing-requests", json={
-        "deed_id": world["deeds"][0], "notary_email": "n@notary1.test",
-        "proposed_windows": _windows()}).json()
+    made = _make_notary1_share(world)
     assert client.post(f"/shared-deeds/{made['share_id']}/revoke").status_code == 200
     public = TestClient(app)
     assert public.get(f"/approve/{made['token']}/pcor").status_code == 403
@@ -683,9 +725,7 @@ def test_a_signing_request_is_stored_before_anybody_is_emailed(world):
     that does not exist is worse than an officer who knows her request
     did not go out."""
     officer = world["users"][0]
-    made = _client_for(officer).post("/signing-requests", json={
-        "deed_id": world["deeds"][0], "notary_email": "n@notary1.test",
-        "proposed_windows": _windows()}).json()
+    made = _make_notary1_share(world)
     with world["conn"].cursor() as cur:
         cur.execute("SELECT proposed_windows FROM deed_shares WHERE id = %s",
                     (made["share_id"],))
@@ -698,9 +738,7 @@ def test_a_signing_request_is_stored_before_anybody_is_emailed(world):
 def test_the_reminder_does_not_ask_a_notary_about_a_review(world):
     officer = world["users"][0]
     client = _client_for(officer)
-    made = client.post("/signing-requests", json={
-        "deed_id": world["deeds"][0], "notary_email": "n@notary1.test",
-        "proposed_windows": _windows()}).json()
+    made = _make_notary1_share(world)
     r = client.post(f"/shared-deeds/{made['share_id']}/resend")
     assert r.status_code == 400
     assert "wrong question" in r.text
@@ -710,9 +748,7 @@ def test_the_reminder_does_not_ask_a_notary_about_a_review(world):
 def test_the_officers_list_carries_the_status_line(world):
     officer = world["users"][0]
     client = _client_for(officer)
-    client.post("/signing-requests", json={
-        "deed_id": world["deeds"][0], "notary_email": "n@notary1.test",
-        "proposed_windows": _windows()})
+    _make_notary1_share(world)
     rows = client.get("/shared-deeds").json()
     signings = [r for r in rows if r.get("share_type") == "signing_request"]
     assert signings, "the signing request is missing from the officer's list"

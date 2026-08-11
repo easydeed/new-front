@@ -28,7 +28,7 @@ TEMPLATES = (
     # NOTARY1 — the two ends of the signing handoff. Officer→notary asks
     # about availability; notary→officer (or officer→herself) records a
     # time. There is deliberately no third: no signer is ever emailed.
-    "share_signing_request", "signing_time_recorded",
+    "signing_time_recorded",
     # NOTARY2 — the coordination loop. Five, and the count is the point:
     # ask the notary, ask the signers, tell the signers when there is
     # something to answer, tell the notary when a signer proposes, and
@@ -199,27 +199,6 @@ def send_payment_failed_with_reason(user_email: str, full_name: str,
     return _send("payment_failed", user_email,
                  email_templates.payment_failed(full_name, amount_text, billing_url),
                  user_id=user_id)
-
-
-def send_signing_request_with_reason(recipient_email: str, recipient_name: str,
-                                     owner_name: str, deed_type: str,
-                                     property_address: Optional[str], share_link: str,
-                                     window_texts, expires_at: Optional[str] = None,
-                                     attachments: Optional[list] = None) -> SendResult:
-    """NOTARY1 — officer → notary, with a calendar file per proposed time.
-
-    The attachments ride the ONE transport (ruling 4: the .ics ships via
-    the existing E1 path), so a signing request that failed to send is
-    recorded in `email_log` exactly like every other template. An
-    attachment path that grew its own sender would have put the most
-    time-sensitive email in the product outside the ledger.
-    """
-    return _send("share_signing_request", recipient_email,
-                 email_templates.share_signing_request(
-                     recipient_name, owner_name, deed_type, property_address,
-                     window_texts, share_link, expires_at),
-                 context={"deed_type": deed_type, "windows": len(window_texts or [])},
-                 attachments=attachments)
 
 
 def send_signing_time_recorded_with_reason(owner_email: str, owner_name: str,

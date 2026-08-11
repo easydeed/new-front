@@ -473,10 +473,6 @@
  ],
  [
   "POST",
-  "/signing-requests"
- ],
- [
-  "POST",
   "/signing-requests/v2"
  ],
  [
