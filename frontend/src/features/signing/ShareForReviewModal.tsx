@@ -24,6 +24,15 @@ import { useState } from 'react';
 import { FileText, Loader2, X } from 'lucide-react';
 import { apiFetch } from '@/lib/apiClient';
 import { PartnerRecipientPicker, Recipient } from '@/features/partners/PartnerRecipientPicker';
+import {
+  RecipientMismatchNotice,
+  filedAsSentence,
+} from '@/features/partners/RecipientMismatch';
+
+/** The category whose presence in a REVIEW picker is worth a question.
+ * A signing is the only flow a notary is filed for; everyone else in the
+ * rolodex is a plausible reviewer. */
+const NOTARY_CATEGORY = 'notary';
 
 const EXPIRY_CHOICES = [
   { hours: 72, label: '3 days' },
@@ -34,11 +43,19 @@ const EXPIRY_CHOICES = [
 export function ShareForReviewModal({
   deedId,
   onClose,
+  onSwitchToSigning,
 }: {
   deedId: number;
   onClose: () => void;
+  /** FLOW1 item 1: the other half of the interrupt. Offering "did you
+   * mean a signing?" without a way to act on it would be a scolding
+   * rather than a suggestion. Optional so the modal still renders in
+   * surfaces that have no signing flow to switch to — the notice then
+   * shows the acknowledge option alone. */
+  onSwitchToSigning?: () => void;
 }) {
   const [recipient, setRecipient] = useState<Recipient | null>(null);
+  const [interruptDismissed, setInterruptDismissed] = useState(false);
   const [message, setMessage] = useState('');
   const [expiresInHours, setExpiresInHours] = useState(168);
   const [submitting, setSubmitting] = useState(false);
@@ -49,6 +66,9 @@ export function ShareForReviewModal({
     emailError?: string;
   } | null>(null);
   const [copied, setCopied] = useState(false);
+
+  const showNotaryInterrupt =
+    !interruptDismissed && recipient?.category === NOTARY_CATEGORY;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,9 +172,48 @@ export function ShareForReviewModal({
             <div className="space-y-5 overflow-y-auto flex-1 pr-1">
             <PartnerRecipientPicker
               value={recipient}
-              onChange={setRecipient}
+              onChange={(r) => { setRecipient(r); setInterruptDismissed(false); }}
               label="Ask for a review from"
             />
+
+            {/* FLOW1 item 1 — THE INTERRUPT.
+                This is the exact failure the ticket opened on: a notary
+                picked out of the review picker, sent a reviewer's email,
+                landed on a page with Approve and Request Changes and no
+                way to say when she was free. Every piece worked as built;
+                the review path just never asked who it was talking to.
+
+                It ASKS. It does not decide: both options are here, the
+                notice dismisses, and the submit button is never disabled
+                by it. Suggest, never hide — and never block. */}
+            {showNotaryInterrupt && recipient && (
+              <RecipientMismatchNotice
+                recipient={recipient}
+                headline={filedAsSentence(recipient, recipient.category!)}
+                question="Did you mean to request a signing? A review asks them to approve or ask for changes — it never asks for a time."
+                onDismiss={() => setInterruptDismissed(true)}
+                actions={
+                  <>
+                    {onSwitchToSigning && (
+                      <button
+                        type="button"
+                        onClick={onSwitchToSigning}
+                        className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
+                      >
+                        Request a signing instead
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setInterruptDismissed(true)}
+                      className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-50"
+                    >
+                      No — send it for review
+                    </button>
+                  </>
+                }
+              />
+            )}
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">

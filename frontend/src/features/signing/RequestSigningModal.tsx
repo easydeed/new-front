@@ -33,8 +33,13 @@ import { useMemo, useState } from 'react';
 import { CalendarClock, Info, Loader2, Plus, Trash2, X } from 'lucide-react';
 import { apiFetch } from '@/lib/apiClient';
 import { PartnerRecipientPicker, Recipient } from '@/features/partners/PartnerRecipientPicker';
+import {
+  RecipientMismatchNotice,
+  filedAsSentence,
+} from '@/features/partners/RecipientMismatch';
 
 const MAX_SIGNERS = 6;
+const NOTARY_CATEGORY = 'notary';
 
 /** The zones a California title product actually needs. Not the full
  * IANA list — a dropdown of six hundred zones is a worse question than a
@@ -65,6 +70,7 @@ export function RequestSigningModal({
   onCreated?: (id: number) => void;
 }) {
   const [notary, setNotary] = useState<Recipient | null>(null);
+  const [fallbackAcknowledged, setFallbackAcknowledged] = useState(false);
   const [signers, setSigners] = useState<SignerRow[]>(() =>
     (suggestedSigners.length ? suggestedSigners : ['']).slice(0, MAX_SIGNERS)
       .map((name) => ({ name, email: '', phone: '' })),
@@ -82,6 +88,13 @@ export function RequestSigningModal({
 
   const setSigner = (i: number, patch: Partial<SignerRow>) =>
     setSigners((prev) => prev.map((s, n) => (n === i ? { ...s, ...patch } : s)));
+
+  // A TYPED address has no filing, so there is nothing to observe and
+  // nothing to ask about — `category` is undefined and this stays false.
+  const showFallbackNotice =
+    !fallbackAcknowledged &&
+    !!notary?.category &&
+    notary.category !== NOTARY_CATEGORY;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,10 +180,47 @@ export function RequestSigningModal({
             <div className="space-y-5 overflow-y-auto flex-1 pr-1">
               <PartnerRecipientPicker
                 value={notary}
-                onChange={setNotary}
+                onChange={(r) => { setNotary(r); setFallbackAcknowledged(false); }}
                 suggestCategory="notary"
                 label="Notary"
               />
+
+              {/* FLOW1 item 5 — THE FALLBACK STAYS, AND STOPS BEING
+                  EQUAL-WEIGHT.
+                  The picker floats notaries up and hides nobody, which
+                  is right: a mobile notary filed under "other" three
+                  months ago is still the person she wants. But "hidden
+                  from nobody" had become "indistinguishable from
+                  anybody", and this field's whole job is to name the
+                  person who will take the acknowledgement.
+                  So the pick is ACKNOWLEDGED, not prevented — no
+                  disabled submit, no removal from the list. */}
+              {showFallbackNotice && notary && (
+                <RecipientMismatchNotice
+                  recipient={notary}
+                  headline={filedAsSentence(notary, notary.category!)}
+                  question="This request asks them to take the acknowledgement. Send it to them anyway?"
+                  onDismiss={() => setFallbackAcknowledged(true)}
+                  actions={
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setFallbackAcknowledged(true)}
+                        className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
+                      >
+                        Yes — send it to them
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNotary(null)}
+                        className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-50"
+                      >
+                        Pick someone else
+                      </button>
+                    </>
+                  }
+                />
+              )}
 
               <div>
                 <div className="flex items-center justify-between mb-2">

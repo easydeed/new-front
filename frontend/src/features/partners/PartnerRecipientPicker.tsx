@@ -48,6 +48,21 @@ export interface Recipient {
   company?: string;
   /** Set when she picked from the rolodex; absent for a typed address. */
   partnerId?: string;
+  /**
+   * FLOW1: HOW SHE FILED THEM, so a flow can notice it was handed
+   * somebody it did not expect — a notary picked out of the review
+   * picker, or a title officer picked out of the signing picker.
+   *
+   * Absent for a typed address, and that is not an oversight: a one-off
+   * recipient has no filing, so there is nothing to observe.
+   *
+   * READ IT AS A FILING AND NOTHING ELSE. `partnerRegistry.ts`: "A
+   * partner's category says how the officer FILES them. It says nothing
+   * about their authority, their licensure, or what they are permitted
+   * to do, and no code may read it as though it did." Nothing branches
+   * on this except to say a sentence she can dismiss.
+   */
+  category?: string;
 }
 
 export function PartnerRecipientPicker({
@@ -99,6 +114,7 @@ export function PartnerRecipientPicker({
       name: p.contact_name || p.company_name || p.label,
       company: p.company_name || (p.contact_name ? p.label : undefined),
       partnerId: p.id,
+      category: p.category,
     });
     setOpen(false);
     setQuery('');
@@ -251,7 +267,12 @@ export function PartnerRecipientPicker({
         onCreated={(created) => {
           setQuickAdd(false);
           if (created.email) {
-            onChange({ email: created.email, name: created.label, partnerId: created.id });
+            onChange({
+              email: created.email,
+              name: created.label,
+              partnerId: created.id,
+              category: created.category,
+            });
           } else {
             // Created without an address: say so instead of selecting a
             // recipient we cannot reach.
