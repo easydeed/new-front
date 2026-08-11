@@ -141,10 +141,49 @@ celebrating, and the post-generation page shows an honest "PDF Not Ready"
 state. **Lesson recorded:** resilience without surfacing is camouflage —
 every non-blocking catch must emit a caller-visible signal.
 
+**Findings (FLOW1 item 0 — the Shared Deeds contract, 2026-08-11).** An
+external audit reported the Shared Deeds page as rendering **fabricated
+rows**: Invalid Date, NaN days left, blank Deed Type, blank Shared With,
+and a Status of "Viewed" beside a Response of "Not viewed", with a row
+count equal to the number of completed deeds. **The verdict was: not
+fabricated.** The page fetches `GET /shared-deeds` on mount and renders
+the real rows — through eight wrong key names. `undefined` is not an
+error in JavaScript; it is a blank cell, and `new Date(undefined)` is
+Invalid Date. Every symptom was one of those eight.
+
+That makes this a §4 finding rather than an invariant-#4 one, and the
+distinction matters: **nothing was invented, and the screen still made
+claims it could not support.** "Not viewed" beneath a badge reading
+"Viewed" is a false statement about a real share. The failure mode of
+this class is a page that *looks like it is lying* while behaving
+exactly as written.
+
+Three things it also found, each a fact the surface displayed and the
+system never held: `recipient_name` was accepted by the create route,
+used to greet the recipient, and then discarded — no column, so the
+"Shared With" column had no source; there was no record of **when** a
+recipient responded (`updated_at` is not that fact — a revoke bumps it
+too); and the feedback modal fell back to a row field the list endpoint
+has never sent, so a failed fetch opened a modal reading "(No comments
+provided)" — a swallowed error presented as the reviewer's answer.
+
+**Lesson recorded:** two declarations of one contract, in two languages,
+with nothing comparing them, will drift — and TypeScript cannot check a
+`fetch` it did not author, so the compiler is not the thing that
+notices. The fix is a **shared corpus both suites read**
+(`backend/services/shared_deed_row_keys.json`, the phone_cases.json
+pattern), a single row builder asserting its key set by equality, and a
+surface that renders "—" for a date it does not have rather than
+whatever `Date` makes of nothing.
+
 **Enforced by.**
 - `frontend/src/__tests__/proxyErrorHonesty.test.ts` — source-scans every
   proxy route: no empty-array response bodies; no `success: true` in any
   catch block; every catch that returns JSON carries an explicit 4xx/5xx.
+- `backend/tests/test_flow1_shared_deeds_contract.py` +
+  `frontend/src/__tests__/sharedDeedsContract.test.ts` — the same corpus
+  read from both sides; absence crosses the wire as `null` and never as
+  `""`; a deed that was never shared produces no row.
 - `frontend/src/__tests__/integration/fault-injection.test.ts`
 - One schema authority: `scripts/six_flow_baseline.py::ensure_schema`
   contains no ALTER/CREATE statements — schema comes only from
@@ -777,6 +816,7 @@ their data is not a machine decision.
 
 | Date | Change |
 |---|---|
+| 2026-08-11 | §4 — FLOW1 item 0. Shared Deeds reported as showing fabricated rows; verdict recorded as NOT fabricated — a real fetch read through eight wrong key names, so `undefined` rendered as blank cells and Invalid Date. Recorded under §4 rather than invariant #4 because nothing was invented and the screen still asserted what it could not support ("Not viewed" under a badge reading "Viewed"). Three absent facts given columns: `recipient_name` (accepted, greeted with, never stored), `responded_at` (`updated_at` was not that fact — a revoke bumps it too), and a real `expires_at` (previously spent on a display string nothing rendered). Contract now pinned from both sides against one corpus; absence crosses the wire as `null`, never `""`. The feedback modal's fallback to a field the list endpoint never sent — a failed fetch reading as "the reviewer left no comments" — removed. |
 | 2026-08-11 | §13.1 — the signer-contact ruling REVERSED (NOTARY2). Signers now participate directly; the notary posts availability, signers pick or propose, convergence books it, and the officer is notified rather than gating. Owner's reasoning recorded: the signers are the scheduling constraint, so routing around them recreated the phone tag the feature exists to kill — Option A had priced the officer's relaying at zero when it is the entire problem. The superseded paragraph is kept verbatim rather than rewritten. §13 otherwise stands unchanged: booked is still not happened. NOTARY1's fail-closed sweep is ANSWERED rather than deleted — retargeted from "no signer contact anywhere" to "one purgeable row, no other table, deleted by a mechanism with a test." The retention rule and a non-user's route to removal become part of the feature, ledgered as owner items. |
 | 2026-08-10 | §13 added (NOTARY1) — an arrangement is not an act. A scheduled signing time is the least legally freighted fact in the product, which is exactly the risk: authority acquired by wording drift rather than by decision. Three pinned rules: nothing infers a signing from a passed window (`scheduling_state()` is AST-pinned type-incapable of a "happened" state), `completed` stays officer-only, and `scheduling_label()` is the single place a scheduling state becomes a sentence. Assertion shape mirrors RED-S4 (`scheduled_at` / `scheduled_by` / `scheduled_asserted_at`), keeping the notary's tap and the officer's phone call apart. State DERIVED, never folded into `deed_shares.status` — T-5's ruling transferred verbatim. No signer contact anywhere, pinned fail-closed across both trees. One expiry semantic per link, applied as a class. Two pre-existing defects fixed in passing: share creation never checked deed ownership (cross-user deed disclosure), and an opened link kept serving the deed after expiry. |
 | 2026-08-06 | §12 added (Doctrine B) — the AI boundary, explain-yes/select-no; closes RED0 R3-5. The third citizen: earlier sections legislate facts and legal choices, and the assistant emits PROSE, which had neither a suggestion marker nor a confirmation nor (until H1.3) a record. Three layers: the system prompt STATES the boundary (prevents), a server-side scanner pairs recommendation cues with instrument names and records findings in `ai_exchange_log.boundary_flags` (detects, does not block — a flagged response still reaches the officer, and blocking on a pattern would let a false positive swallow a correct answer), transcript-style tests ask the forbidden questions. `deed_type_advisor` REWRITTEN to explain-only, not deleted: the boundary decides the prompt regardless of usage evidence, and deleting would remove the permitted half. H1.3's flag-and-pin retired in the same diff that cured its condition. Usage-evidence tuning deferred with a trigger (OWNER_LEDGER) — the log was two days old and empty. |

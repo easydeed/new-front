@@ -7,18 +7,40 @@ import { toast } from "sonner"
 import { SessionExpiredError, apiFetch } from "@/lib/apiClient"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 
+/**
+ * FLOW1 item 0 — THESE FIELD NAMES ARE A CONTRACT, NOT A PREFERENCE.
+ *
+ * This screen was reported as showing fabricated rows: Invalid Date,
+ * NaN days left, blank Deed Type, blank Shared With, and a Status of
+ * "Viewed" beside a Response of "Not viewed". It invents nothing — it
+ * fetches `GET /shared-deeds` on mount and renders what came back. It
+ * was reading that response with EIGHT WRONG KEY NAMES, and a missing
+ * key in JavaScript is not an error, it is `undefined`: a blank cell, or
+ * `new Date(undefined)`, which is where Invalid Date and NaN came from.
+ *
+ * Nothing caught it because nothing compared this interface to the
+ * server's payload. Now something does: the field names below are pinned
+ * by EQUALITY against `backend/services/shared_deed_row_keys.json`, the
+ * same list the server's row builder asserts itself against. Adding a
+ * field here without adding it there fails the suite from both sides.
+ *
+ * Timestamps are `string | null` rather than optional strings on
+ * purpose. The server used to send `""` for a date it did not have, and
+ * `new Date("")` is a Date object — just an invalid one — so every guard
+ * shaped `if (d)` waved it straight through to the screen.
+ */
 interface SharedDeed {
   id: number
+  deed_id: number
   property: string
   deed_type: string
   shared_with: string
   recipient_email: string
   status: "sent" | "viewed" | "approved" | "rejected" | "expired" | "revoked"
-  shared_date: string
-  expires_at: string
-  viewed_at?: string
-  response_date?: string
-  feedback?: string
+  shared_date: string | null
+  expires_at: string | null
+  viewed_at: string | null
+  response_date: string | null
   /**
    * NOTARY1. `share_type` is now the real kind ("review" or
    * "signing_request") rather than the constant "review" it used to be.
@@ -29,10 +51,10 @@ interface SharedDeed {
    * can never drift into a claim that the signing will happen. This
    * screen does not compose its own version, and must not start.
    */
-  share_type?: string
-  signing_summary?: string | null
-  scheduled_at?: string | null
-  scheduled_by?: string | null
+  share_type: string
+  signing_summary: string | null
+  scheduled_at: string | null
+  scheduled_by: string | null
 }
 
 // Issue labels for structured feedback
@@ -114,15 +136,19 @@ export default function SharedDeedsPageV0() {
       
       const response = await apiFetch(`/shared-deeds/${shareId}/feedback`, {}, { label: "Loading feedback" })
 
-      if (response.ok) {
-        const data = await response.json()
-        feedbackText = data.feedback || ""
-      } else {
-        // Fallback to deed's feedback field
-        const deed = sharedDeeds.find((d) => d.id === shareId)
-        feedbackText = deed?.feedback || ""
+      // §4. This used to fall back to a `feedback` field on the row —
+      // which the list endpoint has never sent, so the fallback resolved
+      // to undefined and the modal opened saying "(No comments
+      // provided)". A failed request presented as an answer is worse
+      // than a failed request: the officer reads "the reviewer left no
+      // comments" when what happened is that we could not fetch them.
+      if (!response.ok) {
+        const detail = await response.json().catch(() => ({}))
+        throw new Error(detail?.detail || `Failed to load feedback (${response.status})`)
       }
-      
+      const data = await response.json()
+      feedbackText = data.feedback || ""
+
       // Try to parse as structured feedback
       let structured: StructuredFeedback | null = null
       try {
@@ -221,11 +247,30 @@ export default function SharedDeedsPageV0() {
     )
   }
 
+  /**
+   * FLOW1 item 0. Both helpers below now REFUSE to render a date they do
+   * not have, instead of handing an unparseable value to `Date` and
+   * printing whatever falls out.
+   *
+   * "Invalid Date" and "NaN days left" are not cosmetic bugs on a
+   * tracking screen. They are the screen asserting it holds a fact it
+   * does not hold, in the same typeface as the facts it does. An em dash
+   * says "we don't know", which is true and is a different claim.
+   */
+  const UNKNOWN = "—"
+
+  const parseDate = (value: string | null | undefined): Date | null => {
+    if (!value) return null
+    const parsed = new Date(value)
+    return Number.isNaN(parsed.getTime()) ? null : parsed
+  }
+
   // ✅ PHASE 24-E: Expiry countdown logic with red text when ≤3 days
-  const calculateDaysRemaining = (expiresAt: string) => {
-    const now = new Date()
-    const expiry = new Date(expiresAt)
-    const diffTime = expiry.getTime() - now.getTime()
+  const calculateDaysRemaining = (expiresAt: string | null) => {
+    const expiry = parseDate(expiresAt)
+    if (!expiry) return null
+
+    const diffTime = expiry.getTime() - Date.now()
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
     if (diffDays < 0) return { text: "Expired", isUrgent: true }
@@ -234,8 +279,10 @@ export default function SharedDeedsPageV0() {
     return { text: `${diffDays} days left`, isUrgent: false }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+  const formatDate = (dateString: string | null | undefined) => {
+    const parsed = parseDate(dateString)
+    if (!parsed) return UNKNOWN
+    return parsed.toLocaleDateString("en-US", {
       month: "2-digit",
       day: "2-digit",
       year: "numeric",
@@ -356,7 +403,14 @@ export default function SharedDeedsPageV0() {
                   <tbody>
                     {sharedDeeds.map((deed, index) => {
                       const daysRemaining = calculateDaysRemaining(deed.expires_at)
-                      const showCountdown = !["expired", "approved", "rejected"].includes(deed.status)
+                      const showCountdown =
+                        !!daysRemaining && !["expired", "approved", "rejected"].includes(deed.status)
+                      // Whether this share has been decided is carried by
+                      // `status`; WHEN it was decided is `response_date`,
+                      // and shares decided before that column existed do
+                      // not have one. "Pending" over a share the recipient
+                      // already approved is a worse answer than no date.
+                      const decided = ["approved", "rejected"].includes(deed.status)
 
                       return (
                         <tr
@@ -399,7 +453,7 @@ export default function SharedDeedsPageV0() {
                           <td className="py-4 px-6">
                             <div className="flex flex-col">
                               <span className="text-sm text-slate-600">{formatDate(deed.expires_at)}</span>
-                              {showCountdown && (
+                              {daysRemaining && showCountdown && (
                                 <span
                                   className={`text-xs font-medium ${
                                     daysRemaining.isUrgent ? "text-red-500" : "text-slate-500"
@@ -413,12 +467,17 @@ export default function SharedDeedsPageV0() {
                           <td className="py-4 px-6">
                             <div className="flex flex-col">
                               <span className="text-sm text-slate-600">
-                                {deed.response_date ? formatDate(deed.response_date) : "Pending"}
+                                {deed.response_date
+                                  ? formatDate(deed.response_date)
+                                  : decided
+                                    ? UNKNOWN
+                                    : "Pending"}
                               </span>
-                              {deed.viewed_at && (
+                              {deed.viewed_at ? (
                                 <span className="text-xs text-slate-500">Viewed: {formatDate(deed.viewed_at)}</span>
+                              ) : (
+                                <span className="text-xs text-slate-400">Not viewed</span>
                               )}
-                              {!deed.viewed_at && <span className="text-xs text-slate-400">Not viewed</span>}
                             </div>
                           </td>
                           <td className="py-4 px-6">

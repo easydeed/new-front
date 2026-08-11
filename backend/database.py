@@ -270,6 +270,34 @@ def create_tables():
             "ALTER TABLE deed_shares ADD COLUMN IF NOT EXISTS scheduled_by VARCHAR(16)",
             "ALTER TABLE deed_shares ADD COLUMN IF NOT EXISTS scheduled_asserted_at TIMESTAMPTZ",
             "CREATE INDEX IF NOT EXISTS idx_deed_shares_kind ON deed_shares(share_kind, created_at DESC)",
+            # ── FLOW1 item 0: two facts the tracking screen displays and
+            # the table never held ──────────────────────────────────────
+            #
+            # `recipient_name` was already ACCEPTED by POST /shared-deeds
+            # and used for the email greeting, then discarded — there was
+            # nowhere to put it. So the officer picks a partner out of her
+            # rolodex by name and the Shared Deeds screen has a column
+            # headed "Shared With" with no source for it.
+            #
+            # `responded_at` is WHEN the recipient approved or rejected.
+            # `updated_at` was not usable for this and must not be
+            # substituted: a revoke bumps it too, so a screen reading it
+            # would report a response on the day access was withdrawn.
+            # Shares decided before this ticket have no stamp and stay
+            # NULL — the screen shows the status and no date, which is
+            # what we actually know. The one exception is backfilled
+            # below because it is a recorded fact rather than a guess.
+            "ALTER TABLE deed_shares ADD COLUMN IF NOT EXISTS recipient_name TEXT",
+            "ALTER TABLE deed_shares ADD COLUMN IF NOT EXISTS responded_at TIMESTAMPTZ",
+            # `feedback_at` is stamped in exactly one place — the reject
+            # branch of POST /approve/{token} — so for a rejected share it
+            # IS the response time, not an inference about one. Idempotent
+            # on `responded_at IS NULL`, so re-running the DDL never
+            # overwrites a real stamp.
+            """UPDATE deed_shares SET responded_at = feedback_at
+                WHERE responded_at IS NULL
+                  AND status = 'rejected'
+                  AND feedback_at IS NOT NULL""",
             # ══ NOTARY2: the coordination loop ═══════════════════
             #
             # WHY NOT MORE COLUMNS ON deed_shares. NOTARY1 put the signing

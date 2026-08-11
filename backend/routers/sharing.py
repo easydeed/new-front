@@ -12,6 +12,7 @@ from pydantic import BaseModel, field_validator
 import db
 from auth import get_current_user_id
 from services import signing
+from services.shared_deed_row import shared_deed_row
 # NOTARY1: the attachment CONSTRUCTOR only. The transport itself stays
 # behind utils.notifications — see the ADMIN3 pin, which exists because a
 # second module reaching for the sender is how the ledger loses rows.
@@ -161,14 +162,19 @@ def share_deed_for_approval(share_data: ShareDeedCreate, user_id: int = Depends(
             # Insert into deed_shares table
             cur.execute("""
                 INSERT INTO deed_shares (
-                    deed_id, owner_user_id, recipient_email, token,
-                    status, expires_at, created_at, updated_at
+                    deed_id, owner_user_id, recipient_name, recipient_email,
+                    token, status, expires_at, created_at, updated_at
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())
+                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
                 RETURNING id
             """, (
                 share_data.deed_id,
                 user_id,
+                # FLOW1 item 0: the name the officer chose them by. It was
+                # already being collected and greeted with; it was never
+                # STORED, which is why the tracking screen's "Shared With"
+                # column had nothing in it.
+                share_data.recipient_name,
                 share_data.recipient_email,
                 approval_token,
                 'sent',
@@ -252,63 +258,40 @@ def list_shared_deeds(user_id: int = Depends(get_current_user_id)):
                 SELECT
                     ds.id,
                     ds.deed_id,
-                    ds.owner_user_id,
+                    ds.recipient_name,
                     ds.recipient_email,
                     ds.status,
-                    ds.token,
                     ds.expires_at,
                     ds.created_at,
-                    ds.updated_at,
+                    ds.viewed_at,
+                    ds.responded_at,
                     d.property_address,
                     d.deed_type,
-                    u.full_name as owner_name,
                     ds.share_kind,
                     ds.proposed_windows,
                     ds.scheduled_at,
                     ds.scheduled_by
                 FROM deed_shares ds
                 JOIN deeds d ON ds.deed_id = d.id
-                JOIN users u ON ds.owner_user_id = u.id
                 WHERE ds.owner_user_id = %s
                 ORDER BY ds.created_at DESC
             """, (user_id,))
 
             rows = cur.fetchall()
 
-            # Phase 7.5 FIX: Map deed_shares columns (RealDictCursor returns dicts)
-            shared_deeds = []
-            for row in rows:
-                # RealDictCursor returns dictionaries, not tuples
-                expires_at = row.get('expires_at') if isinstance(row, dict) else row[6]
-                created_at = row.get('created_at') if isinstance(row, dict) else row[7]
-                updated_at = row.get('updated_at') if isinstance(row, dict) else row[8]
-
-                shared_deeds.append({
-                    "id": row.get('id') if isinstance(row, dict) else row[0],
-                    "deed_id": row.get('deed_id') if isinstance(row, dict) else row[1],
-                    "shared_by_id": row.get('owner_user_id') if isinstance(row, dict) else row[2],
-                    "shared_with_email": row.get('recipient_email') if isinstance(row, dict) else row[3],
-                    "status": row.get('status') if isinstance(row, dict) else row[4],
-                    "message": f"Shared via link - expires {expires_at.strftime('%Y-%m-%d') if expires_at else 'never'}",
-                    # NOTARY1: was hardcoded "review", which was true until
-                    # this ticket and would have quietly stayed "true" for
-                    # every signing request afterwards.
-                    "share_type": (row.get('share_kind') if isinstance(row, dict) else None) or signing.SHARE_KIND_REVIEW,
-                    # The status LINE for the deed surface. Null for a
-                    # review; for a signing it is the one sentence
-                    # scheduling_label() writes, so this screen cannot
-                    # invent its own phrasing for an arrangement.
-                    "signing_summary": signing.scheduling_label(dict(row)) if isinstance(row, dict) else None,
-                    "scheduled_at": (lambda s: s.isoformat() if hasattr(s, 'isoformat') else s)(
-                        row.get('scheduled_at') if isinstance(row, dict) else None),
-                    "scheduled_by": row.get('scheduled_by') if isinstance(row, dict) else None,
-                    "date": created_at.isoformat() if created_at else "",
-                    "updated_at": updated_at.isoformat() if updated_at else "",
-                    "property": (row.get('property_address') if isinstance(row, dict) else row[9]) or "",
-                    "type": (row.get('deed_type') if isinstance(row, dict) else row[10]) or "",
-                    "shared_by": (row.get('owner_name') if isinstance(row, dict) else row[11]) or "Unknown User",
-                    "approval_token": row.get('token') if isinstance(row, dict) else row[5]
-                })
+            # FLOW1 item 0: ONE builder, one named key set, asserted by
+            # equality — see services/shared_deed_row.py for the eight
+            # mismatched field names that made this screen read as though
+            # it were inventing rows.
+            #
+            # The tuple fallbacks that used to live here are gone with
+            # it. They indexed by position into a SELECT above them, so
+            # every column added to that query silently re-aimed them;
+            # and db.py has used RealDictCursor throughout, so the branch
+            # they guarded had not run in a long time. A fallback that
+            # cannot run is not a safety net, it is a second definition
+            # of the payload that nothing checks.
+            shared_deeds = [shared_deed_row(row) for row in rows]
 
             print(f"[Phase 7.5] ✅ Fetched {len(shared_deeds)} shared deeds for user {user_id}")
             return shared_deeds
@@ -773,7 +756,7 @@ def submit_approval_response(approval_token: str, response: ApprovalResponse):
             if response.approved:
                 cur.execute("""
                     UPDATE deed_shares
-                    SET status = 'approved', updated_at = NOW()
+                    SET status = 'approved', responded_at = NOW(), updated_at = NOW()
                     WHERE id = %s
                 """, (share_id,))
                 db.conn.commit()
@@ -838,6 +821,7 @@ def submit_approval_response(approval_token: str, response: ApprovalResponse):
                     feedback = %s,
                     feedback_at = NOW(),
                     feedback_by = %s,
+                    responded_at = NOW(),
                     updated_at = NOW()
                 WHERE id = %s
             """, (comments, recipient_email, share_id))

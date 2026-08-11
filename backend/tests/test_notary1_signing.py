@@ -40,6 +40,7 @@ from tests.source_text import code_only  # noqa: E402
 from services import signing  # noqa: E402
 
 SHARING = BACKEND / "routers" / "sharing.py"
+ROW_BUILDER = BACKEND / "services" / "shared_deed_row.py"
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -230,11 +231,22 @@ def test_the_label_never_promises_the_signing_will_happen():
 
 def test_every_surface_takes_its_words_from_one_place():
     """`scheduling_label` exists so the wording cannot drift screen by
-    screen. A router that composed its own sentence would defeat it."""
-    src = code_only(SHARING)
-    assert src.count("signing.scheduling_label(") >= 4
-    assert not re.search(r'f?"[^"]*[Ss]cheduled for', src), (
-        "a router is writing its own scheduling sentence")
+    screen. A router that composed its own sentence would defeat it.
+
+    FLOW1 note: the count spans the ROUTER AND THE ROW BUILDER, because
+    the officer's list moved its row construction into
+    services/shared_deed_row.py. A count pinned to one file would have
+    read that move as a regression — it is the opposite — and the
+    property being pinned was never "four calls in sharing.py". It is
+    "every surface that says something about a scheduling state got the
+    sentence from the one function that writes them".
+    """
+    sources = [code_only(SHARING), code_only(ROW_BUILDER)]
+    calls = sum(s.count("signing.scheduling_label(") for s in sources)
+    assert calls >= 4, f"only {calls} surfaces take their words from one place"
+    for src in sources:
+        assert not re.search(r'f?"[^"]*[Ss]cheduled for', src), (
+            "a surface is writing its own scheduling sentence")
 
 
 # ══════════════════════════════════════════════════════════════════════

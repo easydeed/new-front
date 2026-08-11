@@ -1,0 +1,43 @@
+{
+  "_why": [
+    "FLOW1 item 0. The Shared Deeds screen was reported as showing fabricated",
+    "rows: Invalid Date, NaN days left, blank Deed Type, blank Shared With, a",
+    "Status of 'Viewed' beside a Response of 'Not viewed'. It was not",
+    "fabricating anything. It fetched real rows from GET /shared-deeds and",
+    "then read them with the WRONG KEY NAMES, so every field it could not find",
+    "rendered as undefined and every date it could not find rendered as",
+    "Invalid Date. Eight of fifteen fields were wrong.",
+    "",
+    "Nothing failed, because nothing compared the two declarations. The server",
+    "declared its keys in Python and the screen declared its keys in",
+    "TypeScript and neither had ever read the other.",
+    "",
+    "This file is that comparison, made mandatory. It is the SHARED CORPUS",
+    "pattern already used by services/phone_cases.json: one list, read from",
+    "both languages, so drift needs two edits in two places instead of one",
+    "silent one. The backend asserts its emitted key set equals this by",
+    "EQUALITY (services/shared_deed_row.py); the frontend suite asserts the",
+    "SharedDeed interface declares exactly these fields.",
+    "",
+    "Adding a field to the screen without adding it here fails the frontend",
+    "pin. Adding a field to the response without adding it here fails the",
+    "backend pin. Adding it here without wiring either fails both."
+  ],
+  "keys": [
+    "id",
+    "deed_id",
+    "property",
+    "deed_type",
+    "shared_with",
+    "recipient_email",
+    "status",
+    "shared_date",
+    "expires_at",
+    "viewed_at",
+    "response_date",
+    "share_type",
+    "signing_summary",
+    "scheduled_at",
+    "scheduled_by"
+  ]
+}

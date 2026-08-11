@@ -312,6 +312,20 @@ we reach it.
 
 ## Parked tickets (scoped, not scheduled)
 
+- **DEEDDETAIL — there is no deed detail route** (FLOW1 finding, owner
+  ruled: scope and ledger as its own ticket, not FLOW1's). `/deeds/{id}`,
+  `/deed/{id}` and `/past-deeds/{id}` all 404. Every deed-level action —
+  share for review, request a signing, download, view — exists only as a
+  control inside a list row, so there is nowhere to LINK a deed from.
+  This is why the Signings agenda card points at `/past-deeds` and loses
+  which signing you were looking at, and why an approval notification's
+  `?focus=` parameter has nothing to focus. It is a structural gap rather
+  than a bug: nothing is broken, and several things cannot be built
+  correctly until it exists. Scoping this properly means deciding what a
+  deed's page IS (the instrument? its history? its people?) before
+  building one, which is why it is parked and not folded into a UX
+  ticket.
+
 - ~~**Deed supersession model**~~ — **BUILT AND SHIPPED, T-5 (PR #124).**
   Corrected 2026-08-04; this entry was stale for a day and is left
   visible rather than deleted, because a parked list that quietly loses
