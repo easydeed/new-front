@@ -152,8 +152,12 @@ export function RequestSigningModal({
         {done ? (
           <div className="space-y-4 overflow-y-auto">
             <p className="text-slate-700">
+              {/* FLOW1: "the times she is free" — about a notary the
+                  officer picked out of her rolodex moments ago, whose
+                  pronouns this product has never been told. A name is
+                  not a pronoun. */}
               The request is on the record. <strong>{notary?.name || 'The notary'}</strong> posts
-              the times she is free; your signers pick from them. When they all agree on
+              the times they are free; your signers pick from them. When they all agree on
               one, it books and you are told.
             </p>
             <p className="text-sm text-slate-500">

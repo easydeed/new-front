@@ -362,11 +362,11 @@ def share_signing_request(recipient_name, owner_name, deed_type, property_addres
     wording to drift.
 
     Two things this email must not say, and both are doctrine rather than
-    taste. It does not ask the notary to CONFIRM the signing — she is
-    telling us when she is free, and the difference between availability
-    and attendance is the whole of rule 3. And it names no signer,
-    because the product holds no signer contact and never messages one;
-    the officer arranges that leg herself.
+    taste. It does not ask the notary to CONFIRM the signing — they are
+    telling us when they are free, and the difference between
+    availability and attendance is the whole of rule 3. And it names no
+    signer, because the product holds no signer contact and never
+    messages one; the officer arranges that leg themselves.
     """
     addr = _short_addr(property_address)
     subject = f"Signing request — {addr}" if addr else "Notary signing request"
@@ -386,9 +386,16 @@ def share_signing_request(recipient_name, owner_name, deed_type, property_addres
         + _facts([("Document", deed_type), ("Property", addr),
                   ("Requested by", owner_name), ("Link expires", expires_at or "")])
         + _button(share_link, "Open the request and pick a time")
+        # FLOW1: NAME, NOT PRONOUN. This sentence used to read "she
+        # confirms the appointment with the signers herself" about
+        # `owner_name` — a live email asserting an escrow officer's
+        # pronoun to her own professional contact, on no information
+        # whatsoever. The name is already in the sentence; repeating it
+        # costs nothing and claims nothing.
         + _p('<span style="font-size:13px;color:#8a94a0;">Picking a time tells '
-             f"{_esc(owner_name)} you are available then; she confirms the appointment "
-             "with the signers herself. Calendar files for each proposed time are "
+             f"{_esc(owner_name)} you are available then, and "
+             f"{_esc(owner_name)} confirms the appointment with the signers. "
+             "Calendar files for each proposed time are "
              "attached so you can hold them.</span>")
         + _p('<span style="font-size:13px;color:#8a94a0;">Anyone with this link can open '
              "the document until it expires.</span>")
@@ -399,8 +406,8 @@ def share_signing_request(recipient_name, owner_name, deed_type, property_addres
         "Proposed times:\n"
         + "".join(f"  - {w}\n" for w in (window_texts or []))
         + f"\nOpen the request and pick a time: {share_link}\n\n"
-        f"Picking a time tells {owner_name} you are available then; she confirms the "
-        "appointment with the signers herself."
+        f"Picking a time tells {owner_name} you are available then, and "
+        f"{owner_name} confirms the appointment with the signers."
     )
     return subject, _base(f"{owner_name} asked about your availability — {addr}",
                           content, True), text
@@ -443,9 +450,10 @@ def notary_invited(notary_name, officer_name, officer_company, deed_type,
                    property_address, county, link, expires_at) -> Rendered:
     """NOTARY2 — officer → notary: post the times you are free.
 
-    Professional-to-professional. She gets the address, the instrument
-    and the county because she is going there to notarise that document;
-    what she does NOT get is any way to reach the signers, because she
+    Professional-to-professional. The notary gets the address, the
+    instrument and the county because they are going there to notarise
+    that document; what they do NOT get is any way to reach the
+    signers, because they
     has no reason to and the officer does.
     """
     addr = _short_addr(property_address)

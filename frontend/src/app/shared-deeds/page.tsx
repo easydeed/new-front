@@ -57,6 +57,47 @@ interface SharedDeed {
   scheduled_by: string | null
 }
 
+/**
+ * FLOW1 item 3 — THE OTHER HALF OF WHAT SHE SENDS OUT.
+ *
+ * A signing lives in `signing_requests`; a review lives in `deed_shares`.
+ * This page read one table, was named for the act both of them are, and
+ * did not mention the screen that showed the other — zero cross
+ * references in either direction. So "where is the thing I sent Nora"
+ * had two possible answers and no signpost to either.
+ *
+ * The two feeds are NOT merged into one row shape, and that is
+ * deliberate. A review has a viewing and a decision; a signing has a
+ * notary, a set of times and a state. Flattening them into shared
+ * columns would put two different facts under one heading, which is the
+ * defect item 0 spent a whole PR on. They travel as themselves, in one
+ * table, under a filter, with a badge saying which is which.
+ */
+interface SigningSummaryRow {
+  id: number
+  deed_id: number
+  property_address: string | null
+  deed_type: string | null
+  notary_name: string | null
+  state: string
+  summary: string
+  booked_at: string | null
+  created_at: string | null
+  expires_at: string | null
+  signers: number
+}
+
+const SIGNING_STATE_LABEL: Record<string, string> = {
+  requested: "Waiting on the notary",
+  windows_posted: "Waiting on signers",
+  partially_agreed: "Part-agreed",
+  booked: "Booked",
+  cancelled: "Cancelled",
+  expired: "Expired",
+}
+
+type TrackerFilter = "all" | "reviews" | "signings"
+
 // Issue labels for structured feedback
 const ISSUE_LABELS: Record<string, string> = {
   grantor_name: 'Grantor name incorrect',
@@ -80,6 +121,9 @@ interface StructuredFeedback {
 export default function SharedDeedsPageV0() {
   const router = useRouter()
   const [sharedDeeds, setSharedDeeds] = useState<SharedDeed[]>([])
+  const [signings, setSignings] = useState<SigningSummaryRow[]>([])
+  const [filter, setFilter] = useState<TrackerFilter>("all")
+  const [signingError, setSigningError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [feedbackModal, setFeedbackModal] = useState<{ 
@@ -103,6 +147,7 @@ export default function SharedDeedsPageV0() {
   const fetchSharedDeeds = async () => {
     setLoading(true)
     setError(null)
+    setSigningError(null)
     try {
       const token = localStorage.getItem("access_token")
       if (!token) {
@@ -120,6 +165,32 @@ export default function SharedDeedsPageV0() {
 
       const data = await response.json()
       setSharedDeeds(Array.isArray(data) ? data : data.shared_deeds || [])
+
+      // FLOW1 item 3: the signings feed, fetched as itself.
+      //
+      // Its failure gets its OWN banner rather than the page-level
+      // error, and the reason is §4 read carefully in both directions.
+      // Throwing here would blank a table of reviews that loaded fine —
+      // an error swallowing correct data is as dishonest as a success
+      // swallowing an error. Swallowing it silently would be worse
+      // still: the officer would see the reviews, no signings, and no
+      // reason to doubt that she has none.
+      try {
+        const signingResponse = await apiFetch(
+          `/signing-requests/v2`, {}, { label: "Loading signings" })
+        if (!signingResponse.ok) {
+          const detail = await signingResponse.json().catch(() => ({}))
+          throw new Error(
+            detail.detail || `Failed to load signings (${signingResponse.status})`)
+        }
+        const signingData = await signingResponse.json()
+        setSignings(Array.isArray(signingData) ? signingData : [])
+      } catch (signingErr) {
+        if (signingErr instanceof SessionExpiredError) return
+        setSignings([])
+        setSigningError(
+          signingErr instanceof Error ? signingErr.message : "Could not load your signings")
+      }
     } catch (err) {
       if (err instanceof SessionExpiredError) return
       console.error("Error fetching shared deeds:", err)
@@ -311,17 +382,43 @@ export default function SharedDeedsPageV0() {
           {/* Header Section */}
           <div className="mb-8">
             <h1 className="text-4xl md:text-5xl font-bold text-slate-800 mb-4 tracking-tight">Shared Deeds</h1>
+            {/* FLOW1 item 3 — THE SUBTITLE SAID "FOR APPROVAL".
+                Which committed the whole page to reviewer semantics
+                before asking what she had sent. Half of what lands here
+                is a signing request, and a notary is not being asked to
+                approve anything — she is being asked when she is free.
+                The page is named for the act both of them are; the
+                sentence under it now describes both. */}
             <p className="text-lg text-slate-600 mb-6">
-              Track deeds shared for approval and manage collaboration with title companies, lenders, and other parties.
+              Everything you have sent out on a deed — reviews you asked for and
+              signings you arranged — and where each one has got to.
             </p>
 
             {/* Subheader Bar */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-              <div className="flex items-center gap-2">
-                <Send className="w-5 h-5 text-[#7C4DFF]" />
-                <span className="text-lg font-semibold text-slate-700">
-                  {sharedDeeds.length} shared {sharedDeeds.length === 1 ? "deed" : "deeds"}
-                </span>
+              {/* FLOW1 item 3: the filter. Both kinds by default,
+                  because "what did I send out on this file" is the
+                  question the page exists for and it does not come in
+                  two halves. */}
+              <div className="flex items-center gap-2" role="group" aria-label="Filter by kind">
+                {([
+                  ["all", `All (${sharedDeeds.length + signings.length})`],
+                  ["reviews", `Reviews (${sharedDeeds.length})`],
+                  ["signings", `Signings (${signings.length})`],
+                ] as Array<[TrackerFilter, string]>).map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => setFilter(key)}
+                    aria-pressed={filter === key}
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                      filter === key
+                        ? "bg-[#7C4DFF] text-white"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
               {/* FLOW1 item 2 — "Share New Deed" IS GONE.
                   It opened a modal titled "Share Deed for Review" whose
@@ -379,8 +476,23 @@ export default function SharedDeedsPageV0() {
             </div>
           )}
 
+          {/* FLOW1 item 3: a signings feed that failed says so, above
+              the reviews that loaded — rather than replacing them, and
+              rather than reading as "you have no signings". */}
+          {!loading && signingError && (
+            <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+              <p className="font-semibold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                Your signings could not be loaded
+              </p>
+              <p className="mt-1 text-amber-800">
+                {signingError} — the reviews below are unaffected.
+              </p>
+            </div>
+          )}
+
           {/* Empty State */}
-          {!loading && !error && sharedDeeds.length === 0 && (
+          {!loading && !error && sharedDeeds.length === 0 && signings.length === 0 && (
             <div className="flex flex-col items-center justify-center min-h-[50vh] gap-6 bg-white rounded-2xl p-12 shadow-sm border border-slate-200">
               <div className="w-24 h-24 rounded-full bg-slate-100 flex items-center justify-center ring-4 ring-slate-50">
                 <Send className="w-12 h-12 text-slate-400" />
@@ -399,7 +511,7 @@ export default function SharedDeedsPageV0() {
           )}
 
           {/* Table */}
-          {!loading && !error && sharedDeeds.length > 0 && (
+          {!loading && !error && (sharedDeeds.length > 0 || signings.length > 0) && (
             <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -416,7 +528,7 @@ export default function SharedDeedsPageV0() {
                     </tr>
                   </thead>
                   <tbody>
-                    {sharedDeeds.map((deed, index) => {
+                    {filter !== "signings" && sharedDeeds.map((deed, index) => {
                       const daysRemaining = calculateDaysRemaining(deed.expires_at)
                       const showCountdown =
                         !!daysRemaining && !["expired", "approved", "rejected"].includes(deed.status)
@@ -521,6 +633,67 @@ export default function SharedDeedsPageV0() {
                         </tr>
                       )
                     })}
+                    {/* FLOW1 item 3 — SIGNINGS, AS THEMSELVES.
+                        A signing is not a review with different words:
+                        it has a notary and a set of times, and it has no
+                        "viewed" and no approve/reject. So the cells it
+                        cannot fill say "—" rather than borrowing a
+                        review's vocabulary — the same rule item 0 landed
+                        on, one row-kind over. The Expires column is
+                        shared honestly: both are link expiries. */}
+                    {filter !== "reviews" && signings.map((signing, index) => (
+                      <tr
+                        key={`signing-${signing.id}`}
+                        className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${
+                          index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
+                        }`}
+                      >
+                        <td className="py-4 px-6 font-medium text-slate-800">
+                          {signing.property_address || `Deed #${signing.deed_id}`}
+                        </td>
+                        <td className="py-4 px-6 text-slate-600">{signing.deed_type || UNKNOWN}</td>
+                        <td className="py-4 px-6">
+                          <div className="flex flex-col">
+                            <span className="font-medium text-slate-800">
+                              {signing.notary_name || "No notary named"}
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              {signing.signers} signer{signing.signers === 1 ? "" : "s"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6">
+                          <div className="flex flex-col gap-2">
+                            <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600">
+                              <CalendarClock className="h-3 w-3" />
+                              Signing
+                            </span>
+                            <span className="text-xs font-medium text-slate-700">
+                              {SIGNING_STATE_LABEL[signing.state] || signing.state}
+                            </span>
+                            {/* state_label() wrote this sentence. This
+                                screen does not compose its own account
+                                of a scheduling state (§13 rule 3). */}
+                            <span className="text-xs text-slate-500">{signing.summary}</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6 text-sm text-slate-600">
+                          {formatDate(signing.created_at)}
+                        </td>
+                        <td className="py-4 px-6 text-sm text-slate-600">
+                          {formatDate(signing.expires_at)}
+                        </td>
+                        <td className="py-4 px-6 text-sm text-slate-400">{UNKNOWN}</td>
+                        <td className="py-4 px-6">
+                          <button
+                            onClick={() => router.push(`/signings?focus=${signing.id}`)}
+                            className="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors"
+                          >
+                            Open in Signings
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
