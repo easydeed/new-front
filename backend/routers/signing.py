@@ -57,6 +57,18 @@ class SignerIn(BaseModel):
     phone: Optional[str] = None
 
 
+class ProposedTime(BaseModel):
+    """FLOW1 item 7 — the time the OFFICER is proposing (dispatch).
+
+    Both ends carry a UTC offset, same as every other time in this
+    feature: a bare wall-clock time makes the server guess a zone, which
+    is how a calendar entry lands an hour out and somebody arrives at an
+    empty office.
+    """
+    start: str
+    end: str
+
+
 class CreateSigningRequest(BaseModel):
     deed_id: int
     notary_email: str
@@ -69,6 +81,25 @@ class CreateSigningRequest(BaseModel):
     # involved reads the clock on the wall where they are going.
     tz_name: str = "America/Los_Angeles"
     expires_in_days: int = 21
+    # ── DISPATCH ──────────────────────────────────────────────────────
+    #
+    # Present  → the officer has a time and has already spoken to her
+    #            signers. The notary is asked to ACCEPT an assignment.
+    # Absent   → the availability loop, unchanged: the notary posts times
+    #            and the signers pick.
+    #
+    # This is a FIELD rather than a mode flag because the presence of a
+    # time IS the difference. A `mode: "dispatch" | "negotiate"` selector
+    # would make her classify her own intent for the database's benefit
+    # before acting on it — the same objection that kept `share_kind` off
+    # the share modals.
+    proposed_time: Optional[ProposedTime] = None
+    # Dispatch only. She is asserting that she already has her signers'
+    # agreement; the product records WHO said so rather than pretending
+    # the signers answered it. Defaults to False so that a client which
+    # sends a time without thinking about this gets a window the signers
+    # must still answer — the safe half of the fork.
+    signers_already_agreed: bool = False
 
 
 class WindowIn(BaseModel):
@@ -189,6 +220,27 @@ def create_signing_request(payload: CreateSigningRequest,
                             detail="At most six signers on one request")
 
     expires = datetime.now(timezone.utc) + timedelta(days=max(1, min(90, payload.expires_in_days)))
+
+    # Parsed BEFORE anything is written. A time we would refuse must not
+    # leave a half-made request behind, and `parse_windows` refuses a
+    # naive time outright rather than assuming a zone.
+    dispatch_window = None
+    if payload.proposed_time is not None:
+        try:
+            dispatch_window = loop.parse_windows(
+                [{"start": payload.proposed_time.start,
+                  "end": payload.proposed_time.end}])[0]
+        except loop.SigningLoopError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+    elif payload.signers_already_agreed:
+        # An assertion about a time, with no time. Refused rather than
+        # ignored: silently dropping it would record nothing and tell her
+        # nothing, and she would believe her signers were on the record.
+        raise HTTPException(
+            status_code=400,
+            detail="You can only record the signers' agreement alongside a "
+                   "proposed time")
+
     try:
         with db.conn.cursor() as cur:
             cur.execute(
@@ -215,6 +267,40 @@ def create_signing_request(payload: CreateSigningRequest,
                     (request_id, role, name, company, email, phone,
                      partner_id, token, expires))
                 tokens[cur.fetchone()["id"]] = (role, token, name, email)
+
+            # ── DISPATCH: the officer's time, and who agreed to it ─────
+            if dispatch_window is not None:
+                cur.execute(
+                    """INSERT INTO signing_windows
+                           (signing_request_id, starts_at, ends_at, origin,
+                            proposed_by)
+                       VALUES (%s, %s, %s, %s, NULL) RETURNING id""",
+                    (request_id, dispatch_window["starts_at"],
+                     dispatch_window["ends_at"], loop.ORIGIN_OFFICER))
+                window_id = cur.fetchone()["id"]
+                # `proposed_by` is NULL because the officer is not a
+                # participant. #156's migration pointed officer windows at
+                # the NOTARY, which reads as her having offered a time she
+                # has never seen; `origin` carried the truth and the column
+                # contradicted it.
+
+                if payload.signers_already_agreed:
+                    # THE ROW SAYS WHO SPOKE. She rang them; they said
+                    # this works; she is putting that on the record so the
+                    # notary's acceptance is the last answer needed. It is
+                    # written as HER assertion, not as theirs — which is
+                    # the entire reason `asserted_by` exists.
+                    for pid, (role, _t, _n, _e) in tokens.items():
+                        if role != loop.ROLE_SIGNER:
+                            continue
+                        cur.execute(
+                            """INSERT INTO signing_responses
+                                   (window_id, participant_id, answer, asserted_by)
+                               VALUES (%s, %s, %s, %s)""",
+                            (window_id, pid, loop.ANSWER_AVAILABLE,
+                             loop.ASSERTED_BY_OFFICER))
+                # The NOTARY gets no such row. She has not been asked yet,
+                # and an assignment nobody has accepted is not a booking.
         db.conn.commit()
     except HTTPException:
         raise
@@ -228,10 +314,14 @@ def create_signing_request(payload: CreateSigningRequest,
         # link to a row that does not exist.
         raise HTTPException(status_code=500, detail="Could not create the signing request")
 
-    # Ask the notary. The SIGNERS are not emailed yet — there is nothing
-    # for them to answer until she posts times, and "pick a time" with no
-    # times is asking a consumer to do nothing.
-    _invite_notary(request_id)
+    # Ask the notary. The SIGNERS are not emailed yet — in EITHER flow,
+    # and for the same reason each time: there is nothing for them to do.
+    # Under negotiation there are no times to pick from; under dispatch
+    # the time is not settled until the notary accepts, and telling a
+    # consumer their signing is at 10am on Tuesday before anybody has
+    # agreed to attend is §13's error committed by email. They are told
+    # when it books.
+    _invite_notary(request_id, dispatched=dispatch_window is not None)
 
     return {
         "success": True,
@@ -242,11 +332,9 @@ def create_signing_request(payload: CreateSigningRequest,
              "link": f"{APP_URL()}/signing/{token}"}
             for pid, (role, token, name, _email) in tokens.items()
         ],
-        # The notary is asked first: she posts availability, and the
-        # signers are invited once there is something to answer. Emailing
-        # a consumer "pick a time" before any time exists would be asking
-        # them to do nothing.
-        "next": "the notary posts her availability",
+        "next": ("the notary accepts or declines the time you proposed"
+                 if dispatch_window is not None
+                 else "the notary posts the times they are free"),
     }
 
 
@@ -666,16 +754,40 @@ def signer_propose(token: str, payload: ProposeIn, http_request: Request):
 
 @router.post("/signing/{token}/decline/{window_id}")
 def notary_decline(token: str, window_id: int, http_request: Request):
-    """The notary declines a signer's proposal. Notary-only."""
+    """The notary declines a time somebody else proposed. Notary-only.
+
+    FLOW1 item 7 widened this from signer proposals to OFFICER windows
+    too, and the fallback it opens is the point of the whole design.
+
+    A declined assignment leaves a request with no live window — which is
+    exactly the state a fresh request is in. So `request_state` returns
+    to `requested`, the label goes back to "waiting on the notary to post
+    the times they are free", and `POST /signing/{token}/windows` works
+    unchanged. Dispatch failing degrades into the negotiation loop that
+    was already built, at the cost of no new code, which is why the
+    fallback was estimated at nearly free.
+
+    HER OWN WINDOWS STAY OUT OF IT. Declining a time she posted herself
+    would be a retraction, not a refusal, and it has a different meaning
+    and a different audience.
+    """
     me = _participant_by_token(token, http_request)
     if me["party_role"] != loop.ROLE_NOTARY:
         raise HTTPException(status_code=403, detail="Only the notary declines a proposal")
     with db.conn.cursor() as cur:
         cur.execute("""UPDATE signing_windows SET declined_at = now()
                         WHERE id = %s AND signing_request_id = %s
-                          AND origin = %s AND declined_at IS NULL""",
-                    (window_id, me["signing_request_id"], loop.ORIGIN_SIGNER_PROPOSAL))
+                          AND origin = ANY(%s) AND declined_at IS NULL
+                    RETURNING origin""",
+                    (window_id, me["signing_request_id"],
+                     [loop.ORIGIN_SIGNER_PROPOSAL, loop.ORIGIN_OFFICER]))
+        declined = cur.fetchone()
     db.conn.commit()
+    if declined and declined["origin"] == loop.ORIGIN_OFFICER:
+        # She proposed it; she is the one who needs to know it is off.
+        # Best-effort, like every other notification here: a decline that
+        # happened must not be undone because a mail server was slow.
+        _tell_officer_dispatch_declined(me["signing_request_id"])
     return token_view(token, http_request)
 
 
@@ -767,13 +879,25 @@ def _officer_bits(world: Dict[str, Any]):
     return officer.get("full_name") or "Your escrow officer", officer.get("company_name")
 
 
-def _invite_notary(request_id: int) -> None:
+def _invite_notary(request_id: int, dispatched: bool = False) -> None:
+    """Ask the notary — and ask the right question.
+
+    DISPATCH AND NEGOTIATION ARE DIFFERENT QUESTIONS, so they are
+    different emails rather than one email with a conditional clause.
+    "When are you free?" and "can you take this, at this time, at this
+    address?" want different answers and different buttons, and a
+    professional deciding whether to accept an assignment should not have
+    to work out which one she has been sent.
+    """
     try:
         world = _load(request_id)
         notary = next(iter(_party(world, loop.ROLE_NOTARY)), None)
         if not notary or not notary.get("email"):
             return
         name, company = _officer_bits(world)
+        if dispatched:
+            _dispatch_notary(world, notary, name, company)
+            return
         from utils.notifications import send_notary_invited
         ok, reason = send_notary_invited(
             recipient_email=notary["email"],
@@ -789,6 +913,66 @@ def _invite_notary(request_id: int) -> None:
             print(f"[NOTARY2] ⚠️ notary invite not sent: {reason}")
     except Exception as e:
         print(f"[NOTARY2] ⚠️ notary invite failed (non-blocking): {e}")
+
+
+def _dispatch_notary(world, notary, officer_name, officer_company) -> None:
+    """The assignment email: one time, a place, accept or decline."""
+    from utils.notifications import send_notary_dispatched
+
+    window = next((w for w in world["windows"]
+                   if w.get("origin") == loop.ORIGIN_OFFICER
+                   and not w.get("declined_at")), None)
+    if window is None:
+        return
+    ok, reason = send_notary_dispatched(
+        recipient_email=notary["email"],
+        notary_name=notary.get("display_name") or "",
+        officer_name=officer_name, officer_company=officer_company,
+        deed_type=world["deed"].get("deed_type") or "deed",
+        property_address=world["deed"].get("property_address"),
+        county=world["deed"].get("county"),
+        # window_label() writes every time this product shows. A template
+        # that formatted its own would be a second place for the wording
+        # to drift, and the .ics bug proved how that ends.
+        when_text=loop.window_label(window, world["request"].get("tz_name")),
+        location=world["request"].get("location"),
+        link=_link(notary),
+        expires_at=_fmt_day(world["request"].get("expires_at")),
+    )
+    if not ok:
+        print(f"[NOTARY2] ⚠️ dispatch not sent: {reason}")
+
+
+def _tell_officer_dispatch_declined(request_id: int) -> None:
+    """The notary said no to the time. Tell the officer, in app.
+
+    An in-app notification rather than a nineteenth email template: she
+    is a logged-in user with a notifications surface, the request is
+    already on her agenda, and the state there tells the rest of the
+    story. §4's rule is that the event must be visible, not that it must
+    arrive by post.
+    """
+    try:
+        world = _load(request_id)
+        notary = next(iter(_party(world, loop.ROLE_NOTARY)), None)
+        who = (notary or {}).get("display_name") or "The notary"
+        from utils.notifications import create_notification
+        create_notification(
+            db.conn,
+            user_id=world["request"]["officer_user_id"],
+            ntype="signing_dispatch_declined",
+            title="A notary declined the time you proposed",
+            message=(f"{who} cannot make the time you proposed for "
+                     f"{world['deed'].get('property_address') or 'your deed'}. "
+                     "They can post the times they are free instead."),
+            link=f"/signings?focus={request_id}",
+        )
+    except Exception as e:
+        try:
+            db.conn.rollback()
+        except Exception:
+            pass
+        print(f"[NOTARY2] ⚠️ decline notice failed (non-blocking): {e}")
 
 
 def _tell_signers_windows_posted(request_id: int) -> None:

@@ -312,6 +312,32 @@ we reach it.
 
 ## Parked tickets (scoped, not scheduled)
 
+- **Retire NOTARY1's read-side routes** (FLOW1 item 6 follow-up,
+  owner-ruled 2026-08-11: leave them for now). Three routes survive the
+  write path's retirement and are now unreachable by construction —
+  `POST /approve/{token}/schedule`, `POST /shared-deeds/{id}/schedule`,
+  `GET /approve/{token}/pcor(.pdf)`. `_signing_share_by_token` 404s
+  anything that is not a signing share, and nothing can create one.
+  **Trigger:** the confirmed zero-row count (already had — production
+  `deedpro` at 10.26.62.147, found 0) PLUS a decision that no other
+  database holds NOTARY1 shares. Until then a pin asserts the source
+  note explaining why they cannot fire is still present, because an
+  endpoint that cannot fire with nothing saying why is
+  indistinguishable from one nobody has looked at. The `deed_shares`
+  columns stay regardless — a column drop is irreversible and the
+  migration script must keep being able to read a row it might find.
+
+- **Sweep for pins reading files nothing imports** (FLOW1 item 6
+  finding, owner-ruled as its own category). `shareEntryPoints.test.ts`
+  spent two tickets asserting properties of `SigningRequestModal.tsx`
+  while the page rendered `RequestSigningModal` — the test file's own
+  comment said so. **A pin reading a file with no importers is passing
+  for a reason unrelated to the property it claims to guard**, which is
+  worse than a failing pin: it is green and meaningless. Ruled to be
+  swept opportunistically rather than as a scheduled ticket. Heuristic:
+  any source file a test reads that no non-test file imports is
+  suspect.
+
 - **DEEDDETAIL — there is no deed detail route** (FLOW1 finding, owner
   ruled: scope and ledger as its own ticket, not FLOW1's). `/deeds/{id}`,
   `/deed/{id}` and `/past-deeds/{id}` all 404. Every deed-level action —

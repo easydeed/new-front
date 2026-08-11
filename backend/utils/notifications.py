@@ -28,7 +28,7 @@ TEMPLATES = (
     # NOTARY1 — the two ends of the signing handoff. Officer→notary asks
     # about availability; notary→officer (or officer→herself) records a
     # time. There is deliberately no third: no signer is ever emailed.
-    "signing_time_recorded",
+    "signing_time_recorded", "notary_dispatched",
     # NOTARY2 — the coordination loop. Five, and the count is the point:
     # ask the notary, ask the signers, tell the signers when there is
     # something to answer, tell the notary when a signer proposes, and
@@ -225,6 +225,21 @@ def send_notary_invited(recipient_email: str, notary_name: str, officer_name: st
         notary_name, officer_name, officer_company, deed_type,
         property_address, county, link, expires_at),
         context={"deed_type": deed_type})
+
+
+def send_notary_dispatched(recipient_email: str, notary_name: str,
+                           officer_name: str, officer_company: Optional[str],
+                           deed_type: str, property_address: Optional[str],
+                           county: Optional[str], when_text: str,
+                           location: Optional[str], link: str,
+                           expires_at: Optional[str]) -> SendResult:
+    """FLOW1 item 7 — the assignment. One time, a place, accept or decline."""
+    return _send("notary_dispatched", recipient_email,
+                 email_templates.notary_dispatched(
+                     notary_name, officer_name, officer_company, deed_type,
+                     property_address, county, when_text, location, link,
+                     expires_at),
+                 context={"deed_type": deed_type, "dispatched": True})
 
 
 def send_signing_windows_posted(recipient_email: str, signer_name: str,

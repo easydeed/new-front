@@ -110,7 +110,18 @@ def signer_package(*, request: Dict[str, Any], me: Dict[str, Any],
     tz = request.get("tz_name")
     notary = next((p for p in participants
                    if p.get("party_role") == loop.ROLE_NOTARY), {})
-    mine = {int(r["window_id"]): r["answer"] for r in responses
+    # FLOW1 item 7: AN ANSWER CARRIES WHO GAVE IT.
+    #
+    # Under dispatch the officer answers on her signers' behalf. A
+    # consumer opening their link and seeing themselves marked available
+    # on a time they never answered would be this product telling them
+    # they said something they did not say — to the one audience with no
+    # account, no history and no way to check. So the answer travels as
+    # {answer, asserted_by} rather than as a bare string, in both places
+    # it appears.
+    mine = {int(r["window_id"]): {"answer": r["answer"],
+                                  "asserted_by": loop.asserted_by(r)}
+            for r in responses
             if int(r["participant_id"]) == int(me["id"])}
     live = [w for w in windows if not w.get("declined_at")]
     used = int(request.get("signer_proposals") or 0)
@@ -150,7 +161,9 @@ def notary_package(*, request: Dict[str, Any], me: Dict[str, Any],
     names and the package. She does not get signer contact details —
     she has no reason to reach them directly and the officer does."""
     tz = request.get("tz_name")
-    mine = {int(r["window_id"]): r["answer"] for r in responses
+    mine = {int(r["window_id"]): {"answer": r["answer"],
+                                  "asserted_by": loop.asserted_by(r)}
+            for r in responses
             if int(r["participant_id"]) == int(me["id"])}
     package = {
         "party_role": loop.ROLE_NOTARY,

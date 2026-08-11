@@ -860,10 +860,81 @@ their data is not a machine decision.
 
 ---
 
+### §13.2 — Who asserted the answer (FLOW1 item 7, 2026-08-11, owner-ruled)
+
+**Statement.** A recorded answer carries who gave it. When the escrow
+officer records her signers' agreement to a time she arranged with them
+by phone, the record says **she** asserted it — never that the signers
+answered.
+
+**Why this needed a column.** Owner research into escrow practice: the
+officer knows when the documents are ready, schedules with the signers
+directly, and dispatches a notary for that time, who accepts or declines.
+NOTARY2's loop inverts that — the notary posts availability, the signers
+converge — which is right for *finding* a time among people with no prior
+contact and wrong for the ordinary case.
+
+`converged_window_id` required the notary **and every live signer** to
+have answered `available`. Under dispatch the signers never answer this
+product, so convergence could never fire and a request would sit in
+`partially_agreed` forever while everyone involved believed it was
+booked.
+
+Two ways to close that, and they are not equivalent. The officer's
+existing override works today with no code at all — she creates the
+request, the notary accepts, she presses override, and `booked_by =
+'officer'` is *true*. It is clunky and nothing about it is dishonest.
+The alternative is to let convergence count a signer row the officer
+wrote — and **without a column saying so, that row would claim a signer
+answered when the officer did.** That is precisely the distinction
+`booked_by` and RED-S4's `recording_asserted_by` exist to preserve, one
+level down: the same argument applied to the answers a booking is built
+from rather than to the booking itself.
+
+So `asserted_by` is **one additive column whose justification is
+doctrinal, not technical**. `answer` / `asserted_by` / `asserted_at` is
+RED-S4's trio, complete.
+
+**§13.1 IS UNTOUCHED, and the precision matters.** Its argument was that
+routing *around* the signers recreated the phone tag the feature exists
+to kill. Dispatch does not route around them — the officer talks to them
+*first*, which is the leg she was always going to do herself. What
+changes is who proposes the time, not who is included. Signer contact
+still lives on one purgeable row and nowhere else.
+
+**§13 IS UNTOUCHED TOO.** Nothing is booked until the notary accepts;
+`state_label` refuses to call an officer-vouched booking "everyone
+agreed" and says what actually happened instead; the signers are not
+emailed a time nobody has accepted, because telling a consumer their
+signing is at 10am on Tuesday before the person who has to show up has
+answered is booked-is-not-happened committed to somebody's inbox.
+
+**The consumer surface carries it.** A signer opening their link sees
+"{officer} told us this time works for you — tap to change it" rather
+than a silent tick. The one audience with no account, no history and no
+way to check is the one that most needs to be told who spoke for them,
+and the control stays live so they can say otherwise.
+
+**The fallback is nearly free, which is not a coincidence.** A declined
+assignment leaves a request with no live window — exactly the state a
+fresh request is in — so the availability loop resumes with no new code.
+
+**Enforced by.** `backend/tests/test_flow1_dispatch.py` — an
+officer-asserted answer counts toward convergence; the notary's
+acceptance is still required; the booking sentence refuses "everyone
+agreed"; a dispatch awaiting acceptance says so; an assertion with no
+time is refused; a naive time is refused before anything is written; a
+declined dispatch returns to `requested` and the loop resumes; no signer
+is emailed before acceptance; an officer window is not attributed to the
+notary.
+
+---
+
 ## Change log
 
 | Date | Change |
 |---|---|
+| 2026-08-11 | §13.2 added (FLOW1 item 7, DISPATCH) — `signing_responses.asserted_by`. See the section for the full reasoning; the short version is that convergence had to be able to count an officer-asserted signer answer without any surface being able to call it the signer's. Also: the §11.1 sweep was WIDENED after it missed two live habitats it should have caught — `services/signing_loop.state_label()` (the one function that turns a scheduling state into a sentence for every surface) and the `.ics` description that lands in the officer's own diary. Both said "she" about a notary. `services/vesting_split.py` exempted with a cited reason: it MATCHES recorded vesting language rather than writing prose about anybody. |
 | 2026-08-11 | §11.1 added (FLOW1 items 3–4) — the product never infers a fact about a PERSON from their name or role. A live email told a notary that the officer "confirms the appointment with the signers herself", asserting an escrow officer's pronouns to her own professional contact on no information; the screen did the same about the notary. Ruled the same family as the "filed as" constraint, which forbids reading a partner's category as a statement about their authority — one direction infers what someone IS, the other what they MAY DO, and both put a claim in the record nobody made. Swept fail-closed across every template. Two habitats exempted with cited reasons and their own liveness test: the Civil Code §1189 all-purpose acknowledgement (prescribed certificate wording, names no party) and vesting terms of art. Also item 4: the Signings agenda's stuck age was reconstructed as `expires_at − 21 days`, duplicating `default_expiry()`'s constant into TypeScript as a bare number — the server sends `created_at` now. And its "soonest first" claim covered rows sorted by `COALESCE(booked_at, expires_at)`, two orthogonal facts under one sort key (T-5 one layer up); booked and being-arranged are now separated and each sorted by the fact it has. |
 | 2026-08-11 | §4 — FLOW1 item 0. Shared Deeds reported as showing fabricated rows; verdict recorded as NOT fabricated — a real fetch read through eight wrong key names, so `undefined` rendered as blank cells and Invalid Date. Recorded under §4 rather than invariant #4 because nothing was invented and the screen still asserted what it could not support ("Not viewed" under a badge reading "Viewed"). Three absent facts given columns: `recipient_name` (accepted, greeted with, never stored), `responded_at` (`updated_at` was not that fact — a revoke bumps it too), and a real `expires_at` (previously spent on a display string nothing rendered). Contract now pinned from both sides against one corpus; absence crosses the wire as `null`, never `""`. The feedback modal's fallback to a field the list endpoint never sent — a failed fetch reading as "the reviewer left no comments" — removed. |
 | 2026-08-11 | §13.1 — the signer-contact ruling REVERSED (NOTARY2). Signers now participate directly; the notary posts availability, signers pick or propose, convergence books it, and the officer is notified rather than gating. Owner's reasoning recorded: the signers are the scheduling constraint, so routing around them recreated the phone tag the feature exists to kill — Option A had priced the officer's relaying at zero when it is the entire problem. The superseded paragraph is kept verbatim rather than rewritten. §13 otherwise stands unchanged: booked is still not happened. NOTARY1's fail-closed sweep is ANSWERED rather than deleted — retargeted from "no signer contact anywhere" to "one purgeable row, no other table, deleted by a mechanism with a test." The retention rule and a non-user's route to removal become part of the feature, ledgered as owner items. |

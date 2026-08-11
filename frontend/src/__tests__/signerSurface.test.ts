@@ -19,6 +19,8 @@ const flat = (s: string) => s.replace(/\s+/g, ' ');
 const TOKEN_PAGE = read('app', 'signing', '[token]', 'page.tsx');
 const CREATE = read('features', 'signing', 'RequestSigningModal.tsx');
 const AGENDA = read('app', 'signings', 'page.tsx');
+/** FLOW1 item 7: the one place a wall-clock time gets its offset. */
+const HELPER = read('lib', 'wallClock.ts');
 
 describe('the signer page speaks to a person, not to the industry', () => {
   it('uses no jargon a buyer would have to look up', () => {
@@ -83,9 +85,22 @@ describe('no surface composes its own account of a scheduling state', () => {
 
   it('times sent to the server carry their offset', () => {
     // #149's parse_window REFUSES a naive time rather than guessing.
-    expect(TOKEN_PAGE).toContain('getTimezoneOffset');
+    //
+    // FLOW1 item 7 moved the stamping into `lib/wallClock.ts`, because
+    // the officer's dispatch form needed it too and the first instinct
+    // was to copy the eight lines — which is how `phoneSearchKey` came
+    // to be wrong in one language and right in the other. So the pin
+    // asks the question in two parts now: the helper does the stamping,
+    // and every surface that sends a time calls it.
+    expect(HELPER).toContain('getTimezoneOffset');
     expect(TOKEN_PAGE).toContain('withOffset(start)');
     expect(TOKEN_PAGE).toContain('withOffset(r.start)');
+    expect(CREATE).toContain('withOffset(start)');
+    // And nobody keeps a private copy.
+    for (const src of [TOKEN_PAGE, CREATE]) {
+      expect(codeOnly(src)).not.toContain('getTimezoneOffset');
+      expect(src).toContain("from '@/lib/wallClock'");
+    }
   });
 });
 
@@ -95,13 +110,63 @@ describe('the officer create flow asks the right questions', () => {
     expect(CREATE).toContain('suggestCategory="notary"');
   });
 
-  it('does not ask her for times', () => {
-    // NOTARY1 made her propose windows because the notary had no way to
-    // speak. §13.1 reversed that; asking anyway would be asking her to do
-    // the work the reversal removed. The field is GONE, not optional.
+  it('never asks her to guess at the notary\'s availability', () => {
+    // ═══ THIS PIN'S PREMISE WAS PARTLY OVERTURNED — READ BEFORE
+    //     TRUSTING IT ═══
+    //
+    // It used to assert `datetime-local` was ABSENT from the create
+    // form. The reasoning was §13.1's: NOTARY1 made the officer propose
+    // three windows because the notary had no way to speak, and once the
+    // notary could speak, asking the officer anyway was asking her to do
+    // the work the reversal removed.
+    //
+    // FLOW1 item 7 (DISPATCH) reverses HALF of that, on owner research
+    // into escrow practice: the officer schedules with her signers
+    // directly, usually by phone, and dispatches a notary for that time.
+    // She is not guessing at anybody's availability — she is stating an
+    // arrangement she has already made.
+    //
+    // So the property is NOT "she never sees a time field". It is:
+    //
+    //   SHE IS NEVER ASKED TO PROPOSE A SET OF CANDIDATE TIMES ON
+    //   SOMEBODY ELSE'S BEHALF.
+    //
+    // ONE time she has arranged is a fact. THREE windows she hopes suit
+    // a notary she has not asked is the guesswork §13.1 removed, and it
+    // stays removed: `proposed_windows` — NOTARY1's plural field — is
+    // still forbidden, and there is no way to add a second time.
     const code = codeOnly(CREATE);
     expect(code).not.toContain('proposed_windows');
-    expect(code).not.toContain('datetime-local');
+    expect(code).not.toContain('MAX_WINDOWS');
+    // Exactly one start and one end. A repeater here would be NOTARY1
+    // arriving by a different door.
+    expect((code.match(/datetime-local/g) || [])).toHaveLength(2);
+  });
+
+  it('offers dispatch first and availability second, both reachable', () => {
+    const text = flat(CREATE);
+    expect(text).toContain('I have a time');
+    expect(text).toContain('Ask for availability');
+    // Dispatch is the DEFAULT — she reaches the ordinary case by doing
+    // nothing — and the fallback is one press away, never removed.
+    expect(codeOnly(CREATE)).toContain("useState<'dispatch' | 'availability'>('dispatch')");
+  });
+
+  it('asks for the signers agreement in words, and records it as hers', () => {
+    // Ticking the box writes an answer on the signers' behalf. That is a
+    // question with words, not a silent consequence of typing a time —
+    // and the copy says whose word it is.
+    const text = flat(CREATE);
+    expect(text).toContain('I have already agreed this time with the signers');
+    expect(text).toContain('Recorded as your word, not theirs');
+    expect(codeOnly(CREATE)).toContain('signers_already_agreed');
+  });
+
+  it('promises nothing is booked until the notary accepts', () => {
+    // §13 at the moment it is most tempting to break: she has a time,
+    // her signers have agreed, and the arrangement is still incomplete
+    // because the person who has to show up has not answered.
+    expect(flat(CREATE)).toContain('Nothing is booked until the notary accepts');
   });
 
   it('defaults the location and the timezone rather than leaving blanks', () => {

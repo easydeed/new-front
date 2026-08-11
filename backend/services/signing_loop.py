@@ -62,6 +62,48 @@ BOOKED_BY_CONVERGENCE = "convergence"
 BOOKED_BY_OFFICER = "officer"
 BOOKERS = (BOOKED_BY_CONVERGENCE, BOOKED_BY_OFFICER)
 
+# ── DISPATCH (FLOW1 item 7): who actually said it ────────────────────
+#
+# A response row used to mean one thing: this participant answered. In
+# dispatch the officer answers on her signers' behalf — she rang them,
+# they said Tuesday, and she is putting that on the record so the
+# notary's acceptance is the last answer needed.
+#
+# Without this distinction the row would CLAIM A SIGNER SPOKE when the
+# officer did. That is the same error `booked_by` exists to prevent, one
+# level down: applied to the answers a booking is built from rather than
+# to the booking itself.
+ASSERTED_BY_PARTICIPANT = "participant"
+ASSERTED_BY_OFFICER = "officer"
+ASSERTERS = (ASSERTED_BY_PARTICIPANT, ASSERTED_BY_OFFICER)
+
+
+def asserted_by(response: Dict[str, Any]) -> str:
+    """Read the asserter, defaulting to the participant.
+
+    A row written before this column existed was written by the person it
+    is about, so the default is a fact rather than a guess — and reading
+    it through one function means no call site has to remember that.
+    """
+    return response.get("asserted_by") or ASSERTED_BY_PARTICIPANT
+
+
+def rests_on_an_officer_assertion(responses: Sequence[Dict[str, Any]],
+                                  window_id: int) -> bool:
+    """Did any counted `available` on this window come from the officer?
+
+    THE SURFACES NEED THIS AND SO DOES THE COPY. A window everybody
+    personally agreed to and a window the officer vouched for are both
+    booked, and they are not the same claim — so nothing may describe
+    the second as "everyone agreed".
+    """
+    return any(
+        int(r["window_id"]) == int(window_id)
+        and r.get("answer") == ANSWER_AVAILABLE
+        and asserted_by(r) == ASSERTED_BY_OFFICER
+        for r in responses
+    )
+
 # Owner ruling: three, AGGREGATE across the request. Not per signer —
 # two signers alternating twice each is six emails and the same deadlock
 # a cap exists to prevent.
@@ -129,6 +171,14 @@ def converged_window_id(participants: Sequence[Dict[str, Any]],
     hold the others hostage — and a request with no signers cannot
     converge on the notary alone, because a signing with nobody to sign
     is not an arrangement anybody made.
+
+    DISPATCH (FLOW1 item 7) DOES NOT CHANGE THAT RULE. An officer-
+    asserted signer row counts, because it is an answer on the record —
+    the officer rang them and is saying so. What it does NOT do is
+    disappear: `asserted_by` travels with it, every surface can say who
+    spoke, and `state_label` refuses to call such a booking "everyone
+    agreed". The count is the same question; the provenance is a
+    different one, and conflating them is what this column prevents.
 
     Earliest wins when two windows qualify. Not "the most recently
     answered": if three people are free at two times, the sooner one is
@@ -201,19 +251,85 @@ def state_label(request: Dict[str, Any], windows: Sequence[Dict[str, Any]],
         when = _fmt_instant(request.get("booked_at"), request.get("tz_name"))
         if request.get("booked_by") == BOOKED_BY_OFFICER:
             return f"You recorded a signing time of {when}"
+        # DISPATCH, and this branch is the reason `asserted_by` exists.
+        #
+        # "Everyone agreed" is a claim about who spoke. When the officer
+        # recorded her signers' agreement and the notary accepted, the
+        # booking is real and that sentence is not: the signers did not
+        # answer this product, she did. So the sentence says what
+        # actually happened, and the fact that it CAN say it is the whole
+        # of the column's justification.
+        booked_window = _booked_window_id(request, windows, responses)
+        if booked_window is not None and rests_on_an_officer_assertion(
+                responses, booked_window):
+            notary = next((p for p in participants
+                           if p.get("party_role") == ROLE_NOTARY), None)
+            who = (notary or {}).get("display_name") or "the notary"
+            return (f"Booked for {when} — you recorded the signers' "
+                    f"agreement and {who} accepted")
         return f"Everyone agreed on {when}"
     if state == STATE_REQUESTED:
         notary = next((p for p in participants
                        if p.get("party_role") == ROLE_NOTARY), None)
         who = (notary or {}).get("display_name") or "The notary"
-        return f"Waiting on {who} to post the times she is free"
+        # §11.1: a name is not a pronoun. This said "the times SHE is
+        # free" about a notary whose pronouns nobody has told us — the
+        # same defect FLOW1 swept out of the email templates, surviving
+        # in the one function that writes every surface's sentence
+        # because that sweep read utils/ and templates/ and not services/.
+        return f"Waiting on {who} to post the times they are free"
     live = [w for w in windows if not w.get("declined_at")]
+
+    # DISPATCH, before the notary has answered. Without this branch the
+    # officer's agenda would read "1 times offered — waiting on 1 more
+    # person" about a request where she chose the time, told her signers,
+    # and is waiting on one specific professional to accept. True, and
+    # useless, and it describes her own dispatch back to her as though
+    # somebody else had offered it.
+    dispatch = next((w for w in live
+                     if w.get("origin") == ORIGIN_OFFICER
+                     and rests_on_an_officer_assertion(responses, int(w["id"]))),
+                    None)
+    if dispatch is not None:
+        notary = next((p for p in participants
+                       if p.get("party_role") == ROLE_NOTARY), None)
+        notary_id = int(notary["id"]) if notary else None
+        accepted = any(
+            int(r["window_id"]) == int(dispatch["id"])
+            and notary_id is not None and int(r["participant_id"]) == notary_id
+            and r.get("answer") == ANSWER_AVAILABLE
+            for r in responses)
+        if not accepted:
+            who = (notary or {}).get("display_name") or "the notary"
+            when = _fmt_instant(dispatch.get("starts_at"), request.get("tz_name"))
+            return f"You proposed {when} — waiting on {who} to accept"
+
     if state == STATE_PARTIALLY_AGREED:
         pending = _pending_count(participants, live, responses)
         if pending == 1:
             return f"{len(live)} times offered — waiting on 1 more person"
         return f"{len(live)} times offered — waiting on {pending} more people"
     return f"{len(live)} times offered — nobody has answered yet"
+
+
+def _booked_window_id(request: Dict[str, Any],
+                      windows: Sequence[Dict[str, Any]],
+                      responses: Sequence[Dict[str, Any]]) -> Optional[int]:
+    """Which window a booked request settled on.
+
+    `signing_requests` records WHEN it booked, not WHICH — the window is
+    recoverable because a booked request has exactly one window whose
+    start matches `booked_at`. Kept as a lookup rather than a new column
+    on purpose: a second place to write the same fact is a second place
+    for it to disagree with itself.
+    """
+    booked_at = request.get("booked_at")
+    if not booked_at:
+        return None
+    for w in windows:
+        if w.get("starts_at") == booked_at:
+            return int(w["id"])
+    return None
 
 
 def _pending_count(participants: Sequence[Dict[str, Any]],
