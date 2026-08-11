@@ -408,6 +408,37 @@ def create_tables():
                 asserted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
                 UNIQUE (window_id, participant_id)
             )""",
+            # ── FLOW1 item 7 (DISPATCH): WHO SAID SO ──────────────────
+            #
+            # `signing_responses` records that a participant answered.
+            # Dispatch needs to record that the OFFICER answered ON THEIR
+            # BEHALF — she rang her signers, they said Tuesday works, and
+            # she is putting that on the record so the notary's
+            # acceptance is the last answer needed.
+            #
+            # WITHOUT THIS COLUMN THE ROW WOULD LIE. A response row with
+            # no asserter says "this signer answered", and in dispatch
+            # that is false: the officer answered. This is exactly the
+            # distinction `booked_by` and RED-S4's
+            # `recording_asserted_by` exist to preserve, one level down —
+            # the same argument, applied to the answers a booking is
+            # built from rather than to the booking.
+            #
+            # DEFAULT 'participant' because every row that exists today
+            # was written by the person it is about, and a backfill that
+            # guessed otherwise would be inventing provenance.
+            #
+            # The trio is complete: `answer` (the value), `asserted_by`
+            # (who), `asserted_at` (when).
+            "ALTER TABLE signing_responses ADD COLUMN IF NOT EXISTS "
+            "asserted_by VARCHAR(16) NOT NULL DEFAULT 'participant'",
+            # A window the OFFICER proposed was not proposed by any
+            # participant, and `proposed_by` used to be NOT NULL — so the
+            # #156 migration pointed officer-origin windows at the NOTARY,
+            # which reads as the notary having offered a time she has not
+            # seen. `origin` carried the truth and this column contradicted
+            # it. NULL now means "not a participant — read `origin`".
+            "ALTER TABLE signing_windows ALTER COLUMN proposed_by DROP NOT NULL",
             "CREATE INDEX IF NOT EXISTS idx_signing_requests_deed ON signing_requests(deed_id)",
             "CREATE INDEX IF NOT EXISTS idx_signing_requests_officer ON signing_requests(officer_user_id, created_at DESC)",
             "CREATE INDEX IF NOT EXISTS idx_signing_participants_request ON signing_participants(signing_request_id)",

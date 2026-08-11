@@ -32,6 +32,7 @@
 import { useMemo, useState } from 'react';
 import { CalendarClock, Info, Loader2, Plus, Trash2, X } from 'lucide-react';
 import { apiFetch } from '@/lib/apiClient';
+import { withOffset } from '@/lib/wallClock';
 import { PartnerRecipientPicker, Recipient } from '@/features/partners/PartnerRecipientPicker';
 import {
   RecipientMismatchNotice,
@@ -75,6 +76,28 @@ export function RequestSigningModal({
     (suggestedSigners.length ? suggestedSigners : ['']).slice(0, MAX_SIGNERS)
       .map((name) => ({ name, email: '', phone: '' })),
   );
+  /**
+   * FLOW1 item 7 — DISPATCH IS THE DEFAULT, NEGOTIATION IS THE
+   * ALTERNATIVE.
+   *
+   * Owner research into escrow practice: the officer knows when the docs
+   * are ready, schedules with the signers directly — usually by phone —
+   * and then dispatches a notary for that time, who accepts or declines.
+   * The notary is a contractor receiving an assignment.
+   *
+   * NOTARY2's loop inverted that: notary posts availability, signers
+   * converge. That is the right model for FINDING a time among people
+   * with no prior contact, and the wrong one for the ordinary case where
+   * she already has her clients on the phone and needs somebody to show
+   * up. §13.1's reversal is untouched — it was about routing AROUND the
+   * signers, and dispatch does not: she talks to them first, which is
+   * the leg she was always going to do herself. What changes is who
+   * proposes the time, not who is included.
+   */
+  const [mode, setMode] = useState<'dispatch' | 'availability'>('dispatch');
+  const [start, setStart] = useState('');
+  const [end, setEnd] = useState('');
+  const [signersAgreed, setSignersAgreed] = useState(false);
   const [location, setLocation] = useState(propertyAddress || '');
   const [tz, setTz] = useState(ZONES[0].id);
   const [submitting, setSubmitting] = useState(false);
@@ -82,8 +105,10 @@ export function RequestSigningModal({
   const [done, setDone] = useState<{ id: number; links: Array<{ role: string; name: string; link: string }> } | null>(null);
 
   const ready = useMemo(
-    () => !!notary?.email && signers.some((s) => s.name.trim() && s.email.trim()),
-    [notary, signers],
+    () => !!notary?.email
+      && signers.some((s) => s.name.trim() && s.email.trim())
+      && (mode === 'availability' || (!!start && !!end)),
+    [notary, signers, mode, start, end],
   );
 
   const setSigner = (i: number, patch: Partial<SignerRow>) =>
@@ -116,6 +141,15 @@ export function RequestSigningModal({
                            phone: s.phone.trim() || undefined })),
           location: location || undefined,
           tz_name: tz,
+          ...(mode === 'dispatch' && start && end
+            ? {
+                // withOffset: a bare wall-clock time makes the server
+                // guess a zone, which is how a calendar entry lands an
+                // hour out and somebody arrives at an empty office.
+                proposed_time: { start: withOffset(start), end: withOffset(end) },
+                signers_already_agreed: signersAgreed,
+              }
+            : {}),
         }),
       }, { label: 'Creating the signing request' });
       const data = await response.json().catch(() => ({}));
@@ -156,9 +190,19 @@ export function RequestSigningModal({
                   officer picked out of her rolodex moments ago, whose
                   pronouns this product has never been told. A name is
                   not a pronoun. */}
-              The request is on the record. <strong>{notary?.name || 'The notary'}</strong> posts
-              the times they are free; your signers pick from them. When they all agree on
-              one, it books and you are told.
+              {mode === 'dispatch' ? (
+                <>
+                  The request is on the record. <strong>{notary?.name || 'The notary'}</strong>{' '}
+                  has been asked to take the time you proposed. Nothing is booked until
+                  they accept — your signers are told when it is.
+                </>
+              ) : (
+                <>
+                  The request is on the record. <strong>{notary?.name || 'The notary'}</strong>{' '}
+                  posts the times they are free; your signers pick from them. When they all
+                  agree on one, it books and you are told.
+                </>
+              )}
             </p>
             <p className="text-sm text-slate-500">
               You do not have to approve the time — but you can change it later if you
@@ -225,6 +269,79 @@ export function RequestSigningModal({
                   }
                 />
               )}
+
+              {/* FLOW1 item 7 — DISPATCH FIRST, NEGOTIATION SECOND.
+                  Not a mode selector wearing equal weight: the two
+                  options are ordered, the first is chosen, and the
+                  second says what it is for. She reaches the ordinary
+                  case by doing nothing. */}
+              <div className="rounded-xl border border-slate-200 p-4">
+                <p className="text-sm font-medium text-slate-700 mb-3">When</p>
+                <div className="space-y-2">
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input type="radio" name="signing-mode" className="mt-1"
+                           checked={mode === 'dispatch'}
+                           onChange={() => setMode('dispatch')} />
+                    <span className="text-sm">
+                      <span className="font-medium text-slate-800">I have a time</span>
+                      <span className="block text-xs text-slate-500">
+                        Propose it to the notary — they accept or decline.
+                      </span>
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input type="radio" name="signing-mode" className="mt-1"
+                           checked={mode === 'availability'}
+                           onChange={() => setMode('availability')} />
+                    <span className="text-sm">
+                      <span className="font-medium text-slate-800">Ask for availability</span>
+                      <span className="block text-xs text-slate-500">
+                        The notary posts times, your signers pick one.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+
+                {mode === 'dispatch' && (
+                  <div className="mt-4 space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs text-slate-500 mb-1">Starts</label>
+                        <input type="datetime-local" value={start}
+                               onChange={(e) => setStart(e.target.value)} className={input} />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-500 mb-1">Ends</label>
+                        <input type="datetime-local" value={end}
+                               onChange={(e) => setEnd(e.target.value)} className={input} />
+                      </div>
+                    </div>
+                    {/* THE ASSERTION, ASKED FOR EXPLICITLY.
+                        Ticking this writes an answer on the signers'
+                        behalf, recorded as HERS — so it is a question
+                        with words, not a silent consequence of typing a
+                        time. Unticked, the signers still have to answer,
+                        which is the safe half of the fork. */}
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <input type="checkbox" className="mt-1" checked={signersAgreed}
+                             onChange={(e) => setSignersAgreed(e.target.checked)} />
+                      <span className="text-sm">
+                        <span className="text-slate-800">
+                          I have already agreed this time with the signers
+                        </span>
+                        <span className="block text-xs text-slate-500">
+                          Recorded as your word, not theirs. They can still change it
+                          from their own link.
+                        </span>
+                      </span>
+                    </label>
+                    <p className="text-xs text-slate-500">
+                      Nothing is booked until the notary accepts. Your signers are told
+                      when it is.
+                    </p>
+                  </div>
+                )}
+              </div>
 
               <div>
                 <div className="flex items-center justify-between mb-2">

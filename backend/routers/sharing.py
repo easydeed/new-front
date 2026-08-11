@@ -1297,7 +1297,9 @@ def _tell_the_officer(row: dict, window: dict, asserted_by: str) -> None:
         window,
         summary=f"Notary signing — {address}",
         location=address or None,
-        description=(f"{notary} said she is available at this time. "
+        # §11.1: a name is not a pronoun. This calendar file went into
+        # the officer's own diary asserting the notary's pronouns.
+        description=(f"{notary} said they are available at this time. "
                      "DeedPro has not contacted the signers."),
         uid=f"share-{row.get('id')}-scheduled@deedpro",
     )

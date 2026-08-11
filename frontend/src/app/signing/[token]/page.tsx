@@ -39,12 +39,23 @@ import { useParams } from 'next/navigation';
 import {
   AlertCircle, CalendarClock, Check, Clock, Download, FileText, Loader2, MapPin, Plus, Users, X,
 } from 'lucide-react';
+import { withOffset } from '@/lib/wallClock';
 
 const API = () => process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com';
 
 type Person = { name: string | null; company: string | null };
 type Window = {
-  id: number; label: string; start: string; mine?: string | null;
+  id: number; label: string; start: string;
+  /**
+   * FLOW1 item 7 — AN ANSWER CARRIES WHO GAVE IT.
+   *
+   * Under dispatch the officer answers on her signers' behalf, having
+   * rung them. A consumer opening this link and seeing themselves ticked
+   * against a time they never answered would be the product telling them
+   * they said something they did not say — to the one audience with no
+   * account, no history and no way to check.
+   */
+  mine?: { answer: string; asserted_by: string } | null;
   origin?: string; declined?: boolean; agreed_by?: string[];
 };
 
@@ -218,7 +229,8 @@ function SignerView({ pkg, busy, post, error }: {
 
         <div className="space-y-2">
           {pkg.windows.map((w) => {
-            const chosen = w.mine === 'available';
+            const chosen = w.mine?.answer === 'available';
+            const answeredByOfficer = chosen && w.mine?.asserted_by === 'officer';
             return (
               <button
                 key={w.id}
@@ -228,7 +240,18 @@ function SignerView({ pkg, busy, post, error }: {
                   chosen ? 'border-[#7C4DFF] bg-purple-50' : 'border-slate-300 hover:bg-slate-50'
                 }`}
               >
-                <span className="font-medium text-slate-800">{w.label}</span>
+                <span className="min-w-0">
+                  <span className="block font-medium text-slate-800">{w.label}</span>
+                  {answeredByOfficer && (
+                    // Plain language, and it names her. "Confirmed" would
+                    // be the product claiming they answered; this says who
+                    // actually did, and leaves the button live so they can
+                    // say otherwise.
+                    <span className="block text-xs text-slate-500 mt-0.5">
+                      {who} told us this time works for you — tap to change it
+                    </span>
+                  )}
+                </span>
                 {busy === w.id
                   ? <Loader2 className="w-5 h-5 animate-spin shrink-0 text-slate-400" />
                   : chosen ? <Check className="w-5 h-5 text-[#7C4DFF] shrink-0" /> : null}
@@ -349,12 +372,25 @@ function NotaryView({ pkg, busy, post, error }: {
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-slate-800">{w.label}</p>
+                  {/* FLOW1 item 7: THREE ORIGINS, NOT TWO. This read
+                      `signer_proposal ? 'Suggested by a signer' : 'You
+                      offered this'`, so a time the OFFICER dispatched
+                      would have told the notary she had offered a time
+                      she has never seen. The binary was correct until
+                      officer windows became reachable from a screen. */}
                   <p className="text-xs text-slate-500">
-                    {w.origin === 'signer_proposal' ? 'Suggested by a signer' : 'You offered this'}
+                    {w.origin === 'signer_proposal' ? 'Suggested by a signer'
+                      : w.origin === 'officer' ? `Proposed by ${pkg.coordinator.name || 'the escrow officer'}`
+                      : 'You offered this'}
                     {w.agreed_by?.length ? ` · ${w.agreed_by.length} agreed` : ' · nobody has answered'}
                   </p>
                 </div>
-                {w.origin === 'signer_proposal' && !w.declined && (
+                {/* Accept/decline belongs on any time SOMEBODY ELSE
+                    proposed — a signer's suggestion or the officer's
+                    assignment. Not on her own windows: declining a time
+                    she posted herself is a retraction, which is a
+                    different act with a different audience. */}
+                {(w.origin === 'signer_proposal' || w.origin === 'officer') && !w.declined && (
                   <div className="flex gap-1 shrink-0">
                     <button onClick={() => post('/answer', { window_id: w.id, answer: 'available' }, w.id)}
                             disabled={busy !== null}
@@ -419,12 +455,4 @@ function NotaryView({ pkg, busy, post, error }: {
  * deliberately, because guessing a zone is how a calendar entry lands
  * eight hours out. This is where the offset comes from.
  */
-function withOffset(local: string): string {
-  const parsed = new Date(local);
-  if (Number.isNaN(parsed.getTime())) return local;
-  const minutes = -parsed.getTimezoneOffset();
-  const sign = minutes >= 0 ? '+' : '-';
-  const abs = Math.abs(minutes);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${local}:00${sign}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`;
-}
+

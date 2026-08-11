@@ -400,9 +400,8 @@ def notary_invited(notary_name, officer_name, officer_company, deed_type,
 
     Professional-to-professional. The notary gets the address, the
     instrument and the county because they are going there to notarise
-    that document; what they do NOT get is any way to reach the
-    signers, because they
-    has no reason to and the officer does.
+    that document; what they do NOT get is any way to reach the signers,
+    because they have no reason to and the officer does.
     """
     addr = _short_addr(property_address)
     subject = f"Signing request — {addr}" if addr else "Notary signing request"
@@ -426,6 +425,62 @@ def notary_invited(notary_name, officer_name, officer_company, deed_type,
         "The signers pick from the times you post."
     )
     return subject, _base(f"{officer_name} asked about your availability", content, True), text
+
+
+def notary_dispatched(notary_name, officer_name, officer_company, deed_type,
+                      property_address, county, when_text, location, link,
+                      expires_at) -> Rendered:
+    """FLOW1 item 7 — officer → notary: can you take this, at this time?
+
+    ═══ WHY THIS IS A SECOND TEMPLATE AND NOT A BRANCH ═══
+
+    `notary_invited` asks "when are you free?". This asks "can you be at
+    this address at this time?". They want different answers and
+    different buttons, and a professional deciding whether to accept an
+    assignment should not have to work out which question she has been
+    sent. One template with a conditional clause would have made the
+    subject line and the button lie about one of the two cases.
+
+    ═══ WHAT IT MUST NOT SAY ═══
+
+    Not that the signing is BOOKED, and not that it is CONFIRMED. Nothing
+    is booked until she accepts — she is the party who has not answered
+    yet. §13's rule reaching the one email most tempted to break it: the
+    officer has a time, the signers have agreed, and every word here
+    still has to treat the arrangement as incomplete, because it is.
+
+    And it does not say the officer "confirmed" anything on the signers'
+    behalf in a way that implies they spoke to us. She rang them. The
+    email says she did.
+    """
+    addr = _short_addr(property_address)
+    subject = f"Signing assignment — {addr}" if addr else "Notary signing assignment"
+    content = (
+        _p(f"Hi {_esc(notary_name) or 'there'},")
+        + _p(f"<strong>{_esc(officer_name)}</strong>"
+             + (f" at {_esc(officer_company)}" if officer_company else "")
+             + " is asking whether you can take a signing at a set time.")
+        + _facts([("When", when_text), ("Where", location or addr),
+                  ("Document", deed_type), ("County", county),
+                  ("Link expires", expires_at or "")])
+        + _button(link, "Accept or decline this time")
+        + _p('<span style="font-size:13px;color:#8a94a0;">'
+             f"{_esc(officer_name)} has already agreed this time with the "
+             "signers. Nothing is booked until you accept — and if the time "
+             "does not work, decline it and post the times you are free "
+             "instead.</span>")
+    )
+    text = (
+        f"{officer_name} is asking whether you can take a signing at a set time.\n\n"
+        f"When: {when_text}\nWhere: {location or addr}\n"
+        f"Document: {deed_type}\nCounty: {county}\n"
+        f"Link expires: {expires_at or ''}\n\n"
+        f"Accept or decline: {link}\n\n"
+        f"{officer_name} has already agreed this time with the signers. "
+        "Nothing is booked until you accept. If it does not work, decline "
+        "it and post the times you are free instead."
+    )
+    return subject, _base(f"{officer_name} asked you to take a signing", content, True), text
 
 
 def signing_windows_posted(signer_name, officer_name, officer_company, notary_name,

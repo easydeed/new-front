@@ -77,7 +77,11 @@ def test_every_template_routes_through_send():
     DOWNWARD for the first time when FLOW1 item 6 retired NOTARY1's write
     path and `share_signing_request` lost its only caller (19 -> 18). A
     trip-wire that only counts upward would let a deletion pass
-    unremarked, which is the same silence it exists to break."""
+    unremarked, which is the same silence it exists to break. Back to 19
+    with FLOW1 item 7's `notary_dispatched` — a second notary email
+    because dispatch asks a different question than availability does,
+    and one template with a conditional clause would have made the
+    subject line lie about one of the two cases."""
     import sys
     sys.path.insert(0, str(BACKEND))
     from utils.notifications import TEMPLATES
@@ -88,7 +92,7 @@ def test_every_template_routes_through_send():
         f"declared TEMPLATES and actual _send labels disagree: "
         f"only-declared={set(TEMPLATES) - named}, only-used={named - set(TEMPLATES)}"
     )
-    assert len(TEMPLATES) == 18
+    assert len(TEMPLATES) == 19
 
 
 # ── The recorder's two constraints ───────────────────────────────────

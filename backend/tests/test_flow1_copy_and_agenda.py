@@ -65,6 +65,15 @@ PRONOUNS = re.compile(r"\b(she|her|hers|herself|he|him|his|himself)\b", re.I)
 
 # path (relative to repo root) -> why it may keep gendered wording.
 PRONOUN_EXEMPT = {
+    "backend/services/vesting_split.py": (
+        "A REGEX that MATCHES recorded vesting language — "
+        "'AS (HIS|HER|THEIR) SOLE AND SEPARATE PROPERTY'. Matching text "
+        "somebody else wrote onto a recorded instrument is not writing "
+        "text about a person. §11 governs it: the characterization is a "
+        "legal term of art the officer selects and the recorder expects, "
+        "and narrowing the pattern would make the splitter stop "
+        "recognising real title. Nothing here is rendered to anybody."
+    ),
     "backend/templates/grant_deed_template.html": (
         "The California all-purpose acknowledgement, Civil Code §1189. "
         "'he/she/they' and 'his/her/their' are the prescribed wording of a "
@@ -106,10 +115,21 @@ def test_no_template_asserts_a_pronoun_for_a_named_party():
     """
     offenders = []
 
-    for path in sorted((BACKEND / "utils").glob("*.py")):
-        for lineno, line in _rendered_lines(path):
-            if PRONOUNS.search(line):
-                offenders.append(f"{path.relative_to(REPO)}:{lineno}: {line.strip()[:90]}")
+    # FLOW1 item 7 WIDENED THIS, because the first version missed a live
+    # one. It read `utils/` and `templates/` — where the email copy is —
+    # and `services/signing_loop.state_label()` kept "waiting on {who} to
+    # post the times SHE is free". That function is the ONE place a
+    # scheduling state becomes a sentence for every surface in the
+    # product, so it is the last file that should have been outside a
+    # copy sweep. Habitats are now every directory that can emit prose.
+    for folder in ("utils", "services", "routers"):
+        for path in sorted((BACKEND / folder).glob("*.py")):
+            if str(path.relative_to(REPO)) in PRONOUN_EXEMPT:
+                continue
+            for lineno, line in _rendered_lines(path):
+                if PRONOUNS.search(line):
+                    offenders.append(
+                        f"{path.relative_to(REPO)}:{lineno}: {line.strip()[:90]}")
 
     for path in sorted((BACKEND / "templates").rglob("*")):
         if not path.is_file():

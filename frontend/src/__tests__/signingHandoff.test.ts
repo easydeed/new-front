@@ -134,7 +134,11 @@ describe('NOTARY1 — times carry their offset', () => {
     // how a calendar entry lands an hour out and somebody arrives at an
     // empty office. Pinned where times are ENTERED — which is the
     // notary's token page since §13.1, not the officer's modal.
-    expect(TOKEN_PAGE).toContain('getTimezoneOffset');
+    // FLOW1 item 7 moved the stamping into `lib/wallClock.ts` when the
+    // officer's dispatch form needed it too. Copying the eight lines is
+    // how `phoneSearchKey` came to be right in one language and wrong in
+    // the other, so the rule lives once and the surfaces call it.
+    expect(read('lib', 'wallClock.ts')).toContain('getTimezoneOffset');
     expect(TOKEN_PAGE).toContain('withOffset(start)');
     expect(TOKEN_PAGE).toContain('withOffset(r.start)');
     expect(TOKEN_PAGE).toContain('withOffset(r.end)');
