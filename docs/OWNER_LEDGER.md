@@ -616,23 +616,33 @@ two possibilities is true, the fix is the same — the repo should express
 the rule, and an unpinned runtime on the customer-facing API is the same
 latent failure the cron just demonstrated, one Render default bump away.
 
-**HELD, PENDING A VALUE.** The owner is reading the current version off
-`deedpro-main-api`. Not guessed: writing a plausible version into a
-deploy file is how a "fix" becomes an outage on the next deploy, and a
-wrong pin is worse than no pin because it looks deliberate.
+**RESOLVED 2026-08-11: `PYTHON_VERSION = "3.12.7"`, landed.**
 
-**The one-line change, ready to apply** — under `deedpro-main-api`'s
-`envVars`, alongside the existing entries:
+The evidence, since the header line in the build log was truncated: the
+main API's wheel tags read `cp313` on sqlalchemy and greenlet, so it runs
+**3.13**. The cron got **3.14**, today's Render default — which is what
+caused the original failure.
 
-```yaml
-  - key: PYTHON_VERSION
-    value: "3.X.Y"        # ← the value from deedpro-main-api's dashboard
-```
+**The pin is a DELIBERATE DOWNGRADE to 3.12.7** (owner-ruled): broadest
+wheel coverage across the current dependency set, one minor below the
+edge, and — the part that matters more than the number — it removes the
+"whichever default existed the day this service was created"
+nondeterminism entirely. Three services on three Pythons is not a
+configuration; it is an accident with a history.
 
-Landing it together with a pin — a test asserting every service block in
-`render.yaml` carries `PYTHON_VERSION` — so the rule survives the next
-service somebody adds. The pin is written and held with the value rather
-than committed failing.
+**OPEN, AND THE OWNER'S TO CLOSE: redeploy `deedpro-main-api` and watch
+the build.** This changes the interpreter under a service that serves
+every customer, from 3.13 to 3.12.7. The change is safe in expectation —
+3.12 has strictly better wheel coverage than 3.13 for this dependency set
+— but "safe in expectation" is what the cron's first build also was. It
+is not settled until a clean build on the pinned version has been seen.
+
+Pinned by `backend/tests/test_render_service_pins.py`, which asserts
+every service block in `render.yaml` carries the pin AND carries THIS
+value — "pinned to something" is a weaker claim than "pinned to the thing
+we chose", and two services on two pinned versions is the same
+nondeterminism with extra steps. Probed three ways: removing the pin,
+changing the version, and adding a second unpinned service.
 
 ### Which reality we are in: the dashboard is authoritative
 
