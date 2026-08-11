@@ -12,12 +12,19 @@
 # partial list that does not say so.
 #
 # Owner-ruled 2026-08-11: every service defined here pins PYTHON_VERSION
-# explicitly, matching what `deedpro-main-api` actually runs. An unpinned
-# service inherits whatever Render's default is on the day it builds —
-# which is exactly how the cron's first build died compiling Rust for a
-# pydantic_core with no 3.14 wheel. The value is HELD pending the owner
-# reading it off the dashboard; it is not guessed, because a wrong pin in
-# a deploy file looks deliberate and fails on the next deploy.
+# explicitly. An unpinned service inherits whatever Render's default is
+# on the day it builds, so the runtime can change under a service nobody
+# touched — which is exactly how the cron's first build died compiling
+# Rust for a pydantic_core with no 3.14 wheel.
+#
+# THE PIN IS 3.12.7, AND IT IS A DELIBERATE DOWNGRADE. The main API is
+# currently on 3.13 (read off its build log's cp313 wheel tags); the cron
+# got 3.14, today's Render default. 3.12 is chosen for wheel coverage
+# across the current dependency set — one minor below the edge, where
+# every package we depend on publishes binaries — and, more importantly,
+# because a pinned version removes the "whichever default existed the day
+# this service was created" nondeterminism entirely. Three services on
+# three Pythons is not a configuration, it is an accident with a history.
 #
 # See docs/OWNER_LEDGER.md, "render.yaml — owner ruling".
 
@@ -36,6 +43,11 @@ services:
   buildCommand: pip install -r requirements.txt
   startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
   envVars:
+  # Pinned, not inherited. See the header: this is a downgrade from the
+  # 3.13 the service runs today, and the main API must be redeployed and
+  # its build watched before this is considered settled.
+  - key: PYTHON_VERSION
+    value: "3.12.7"
   - key: DATABASE_URL
     fromDatabase:
       name: deedpro-db
