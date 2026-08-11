@@ -39,8 +39,22 @@ const PICKER = read('features', 'partners', 'PartnerRecipientPicker.tsx');
 
 describe('Part B — two distinct actions on the deed', () => {
   it('the deed offers "Share for review" and "Request signing", separately', () => {
-    expect(PAGE).toContain('title="Share for review"');
-    expect(PAGE).toContain('title="Request signing"');
+    // FLOW1 item 1 RETARGETED THIS PIN, and the retarget is the point.
+    // It used to assert `title="Share for review"` — a TOOLTIP. That was
+    // the spelling, not the property: the property is that the two
+    // actions are separately named where she can read them. A tooltip is
+    // invisible until you already suspect you need it and absent
+    // entirely on touch, which is how the owner pressed the wrong one of
+    // two identical slate squares and sent a notary a reviewer's email.
+    //
+    // So the assertion moved UP in strength, not sideways: visible text,
+    // and the titles that used to carry it are gone rather than kept as
+    // a second copy of the same words.
+    const flat = PAGE.replace(/\s+/g, ' ');
+    expect(flat).toContain('<span className="whitespace-nowrap">Share for review</span>');
+    expect(flat).toContain('<span className="whitespace-nowrap">Request signing</span>');
+    expect(PAGE).not.toContain('title="Share for review"');
+    expect(PAGE).not.toContain('title="Request signing"');
     // The generic one is gone, not relabelled alongside them.
     expect(PAGE).not.toContain('title="Share deed"');
   });
@@ -125,7 +139,10 @@ describe('Part B — the rolodex is the default, typing is the fallback', () => 
     expect(PICKER).toContain('QuickAddPartnerModal');
     expect(PICKER).toContain('Add a new partner');
     // And the newly-created partner is selected immediately.
-    expect(PICKER).toContain('onChange({ email: created.email');
+    // FLOW1 reformatted this call across lines when `category` joined it,
+    // so the assertion flattens rather than pinning where the formatter
+    // chose to break.
+    expect(PICKER.replace(/\s+/g, ' ')).toContain('onChange({ email: created.email,');
   });
 
   it('a partner created without an email does not become a silent recipient', () => {

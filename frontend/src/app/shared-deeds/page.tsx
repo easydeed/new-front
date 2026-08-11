@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Sidebar from "@/components/Sidebar"
-import { Send, Eye, Clock, CheckCircle, XCircle, AlertCircle, RotateCw, X, Plus, FileText, MessageSquare, CalendarClock } from "lucide-react"
+import { Send, Eye, Clock, CheckCircle, XCircle, AlertCircle, RotateCw, X, FileText, MessageSquare, CalendarClock } from "lucide-react"
 import { toast } from "sonner"
 import { SessionExpiredError, apiFetch } from "@/lib/apiClient"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
@@ -91,7 +91,6 @@ export default function SharedDeedsPageV0() {
     text: "",
     structured: null,
   })
-  const [shareModalOpen, setShareModalOpen] = useState(false)
   const [revokeConfirm, setRevokeConfirm] = useState<{ isOpen: boolean; shareId: number | null }>({
     isOpen: false,
     shareId: null,
@@ -324,12 +323,28 @@ export default function SharedDeedsPageV0() {
                   {sharedDeeds.length} shared {sharedDeeds.length === 1 ? "deed" : "deeds"}
                 </span>
               </div>
+              {/* FLOW1 item 2 — "Share New Deed" IS GONE.
+                  It opened a modal titled "Share Deed for Review" whose
+                  entire body was a sentence telling her to go to Past
+                  Deeds and press a different button. Three things were
+                  wrong and only one was cosmetic: it did nothing; it
+                  said "for Review", so the one entry point on this page
+                  committed to reviewer semantics before asking what she
+                  wanted; and from her seat the signpost/action
+                  distinction is academic — she pressed a button and got
+                  told to go elsewhere.
+
+                  Deleted rather than turned into a chooser, per the
+                  ruling, because a chooser here would first have to ask
+                  WHICH DEED — this page has no deed context, only
+                  shares. The empty state already points at Past Deeds,
+                  which is the honest version of what this button was. */}
               <button
-                onClick={() => setShareModalOpen(true)}
-                className="flex items-center gap-2 px-6 py-3 bg-[#7C4DFF] hover:bg-[#6a3de8] text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
+                onClick={() => router.push("/past-deeds")}
+                className="flex items-center gap-2 px-6 py-3 border border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-colors"
               >
-                <Plus className="w-5 h-5" />
-                Share New Deed
+                <FileText className="w-5 h-5" />
+                Go to Past Deeds
               </button>
             </div>
           </div>
@@ -587,37 +602,13 @@ export default function SharedDeedsPageV0() {
         </div>
       )}
 
-      {/* Share New Deed Modal (Placeholder) */}
-      {shareModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-[600px] w-full p-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-slate-800">Share Deed for Review</h2>
-              <button
-                onClick={() => setShareModalOpen(false)}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5 text-slate-400 hover:text-slate-600" />
-              </button>
-            </div>
-            <div className="text-center py-12">
-              <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <p className="text-slate-600 mb-6">
-                To share a deed, please go to the Past Deeds page and click the Share button on a completed deed.
-              </p>
-              <button
-                onClick={() => {
-                  setShareModalOpen(false)
-                  router.push("/past-deeds")
-                }}
-                className="px-6 py-3 bg-[#7C4DFF] hover:bg-[#6a3de8] text-white font-medium rounded-lg transition-colors"
-              >
-                Go to Past Deeds
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* FLOW1 item 2: the placeholder modal that used to live here is
+          DELETED, not hidden behind a flag. Its entire body was a
+          sentence telling the officer to go to Past Deeds and press a
+          different button — a modal whose content is instructions for
+          reaching the real feature is a signpost wearing a dialog's
+          clothes. The header button now navigates directly, and says so.
+          Pinned in __tests__/flowInterrupts.test.ts. */}
 
       {/* Revoke Confirmation Dialog */}
       <ConfirmDialog

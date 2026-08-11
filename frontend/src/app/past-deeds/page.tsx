@@ -378,19 +378,38 @@ export default function PastDeedsPageV0() {
                                     button quietly meant "review" without ever
                                     saying so. `share_kind` is set by which
                                     button she pressed, never inferred. */}
+                                {/* FLOW1 item 1 — THE TWINS GET LABELS.
+                                    These were the same size, the same
+                                    slate, adjacent, and distinguished
+                                    only by `Share2` vs `CalendarClock`
+                                    plus a `title` attribute that
+                                    requires a hover. On a row of icon
+                                    buttons, "the one that means signing"
+                                    is not discoverable — it is
+                                    remembered, and the owner remembered
+                                    wrong, which is how a notary came to
+                                    receive a reviewer's email.
+
+                                    A tooltip is not a label. It is
+                                    invisible until you already suspect
+                                    you need it, and absent entirely on
+                                    touch. The words are on the buttons
+                                    now; the icons stay as recognition
+                                    aids rather than as the only
+                                    distinction. */}
                                 <button
                                   onClick={() => setReviewDeedId(deed.id)}
-                                  className="p-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors"
-                                  title="Share for review"
+                                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-600 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors"
                                 >
-                                  <Share2 className="w-4 h-4" />
+                                  <Share2 className="w-4 h-4 shrink-0" />
+                                  <span className="whitespace-nowrap">Share for review</span>
                                 </button>
                                 <button
                                   onClick={() => setSigningDeedId(deed.id)}
-                                  className="p-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors"
-                                  title="Request signing"
+                                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-600 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors"
                                 >
-                                  <CalendarClock className="w-4 h-4" />
+                                  <CalendarClock className="w-4 h-4 shrink-0" />
+                                  <span className="whitespace-nowrap">Request signing</span>
                                 </button>
                               </>
                             )}
@@ -445,7 +464,18 @@ export default function PastDeedsPageV0() {
             );
           })()}
           {reviewDeedId !== null && (
-            <ShareForReviewModal deedId={reviewDeedId} onClose={() => setReviewDeedId(null)} />
+            <ShareForReviewModal
+              deedId={reviewDeedId}
+              onClose={() => setReviewDeedId(null)}
+              // FLOW1 item 1: the interrupt's other half. Asking "did
+              // you mean a signing?" and then making her close the modal,
+              // find the row again and press the other button would be a
+              // scolding rather than a suggestion.
+              onSwitchToSigning={() => {
+                setSigningDeedId(reviewDeedId);
+                setReviewDeedId(null);
+              }}
+            />
           )}
         </PartnersProvider>
       )}

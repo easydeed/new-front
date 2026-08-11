@@ -444,15 +444,18 @@ function DeedRow({ deed }: { deed: any }) {
               <Download className="w-4 h-4" />
             </button>
           )}
-          {deed.status === 'completed' && (
-            <button
-              onClick={() => router.push('/past-deeds')}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
-              title="Share from Past Deeds"
-            >
-              <Share2 className="w-4 h-4" />
-            </button>
-          )}
+          {/* FLOW1 item 2: the share icon that used to sit here is
+              DELETED. It carried a Share2 glyph and the hover title
+              "Share from Past Deeds", and it did not share — it routed
+              to /past-deeds and left her to find the row again and press
+              a different button. An icon that means "share" attached to
+              an act that means "navigate" is the twins problem in
+              miniature: the affordance and the outcome disagree.
+
+              Deleted rather than wired up, per the ruling's "prefer
+              deleting". Wiring it would mean mounting both share modals
+              and a PartnersProvider on the dashboard — a third surface
+              for two flows, on a page whose job is a glance. */}
           {needsAction && (
             <button
               onClick={() => router.push(`/deed-builder/${deed.deed_type || 'grant-deed'}?resume=${deed.id}`)}

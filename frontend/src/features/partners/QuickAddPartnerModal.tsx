@@ -13,7 +13,12 @@ interface QuickAddPartnerModalProps {
   /** PARTNER2/B: the email rides along, because the caller is now a
    * RECIPIENT picker — a partner created mid-flow should be selectable
    * immediately rather than requiring her to go and find it. */
-  onCreated: (partner: { id: string; label: string; email?: string }) => void;
+  /** FLOW1: the CATEGORY rides along too. A partner created mid-flow
+   * is filed the moment she creates them, and the flow that receives
+   * the pick has to be able to notice a mismatch — otherwise creating
+   * a notary from inside the review modal is the one path that slips
+   * past the interrupt. */
+  onCreated: (partner: { id: string; label: string; email?: string; category?: string }) => void;
   initialName?: string;
   /** Named `initialCategory` because it SEEDS the form; the old name
    * `category` read like it constrained what could be created. */
@@ -62,6 +67,7 @@ export function QuickAddPartnerModal({
           id: newPartner.id,
           label: formData.contact_name || formData.company_name || '',
           email: formData.email || undefined,
+          category,
         });
         onClose();
       }
