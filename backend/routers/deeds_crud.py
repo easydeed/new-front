@@ -351,22 +351,41 @@ def deeds_summary(user_id: int = Depends(get_current_user_id)) -> Dict[str, int]
             completed = row[1] if row else 0
             drafts = row[2] if row else 0
 
-            # Query for deeds created this month
+            # DASH1: LAST 30 DAYS, not "this month".
+            #
+            # `date_trunc('month', ...)` renders a big zero on the first
+            # of every month, for a user whose work did not stop — the
+            # counter tells her she has done nothing when what happened
+            # is that a calendar page turned. The admin surface already
+            # carries a paragraph apologising for exactly this framing;
+            # this is the honest version it settled on.
+            #
+            # `month` is kept in the response ALONGSIDE it rather than
+            # renamed away, for one release: an old cached bundle asking
+            # for a key that vanished renders `undefined`, and FLOW1 item
+            # 0 was a whole PR about what that looks like. It is marked
+            # here so the next reader knows it is a deprecation and not a
+            # duplicate.
             cur.execute("""
-                SELECT COUNT(*)
+                SELECT
+                    COUNT(*) FILTER (WHERE created_at >= now() - interval '30 days') AS last_30,
+                    COUNT(*) FILTER (WHERE created_at >= date_trunc('month', CURRENT_DATE)) AS month
                 FROM deeds
                 WHERE user_id = %s AND COALESCE(status, '') <> 'deleted'
-                AND created_at >= date_trunc('month', CURRENT_DATE)
             """, (user_id,))
 
-            month_row = cur.fetchone()
-            month = month_row[0] if month_row else 0
+            row = cur.fetchone()
+            last_30 = (row[0] if row else 0) or 0
+            month = (row[1] if row else 0) or 0
 
             return {
                 "total": total,
                 "completed": completed,
                 "drafts": drafts,
-                "month": month
+                "last_30_days": last_30,
+                # DEPRECATED — see above. Remove one release after the
+                # dashboard stops reading it.
+                "month": month,
             }
 
     except HTTPException:

@@ -52,6 +52,7 @@ from __future__ import annotations
 
 import ast
 import re
+import tokenize
 from pathlib import Path
 
 import pytest
@@ -85,11 +86,28 @@ PRONOUN_EXEMPT = {
 
 
 def _rendered_lines(path: Path):
-    """Lines of a .py file that are CODE, with docstrings removed.
+    """Lines of a .py file that are CODE — no docstrings, no comments.
 
-    Prose about a role in a docstring is not a claim made to anybody. The
-    sweep is about what the product SAYS, so it reads what the product
-    renders.
+    Prose about a role in a docstring or a comment is not a claim made to
+    anybody. The sweep is about what the product SAYS, so it reads what
+    the product renders.
+
+    ═══ THE FOURTEENTH COMMENT-TRIP, AND WHY code_only IS NOT THE FIX ═══
+
+    The first version skipped only lines that STARTED with `#`, so a
+    trailing comment — `"idle_drafts",  # her own work, untouched` —
+    tripped the sweep on prose nobody will ever read. That is the trip
+    this codebase has now made fourteen times, and the reflex is
+    `code_only()`.
+
+    It is the wrong tool HERE, for a specific reason: `code_only` on
+    Python COLLAPSES lines (155 in, 90 out), so every line number this
+    pin reports would be wrong — and a sweep whose failure message points
+    at the wrong line is worse than one that occasionally trips, because
+    the reader chases a line that is innocent.
+
+    So this tokenizes and BLANKS comment spans in place. Line numbers
+    survive; comments do not.
     """
     src = path.read_text(encoding="utf-8")
     tree = ast.parse(src)
@@ -101,8 +119,18 @@ def _rendered_lines(path: Path):
                 first = node.body[0]
                 doc_lines.update(range(first.lineno,
                                        (first.end_lineno or first.lineno) + 1))
-    for i, line in enumerate(src.splitlines(), 1):
-        if i in doc_lines or line.lstrip().startswith("#"):
+
+    lines = src.splitlines()
+    with path.open("rb") as handle:
+        for tok in tokenize.tokenize(handle.readline):
+            if tok.type != tokenize.COMMENT:
+                continue
+            row = tok.start[0] - 1
+            if 0 <= row < len(lines):
+                lines[row] = lines[row][: tok.start[1]]
+
+    for i, line in enumerate(lines, 1):
+        if i in doc_lines:
             continue
         yield i, line
 
@@ -130,6 +158,29 @@ def test_no_template_asserts_a_pronoun_for_a_named_party():
                 if PRONOUNS.search(line):
                     offenders.append(
                         f"{path.relative_to(REPO)}:{lineno}: {line.strip()[:90]}")
+
+    # A trailing comment must not trip the sweep, and a rendered string
+    # must. Proved rather than assumed — this is the exact trip DASH1
+    # made, reduced to two lines.
+    import textwrap
+    probe = BACKEND / "tests" / "_pronoun_probe.py"
+    probe.write_text(textwrap.dedent('''
+        VALUES = [
+            "idle_drafts",     # her own work, untouched
+        ]
+    ''').lstrip(), encoding="utf-8")
+    try:
+        assert not any(PRONOUNS.search(line)
+                       for _n, line in _rendered_lines(probe)), (
+            "a trailing comment trips the sweep — the fourteenth "
+            "comment-trip, and the reason this reads tokens")
+        probe.write_text('MESSAGE = "she confirms it herself"\n', encoding="utf-8")
+        hits = [n for n, line in _rendered_lines(probe) if PRONOUNS.search(line)]
+        assert hits == [1], (
+            f"the sweep stopped seeing rendered strings, or lost its line "
+            f"numbers: {hits}")
+    finally:
+        probe.unlink(missing_ok=True)
 
     for path in sorted((BACKEND / "templates").rglob("*")):
         if not path.is_file():
@@ -190,8 +241,17 @@ def test_the_officer_agenda_sends_when_she_asked():
 def test_the_frontend_no_longer_reconstructs_the_age():
     """The other half of the same fix — pinned from here too, because a
     server that sends the fact and a screen that ignores it is the same
-    defect with an extra step."""
+    defect with an extra step.
+
+    DASH1 moved the second assertion UP a level. FLOW1 pinned the local
+    `ageInDays(r.created_at)` that replaced `expires_at minus 21 days`;
+    DASH1 removed the local judgement as well, because the dashboard
+    needed the same "has this gone quiet?" answer and two thresholds in
+    two languages is the copy problem this codebase keeps deleting. The
+    screen reads both the age and the verdict now.
+    """
     page = (REPO / "frontend" / "src" / "app" / "signings" / "page.tsx").read_text(
         encoding="utf-8")
     assert "21 * 86400_000" not in page
-    assert "ageInDays(r.created_at)" in page
+    assert "row.days_waiting" in page
+    assert "return r.stale;" in page

@@ -32,6 +32,7 @@ from pydantic import BaseModel, Field
 
 import db
 from auth import get_current_user_id
+from services import officer_queue
 from services import signing_loop as loop
 from services import signing_purge, signing_surfaces
 from utils.throttle import client_key, throttle
@@ -403,6 +404,18 @@ def officer_agenda(user_id: int = Depends(get_current_user_id)):
                 # family as item 0: a fact the screen shows, that the
                 # server never sent, inferred.
                 "created_at": _iso(row.get("created_at")),
+                # DASH1: WHETHER IT HAS GONE QUIET, decided here.
+                # The agenda page carried `STUCK_AFTER_DAYS = 5` in
+                # TypeScript; the dashboard needed the same judgement, and
+                # a second threshold in Python for the same question is
+                # how the partner category list came to have four copies.
+                # One number, in services/officer_queue.py, and the
+                # screens render what they are told.
+                "days_waiting": officer_queue.days_since(row.get("created_at")),
+                "stale": (loop.request_state(row, windows, responses)
+                          in (loop.STATE_REQUESTED, loop.STATE_WINDOWS_POSTED)
+                          and officer_queue.is_stale(
+                              officer_queue.days_since(row.get("created_at")))),
                 "expires_at": _iso(row.get("expires_at")),
                 "signers": len([p for p in participants
                                 if p["party_role"] == loop.ROLE_SIGNER]),

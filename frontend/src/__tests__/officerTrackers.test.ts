@@ -127,24 +127,35 @@ describe('FLOW1 item 4 — the order is the one it claims', () => {
   });
 });
 
-describe('FLOW1 item 4 — the age is read, not reconstructed', () => {
-  it('reads created_at instead of subtracting the expiry default', () => {
-    expect(SIGNINGS_CODE).toContain('function ageInDays(createdAt: string | null)');
-    expect(SIGNINGS_CODE).toContain('ageInDays(r.created_at)');
-  });
-
+describe('FLOW1 item 4 → DASH1 — the age is read, and so is the verdict', () => {
+  // DASH1 FINISHED WHAT ITEM 4 STARTED, and the pin moved with it.
+  //
+  // Item 4 stopped this screen RECONSTRUCTING a request's age from
+  // `expires_at minus 21 days`, and pinned the local `ageInDays` that
+  // replaced the arithmetic. DASH1 removed the local judgement too: the
+  // dashboard needed the same "has this gone quiet?" answer, and a
+  // threshold in Python beside one in TypeScript is how the partner
+  // category list came to have four copies.
+  //
+  // So the assertions moved UP a level rather than being deleted: the
+  // screen holds no age arithmetic AND no threshold, and reads both from
+  // the payload.
   it('carries no copy of the server’s expiry constant', () => {
-    // `21` was `default_expiry()`'s value, retyped here as a bare
-    // number with nothing connecting the two. A magic constant that
-    // mirrors a server default is a silent coupling.
     expect(SIGNINGS_CODE).not.toMatch(/\b21\s*\*\s*86400/);
     expect(SIGNINGS_CODE).not.toContain('expires - 21');
   });
 
-  it('an unknown creation time is unknown, not zero', () => {
-    // Zero would read as "asked today", which is a claim.
-    expect(SIGNINGS_CODE).toContain('if (!createdAt) return null;');
-    expect(SIGNINGS_CODE).toContain('if (age === null) return false;');
+  it('holds no staleness threshold of its own', () => {
+    expect(SIGNINGS_CODE).not.toContain('STUCK_AFTER_DAYS');
+    expect(SIGNINGS_CODE).not.toMatch(/>=\s*5\b/);
+  });
+
+  it('reads the verdict and the age from the payload', () => {
+    expect(SIGNINGS_CODE).toContain('return r.stale;');
+    expect(SIGNINGS_CODE).toContain('const age = row.days_waiting;');
+    // And the number in the banner's sentence comes with the payload
+    // rather than being typed into the sentence.
+    expect(SIGNINGS_CODE).toContain('stale_after_days');
   });
 });
 

@@ -169,6 +169,10 @@
  ],
  [
   "GET",
+  "/dashboard/queue"
+ ],
+ [
+  "GET",
   "/deeds"
  ],
  [

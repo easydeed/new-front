@@ -42,6 +42,10 @@ type Row = {
   /** FLOW1 item 4: WHEN SHE ASKED. See the note on ageInDays below for
    * what this replaced and why the replacement matters. */
   created_at: string | null;
+  /** DASH1: the server decides how long is too long, and whether this
+   * one has crossed it. See the note on the deleted constant below. */
+  days_waiting: number | null;
+  stale: boolean;
   expires_at: string | null;
   signers: number;
 };
@@ -63,41 +67,36 @@ type Detail = {
   }>;
 };
 
-/** Days of silence before a request is worth chasing. Not a deadline —
- * nothing expires because of it — a prompt. */
-const STUCK_AFTER_DAYS = 5;
+/**
+ * DASH1 — `STUCK_AFTER_DAYS = 5` USED TO LIVE HERE, and it is gone.
+ *
+ * The dashboard needed the same judgement — "has this gone quiet?" — and
+ * writing a second threshold in Python beside this one in TypeScript is
+ * exactly how the partner category list came to have four divergent
+ * copies and how `phoneSearchKey` came to be right in one language and
+ * wrong in the other.
+ *
+ * So the number lives in `backend/services/officer_queue.py`, the server
+ * sends `stale` and `days_waiting` per row, and this screen renders what
+ * it is told. The threshold still travels with the payload, so the
+ * sentence explaining the amber banner can say it without knowing it.
+ */
 
 /**
- * FLOW1 item 4 — THE AGE IS READ, NOT RECONSTRUCTED.
+ * FLOW1 item 4 → DASH1: THE AGE IS READ, AND SO IS THE VERDICT.
  *
- * This used to compute `expires_at minus 21 days` because the agenda
- * payload carried no creation time, and 21 is `default_expiry()`'s
- * constant — copied into another language as a bare number with nothing
- * connecting the two. Changing the default expiry on the server would
- * have silently re-aimed every stuck badge on this screen, and nothing
- * would have failed.
+ * FLOW1 stopped this screen reconstructing a request's age as
+ * `expires_at minus 21 days` — a copy of the server's expiry default,
+ * retyped as a bare number in another language. DASH1 finishes the job:
+ * the server now sends `days_waiting` AND `stale`, so the screen no
+ * longer holds an opinion about how long is too long either.
  *
- * That is item 0's defect in a second habitat: a fact the screen shows,
- * that the server never sent, inferred from something adjacent. The
- * server sends `created_at` now.
- *
- * An unknown creation time returns null rather than 0. Zero would read
- * as "asked today", which is a claim; null reads as "we do not know",
- * which is true and keeps the row out of the stuck count.
+ * Both halves are the same lesson. A fact the screen shows and the
+ * server never sent gets inferred; a judgement the screen makes and the
+ * server also makes gets made twice, differently.
  */
-function ageInDays(createdAt: string | null): number | null {
-  if (!createdAt) return null;
-  const created = new Date(createdAt).getTime();
-  if (Number.isNaN(created)) return null;
-  return Math.max(0, Math.floor((Date.now() - created) / 86400_000));
-}
-
 function isStuck(r: Row): boolean {
-  if (r.state === 'booked' || r.state === 'cancelled' || r.state === 'expired') return false;
-  const age = ageInDays(r.created_at);
-  if (age === null) return false;
-  // Nobody has posted a time, or times are posted and nobody answered.
-  return age >= STUCK_AFTER_DAYS && (r.state === 'requested' || r.state === 'windows_posted');
+  return r.stale;
 }
 
 const STATE_LABEL: Record<string, string> = {
@@ -136,6 +135,9 @@ function SigningsAgenda() {
   const router = useRouter();
   const params = useSearchParams();
   const [rows, setRows] = useState<Row[]>([]);
+  // The threshold travels with the queue payload, so the sentence
+  // explaining the amber banner can say the number without knowing it.
+  const [staleAfterDays, setStaleAfterDays] = useState<number | null>(null);
   // FLOW1 item 4: `?focus=<id>` opens that signing. A notification about
   // one signing should be able to point at that signing.
   const [focus, setFocus] = useState<number | null>(() => {
@@ -162,6 +164,13 @@ function SigningsAgenda() {
         const r = await apiFetch('/signing-requests/v2', {}, { label: 'Loading signings' });
         if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || `Failed (${r.status})`);
         setRows(await r.json());
+        // Best-effort: the banner degrades to its own wording if this
+        // fails, and a failed lookup for a NUMBER IN A SENTENCE must not
+        // blank a page full of real signings.
+        try {
+          const t = await apiFetch('/dashboard/queue', {}, { label: 'Loading your queue', silent: true });
+          if (t.ok) setStaleAfterDays((await t.json())?.thresholds?.stale_after_days ?? null);
+        } catch { /* the sentence has a fallback; the list does not need one */ }
       } catch (err) {
         if (err instanceof SessionExpiredError) return;
         setError(err instanceof Error ? err.message : 'Could not load your signings');
@@ -241,8 +250,8 @@ function SigningsAgenda() {
                 {stuck.length} {stuck.length === 1 ? 'signing has' : 'signings have'} gone quiet
               </p>
               <p className="text-sm text-amber-800 mt-1">
-                No movement in {STUCK_AFTER_DAYS} days or more. Nothing has expired — these
-                are worth a phone call.
+                No movement in {staleAfterDays ?? 5} days or more. Nothing has expired —
+                these are worth a phone call.
               </p>
             </div>
           )}
@@ -340,7 +349,7 @@ function SigningRow({ row, open, onToggle }: {
 }) {
   const stuck = isStuck(row);
   const booked = row.state === 'booked';
-  const age = ageInDays(row.created_at);
+  const age = row.days_waiting;
 
   return (
     <div className={`bg-white rounded-xl border ${stuck ? 'border-amber-300' : 'border-slate-200'}`}>
