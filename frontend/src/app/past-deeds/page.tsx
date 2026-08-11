@@ -1,8 +1,8 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Sidebar from "@/components/Sidebar"
 import { FileText, Download, Share2, Trash2, AlertCircle, CheckCircle, Clock, X, Plus, Loader2, Search, CalendarClock } from "lucide-react"
 import { RequestSigningModal } from "@/features/signing/RequestSigningModal"
@@ -36,8 +36,30 @@ function partyNames(deed: Deed): string {
     .join("; ")
 }
 
+/**
+ * `useSearchParams()` opts a page out of static prerendering unless it
+ * sits under a Suspense boundary, and Next fails the BUILD rather than
+ * the render — jest and tsc stay green while the deploy does not. Second
+ * time this ticket; the same boundary the admin, success and signings
+ * pages already use.
+ */
 // ✅ PHASE 24-E: V0-generated Past Deeds page with all business logic preserved
 export default function PastDeedsPageV0() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen bg-slate-50">
+        <Sidebar />
+        <main className="flex-1 flex items-center justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+        </main>
+      </div>
+    }>
+      <PastDeedsList />
+    </Suspense>
+  )
+}
+
+function PastDeedsList() {
   const router = useRouter()
   const [deeds, setDeeds] = useState<Deed[]>([])
   const [loading, setLoading] = useState(true)
@@ -55,7 +77,26 @@ export default function PastDeedsPageV0() {
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
   // X2.7: find a deed without scrolling — text search + status filter.
   const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "draft">("all")
+  /**
+   * DASH1 — THE DASHBOARD LINKS IN HERE, so the links have to land.
+   *
+   * Stat tiles are drill-downs now ("4 Drafts" → those drafts) and the
+   * activity feed points at a specific deed. A link that arrives and
+   * shows an unfiltered list is the dead-button defect wearing a URL:
+   * the affordance promises a filtered view and the outcome is not one.
+   *
+   * `?status=` seeds the filter; `?focus=` highlights one row.
+   */
+  const params = useSearchParams()
+  const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "draft">(() => {
+    const wanted = params?.get("status")
+    return wanted === "completed" || wanted === "draft" ? wanted : "all"
+  })
+  const focusId = (() => {
+    const raw = params?.get("focus")
+    const id = raw ? Number(raw) : NaN
+    return Number.isInteger(id) ? id : null
+  })()
 
   useEffect(() => {
     fetchDeeds()
@@ -324,8 +365,13 @@ export default function PastDeedsPageV0() {
                     {visibleDeeds.map((deed, index) => (
                       <tr
                         key={deed.id}
+                        // DASH1: the deed the dashboard sent her here for,
+                        // marked. Landing on the right list and leaving her
+                        // to find the row is half a link.
                         className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${
-                          index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
+                          deed.id === focusId
+                            ? "bg-violet-50 ring-2 ring-inset ring-[#7C4DFF]"
+                            : index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
                         }`}
                       >
                         <td className="py-4 px-6 font-mono text-sm text-slate-600">#{deed.id}</td>

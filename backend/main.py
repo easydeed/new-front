@@ -228,6 +228,13 @@ app.include_router(sharing_router)
 from routers.signing import router as signing_router
 app.include_router(signing_router, tags=["Signing"])
 
+# DASH1 — the officer's queue. One endpoint rather than the dashboard
+# asking three services three questions and stitching the answers on the
+# client, which is how a screen renders a partial truth when one of the
+# three fails.
+from routers.dashboard import router as dashboard_router
+app.include_router(dashboard_router, tags=["Dashboard"])
+
 from routers.pricing import router as pricing_router
 app.include_router(pricing_router)
 

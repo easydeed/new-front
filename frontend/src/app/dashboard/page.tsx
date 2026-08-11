@@ -16,7 +16,34 @@ import {
   ArrowRight, Sparkles, Eye
 } from "lucide-react"
 
+/**
+ * DASH1 — WHAT IS WAITING ON SOMEBODY.
+ *
+ * The dashboard showed only AUTHORING state: four counters and a feed of
+ * completed deeds. Nothing on it was workflow state — and workflow state
+ * is the escrow officer's job. She could not answer "what is stuck?",
+ * "what signs tomorrow?" or "who has not responded?" without visiting two
+ * other pages, while this page carried four entry points for creating a
+ * deed, which she does once per file.
+ *
+ * The shape below is the server's, asserted by equality in
+ * `services/officer_queue.py`. Nothing here decides what "stale" means.
+ */
+type Queue = {
+  upcoming: Array<{ kind: string; id: number; deed_id: number; property: string | null;
+                    when: string; who: string | null; summary: string }>;
+  awaiting: Array<{ kind: string; id: number; deed_id: number; property: string | null;
+                    who: string | null; days_waiting: number | null; stale: boolean;
+                    summary: string }>;
+  idle_drafts: Array<{ kind: string; id: number; deed_type: string | null;
+                       property: string | null; days_idle: number | null }>;
+  needs_attention: number;
+  thresholds: { stale_after_days: number; upcoming_days: number; idle_draft_days: number };
+};
+
 export default function Dashboard() {
+  const [queue, setQueue] = useState<Queue | null>(null)
+  const [queueError, setQueueError] = useState<string | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
   const [userName, setUserName] = useState<string>("")
@@ -26,7 +53,7 @@ export default function Dashboard() {
     total: number
     completed: number
     drafts: number
-    month: number
+    lastThirtyDays: number
   } | null>(null)
   const router = useRouter()
 
@@ -101,7 +128,7 @@ export default function Dashboard() {
             total: data.total || 0,
             completed: data.completed || 0,
             drafts: data.drafts || 0,
-            month: data.month || 0,
+            lastThirtyDays: data.last_30_days ?? data.month ?? 0,
           })
         } else {
           // Fallback: calculate from deeds list
@@ -109,20 +136,42 @@ export default function Dashboard() {
           if (list.ok) {
             const data = await list.json()
             const deeds = Array.isArray(data.deeds) ? data.deeds : []
-            const monthStart = new Date()
-            monthStart.setDate(1)
-            monthStart.setHours(0, 0, 0, 0)
+            const thirtyDaysAgo = new Date(Date.now() - 30 * 86400_000)
             setSummary({
               total: deeds.length,
               completed: deeds.filter((d: any) => d.status === "completed").length,
               drafts: deeds.filter((d: any) => d.status !== "completed").length,
-              month: deeds.filter((d: any) => d.created_at && new Date(d.created_at) >= monthStart).length,
+              // Fallback path: 30 days back, matching the endpoint it is
+              // standing in for rather than the calendar it used to use.
+              lastThirtyDays: deeds.filter((d: any) => d.created_at
+                && new Date(d.created_at) >= thirtyDaysAgo).length,
             })
           }
         }
       } catch (e) {
         if (e instanceof SessionExpiredError) return
         console.error("Failed to load dashboard summary:", e)
+      }
+    })()
+  }, [isAuthenticated])
+
+  // The queue. Its own state and its own error, because a failed queue
+  // must not blank a page of real deeds and a failed deed list must not
+  // hide the queue — §4 in both directions, the rule FLOW1 item 3 landed
+  // on when Shared Deeds grew a second feed.
+  useEffect(() => {
+    if (!isAuthenticated) return
+    ;(async () => {
+      try {
+        const res = await apiFetch(`/dashboard/queue`, {}, { label: "Loading what's waiting" })
+        if (!res.ok) {
+          const detail = await res.json().catch(() => ({}))
+          throw new Error(detail.detail || `Couldn't load your queue (${res.status})`)
+        }
+        setQueue(await res.json())
+      } catch (e) {
+        if (e instanceof SessionExpiredError) return
+        setQueueError(e instanceof Error ? e.message : "Couldn't load what's waiting")
       }
     })()
   }, [isAuthenticated])
@@ -173,6 +222,11 @@ export default function Dashboard() {
   // U1.2: the LAST-TOUCHED draft (updated_at desc), not the first draft in
   // a created_at-ordered list — that offered users their oldest work back.
   const inProgressDeed = pickInProgressDeed(recentDeeds)
+  // DASH1: by when something last happened to it, drafts included —
+  // which is what "recent activity" claimed and creation order is not.
+  const recentlyTouched = [...recentDeeds].sort((a: any, b: any) =>
+    String(b.updated_at || b.created_at || '').localeCompare(
+      String(a.updated_at || a.created_at || '')))
 
   return (
     <div className="flex bg-gray-50 min-h-screen">
@@ -202,7 +256,14 @@ export default function Dashboard() {
             />
           )}
 
-          {/* Stats Grid */}
+          {/* DASH1 — THE QUEUE LEADS. What is waiting on somebody comes
+              before what has been made, because that is the order she
+              works in. */}
+          <ActionQueue queue={queue} error={queueError} />
+
+          {/* Stats Grid — DASH1: every tile is a LINK now. A count with
+              no drill-down is trivia: "4 Drafts" that cannot be pressed
+              tells her a number and makes her go and find the four. */}
           {hasDeeds && (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               <StatCard
@@ -210,24 +271,34 @@ export default function Dashboard() {
                 value={summary?.total ?? 0}
                 icon={<FileText className="w-5 h-5" />}
                 color="purple"
+                href="/past-deeds"
               />
               <StatCard
                 label="Drafts"
                 value={summary?.drafts ?? 0}
                 icon={<Clock className="w-5 h-5" />}
                 color="yellow"
+                href="/past-deeds?status=draft"
               />
+              {/* DASH1: "This Month" is gone. It rendered a big zero on
+                  the first of every month for a user whose work had not
+                  stopped — the counter told her she had done nothing when
+                  what happened is that a calendar page turned. The admin
+                  surface already carries a paragraph apologising for the
+                  same framing; this is the honest version it settled on. */}
               <StatCard
-                label="This Month"
-                value={summary?.month ?? 0}
+                label="Last 30 days"
+                value={summary?.lastThirtyDays ?? 0}
                 icon={<TrendingUp className="w-5 h-5" />}
                 color="blue"
+                href="/past-deeds"
               />
               <StatCard
                 label="Completed"
                 value={summary?.completed ?? 0}
                 icon={<CheckCircle className="w-5 h-5" />}
                 color="green"
+                href="/past-deeds?status=completed"
               />
             </div>
           )}
@@ -257,14 +328,24 @@ export default function Dashboard() {
             </div>
           ) : hasDeeds ? (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+              {/* DASH1 — "RECENT ACTIVITY" WAS SORTED BY CREATION.
+                  `GET /deeds` orders by `created_at DESC`, so a draft
+                  edited this morning sat below five deeds made last week
+                  and never touched since. The feed was "recently made",
+                  labelled "recently happened" — and because completed
+                  deeds cluster at the top of a creation-ordered list, it
+                  read as a completed-deeds feed while the Drafts counter
+                  said otherwise.
+                  Two fixes, not one: it sorts by when something last
+                  HAPPENED to the deed, and every row now links to it. */}
               <div className="p-4 md:p-6 border-b border-gray-100">
                 <div className="flex items-center gap-2">
                   <Activity className="w-5 h-5 text-emerald-600" />
-                  <h3 className="text-lg font-bold text-gray-900">Recent Activity</h3>
+                  <h3 className="text-lg font-bold text-gray-900">Recently worked on</h3>
                 </div>
               </div>
               <div className="divide-y divide-gray-100">
-                {recentDeeds.slice(0, 5).map((deed: any) => (
+                {recentlyTouched.slice(0, 5).map((deed: any) => (
                   <DeedRow key={deed.id} deed={deed} />
                 ))}
               </div>
@@ -292,18 +373,180 @@ export default function Dashboard() {
   )
 }
 
+/**
+ * DASH1 — the action queue.
+ *
+ * THREE LISTS, NOT ONE PILE. "Chase somebody", "be somewhere" and
+ * "finish something" are different actions, and merging them makes her
+ * sort them by hand every morning.
+ *
+ * THE EMPTY STATE IS A RESULT, NOT AN ABSENCE. An honest empty queue is
+ * a good morning — the screen says so rather than rendering nothing and
+ * letting her wonder whether it loaded.
+ */
+function ActionQueue({ queue, error }: { queue: Queue | null; error: string | null }) {
+  const router = useRouter()
+
+  if (error) {
+    // §4: a queue we could not load says so. Rendering the empty state
+    // would tell her nothing is waiting, which is a claim about her work
+    // rather than about our request.
+    return (
+      <div className="mb-8 rounded-2xl border border-red-200 bg-red-50 p-4">
+        <p className="font-semibold text-red-800">Couldn&apos;t load what&apos;s waiting</p>
+        <p className="mt-1 text-sm text-red-700">{error}</p>
+      </div>
+    )
+  }
+  if (!queue) return null
+
+  const empty =
+    queue.upcoming.length === 0 &&
+    queue.awaiting.length === 0 &&
+    queue.idle_drafts.length === 0
+
+  return (
+    <section className="mb-8" aria-label="What's waiting">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-bold text-gray-900">What&apos;s waiting</h2>
+        {/* ONE NUMBER, and it means something. Not "there are rows
+            below" — a signing booked for Thursday needs nothing from
+            her. It is the requests that have gone quiet. */}
+        {queue.needs_attention > 0 && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-900">
+            {queue.needs_attention} need{queue.needs_attention === 1 ? 's' : ''} your attention
+          </span>
+        )}
+      </div>
+
+      {empty ? (
+        <div className="rounded-2xl border border-gray-200 bg-white p-6">
+          <p className="font-medium text-gray-900">Nothing is waiting on anyone.</p>
+          <p className="mt-1 text-sm text-gray-500">
+            No signings in the next {queue.thresholds.upcoming_days} days, no unanswered
+            requests, and no drafts left sitting.
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-3">
+          <QueueList
+            title={`Signing in the next ${queue.thresholds.upcoming_days} days`}
+            emptyNote="Nothing booked this week."
+            rows={queue.upcoming.map((r) => ({
+              key: `up-${r.id}`,
+              title: r.property || `Deed #${r.deed_id}`,
+              // The server's sentence, verbatim (§13 rule 3).
+              detail: r.summary,
+              meta: `${new Date(r.when).toLocaleString('en-US', {
+                weekday: 'short', month: 'short', day: 'numeric',
+                hour: 'numeric', minute: '2-digit',
+              })}${r.who ? ` · ${r.who}` : ''}`,
+              urgent: false,
+              onOpen: () => router.push(`/signings?focus=${r.id}`),
+            }))}
+          />
+          <QueueList
+            title="Waiting on a reply"
+            emptyNote="Everyone has answered."
+            rows={queue.awaiting.map((r) => ({
+              key: `aw-${r.kind}-${r.id}`,
+              title: r.property || `Deed #${r.deed_id}`,
+              detail: r.summary,
+              meta: `${r.who || 'Unnamed'} · ${
+                r.days_waiting === null ? 'waiting'
+                  : r.days_waiting === 0 ? 'sent today'
+                  : `${r.days_waiting} day${r.days_waiting === 1 ? '' : 's'}`
+              }`,
+              urgent: r.stale,
+              onOpen: () => router.push(
+                r.kind === 'signing' ? `/signings?focus=${r.id}` : '/shared-deeds'),
+            }))}
+          />
+          <QueueList
+            title={`Untouched for ${queue.thresholds.idle_draft_days}+ days`}
+            emptyNote="No forgotten drafts."
+            rows={queue.idle_drafts.map((r) => ({
+              key: `id-${r.id}`,
+              title: r.property || `Deed #${r.id}`,
+              detail: 'Draft — nobody is waiting on this but you.',
+              meta: r.days_idle === null ? 'untouched' : `${r.days_idle} days`,
+              urgent: false,
+              onOpen: () => router.push(
+                `/deed-builder/${r.deed_type || 'grant-deed'}?resume=${r.id}`),
+            }))}
+          />
+        </div>
+      )}
+    </section>
+  )
+}
+
+type QueueRow = {
+  key: string
+  title: string
+  detail: string
+  meta: string
+  urgent: boolean
+  onOpen: () => void
+}
+
+function QueueList({ title, rows, emptyNote }: {
+  title: string
+  rows: QueueRow[]
+  emptyNote: string
+}) {
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+      <div className="border-b border-gray-100 px-4 py-3">
+        <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
+      </div>
+      {rows.length === 0 ? (
+        <p className="px-4 py-4 text-sm text-gray-500">{emptyNote}</p>
+      ) : (
+        <ul className="divide-y divide-gray-100">
+          {rows.slice(0, 5).map((r) => (
+            <li key={r.key}>
+              {/* EVERY ROW LINKS TO THE THING ITSELF. A queue that tells
+                  her something is stuck and then makes her go and find it
+                  is a list of chores, not a queue. */}
+              <button
+                onClick={r.onOpen}
+                className={`w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors ${
+                  r.urgent ? 'border-l-4 border-amber-400' : ''
+                }`}
+              >
+                <p className="font-medium text-gray-900 truncate">{r.title}</p>
+                <p className="text-sm text-gray-600 truncate">{r.detail}</p>
+                <p className={`text-xs mt-0.5 ${r.urgent ? 'text-amber-700 font-medium' : 'text-gray-400'}`}>
+                  {r.meta}
+                </p>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 // Stat Card Component
 function StatCard({
   label,
   value,
   icon,
   color,
+  href,
 }: {
   label: string
   value: number | string
   icon: React.ReactNode
   color: "blue" | "yellow" | "green" | "purple"
+  /** DASH1: a count with no drill-down is trivia. Required rather than
+   * optional — a tile added later without one would silently be the
+   * thing this ticket removed. */
+  href: string
 }) {
+  const router = useRouter()
   const colorClasses = {
     blue: "bg-blue-50 text-blue-600",
     yellow: "bg-amber-50 text-amber-600",
@@ -312,13 +555,19 @@ function StatCard({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow">
+    <button
+      onClick={() => router.push(href)}
+      className="w-full text-left bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md hover:border-gray-300 transition-all"
+    >
       <div className="flex items-center gap-3 mb-3">
         <div className={`p-2 rounded-lg ${colorClasses[color]}`}>{icon}</div>
         <span className="text-sm text-gray-500">{label}</span>
       </div>
-      <div className="text-2xl font-bold text-gray-900">{value}</div>
-    </div>
+      <div className="flex items-baseline gap-2">
+        <span className="text-2xl font-bold text-gray-900">{value}</span>
+        <ArrowRight className="w-4 h-4 text-gray-300" />
+      </div>
+    </button>
   )
 }
 
@@ -410,7 +659,19 @@ function DeedRow({ deed }: { deed: any }) {
     <div className={`p-4 hover:bg-gray-50 transition-colors flex items-center justify-between gap-4 ${
       needsAction ? 'border-l-4 border-amber-400' : ''
     }`}>
-      <div className="flex items-center gap-4 min-w-0 flex-1">
+      {/* DASH1: THE ROW LINKS TO THE DEED. A feed of things she has
+          worked on, where pressing one does nothing, is a list of
+          reminders that she owns some deeds. A draft opens where the
+          work is; a finished one opens focused in Past Deeds — there is
+          still no deed detail route (ledgered as DEEDDETAIL), so this
+          uses the same `?focus=` pattern the Signings agenda does. */}
+      <button
+        onClick={() => router.push(
+          needsAction
+            ? `/deed-builder/${deed.deed_type || 'grant-deed'}?resume=${deed.id}`
+            : `/past-deeds?focus=${deed.id}`)}
+        className="flex items-center gap-4 min-w-0 flex-1 text-left"
+      >
         <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
           <FileText className="w-5 h-5 text-gray-500" />
         </div>
@@ -422,7 +683,7 @@ function DeedRow({ deed }: { deed: any }) {
             Doc #{deed.id} • {deed.grantor_name || 'Draft'} → {deed.grantee_name || '...'}
           </p>
         </div>
-      </div>
+      </button>
 
       <div className="flex items-center gap-3 flex-shrink-0">
         <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusStyle(deed.status)}`}>
