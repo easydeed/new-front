@@ -305,6 +305,16 @@ def officer_agenda(user_id: int = Depends(get_current_user_id)):
                 "summary": loop.state_label(row, windows, responses, participants),
                 "booked_at": _iso(row.get("booked_at")),
                 "booked_by": row.get("booked_by"),
+                # FLOW1 item 4: WHEN SHE ASKED. The agenda's stuck signal
+                # is "nobody has moved in five days", and until now the
+                # payload carried no created_at — so the screen
+                # reconstructed the age as `expires_at minus 21 days`,
+                # duplicating default_expiry()'s constant as a magic
+                # number in another language. Changing the default expiry
+                # would have silently re-aimed every stuck badge. Same
+                # family as item 0: a fact the screen shows, that the
+                # server never sent, inferred.
+                "created_at": _iso(row.get("created_at")),
                 "expires_at": _iso(row.get("expires_at")),
                 "signers": len([p for p in participants
                                 if p["party_role"] == loop.ROLE_SIGNER]),
@@ -471,6 +481,7 @@ def _officer_payload(world: Dict[str, Any]) -> Dict[str, Any]:
         "booked_at": _iso(req.get("booked_at")),
         "booked_by": req.get("booked_by"),
         "booked_asserted_at": _iso(req.get("booked_asserted_at")),
+        "created_at": _iso(req.get("created_at")),
         "expires_at": _iso(req.get("expires_at")),
         "cancelled_at": _iso(req.get("cancelled_at")),
         "proposals_remaining": max(0, loop.MAX_SIGNER_PROPOSALS

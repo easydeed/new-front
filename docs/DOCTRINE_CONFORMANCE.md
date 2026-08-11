@@ -501,6 +501,54 @@ a surname match. It was deleted rather than deprecated because "no code
 path may write a characterization into a confirmed field without an
 acceptance record" includes the paths not currently called.
 
+### §11.1 — The same rule applied to people (FLOW1, 2026-08-11, owner-ruled)
+
+**Statement.** The product never infers a fact about a *person* from
+their name or their role. Not their pronouns, not their licensure, not
+what they are permitted to do.
+
+**Why it belongs here.** §11 says a field's kind is decided by its
+content, not by what it is called. §11.1 is the same argument one level
+up: a human being's attributes are decided by what they told us, not by
+what their name or their job suggests. Both failures look like helpful
+inference and both put a claim in the record that nobody made.
+
+**Findings.** `share_signing_request` told a notary, in a live email,
+*"Picking a time tells {owner_name} you are available then; **she**
+confirms the appointment with the signers **herself**."* `owner_name` is
+a real escrow officer whose pronouns this product has never been told
+and has no way to learn, and the message goes to her own professional
+contact — so the product was making a claim about its customer, to her
+colleague, on nothing. The same sentence existed twice, HTML and plain
+text. `RequestSigningModal` had it on screen too, about a notary the
+officer had picked out of her rolodex moments earlier.
+
+Ruled the same family as FLOW1's **"filed as"** constraint, which came
+from the other direction: a partner's category records how the officer
+*files* them and may never be read as a statement about their authority
+or licensure (`partnerRegistry.ts`). "Nora is filed as a Notary" is true
+about a rolodex. "Marcus is not a notary" would be a claim about Marcus.
+
+**Two habitats keep gendered wording, and must.** The California
+all-purpose acknowledgement (Civil Code §1189) — *"acknowledged to me
+that he/she/they executed the same in his/her/their authorized
+capacity"* — is prescribed wording on a certificate a notary signs under
+penalty of perjury, and it names nobody: it says "person(s)". Rewriting
+it would be a legal choice auto-applied (§1) to the one kind of text §2
+says we never pre-fill. Vesting terms of art ("a married man as his sole
+and separate property") are a legal characterization the officer selects
+and the recorder expects. The rule is *pronouns referring to a **named
+party***; neither of these names one.
+
+**Enforced by.** `backend/tests/test_flow1_copy_and_agenda.py` — a
+fail-closed sweep of every email template (docstrings excluded: prose
+about a role is not a claim made to anybody) and every Jinja template,
+with an allowlist of one file, a cited statutory reason, and a test that
+the exemption still exists and still contains the statutory text.
+Frontend half in `frontend/src/__tests__/officerTrackers.test.ts`.
+
+---
+
 **Habitats checked.**
 - T-6 prelim import (`services/prelim_import.import_prelim`)
 - County-record prefill (`lib/sitexProperty.mapSiteXResponse`)
@@ -816,6 +864,7 @@ their data is not a machine decision.
 
 | Date | Change |
 |---|---|
+| 2026-08-11 | §11.1 added (FLOW1 items 3–4) — the product never infers a fact about a PERSON from their name or role. A live email told a notary that the officer "confirms the appointment with the signers herself", asserting an escrow officer's pronouns to her own professional contact on no information; the screen did the same about the notary. Ruled the same family as the "filed as" constraint, which forbids reading a partner's category as a statement about their authority — one direction infers what someone IS, the other what they MAY DO, and both put a claim in the record nobody made. Swept fail-closed across every template. Two habitats exempted with cited reasons and their own liveness test: the Civil Code §1189 all-purpose acknowledgement (prescribed certificate wording, names no party) and vesting terms of art. Also item 4: the Signings agenda's stuck age was reconstructed as `expires_at − 21 days`, duplicating `default_expiry()`'s constant into TypeScript as a bare number — the server sends `created_at` now. And its "soonest first" claim covered rows sorted by `COALESCE(booked_at, expires_at)`, two orthogonal facts under one sort key (T-5 one layer up); booked and being-arranged are now separated and each sorted by the fact it has. |
 | 2026-08-11 | §4 — FLOW1 item 0. Shared Deeds reported as showing fabricated rows; verdict recorded as NOT fabricated — a real fetch read through eight wrong key names, so `undefined` rendered as blank cells and Invalid Date. Recorded under §4 rather than invariant #4 because nothing was invented and the screen still asserted what it could not support ("Not viewed" under a badge reading "Viewed"). Three absent facts given columns: `recipient_name` (accepted, greeted with, never stored), `responded_at` (`updated_at` was not that fact — a revoke bumps it too), and a real `expires_at` (previously spent on a display string nothing rendered). Contract now pinned from both sides against one corpus; absence crosses the wire as `null`, never `""`. The feedback modal's fallback to a field the list endpoint never sent — a failed fetch reading as "the reviewer left no comments" — removed. |
 | 2026-08-11 | §13.1 — the signer-contact ruling REVERSED (NOTARY2). Signers now participate directly; the notary posts availability, signers pick or propose, convergence books it, and the officer is notified rather than gating. Owner's reasoning recorded: the signers are the scheduling constraint, so routing around them recreated the phone tag the feature exists to kill — Option A had priced the officer's relaying at zero when it is the entire problem. The superseded paragraph is kept verbatim rather than rewritten. §13 otherwise stands unchanged: booked is still not happened. NOTARY1's fail-closed sweep is ANSWERED rather than deleted — retargeted from "no signer contact anywhere" to "one purgeable row, no other table, deleted by a mechanism with a test." The retention rule and a non-user's route to removal become part of the feature, ledgered as owner items. |
 | 2026-08-10 | §13 added (NOTARY1) — an arrangement is not an act. A scheduled signing time is the least legally freighted fact in the product, which is exactly the risk: authority acquired by wording drift rather than by decision. Three pinned rules: nothing infers a signing from a passed window (`scheduling_state()` is AST-pinned type-incapable of a "happened" state), `completed` stays officer-only, and `scheduling_label()` is the single place a scheduling state becomes a sentence. Assertion shape mirrors RED-S4 (`scheduled_at` / `scheduled_by` / `scheduled_asserted_at`), keeping the notary's tap and the officer's phone call apart. State DERIVED, never folded into `deed_shares.status` — T-5's ruling transferred verbatim. No signer contact anywhere, pinned fail-closed across both trees. One expiry semantic per link, applied as a class. Two pre-existing defects fixed in passing: share creation never checked deed ownership (cross-user deed disclosure), and an opened link kept serving the deed after expiry. |

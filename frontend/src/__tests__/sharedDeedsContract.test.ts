@@ -91,29 +91,72 @@ function interfaceFields(source: string, name: string): string[] {
   return fields;
 }
 
-describe('FLOW1 — Shared Deeds rows come from the share fetch', () => {
-  it('fetches /shared-deeds and fills the table from that response', () => {
-    expect(PAGE_CODE).toContain("apiFetch(`/shared-deeds`");
-    // The state the table maps over is written in exactly one place, and
-    // that place is the handler for the share response.
-    const writes = PAGE_CODE.match(/setSharedDeeds\s*\(/g) || [];
-    expect(writes).toHaveLength(1);
+/**
+ * ═══ RETARGET, 2026-08-11 — READ THIS BEFORE TRUSTING THE PIN BELOW ═══
+ *
+ * This block was written one day before it was changed, and a pin
+ * loosening a pin one day later has to carry its own justification where
+ * the next reader will find it. So:
+ *
+ * **What it said.** "The rows come from the share fetch AND NOTHING
+ * ELSE", enforced as: exactly one `setSharedDeeds(` call, one
+ * `/shared-deeds` fetch, no `/deeds` fetch.
+ *
+ * **Why it said that.** An audit reported this page as synthesising rows
+ * out of the officer's completed-deed list, because the row count
+ * happened to equal the completed-deed count. It was not — the count was
+ * one share per completed deed — but "it isn't doing that today" is an
+ * observation, and the pin turned it into a property.
+ *
+ * **What changed.** FLOW1 item 3 unified the two officer trackers: this
+ * screen now also shows NOTARY2 signings, which live in
+ * `signing_requests` and arrive from `/signing-requests/v2`. Under the
+ * old wording that second fetch is forbidden.
+ *
+ * **Why this is a retarget and not a loosening.** The property was never
+ * "one fetch". It was **every row is a thing that was actually sent to
+ * somebody.** A share was sent. A signing request was sent. A completed
+ * deed sitting in her list was not sent to anyone, and a row for it
+ * would be a tracking screen reporting an event that never happened.
+ *
+ * So the prohibition is unchanged and is now stated as itself, by name,
+ * rather than implied by a fetch count: THE DEEDS LIST IS NOT A SOURCE
+ * OF ROWS. The allowance is explicit and enumerated — two feeds, both of
+ * things that left the building — and adding a third would have to be
+ * written down here, which is the point.
+ */
+describe('FLOW1 — every row on Shared Deeds is a thing that was sent', () => {
+  it('fills the table from the two feeds of things that were sent', () => {
+    expect(PAGE_CODE).toContain('apiFetch(`/shared-deeds`');
+    expect(FLAT).toContain('apiFetch( `/signing-requests/v2`');
+    // Each feed is written into its own state, once. Two feeds, two
+    // writers — not one writer that could be handed anything.
+    expect((PAGE_CODE.match(/setSharedDeeds\s*\(/g) || [])).toHaveLength(1);
+    expect((PAGE_CODE.match(/setSignings\s*\(\s*Array/g) || [])).toHaveLength(1);
   });
 
   it('never derives rows from the deeds list', () => {
-    // The reported hypothesis, forbidden rather than merely absent. A
-    // row on this screen is a SHARE — a thing that was sent to somebody
-    // — and a completed deed is not one. Deriving the second from the
-    // first would put a row on a tracking screen for a share that never
-    // happened, which is invariant #4 on the surface whose whole job is
-    // to say what happened.
+    // The reported hypothesis, forbidden by name rather than by
+    // arithmetic on fetch counts. A completed deed was not sent to
+    // anybody; a row for one would be invariant #4 on the surface whose
+    // whole job is to say what happened.
     for (const forbidden of [
       /apiFetch\(\s*[`'"]\/deeds/,
       /apiFetch\(\s*[`'"]\/api\/deeds/,
       /setSharedDeeds\s*\(\s*deeds/,
+      /setSignings\s*\(\s*deeds/,
     ]) {
       expect(PAGE_CODE).not.toMatch(forbidden);
     }
+  });
+
+  it('a signings feed that fails is neither silent nor destructive', () => {
+    // §4 read in both directions. Throwing would blank a table of
+    // reviews that loaded fine — an error swallowing correct data.
+    // Swallowing would show her no signings and no reason to doubt it.
+    expect(PAGE_CODE).toContain('setSigningError');
+    expect(FLAT).toContain('Your signings could not be loaded');
+    expect(FLAT).toContain('the reviews below are unaffected');
   });
 });
 
