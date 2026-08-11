@@ -362,6 +362,84 @@ def officer_override(request_id: int, payload: OfficerOverride,
     return _officer_payload(_load(request_id))
 
 
+MAX_REMINDERS = 3
+
+
+@router.post("/signing-requests/v2/{request_id}/remind")
+def officer_remind(request_id: int, user_id: int = Depends(get_current_user_id)):
+    """Nudge whoever has not answered. OFFICER-TRIGGERED ONLY, and capped.
+
+    Not automatic, per the ruling — and the reason is worth stating,
+    because "send a reminder after 48h" is the obvious feature. Half the
+    parties here are CONSUMERS who never signed up. An uncapped automatic
+    sender pointed at somebody's client is a spam vector aimed through
+    our own customer, and she is the one who would be blamed for it. She
+    decides when a nudge is appropriate; she knows whether she has
+    already phoned them.
+
+    Capped at three per participant regardless, because "she decides" is
+    not a defence if the button can be held down.
+
+    Only people who have ANSWERED NOTHING are reminded. Somebody who said
+    "not that time" has answered; re-asking them the same question is how
+    a product teaches people to ignore it.
+    """
+    world = _owned_request(request_id, user_id)
+    req = world["request"]
+    if req.get("booked_at") or req.get("cancelled_at"):
+        raise HTTPException(status_code=409,
+                            detail="This signing is settled — there is nobody to chase")
+
+    live_windows = [w for w in world["windows"] if not w.get("declined_at")]
+    answered = {int(r["participant_id"]) for r in world["responses"]}
+    tz = req.get("tz_name")
+    labels = [loop.window_label(w, tz) for w in live_windows]
+    officer_name, company = _officer_bits(world)
+    notary = next(iter(_party(world, loop.ROLE_NOTARY)), {})
+    street = (world["deed"].get("property_address") or "").split(",")[0].strip()
+
+    sent, skipped = [], []
+    from utils.notifications import send_signing_reminder
+    for p in world["participants"]:
+        if p.get("revoked_at") or not p.get("email"):
+            continue
+        if int(p["id"]) in answered:
+            skipped.append({"name": p.get("display_name"), "why": "already answered"})
+            continue
+        if int(p.get("reminders_sent") or 0) >= MAX_REMINDERS:
+            skipped.append({"name": p.get("display_name"), "why": "reminded three times"})
+            continue
+        consumer = p["party_role"] == loop.ROLE_SIGNER
+        # A signer with no times to look at cannot act on a reminder, so
+        # chasing them would be noise aimed at the wrong person — the
+        # notary is who the request is waiting on.
+        if consumer and not labels:
+            skipped.append({"name": p.get("display_name"), "why": "no times posted yet"})
+            continue
+        ok, reason = send_signing_reminder(
+            recipient_email=p["email"],
+            recipient_name=p.get("display_name") or "",
+            officer_name=officer_name, officer_company=company,
+            notary_name=notary.get("display_name"),
+            property_text=street if consumer else (world["deed"].get("property_address") or ""),
+            window_texts=labels, link=_link(p), is_consumer=consumer)
+        # The ATTEMPT counts, not the delivery — fail-closed, because
+        # this is a spam cap pointed at consumers. "The transport
+        # reported an error" is not proof nothing arrived (a timeout
+        # after acceptance looks identical to a rejection), and the cost
+        # of the two mistakes is asymmetric: undercounting means somebody
+        # gets a fourth email they did not consent to, overcounting means
+        # the officer picks up the phone one nudge early.
+        with db.conn.cursor() as cur:
+            cur.execute("UPDATE signing_participants SET reminders_sent = "
+                        "reminders_sent + 1, updated_at = now() WHERE id = %s",
+                        (p["id"],))
+        sent.append({"name": p.get("display_name"), "delivered": ok, "reason": reason})
+    db.conn.commit()
+    return {"success": True, "sent": sent, "skipped": skipped,
+            "remaining_per_person": MAX_REMINDERS}
+
+
 @router.post("/signing-requests/v2/{request_id}/cancel")
 def officer_cancel(request_id: int, user_id: int = Depends(get_current_user_id)):
     _owned_request(request_id, user_id)

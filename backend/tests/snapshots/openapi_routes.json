@@ -489,6 +489,10 @@
  ],
  [
   "POST",
+  "/signing-requests/v2/{request_id}/remind"
+ ],
+ [
+  "POST",
   "/signing/{token}/answer"
  ],
  [
