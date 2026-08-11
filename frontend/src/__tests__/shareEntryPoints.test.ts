@@ -34,7 +34,17 @@ const read = (...p: string[]) => fs.readFileSync(path.join(SRC, ...p), 'utf8');
 
 const PAGE = read('app', 'past-deeds', 'page.tsx');
 const REVIEW = read('features', 'signing', 'ShareForReviewModal.tsx');
-const SIGNING = read('features', 'signing', 'SigningRequestModal.tsx');
+/**
+ * FLOW1 item 6: repointed from `SigningRequestModal` (NOTARY1's, deleted
+ * with the route it posted to) to `RequestSigningModal` (NOTARY2's,
+ * which the page has actually rendered since #150). This file's own
+ * comment already noted the swap on the page side — "NOTARY2 replaced
+ * SigningRequestModal with RequestSigningModal; the PROPERTY is
+ * unchanged" — while these assertions kept reading the old file. A pin
+ * reading a file no screen imports is a pin that cannot fail for the
+ * reason it was written.
+ */
+const SIGNING = read('features', 'signing', 'RequestSigningModal.tsx');
 const PICKER = read('features', 'partners', 'PartnerRecipientPicker.tsx');
 
 describe('Part B — two distinct actions on the deed', () => {
@@ -84,7 +94,7 @@ describe('Part B — two distinct actions on the deed', () => {
     // posts to the signing endpoint. Neither sends a `share_kind` field
     // and neither offers the officer a kind to choose.
     expect(REVIEW).toContain("'/shared-deeds'");
-    expect(SIGNING).toContain('"/signing-requests"');
+    expect(SIGNING).toContain("'/signing-requests/v2'");
     for (const src of [REVIEW, SIGNING]) {
       expect(codeOnly(src)).not.toContain('share_kind');
     }
@@ -92,10 +102,28 @@ describe('Part B — two distinct actions on the deed', () => {
 
   it('the two modals speak their own status language', () => {
     expect(REVIEW).toContain('Send the review request');
-    expect(SIGNING).toContain('Send the request');
-    // Neither borrows the other's words.
+    // NOTARY2's submit label. It differs from NOTARY1's ("Send the
+    // request") because the act differs: the officer is not proposing
+    // times any more, she is handing the request to the notary.
+    expect(SIGNING).toContain('Send to the notary');
+    // Neither borrows the other's ACTIONS.
+    //
+    // FLOW1 item 6 narrowed this half. It used to forbid the bare word
+    // "approve" anywhere in the signing modal's source, which fired on
+    // NOTARY2's line "You do not have to approve the time" — a sentence
+    // that says the OPPOSITE of the thing being guarded against. A pin
+    // that fails on prose disclaiming the very act it forbids is
+    // matching the spelling, not the property.
+    //
+    // The property is that the signing flow offers no approval
+    // AFFORDANCE: no approve/reject control, and no call to the review
+    // token's endpoints.
     expect(REVIEW).not.toContain('availability');
-    expect(SIGNING).not.toContain('approve');
+    const signingCode = codeOnly(SIGNING);
+    expect(signingCode).not.toMatch(/\/approve/);
+    expect(signingCode).not.toMatch(/>\s*Approve/);
+    expect(signingCode).not.toMatch(/>\s*Request Changes/);
+    expect(signingCode).not.toContain('approved:');
   });
 });
 

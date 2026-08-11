@@ -34,7 +34,26 @@ const read = (...parts: string[]) =>
  * the pin passes or fails on where the formatter chose to break. */
 const flat = (source: string) => source.replace(/\s+/g, ' ');
 
-const MODAL = read('features', 'signing', 'SigningRequestModal.tsx');
+/**
+ * FLOW1 item 6. `SigningRequestModal.tsx` — NOTARY1's create form — is
+ * DELETED with the route it posted to. The pins that read it are handled
+ * three different ways below, and which way each got is the whole
+ * question, so it is written down rather than left to the diff:
+ *
+ *  · The offset and window-count pins MOVE to `/signing/[token]`, which
+ *    is where times are entered now. The property ("a time is sent with
+ *    its offset, and at most three are offerable") is unchanged; only
+ *    the surface that asks for them moved when §13.1 handed the posting
+ *    of availability to the notary.
+ *  · The "no field for a signer" pin RETIRES. §13.1 reversed that rule:
+ *    NOTARY2's create form asks for signers by name, email and phone on
+ *    purpose, into `signing_participants`, purged on a schedule. Keeping
+ *    it would be asserting a rule the owner overturned.
+ *  · The tree-wide signer-contact sweep STAYS, untouched. It is the one
+ *    that still means something — no OTHER surface may grow a way to
+ *    reach a party.
+ */
+const TOKEN_PAGE = read('app', 'signing', '[token]', 'page.tsx');
 const APPROVE = read('app', 'approve', '[token]', 'page.tsx');
 const SHARED = read('app', 'shared-deeds', 'page.tsx');
 
@@ -70,16 +89,6 @@ describe('NOTARY1 — no signer contact, anywhere', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('the signing form has no field for a signer', () => {
-    // Its inputs, enumerated: what the officer sends is the notary's
-    // address, a courtesy name, where, and the times.
-    const bound = [...MODAL.matchAll(/useState[^\n]*\n/g)].length;
-    expect(bound).toBeGreaterThan(0);
-    expect(MODAL).toContain('notary_email');
-    expect(MODAL).not.toMatch(SIGNER_CONTACT);
-    // And it says so on the form, so the officer knows the leg is hers.
-    expect(flat(MODAL)).toContain('The signers are not contacted');
-  });
 });
 
 describe('NOTARY1 — the words come from one place', () => {
@@ -120,14 +129,14 @@ describe('NOTARY1 — a signing request is not an approval request', () => {
 });
 
 describe('NOTARY1 — times carry their offset', () => {
-  it('the modal appends the browser offset before sending', () => {
-    expect(MODAL).toContain('getTimezoneOffset');
-    expect(MODAL).toContain('withOffset(w.start)');
-    expect(MODAL).toContain('withOffset(w.end)');
-  });
-
-  it('at most three windows are offerable', () => {
-    expect(MODAL).toContain('const MAX_WINDOWS = 3');
-    expect(MODAL).toContain('windows.length < MAX_WINDOWS');
+  it('the surface that takes a time appends the browser offset', () => {
+    // A bare wall-clock time forces the server to guess a zone, which is
+    // how a calendar entry lands an hour out and somebody arrives at an
+    // empty office. Pinned where times are ENTERED — which is the
+    // notary's token page since §13.1, not the officer's modal.
+    expect(TOKEN_PAGE).toContain('getTimezoneOffset');
+    expect(TOKEN_PAGE).toContain('withOffset(start)');
+    expect(TOKEN_PAGE).toContain('withOffset(r.start)');
+    expect(TOKEN_PAGE).toContain('withOffset(r.end)');
   });
 });

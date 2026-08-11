@@ -352,65 +352,13 @@ def admin_api_key_request(company_name, contact_email, business_type,
     return subject, _base(f"API access request from {company_name}", content, False), text
 
 
-def share_signing_request(recipient_name, owner_name, deed_type, property_address,
-                          window_texts, share_link, expires_at: Optional[str]) -> Rendered:
-    """NOTARY1 — to the notary: here is the document, here are the times.
-
-    `window_texts` arrives already formatted. The renderer does not know
-    how to say a date, deliberately: signing.window_label() says it once,
-    and a template that reformatted times would be a second place for the
-    wording to drift.
-
-    Two things this email must not say, and both are doctrine rather than
-    taste. It does not ask the notary to CONFIRM the signing — they are
-    telling us when they are free, and the difference between
-    availability and attendance is the whole of rule 3. And it names no
-    signer, because the product holds no signer contact and never
-    messages one; the officer arranges that leg themselves.
-    """
-    addr = _short_addr(property_address)
-    subject = f"Signing request — {addr}" if addr else "Notary signing request"
-    times = "".join(
-        f'<tr><td style="padding:4px 0;font-size:14px;color:{INK};font-weight:600;">'
-        f"&bull;&nbsp;{_esc(w)}</td></tr>" for w in (window_texts or [])
-    )
-    times_block = (
-        '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:10px 0 4px 0;">'
-        f"{times}</table>" if times else ""
-    )
-    content = (
-        _p(f"Hi {_esc(recipient_name) or 'there'},")
-        + _p(f"<strong>{_esc(owner_name)}</strong> is asking whether you are available "
-             "to notarize a signing, and has proposed these times:")
-        + times_block
-        + _facts([("Document", deed_type), ("Property", addr),
-                  ("Requested by", owner_name), ("Link expires", expires_at or "")])
-        + _button(share_link, "Open the request and pick a time")
-        # FLOW1: NAME, NOT PRONOUN. This sentence used to read "she
-        # confirms the appointment with the signers herself" about
-        # `owner_name` — a live email asserting an escrow officer's
-        # pronoun to her own professional contact, on no information
-        # whatsoever. The name is already in the sentence; repeating it
-        # costs nothing and claims nothing.
-        + _p('<span style="font-size:13px;color:#8a94a0;">Picking a time tells '
-             f"{_esc(owner_name)} you are available then, and "
-             f"{_esc(owner_name)} confirms the appointment with the signers. "
-             "Calendar files for each proposed time are "
-             "attached so you can hold them.</span>")
-        + _p('<span style="font-size:13px;color:#8a94a0;">Anyone with this link can open '
-             "the document until it expires.</span>")
-    )
-    text = (
-        f"{owner_name} is asking whether you are available to notarize a signing.\n\n"
-        f"Document: {deed_type}\nProperty: {addr}\nLink expires: {expires_at or ''}\n\n"
-        "Proposed times:\n"
-        + "".join(f"  - {w}\n" for w in (window_texts or []))
-        + f"\nOpen the request and pick a time: {share_link}\n\n"
-        f"Picking a time tells {owner_name} you are available then, and "
-        f"{owner_name} confirms the appointment with the signers."
-    )
-    return subject, _base(f"{owner_name} asked about your availability — {addr}",
-                          content, True), text
+# FLOW1 item 6: `share_signing_request` — the notary-facing "here are
+# the times I guessed at" email — is DELETED, not left declared. Its only
+# caller was NOTARY1's create route, and that route is gone. The
+# precedent is #155's `signer_invited`: a template nothing sends passes
+# every rendering pin in the suite while being unreachable, which is the
+# most convincing kind of dead code. The orphan pin in
+# test_admin3_email_outcomes.py is what caught it.
 
 
 def signing_time_recorded(owner_name, deed_type, property_address, notary_email,

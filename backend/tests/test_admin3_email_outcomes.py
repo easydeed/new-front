@@ -73,7 +73,11 @@ def test_every_template_routes_through_send():
     fired as designed when TRIAL1 added `payment_failed` (11 -> 12) and
     again when NOTARY1 added the two signing templates (12 -> 14) and
     again when NOTARY2 added the coordination loop's four (14 -> 18 — a fifth was written,
-    found to be unsendable, and deleted rather than wired)."""
+    found to be unsendable, and deleted rather than wired), and it fired
+    DOWNWARD for the first time when FLOW1 item 6 retired NOTARY1's write
+    path and `share_signing_request` lost its only caller (19 -> 18). A
+    trip-wire that only counts upward would let a deletion pass
+    unremarked, which is the same silence it exists to break."""
     import sys
     sys.path.insert(0, str(BACKEND))
     from utils.notifications import TEMPLATES
@@ -84,7 +88,7 @@ def test_every_template_routes_through_send():
         f"declared TEMPLATES and actual _send labels disagree: "
         f"only-declared={set(TEMPLATES) - named}, only-used={named - set(TEMPLATES)}"
     )
-    assert len(TEMPLATES) == 19
+    assert len(TEMPLATES) == 18
 
 
 # ── The recorder's two constraints ───────────────────────────────────

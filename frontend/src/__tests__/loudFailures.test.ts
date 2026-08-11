@@ -66,7 +66,11 @@ describe('X1 — renderer freeze: no full-viewport backdrop blur behind modals',
     ['app', 'shared-deeds', 'page.tsx'],
     ['components', 'ui', 'ConfirmDialog.tsx'],
     ['features', 'signing', 'ShareForReviewModal.tsx'],
-    ['features', 'signing', 'SigningRequestModal.tsx'],
+    // FLOW1 item 6: SigningRequestModal.tsx is deleted with NOTARY1's
+    // write path. RequestSigningModal (NOTARY2's) takes its place here —
+    // the list follows the modals that exist, and dropping an entry
+    // without replacing it would quietly shrink the sweep.
+    ['features', 'signing', 'RequestSigningModal.tsx'],
     ['features', 'partners', 'QuickAddPartnerModal.tsx'],
   ];
   for (const segments of BLUR_SURFACES) {
@@ -85,7 +89,7 @@ describe('X1 — the share modals are viewport-safe', () => {
   // it, and naming the handler was pinning the spelling.
   const MODALS: Array<string[]> = [
     ['features', 'signing', 'ShareForReviewModal.tsx'],
-    ['features', 'signing', 'SigningRequestModal.tsx'],
+    ['features', 'signing', 'RequestSigningModal.tsx'],
   ];
   for (const segments of MODALS) {
     it(`${segments.join('/')} scrolls its body, not its footer`, () => {
