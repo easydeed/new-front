@@ -109,6 +109,36 @@ ruled.
 it is a product decision on its own merits and deserves to be ruled as
 one, rather than shipped under a bug ticket that no longer has a bug.
 
+## Standing practice — a job that writes says which database it is in
+
+Ruled 2026-08-12 (db-identity ticket). `relation "signing_participants"
+does not exist` cost an afternoon and two redeploys on an untested
+hypothesis: it sent us hunting for a schema that had never run, when the
+schema was fine and the service was pointed at the wrong database.
+
+**The rule:** any script that connects to `DATABASE_URL` and commits
+either calls `services.db_identity.assert_tables()` before it does
+anything, or appears in the exemption list in
+`backend/tests/test_db_identity.py` with the argument for its exemption.
+Exact-set equality — a new script cannot arrive unclassified.
+
+**Two different wrong databases, and only one of them is loud.**
+
+- *Missing tables* — the wrong database, empty. `assert_tables` names the
+  database, host, port, user and every table it wanted, so one run ends
+  the investigation instead of starting one.
+- *Staging* — every table present, every query succeeding, the job
+  deleting or rewriting real rows in the wrong copy and reporting a
+  cheerful count. Nothing about the connection distinguishes it; only the
+  name does. `EXPECTED_DATABASE` lets a deployment state which database a
+  job is FOR, and it is optional because a local run and CI both point
+  somewhere else legitimately.
+
+This is Invariant #4 — a failure surfaces with its reason — pointed at
+the failure itself: **an error that names its context is a different
+quality of error.** Both phrasings of the message above are true and only
+one is useful, and the difference is four values Postgres gives away.
+
 ## Verification invariants
 
 - Honest CI stays blocking. No `|| true`, ever again.
@@ -125,7 +155,13 @@ one, rather than shipped under a bug ticket that no longer has a bug.
   (`backend/scripts/six_flow_baseline.py`) must stay green. Neither is
   re-recorded to make a failure pass without an approved, documented reason
   in the PR that re-records it.
-- The frontend `tsc` error baseline (currently **114**) may only go down.
+- The frontend `tsc` error baseline (currently **94**) may only go down.
+  Enforced by `TSC_BASELINE` in `.github/workflows/test.yml`, which is
+  the authority; this line said **114** until 2026-08-12, long after the
+  machine had been holding 94. Nothing was let through — the gate was
+  always the stricter of the two — but a reader checking their work
+  against this page would have believed they had twenty errors of
+  headroom they did not have.
 
 ## Dead code and revived code
 

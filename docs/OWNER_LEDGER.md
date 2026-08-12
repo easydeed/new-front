@@ -110,6 +110,27 @@ when their trigger arrives.
   `http://localhost:3000` and a paying customer lands nowhere. This is
   independent of any route rename; see `docs/DASH1_REQUESTS_MERGE.md`.
 
+  **PR #166 did not close this, and must not be read as having closed
+  it.** #166 is the CLASS fix: the environment is declared, the boot log
+  names anything missing, and `require()` makes a checkout refuse rather
+  than redirect to localhost. The INSTANCE — whether `FRONTEND_URL` is
+  actually set on the production API — is still this card, still
+  unanswered, and still the owner's. Making an absence visible is not
+  the same act as ending it, and after #166 the failure mode changed
+  rather than disappeared: a customer no longer lands on their own
+  laptop, they get a refused checkout. Better, and still a customer who
+  cannot pay.
+
+- **`EXPECTED_DATABASE` on the purge cron — set it when the cron exists**
+  (db-identity, 2026-08-12). Not urgent, and it has no effect until the
+  Render Cron Job is created (Tier 3, still not created). When it is:
+  set `EXPECTED_DATABASE=deedpro` alongside `DATABASE_URL`. The purge
+  asserts its tables, but **staging has those tables too** — the name is
+  the only thing that separates the production database from a copy of
+  it, and the purge is the one job here where being wrong deletes real
+  contact details. Unset, the job runs wherever `DATABASE_URL` points,
+  which is correct for local and CI and is why the check is optional.
+
 - **Junk seed cleanup** (test rows in production data).
 - **TitlePoint / SiteX credential rotations.**
 - **DTT city-rates review** (`frontend/src/lib/dttCalc.ts`) — owner's
@@ -742,7 +763,39 @@ header stands until then.
 Doing neither leaves a file that will be believed. Recommended: (2) now,
 (1) if deploy topology ever gets complicated enough to need review.
 
-## TICKET — services assert their tables and name the database (queued)
+## TICKET — services assert their tables and name the database (DONE)
+
+**Shipped 2026-08-12.** `backend/services/db_identity.py`, called by the
+purge, the NOTARY1 migration and the plan backfill; `--verify` on the
+purge; `backend/tests/test_db_identity.py` holds it. Two departures from
+the text below, both deliberate and both argued in the PR:
+
+1. **"Naming both databases" needed something to compare against.** The
+   example message below names an expected database, and nothing in the
+   repo declares one — the purge legitimately runs against `deedpro`,
+   `deedpro_test` and `deedpro_ci`, so a hardcoded name would be wrong
+   three ways. Delivered as an optional `EXPECTED_DATABASE` a deployment
+   sets; with it the message names both, without it the tables are still
+   asserted. See the owner card above.
+2. **Two callers were swept in beyond the purge**, because both were the
+   same defect: `migrate_notary1_signings.py` carried its own two-line
+   copy of the identity query (database and host, no assertion at all —
+   so a wrong database would have reported a confident "found: 0"), and
+   `backfill_plan_sync.py` rewrites `users.plan` from a Render shell with
+   no identity line whatsoever.
+
+**Found while doing it, NOT fixed — needs a ruling.** `s1_concurrency_proof`
+and `s2_restore_drill` write to `users` and `deeds` in whatever
+`DATABASE_URL` points at, and `s2` runs `pg_dump`/`pg_restore`. Pointed
+at production they would insert junk rows into real tables. `assert_tables`
+is the wrong tool — production HAS those tables, so the assertion would
+pass — and the check they actually want is "is this a throwaway
+database", which is a different mechanism (a refusal unless the database
+name is test-shaped, or an explicit `I_AM_A_SCRATCH_DATABASE`). They are
+exempted with that reason recorded in the test rather than given a check
+that would not have caught anything.
+
+## The original ticket text, for the record
 
 **Why it is a ticket rather than a note.** It cost an afternoon of the
 owner's time and two redeploys on an untested hypothesis. Invariant #4
