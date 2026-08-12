@@ -30,6 +30,8 @@ from datetime import datetime, timezone
 
 import psycopg2
 from db_rows import ROW_FACTORY
+from services.db_identity import (WrongDatabase, assert_tables, describe,
+                                  expected_database)
 import stripe
 
 
@@ -112,6 +114,25 @@ def main():
                 expected[customer] = (plan, created)
 
     conn = psycopg2.connect(db_url, cursor_factory=ROW_FACTORY)
+
+    # WHICH DATABASE, BEFORE READING A PLAN OUT OF IT.
+    #
+    # This script is run by hand from a Render shell, with `--apply`, and
+    # it rewrites `users.plan` — what a customer is paying for. Pointed at
+    # the wrong Postgres it would either fail with a bare "relation does
+    # not exist" or, worse, report every Stripe subscriber as a missed
+    # upgrade because their row is not in THIS database, and `--apply`
+    # would then write those plans somewhere they do not belong.
+    #
+    # Naming the database on the way in costs one query and makes the
+    # printed report self-describing: the reader can tell from the report
+    # alone which database it is a report ABOUT.
+    try:
+        assert_tables(conn, "users", expect_database=expected_database())
+    except WrongDatabase as wrong:
+        sys.exit(str(wrong))
+    print(f"database: {describe(conn)}\n")
+
     missed_upgrades = []   # (user_id, email, current_plan, expected_plan, sub_created)
     downgrade_candidates = []  # (user_id, email, current_plan)
     with conn.cursor() as cur:

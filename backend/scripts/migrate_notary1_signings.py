@@ -26,16 +26,30 @@ def main() -> int:
     from db_rows import ROW_FACTORY
     from services.signing_migration import migrate
 
+    from services.db_identity import (WrongDatabase, assert_tables, describe,
+                                      expected_database)
+
     dry = "--dry-run" in sys.argv
     conn = psycopg2.connect(url, cursor_factory=ROW_FACTORY)
     try:
         # Standing rule: verify the database before trusting it. A
         # migration pointed at the wrong Postgres reports "nothing to
         # migrate" and looks like success.
-        with conn.cursor() as cur:
-            cur.execute("SELECT current_database() AS db, inet_server_addr() AS host")
-            ident = cur.fetchone()
-        print(f"database: {ident['db']} on {ident['host']}")
+        #
+        # This block used to be its own two-line copy of the identity
+        # query, printing the database and host and nothing else. It is
+        # now `services/db_identity` — one module, three callers — and it
+        # gained the half it was missing: the tables it reads and writes
+        # are asserted, so a wrong database says so instead of reporting
+        # a confident zero.
+        try:
+            assert_tables(conn, "deed_shares", "signing_requests",
+                          "signing_participants",
+                          expect_database=expected_database())
+        except WrongDatabase as wrong:
+            print(str(wrong), file=sys.stderr)
+            return 1
+        print(f"database: {describe(conn)}")
 
         report = migrate(conn, dry_run=dry)
         if dry:
