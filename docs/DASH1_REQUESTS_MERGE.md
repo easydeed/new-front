@@ -127,3 +127,90 @@ reasoning in `next.config`, and verify the Stripe URLs against a live
 checkout before the old paths are considered safe. The sidebar grouping
 and badges — the rest of item 6 — are shipped in this PR and do not
 depend on it.
+
+---
+
+# ADDENDUM — the rename should not happen
+
+**Written on starting the rename PR. Held before writing any code.**
+
+Both target routes **already exist**, as redirects pointing the other
+way, and one of them is a deliberate prior migration.
+
+```
+frontend/src/app/create-deed/page.tsx            → redirect('/deed-builder')
+frontend/src/app/create-deed/[docType]/page.tsx  → redirect('/deed-builder/{type}')
+                                                    (preserves the slug AND the query string)
+frontend/src/app/settings/page.tsx               → redirect('/account-settings')
+```
+
+## What that changes
+
+**`/create-deed` was the ORIGINAL route.** Its own comment records the
+migration: *"Legacy picker route. DeedBuilder at /deed-builder is the
+canonical entry. This file used to render a deed-type picker that mounted
+the 5-step wizard; now it server-redirects."* Reversing it would undo a
+decision somebody made on purpose, and the sub-route is not a straight
+swap either — the param is `[docType]` on one side and `[type]` on the
+other.
+
+**`/settings` was added for exactly the reason item 6 gives.** X2.1's
+comment: *"/settings 404'd while nav labels say 'Settings' (the real page
+lives at /account-settings). A typed or bookmarked /settings now lands on
+the real page instead of a dead end."*
+
+So **the intent of the sub-item is already satisfied, in both cases,
+deliberately.** She cannot hit a dead end typing either address. What
+remains of the "drift" is that the canonical URL differs from the label —
+visible only in the address bar.
+
+## What reversing would cost
+
+| Cost | Detail |
+|---|---|
+| Undoes a prior migration | `/create-deed` → `/deed-builder` was chosen; this un-chooses it |
+| A param rename | `[docType]` vs `[type]` — the legacy route already translates between them |
+| **A redirect hop on a money path** | the Stripe `return_url` would point at an alias rather than the canonical route |
+| A hop in the welcome email | same, for `/deed-builder` |
+
+For a benefit nobody sees unless they read the address bar.
+
+## Recommendation
+
+**Close the route-rename sub-item as already satisfied.** Ship nothing.
+The rest of item 6 — grouping and badges — is merged.
+
+If the canonical URLs are still wanted for their own sake, that is a
+product decision about vocabulary rather than a defect fix, and it should
+be ruled as one, with the Stripe check below done first regardless.
+
+## The Stripe check stands on its own — owner, Tier 3
+
+This is worth doing **whether or not anything is renamed**, because a
+success URL configured in the Stripe dashboard rather than in code is a
+live risk today.
+
+In code, these three are built from `FRONTEND_URL`:
+
+```
+backend/routers/users_auth.py:550   success_url = {FRONTEND_URL}/account-settings?success=true
+backend/routers/users_auth.py:551   cancel_url  = {FRONTEND_URL}/account-settings?canceled=true
+backend/routers/users_auth.py:598   return_url  = {FRONTEND_URL}/account-settings      ← billing portal
+```
+
+**What to confirm, on a live test checkout at the $99 price:**
+
+1. After paying, where does the browser land? It should be
+   `/account-settings?success=true` on the production host.
+2. After cancelling, the same for `?canceled=true`.
+3. From the billing portal, does "Return to DeedPro" land on
+   `/account-settings`?
+4. **In the Stripe dashboard**, check *Settings → Billing → Customer
+   portal* for a configured **default return URL**. If one is set there,
+   it OVERRIDES nothing in our code — it is used when the portal session
+   does not supply one — but it is a second place the URL lives, and it
+   will not move when code moves.
+5. Confirm `FRONTEND_URL` is set on the production API service. If it is
+   unset, every one of these falls back to `http://localhost:3000` and a
+   paying customer lands nowhere. **That is the check with the real
+   dollar behind it, and it is independent of any rename.**
