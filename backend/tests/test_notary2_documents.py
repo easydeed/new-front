@@ -82,28 +82,12 @@ def _shape(path: str) -> str:
 # 1. Every advertised URL resolves — the class fix
 # ══════════════════════════════════════════════════════════════════════
 
-def test_every_url_a_package_advertises_is_a_route_that_exists():
-    """THE PIN THAT WOULD HAVE CAUGHT THIS.
-
-    `pcor_url` and `pdf_url` sat in the notary's package for a whole
-    feature's lifetime, rendered as buttons, pointing at nothing. Nothing
-    compared the two lists, so nothing could notice.
-
-    Matched as a SHAPE across the whole surfaces module rather than as
-    two known keys, because the next advertised link will be written by
-    somebody who never read this file.
-    """
-    src = code_only(SURFACES)
-    advertised = re.findall(r'"[a-z_]*url":\s*f?"([^"]+)"', src)
-    assert advertised, "the URL pin found nothing to check — has the shape changed?"
-
-    known = {_shape(p) for _m, p in _routes()}
-    missing = [u for u in advertised if _shape(u) not in known]
-    assert missing == [], (
-        "a signing package advertises links the app cannot serve: "
-        + ", ".join(missing) +
-        " — either build the route or stop putting it in the package; a "
-        "button that 404s is worse than one that is absent")
+# The "every advertised URL resolves" pin was born here, scoped to this
+# one module. It was ruled a CLASS and moved to
+# `tests/test_link_contract.py`, which now sweeps every payload in the
+# backend and — the half this file never had — every frontend page the
+# backend puts in an email. Not duplicated here: one sweep, one place, and
+# a narrower copy would go stale the day somebody widened the other.
 
 
 def test_the_notary_documents_are_registered():
