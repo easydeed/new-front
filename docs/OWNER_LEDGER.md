@@ -131,6 +131,23 @@ when their trigger arrives.
   contact details. Unset, the job runs wherever `DATABASE_URL` points,
   which is correct for local and CI and is why the check is optional.
 
+- **`/signing/{token}/pcor` does not exist — the NOTARY2 signer's PCOR
+  button is a live 404** (found 2026-08-12 while retiring NOTARY1's read
+  side). `services/signing_surfaces.py:192` puts
+  `pcor_url = "/signing/{token}/pcor"` in the signer package, and
+  `frontend/src/app/signing/[token]/page.tsx:355` renders a Download
+  PCOR link at `${pcor_url}.pdf`. **Neither route is registered** —
+  `routers/signing.py` has no PCOR handler at all. NOTARY1 had a working
+  pair; NOTARY2 advertises them and never built them.
+
+  NOT FIXED, because the two fixes are different products: build the
+  route (the signer gets the county's companion form) or stop
+  advertising it (the button goes). The first is a feature and the
+  second removes one, and `pcor_url` is inside `signing_surfaces`'
+  exact-key-set contract, so either way it is a deliberate change rather
+  than a repair. **Needs a ruling.** The audience is consumers with no
+  account, which is the argument for it being soon.
+
 - **Junk seed cleanup** (test rows in production data).
 - **TitlePoint / SiteX credential rotations.**
 - **DTT city-rates review** (`frontend/src/lib/dttCalc.ts`) — owner's
@@ -345,20 +362,28 @@ we reach it.
 
 ## Parked tickets (scoped, not scheduled)
 
-- **Retire NOTARY1's read-side routes** (FLOW1 item 6 follow-up,
-  owner-ruled 2026-08-11: leave them for now). Three routes survive the
-  write path's retirement and are now unreachable by construction —
-  `POST /approve/{token}/schedule`, `POST /shared-deeds/{id}/schedule`,
-  `GET /approve/{token}/pcor(.pdf)`. `_signing_share_by_token` 404s
-  anything that is not a signing share, and nothing can create one.
-  **Trigger:** the confirmed zero-row count (already had — production
-  `deedpro` at 10.26.62.147, found 0) PLUS a decision that no other
-  database holds NOTARY1 shares. Until then a pin asserts the source
-  note explaining why they cannot fire is still present, because an
-  endpoint that cannot fire with nothing saying why is
-  indistinguishable from one nobody has looked at. The `deed_shares`
-  columns stay regardless — a column drop is irreversible and the
-  migration script must keep being able to read a row it might find.
+- **Retire NOTARY1's read-side routes — DONE 2026-08-12.** All four
+  removed (the ledger said three; `GET /approve/{token}/pcor.pdf` was
+  not in the count), with `_signing_share_by_token`,
+  `_pcor_deed_for_token`, `_tell_the_officer`, the `WindowChoice` /
+  `OfficerSchedule` models, the dead half of `services/signing.py`, the
+  orphaned `signing_time_recorded` email, and the approve page's window
+  picker.
+
+  **The trigger's second half was answered by argument rather than by a
+  survey**, and that is worth stating plainly: nobody enumerated every
+  database that runs this schema. The reason it did not need to is that
+  **the read side was never the recovery path — the migration is.**
+  `migrate_notary1_signings.py` still reads `deed_shares` directly,
+  still carries a share into the NOTARY2 aggregate, and now names the
+  database it is in first. A row found anywhere is migrated into the
+  model the product believes in rather than served through one it does
+  not. Pinned.
+
+  A link held by somebody from that era now says what happened and what
+  to do, rather than opening onto a page with no actions — invariant #4
+  wearing an empty state. The `deed_shares` columns stay; a column drop
+  is irreversible and was not ruled.
 
 - **Sweep for pins reading files nothing imports** (FLOW1 item 6
   finding, owner-ruled as its own category). `shareEntryPoints.test.ts`

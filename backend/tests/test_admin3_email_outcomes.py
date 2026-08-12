@@ -92,7 +92,13 @@ def test_every_template_routes_through_send():
         f"declared TEMPLATES and actual _send labels disagree: "
         f"only-declared={set(TEMPLATES) - named}, only-used={named - set(TEMPLATES)}"
     )
-    assert len(TEMPLATES) == 19
+    # The trip-wire, fired DOWNWARD again: 19 → 18 as NOTARY1's
+    # `signing_time_recorded` lost the only handler that sent it (the
+    # notary tapping one of the officer's proposed windows — a thing that
+    # can no longer happen). The same pin caught `share_signing_request`
+    # leaving in #162. A count that only ever goes up is a count that
+    # never notices a feature departing.
+    assert len(TEMPLATES) == 18
 
 
 # ── The recorder's two constraints ───────────────────────────────────

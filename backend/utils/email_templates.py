@@ -361,39 +361,6 @@ def admin_api_key_request(company_name, contact_email, business_type,
 # test_admin3_email_outcomes.py is what caught it.
 
 
-def signing_time_recorded(owner_name, deed_type, property_address, notary_email,
-                          when_text, asserted_note, view_link) -> Rendered:
-    """NOTARY1 — to the officer: a time is on the record.
-
-    The subject and body say RECORDED, never "confirmed for" or "your
-    signing is set". A time in this system is an arrangement two people
-    made; the product knows the arrangement was made and knows nothing
-    about whether anybody keeps it. `asserted_note` carries who said so,
-    because per RED-S4 the system's knowledge is always somebody's
-    statement.
-    """
-    addr = _short_addr(property_address)
-    subject = f"Signing time recorded — {addr}" if addr else "Signing time recorded"
-    content = (
-        _p(f"Hi {_esc(owner_name)},")
-        + _p(_esc(asserted_note))
-        + _facts([("Time", when_text), ("Notary", notary_email),
-                  ("Document", deed_type), ("Property", addr)])
-        + _button(view_link, "Open in DeedPro")
-        + _p('<span style="font-size:13px;color:#8a94a0;">The signers have not been '
-             "contacted — DeedPro does not message them. A calendar file for this time "
-             "is attached.</span>")
-    )
-    text = (
-        f"{asserted_note}\n\n"
-        f"Time: {when_text}\nNotary: {notary_email}\n"
-        f"Document: {deed_type}\nProperty: {addr}\n\n"
-        f"Open: {view_link}\n\n"
-        "The signers have not been contacted — DeedPro does not message them."
-    )
-    return subject, _base(f"Signing time recorded — {addr}", content, True), text
-
-
 def notary_invited(notary_name, officer_name, officer_company, deed_type,
                    property_address, county, link, expires_at) -> Rendered:
     """NOTARY2 — officer → notary: post the times you are free.
