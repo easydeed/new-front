@@ -46,7 +46,13 @@ _bearer = HTTPBearer(auto_error=False)
 EMAIL_VERIFICATION_REQUIRED = os.getenv("EMAIL_VERIFICATION_REQUIRED", "false").lower() == "true"
 REFRESH_TOKENS_ENABLED = os.getenv("REFRESH_TOKENS_ENABLED", "false").lower() == "true"
 LOGIN_RATE_LIMIT = os.getenv("LOGIN_RATE_LIMIT", "true").lower() == "true"
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+# Resolved per CALL, not at import: a module-level read with a
+# localhost default bakes the wrong answer into every password-reset
+# link for the life of the process, and a reset link to somebody
+# else's laptop is a dead account-recovery path.
+def FRONTEND_URL_() -> str:
+    from services.environment import require
+    return require("FRONTEND_URL")
 
 RESET_TOKEN_TTL_HOURS = int(os.getenv("RESET_TOKEN_TTL_HOURS", "1"))
 VERIFY_TOKEN_TTL_HOURS = int(os.getenv("VERIFY_TOKEN_TTL_HOURS", "24"))
@@ -93,7 +99,7 @@ def forgot_password(payload: ForgotPasswordRequest):
             data={"sub": str(user_id), "type": "reset"},
             expires_delta=timedelta(hours=RESET_TOKEN_TTL_HOURS)
         )
-        reset_url = f"{FRONTEND_URL}/reset-password?token={reset_token}"
+        reset_url = f"{FRONTEND_URL_()}/reset-password?token={reset_token}"
         sent, reason = send_password_reset_with_reason(
             email, full_name, reset_url, RESET_TOKEN_TTL_HOURS
         )
@@ -167,7 +173,7 @@ def request_verify_email(payload: VerifyEmailRequest):
             data={"sub": str(user_id), "type": "verify"},
             expires_delta=timedelta(hours=VERIFY_TOKEN_TTL_HOURS)
         )
-        verify_url = f"{FRONTEND_URL}/verify-email?token={token}"
+        verify_url = f"{FRONTEND_URL_()}/verify-email?token={token}"
         v_sent, v_reason = send_verify_email_with_reason(email, full_name or "", verify_url)
         if not v_sent:
             print(f"[verify-email] send failed: {v_reason}")

@@ -30,6 +30,27 @@ from middleware.qa_instrumentation import QAInstrumentationMiddleware, get_qa_he
 
 load_dotenv()
 
+# ── The environment, checked at BOOT rather than at a customer's
+#    checkout ────────────────────────────────────────────────────────
+#
+# `FRONTEND_URL` is read in sixteen places, three of them Stripe
+# redirect URLs with a `http://localhost:3000` fallback — so an unset
+# variable sends a paying customer to a page on their own machine, with
+# nothing raised and nothing logged. It appeared in no configuration file
+# in this repository, so nothing declared it should exist and nothing
+# could notice it did not.
+#
+# This says so at startup, in a block nobody can miss in a Render log.
+# It does NOT refuse to boot by default, and that ordering is deliberate:
+# we have not yet confirmed whether the variable is set in production, and
+# a process that refuses to start on an unverified condition turns a
+# wrong redirect into an outage. `STRICT_ENV=1` makes it a refusal, and
+# becomes the default in the ticket that verifies production.
+#
+# See services/environment.py for the per-variable reasoning.
+from services.environment import check as _check_environment
+_check_environment()
+
 app = FastAPI(title="DeedPro API", version="2.0.0-dynamic-wizard")
 # Updated for new-front monorepo with pricing management
 

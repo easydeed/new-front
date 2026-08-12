@@ -7,6 +7,8 @@ it is the preserved pre-split behavior.
 """
 import os
 
+from services.environment import require
+
 import psycopg2
 import stripe
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
@@ -547,8 +549,14 @@ async def upgrade_plan(req: UpgradeRequest, user_id: int = Depends(get_current_u
                 'quantity': 1
             }],
             mode='subscription',
-            success_url=f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/account-settings?success=true",
-            cancel_url=f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/account-settings?canceled=true",
+            # THE MONEY PATH, and the reason services/environment.py
+            # exists. This read a `http://localhost:3000` fallback, so an
+            # unset FRONTEND_URL charged the card and redirected the
+            # customer to a page on their own machine — silently. A
+            # checkout that refuses to start is strictly better: it has
+            # not taken any money.
+            success_url=f"{require('FRONTEND_URL')}/account-settings?success=true",
+            cancel_url=f"{require('FRONTEND_URL')}/account-settings?canceled=true",
             allow_promotion_codes=True,
             **({'subscription_data': {'trial_period_days': trial_days}}
                if trial_days > 0 else {}),
@@ -595,7 +603,7 @@ async def create_portal_session(user_id: int = Depends(get_current_user_id)):
 
         session = stripe.billing_portal.Session.create(
             customer=result[0],
-            return_url=f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/account-settings"
+            return_url=f"{require('FRONTEND_URL')}/account-settings"
         )
 
         return {"url": session.url}

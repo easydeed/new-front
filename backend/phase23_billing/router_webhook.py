@@ -375,7 +375,11 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                 if row and row.get("email"):
                     from utils.notifications import send_payment_failed_with_reason
                     amount_text = f" of ${amount / 100:,.2f}" if amount else ""
-                    base = os.getenv("FRONTEND_URL", "http://localhost:3000")
+                    # A payment-failed email whose "update your card" link
+                    # points at localhost is worse than no email: it looks
+                    # like the product is broken rather than the card.
+                    from services.environment import require
+                    base = require("FRONTEND_URL")
                     ok, reason = send_payment_failed_with_reason(
                         row["email"], row.get("full_name") or "",
                         amount_text, f"{base}/account-settings",
