@@ -77,6 +77,13 @@ services:
   # dashboard. That is the proof behind the header's warning — the file
   # DECLARES, it does not APPLY.
   #
+  # VERIFIED IN PRODUCTION once it was set by hand: both
+  # `deedpro-main-api` and the purge cron built clean on 3.12.7, cp312
+  # wheel tags across sqlalchemy, greenlet, watchfiles, yarl and zopfli in
+  # both build logs. The nondeterminism this pin exists to close — a
+  # service inheriting whatever Render's default was the day it built —
+  # is closed on both services.
+  #
   # Nothing was going to catch it, either, and the reason is worth
   # keeping: the boot report in `services/environment.py` reads the REAL
   # environment on the REAL service, so it does catch dashboard drift —

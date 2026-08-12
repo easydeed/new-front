@@ -103,9 +103,30 @@ MANIFEST: Tuple[EnvVar, ...] = (
            "checkout failed at Stripe with an error about a price that "
            "was never real. Fail loudly with a named reason, never fall "
            "back to a placeholder."),
-    EnvVar("ALLOWED_ORIGINS", REQUIRED,
-           "CORS. Wrong or absent, the browser refuses every call and the "
-           "product looks broken with nothing in the server log."),
+    # ⚠️ THIS ENTRY WAS WRONG, AND THE CORRECTION MATTERS MORE THAN THE
+    # ENTRY. It said CORS breaks without this variable. **Nothing reads
+    # it.** `main.py` hardcodes its origin list, and a grep of the whole
+    # backend finds this name in exactly one place: here, declaring it
+    # required.
+    #
+    # The boot check named it missing on the first production deploy, the
+    # owner set it on the strength of that, and setting it changed
+    # nothing — because the claim it was acting on was mine and it was
+    # false. A manifest that is believed is a manifest that has to be
+    # right.
+    #
+    # Classified OPTIONAL because that is the truth about its ABSENCE:
+    # nothing changes. It is not deleted, because `render.yaml` declares
+    # it and the two files are checked against each other — and because
+    # the open question is whether `main.py` should read it, which is a
+    # production CORS change and the owner's to rule. See the ledger.
+    EnvVar("ALLOWED_ORIGINS", OPTIONAL,
+           "Read by NOTHING today. `main.py` hardcodes `allow_origins` "
+           "and never consults this name, so its absence changes no "
+           "behaviour and setting it changes none either. Declared here "
+           "and in render.yaml, which is how it came to be set on a "
+           "service that does not consume it. Pending an owner ruling on "
+           "whether CORS should be configured from it."),
     EnvVar("SENDGRID_API_KEY", OPTIONAL,
            "No email leaves the building. OPTIONAL and it is a close "
            "call: the product degrades honestly — every sender returns "

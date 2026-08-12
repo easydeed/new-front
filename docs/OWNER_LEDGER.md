@@ -121,15 +121,103 @@ when their trigger arrives.
   laptop, they get a refused checkout. Better, and still a customer who
   cannot pay.
 
-- **`EXPECTED_DATABASE` on the purge cron — set it when the cron exists**
-  (db-identity, 2026-08-12). Not urgent, and it has no effect until the
-  Render Cron Job is created (Tier 3, still not created). When it is:
-  set `EXPECTED_DATABASE=deedpro` alongside `DATABASE_URL`. The purge
-  asserts its tables, but **staging has those tables too** — the name is
-  the only thing that separates the production database from a copy of
-  it, and the purge is the one job here where being wrong deletes real
-  contact details. Unset, the job runs wherever `DATABASE_URL` points,
-  which is correct for local and CI and is why the check is optional.
+## Closed by the owner — 2026-08-12 production verification
+
+- **`EXPECTED_DATABASE=deedpro` is SET on the purge cron. The check is
+  live, not inert.** The populated-wrong-database case — staging, which
+  has every table the purge asserts — is now refused by name rather than
+  merely refusable. This was the last thing standing between the purge
+  and a mistake that deletes real contact details out of the wrong copy.
+
+  *Correction to this card as it was written:* it said the cron was "still
+  not created". It was — `signer_contact_purge`, 2026-08-11, recorded in
+  the `render.yaml` header the same day. The card inherited a staleness
+  from the ticket that wrote it.
+
+- **`PYTHON_VERSION=3.12.7` verified in production, on both services.**
+  `deedpro-main-api` and the purge cron both built clean, confirmed by
+  cp312 wheel tags (sqlalchemy, greenlet, watchfiles, yarl, zopfli) in
+  both build logs, both "Build successful." The nondeterminism the pin
+  existed to close — a service inheriting whatever Render's default was
+  on the day it built — is closed.
+
+  **And the caveat now has production evidence behind it:** the dashboard
+  is authoritative and the `render.yaml` pin alone never applied. That is
+  no longer an inference from one variable; it is the observed behaviour
+  of two services. See the note beside the value in `render.yaml`.
+
+- **`ALLOWED_ORIGINS` — SET, AND IT DOES NOTHING. My error, corrected.**
+  The boot check named it missing on the first production deploy, the
+  owner set it on the strength of that, and **setting it changed
+  nothing, because nothing reads it.** `main.py` hardcodes its CORS
+  origin list; a grep of the whole backend finds this name in exactly one
+  place — the manifest declaring it REQUIRED. The consequence text I
+  wrote for it ("the browser refuses every call") described a failure
+  that cannot happen.
+
+  Reclassified OPTIONAL with the truth in its entry, and a new pin now
+  fails the suite if any REQUIRED variable is read by nothing —
+  `test_every_required_variable_is_actually_read_by_something`. It
+  catches this exact error; probed against it.
+
+  **The mechanism's first catch is still real, and the honest version is
+  better than the flattering one:** the boot check surfaced a declared
+  variable that was genuinely unset, which nobody knew. Chasing what it
+  caught is what revealed the declaration itself was wrong. Both halves
+  are the system working.
+
+  **And it sharpens the STRICT_ENV argument rather than weakening it.**
+  #166 argued you cannot refuse to boot on a condition nobody has
+  verified, "because the refusal is then the incident". Had `STRICT_ENV=1`
+  been the default, the deploy that shipped #166 would have refused to
+  start — over a variable that changes no behaviour at all. Not an outage
+  caused by a real absence; an outage caused by a mis-classification.
+  STRICT_ENV stays off, and the ticket that turns it on is the ticket
+  that audits the manifest against the code, which the new pin now does
+  continuously.
+
+## Open — needs a ruling (found 2026-08-12, NOT fixed)
+
+- **CORS allows every origin, with credentials.** `backend/main.py:66-76`:
+
+  ```python
+  allow_origins=[
+      "http://localhost:3000",
+      "https://deedpro-frontend-new.vercel.app",
+      "https://deedpro-frontend-new-*.vercel.app",  # Preview deployments
+      "*"  # Fallback for development
+  ],
+  allow_credentials=True,
+  ```
+
+  Starlette sets `allow_all_origins = "*" in allow_origins`, so
+  `is_allowed_origin` returns True for everything and the four entries
+  above the wildcard are decorative. With `allow_credentials=True` it
+  echoes the requesting origin back instead of `*`, which is the form
+  browsers accept — so every site on the internet is an allowed origin.
+  A comment calls it a development fallback; it is in production.
+
+  **The bound, stated so nobody over- or under-reacts.** This API
+  authenticates with `Authorization: Bearer` read from `localStorage`,
+  not cookies. A malicious page cannot read another origin's
+  localStorage, so it cannot forge an authenticated request merely by
+  being allowed. What the wildcard removes is the browser-side barrier
+  that would otherwise contain a token obtained some other way, and it
+  makes any allowlist meaningless.
+
+  **Why it is not a quick fix, and why it needs you rather than me.**
+  Removing `"*"` today breaks every Vercel preview deployment.
+  `allow_origins` is EXACT-matched — the `deedpro-frontend-new-*.vercel.app`
+  entry has never matched anything, and previews work solely because of
+  the wildcard. Doing this properly means `allow_origin_regex` for the
+  preview pattern plus the production host, which is a production CORS
+  change with a real chance of taking the frontend down if the pattern is
+  wrong. Tier 3-adjacent, and the right shape is: build it, verify
+  against a preview URL and the production host, then ship.
+
+  It is also the obvious answer to the question above — this is what
+  `ALLOWED_ORIGINS` was presumably declared FOR, and wiring it is one
+  ticket with the regex work.
 
 - **Demo video: `homepageLinks.test.ts` has to be retargeted first.**
   The GTM plan says the 90-second video "fills the homepage's dead Watch
