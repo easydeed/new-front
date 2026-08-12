@@ -579,6 +579,47 @@ def signing_proposal_received(notary_name, signer_name, officer_name,
     return subject, _base("A signer suggested a different time", content, True), text
 
 
+def signing_cancelled(recipient_name, property_text, when_text, officer_name,
+                      is_consumer: bool) -> Rendered:
+    """CANCEL1 — the request is off, and everybody who was asked is told.
+
+    WHO GETS THIS AND WHY. A notary who blocked out Thursday afternoon
+    and a signer who picked a time both arranged their day around an
+    appointment that is no longer happening. Owner-ruled: an invited
+    signer is told even when nothing was ever booked — they hold a link,
+    the link is now dead, and finding that out by clicking it is worse
+    than being told.
+
+    NO REASON FIELD, deliberately. The product does not know why she
+    cancelled and will not invent one; "cancelled by {officer}" is the
+    whole of what it can say. A blank line inviting an explanation would
+    be a place for one to be guessed at later.
+
+    SAME TWO REGISTERS AS `signing_booked`, for the same reason: the
+    signer gets the street line, the professionals get the full address.
+    An email is not a loophole in the surface allowlist.
+    """
+    subject = f"Signing cancelled — {property_text}"
+    body = (
+        _p(f"Hi {_esc(recipient_name) or 'there'},")
+        + _p(f"{_esc(officer_name)} has cancelled this signing request. "
+             "Any link you were sent for it no longer works.")
+        + _facts([("Property", property_text),
+                  ("Time that was agreed", when_text)])
+        + _p('<span style="font-size:13px;color:#8a94a0;">'
+             f"There is nothing to do. If you were expecting this signing, "
+             f"contact {_esc(officer_name)}.</span>")
+    )
+    text = (
+        f"{officer_name} has cancelled this signing request. Any link you "
+        "were sent for it no longer works.\n\n"
+        f"Property: {property_text}\n"
+        + (f"Time that was agreed: {when_text}\n" if when_text else "")
+        + f"\nIf you were expecting this signing, contact {officer_name}.\n"
+    )
+    return subject, _base(subject, body, is_consumer), text
+
+
 def signing_booked(recipient_name, when_text, property_text, notary_name,
                    officer_name, is_consumer: bool, link) -> Rendered:
     """NOTARY2 — everybody, on convergence. Carries the .ics.

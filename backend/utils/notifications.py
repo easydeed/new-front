@@ -39,6 +39,11 @@ TEMPLATES = (
     # "the signing happened," because nothing in this product knows that.
     "notary_invited", "signing_windows_posted",
     "signing_proposal_received", "signing_booked", "signing_reminder",
+    # CANCEL1 — the officer calls it off. Everybody who was ASKED is
+    # told, including a signer who was invited and never answered: they
+    # hold a link, the link is dead, and discovering that by clicking it
+    # is worse than being told.
+    "signing_cancelled",
 )
 
 
@@ -285,6 +290,19 @@ def send_signing_booked(recipient_email: str, recipient_name: str, when_text: st
         is_consumer, link),
         user_id=user_id, context={"party": "signer" if is_consumer else "professional"},
         attachments=attachments)
+
+
+def send_signing_cancelled(recipient_email: str, recipient_name: str,
+                           property_text: str, when_text: Optional[str],
+                           officer_name: str, is_consumer: bool,
+                           user_id: Optional[int] = None) -> SendResult:
+    """CANCEL1 — everybody who was asked, when the officer calls it off."""
+    return _send("signing_cancelled", recipient_email,
+                 email_templates.signing_cancelled(
+                     recipient_name, property_text, when_text or "",
+                     officer_name, is_consumer),
+                 user_id=user_id,
+                 context={"party": "signer" if is_consumer else "professional"})
 
 
 def send_welcome_with_reason(user_email: str, full_name: str) -> SendResult:
