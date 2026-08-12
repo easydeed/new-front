@@ -45,6 +45,15 @@ const NOTARY_CATEGORY = 'notary';
 /** The zones a California title product actually needs. Not the full
  * IANA list — a dropdown of six hundred zones is a worse question than a
  * dropdown of five. */
+/** Days, because a signing is arranged over days and a review is read in
+ *  hours. Same control, same placement, units that match the thing. */
+const EXPIRY_CHOICES = [
+  { days: 7, label: '7 days' },
+  { days: 14, label: '14 days' },
+  { days: 21, label: '21 days' },
+  { days: 30, label: '30 days' },
+];
+
 const ZONES = [
   { id: 'America/Los_Angeles', label: 'Pacific' },
   { id: 'America/Denver', label: 'Mountain' },
@@ -100,6 +109,12 @@ export function RequestSigningModal({
   const [signersAgreed, setSignersAgreed] = useState(false);
   const [location, setLocation] = useState(propertyAddress || '');
   const [tz, setTz] = useState(ZONES[0].id);
+  /* CANCEL1 item 5 — the expiry was imposed silently. The API has taken
+     `expires_in_days` since NOTARY2 and no screen ever sent one, so every
+     request got the 21-day default and the officer read the date off the
+     agenda afterwards. Reviews have had this control all along; this is
+     the same field, in the same place, on the other modal. */
+  const [expiresInDays, setExpiresInDays] = useState(21);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ id: number; links: Array<{ role: string; name: string; link: string }> } | null>(null);
@@ -141,6 +156,7 @@ export function RequestSigningModal({
                            phone: s.phone.trim() || undefined })),
           location: location || undefined,
           tz_name: tz,
+          expires_in_days: expiresInDays,
           ...(mode === 'dispatch' && start && end
             ? {
                 // withOffset: a bare wall-clock time makes the server
@@ -398,6 +414,27 @@ export function RequestSigningModal({
                   </select>
                   <p className="text-xs text-slate-500 mt-1">
                     Everyone sees times in this zone — the one where the signing happens.
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Links expire after
+                  </label>
+                  <select value={expiresInDays}
+                          onChange={(e) => setExpiresInDays(Number(e.target.value))}
+                          className={input}>
+                    {EXPIRY_CHOICES.map((c) => (
+                      <option key={c.days} value={c.days}>{c.label}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {/* What expiry DOES, in the same terms the review
+                        dialog uses: the links stop working and the
+                        recipient sees a notice. The signing request
+                        itself is not cancelled — that is a different act,
+                        with different consequences and its own button. */}
+                    When the links expire they stop working and everyone sees a
+                    notice. The request is not cancelled — nobody is told.
                   </p>
                 </div>
               </div>

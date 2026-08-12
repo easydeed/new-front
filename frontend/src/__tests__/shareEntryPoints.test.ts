@@ -46,6 +46,7 @@ const REVIEW = read('features', 'signing', 'ShareForReviewModal.tsx');
  */
 const SIGNING = read('features', 'signing', 'RequestSigningModal.tsx');
 const PICKER = read('features', 'partners', 'PartnerRecipientPicker.tsx');
+import { signingRowAction } from '../lib/signingRowAction';
 
 describe('Part B — two distinct actions on the deed', () => {
   it('the deed offers "Share for review" and "Request signing", separately', () => {
@@ -60,9 +61,22 @@ describe('Part B — two distinct actions on the deed', () => {
     // So the assertion moved UP in strength, not sideways: visible text,
     // and the titles that used to carry it are gone rather than kept as
     // a second copy of the same words.
+    //
+    // CANCEL1 RETARGETED THE SECOND HALF, and flagged it here rather than
+    // in a commit message nobody re-reads. "Request signing" is no longer
+    // a literal in this file: a deed that ALREADY has a signing out must
+    // offer to open it instead of creating a second, so the label comes
+    // from `lib/signingRowAction` — which exists because a
+    // string-presence pin could not tell a reachable branch from a dead
+    // one and stayed green with the feature disabled.
+    //
+    // The property is unchanged and is still checked, one step across:
+    // two separately-named actions, in visible text, on the row. The
+    // review half is still a literal because it has no second state.
     const flat = PAGE.replace(/\s+/g, ' ');
     expect(flat).toContain('<span className="whitespace-nowrap">Share for review</span>');
-    expect(flat).toContain('<span className="whitespace-nowrap">Request signing</span>');
+    expect(signingRowAction(1, {}).label).toBe('Request signing');
+    expect(flat).toContain('{action.label}</span>');
     expect(PAGE).not.toContain('title="Share for review"');
     expect(PAGE).not.toContain('title="Request signing"');
     // The generic one is gone, not relabelled alongside them.
