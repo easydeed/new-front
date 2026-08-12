@@ -109,6 +109,32 @@ ruled.
 it is a product decision on its own merits and deserves to be ruled as
 one, rather than shipped under a bug ticket that no longer has a bug.
 
+### A ruling can fail in two ways, and both need checking
+
+**Owner-ruled 2026-08-12 (UX2 item 1).** DASH1 was one failure mode. UX2
+item 1 was the other, and confusing them wastes the lesson.
+
+| | DASH1 route rename | UX2 item 1 property search |
+|---|---|---|
+| The defect | **did not exist** — both routes were already aliases | **was real**, and worse than described |
+| The diagnosis | — | **was wrong**: "we re-search by address string instead of passing the autocomplete's identifier" |
+| The right answer | ship nothing, report | ship the fix, at the place the defect actually is |
+
+UX2's hypothesis was framed from outside the constraint. SiteX takes
+`addr` + `lastLine` **or** `fips` + `apn`; Google's `place_id` is not a
+SiteX key, and the FIPS + APN that would be precise does not exist on our
+side until SiteX has already answered. Re-searching by address string is
+the interface, not a shortcut somebody took.
+
+The defect was one step later and entirely ours: we had the officer's
+exact address, we had 76 candidates each carrying an address, and we
+compared nothing.
+
+**The rule:** verify the DEFECT and verify the EXPLANATION. A ticket that
+names a cause is making two claims, and building against the wrong one
+produces a change that is real work, passes review, and leaves the defect
+where it was.
+
 ## Standing practice — a job that writes says which database it is in
 
 Ruled 2026-08-12 (db-identity ticket). `relation "signing_participants"
