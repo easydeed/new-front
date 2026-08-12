@@ -234,6 +234,36 @@ SiteX coordinates become canonical after lookup. Google coordinates are fallback
 
 Frontend should render a picker of `Locations[]`, send selected `{fips, apn}` to a resolve endpoint, and let the backend call `search_by_fips_apn`.
 
+### 7.1 There is no precise identifier to pass through (UX2, 2026-08-12)
+
+SiteX's search takes **an address, or a FIPS + APN**. Google's `place_id`
+is not a SiteX key and has no equivalent input — §6 above maps
+`street_number + route` into `addr` precisely because that is the only
+route in. The FIPS + APN that WOULD be precise does not exist on our side
+until SiteX has already answered with it.
+
+So "pass the autocomplete's identifier instead of re-searching by address
+string" is not an available fix. Re-searching by the address string is
+the interface, and a multi-match is a normal outcome of it — including
+for an address the officer selected exactly.
+
+### 7.2 Exactly one unambiguous candidate is selected server-side
+
+`backend/services/address_match.py` compares the chosen address against
+every `Locations[]` entry. **Exactly one** unambiguous match is resolved
+by FIPS + APN and returned as `status: "success"` with a `selection`
+block and the rest as `alternatives`. Zero or several returns
+`multi_match` with every candidate, ranked nearest-first.
+
+Two candidates on one address is a genuine ambiguity — normally a
+multi-unit building — and is never resolved automatically. Send
+`unit_type` / `unit_number` to the screen: in that case it is the only
+field distinguishing the candidates.
+
+`selection.basis` is `exact_address_match`, `officer_choice` or
+`only_county_match`. See doctrine §13.3 — a parcel the server matched
+must not be indistinguishable from one a human clicked.
+
 Reference DeedPro's working pattern:
 
 | File | Pattern |
