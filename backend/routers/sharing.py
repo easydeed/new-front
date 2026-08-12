@@ -793,7 +793,7 @@ def submit_approval_response(approval_token: str, response: ApprovalResponse):
                         ntype="share_approved",
                         title="Deed approved",
                         message=f"{recipient_email or 'A reviewer'} approved {property_address or 'your deed'}",
-                        link=f"/shared-deeds?focus={share_id}"
+                        link=f"/requests?kind=reviews&focus={share_id}"
                     )
                     print(f"[Sharing] ✅ Approval notification created: ID {notification_id}")
                 except Exception as notif_error:
@@ -813,7 +813,7 @@ def submit_approval_response(approval_token: str, response: ApprovalResponse):
                             property_address=property_address,
                             reviewer_email=recipient_email,
                             comments=(response.comments or "").strip() or None,
-                            view_link=f"{app_url}/shared-deeds?focus={share_id}"
+                            view_link=f"{app_url}/requests?kind=reviews&focus={share_id}"
                         )
                         if email_sent:
                             print(f"[Sharing] ✅ Approval email sent to {owner_email}")
@@ -852,7 +852,7 @@ def submit_approval_response(approval_token: str, response: ApprovalResponse):
                 from utils.notifications import send_share_rejected_with_reason
 
                 if owner_email:
-                    link = f"{os.getenv('FRONTEND_URL', 'https://deedpro-frontend-new.vercel.app')}/shared-deeds?focus={share_id}"
+                    link = f"{os.getenv('FRONTEND_URL', 'https://deedpro-frontend-new.vercel.app')}/requests?kind=reviews&focus={share_id}"
                     email_sent, email_error = send_share_rejected_with_reason(
                         owner_email=owner_email,
                         owner_name=owner_name,
@@ -881,7 +881,7 @@ def submit_approval_response(approval_token: str, response: ApprovalResponse):
                     ntype="share_rejected",
                     title="📝 Changes Requested",
                     message=f"{recipient_email or 'A reviewer'} requested changes for {property_address or 'your deed'}",
-                    link=f"/shared-deeds?focus={share_id}"
+                    link=f"/requests?kind=reviews&focus={share_id}"
                 )
                 print(f"[REJECTION BUNDLE] ✅ Notification created: ID {notification_id}")
             except Exception as notif_error:

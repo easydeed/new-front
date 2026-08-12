@@ -214,3 +214,100 @@ backend/routers/users_auth.py:598   return_url  = {FRONTEND_URL}/account-setting
    unset, every one of these falls back to `http://localhost:3000` and a
    paying customer lands nowhere. **That is the check with the real
    dollar behind it, and it is independent of any rename.**
+
+---
+
+# STEP 1, AS BUILT
+
+The merge ships in two units. This records what step 1 actually did, and
+what it deliberately did not.
+
+## What step 1 did
+
+The tracker moved from `/shared-deeds` to `/requests` — `git mv`, so the
+history follows the file. `/shared-deeds` remains, as a permanent alias
+whose whole body is a `redirect()`. Every in-app navigation was repointed
+at the new route; the sidebar entry is now "Requests".
+
+## The id space, and why the alias is load-bearing rather than polite
+
+Two pages became one, and their rows are keyed off different tables: a
+review is a `deed_shares.id`, a signing is a `signing_requests.id`.
+Review 42 and signing 42 both exist and are different deeds belonging to
+different people. So on the merged page `?focus=42` names two rows, and
+the thing that used to disambiguate it — the path — is gone.
+
+The alias supplies what the number cannot. An id arriving at
+`/shared-deeds` came from the reviews table, because that is the only
+thing that path has ever meant, and the redirect says so on the way
+through. **That is the alias's real job.** Serving old mail is the reason
+it can never be deleted; recovering the kind is the reason it is not
+merely a courtesy.
+
+A `?focus=` with no `?kind=` is genuinely ambiguous and is treated as
+such: the filter stays on "all" and nothing is highlighted. Guessing
+"reviews first" would be right most of the time and silently highlight a
+stranger's signing the rest — a tie-breaking rule invents an answer that
+will be right often enough that nobody checks it. An unhighlighted list
+is merely a list; a highlighted wrong row is an assertion.
+
+## The alias serves history and stops growing it
+
+The four backend links that built `/shared-deeds?focus={id}` — two emails
+and two in-app notifications — now build `/requests?kind=reviews&focus=`.
+
+The argument that makes the alias permanent is that sent mail cannot be
+edited, and that argument covers exactly the mail that was already sent.
+A backend that kept emitting the old path would grow the population of
+legacy links forever and make the alias self-justifying: every year more
+inboxes would hold the old path, because we had spent that year putting
+it there. Two pins hold this — one that no new link is minted at the
+retired path, one that no `/requests` focus link goes out without its
+kind.
+
+## A trap worth naming: the page and the endpoint share a name
+
+`/shared-deeds` is a frontend route AND a backend endpoint. Repointing
+the navigation caught `apiFetch('/shared-deeds', {method: 'POST'})` in
+the review modal on the way past, which would have 404'd every review
+share on the first click. Caught before commit, and pinned: the frontend
+ROUTE moved, the backend ENDPOINT did not.
+
+## What the guard sweep learned
+
+The route-level auth sweep flagged the alias, correctly — it is a page
+with no guard. Asking a redirect stub to guard would be worse than
+pointless: it would bounce the visitor to login from the alias and lose
+the parameters the alias exists to forward, when the destination guards
+anyway.
+
+Three such stubs (`/settings`, `/create-deed`, `/create-deed/[docType]`)
+were already exempted by name on the PUBLIC allowlist, and this would
+have been the fourth. A hand-kept list of one repeating shape stops being
+read — entry four goes in because one through three are there, and the
+day somebody adds a name that is *not* a stub, nothing objects. So the
+exemption is now proved rather than listed: a route qualifies only if it
+imports `redirect`, calls it, and contains no fetch, no token read, no
+storage, no state and no rendered markup. The classifier carries a floor
+assertion at both ends — it must still recognise the known stubs, and
+must never claim a real screen.
+
+## Deferred to step 2, deliberately
+
+- Folding the agenda's upcoming / being-arranged grouping into the
+  merged page.
+- Moving the expandable signing detail across.
+- Retiring `/signings` to an alias of its own.
+
+Splitting here keeps step 1 reviewable as what it is — a rename with an
+id-space recovery — rather than mixing it with a layout change. **The two
+row shapes stay different, and must**: a merged page is one page with two
+row renderers, not one row type.
+
+## Noted, not fixed
+
+The Share button on the deed preview pushes `/requests?deed={id}`, and
+nothing reads `?deed=`. Pre-existing — it predates the merge and the
+rename only carried it across — so it lands the officer on an unfiltered
+tracker instead of opening a share dialog. Same class as the `?focus=`
+defect DASH1 found. Ledgered rather than widened into this PR.

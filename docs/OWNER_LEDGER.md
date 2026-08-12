@@ -469,6 +469,27 @@ we reach it.
   inherits the naming rule — a revoke confirm that does not name the deed
   is the same defect the delete confirm had.
 
+- **The preview page's Share button lands nowhere in particular** (found
+  2026-08-12 during the Requests merge, NOT fixed — pre-existing).
+  `/deeds/{id}/preview` pushes `/requests?deed={id}` (was
+  `/shared-deeds?deed={id}`); nothing has ever read `?deed=`. So a button
+  labelled Share drops the officer on an unfiltered tracker with no
+  dialog open and no indication which deed it was about — she has to
+  find the deed again on a page she reached *from* that deed.
+
+  Same class as the `?focus=` defect DASH1 found from the other end: a
+  parameter built by one half and read by neither. The rename carried it
+  across unchanged rather than fixing it, because the merge PR should be
+  a rename and not a behaviour change.
+
+  Two candidate answers and they are genuinely different products, which
+  is why this is ledgered rather than decided: either the button opens
+  the review modal on the preview page (it is the deed she is looking
+  at — no navigation at all), or `/requests` learns `?deed=` and opens
+  the modal on arrival. The first is better if Share means "send THIS";
+  the second is better if the tracker is meant to be where sharing
+  happens. Owner's read on what the button means decides it.
+
 ## Parked tickets (scoped, not scheduled)
 
 - **Audit the string-presence pins whose subject is a BRANCH** (CANCEL1

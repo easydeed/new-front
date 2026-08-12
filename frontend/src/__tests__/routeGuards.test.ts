@@ -46,9 +46,12 @@ const PUBLIC_ROUTES = new Set([
   '/developers',
   '/terms', // public legal scaffold (HM3)
   '/privacy', // public legal scaffold (HM3)
-  '/settings', // server redirect to /account-settings (which guards)
-  '/create-deed', // legacy server redirect to /deed-builder (which guards)
-  '/create-deed/[docType]', // legacy server redirect to /deed-builder/[type] (which guards)
+  // The server-redirect stubs (/settings, /create-deed, /shared-deeds…)
+  // are NOT listed here any more. They were, one entry at a time, and
+  // the Requests merge was about to add a fourth — at which point a
+  // hand-kept list of one recurring shape is a list that will be added
+  // to without being thought about. `isRedirectOnly` below recognises
+  // the shape and PROVES the exemption instead of asserting it.
 ]);
 
 const GUARD_MARKERS = [
@@ -71,6 +74,44 @@ function collectPages(dir: string, route = ''): Array<{ route: string; file: str
     }
   }
   return out;
+}
+
+/**
+ * A route that renders nothing, fetches nothing, and forwards.
+ *
+ * ═══ WHY THIS IS AN EXEMPTION AT ALL ═══
+ *
+ * Routes get renamed, and the old path cannot simply be deleted: a
+ * `?focus=` link to `/shared-deeds` is in email that has already been
+ * delivered, and `/create-deed` is bookmarked. So each rename leaves a
+ * permanent stub whose whole body is a `redirect()`. Asking a stub to
+ * carry an auth guard would be worse than pointless — it would bounce
+ * the visitor to login from the alias and lose the parameters the alias
+ * exists to forward, when the destination guards anyway.
+ *
+ * ═══ WHY IT IS PROVED RATHER THAN LISTED ═══
+ *
+ * Three of these sat on the PUBLIC allowlist by name, and the Requests
+ * merge brought a fourth. A hand-kept list of one repeating shape stops
+ * being read: entry four goes in because entries one through three are
+ * already there, and the day somebody adds a name that is NOT a stub,
+ * nothing objects. The claim being made is "this route cannot leak
+ * anything", so the test makes the route demonstrate it.
+ *
+ * The bar is deliberately unforgiving. Any sign of a page that does
+ * something — a fetch, a token read, storage, state, rendered markup —
+ * disqualifies it, and it goes back to needing a real guard.
+ */
+const LEAK_SIGNS = [
+  'apiFetch', 'fetch(', 'localStorage', 'sessionStorage', 'document.cookie',
+  'useState', 'useEffect', 'useRouter', '<div', '<main', '<Sidebar',
+];
+
+function isRedirectOnly(file: string): boolean {
+  const src = codeOnly(fs.readFileSync(file, 'utf8'));
+  if (!/from ['"]next\/navigation['"]/.test(src)) return false;
+  if (!/\bredirect\(/.test(src)) return false;
+  return !LEAK_SIGNS.some((sign) => src.includes(sign));
 }
 
 function hasGuard(file: string): boolean {
@@ -99,9 +140,53 @@ describe('HX0 — route-level auth guards', () => {
   it('every non-public route carries an auth guard', () => {
     const unguarded = pages
       .filter(({ route }) => !PUBLIC_ROUTES.has(route))
+      .filter(({ file }) => !isRedirectOnly(file))
       .filter(({ file }) => !hasGuard(file))
       .map(({ route }) => route);
     expect(unguarded).toEqual([]);
+  });
+
+  it('the redirect exemption is recognising the stubs, and only stubs', () => {
+    /**
+     * The scanner-floor rule: a classifier that matches nothing exempts
+     * nothing and passes forever, and one that matches everything
+     * exempts the whole app just as quietly. Both ends get a number.
+     */
+    const stubs = pages.filter(({ file }) => isRedirectOnly(file)).map(({ route }) => route);
+    expect(stubs).toEqual(expect.arrayContaining([
+      '/settings',        // → /account-settings
+      '/create-deed',     // → /deed-builder
+      '/shared-deeds',    // → /requests (the focus links already emailed)
+    ]));
+    // Real screens must never qualify. If the bar ever loosens enough to
+    // let one through, this is where it is caught.
+    expect(stubs).not.toContain('/requests');
+    expect(stubs).not.toContain('/dashboard');
+    expect(stubs).not.toContain('/past-deeds');
+    expect(stubs.length).toBeLessThan(pages.length / 3);
+  });
+
+  it('a stub that grew a data call loses the exemption', () => {
+    /**
+     * Mutation probe, written down rather than performed once: the
+     * exemption is only safe because a stub that starts doing something
+     * stops being exempt. Proved on a synthetic file so the probe lives
+     * in the suite instead of in a session transcript.
+     */
+    const bare = `import { redirect } from 'next/navigation';
+      export default function S() { redirect('/requests'); }`;
+    const grown = `import { redirect } from 'next/navigation';
+      import { apiFetch } from '@/lib/apiClient';
+      export default async function S() { await apiFetch('/deeds'); redirect('/requests'); }`;
+    const tmp = path.join(__dirname, '__redirect_probe.tsx');
+    try {
+      fs.writeFileSync(tmp, bare);
+      expect(isRedirectOnly(tmp)).toBe(true);
+      fs.writeFileSync(tmp, grown);
+      expect(isRedirectOnly(tmp)).toBe(false);
+    } finally {
+      fs.unlinkSync(tmp);
+    }
   });
 
   it('the audited leak specifically: /team mounts the guard', () => {

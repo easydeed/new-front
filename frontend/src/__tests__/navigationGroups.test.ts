@@ -48,7 +48,7 @@ describe('DASH1 item 6 — three groups, in the order she works', () => {
     // dropped one would be a page that still exists and cannot be
     // reached — the same defect as a dead button, arriving by omission.
     for (const href of ['/dashboard', '/deed-builder', '/past-deeds',
-                        '/signings', '/shared-deeds', '/partners',
+                        '/signings', '/requests', '/partners',
                         '/account-settings']) {
       expect(CODE).toContain(`href: '${href}'`);
     }

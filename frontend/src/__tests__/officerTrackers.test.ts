@@ -45,19 +45,35 @@ const read = (...p: string[]) => fs.readFileSync(path.join(SRC, ...p), 'utf8');
 const flat = (s: string) => s.replace(/\s+/g, ' ');
 
 const SIGNINGS = read('app', 'signings', 'page.tsx');
-const SHARED = read('app', 'shared-deeds', 'page.tsx');
+/** The tracker moved to `/requests`; `app/shared-deeds/page.tsx` is now
+ *  the permanent alias that redirects there. See
+ *  sharedDeedsContract.test.ts for the retarget reasoning. */
+const SHARED = read('app', 'requests', 'page.tsx');
 const SIGNINGS_CODE = codeOnly(SIGNINGS);
 const SHARED_CODE = codeOnly(SHARED);
 
 describe('FLOW1 item 3 — the two trackers know about each other', () => {
   it('links in both directions', () => {
-    expect(SIGNINGS_CODE).toContain("router.push('/shared-deeds')");
+    expect(SIGNINGS_CODE).toContain("router.push('/requests')");
     expect(SHARED_CODE).toContain('router.push(`/signings?focus=${signing.id}`)');
   });
 
-  it('Shared Deeds shows both kinds, filterable, both by default', () => {
+  it('the tracker shows both kinds, filterable, both by default', () => {
     expect(SHARED_CODE).toContain('TrackerFilter');
-    expect(SHARED_CODE).toContain('useState<TrackerFilter>("all")');
+    /**
+     * "Both by default" used to be pinned as the literal
+     * `useState<TrackerFilter>("all")`. The Requests merge gave the
+     * initial filter a reason to vary — a link that names a kind opens
+     * that kind — so the default moved into `initialFilter`, and the
+     * spelling this line used to match is gone.
+     *
+     * The pin follows the PROPERTY rather than the spelling: the page
+     * asks the shared rule, and `requestsMerge.test.ts` CALLS that rule
+     * with no parameters and asserts the answer is "all". Re-asserting
+     * a literal here would be a second, weaker opinion about a decision
+     * that is now tested by execution.
+     */
+    expect(SHARED_CODE).toContain('useState<TrackerFilter>(initialFilter(focus))');
     expect(SHARED_CODE).toContain('filter !== "signings" && sharedDeeds.map');
     expect(SHARED_CODE).toContain('filter !== "reviews" && signings.map');
   });

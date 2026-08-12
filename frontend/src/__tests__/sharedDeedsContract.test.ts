@@ -39,7 +39,22 @@ import * as path from 'path';
 import { codeOnly } from '../test-support/sourceText';
 
 const SRC = path.join(__dirname, '..');
-const PAGE_PARTS = ['app', 'shared-deeds', 'page.tsx'];
+/**
+ * THE PAGE MOVED TO `/requests`; THE PINS FOLLOWED IT.
+ *
+ * `app/shared-deeds/page.tsx` still exists and is still reachable — it
+ * is now a permanent alias that redirects, because `?focus=` links to
+ * the old path are in emails already sent. But the SCREEN whose eight
+ * key names this file exists to pin is the merged tracker, so these
+ * pins read the tracker.
+ *
+ * Retargeting a pin has to be justified or it is a pin quietly aimed at
+ * something easier: pointed at the alias, every assertion below would
+ * fail on a 40-line redirect that renders no rows at all — which is the
+ * loud failure that says the retarget was needed rather than the silent
+ * pass that says nothing.
+ */
+const PAGE_PARTS = ['app', 'requests', 'page.tsx'];
 const PAGE = fs.readFileSync(path.join(SRC, ...PAGE_PARTS), 'utf8');
 const PAGE_CODE = codeOnly(PAGE);
 /** JSX wraps wherever the formatter chose to, so a sentence in the

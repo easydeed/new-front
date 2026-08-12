@@ -65,7 +65,10 @@ const NAV_GROUPS: Array<{ title: string; items: NavItem[] }> = [
       // the agenda's whole job is being the place she checks what is
       // stuck, and that only works if it is one click from everywhere.
       { href: '/signings', icon: CalendarClock, label: 'Signings', badge: 'signings' },
-      { href: '/shared-deeds', icon: Share2, label: 'Shared Deeds', badge: 'shared_deeds' },
+      { href: '/requests', icon: Share2, label: 'Requests', badge: 'shared_deeds' },
+      // The badge KEY is the server's ('shared_deeds' in the queue
+      // payload) and does not move with the route — renaming a URL is
+      // not a reason to rename a contract.
     ],
   },
   {

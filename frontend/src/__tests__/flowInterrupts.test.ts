@@ -49,7 +49,11 @@ const read = (...p: string[]) => fs.readFileSync(path.join(SRC, ...p), 'utf8');
 const flat = (s: string) => s.replace(/\s+/g, ' ');
 
 const PAST_DEEDS = read('app', 'past-deeds', 'page.tsx');
-const SHARED_DEEDS = read('app', 'shared-deeds', 'page.tsx');
+/** The tracker moved to `/requests`; `app/shared-deeds/page.tsx` is now
+ *  the permanent alias that redirects there. The screen these pins are
+ *  about is the tracker — see sharedDeedsContract.test.ts for the full
+ *  retarget reasoning. */
+const SHARED_DEEDS = read('app', 'requests', 'page.tsx');
 const DASHBOARD = read('app', 'dashboard', 'page.tsx');
 const REVIEW = read('features', 'signing', 'ShareForReviewModal.tsx');
 const SIGNING = read('features', 'signing', 'RequestSigningModal.tsx');

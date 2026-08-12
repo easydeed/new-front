@@ -15,9 +15,13 @@ function readSource(...segments: string[]): string {
   return fs.readFileSync(path.join(__dirname, '..', ...segments), 'utf8');
 }
 
+// The Shared Deeds tracker moved to `/requests`; `app/shared-deeds/`
+// is now the permanent alias that redirects there. The audited surface
+// is the page that CALLS the backend — the alias makes no API call at
+// all and would pass every assertion below vacuously.
 const AUDITED_PAGES: Array<[string, string[]]> = [
   ['past-deeds', ['app', 'past-deeds', 'page.tsx']],
-  ['shared-deeds', ['app', 'shared-deeds', 'page.tsx']],
+  ['requests', ['app', 'requests', 'page.tsx']],
   ['dashboard', ['app', 'dashboard', 'page.tsx']],
 ];
 
@@ -40,8 +44,8 @@ describe('X1 — the audited pages route API calls through apiFetch', () => {
     expect(src).not.toMatch(/await fetch\('\/api\/deeds/);
   });
 
-  it('shared-deeds Try Again refetches instead of reloading blind', () => {
-    const src = readSource('app', 'shared-deeds', 'page.tsx');
+  it('the requests tracker Try Again refetches instead of reloading blind', () => {
+    const src = readSource('app', 'requests', 'page.tsx');
     expect(src).toContain('onClick={() => fetchSharedDeeds()}');
     expect(src).not.toContain('window.location.reload()');
   });
@@ -63,7 +67,7 @@ describe('X1 — renderer freeze: no full-viewport backdrop blur behind modals',
   // from before the X1 ruling because it had no importers at the time, and
   // Part B revives it.
   const BLUR_SURFACES: Array<string[]> = [
-    ['app', 'shared-deeds', 'page.tsx'],
+    ['app', 'requests', 'page.tsx'],
     ['components', 'ui', 'ConfirmDialog.tsx'],
     ['features', 'signing', 'ShareForReviewModal.tsx'],
     // FLOW1 item 6: SigningRequestModal.tsx is deleted with NOTARY1's

@@ -257,7 +257,7 @@ function SigningsAgenda() {
             Sent a deed out for review instead?{' '}
             <button
               type="button"
-              onClick={() => router.push('/shared-deeds')}
+              onClick={() => router.push('/requests')}
               className="font-medium text-[#7C4DFF] hover:underline"
             >
               Shared Deeds
