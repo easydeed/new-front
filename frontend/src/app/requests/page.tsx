@@ -7,6 +7,9 @@ import { toast } from "sonner"
 import { SessionExpiredError, apiFetch } from "@/lib/apiClient"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { readFocus, initialFilter, isFocused, type TrackerFilter } from "@/lib/requestsFocus"
+import { requestsSections } from "@/lib/requestsSections"
+import { SigningAgenda } from "@/features/signing/SigningAgenda"
+import type { SigningSummary } from "@/features/signing/signingSummary"
 
 /**
  * FLOW1 item 0 — THESE FIELD NAMES ARE A CONTRACT, NOT A PREFERENCE.
@@ -74,28 +77,21 @@ interface SharedDeed {
  * defect item 0 spent a whole PR on. They travel as themselves, in one
  * table, under a filter, with a badge saying which is which.
  */
-interface SigningSummaryRow {
-  id: number
-  deed_id: number
-  property_address: string | null
-  deed_type: string | null
-  notary_name: string | null
-  state: string
-  summary: string
-  booked_at: string | null
-  created_at: string | null
-  expires_at: string | null
-  signers: number
-}
-
-const SIGNING_STATE_LABEL: Record<string, string> = {
-  requested: "Waiting on the notary",
-  windows_posted: "Waiting on signers",
-  partially_agreed: "Part-agreed",
-  booked: "Booked",
-  cancelled: "Cancelled",
-  expired: "Expired",
-}
+/**
+ * THE SIGNING ROW TYPE IS NOT DECLARED HERE ANY MORE.
+ *
+ * It was — eleven fields, beside the agenda's fourteen, both describing
+ * the same `GET /signing-requests/v2` response with nothing comparing
+ * them. The three this copy was missing were `live`, `days_waiting` and
+ * `stale`: precisely the fields CANCEL1 and DASH1 added so a screen
+ * would stop deciding for itself which signings are over and which had
+ * gone quiet. A screen that does not declare a field cannot render it,
+ * so this page listed cancelled signings among the live ones and could
+ * not mark a single stuck request.
+ *
+ * One declaration now, in `features/signing/signingSummary.ts`, checked
+ * against the same corpus the Python row builder asserts against.
+ */
 
 // TrackerFilter is imported from lib/requestsFocus — the module that
 // decides which list a link opens owns the type of the answer.
@@ -168,9 +164,14 @@ function SharedDeedsTracker() {
    */
   const focus = readFocus((key) => params?.get(key) ?? null)
   const [sharedDeeds, setSharedDeeds] = useState<SharedDeed[]>([])
-  const [signings, setSignings] = useState<SigningSummaryRow[]>([])
+  const [signings, setSignings] = useState<SigningSummary[]>([])
   const [filter, setFilter] = useState<TrackerFilter>(initialFilter(focus))
   const [signingError, setSigningError] = useState<string | null>(null)
+  const [staleAfterDays, setStaleAfterDays] = useState<number | null>(null)
+  /* Which sections are on screen. Four JSX conditions once, until a
+     combination of individually-correct ones produced a blank page —
+     see lib/requestsSections.ts. */
+  const sections = requestsSections(filter, sharedDeeds.length, signings.length)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [feedbackModal, setFeedbackModal] = useState<{ 
@@ -238,6 +239,17 @@ function SharedDeedsTracker() {
         setSigningError(
           signingErr instanceof Error ? signingErr.message : "Could not load your signings")
       }
+
+      // DASH1: the staleness threshold travels with the queue payload,
+      // so the sentence explaining the amber banner can say the number
+      // without knowing it. Best-effort — a failed lookup for A NUMBER
+      // IN A SENTENCE must not blank a page full of real requests, and
+      // the banner has its own fallback wording.
+      try {
+        const t = await apiFetch('/dashboard/queue', {}, {
+          label: "Loading your queue", silent: true })
+        if (t.ok) setStaleAfterDays((await t.json())?.thresholds?.stale_after_days ?? null)
+      } catch { /* the sentence has a fallback; the lists do not need one */ }
     } catch (err) {
       if (err instanceof SessionExpiredError) return
       console.error("Error fetching shared deeds:", err)
@@ -539,7 +551,7 @@ function SharedDeedsTracker() {
           )}
 
           {/* Empty State */}
-          {!loading && !error && sharedDeeds.length === 0 && signings.length === 0 && (
+          {!loading && !error && sections.showEmpty && (
             <div className="flex flex-col items-center justify-center min-h-[50vh] gap-6 bg-white rounded-2xl p-12 shadow-sm border border-slate-200">
               <div className="w-24 h-24 rounded-full bg-slate-100 flex items-center justify-center ring-4 ring-slate-50">
                 <Send className="w-12 h-12 text-slate-400" />
@@ -557,8 +569,16 @@ function SharedDeedsTracker() {
             </div>
           )}
 
-          {/* Table */}
-          {!loading && !error && (sharedDeeds.length > 0 || signings.length > 0) && (
+          {/* THE REVIEWS HALF — a table of recipients and responses.
+              The signings half is BELOW, in its own renderer, because
+              the two row shapes stay different and must: a review is a
+              recipient and a decision, a signing is a notary, a set of
+              times and an expandable detail. They shared these eight
+              columns briefly — a signing filled five of them honestly,
+              said "—" in two, and offered a button to "Open in
+              Signings" that this merge would have left pointing at a
+              redirect back to here. */}
+          {!loading && !error && sections.showReviews && (
             <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -575,7 +595,11 @@ function SharedDeedsTracker() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filter !== "signings" && sharedDeeds.map((deed, index) => {
+                    {/* No `filter !== "signings"` here: the whole table
+                        is gated on it above, and tsc pointed out that the
+                        second test could never be false. Two guards for
+                        one condition is how one of them gets updated. */}
+                    {sharedDeeds.map((deed, index) => {
                       const daysRemaining = calculateDaysRemaining(deed.expires_at)
                       const showCountdown =
                         !!daysRemaining && !["expired", "approved", "rejected"].includes(deed.status)
@@ -682,73 +706,33 @@ function SharedDeedsTracker() {
                         </tr>
                       )
                     })}
-                    {/* FLOW1 item 3 — SIGNINGS, AS THEMSELVES.
-                        A signing is not a review with different words:
-                        it has a notary and a set of times, and it has no
-                        "viewed" and no approve/reject. So the cells it
-                        cannot fill say "—" rather than borrowing a
-                        review's vocabulary — the same rule item 0 landed
-                        on, one row-kind over. The Expires column is
-                        shared honestly: both are link expiries. */}
-                    {filter !== "reviews" && signings.map((signing, index) => (
-                      <tr
-                        key={`signing-${signing.id}`}
-                        className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${
-                          isFocused(signing.id, "signings", focus)
-                            ? "bg-violet-50 ring-2 ring-inset ring-[#7C4DFF]"
-                            : index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
-                        }`}
-                      >
-                        <td className="py-4 px-6 font-medium text-slate-800">
-                          {signing.property_address || `Deed #${signing.deed_id}`}
-                        </td>
-                        <td className="py-4 px-6 text-slate-600">{signing.deed_type || UNKNOWN}</td>
-                        <td className="py-4 px-6">
-                          <div className="flex flex-col">
-                            <span className="font-medium text-slate-800">
-                              {signing.notary_name || "No notary named"}
-                            </span>
-                            <span className="text-xs text-slate-500">
-                              {signing.signers} signer{signing.signers === 1 ? "" : "s"}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-6">
-                          <div className="flex flex-col gap-2">
-                            <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600">
-                              <CalendarClock className="h-3 w-3" />
-                              Signing
-                            </span>
-                            <span className="text-xs font-medium text-slate-700">
-                              {SIGNING_STATE_LABEL[signing.state] || signing.state}
-                            </span>
-                            {/* state_label() wrote this sentence. This
-                                screen does not compose its own account
-                                of a scheduling state (§13 rule 3). */}
-                            <span className="text-xs text-slate-500">{signing.summary}</span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-6 text-sm text-slate-600">
-                          {formatDate(signing.created_at)}
-                        </td>
-                        <td className="py-4 px-6 text-sm text-slate-600">
-                          {formatDate(signing.expires_at)}
-                        </td>
-                        <td className="py-4 px-6 text-sm text-slate-400">{UNKNOWN}</td>
-                        <td className="py-4 px-6">
-                          <button
-                            onClick={() => router.push(`/signings?focus=${signing.id}`)}
-                            className="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors"
-                          >
-                            Open in Signings
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
                   </tbody>
                 </table>
               </div>
             </div>
+          )}
+
+          {/* THE SIGNINGS HALF — the agenda, unchanged.
+              Booked first (each has a date), then the ones still being
+              arranged, longest-waiting first (those have no date, only
+              an age, and the oldest is the one to chase), then closed
+              and never deleted — a cancelled request that HAD a booked
+              time still had one (T-5).
+
+              The stuck banner leads, which is the whole design: a
+              request nobody has answered in five days needs a phone
+              call and is invisible on a date-sorted list, because its
+              date has not happened yet. This page could not show that
+              signal at all until now — its copy of the row type was
+              three fields short and `stale` was one of them. */}
+          {!loading && !error && sections.showSignings && (
+            <SigningAgenda
+              rows={signings}
+              error={signingError}
+              staleAfterDays={staleAfterDays}
+              focusId={focus.kind === "signings" ? focus.id : null}
+              onChanged={fetchSharedDeeds}
+            />
           )}
         </div>
       </main>

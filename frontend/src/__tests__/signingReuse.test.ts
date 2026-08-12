@@ -58,7 +58,7 @@ describe('a deed with a signing already out says so', () => {
     const live = { 7: { id: 42, summary: 'Waiting on the notary' } };
     expect(signingRowAction(7, live)).toEqual({
       kind: 'open',
-      href: '/signings?focus=42',
+      href: '/requests?kind=signings&focus=42',
       label: 'Open signing request',
       summary: 'Waiting on the notary',
     });
@@ -73,7 +73,7 @@ describe('a deed with a signing already out says so', () => {
   it('is what the row actually calls', () => {
     /** The function is only the decision if the page uses it. */
     expect(PAST_DEEDS).toContain('signingRowAction(deed.id, liveSignings)');
-    expect(PAST_DEEDS).not.toContain('/signings?focus=${liveSignings');
+    expect(PAST_DEEDS).not.toContain('?focus=${liveSignings');
   });
 
   it('shows the state as text, never as a tooltip', () => {

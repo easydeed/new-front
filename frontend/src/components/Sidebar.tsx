@@ -64,7 +64,11 @@ const NAV_GROUPS: Array<{ title: string; items: NavItem[] }> = [
       // NOTARY2 Part D. A page nothing links to is a page nobody uses —
       // the agenda's whole job is being the place she checks what is
       // stuck, and that only works if it is one click from everywhere.
-      { href: '/signings', icon: CalendarClock, label: 'Signings', badge: 'signings' },
+      // Both tracking entries land on the merged page, filtered. The
+      // agenda's whole job is being the place she checks what is stuck,
+      // and that only works if it is one click from everywhere — so it
+      // keeps its own entry rather than becoming a tab she has to find.
+      { href: '/requests?kind=signings', icon: CalendarClock, label: 'Signings', badge: 'signings' },
       { href: '/requests', icon: Share2, label: 'Requests', badge: 'shared_deeds' },
       // The badge KEY is the server's ('shared_deeds' in the queue
       // payload) and does not move with the route — renaming a URL is

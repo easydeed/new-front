@@ -218,7 +218,8 @@ def test_the_frontend_sweep_is_looking_at_something():
     "/approve/{token}",      # the review and signing link, in two emails
     "/signing/{token}",      # NOTARY2's consumer surface
     "/shared-deeds",         # THE ALIAS — see the note below
-    "/requests",             # where the focus link points NOW
+    "/signings",             # THE OTHER ALIAS — the schedule notice is an email
+    "/requests",             # where both focus links point NOW
     "/account-settings",     # THE STRIPE RETURN URLS
     "/verify/{code}",        # the QR code printed on nothing, read by anyone
 ])
@@ -228,11 +229,12 @@ def test_the_links_that_matter_most_are_among_the_ones_checked(known):
     where a paying customer lands after checkout, and one is printed into
     a QR code.
 
-    `/shared-deeds` is in this list even though the backend no longer
-    builds a single link to it. THAT IS THE POINT. It is the page whose
-    only remaining job is to catch the mail that went out before the
-    rename, so the sweep above — which only sees links the backend still
-    emits — would stop guarding it the moment it stopped being emitted.
+    `/shared-deeds` and `/signings` are in this list even though the
+    backend no longer builds a single link to either. THAT IS THE POINT.
+    They are the pages whose only remaining job is to catch the mail that
+    went out before the rename, so the sweep above — which only sees
+    links the backend still emits — would stop guarding them the moment
+    they stopped being emitted.
     This entry is what keeps the alias alive after the last emitter is
     gone: the case where deleting it looks free is exactly the case where
     it costs somebody a 404 they cannot report.
@@ -256,11 +258,12 @@ def test_no_new_link_is_minted_at_the_retired_path():
     for path in _backend_sources():
         src = code_only(path)
         for i, line in enumerate(src.splitlines(), start=1):
-            if "/shared-deeds?focus=" in line:
-                offenders.append(f"{path.relative_to(BACKEND)}:{i}")
+            for retired in ("/shared-deeds?focus=", "/signings?focus="):
+                if retired in line:
+                    offenders.append(f"{path.relative_to(BACKEND)}:{i} -> {retired}")
     assert offenders == [], (
-        "these build a fresh link at the retired path instead of "
-        "/requests?kind=reviews&focus=:\n  " + "\n  ".join(offenders))
+        "these build a fresh link at a retired path instead of "
+        "/requests?kind=...&focus=:\n  " + "\n  ".join(offenders))
 
 
 def test_the_focus_link_says_which_table_the_id_came_from():

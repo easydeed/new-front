@@ -4,7 +4,7 @@
  * ═══ WHY THIS IS A FUNCTION AND NOT A TERNARY IN THE PAGE ═══
  *
  * It was a ternary in the page first, and the pin written for it asserted
- * that the strings "Open signing request" and "/signings?focus=" appeared
+ * that the strings "Open signing request" and a focus link appeared
  * in the source. Then the probe: `{liveSignings[deed.id] ? (` → `{false ? (`,
  * disabling the feature entirely. **The pin stayed green.** Both strings
  * were still in the file, inside a branch that could never run.
@@ -48,7 +48,7 @@ export function signingRowAction(
   if (existing) {
     return {
       kind: 'open',
-      href: `/signings?focus=${existing.id}`,
+      href: `/requests?kind=signings&focus=${existing.id}`,
       label: 'Open signing request',
       summary: existing.summary,
     };

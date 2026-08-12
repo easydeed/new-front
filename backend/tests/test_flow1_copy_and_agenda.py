@@ -226,13 +226,22 @@ def test_the_officer_agenda_sends_when_she_asked():
     `expires_at - 21 days`, duplicating default_expiry()'s constant into
     TypeScript as a bare number. Changing the default would have silently
     re-aimed every stuck badge, and nothing would have failed.
+
+    The assertion used to match `'"created_at": _iso(row.get(...))'` in
+    the router. That is a string-presence pin over a spelling, and it
+    broke when the row builder moved to `services/signing_summary.py`
+    with the behaviour unchanged. The property is that the FIELD IS IN
+    THE CONTRACT, which is now a corpus both languages read — and which
+    an omission cannot slip past, because the builder asserts its emitted
+    key set equals it by equality.
     """
-    source = code_only(BACKEND / "routers" / "signing.py")
-    agenda = source[source.index("def officer_agenda"):]
-    agenda = agenda[: agenda.index("\n@router.")]
-    assert '"created_at": _iso(row.get("created_at"))' in agenda, (
+    from services.signing_summary import SIGNING_SUMMARY_KEYS
+
+    assert "created_at" in SIGNING_SUMMARY_KEYS, (
         "the agenda does not send a creation time, so the screen has to "
         "guess one")
+
+    source = code_only(BACKEND / "routers" / "signing.py")
 
     payload = source[source.index("def _officer_payload"):]
     assert '"created_at": _iso(req.get("created_at"))' in payload
@@ -250,8 +259,20 @@ def test_the_frontend_no_longer_reconstructs_the_age():
     two languages is the copy problem this codebase keeps deleting. The
     screen reads both the age and the verdict now.
     """
-    page = (REPO / "frontend" / "src" / "app" / "signings" / "page.tsx").read_text(
-        encoding="utf-8")
-    assert "21 * 86400_000" not in page
+    # The agenda moved out of `app/signings/page.tsx` and into
+    # `features/signing/SigningAgenda.tsx` when the Requests merge folded
+    # it into `/requests`; the old path is a permanent alias now, and
+    # pointed at it this pin would be reading a redirect and finding
+    # nothing — passing because there is nothing left to look at.
+    #
+    # The grouping and the staleness verdict went one file further, into
+    # `signingSummary.ts`, so both are read. A pin that followed only the
+    # half it happened to name first would have stopped covering the
+    # place the judgement actually went.
+    frontend = REPO / "frontend" / "src" / "features" / "signing"
+    page = (frontend / "SigningAgenda.tsx").read_text(encoding="utf-8")
+    summary = (frontend / "signingSummary.ts").read_text(encoding="utf-8")
+    for src in (page, summary):
+        assert "21 * 86400_000" not in src
     assert "row.days_waiting" in page
-    assert "return r.stale;" in page
+    assert "return row.stale;" in summary

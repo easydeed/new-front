@@ -78,6 +78,41 @@ def test_only_cancelled_and_expired_are_over():
     assert not loop.is_live(loop.STATE_EXPIRED)
 
 
+def test_cancellation_beats_booking_in_the_state_vocabulary():
+    """A cancelled request reports `cancelled`, whatever was arranged.
+
+    ═══ WHY THIS IS PINNED, AND WHY HERE ═══
+
+    `request_state` tests `cancelled_at` BEFORE `booked_at`. That order
+    is the only reason a cancelled-but-booked signing does not appear in
+    two places at once on the officer's list — the agenda groups by
+    `state === 'booked'` and by `!live`, and a request that answered
+    "booked" while also being over would land in both.
+
+    The grouping was written with a `live &&` guard against exactly that
+    collision, and the guard was dead code carrying a false explanation.
+    Deleting it makes THIS ordering load-bearing, and an ordering that
+    something depends on gets pinned where it is decided rather than
+    assumed at the place that depends on it — otherwise reordering these
+    two lines is a silent two-line change with a duplicated row three
+    files away.
+    """
+    booked_then_cancelled = {
+        "booked_at": datetime(2026, 9, 1, 17, 0, tzinfo=timezone.utc),
+        "cancelled_at": datetime(2026, 8, 20, 9, 0, tzinfo=timezone.utc),
+        "expires_at": None,
+    }
+    assert loop.request_state(booked_then_cancelled, [], []) == loop.STATE_CANCELLED, (
+        "a cancelled signing reports as booked, so the officer's list "
+        "shows it as an appointment she still has")
+    assert not loop.is_live(loop.request_state(booked_then_cancelled, [], []))
+
+    # The control: without the cancellation it IS booked, so the pin is
+    # reading the order rather than a constant.
+    still_on = dict(booked_then_cancelled, cancelled_at=None)
+    assert loop.request_state(still_on, [], []) == loop.STATE_BOOKED
+
+
 def test_the_agenda_sends_the_verdict_so_no_screen_has_to_decide():
     """The server half of the one-copy rule.
 
@@ -91,11 +126,38 @@ def test_the_agenda_sends_the_verdict_so_no_screen_has_to_decide():
     Python suite pins that the SERVER decides, and
     `frontend/src/__tests__/signingCancel.test.ts` pins that the screen
     holds no list of its own, using the stripper that speaks its language.
+
+    ═══ AND IT NO LONGER GREPS FOR THE SPELLING ═══
+
+    This asserted `'"live": loop.is_live(' in src` — a string-presence
+    pin whose subject is a DECISION, which is the class the owner ruled
+    on after CANCEL1 item 4. It broke the day the row builder moved into
+    `services/signing_summary.py` even though the behaviour was
+    unchanged, and it would equally have stayed green if the key had been
+    computed and then dropped before the response reached anybody.
+
+    Three checks replace it, none of which passes on a spelling: `live`
+    is in the corpus both languages read; the verdict comes from
+    `signing_loop`; and the agenda does not re-list the vocabulary beside
+    the call. (`test_the_request_is_never_deleted` holds the end-to-end
+    half — it reads `mine["live"] is False` off a real response.)
     """
-    src = code_only(BACKEND / "routers" / "signing.py")
-    assert '"live": loop.is_live(' in src, (
+    from services.signing_summary import SIGNING_SUMMARY_KEYS
+
+    assert "live" in SIGNING_SUMMARY_KEYS, (
         "the agenda no longer sends the verdict, so every screen that "
         "needs it will decide for itself")
+
+    src = code_only(BACKEND / "routers" / "signing.py")
+    assert "live=loop.is_live(" in src, (
+        "the verdict is no longer signing_loop's — a second opinion about "
+        "which states are over is the defect this field exists to prevent")
+    # And the vocabulary is not re-listed beside the call.
+    agenda = src[src.index("def officer_agenda"):]
+    agenda = agenda[: agenda.index("\n@router.")]
+    assert "STATE_CANCELLED" not in agenda and "STATE_EXPIRED" not in agenda, (
+        "the agenda names terminal states itself; that list belongs to "
+        "signing_loop and nowhere else")
 
 
 def test_no_state_guard_forbids_cancelling_a_booked_request():

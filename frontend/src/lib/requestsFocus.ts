@@ -79,20 +79,28 @@ export function isFocused(rowId: number, rowKind: RequestKind, focus: Focus): bo
 }
 
 /**
- * Where `/shared-deeds?…` sends the officer.
+ * Where a retired tracker path sends the officer.
  *
- * THIS IS WHERE THE ID SPACE IS RECOVERED. The old path meant reviews,
- * so the alias says so on the way through and the ambiguity never
- * reaches the page. Every other parameter is carried across untouched —
- * a redirect that dropped one would be a link that half-works, which is
- * harder to notice than one that does not work at all.
+ * THIS IS WHERE THE ID SPACE IS RECOVERED. Each old path meant exactly
+ * one table — `/shared-deeds` meant reviews, `/signings` meant signings
+ * — so its alias says so on the way through and the ambiguity never
+ * reaches the merged page. Every other parameter is carried across
+ * untouched: a redirect that dropped one would be a link that
+ * half-works, which is harder to notice than one that does not work at
+ * all.
+ *
+ * The kind is a PARAMETER rather than a constant because there are two
+ * of these now. A second copy of this function with one word changed is
+ * how the two aliases would come to disagree about the spelling of
+ * `kind` — and each disagreement is a whole category of already-sent
+ * mail landing on the wrong list.
  */
-export function aliasTarget(entries: Array<[string, string]>): string {
+export function aliasTarget(entries: Array<[string, string]>, kind: RequestKind): string {
   const qs = new URLSearchParams();
   for (const [key, value] of entries) {
     if (key === 'kind') continue;   // supplied below, never doubled
     qs.append(key, value);
   }
-  qs.set('kind', 'reviews');
+  qs.set('kind', kind);
   return `/requests?${qs.toString()}`;
 }

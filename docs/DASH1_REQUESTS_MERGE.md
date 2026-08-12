@@ -311,3 +311,131 @@ nothing reads `?deed=`. Pre-existing — it predates the merge and the
 rename only carried it across — so it lands the officer on an unfiltered
 tracker instead of opening a share dialog. Same class as the `?focus=`
 defect DASH1 found. Ledgered rather than widened into this PR.
+
+---
+
+# STEP 2, AS BUILT
+
+The agenda folds in, `/signings` retires to an alias, and the merge is
+finished. What follows is what step 2 actually did, including the two
+things it found on the way that were not in its scope note.
+
+## Two row shapes, kept apart on purpose
+
+Step 1 left the signings half rendering as rows in the reviews table:
+eight columns designed for a recipient and a decision, five of which a
+signing could fill honestly, two saying "—", and an Actions cell offering
+"Open in Signings". That button would have pointed at a redirect back to
+the page it was on.
+
+So the signings half is now the agenda, unchanged — the stuck banner, the
+three groups, the expandable detail — rendered as its own section below
+the reviews table. **A merged page is one page with two row renderers,
+not one row type.** The filter chips choose which sections show; the
+unfiltered view stacks both.
+
+This is not a new design so much as the existing one finished. The page
+already rendered two independent blocks gated by the same filter; they
+merely shared a `<tbody>`.
+
+## FOUND: one contract, declared twice, already drifted
+
+`GET /signing-requests/v2` had two screens declaring what its rows
+contain. The agenda declared fourteen fields. The merged tracker declared
+eleven.
+
+The three it was missing were `live`, `days_waiting` and `stale` —
+exactly the fields CANCEL1 and DASH1 added so that a screen would stop
+deciding for itself which signings are over and which have gone quiet.
+
+A screen that does not declare a field cannot render it. So the merged
+tracker listed cancelled and expired signings among the live ones, and
+could not mark a single stuck request — the signal the agenda's entire
+design leads with. No test failed, because nothing compared the two
+declarations.
+
+That is FLOW1 item 0's defect one endpoint over, and milder only by luck:
+there the names were WRONG and rendered as `undefined`; here they were
+ABSENT and rendered as nothing at all.
+
+The fix is the shape FLOW1 item 0 already established rather than a
+one-line addition: `signing_summary_keys.json` is the corpus, the Python
+builder asserts its emitted key set equals it BY EQUALITY, and the single
+TypeScript declaration is checked against the same list. Drift now costs
+two deliberate edits instead of one silent omission.
+
+## FOUND: a blank page, from four individually-correct conditions
+
+Filtered to Reviews, with no reviews but several signings: the reviews
+table did not render (no reviews), the agenda did not render (filtered
+out), and the page's "nothing here yet" did not render either — because
+it tested whether BOTH lists were empty, and one of them was not.
+
+Every condition was right on its own. The officer got a header, a filter,
+and nothing underneath. Same shape as CANCEL1 item 2, where two correct
+behaviours composed into a null result.
+
+Four booleans spread across two hundred lines of JSX cannot be reasoned
+about at the place each one is written, so they became
+`lib/requestsSections.ts` — and the pin sweeps every combination of
+filter and count asserting that at least one section always renders,
+rather than trusting a reading of the conditions. The first draft of the
+extracted function reproduced the bug from the other side (filtered to
+Signings with none, all three came back false); the sweep caught it.
+
+## CORRECTED: a guard against a collision that cannot happen
+
+The grouping was first written with a `live &&` test on the booked group,
+to stop a cancelled-but-booked signing appearing in both Booked and
+Closed.
+
+It cannot appear in both. `signing_loop.request_state` tests
+`cancelled_at` BEFORE `booked_at`, so a cancelled request reports
+`cancelled`, never `booked`, whatever was arranged. The guard was dead
+code carrying a false explanation — worse than no guard, because the next
+reader would have believed the collision was real and defended against it
+somewhere else too.
+
+Deleting it makes that ordering load-bearing, so the ordering is now
+pinned where it is decided rather than assumed where it is depended on:
+`test_cancellation_beats_booking_in_the_state_vocabulary`, with a control
+case so the pin reads the order rather than a constant.
+
+## THREE MORE STRING-PRESENCE PINS, SAME LEDGERED CLASS
+
+Moving the row builder into a service broke three Python pins that
+matched source spellings — `'"live": loop.is_live('`, `'"stale": ('`,
+`'"created_at": _iso(row.get(...))'` — with the behaviour unchanged. Each
+would equally have stayed green if the field had been computed and then
+dropped before the response left.
+
+All three now read the corpus, which cannot be satisfied by a spelling
+and cannot be evaded by an omission. One of them was also reading
+`app/signings/page.tsx` for a threshold, which after this ticket is a
+forty-line redirect: a pin that would have passed because there was
+nothing left to look at.
+
+## The second alias, and why the function took a parameter
+
+`/signings` is now a permanent alias with the same job as
+`/shared-deeds`: catch already-sent mail, and supply the kind its path
+used to imply. The schedule notice and the dispatch-declined notice are
+both emails.
+
+`aliasTarget` gained a `kind` parameter rather than being copied. Two
+copies of that function with one word changed is how the two aliases
+would come to disagree about the spelling of `kind` — and each
+disagreement is a whole category of already-sent mail landing on the
+wrong list. The pin round-trips both kinds through alias and page.
+
+The two in-app links that pointed at `/signings?focus=` (the dashboard
+queue and Past Deeds' row action) now carry `kind=signings`, and the pin
+that forbids fresh links at a retired path covers both aliases.
+
+## Deferred, and named
+
+The expandable detail exists because there is no officer-facing page for
+a single signing. If DEEDDETAIL ships a deed's workflow page, the panel
+may become redundant — the row would navigate there instead. Moving it
+was still right: the alternative was leaving `/signings` un-retired and
+the merge half-done. Flagged so the cost is known rather than discovered.

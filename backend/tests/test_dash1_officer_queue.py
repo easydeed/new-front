@@ -152,17 +152,35 @@ def test_only_one_place_decides_what_stale_means():
     which has `codeOnly()` — asserts the screen holds no threshold. The
     DECLARATION is still checked here as a cheap belt, because a
     declaration is a shape a comment is unlikely to contain.
+
+    ═══ BOTH HALVES MOVED, AND BOTH RETARGETS ARE THE SAME LESSON ═══
+
+    The screen: the agenda is a COMPONENT now, not a page. `/signings`
+    became a permanent alias when the Requests merge folded the agenda
+    into `/requests`, so reading `app/signings/page.tsx` for a threshold
+    would be reading a forty-line redirect and finding nothing — a pin
+    that passes because there is nothing left to look at.
+
+    The payload: this matched `'"stale": ('`, a string-presence pin whose
+    subject is a decision. It broke when the row builder moved into
+    `services/signing_summary.py` with the behaviour unchanged, and it
+    would have stayed green if `stale` had been computed and then dropped
+    before the response left. The corpus is the referee now — the builder
+    asserts its emitted key set equals it by equality, so a field cannot
+    be quietly omitted, which is the failure this pin is actually for.
     """
-    agenda = (REPO / "frontend" / "src" / "app" / "signings" / "page.tsx").read_text(
-        encoding="utf-8")
+    from services.signing_summary import SIGNING_SUMMARY_KEYS
+
+    agenda = (REPO / "frontend" / "src" / "features" / "signing"
+              / "SigningAgenda.tsx").read_text(encoding="utf-8")
     assert "const STUCK_AFTER_DAYS" not in agenda, (
         "the screen declares its own staleness threshold again — the "
         "server sends `stale` and the number lives in officer_queue.py")
 
-    payload = code_only(BACKEND / "routers" / "signing.py")
-    assert '"stale": (' in payload, (
+    assert "stale" in SIGNING_SUMMARY_KEYS, (
         "the agenda payload stopped carrying the verdict, so the screen "
         "has to form one")
+    payload = code_only(BACKEND / "routers" / "signing.py")
     assert "officer_queue.is_stale(" in payload
 
 

@@ -47,8 +47,13 @@ describe('DASH1 item 6 — three groups, in the order she works', () => {
     // The flat list had seven items. A group structure that quietly
     // dropped one would be a page that still exists and cannot be
     // reached — the same defect as a dead button, arriving by omission.
+    //
+    // Two of the seven are the same PAGE under different filters now:
+    // the Requests merge folded the agenda into the tracker. Both entries
+    // stay, because the agenda's job is being one click from everywhere
+    // and a tab she has to find is not that.
     for (const href of ['/dashboard', '/deed-builder', '/past-deeds',
-                        '/signings', '/requests', '/partners',
+                        '/requests?kind=signings', '/requests', '/partners',
                         '/account-settings']) {
       expect(CODE).toContain(`href: '${href}'`);
     }
