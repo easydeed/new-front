@@ -442,6 +442,25 @@ we reach it.
 
 ## Parked tickets (scoped, not scheduled)
 
+- **CANCEL1's three post-creation gaps** (audit finding, ledgered
+  2026-08-12 with the ticket that made them survivable). Every field on a
+  signing request is create-only: the notary cannot be reassigned, the
+  time/location/signers cannot be edited, and an invitation cannot be
+  resent. All three are real.
+
+  **They wait because cancel-and-recreate is a working path for all
+  three, and cancellation is its precondition** — which now exists, with
+  notices, so the clumsy path is at least an honest one: everybody is
+  told the old arrangement is off before the new one arrives.
+
+  **TRIGGER: an officer doing it twice.** Cancel-and-recreate costs three
+  emails and retyping the signers. That is tolerable once and grating on
+  repetition, and the repetition is the signal that the shortcut is worth
+  its own state. Reassign-notary is the likeliest first: a notary
+  declining is a normal outcome, not an error.
+
+
+
 - **Retire NOTARY1's read-side routes — DONE 2026-08-12.** All four
   removed (the ledger said three; `GET /approve/{token}/pcor.pdf` was
   not in the count), with `_signing_share_by_token`,

@@ -528,6 +528,46 @@ def delete_deed_endpoint(deed_id: int, user_id: int = Depends(get_current_user_i
                 raise HTTPException(status_code=404, detail="Deed not found")
             if row[0] != user_id:
                 raise HTTPException(status_code=403, detail="You don't have permission to delete this deed")
+            # ── CANCEL1 item 3 — TWO DESTRUCTIVE ACTS DO NOT RIDE ONE
+            #    BUTTON ──────────────────────────────────────────────
+            #
+            # This delete is SOFT: the row stays, `status` becomes
+            # 'deleted', and the deed is hidden from her lists. Which
+            # means a live signing token does not break — it keeps
+            # working perfectly, serving a document the officer believes
+            # she withdrew, to somebody she can no longer see.
+            #
+            # That is not an orphaned link. It is a withdrawn document
+            # still being served on request, and the only surface that
+            # knows is the stranger's.
+            #
+            # Refused rather than cascaded, per the ruling: cancelling a
+            # signing notifies three people and voids their links, and
+            # that is not a side effect anybody should discover after
+            # pressing "Delete deed". The message names the notary so
+            # the officer knows which conversation she is about to end.
+            cur.execute("""
+                SELECT sr.id,
+                       (SELECT display_name FROM signing_participants
+                         WHERE signing_request_id = sr.id
+                           AND party_role = 'notary'
+                         ORDER BY id LIMIT 1) AS notary_name
+                  FROM signing_requests sr
+                 WHERE sr.deed_id = %s
+                   AND sr.cancelled_at IS NULL
+                 ORDER BY sr.id LIMIT 1
+            """, (deed_id,))
+            pending = cur.fetchone()
+            if pending:
+                pending = dict(pending)
+                notary = pending.get("notary_name") or "a notary"
+                raise HTTPException(
+                    status_code=409,
+                    detail=(f"This deed has a signing request waiting on "
+                            f"{notary}. Cancel the signing first — that "
+                            "voids everyone's links and tells them why. "
+                            "Then the deed can be deleted."))
+
             cur.execute("""
                 UPDATE deeds SET status = 'deleted', updated_at = CURRENT_TIMESTAMP
                 WHERE id = %s

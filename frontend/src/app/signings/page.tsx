@@ -23,11 +23,12 @@
  * label, rendered in the REQUEST's timezone.
  */
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import { AlertCircle, CalendarClock, CheckCircle2, Clock, Loader2 } from 'lucide-react';
 import { SessionExpiredError, apiFetch } from '@/lib/apiClient';
+import { cancelWarning } from '@/lib/signingCopy';
 
 type Row = {
   id: number;
@@ -48,10 +49,18 @@ type Row = {
   stale: boolean;
   expires_at: string | null;
   signers: number;
+  /** CANCEL1: is this one still waiting on somebody. The server decides
+   * — see the note on the deleted terminal-state list below. */
+  live: boolean;
 };
 
 /** What `GET /signing-requests/v2/{id}` returns for one signing. */
 type Detail = {
+  state: string;
+  summary: string;
+  property_address: string | null;
+  booked_at: string | null;
+  cancelled_at: string | null;
   participants: Array<{
     id: number;
     party_role: string;
@@ -148,6 +157,13 @@ function SigningsAgenda() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const reload = useCallback(async () => {
+    try {
+      const r = await apiFetch('/signing-requests/v2', {}, { label: 'Loading signings', silent: true });
+      if (r.ok) setRows(await r.json());
+    } catch { /* the panel already reported it; the list keeps what it has */ }
+  }, []);
+
   useEffect(() => {
     (async () => {
       // The auth guard. Caught by routeGuards.test.ts, which is the pin
@@ -208,12 +224,18 @@ function SigningsAgenda() {
     [rows]);
   const arranging = useMemo(
     () => rows
-      .filter((r) => !['booked', 'cancelled', 'expired'].includes(r.state))
+      .filter((r) => r.live && r.state !== 'booked')
       // Oldest first: longest-waiting is the one worth chasing.
       .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || '')),
     [rows]);
   const closed = useMemo(
-    () => rows.filter((r) => ['cancelled', 'expired'].includes(r.state)), [rows]);
+    /* CANCEL1 — `['cancelled', 'expired']` USED TO LIVE HERE.
+       It is the same disease as the deleted STUCK_AFTER_DAYS above, one
+       layer up: which states are OVER is a fact about the state
+       vocabulary, and the vocabulary is `services/signing_loop.py`. A
+       list here is that judgement copied, and the copy is what gets
+       missed the day a seventh state is added. The server sends `live`. */
+    () => rows.filter((r) => !r.live), [rows]);
 
   return (
     <div className="flex min-h-screen bg-slate-50">
@@ -285,7 +307,8 @@ function SigningsAgenda() {
               <div className="space-y-3">
                 {bookedRows.map((r) => (
                   <SigningRow key={r.id} row={r} open={focus === r.id}
-                              onToggle={() => setFocus(focus === r.id ? null : r.id)} />
+                              onToggle={() => setFocus(focus === r.id ? null : r.id)}
+                              onCancelled={reload} />
                 ))}
               </div>
             </>
@@ -299,7 +322,8 @@ function SigningsAgenda() {
               <div className="space-y-3">
                 {arranging.map((r) => (
                   <SigningRow key={r.id} row={r} open={focus === r.id}
-                              onToggle={() => setFocus(focus === r.id ? null : r.id)} />
+                              onToggle={() => setFocus(focus === r.id ? null : r.id)}
+                              onCancelled={reload} />
                 ))}
               </div>
             </>
@@ -313,7 +337,8 @@ function SigningsAgenda() {
               <div className="space-y-3 opacity-70">
                 {closed.map((r) => (
                   <SigningRow key={r.id} row={r} open={focus === r.id}
-                              onToggle={() => setFocus(focus === r.id ? null : r.id)} />
+                              onToggle={() => setFocus(focus === r.id ? null : r.id)}
+                              onCancelled={reload} />
                 ))}
               </div>
             </>
@@ -342,10 +367,14 @@ function SigningsAgenda() {
  * `?focus=<id>` makes it linkable, so a notification can point at the
  * signing it is about rather than at the list.
  */
-function SigningRow({ row, open, onToggle }: {
+function SigningRow({ row, open, onToggle, onCancelled }: {
   row: Row;
   open: boolean;
   onToggle: () => void;
+  /* A cancelled request moves from the agenda to the closed list, and
+     the grouping is the server's — so the list is re-read rather than
+     patched here. Same reason the summary is never composed locally. */
+  onCancelled: () => void;
 }) {
   const stuck = isStuck(row);
   const booked = row.state === 'booked';
@@ -399,17 +428,44 @@ function SigningRow({ row, open, onToggle }: {
           </span>
         </div>
       </button>
-      {open && <SigningDetail requestId={row.id} />}
+      {open && <SigningDetail requestId={row.id} onCancelled={onCancelled} />}
     </div>
   );
 }
 
 /** The detail, fetched when she opens it. Read-only: this ticket links
  * the card to its signing; it does not move the officer's actions here. */
-function SigningDetail({ requestId }: { requestId: number }) {
+function SigningDetail({ requestId, onCancelled }: {
+  requestId: number;
+  onCancelled: () => void;
+}) {
   const [detail, setDetail] = useState<Detail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [confirming, setConfirming] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+
+  const cancel = async () => {
+    setCancelling(true);
+    setError(null);
+    try {
+      const r = await apiFetch(`/signing-requests/v2/${requestId}/cancel`, { method: 'POST' },
+                               { label: 'Cancelling this signing' });
+      if (!r.ok) {
+        throw new Error((await r.json().catch(() => ({}))).detail || `Failed (${r.status})`);
+      }
+      setDetail(await r.json());
+      setConfirming(false);
+      onCancelled();
+    } catch (err) {
+      if (err instanceof SessionExpiredError) return;
+      // §4: a cancellation that did not happen must not look like one
+      // that did. The panel says so and the request stays live.
+      setError(err instanceof Error ? err.message : 'Could not cancel this signing');
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -489,6 +545,54 @@ function SigningDetail({ requestId }: { requestId: number }) {
               </ul>
             )}
           </div>
+
+          {/* CANCEL1 item 1 — the panel was read-only, with zero
+              interactive elements, on a feature whose recipient side has
+              always rendered "This link has been withdrawn." The state
+              existed, the endpoint existed, and no officer surface could
+              produce either. */}
+          {detail.cancelled_at ? (
+            <p className="text-sm text-slate-500 border-t border-slate-100 pt-4">
+              {/* Never deleted — a cancelled request that HAD a booked
+                  time still had one (T-5). It stays visible, and says so. */}
+              {detail.summary}
+            </p>
+          ) : (
+            <div className="border-t border-slate-100 pt-4">
+              {!confirming ? (
+                <button
+                  onClick={() => setConfirming(true)}
+                  className="text-sm font-medium text-red-700 hover:text-red-900 hover:underline"
+                >
+                  Cancel this signing request
+                </button>
+              ) : (
+                <div className="space-y-3 rounded-lg border border-red-200 bg-red-50 p-3">
+                  <p className="text-sm text-red-900">
+                    {cancelWarning(detail, detail.participants
+                      .filter((p) => !p.revoked)
+                      .map((p) => p.name || p.party_role))}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={cancel}
+                      disabled={cancelling}
+                      className="px-3 py-2 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+                    >
+                      {cancelling ? 'Cancelling…' : 'Cancel the signing'}
+                    </button>
+                    <button
+                      onClick={() => setConfirming(false)}
+                      disabled={cancelling}
+                      className="px-3 py-2 text-sm font-medium rounded-lg border border-slate-300 text-slate-700 hover:bg-white disabled:opacity-60"
+                    >
+                      Keep it
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

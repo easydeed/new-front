@@ -390,6 +390,13 @@ def officer_agenda(user_id: int = Depends(get_current_user_id)):
                 "deed_type": row.get("deed_type"),
                 "notary_name": row.get("notary_name"),
                 "state": loop.request_state(row, windows, responses),
+                # CANCEL1 item 4: whether this one is still somebody's
+                # problem, decided HERE. Past Deeds needs it to know that
+                # a deed already has a signing out, and the alternative —
+                # the screen listing which states are over — is that
+                # judgement copied into TypeScript, where it will be
+                # missed the day a state is added.
+                "live": loop.is_live(loop.request_state(row, windows, responses)),
                 # The server's sentence, rendered verbatim by every
                 # surface — §13 rule 3.
                 "summary": loop.state_label(row, windows, responses, participants),
@@ -554,7 +561,28 @@ def officer_remind(request_id: int, user_id: int = Depends(get_current_user_id))
 
 @router.post("/signing-requests/v2/{request_id}/cancel")
 def officer_cancel(request_id: int, user_id: int = Depends(get_current_user_id)):
+    """Call it off. Allowed in every state, INCLUDING booked.
+
+    Owner-ruled (CANCEL1): a booked signing is the one most likely to
+    need cancelling — the deal falls out, the closing moves, the buyer
+    reschedules — so a state guard forbidding it would refuse the officer
+    at the exact moment she needs it. Cancelling a booked signing is not
+    a different capability; it is a heavier moment, and the weight
+    belongs in the confirmation copy rather than in a rule that says no.
+
+    The request is never deleted. `cancelled_at` is its own column for
+    T-5's reason: a cancelled request that HAD a booked time still had
+    one, and folding cancellation into a status would make that
+    unsayable.
+    """
     _owned_request(request_id, user_id)
+
+    # BEFORE the update. Every participant is about to be revoked, and
+    # the notice loop skips revoked participants — read afterwards, this
+    # cancellation would be announced to nobody.
+    world = _load(request_id)
+    already = bool(world["request"].get("cancelled_at"))
+
     with db.conn.cursor() as cur:
         cur.execute("UPDATE signing_requests SET cancelled_at = now(), "
                     "updated_at = now() WHERE id = %s AND cancelled_at IS NULL",
@@ -563,6 +591,12 @@ def officer_cancel(request_id: int, user_id: int = Depends(get_current_user_id))
                     "updated_at = now() WHERE signing_request_id = %s "
                     "AND revoked_at IS NULL", (request_id,))
     db.conn.commit()
+
+    # Idempotent: cancelling twice is one cancellation and one round of
+    # notices. A second "this is cancelled" email is a second alarm about
+    # a fire that is already out.
+    if not already:
+        _tell_everyone_cancelled(world)
     return _officer_payload(_load(request_id))
 
 
@@ -1189,6 +1223,59 @@ def _tell_everyone_booked(request_id: int) -> None:
                 attachments=files)
     except Exception as e:
         print(f"[NOTARY2] ⚠️ booking notices failed (non-blocking): {e}")
+
+
+def _tell_everyone_cancelled(world: Dict[str, Any]) -> None:
+    """CANCEL1 — everybody who was ASKED is told it is off.
+
+    ═══ WHO, AND THE ONE THAT NEEDED A RULING ═══
+
+    The notary blocked out an afternoon. A signer who answered arranged
+    their day. Both obviously need telling. The question was the signer
+    who was invited and never answered, on a request where nothing was
+    ever booked — and the ruling is YES: they hold a link, the link is
+    now dead, and discovering that by clicking it is worse than being
+    told. Being invited is what earns the notice, not having replied.
+
+    ═══ THE WORLD IS READ BEFORE THE CANCEL, NOT AFTER ═══
+
+    `officer_cancel` revokes every participant row, and this loop skips
+    revoked participants everywhere else in this file for good reason —
+    a participant the officer removed should not keep receiving mail. So
+    the caller hands us the world as it was BEFORE the update, or this
+    notice would go to nobody at all. That is a real bug avoided by
+    ordering, and it is why this function takes a world instead of an id.
+
+    Best-effort, like every other notice here: a transport failure must
+    not un-cancel anything.
+    """
+    try:
+        from utils.notifications import send_signing_cancelled
+
+        req, deed = world["request"], world["deed"]
+        officer_name, _c = _officer_bits(world)
+        full_address = deed.get("property_address") or ""
+        street = full_address.split(",")[0].strip()
+
+        when = req.get("booked_at")
+        window = next((w for w in world["windows"]
+                       if w.get("starts_at") == when), None)
+        when_text = (loop.window_label(window, req.get("tz_name"))
+                     if window else "")
+
+        for p in world["participants"]:
+            if p.get("revoked_at") or not p.get("email"):
+                continue
+            consumer = p["party_role"] == loop.ROLE_SIGNER
+            send_signing_cancelled(
+                recipient_email=p["email"],
+                recipient_name=p.get("display_name") or "",
+                property_text=street if consumer else full_address,
+                when_text=when_text,
+                officer_name=officer_name,
+                is_consumer=consumer)
+    except Exception as e:
+        print(f"[CANCEL1] ⚠️ cancellation notices failed (non-blocking): {e}")
 
 
 def signing_ics(window: Dict[str, Any], address: str, officer_name: str) -> bytes:

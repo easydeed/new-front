@@ -132,6 +132,22 @@ STATE_CANCELLED = "cancelled"
 STATE_EXPIRED = "expired"
 
 
+#: The states in which a request is still somebody's problem. Cancelled
+#: and expired are over; everything else is waiting on a human.
+#:
+#: CANCEL1 item 4 needs this and it is deliberately NOT a list the screen
+#: keeps: "is this signing still live" is a judgement about the state
+#: vocabulary, and the vocabulary lives here. A client-side
+#: `!['cancelled','expired'].includes(state)` is that judgement copied,
+#: and it is the copy that will be missed when a state is added.
+TERMINAL_STATES = (STATE_CANCELLED, STATE_EXPIRED)
+
+
+def is_live(state: str) -> bool:
+    """Is this request still waiting on somebody."""
+    return state not in TERMINAL_STATES
+
+
 def request_state(request: Dict[str, Any], windows: Sequence[Dict[str, Any]],
                   responses: Sequence[Dict[str, Any]],
                   now: Optional[datetime] = None) -> str:
