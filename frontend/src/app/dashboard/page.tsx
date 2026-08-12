@@ -699,6 +699,7 @@ function DeedRow({ deed }: { deed: any }) {
           {deed.status === 'completed' && deed.pdf_url && (
             <button
               onClick={handleDownload}
+              aria-label="Download deed PDF"
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
               title="Download PDF"
             >

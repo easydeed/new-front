@@ -203,7 +203,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <span className="admin-user-role">Administrator</span>
             </div>
           </div>
-          <button onClick={handleLogout} className="admin-logout-btn">
+          <button onClick={handleLogout} aria-label="Log out" className="admin-logout-btn">
             <Icons.LogOut />
           </button>
         </div>

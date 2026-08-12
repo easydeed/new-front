@@ -181,7 +181,12 @@ one is useful, and the difference is four values Postgres gives away.
   (`backend/scripts/six_flow_baseline.py`) must stay green. Neither is
   re-recorded to make a failure pass without an approved, documented reason
   in the PR that re-records it.
-- The frontend `tsc` error baseline (currently **94**) may only go down.
+- The frontend `tsc` error baseline (currently **88**) may only go down.
+  Lowered from 94 on 2026-08-12 when UX2 item 2 deleted
+  `PreviewDataDebugger.tsx` — a floating debug panel with no importers,
+  which had shipped nothing and cost six type errors. Locking the gain
+  in is the point: a ceiling left where it was is a ceiling that
+  silently re-accepts what was just removed.
   Enforced by `TSC_BASELINE` in `.github/workflows/test.yml`, which is
   the authority; this line said **114** until 2026-08-12, long after the
   machine had been holding 94. Nothing was let through — the gate was

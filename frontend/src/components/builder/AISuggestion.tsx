@@ -73,6 +73,7 @@ export function AISuggestion({
           {details && (
             <button 
               onClick={() => setShowDetails(!showDetails)}
+              aria-label="Show details for this suggestion"
               className={`p-1 rounded-full hover:bg-emerald-100 transition-colors ${styles.dismiss}`}
               title="Learn more"
             >
@@ -83,6 +84,7 @@ export function AISuggestion({
           {/* Dismiss button */}
           <button 
             onClick={handleDismiss} 
+            aria-label="Dismiss this suggestion"
             className={`p-1 rounded-full hover:bg-emerald-100 transition-colors ${styles.dismiss}`}
           >
             <X className="w-4 h-4" />

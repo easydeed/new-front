@@ -464,6 +464,7 @@ export function SuccessContent() {
                 </div>
                 <button
                   onClick={handleCopyId}
+                  aria-label="Copy document ID"
                   className="p-3 text-slate-500 hover:text-[#7C4DFF] hover:bg-[#7C4DFF]/10 rounded-lg transition-all duration-200"
                   title="Copy ID"
                 >

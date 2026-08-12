@@ -165,6 +165,7 @@ export function AIHelpButton({
           />
           <button
             onClick={handleAsk}
+            aria-label="Send question to the assistant"
             disabled={isLoading || !question.trim()}
             className="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 
                        text-white rounded-lg hover:from-purple-700 hover:to-indigo-700

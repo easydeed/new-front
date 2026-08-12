@@ -83,6 +83,7 @@ export function AIGuidance({
         {onDismiss && (
           <button
             onClick={onDismiss}
+            aria-label="Dismiss this guidance"
             className="p-0.5 hover:bg-white/50 rounded flex-shrink-0"
           >
             <X className="w-4 h-4 text-gray-400" />
