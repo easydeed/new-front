@@ -55,8 +55,9 @@ from pathlib import Path
 
 import pytest
 
-from services.db_identity import (WrongDatabase, assert_tables, describe,
-                                  expected_database, identity, missing_tables)
+from services.db_identity import (MARK_COMMAND, SCRATCH_MARKER, WrongDatabase, assert_scratch,
+                                  assert_tables, describe, expected_database,
+                                  identity, is_scratch, missing_tables)
 from tests.source_text import code_only
 
 BACKEND = Path(__file__).resolve().parents[1]
@@ -220,14 +221,17 @@ EXEMPT = {
         "CREATE TABLE IF NOT EXISTS for the cache table. Its table is "
         "its output, not its precondition — same reason as init_db.",
     "s1_concurrency_proof.py":
-        "CI proof harness against a disposable database. The tables it "
-        "needs exist in production too, so asserting them would pass "
-        "there — the protection this one needs is a different one, and "
-        "it is ledgered rather than faked here.",
+        "Asserts the SCRATCH MARKER instead. Its tables exist in "
+        "production too, so asserting them would pass there — the check "
+        "it needs is 'may I destroy this', and that is assert_scratch.",
     "s2_restore_drill.py":
-        "Same as s1 — and it dumps and restores, so the check it wants "
-        "is 'is this a throwaway database', which this module does not "
-        "answer.",
+        "Same as s1, and it dumps and restores, so the same answer: the "
+        "marker, not the tables.",
+    "mark_scratch_database.py":
+        "Creates the marker. Asserting the marker exists before the run "
+        "whose job is to create it is backwards — same shape as init_db, "
+        "and it demands an explicit flag and prints the identity line "
+        "first, which the others do not.",
 }
 
 
@@ -257,6 +261,106 @@ def test_every_write_side_script_names_its_database_or_argues_why_not():
     stale = sorted(set(EXEMPT) - writers)
     assert stale == [], (
         "exempted but no longer a write-side script: " + ", ".join(stale))
+
+
+def test_an_unmarked_database_is_refused_and_the_message_says_how_to_mark_it():
+    """The behaviour, not the source. An unmarked database gets a refusal
+    that names it and carries the exact command — invariant #4: the
+    failure states its own remedy, because the alternative is somebody
+    guessing and reaching for the blunt instrument."""
+    with pytest.raises(WrongDatabase) as raised:
+        assert_scratch(_Conn(DICT_ROW, present=False))
+    message = str(raised.value)
+    assert "deedpro" in message                          # which database
+    assert "not marked" in message
+    assert "mark_scratch_database.py" in message         # and how
+    assert "--yes-this-is-a-throwaway-database" in message
+
+
+def test_a_marked_database_is_silent():
+    assert is_scratch(_Conn(DICT_ROW, present=True)) is True
+    who = assert_scratch(_Conn(DICT_ROW, present=True))
+    assert who["database"] == "deedpro"
+
+
+def test_the_marker_is_a_positive_fact_not_the_absence_of_a_negative():
+    """The whole argument for this shape over the two rejected ones.
+
+    `ALLOW_DESTRUCTIVE_TESTS` is an opt-in somebody sets and forgets, and
+    a variable left set is indistinguishable from one set on purpose.
+    Name-matching production fails the moment a second production-shaped
+    database exists — which is the situation this codebase just lived
+    through. Both blacklist the dangerous thing; a marker whitelists the
+    safe one.
+    """
+    src = code_only(BACKEND / "services" / "db_identity.py")
+    assert "ALLOW_DESTRUCTIVE" not in src, (
+        "the guard grew an environment-variable opt-in")
+    assert SCRATCH_MARKER in src
+    # No production database is named anywhere in the mechanism.
+    assert "deedpro_prod" not in src
+
+    # AND THE MARKER IS NOT A TABLE THE SCHEMA CREATES. This is the one
+    # that makes the whole guard real: `create_tables` runs against
+    # production on every boot, so a marker it happened to create — or a
+    # marker that named an ordinary application table — would mark the
+    # one database that must never carry it.
+    schema = code_only(BACKEND / "database.py")
+    assert SCRATCH_MARKER not in schema, (
+        f"{SCRATCH_MARKER} is created by the schema authority, so every "
+        "database has it and the guard passes everywhere")
+
+
+def test_the_destructive_harnesses_refuse_an_unmarked_database():
+    """Exempt from `assert_tables` is not exempt from a guard.
+
+    These two write rows and, in S2's case, drop and restore a database.
+    `assert_tables` would pass against production — production HAS those
+    tables — so the check they need is the opposite one: a positive
+    marker only a throwaway database carries.
+
+    Rejected on the way here, and both for the same reason: an
+    `ALLOW_DESTRUCTIVE_TESTS` opt-in is a variable somebody sets and
+    forgets, and matching production by NAME fails the moment a second
+    production-shaped database exists. Both blacklist the dangerous
+    thing; the marker whitelists the safe one.
+    """
+    for name in ("s1_concurrency_proof.py", "s2_restore_drill.py"):
+        src = code_only(SCRIPTS / name)
+        assert "assert_scratch(" in src, (
+            f"{name} writes rows and no longer checks whether it may — "
+            "call services.db_identity.assert_scratch()")
+        assert "sys.exit(1)" in src, f"{name} does not stop on a refusal"
+
+
+def test_nothing_marks_a_database_disposable_by_accident():
+    """THE ONE THING THAT MUST NOT LEAK. `create_tables` runs against
+    production on every boot; a marker it created would mark the one
+    database that must never carry it."""
+    offenders = []
+    for path in BACKEND.rglob("*.py"):
+        if {"tests", "__pycache__", "venv", ".venv"} & set(path.parts):
+            continue
+        if path.name in ("db_identity.py", "mark_scratch_database.py"):
+            continue
+        if "mark_scratch" in code_only(path):
+            offenders.append(str(path.relative_to(BACKEND)))
+    assert offenders == [], (
+        "something other than the marking script marks a database "
+        "disposable: " + ", ".join(offenders))
+
+
+def test_marking_requires_an_explicit_flag():
+    """Nothing can stop somebody marking production. What this changes is
+    the SHAPE of the mistake: mis-pasting a DATABASE_URL is common,
+    typing `--yes-this-is-a-throwaway-database` under an identity line
+    reading `deedpro` is not."""
+    src = code_only(SCRIPTS / "mark_scratch_database.py")
+    assert 'FLAG = "--yes-this-is-a-throwaway-database"' in src
+    assert "if FLAG not in sys.argv:" in src
+    # And the identity line is printed BEFORE the refusal, so the person
+    # who forgot the flag has already read which database they were on.
+    assert src.index("about to mark") < src.index("refusing without")
 
 
 @pytest.mark.parametrize("name,reason", sorted(EXEMPT.items()))
@@ -385,6 +489,38 @@ def _run_purge(url: str, *args, expected: str = ""):
     return subprocess.run(
         [sys.executable, "scripts/purge_signer_contact.py", *args],
         cwd=BACKEND, env=env, capture_output=True, text=True, timeout=120)
+
+
+@dbonly
+def test_the_marker_is_read_from_the_database_not_from_a_stub():
+    """The stub above cannot tell one table name from another — it answers
+    "present" to everything — so the marker's identity is checked here,
+    against a real catalog.
+
+    The maintenance database is the control: same server, real connection,
+    and it will never carry the marker.
+    """
+    import psycopg2
+    real = os.environ["DATABASE_URL"]
+    marked = psycopg2.connect(real)
+    try:
+        assert is_scratch(marked) is True, (
+            "the test database is not marked — CI marks it in the "
+            f"proof-harnesses job; locally run: {MARK_COMMAND}")
+    finally:
+        marked.close()
+
+    sibling = _sibling_url(real, "postgres")
+    if sibling == real:
+        pytest.skip("DATABASE_URL already points at the maintenance database")
+    control = psycopg2.connect(sibling)
+    try:
+        assert is_scratch(control) is False
+        with pytest.raises(WrongDatabase) as raised:
+            assert_scratch(control)
+        assert "postgres" in str(raised.value)
+    finally:
+        control.close()
 
 
 @dbonly

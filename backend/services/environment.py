@@ -129,10 +129,13 @@ MANIFEST: Tuple[EnvVar, ...] = (
            "than trusting them — the failure is closed, not silent. If "
            "that ever changes this becomes REQUIRED in the same diff."),
     EnvVar("PYTHON_VERSION", OPTIONAL,
-           "Read by Render at BUILD time, never by this process. Listed "
-           "because render.yaml declares it and the manifest is checked "
-           "against that file; classifying it required would make every "
-           "local run warn about a variable it has no use for."),
+           "Read by Render at BUILD time, never by this process — so "
+           "nothing in this module could ever see it, and this entry is "
+           "the record of that limit rather than a check. Confirmed the "
+           "hard way on 2026-08-12: it is declared in render.yaml and "
+           "still had to be set by hand in the dashboard. Declaring a "
+           "variable does not apply it; the boot report catches drift "
+           "only for REQUIRED variables the process reads at runtime."),
 )
 
 BY_KEY: Dict[str, EnvVar] = {v.key: v for v in MANIFEST}

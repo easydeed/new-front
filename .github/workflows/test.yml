@@ -76,6 +76,16 @@ jobs:
         sudo apt-get install -y -qq postgresql-client-16
         pg_dump --version
 
+    # The proof harnesses below WRITE ROWS and, in S2's case, drop and
+    # restore a database. They refuse any database that does not carry
+    # the throwaway marker — so the CI database is marked here, once,
+    # explicitly. Production is never marked, which is the whole
+    # mechanism: a mis-pasted DATABASE_URL now fails closed instead of
+    # writing junk into real tables.
+    - name: Mark the CI database as disposable
+      working-directory: backend
+      run: python scripts/mark_scratch_database.py --yes-this-is-a-throwaway-database
+
     # The DB-backed tests, which the no-Postgres job silently skips.
     - name: Backend suite WITH a database
       working-directory: backend

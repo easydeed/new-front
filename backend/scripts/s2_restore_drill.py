@@ -64,6 +64,28 @@ RESTORE_DB = os.getenv("S2_RESTORE_DB", "deedpro_restore_drill")
 failures = []
 
 
+def _refuse_unless_disposable() -> None:
+    """This harness writes rows. It runs where that is harmless, or not
+    at all.
+
+    Marker-based rather than name-based: a blacklist of production names
+    fails the moment a second production-shaped database exists, and an
+    `ALLOW_DESTRUCTIVE_TESTS` variable is an opt-in somebody sets and
+    forgets. See `services/db_identity.assert_scratch`.
+    """
+    from services.db_identity import WrongDatabase, assert_scratch, describe
+    conn = psycopg2.connect(DB_URL, connect_timeout=10)
+    try:
+        try:
+            assert_scratch(conn)
+        except WrongDatabase as wrong:
+            print(str(wrong))
+            sys.exit(1)
+        print(f"  database: {describe(conn)}\n")
+    finally:
+        conn.close()
+
+
 def check(label, ok, detail=""):
     print(f"  {'PASS' if ok else 'FAIL'}  {label}{(' — ' + detail) if detail else ''}")
     if not ok:
@@ -85,6 +107,7 @@ def restore_url():
 
 def main():
     print("RED-S2 restore drill\n")
+    _refuse_unless_disposable()
 
     from services.artifact_store import artifact_key, get_store, reset_store
     reset_store()

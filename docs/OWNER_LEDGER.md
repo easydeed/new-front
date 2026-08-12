@@ -131,22 +131,14 @@ when their trigger arrives.
   contact details. Unset, the job runs wherever `DATABASE_URL` points,
   which is correct for local and CI and is why the check is optional.
 
-- **`/signing/{token}/pcor` does not exist — the NOTARY2 signer's PCOR
-  button is a live 404** (found 2026-08-12 while retiring NOTARY1's read
-  side). `services/signing_surfaces.py:192` puts
-  `pcor_url = "/signing/{token}/pcor"` in the signer package, and
-  `frontend/src/app/signing/[token]/page.tsx:355` renders a Download
-  PCOR link at `${pcor_url}.pdf`. **Neither route is registered** —
-  `routers/signing.py` has no PCOR handler at all. NOTARY1 had a working
-  pair; NOTARY2 advertises them and never built them.
-
-  NOT FIXED, because the two fixes are different products: build the
-  route (the signer gets the county's companion form) or stop
-  advertising it (the button goes). The first is a feature and the
-  second removes one, and `pcor_url` is inside `signing_surfaces`'
-  exact-key-set contract, so either way it is a deliberate change rather
-  than a repair. **Needs a ruling.** The audience is consumers with no
-  account, which is the argument for it being soon.
+- **Demo video: `homepageLinks.test.ts` has to be retargeted first.**
+  The GTM plan says the 90-second video "fills the homepage's dead Watch
+  Demo". There is no dead Watch Demo — HM1 removed it along with a
+  placeholder demo iframe (a rickroll), and the pin asserts BOTH that no
+  such button exists AND that `components/landing-v2/VideoPlayer.tsx`
+  does not exist on disk. Whoever adds a player retargets that pin in the
+  same commit, with the reason it is now allowed, or hits a confusing
+  red. Ten minutes; recorded so it is not discovered at 11pm.
 
 - **Junk seed cleanup** (test rows in production data).
 - **TitlePoint / SiteX credential rotations.**

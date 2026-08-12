@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 import db
 from auth import get_current_user_id
 from database import create_deed
+from services import pcor_offer
 
 router = APIRouter()
 
@@ -545,37 +546,12 @@ def pcor_status_endpoint(deed_id: int, user_id: int = Depends(get_current_user_i
     """Is a PCOR available for this deed's county, and what will it still
     need from the buyer?
 
-    T-3. The PCOR is the conveyance's legally required companion (R&T
-    §480.3 — a deed presented without one may be charged an extra $20 at
-    recording), and roughly the parts a deed already knows are the parts
-    an officer would otherwise retype.
-
-    This returns availability + the ASKS rather than a count or a
-    percentage. We fill nine text fields of sixty-five; "80% prefilled"
-    would be a claim we cannot support, and the standing rule is that
-    claims trace to something real.
+    T-3. The body is built by `services/pcor_offer.py` — the notary now
+    offers the same form from her signing link, and two surfaces offering
+    one document must offer the same shape of it.
     """
-    row = _pcor_deed_row(deed_id, user_id)
-    from services.county_forms import lookup_form
-    from services.boe_form_fill import values_from_deed
-
-    form = lookup_form(row.get("county") or "")
-    if form is None:
-        return {
-            "available": False,
-            "county": row.get("county"),
-            "reason": f"No PCOR on file for {row.get('county') or 'this county'}.",
-        }
-    _values, asks = values_from_deed(row)
-    return {
-        "available": True,
-        "county": form.county,
-        "form_code": form.form_code,
-        "revision": form.revision,
-        "county_revision": form.county_revision,
-        "url": f"/deeds/{deed_id}/pcor.pdf",
-        "still_needed": asks,
-    }
+    return pcor_offer.status(_pcor_deed_row(deed_id, user_id),
+                             f"/deeds/{deed_id}/pcor.pdf")
 
 
 @router.get("/deeds/{deed_id}/pcor.pdf")
@@ -587,20 +563,8 @@ def pcor_download_endpoint(deed_id: int, user_id: int = Depends(get_current_user
     somebody else must complete and sign would be the wrong kind of
     faithful.
     """
-    from services.boe_form_fill import PcorUnavailable, fill_pcor
-
-    row = _pcor_deed_row(deed_id, user_id)
-    try:
-        pdf_bytes, _asks = fill_pcor(row)
-    except PcorUnavailable as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
-    return Response(
-        content=pdf_bytes,
-        media_type="application/pdf",
-        headers={"Content-Disposition":
-                 f'attachment; filename="PCOR-deed-{deed_id}.pdf"'},
-    )
+    return pcor_offer.download(_pcor_deed_row(deed_id, user_id),
+                               f"PCOR-deed-{deed_id}.pdf")
 
 
 def _pcor_deed_row(deed_id: int, user_id: int) -> dict:
