@@ -757,6 +757,7 @@ function SharedDeedsTracker() {
               </div>
               <button
                 onClick={() => setFeedbackModal({ open: false, text: "", structured: null })}
+                aria-label="Close reviewer feedback"
                 className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
               >
                 <X className="w-5 h-5 text-slate-400 hover:text-slate-600" />

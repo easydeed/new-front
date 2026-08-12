@@ -70,7 +70,7 @@ function PastDeedsList() {
   // actions; a single "which modal" enum would have been the toggle this
   // part exists to remove.
   const [reviewDeedId, setReviewDeedId] = useState<number | null>(null)
-  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; deedId: number | null }>({
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; deedId: number | null; deed?: Deed }>({
     isOpen: false,
     deedId: null,
   })
@@ -166,8 +166,8 @@ function PastDeedsList() {
     }
   }
 
-  const handleDeleteClick = (deedId: number) => {
-    setDeleteConfirm({ isOpen: true, deedId })
+  const handleDeleteClick = (deed: Deed) => {
+    setDeleteConfirm({ isOpen: true, deedId: deed.id, deed })
   }
 
   const handleDeleteConfirm = async () => {
@@ -407,6 +407,7 @@ function PastDeedsList() {
                                 <button
                                   onClick={() => handleDownload(deed)}
                                   disabled={downloadingId === deed.id}
+                                  aria-label={`Download deed PDF for ${deed.property_address}`}
                                   className="p-2 bg-[#7C4DFF] hover:bg-[#6a3de8] text-white rounded-lg transition-colors disabled:opacity-60"
                                   title="Download PDF"
                                 >
@@ -459,8 +460,20 @@ function PastDeedsList() {
                                 </button>
                               </>
                             )}
+                            {/* UX2 item 2 — THE DESTRUCTIVE ONE IS SET APART.
+                                It used to sit in the same `gap-2` run as
+                                Download, same size, one hand-width from a
+                                button that is safe to press twice. The
+                                divider and the margin are not decoration:
+                                adjacency is what makes a misclick cheap to
+                                make and impossible to undo. */}
+                            <span
+                              aria-hidden="true"
+                              className="mx-1 h-6 w-px bg-slate-200 shrink-0"
+                            />
                             <button
-                              onClick={() => handleDeleteClick(deed.id)}
+                              onClick={() => handleDeleteClick(deed)}
+                              aria-label={`Delete deed for ${deed.property_address}`}
                               className="p-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg transition-colors"
                               title="Delete deed"
                             >
@@ -532,7 +545,15 @@ function PastDeedsList() {
         onClose={() => setDeleteConfirm({ isOpen: false, deedId: null })}
         onConfirm={handleDeleteConfirm}
         title="Delete Deed"
-        message="Are you sure you want to delete this deed? This action cannot be undone."
+        /* UX2 item 2: the deed is NAMED. "this deed" is the same sentence
+           on every row of a table of near-identical rows, which makes it
+           the sentence a misclick reads straight past — it confirms that
+           something is being deleted without ever confirming WHICH. */
+        message={
+          deleteConfirm.deed
+            ? `Delete the ${deedTypeLabel(deleteConfirm.deed.deed_type)} for ${deleteConfirm.deed.property_address}? This cannot be undone.`
+            : "Are you sure you want to delete this deed? This action cannot be undone."
+        }
         confirmLabel="Delete"
         variant="danger"
       />

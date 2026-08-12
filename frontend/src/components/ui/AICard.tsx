@@ -94,6 +94,7 @@ export function AICard({
             {details && (
               <button 
                 onClick={() => setShowDetails(!showDetails)}
+                aria-label="Show details for this suggestion"
                 className="p-1.5 rounded-full hover:bg-emerald-100 transition-colors text-emerald-400 hover:text-emerald-600"
                 title="Learn more"
               >
@@ -103,6 +104,7 @@ export function AICard({
             {dismissible && (
               <button 
                 onClick={handleDismiss}
+                aria-label="Dismiss this suggestion"
                 className="p-1.5 rounded-full hover:bg-emerald-100 transition-colors text-emerald-400 hover:text-emerald-600"
               >
                 <X className="w-4 h-4" />

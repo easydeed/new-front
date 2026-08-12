@@ -75,6 +75,7 @@ export function AddPartnerModal({ isOpen, onClose, onSave }: AddPartnerModalProp
           <h2 className="text-lg font-semibold text-gray-900">Add New Partner</h2>
           <button 
             onClick={onClose} 
+            aria-label="Close add-partner form"
             className="p-1 hover:bg-gray-100 rounded-lg transition-colors text-gray-500 hover:text-gray-700"
           >
             <X className="w-5 h-5" />

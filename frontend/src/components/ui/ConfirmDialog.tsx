@@ -57,6 +57,7 @@ export function ConfirmDialog({
         {/* Close button */}
         <button
           onClick={onClose}
+          aria-label="Close this dialog without confirming"
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
         >
           <X className="w-5 h-5" />
