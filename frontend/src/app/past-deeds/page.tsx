@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import Sidebar from "@/components/Sidebar"
 import { FileText, Download, Share2, Trash2, AlertCircle, CheckCircle, Clock, X, Plus, Loader2, Search, CalendarClock } from "lucide-react"
 import { RequestSigningModal } from "@/features/signing/RequestSigningModal"
+import { signingRowAction } from "@/lib/signingRowAction"
 import { ShareForReviewModal } from "@/features/signing/ShareForReviewModal"
 import { PartnersProvider } from "@/features/partners/PartnersContext"
 import { toast } from "sonner"
@@ -70,6 +71,13 @@ function PastDeedsList() {
   // actions; a single "which modal" enum would have been the toggle this
   // part exists to remove.
   const [reviewDeedId, setReviewDeedId] = useState<number | null>(null)
+  /* CANCEL1 item 4 — WHICH DEEDS ALREADY HAVE A SIGNING OUT.
+     The row offered "Request signing" on a deed that already had one
+     pending, with nothing on screen to say so — so the officer's way of
+     checking was to create a second request and find out. `live` is the
+     server's verdict (services/signing_loop.is_live); this screen only
+     joins it to the row. */
+  const [liveSignings, setLiveSignings] = useState<Record<number, { id: number; summary: string }>>({})
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; deedId: number | null; deed?: Deed }>({
     isOpen: false,
     deedId: null,
@@ -120,6 +128,27 @@ function PastDeedsList() {
 
       const data = await response.json()
       setDeeds(Array.isArray(data) ? data : data.deeds || [])
+
+      /* Best-effort and SILENT: a failed lookup here must not blank a
+         page full of real deeds. The cost of missing it is that the row
+         offers "Request signing" as it always did — the pre-CANCEL1
+         behaviour — rather than a broken page. */
+      try {
+        const sr = await apiFetch(`/signing-requests/v2`, {},
+                                  { label: "Loading signings", silent: true })
+        if (sr.ok) {
+          const rows = await sr.json()
+          const byDeed: Record<number, { id: number; summary: string }> = {}
+          for (const r of Array.isArray(rows) ? rows : []) {
+            // `live` is the server's verdict. This screen holds no list
+            // of which states are over — see signing_loop.is_live.
+            if (r.live && !byDeed[r.deed_id]) {
+              byDeed[r.deed_id] = { id: r.id, summary: r.summary }
+            }
+          }
+          setLiveSignings(byDeed)
+        }
+      } catch { /* the row keeps its old behaviour; the page is fine */ }
     } catch (err) {
       if (err instanceof SessionExpiredError) return
       console.error("Error fetching deeds:", err)
@@ -388,7 +417,17 @@ function PastDeedsList() {
                           ) : null}
                         </td>
                         <td className="py-4 px-6 text-slate-600">{deedTypeLabel(deed.deed_type)}</td>
-                        <td className="py-4 px-6">{getStatusBadge(deed.status)}</td>
+                        <td className="py-4 px-6">
+                          {getStatusBadge(deed.status)}
+                          {liveSignings[deed.id] && (
+                            /* The server's sentence, verbatim. This screen
+                               does not describe a scheduling state — one
+                               place turns state into English (§13 rule 3). */
+                            <p className="text-xs text-slate-500 mt-1 max-w-[16rem]">
+                              {liveSignings[deed.id].summary}
+                            </p>
+                          )}
+                        </td>
                         <td className="py-4 px-6 text-sm text-slate-600">{formatDate(deed.created_at)}</td>
                         <td className="py-4 px-6 text-sm text-slate-600">{formatDate(deed.updated_at)}</td>
                         <td className="py-4 px-6">
@@ -451,13 +490,40 @@ function PastDeedsList() {
                                   <Share2 className="w-4 h-4 shrink-0" />
                                   <span className="whitespace-nowrap">Share for review</span>
                                 </button>
-                                <button
-                                  onClick={() => setSigningDeedId(deed.id)}
-                                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-600 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors"
-                                >
-                                  <CalendarClock className="w-4 h-4 shrink-0" />
-                                  <span className="whitespace-nowrap">Request signing</span>
-                                </button>
+                                {/* CANCEL1 item 4 — a deed with a signing
+                                    already out says so, and the action
+                                    OPENS it. Offering "Request signing"
+                                    on a request that exists is an
+                                    invitation to create a second one,
+                                    which is three more emails and two
+                                    notaries who each think they have it. */}
+                                {(() => {
+                                  /* The decision is `lib/signingRowAction`,
+                                     not this ternary — see that file for
+                                     why: a string-presence pin could not
+                                     tell a reachable branch from a dead
+                                     one, and stayed green with the whole
+                                     feature disabled. */
+                                  const action = signingRowAction(deed.id, liveSignings)
+                                  return action.kind === 'open' ? (
+                                    <button
+                                      onClick={() => router.push(action.href)}
+                                      aria-label={`Open the signing request for ${deed.property_address}`}
+                                      className="inline-flex items-center gap-1.5 px-3 py-2 border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium rounded-lg transition-colors"
+                                    >
+                                      <CalendarClock className="w-4 h-4 shrink-0" />
+                                      <span className="whitespace-nowrap">{action.label}</span>
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => setSigningDeedId(deed.id)}
+                                      className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-600 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors"
+                                    >
+                                      <CalendarClock className="w-4 h-4 shrink-0" />
+                                      <span className="whitespace-nowrap">{action.label}</span>
+                                    </button>
+                                  )
+                                })()}
                               </>
                             )}
                             {/* UX2 item 2 — THE DESTRUCTIVE ONE IS SET APART.

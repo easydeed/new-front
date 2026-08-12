@@ -440,6 +440,26 @@ we reach it.
   already returns the actor's email and every handler discards it, so
   actor threading is the first task, not the last.
 
+## Open — needs a ruling (found 2026-08-12, NOT fixed)
+
+- **Revoking a share tells the recipient nothing.** Found by the sweep
+  for other revoke-then-notify compositions (CANCEL1 item 2's class).
+  `POST /shared-deeds/{id}/revoke` flips the status and sends no email
+  and no in-app notice, so a reviewer keeps a link that has silently
+  stopped working and finds out by clicking it.
+
+  This is NOT the composition bug — there is no notify loop to be
+  silenced, because there is no notify loop at all. It is the same
+  PRODUCT question the owner already ruled for cancellation: an invited
+  person holds a link, the link is dead, and discovering that by clicking
+  is worse than being told. The ruling there was yes-if-invited; whether
+  it carries to review shares is a separate call, because a revoked
+  review is sometimes a deliberate un-invitation the officer may not want
+  to announce.
+
+  Cheap either way — the transport, the template shape and the two
+  registers all exist.
+
 ## Parked tickets (scoped, not scheduled)
 
 - **CANCEL1's three post-creation gaps** (audit finding, ledgered
