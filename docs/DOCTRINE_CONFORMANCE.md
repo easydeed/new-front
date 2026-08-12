@@ -17,6 +17,53 @@ each discovered *incidentally* by unrelated work.
 
 ---
 
+## §0 — Why this product keeps declining heuristics
+
+**Owner-ruled 2026-08-12 (UX2 item 1). Read this before arguing for the
+next one.** It is not a new rule; it is the argument underneath a dozen
+existing ones, written down once so each of them stops having to make it
+from scratch.
+
+> **A tie-breaking rule invents an answer that will be right often enough
+> that nobody checks it.**
+
+That is the whole objection, and the crucial word is *often*. **A
+heuristic that is wrong 5% of the time is more dangerous than one that is
+wrong 50% of the time**, because the 5% version earns trust it cannot
+sustain. The 50% version is discovered in an afternoon and removed. The
+5% version becomes the thing everybody relies on, and its failures arrive
+individually, months apart, on documents nobody is re-reading.
+
+**The same reasoning kills a confidence score.** A number between 0 and 1
+invites a threshold, and a threshold is where invented answers come from:
+somebody picks 0.8, nothing visibly breaks, and the product now asserts
+things it does not know at a rate nobody has measured. The answers this
+product gives are a value or nothing.
+
+Where this argument has already done the work:
+
+| Declined | What the heuristic would have invented |
+|---|---|
+| §1 | A vesting or DTT choice inferred from the facts on the deed. |
+| §11 | A field's kind guessed from its NAME rather than its content. |
+| §11.1 | A person's pronouns or licensure guessed from their name or role. |
+| §13.2 | An answer attributed to the signer that the officer gave. |
+| §13.3 | A parcel picked out of two candidates on one address. |
+| Doctrine A | A relationship read out of two owners sharing a surname. |
+
+Every row is the same shape: a rule that would be right most of the time,
+declined because *most* is not a standard a recorded legal document can
+be held to, and because the failures would be invisible in exactly the
+cases where they matter.
+
+**What is permitted instead.** Normalising SPELLING is not a heuristic —
+`5th Street` and `5TH ST` are one thing written twice, and no property
+changes hands over the difference. Deciding IDENTITY is. When the two are
+hard to tell apart, the test is: could this rule ever make two different
+real things into one? If yes, it is identity, and it is declined.
+
+---
+
 ## 1. Legal choices are never auto-applied
 
 **Statement.** A legal choice (documentary transfer tax declaration,
