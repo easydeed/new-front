@@ -928,12 +928,61 @@ declined dispatch returns to `requested` and the loop resumes; no signer
 is emailed before acceptance; an officer window is not attributed to the
 notary.
 
+### §13.3 — Who chose the record the facts came from (UX2 item 1, 2026-08-12)
+
+**Statement.** Every county-record field on a deed — APN, legal
+description, vested owner — descends from ONE row of a candidate list.
+The record says whether the officer picked that row or the system matched
+it, because **confirming a value proves the officer read it; it does not
+prove the value belongs to the property she meant.**
+
+**Why this is §13.2 and not a new idea.** §13.2 kept an officer-asserted
+answer from being recorded as the signer's. This is the same rule one
+level further out: the parcel is the source every other assertion is
+drawn from, and a parcel chosen by the system must not be indistinguishable
+from a parcel chosen by a human. `ParcelSelection.basis` is
+`exact_address_match` (the server matched it), `officer_choice` (she
+clicked it), or `only_county_match` (nobody chose — there was one).
+
+**The failure it exists to prevent.** An exact autocomplete selection
+returned 76 candidates with the chosen address not first and neighbouring
+parcels above it. A wrong click does not error. It produces a complete,
+plausible, confidently wrong deed out of a real county record with the
+officer's confirmation on every field — the one failure the confirmation
+model structurally cannot catch, because the confirmation is genuine and
+the source is genuine and only the correspondence between them is wrong.
+
+**Why the automatic selection is narrow to the point of stubbornness.**
+`services/address_match.py` selects only when EXACTLY ONE candidate is
+unambiguously the address chosen. Zero or several and it declines, every
+candidate goes to the officer, and nothing is chosen on her behalf. Two
+candidates on one address is not a tie to be broken — it is usually a
+multi-unit building where the unit is the deciding fact, and any rule
+that breaks such a tie invents an answer it will be right about often
+enough that nobody checks it. There is deliberately **no confidence
+score**: a number between 0 and 1 invites a threshold, and a threshold is
+where invented answers come from.
+
+Normalisation is about SPELLING (`5th Street` / `5TH ST`), never about
+identity. `1358` and `1356` are different properties and a pin holds them
+apart.
+
+**And it is visible.** When the server matched the parcel, the screen
+says so in the same place the officer is about to start confirming
+fields, with "not this one?" next to it and every alternative behind it.
+A selection recorded but not shown would satisfy the letter of §13.2 and
+miss the point of it.
+
+**Enforced by.** `backend/tests/test_ux2_property_exact_match.py` and
+`frontend/src/__tests__/propertyExactMatch.test.ts`.
+
 ---
 
 ## Change log
 
 | Date | Change |
 |---|---|
+| 2026-08-12 | §13.3 added (UX2 item 1) — who chose the record the facts came from. An exact autocomplete pick returned 76 county candidates with the chosen address not ranked first; APN, legal description and vested owner all descend from whichever row is clicked, so a wrong row produces a confidently wrong deed out of a real source with a genuine confirmation on every field. `services/address_match.py` selects a parcel only when EXACTLY ONE candidate is unambiguously the chosen address, declines otherwise, and exposes no confidence score. Also recorded: the audit's proposed root cause — "we re-search by address string instead of passing the autocomplete's identifier" — was checked and is not fixable as framed. Google's `place_id` is not a SiteX key; SiteX takes an address or a FIPS+APN, and the FIPS+APN only exists once SiteX has answered. The defect was real and the diagnosis was not, which is a distinct outcome from DASH1's route rename, where neither was. |
 | 2026-08-11 | §13.2 added (FLOW1 item 7, DISPATCH) — `signing_responses.asserted_by`. See the section for the full reasoning; the short version is that convergence had to be able to count an officer-asserted signer answer without any surface being able to call it the signer's. Also: the §11.1 sweep was WIDENED after it missed two live habitats it should have caught — `services/signing_loop.state_label()` (the one function that turns a scheduling state into a sentence for every surface) and the `.ics` description that lands in the officer's own diary. Both said "she" about a notary. `services/vesting_split.py` exempted with a cited reason: it MATCHES recorded vesting language rather than writing prose about anybody. |
 | 2026-08-11 | §11.1 added (FLOW1 items 3–4) — the product never infers a fact about a PERSON from their name or role. A live email told a notary that the officer "confirms the appointment with the signers herself", asserting an escrow officer's pronouns to her own professional contact on no information; the screen did the same about the notary. Ruled the same family as the "filed as" constraint, which forbids reading a partner's category as a statement about their authority — one direction infers what someone IS, the other what they MAY DO, and both put a claim in the record nobody made. Swept fail-closed across every template. Two habitats exempted with cited reasons and their own liveness test: the Civil Code §1189 all-purpose acknowledgement (prescribed certificate wording, names no party) and vesting terms of art. Also item 4: the Signings agenda's stuck age was reconstructed as `expires_at − 21 days`, duplicating `default_expiry()`'s constant into TypeScript as a bare number — the server sends `created_at` now. And its "soonest first" claim covered rows sorted by `COALESCE(booked_at, expires_at)`, two orthogonal facts under one sort key (T-5 one layer up); booked and being-arranged are now separated and each sorted by the fact it has. |
 | 2026-08-11 | §4 — FLOW1 item 0. Shared Deeds reported as showing fabricated rows; verdict recorded as NOT fabricated — a real fetch read through eight wrong key names, so `undefined` rendered as blank cells and Invalid Date. Recorded under §4 rather than invariant #4 because nothing was invented and the screen still asserted what it could not support ("Not viewed" under a badge reading "Viewed"). Three absent facts given columns: `recipient_name` (accepted, greeted with, never stored), `responded_at` (`updated_at` was not that fact — a revoke bumps it too), and a real `expires_at` (previously spent on a display string nothing rendered). Contract now pinned from both sides against one corpus; absence crosses the wire as `null`, never `""`. The feedback modal's fallback to a field the list endpoint never sent — a failed fetch reading as "the reviewer left no comments" — removed. |

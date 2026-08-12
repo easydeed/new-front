@@ -11,6 +11,7 @@ import psycopg2
 from db_rows import ROW_FACTORY
 
 from auth import get_current_user_id
+from services import address_match
 
 logger = logging.getLogger(__name__)
 
@@ -139,6 +140,89 @@ class PropertyResolveMatchRequest(BaseModel):
     apn: str = Field(..., min_length=1)
 
 
+SELECTED_EXACT = "exact_address_match"
+SELECTED_ONLY_MATCH = "only_county_match"
+SELECTED_OFFICER = "officer_choice"
+
+
+def _decorate(matches):
+    """Every candidate says why a field of it is blank.
+
+    Invariant #4 in a data field: the screen used to print "Owner
+    unavailable" for a parcel the county simply has no owner name for,
+    which reads as a failure and is not one.
+    """
+    decorated = []
+    for match in matches:
+        row = dict(match)
+        row["owner_status"] = address_match.owner_status(row)
+        row["owner_reason"] = address_match.OWNER_REASONS.get(row["owner_status"], "")
+        decorated.append(row)
+    return decorated
+
+
+async def _resolve_multi_match(request, result, user_id: str) -> Dict:
+    """The county returned several parcels for one chosen address.
+
+    ═══ WHY THIS RUNS ON THE SERVER ═══
+
+    The officer chose a specific address from the autocomplete. Standing
+    rule: move the judgement server-side and send the answer, rather than
+    teaching a second surface how to compare addresses. The screen
+    renders what it is told, and there is one implementation of "is this
+    the same address" instead of one per client.
+
+    ═══ WHY IT CAN DECLINE ═══
+
+    Exactly one unambiguous match selects. Zero or several do not, and
+    then all of them go to the officer, nearest first, with nothing
+    chosen on their behalf. A multi-unit building is the common case of
+    "several", and picking a unit for somebody is how a deed ends up
+    describing the neighbour's home.
+    """
+    matches = _decorate([m.dict() for m in (result.matches or [])])
+    wanted = address_match.Address(
+        street=request.address, city=request.city, zip_code=request.zip_code)
+    selected, ranked = address_match.select(wanted, matches)
+
+    logger.info(
+        f"SiteX search-v2 multi_match: {len(matches)} candidates, "
+        f"exact selection={'yes' if selected else 'no'}")
+
+    if selected:
+        from services.sitex_service import sitex_service
+        resolved = await sitex_service.search_by_fips_apn(
+            fips=selected.get("fips", ""), apn=selected.get("apn", ""),
+            client_ref=f"user:{user_id}")
+        if resolved.status == "success" and resolved.data:
+            alternatives = [m for m in ranked if m is not selected]
+            payload = resolved.dict()
+            payload["selection"] = {
+                "basis": SELECTED_EXACT,
+                "matched_address": selected.get("address", ""),
+                "alternative_count": len(alternatives),
+            }
+            payload["alternatives"] = alternatives
+            return payload
+
+        # The exact parcel would not load. That is not a reason to pick a
+        # different one, and it is not a reason to say nothing happened —
+        # the officer gets the full list and the reason it is still a list.
+        logger.warning(
+            "SiteX resolve of the exact match failed (%s); falling back to "
+            "the candidate list", resolved.status)
+
+    return {
+        "status": "multi_match",
+        "message": "Multiple properties found. Please select one.",
+        "data": None,
+        "matches": ranked,
+        "match_count": len(ranked),
+        "selection": {"basis": SELECTED_OFFICER, "matched_address": "",
+                      "alternative_count": len(ranked)},
+    }
+
+
 @router.post("/search-v2")
 async def property_search_v2(
     request: PropertySearchRequestV2,
@@ -184,16 +268,7 @@ async def property_search_v2(
         print(f"⏱️  Property search v2 took {elapsed:.2f}s - status: {result.status}")
 
         if result.status == "multi_match":
-            match_count = len(result.matches or [])
-            response_payload = {
-                "status": "multi_match",
-                "message": "Multiple properties found. Please select one.",
-                "data": None,
-                "matches": [match.dict() for match in (result.matches or [])],
-                "match_count": match_count,
-            }
-            logger.info(f"SiteX search-v2 multi_match returned {match_count} matches")
-
+            response_payload = await _resolve_multi_match(request, result, user_id)
             background_tasks.add_task(
                 log_api_usage,
                 user_id,
@@ -202,9 +277,23 @@ async def property_search_v2(
                 request.dict(),
                 response_payload
             )
-
             return response_payload
-        
+
+        if result.status == "success":
+            payload = result.dict()
+            # §13.2 — who asserted this answer. One county match is not a
+            # choice anybody made; saying so is cheaper than leaving the
+            # reader to work out that no selection happened.
+            payload["selection"] = {
+                "basis": SELECTED_ONLY_MATCH,
+                "matched_address": (result.data.address if result.data else ""),
+                "alternative_count": 0,
+            }
+            background_tasks.add_task(
+                log_api_usage, user_id, "sitex_v2", "property_search",
+                request.dict(), payload)
+            return payload
+
         # Non-blocking logging
         background_tasks.add_task(
             log_api_usage, 
@@ -258,17 +347,27 @@ async def resolve_property_match(
             client_ref=f"user:{user_id}"
         )
         
+        payload = result.dict()
+        # §13.2 — who asserted the answer. This route exists BECAUSE a
+        # human picked a row, and the record should be able to tell that
+        # apart from a parcel the server matched.
+        payload["selection"] = {
+            "basis": SELECTED_OFFICER,
+            "matched_address": (result.data.address if result.data else ""),
+            "alternative_count": 0,
+        }
+
         # Non-blocking logging
         background_tasks.add_task(
-            log_api_usage, 
-            user_id, 
-            "sitex_v2", 
-            "resolve_match", 
+            log_api_usage,
+            user_id,
+            "sitex_v2",
+            "resolve_match",
             request.dict(),
-            result.dict() if result else None
+            payload
         )
-        
-        return result.dict()
+
+        return payload
         
     except Exception as e:
         return {
