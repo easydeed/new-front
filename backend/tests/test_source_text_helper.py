@@ -132,6 +132,13 @@ RAW_TEXT_ALLOWED = {
     "test_red_h1_requirements.py": "requirements.txt is not Python; the encoding IS the subject",
     "test_source_text_helper.py": "this file tests the helper itself",
     "test_share_pdf_source.py": "reads SQL/schema from the database, not source text",
+    "test_render_environment_contract.py": (
+        "reads render.yaml, which is YAML rather than Python — code_only "
+        "parses Python and would refuse it. It trips this pin because the "
+        "Python half of the same file DOES route through code_only, and "
+        "the pin sees one file. The YAML's `#` lines are its reasoning, "
+        "and one commented block (STRICT_ENV) is deliberately invisible "
+        "to the parser — a stripper would make that pin untestable."),
     "test_prelim_field_map.py": (
         "reads Markdown, not Python. It trips this pin because the "
         "Markdown it checks NAMES a .py file — the field map has to cite "

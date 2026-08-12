@@ -1,15 +1,34 @@
-# ⚠️ THIS FILE IS NOT THE DEPLOYMENT INVENTORY.
+# ⚠️ THIS FILE IS NOT THE SERVICE INVENTORY — BUT IT *IS* THE
+#    ENVIRONMENT CONTRACT FOR THE SERVICE IT DESCRIBES.
 #
-# Services are managed in the Render dashboard. This file describes
-# `deedpro-main-api` and nothing else — the purge cron job
-# (`signer_contact_purge`, added 2026-08-11) runs in production and does
-# not appear here, and neither will anything else created in the
-# dashboard.
+# Two different claims, and the distinction is the point.
 #
-# Recorded because a config file that lies by OMISSION is harder to catch
-# than one that lies by contents: nothing about a YAML file announces
-# that it is a subset. Anyone reading this as "what runs" is reading a
-# partial list that does not say so.
+# NOT THE SERVICE INVENTORY. Services are managed in the Render
+# dashboard. This file describes `deedpro-main-api` and nothing else —
+# the purge cron job (`signer_contact_purge`, added 2026-08-11) runs in
+# production and does not appear here, and neither will anything else
+# created in the dashboard. Recorded because a config file that lies by
+# OMISSION is harder to catch than one that lies by contents: nothing
+# about a YAML file announces that it is a subset.
+#
+# IT IS THE ENVIRONMENT CONTRACT for `deedpro-main-api`, as of
+# 2026-08-11, and that half is now checked. Every variable the service
+# REQUIRES is declared below and cross-checked against
+# `backend/services/environment.py`, which the API reads at boot and
+# which prints a named block for anything missing.
+#
+# WHY THAT CHANGED. `FRONTEND_URL` is read in sixteen places, three of
+# them Stripe redirect URLs carrying a `http://localhost:3000` fallback —
+# so an unset variable sends a paying customer to a page on their own
+# machine, silently. It appeared in NO configuration file in this
+# repository. Nothing declared it should exist, so nothing could notice
+# it did not. That is the defect class this whole engagement has been
+# closing: a fact the system depends on, that nothing checks.
+#
+# A variable whose value is a SECRET is declared here with `sync: false`
+# — the key is named, the value stays in the dashboard. Declaring the
+# name is the whole point; declaring the value would be the thing the
+# ledger forbids.
 #
 # Owner-ruled 2026-08-11: every service defined here pins PYTHON_VERSION
 # explicitly. An unpinned service inherits whatever Render's default is
@@ -53,6 +72,30 @@ services:
       name: deedpro-db
   - key: ALLOWED_ORIGINS
     value: https://deedpro-frontend-new.vercel.app
+  # ── DECLARED BECAUSE ITS ABSENCE IS SILENT ────────────────────────
+  #
+  # `sync: false` means: this key is REQUIRED and its value is set in the
+  # dashboard. Render will not overwrite it; the declaration exists so
+  # that "which variables must this service have" is answerable from the
+  # repository rather than from memory.
+  #
+  # FRONTEND_URL is first because it is the one that was missing from
+  # every file while carrying the Stripe redirect path.
+  - key: FRONTEND_URL
+    sync: false
+  - key: JWT_SECRET_KEY
+    sync: false
+  - key: STRIPE_SECRET_KEY
+    sync: false
+  - key: STRIPE_PROFESSIONAL_PRICE_ID
+    sync: false
+  # STRICT_ENV turns the boot-time report into a refusal to start.
+  # DELIBERATELY UNSET until the owner has confirmed production carries
+  # every required variable: a process that refuses to boot on an
+  # unverified condition converts a wrong redirect into an outage.
+  # Turning it on is this line, uncommented, in the ticket that verifies.
+  # - key: STRICT_ENV
+  #   value: "1"
   # Phase 3 Backend Services & Routes Configuration
   - key: DYNAMIC_WIZARD_ENABLED
     value: "false"

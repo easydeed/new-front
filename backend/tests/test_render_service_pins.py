@@ -73,21 +73,35 @@ def test_every_declared_service_pins_python_version():
         "a differently-pinned one is the same nondeterminism with extra steps.")
 
 
-def test_the_file_says_it_is_not_the_deployment_inventory():
-    """It describes one service and production runs more. A config file
-    that lies by OMISSION is harder to catch than one that lies by
-    contents — nothing about a YAML file announces that it is partial —
-    so it announces it in prose until the undeclared services are brought
-    in (owner-ruled, sequenced after NOTARY2 Part C)."""
-    header = RENDER.read_text(encoding="utf-8")[:2000]
-    assert "NOT THE DEPLOYMENT INVENTORY" in header
+def test_the_file_says_which_half_of_itself_is_authoritative():
+    """RETARGETED — the file now makes TWO claims and the header has to
+    keep them apart.
+
+    It was a single disclaimer: "NOT THE DEPLOYMENT INVENTORY", because
+    the file described one service while production ran more, and a
+    config file that lies by OMISSION is harder to catch than one that
+    lies by contents.
+
+    That half still stands and is still pinned. What changed is that the
+    file gained a claim it CAN honour: it is the ENVIRONMENT CONTRACT for
+    the service it describes, cross-checked against
+    services/environment.py. Leaving the blanket disclaimer over a half
+    that is now checked would understate the file in the opposite
+    direction — and a reader who believes nothing here is authoritative
+    will not maintain the half that is.
+    """
+    header = RENDER.read_text(encoding="utf-8")[:3000]
+    assert "NOT THE SERVICE INVENTORY" in header
     assert "dashboard" in header.lower()
+    # And the half it DOES own, named.
+    assert "ENVIRONMENT CONTRACT" in header
+    assert "services/environment" in header
 
 
 def test_the_downgrade_is_recorded_where_somebody_will_see_it():
     """3.12.7 is BELOW what the main API runs today. A pin that silently
     changes a running service's interpreter is a deploy-time surprise, so
     the file says it is deliberate and says what to do about it."""
-    header = RENDER.read_text(encoding="utf-8")[:2500]
+    header = RENDER.read_text(encoding="utf-8")[:4000]
     assert "downgrade" in header.lower()
     assert "redeploy" in header.lower()

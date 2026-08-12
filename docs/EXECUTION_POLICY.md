@@ -79,6 +79,36 @@ The mechanisms, in order of preference:
 
 Copying is not on the list.
 
+## Standing practice — verify the defect exists before costing the fix
+
+**Owner-ruled 2026-08-11 (DASH1).** Applies to any finding that arrives
+as a *description* of a problem rather than as a *reproduction* of one.
+
+DASH1 item 6 asked to fix "label/route drift" — `/deed-builder` under a
+label reading "Create Deed", `/account-settings` under "Settings" — with
+redirects from the old paths. The wording inherited an external audit's
+framing, and the framing implied a dead end.
+
+There was no dead end. **Both target routes already existed as aliases**,
+and one of them was a deliberate prior migration in the opposite
+direction whose own comment recorded the decision. `/settings` had been
+added by an earlier ticket for precisely the reason item 6 gave. Building
+the rename would have undone a chosen migration, renamed a route param,
+and put a redirect hop on a Stripe `return_url` — for a benefit visible
+only in the address bar.
+
+The check cost one directory listing, taken *before* opening an editor.
+
+**The rule:** reproduce the defect, or locate the code that produces it,
+before estimating or building. A finding described convincingly is not a
+finding observed. And when the check says the defect is absent, the
+answer is to report that — not to build the fix anyway because it was
+ruled.
+
+**Corollary.** If the thing is still wanted once the defect is disproved,
+it is a product decision on its own merits and deserves to be ruled as
+one, rather than shipped under a bug ticket that no longer has a bug.
+
 ## Verification invariants
 
 - Honest CI stays blocking. No `|| true`, ever again.

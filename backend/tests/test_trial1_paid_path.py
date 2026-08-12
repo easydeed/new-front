@@ -270,11 +270,24 @@ def test_a_user_reaches_checkout_with_a_real_customer_id_and_the_webhook_upgrade
     with patch.object(ua.stripe.Customer, "create",
                       return_value=MagicMock(id=CUSTOMER_ID)) as mk_cust, \
          patch.object(ua.stripe.checkout.Session, "create", side_effect=_session_create), \
-         patch.dict(os.environ, {"STRIPE_PROFESSIONAL_PRICE_ID": "price_test_pro"}):
+         patch.dict(os.environ, {"STRIPE_PROFESSIONAL_PRICE_ID": "price_test_pro",
+                                 # The environment ticket made this a
+                                 # REQUIREMENT rather than a localhost
+                                 # fallback, and this test found out by
+                                 # failing: without it the route now
+                                 # refuses with a named reason instead of
+                                 # building a redirect to the customer's
+                                 # own machine. That is the fix working —
+                                 # the checkout call needs the variable
+                                 # because the real one does.
+                                 "FRONTEND_URL": "https://deedpro.test"}):
         resp = client.post("/users/upgrade", json={"plan": "professional"})
 
     assert resp.status_code == 200, resp.text
     assert resp.json()["session_url"].startswith("https://checkout.stripe.test")
+    # And the redirect URLs are built from the real host, not localhost.
+    assert captured["success_url"].startswith("https://deedpro.test/")
+    assert "localhost" not in captured["cancel_url"]
 
     # The customer was CREATED — the branch the unpack bug skipped.
     assert mk_cust.called, (

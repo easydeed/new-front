@@ -40,18 +40,50 @@ def get_logger():
 # CRITICAL FIX: Use same DATABASE_URL as main app
 # Main app uses psycopg2 format (postgresql://), not psycopg3 (postgresql+psycopg://)
 # Get from environment directly, don't override
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/deedpro")
+# ── The URL is resolved ON FIRST USE, not at import ────────────────
+#
+# It used to default to `postgresql://user:pass@localhost:5432/deedpro`
+# — a fictional URL that produces a connection error naming a database
+# nobody has, sending the reader hunting for a host instead of a missing
+# variable.
+#
+# Replacing the default with a refusal is right; doing it AT IMPORT was
+# not, and the no-database test suite caught it in one run: importing
+# this module to read a route table is not the same as using the
+# database, and a refusal at import makes the two indistinguishable.
+#
+# So the engine is built lazily. The refusal still fires — at the moment
+# somebody actually asks for a session, which is the moment the variable
+# is actually needed.
+_ENGINE = None
+_SESSION_FACTORY = None
 
-# Convert psycopg2 URL to SQLAlchemy format if needed
-# psycopg2 uses: postgresql://
-# SQLAlchemy with psycopg (v3) needs: postgresql+psycopg://
-# But we'll use psycopg2-binary which main app uses
-if DATABASE_URL.startswith("postgresql://") and "+psycopg" not in DATABASE_URL:
-    # Use psycopg2 driver (already installed)
-    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://")
 
-engine = create_engine(DATABASE_URL, future=True, pool_pre_ping=True)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+def _database_url() -> str:
+    from services.environment import require
+
+    url = require("DATABASE_URL")
+    # SQLAlchemy needs the driver named; psycopg2-binary is what the main
+    # app installs.
+    if url.startswith("postgresql://") and "+psycopg" not in url:
+        url = url.replace("postgresql://", "postgresql+psycopg2://")
+    return url
+
+
+def _session_factory():
+    global _ENGINE, _SESSION_FACTORY
+    if _SESSION_FACTORY is None:
+        _ENGINE = create_engine(_database_url(), future=True, pool_pre_ping=True)
+        _SESSION_FACTORY = sessionmaker(bind=_ENGINE, autoflush=False,
+                                        autocommit=False, future=True)
+    return _SESSION_FACTORY
+
+
+def SessionLocal():
+    """Kept callable under its old name — every caller says
+    `SessionLocal()`, and renaming it would be churn for no property."""
+    return _session_factory()()
+
 
 def get_db():
     db = SessionLocal()
