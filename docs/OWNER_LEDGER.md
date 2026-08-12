@@ -98,6 +98,18 @@ when their trigger arrives.
 
 ## Open — owner's card
 
+- **Stripe URL verification — Tier 3, real dollar behind it** (DASH1,
+  2026-08-11). Run a live test checkout at the $99 price and confirm:
+  the success landing is `/account-settings?success=true` on the
+  production host; the cancel landing is `?canceled=true`; the billing
+  portal's "return to DeedPro" lands on `/account-settings`; whether a
+  default return URL is configured in the Stripe dashboard (Settings →
+  Billing → Customer portal) as a second place the URL lives; and —
+  **the one that matters most** — that `FRONTEND_URL` is actually set on
+  the production API service. Unset, every checkout URL falls back to
+  `http://localhost:3000` and a paying customer lands nowhere. This is
+  independent of any route rename; see `docs/DASH1_REQUESTS_MERGE.md`.
+
 - **Junk seed cleanup** (test rows in production data).
 - **TitlePoint / SiteX credential rotations.**
 - **DTT city-rates review** (`frontend/src/lib/dttCalc.ts`) — owner's
