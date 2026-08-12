@@ -55,7 +55,11 @@ const flat = (source: string) => source.replace(/\s+/g, ' ');
  */
 const TOKEN_PAGE = read('app', 'signing', '[token]', 'page.tsx');
 const APPROVE = read('app', 'approve', '[token]', 'page.tsx');
-const SHARED = read('app', 'shared-deeds', 'page.tsx');
+/** The tracker moved to `/requests` (`app/shared-deeds/page.tsx` is now
+ *  its permanent alias). The tree-wide sweep below is the pin that
+ *  actually guards this rule — it reads every source under src and would
+ *  catch a signer field wherever the file sat. */
+const SHARED = read('app', 'requests', 'page.tsx');
 
 /** Every .ts/.tsx under src, so a signer field cannot arrive in a file
  * this test did not think to name. */

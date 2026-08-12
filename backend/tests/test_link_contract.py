@@ -217,15 +217,69 @@ def test_the_frontend_sweep_is_looking_at_something():
 @pytest.mark.parametrize("known", [
     "/approve/{token}",      # the review and signing link, in two emails
     "/signing/{token}",      # NOTARY2's consumer surface
-    "/shared-deeds",         # the focus link, in two emails
+    "/shared-deeds",         # THE ALIAS — see the note below
+    "/requests",             # where the focus link points NOW
     "/account-settings",     # THE STRIPE RETURN URLS
     "/verify/{code}",        # the QR code printed on nothing, read by anyone
 ])
 def test_the_links_that_matter_most_are_among_the_ones_checked(known):
-    """A sweep is only as good as its reach, and these five are the ones
-    whose failure is least recoverable: two are in emails already sent,
-    one is where a paying customer lands after checkout, and one is
-    printed into a QR code."""
+    """A sweep is only as good as its reach, and these are the ones whose
+    failure is least recoverable: some are in emails already sent, one is
+    where a paying customer lands after checkout, and one is printed into
+    a QR code.
+
+    `/shared-deeds` is in this list even though the backend no longer
+    builds a single link to it. THAT IS THE POINT. It is the page whose
+    only remaining job is to catch the mail that went out before the
+    rename, so the sweep above — which only sees links the backend still
+    emits — would stop guarding it the moment it stopped being emitted.
+    This entry is what keeps the alias alive after the last emitter is
+    gone: the case where deleting it looks free is exactly the case where
+    it costs somebody a 404 they cannot report.
+    """
     assert _shape(known) in _frontend_routes(), (
         f"{known} is not a page any more — every link already sent to it "
         "is now a 404 in somebody's inbox")
+
+
+def test_no_new_link_is_minted_at_the_retired_path():
+    """The alias is permanent BECAUSE SENT MAIL CANNOT BE EDITED — and
+    that argument covers exactly the mail that was already sent.
+
+    A backend that keeps emitting `/shared-deeds?focus=` would grow the
+    population of legacy links forever and make the alias self-
+    justifying: every year there would be more inboxes holding the old
+    path, because we had spent that year putting it there. New mail gets
+    the canonical route; the alias serves history and stops growing it.
+    """
+    offenders = []
+    for path in _backend_sources():
+        src = code_only(path)
+        for i, line in enumerate(src.splitlines(), start=1):
+            if "/shared-deeds?focus=" in line:
+                offenders.append(f"{path.relative_to(BACKEND)}:{i}")
+    assert offenders == [], (
+        "these build a fresh link at the retired path instead of "
+        "/requests?kind=reviews&focus=:\n  " + "\n  ".join(offenders))
+
+
+def test_the_focus_link_says_which_table_the_id_came_from():
+    """`?focus=42` on the merged tracker names two different rows.
+
+    A review is a `deed_shares.id` and a signing is a
+    `signing_requests.id`. The old paths carried that distinction in the
+    path itself; the merged one cannot, so whoever builds the link
+    supplies it. A `?focus=` with no `?kind=` is ambiguous and the page
+    correctly refuses to guess — which means a link built without the
+    kind lands on an unfiltered list, the exact defect DASH1 found.
+    """
+    bare = []
+    for path in _backend_sources():
+        src = code_only(path)
+        for i, line in enumerate(src.splitlines(), start=1):
+            if "/requests?" in line and "focus=" in line and "kind=" not in line:
+                bare.append(f"{path.relative_to(BACKEND)}:{i}")
+    assert bare == [], (
+        "these send the officer to the merged tracker with an id but no "
+        "kind, so the page cannot tell which list to open:\n  "
+        + "\n  ".join(bare))

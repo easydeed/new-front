@@ -459,7 +459,7 @@ function ActionQueue({ queue, error }: { queue: Queue | null; error: string | nu
               }`,
               urgent: r.stale,
               onOpen: () => router.push(
-                r.kind === 'signing' ? `/signings?focus=${r.id}` : '/shared-deeds'),
+                r.kind === 'signing' ? `/signings?focus=${r.id}` : `/requests?kind=reviews&focus=${r.id}`),
             }))}
           />
           <QueueList

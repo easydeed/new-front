@@ -223,7 +223,7 @@ export default function DeedPreviewPage() {
 
   // Share handler
   const handleShare = () => {
-    router.push(`/shared-deeds?deed=${deedId}`);
+    router.push(`/requests?deed=${deedId}`);
   };
 
   // Edit handler

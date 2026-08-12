@@ -121,7 +121,17 @@ def test_shared_with_falls_back_to_the_address_not_to_blank():
 
 # ── 2. The screen's declaration ──────────────────────────────────────
 
-PAGE = REPO / "frontend" / "src" / "app" / "shared-deeds" / "page.tsx"
+# The tracker moved to /requests; `app/shared-deeds/page.tsx` is now the
+# permanent alias that redirects there (the ?focus= links in mail that has
+# already gone out). The screen whose eight key names this file exists to
+# pin is the tracker, so the pin reads the tracker.
+#
+# Worth noting how this retarget announced itself, because it is the
+# behaviour the pin is FOR: pointed at the alias, `_interface_fields`
+# raised rather than passing over a file with no interface in it. A
+# cross-language contract pin that shrugged at a missing declaration
+# would be the version that lets the next rename through silently.
+PAGE = REPO / "frontend" / "src" / "app" / "requests" / "page.tsx"
 
 
 def _interface_fields(source: str, name: str) -> list[str]:
