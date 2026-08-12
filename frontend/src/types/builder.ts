@@ -84,6 +84,23 @@ export interface PropertyProvenance {
   owner?: Sourced<string>;
 }
 
+/**
+ * How this parcel came to be the parcel — doctrine §13.2, who asserted
+ * the answer.
+ *
+ * Every county-record field on a deed descends from one row of a
+ * candidate list. The officer confirms those fields, and her confirmation
+ * proves she read them; it does not prove the row was the property she
+ * meant. So the record keeps the two apart: a parcel the SERVER matched
+ * to her chosen address, a parcel SHE picked from a list, and the case
+ * where the county only ever returned one.
+ */
+export interface ParcelSelection {
+  basis: 'exact_address_match' | 'officer_choice' | 'only_county_match';
+  matchedAddress: string;
+  alternativeCount: number;
+}
+
 export interface PropertyData {
   address: string;
   city: string;
@@ -105,6 +122,8 @@ export interface PropertyData {
    * deed only through the officer's acceptance.
    */
   ownerSplit?: OwnerSplit;
+  /** UX2 — who chose this parcel. See ParcelSelection above. */
+  parcelSelection?: ParcelSelection;
 }
 
 export interface DTTData {

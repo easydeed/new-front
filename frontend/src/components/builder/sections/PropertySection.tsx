@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { MapPin, Search, Loader2, AlertCircle, Building2, ChevronRight } from "lucide-react"
-import type { PropertyData, PropertyProvenance, Sourced } from "@/types/builder"
+import type { ParcelSelection, PropertyData, PropertyProvenance, Sourced } from "@/types/builder"
 import { useAIAssist } from "@/contexts/AIAssistContext"
 import { AISuggestion } from "../AISuggestion"
 import { ConfirmableField } from "../ConfirmableField"
 import { propertyCandidatesRemaining } from "@/lib/provenance"
-import { mapSiteXResponse } from "@/lib/sitexProperty"
+import { mapSiteXResponse, readSelection } from "@/lib/sitexProperty"
 import { formatSuggestionSecondary } from "@/lib/addressLabels"
 
 interface PropertySectionProps {
@@ -56,6 +56,39 @@ interface PropertyMatchCandidate {
   owner_name?: string
   use_code_description?: string
   property_type?: string
+  /** Why the owner line is blank, decided server-side. See services/address_match.py. */
+  owner_status?: string
+  owner_reason?: string
+}
+
+/**
+ * The unit, when the county gave us one.
+ *
+ * UX2: in a multi-unit building every candidate carries the SAME street
+ * address and the unit is the only thing telling them apart — and it was
+ * being dropped from the render. Seventy-six identical-looking rows is
+ * not a choice, it is a coin toss with a scrollbar.
+ */
+export function unitLabel(match: Pick<PropertyMatchCandidate, 'unit_type' | 'unit_number'>): string {
+  const number = (match.unit_number || '').trim()
+  if (!number) return ''
+  const type = (match.unit_type || 'Unit').trim()
+  return `${type} ${number}`
+}
+
+/**
+ * The owner line, or the reason there isn't one.
+ *
+ * Invariant #4 in a data field. "Owner unavailable" covered three
+ * different situations — a gap in the county record, a parcel that never
+ * matched, and a county service that is down — and only one of them is
+ * the officer's to act on. The reason comes from the server; this
+ * function does not invent one when none was sent.
+ */
+export function ownerLine(match: PropertyMatchCandidate): string {
+  const name = (match.owner || match.owner_name || '').trim()
+  if (name) return name
+  return match.owner_reason || 'No owner name returned for this parcel'
 }
 
 interface PropertyMatchListProps {
@@ -63,28 +96,34 @@ interface PropertyMatchListProps {
   totalCount: number
   onSelect: (match: PropertyMatchCandidate) => void
   buildingAddress: string
+  heading?: string
+  subheading?: string
 }
 
-function PropertyMatchList({ matches, totalCount, onSelect, buildingAddress }: PropertyMatchListProps) {
-  const visibleMatches = matches.slice(0, 25)
-
+function PropertyMatchList({
+  matches, totalCount, onSelect, buildingAddress, heading, subheading,
+}: PropertyMatchListProps) {
   return (
     <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-emerald-700">✨ Multiple properties found</p>
+          <p className="text-sm font-medium text-emerald-700">
+            {heading ?? `${totalCount} properties returned for this address`}
+          </p>
           <p className="font-medium text-gray-900">{buildingAddress}</p>
-          {totalCount > 25 && (
-            <p className="text-sm text-emerald-700">
-              Showing 25 of {totalCount} — refine search for fewer results
-            </p>
-          )}
+          <p className="text-sm text-emerald-700">
+            {/* UX2: the old line read "Showing 25 of 76 — refine search for
+                fewer results", which was wrong twice. The other 51 were not
+                on the page at all, and there was nothing left to refine —
+                the search WAS the address the officer picked. */}
+            {subheading ?? 'The county returned more than one parcel for it. Pick the one you mean.'}
+          </p>
         </div>
       </div>
 
       <div className="border border-emerald-200 rounded-lg overflow-hidden bg-white">
         <div className="max-h-80 overflow-y-auto">
-          {visibleMatches.map((match, index) => (
+          {matches.map((match, index) => (
             <button
               key={`${match.fips}-${match.apn}-${index}`}
               onClick={() => onSelect(match)}
@@ -93,12 +132,17 @@ function PropertyMatchList({ matches, totalCount, onSelect, buildingAddress }: P
               <div className="flex items-center gap-3">
                 <Building2 className="w-5 h-5 text-gray-400" />
                 <div className="text-left">
-                  <p className="font-medium text-gray-900">{match.address}</p>
-                  <p className="text-sm text-gray-600">
-                    {match.owner || match.owner_name || "Owner unavailable"}
+                  <p className="font-medium text-gray-900">
+                    {match.address}
+                    {unitLabel(match) && (
+                      <span className="ml-2 text-emerald-700">{unitLabel(match)}</span>
+                    )}
+                  </p>
+                  <p className={`text-sm ${match.owner || match.owner_name ? 'text-gray-600' : 'text-gray-500 italic'}`}>
+                    {ownerLine(match)}
                   </p>
                   <p className="text-sm text-gray-500">
-                    APN: {match.apn} · {match.use_code_description || match.property_type || "Property type unavailable"}
+                    APN: {match.apn} · {match.use_code_description || match.property_type || "Property type not in county record"}
                   </p>
                 </div>
               </div>
@@ -192,6 +236,12 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [propertyMatches, setPropertyMatches] = useState<PropertyMatchCandidate[] | null>(null)
   const [propertyMatchCount, setPropertyMatchCount] = useState(0)
+  // UX2 — how this parcel came to be the parcel, and what else was on
+  // offer. The server decides (see services/address_match.py); this holds
+  // the answer so the screen can say it out loud and offer the way back.
+  const [parcelSelection, setParcelSelection] = useState<ParcelSelection | null>(null)
+  const [alternatives, setAlternatives] = useState<PropertyMatchCandidate[]>([])
+  const [showAlternatives, setShowAlternatives] = useState(false)
   const [selectedBuildingAddress, setSelectedBuildingAddress] = useState("")
   const [isGoogleLoaded, setIsGoogleLoaded] = useState(false)
   
@@ -411,14 +461,25 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
         // "surprise gates at the finish line" (the officer never saw the
         // inline cards before the gate modal re-asked). The accordion
         // advances when the last present field is confirmed below.
-        const propertyData = mapSiteXResponse(result.data, searchQuery)
+        //
+        // UX2: this branch now also covers "the county returned 76 and
+        // exactly one of them was the address she picked". The server made
+        // that call and says so in `selection`; the strip on the card
+        // below repeats it, because a parcel chosen FOR the officer must
+        // not look like one chosen BY her.
+        const propertyData = mapSiteXResponse(result.data, searchQuery, result.selection)
+        setParcelSelection(readSelection(result.selection) ?? null)
+        setAlternatives(result.alternatives ?? [])
+        setShowAlternatives(false)
         onChange(propertyData)
         if (propertyCandidatesRemaining(propertyData).length === 0) onComplete()
 
       } else if (result.status === 'multi_match' && result.matches?.length > 0) {
         setPropertyMatches(result.matches)
         setPropertyMatchCount(result.match_count || result.matches.length)
-        
+        setAlternatives(result.matches)
+        setParcelSelection(null)
+
       } else if (result.status === 'not_found') {
         setError("Property not found in county records. Please verify the address.")
       } else {
@@ -462,7 +523,10 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
       if (result.status === 'success' && result.data) {
         // U2.1: same rule as the single-match path — the accordion holds
         // until the county-record fields are confirmed inline.
-        const propertyData = mapSiteXResponse(result.data, match.address || selectedBuildingAddress)
+        const propertyData = mapSiteXResponse(
+          result.data, match.address || selectedBuildingAddress, result.selection)
+        setParcelSelection(readSelection(result.selection) ?? null)
+        setShowAlternatives(false)
         onChange(propertyData)
         if (propertyCandidatesRemaining(propertyData).length === 0) onComplete()
       } else {
@@ -484,6 +548,9 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
     setError(null)
     setAddressSelected(false)
     setSelectedParsedAddress(null)
+    setParcelSelection(null)
+    setAlternatives([])
+    setShowAlternatives(false)
     onChange(null as unknown as PropertyData)
     inputRef.current?.focus()
   }
@@ -496,6 +563,9 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
     setSelectedParsedAddress(null)
     setPropertyMatches(null)
     setPropertyMatchCount(0)
+    setParcelSelection(null)
+    setAlternatives([])
+    setShowAlternatives(false)
     setError(null)
   }
 
@@ -578,6 +648,49 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
             Change
           </button>
         </div>
+
+        {/* UX2 — WHO CHOSE THIS PARCEL.
+            Every field below comes from it: APN, legal description, vested
+            owner. The officer confirms each of those, and confirming a
+            value proves she read it — not that it belongs to the property
+            she meant. So when the server matched the parcel rather than
+            the officer picking it, the screen says so, in the same place
+            she is about to start confirming, with the way back next to it. */}
+        {parcelSelection?.basis === 'exact_address_match' && (
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm text-blue-900">
+                Matched to the address you selected
+                {parcelSelection.alternativeCount > 0 && (
+                  <>
+                    {' '}— the county returned {parcelSelection.alternativeCount}{' '}
+                    other {parcelSelection.alternativeCount === 1 ? 'parcel' : 'parcels'} nearby
+                  </>
+                )}
+                .
+              </p>
+              {alternatives.length > 0 && (
+                <button
+                  onClick={() => setShowAlternatives((open) => !open)}
+                  className="text-sm font-medium text-blue-700 hover:text-blue-900 underline flex-shrink-0"
+                >
+                  {showAlternatives ? 'Hide the others' : 'Not this one?'}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {showAlternatives && alternatives.length > 0 && (
+          <PropertyMatchList
+            matches={alternatives}
+            totalCount={alternatives.length}
+            onSelect={handleSelectMatch}
+            buildingAddress={selectedBuildingAddress || value.address}
+            heading="Everything the county returned for this address"
+            subheading="Picking one here replaces the property above, and its APN, legal description and owner with it."
+          />
+        )}
 
         <div className="space-y-3">
           {hasValue('apn') && (

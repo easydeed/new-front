@@ -9,8 +9,37 @@
  *
  * A rule you can only test through a UI is a rule you do not test.
  */
-import type { PropertyData, Sourced } from '@/types/builder';
+import type { ParcelSelection, PropertyData, Sourced } from '@/types/builder';
 import { ownerCandidates } from './vestingSplit';
+
+/** The server's answer to "who chose this parcel", as it arrives on the wire. */
+export interface SiteXSelection {
+  basis?: string;
+  matched_address?: string;
+  alternative_count?: number;
+}
+
+const SELECTION_BASES: ParcelSelection['basis'][] = [
+  'exact_address_match', 'officer_choice', 'only_county_match',
+];
+
+/**
+ * Carry the selection basis through, or carry nothing.
+ *
+ * An unrecognised basis becomes ABSENT rather than a default, because the
+ * defaults available here are both lies: calling a server match an
+ * officer's choice launders it, and calling an officer's choice a server
+ * match slanders it. Doctrine §13.2 is about not confusing those two.
+ */
+export function readSelection(raw?: SiteXSelection): ParcelSelection | undefined {
+  const basis = raw?.basis as ParcelSelection['basis'] | undefined;
+  if (!basis || !SELECTION_BASES.includes(basis)) return undefined;
+  return {
+    basis,
+    matchedAddress: raw?.matched_address || '',
+    alternativeCount: raw?.alternative_count ?? 0,
+  };
+}
 
 export interface SiteXProperty {
   address?: string;
@@ -44,7 +73,11 @@ export function formatOwnerName(
   return names.join(' AND ') || '';
 }
 
-export function mapSiteXResponse(data: SiteXProperty, fallbackAddress: string): PropertyData {
+export function mapSiteXResponse(
+  data: SiteXProperty,
+  fallbackAddress: string,
+  selection?: SiteXSelection,
+): PropertyData {
   const apn = data.apn || '';
   const legalDescription = data.legal_description || '';
   const ownerRaw = data.owner_name || formatOwnerName(data.primary_owner, data.secondary_owner);
@@ -87,6 +120,9 @@ export function mapSiteXResponse(data: SiteXProperty, fallbackAddress: string): 
       legalDescription: candidate(legalDescription),
       owner: candidate(owner),
     },
+    ...(readSelection(selection)
+      ? { parcelSelection: readSelection(selection) }
+      : {}),
     ...(split
       ? {
           ownerSplit: {
