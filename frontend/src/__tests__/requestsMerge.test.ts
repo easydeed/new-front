@@ -122,8 +122,9 @@ describe('an ambiguous link refuses rather than guesses', () => {
 });
 
 describe('the alias recovers the id space instead of losing it', () => {
-  it('says reviews, because that is the only thing the old path meant', () => {
-    expect(aliasTarget([['focus', '42']])).toBe('/requests?focus=42&kind=reviews');
+  it('each alias says the one thing its own path meant', () => {
+    expect(aliasTarget([['focus', '42']], 'reviews')).toBe('/requests?focus=42&kind=reviews');
+    expect(aliasTarget([['focus', '42']], 'signings')).toBe('/requests?focus=42&kind=signings');
   });
 
   it('round-trips: what the alias emits, the page reads back as that row', () => {
@@ -135,30 +136,40 @@ describe('the alias recovers the id space instead of losing it', () => {
      * parameter is a link that half-works, which is harder to notice
      * than one that does not work at all.
      */
-    const target = aliasTarget([['focus', '42']]);
-    const focus = from(target.split('?')[1]);
-    expect(focus).toEqual({ id: 42, kind: 'reviews' });
-    expect(isFocused(42, 'reviews', focus)).toBe(true);
+    for (const kind of ['reviews', 'signings'] as const) {
+      const target = aliasTarget([['focus', '42']], kind);
+      const focus = from(target.split('?')[1]);
+      expect(focus).toEqual({ id: 42, kind });
+      expect(isFocused(42, kind, focus)).toBe(true);
+      // ...and never the same number in the other table.
+      expect(isFocused(42, kind === 'reviews' ? 'signings' : 'reviews', focus)).toBe(false);
+    }
   });
 
   it('carries every other parameter across untouched', () => {
-    const target = aliasTarget([['focus', '42'], ['utm_source', 'email'], ['deed', '9']]);
+    const target = aliasTarget(
+      [['focus', '42'], ['utm_source', 'email'], ['deed', '9']], 'reviews');
     const sp = new URLSearchParams(target.split('?')[1]);
     expect(sp.get('utm_source')).toBe('email');
     expect(sp.get('deed')).toBe('9');
   });
 
   it('gives a link that already carries a kind exactly one', () => {
-    const sp = new URLSearchParams(aliasTarget([['kind', 'signings'], ['focus', '42']]).split('?')[1]);
+    const sp = new URLSearchParams(
+      aliasTarget([['kind', 'signings'], ['focus', '42']], 'reviews').split('?')[1]);
     expect(sp.getAll('kind')).toEqual(['reviews']);
   });
 
-  it('is what the alias page actually calls', () => {
-    /** The function is only the rule if the route uses it. */
-    const alias = codeOnly(read('app', 'shared-deeds', 'page.tsx'));
-    expect(alias).toContain('redirect(aliasTarget(entries))');
-    // And it redirects rather than rendering a second copy of the tracker.
-    expect(alias).not.toContain('apiFetch');
+  it('is what BOTH alias pages actually call', () => {
+    /** The function is only the rule if the routes use it. Two aliases
+     *  now, and a second copy of the function with one word changed is
+     *  how they would come to disagree about the spelling of `kind`. */
+    for (const [dir, kind] of [['shared-deeds', 'reviews'], ['signings', 'signings']] as const) {
+      const alias = codeOnly(read('app', dir, 'page.tsx'));
+      expect(alias).toContain(`redirect(aliasTarget(entries, '${kind}'))`);
+      // And it redirects rather than rendering a second copy of the tracker.
+      expect(alias).not.toContain('apiFetch');
+    }
   });
 
   it('is what the page actually calls', () => {
@@ -166,7 +177,9 @@ describe('the alias recovers the id space instead of losing it', () => {
     expect(page).toContain('readFocus(');
     expect(page).toContain('initialFilter(focus)');
     expect(page).toContain('isFocused(deed.id, "reviews", focus)');
-    expect(page).toContain('isFocused(signing.id, "signings", focus)');
+    // The signings half is the agenda component now; it takes the focused
+    // id as a prop rather than parsing the query string a second time.
+    expect(page).toContain('focusId={focus.kind === "signings" ? focus.id : null}');
     // No second opinion about what a kind is, next to the first.
     expect(page).not.toContain('=== "reviews" ||');
   });
@@ -179,11 +192,16 @@ describe('the alias is reachable, and the old page is not duplicated', () => {
 
   it('the tracker lives at /requests and nowhere else', () => {
     expect(fs.existsSync(path.join(SRC, 'app', 'requests', 'page.tsx'))).toBe(true);
-    // The alias is ~40 lines; the tracker is the real screen. A copy
-    // left behind at the old path is two screens drifting apart, which
-    // is the defect this merge exists to remove.
-    const alias = read('app', 'shared-deeds', 'page.tsx');
-    expect(alias.split('\n').length).toBeLessThan(80);
+    // Both aliases are short redirects; the tracker is the real screen.
+    // A copy left behind at either old path is two screens drifting
+    // apart, which is the defect this merge exists to remove.
+    for (const dir of ['shared-deeds', 'signings']) {
+      expect(read('app', dir, 'page.tsx').split('\n').length).toBeLessThan(80);
+    }
+  });
+
+  it('the signings route still exists — the schedule notice is an email', () => {
+    expect(fs.existsSync(path.join(SRC, 'app', 'signings', 'page.tsx'))).toBe(true);
   });
 });
 
@@ -196,17 +214,33 @@ describe('every in-app link points at the new route', () => {
    */
   const ROUTERS: Array<[string, string[]]> = [
     ['sidebar', ['components', 'Sidebar.tsx']],
-    ['signings', ['app', 'signings', 'page.tsx']],
     ['dashboard', ['app', 'dashboard', 'page.tsx']],
     ['deed preview', ['app', 'deeds', '[id]', 'preview', 'page.tsx']],
+    ['past deeds row action', ['lib', 'signingRowAction.ts']],
   ];
 
   for (const [name, segments] of ROUTERS) {
     it(`${name} navigates to /requests`, () => {
       const code = codeOnly(read(...segments));
+      // BOTH retired paths. Adding the second alias without widening this
+      // sweep would have left it auditing half of what it is named for.
       expect(code).not.toMatch(/(router\.push|href[:=])\s*[('"`]+\/shared-deeds/);
+      expect(code).not.toMatch(/(router\.push|href[:=])\s*[('"`]+\/signings/);
     });
   }
+
+  it('and a link that names a signing says which table the id came from', () => {
+    /* `/requests?focus=42` with no kind highlights nothing — deliberately.
+       So an in-app link that carries an id must carry its kind, or it
+       lands her on the right page pointing at nothing. */
+    for (const segments of [['components', 'Sidebar.tsx'],
+                            ['app', 'dashboard', 'page.tsx'],
+                            ['lib', 'signingRowAction.ts']]) {
+      const code = codeOnly(read(...segments));
+      const bare = code.match(/\/requests\?(?!.*kind=)[^`'"]*focus=/g) || [];
+      expect(bare).toEqual([]);
+    }
+  });
 
   it('but the API path is untouched — /shared-deeds is also a BACKEND route', () => {
     /**

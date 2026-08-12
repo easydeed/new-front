@@ -42,5 +42,5 @@ export default async function SharedDeedsAlias({ searchParams }: PageProps) {
     for (const v of Array.isArray(value) ? value : [value]) entries.push([key, v]);
   }
 
-  redirect(aliasTarget(entries));
+  redirect(aliasTarget(entries, 'reviews'));
 }

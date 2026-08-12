@@ -22,7 +22,7 @@ import { codeOnly } from '../test-support/sourceText';
 import { cancelWarning } from '../lib/signingCopy';
 
 const SIGNINGS = codeOnly(
-  fs.readFileSync(path.join(__dirname, '..', 'app', 'signings', 'page.tsx'), 'utf8'));
+  fs.readFileSync(path.join(__dirname, '..', 'features', 'signing', 'SigningAgenda.tsx'), 'utf8'));
 
 describe('which states are over is the server’s judgement', () => {
   it('the screen holds no terminal-state list', () => {
@@ -37,7 +37,11 @@ describe('which states are over is the server’s judgement', () => {
   });
 
   it('renders the verdict the payload carries', () => {
-    expect(SIGNINGS).toContain('!r.live');
+    /* The grouping moved into `signingSummary.groupSignings` and is
+       pinned there BY CALL (officerTrackers.test.ts). What matters here
+       is that the agenda reads `live` and holds no list of its own. */
+    expect(SIGNINGS).toContain('groupSignings');
+    expect(SIGNINGS).not.toMatch(/state === '(cancelled|expired)'/);
   });
 });
 

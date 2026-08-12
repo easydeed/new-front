@@ -442,7 +442,7 @@ function ActionQueue({ queue, error }: { queue: Queue | null; error: string | nu
                 hour: 'numeric', minute: '2-digit',
               })}${r.who ? ` · ${r.who}` : ''}`,
               urgent: false,
-              onOpen: () => router.push(`/signings?focus=${r.id}`),
+              onOpen: () => router.push(`/requests?kind=signings&focus=${r.id}`),
             }))}
           />
           <QueueList
@@ -459,7 +459,8 @@ function ActionQueue({ queue, error }: { queue: Queue | null; error: string | nu
               }`,
               urgent: r.stale,
               onOpen: () => router.push(
-                r.kind === 'signing' ? `/signings?focus=${r.id}` : `/requests?kind=reviews&focus=${r.id}`),
+                r.kind === 'signing' ? `/requests?kind=signings&focus=${r.id}`
+                                    : `/requests?kind=reviews&focus=${r.id}`),
             }))}
           />
           <QueueList

@@ -404,7 +404,12 @@ def test_the_officer_is_told_when_a_dispatch_is_declined(world):
         row = cur.fetchone()
     assert row and row["type"] == "signing_dispatch_declined"
     # And it points at the signing, not at a list — FLOW1 item 4's route.
-    assert row["link"].startswith("/signings?focus=")
+    # The merged tracker, with the kind the old path used to imply. A
+    # bare `?focus=` there is ambiguous — a review id and a signing id are
+    # both integers — and the page correctly refuses to guess, so a link
+    # without its kind would land her on the right page pointing at
+    # nothing.
+    assert row["link"].startswith("/requests?kind=signings&focus=")
 
 
 @dbonly

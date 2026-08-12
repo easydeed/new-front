@@ -35,7 +35,7 @@ import db
 from auth import get_current_user_id
 from services import officer_queue, pcor_offer
 from services import signing_loop as loop
-from services import signing_purge, signing_surfaces
+from services import signing_purge, signing_summary, signing_surfaces
 from utils.throttle import client_key, throttle
 
 router = APIRouter()
@@ -383,51 +383,30 @@ def officer_agenda(user_id: int = Depends(get_current_user_id)):
             cur.execute("SELECT * FROM signing_participants WHERE signing_request_id = %s",
                         (row["id"],))
             participants = _rows(cur)
-            out.append({
-                "id": row["id"],
-                "deed_id": row["deed_id"],
-                "property_address": row.get("property_address"),
-                "deed_type": row.get("deed_type"),
-                "notary_name": row.get("notary_name"),
-                "state": loop.request_state(row, windows, responses),
-                # CANCEL1 item 4: whether this one is still somebody's
-                # problem, decided HERE. Past Deeds needs it to know that
-                # a deed already has a signing out, and the alternative —
-                # the screen listing which states are over — is that
-                # judgement copied into TypeScript, where it will be
-                # missed the day a state is added.
-                "live": loop.is_live(loop.request_state(row, windows, responses)),
-                # The server's sentence, rendered verbatim by every
-                # surface — §13 rule 3.
-                "summary": loop.state_label(row, windows, responses, participants),
-                "booked_at": _iso(row.get("booked_at")),
-                "booked_by": row.get("booked_by"),
-                # FLOW1 item 4: WHEN SHE ASKED. The agenda's stuck signal
-                # is "nobody has moved in five days", and until now the
-                # payload carried no created_at — so the screen
-                # reconstructed the age as `expires_at minus 21 days`,
-                # duplicating default_expiry()'s constant as a magic
-                # number in another language. Changing the default expiry
-                # would have silently re-aimed every stuck badge. Same
-                # family as item 0: a fact the screen shows, that the
-                # server never sent, inferred.
-                "created_at": _iso(row.get("created_at")),
-                # DASH1: WHETHER IT HAS GONE QUIET, decided here.
-                # The agenda page carried `STUCK_AFTER_DAYS = 5` in
-                # TypeScript; the dashboard needed the same judgement, and
-                # a second threshold in Python for the same question is
-                # how the partner category list came to have four copies.
-                # One number, in services/officer_queue.py, and the
-                # screens render what they are told.
-                "days_waiting": officer_queue.days_since(row.get("created_at")),
-                "stale": (loop.request_state(row, windows, responses)
-                          in (loop.STATE_REQUESTED, loop.STATE_WINDOWS_POSTED)
-                          and officer_queue.is_stale(
-                              officer_queue.days_since(row.get("created_at")))),
-                "expires_at": _iso(row.get("expires_at")),
-                "signers": len([p for p in participants
-                                if p["party_role"] == loop.ROLE_SIGNER]),
-            })
+            # The shape lives in services/signing_summary.py, which
+            # asserts it against a corpus both languages read. It used to
+            # be a dict literal here, and TWO screens declared their own
+            # idea of what it contained — one of them three fields short,
+            # which is why the merged tracker could not mark a stuck
+            # signing or tell a closed one from a live one.
+            #
+            # The JUDGEMENTS stay here, where they were: which state this
+            # is, whether it is live, what sentence describes it, how long
+            # she has waited and whether that is too long. Only the shape
+            # moved.
+            state = loop.request_state(row, windows, responses)
+            days_waiting = officer_queue.days_since(row.get("created_at"))
+            out.append(signing_summary.signing_summary_row(
+                row,
+                state=state,
+                live=loop.is_live(state),
+                summary=loop.state_label(row, windows, responses, participants),
+                days_waiting=days_waiting,
+                stale=(state in (loop.STATE_REQUESTED, loop.STATE_WINDOWS_POSTED)
+                       and officer_queue.is_stale(days_waiting)),
+                signers=len([p for p in participants
+                             if p["party_role"] == loop.ROLE_SIGNER]),
+            ))
 
     # Housekeeping rides an authenticated read rather than a public one:
     # the officer's own page is a fine place to spend 20ms, and a
@@ -993,7 +972,7 @@ def _tell_everyone(request_id: int) -> None:
             title="Signing time agreed",
             message=loop.state_label(world["request"], world["windows"],
                                      world["responses"], world["participants"]),
-            link=f"/signings?focus={request_id}",
+            link=f"/requests?kind=signings&focus={request_id}",
         )
     except Exception as e:
         try:
@@ -1112,7 +1091,7 @@ def _tell_officer_dispatch_declined(request_id: int) -> None:
             message=(f"{who} cannot make the time you proposed for "
                      f"{world['deed'].get('property_address') or 'your deed'}. "
                      "They can post the times they are free instead."),
-            link=f"/signings?focus={request_id}",
+            link=f"/requests?kind=signings&focus={request_id}",
         )
     except Exception as e:
         try:
