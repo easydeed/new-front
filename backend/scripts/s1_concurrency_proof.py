@@ -42,6 +42,28 @@ DURATION_S = int(os.getenv("S1_DURATION", "10"))
 failures = []
 
 
+def _refuse_unless_disposable() -> None:
+    """This harness writes rows. It runs where that is harmless, or not
+    at all.
+
+    Marker-based rather than name-based: a blacklist of production names
+    fails the moment a second production-shaped database exists, and an
+    `ALLOW_DESTRUCTIVE_TESTS` variable is an opt-in somebody sets and
+    forgets. See `services/db_identity.assert_scratch`.
+    """
+    from services.db_identity import WrongDatabase, assert_scratch, describe
+    conn = psycopg2.connect(DB_URL, connect_timeout=10)
+    try:
+        try:
+            assert_scratch(conn)
+        except WrongDatabase as wrong:
+            print(str(wrong))
+            sys.exit(1)
+        print(f"  database: {describe(conn)}\n")
+    finally:
+        conn.close()
+
+
 def check(label, ok, detail=""):
     print(f"  {'PASS' if ok else 'FAIL'}  {label}{(' — ' + detail) if detail else ''}")
     if not ok:
@@ -285,6 +307,7 @@ def part3_burst(client):
 
 if __name__ == "__main__":
     print("RED-S1 concurrency proof")
+    _refuse_unless_disposable()
     part1_induced_failure()
     part2_load()
     print()

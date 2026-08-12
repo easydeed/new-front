@@ -28,11 +28,12 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
 import db
 from auth import get_current_user_id
-from services import officer_queue
+from services import officer_queue, pcor_offer
 from services import signing_loop as loop
 from services import signing_purge, signing_surfaces
 from utils.throttle import client_key, throttle
@@ -635,6 +636,105 @@ def token_view(token: str, http_request: Request):
         request=world["request"], me=me, participants=world["participants"],
         windows=world["windows"], responses=world["responses"],
         deed=world["deed"], officer=world["officer"])
+
+
+# ── The notary's documents ───────────────────────────────────────────
+#
+# THESE ROUTES WERE ADVERTISED BEFORE THEY EXISTED. `notary_package`
+# has sent `pcor_url` and `pdf_url` since NOTARY2 shipped, and the
+# notary's screen has rendered both as download links — against handlers
+# that were never written. Two live 404s on a consumer-facing surface,
+# found while retiring NOTARY1 (which had working equivalents behind its
+# own token) and ruled BUILD rather than remove: the capability is real,
+# the PCOR is filled from the deed's own data, and the notary handing it
+# to the buyer at the signing table is the workflow.
+#
+# THE TOKEN IS THE AUTHORITY, and it means exactly what it means
+# everywhere else: `_participant_by_token` has already refused a withdrawn
+# link (403) and an expired one (410) before either handler runs. "Which
+# URL did you ask" is not a property a permission may have — the same
+# ruling that governs the review link's deed, PDF and expiry.
+#
+# NOTARY-ONLY, ENFORCED HERE. `signer_package` does not carry these URLs,
+# but a package that omits a link is presentation; this is the rule. A
+# signer gets the street line and their times, and neither the instrument
+# nor the buyer's tax form.
+
+
+def _notary_or_404(me: Dict[str, Any]) -> None:
+    """404, not 403, for a signer asking after the notary's documents.
+
+    Same reasoning as `_owned_request`: "it exists but is not yours"
+    turns a probe into an inventory. A signer holding a valid link learns
+    nothing from asking.
+    """
+    if me.get("party_role") != loop.ROLE_NOTARY:
+        raise HTTPException(status_code=404, detail="This link is not valid")
+
+
+@router.get("/signing/{token}/pcor")
+def token_pcor_status(token: str, http_request: Request):
+    """Is there a PCOR for this deed's county, and what will it still need.
+
+    The body is `services/pcor_offer.status` — the same shape the officer
+    sees from her own deed, because two surfaces offering one document
+    must offer the same document.
+    """
+    me = _participant_by_token(token, http_request)
+    _notary_or_404(me)
+    world = _load(me["signing_request_id"])
+    return pcor_offer.status(world["deed"], f"/signing/{token}/pcor.pdf")
+
+
+@router.get("/signing/{token}/pcor.pdf")
+def token_pcor_download(token: str, http_request: Request):
+    """The filled PCOR, unflattened — the buyer still has to finish it.
+
+    Not stored and not hashed: doctrine §9 freezes the instrument because
+    the instrument is ours. This is the buyer's form.
+    """
+    me = _participant_by_token(token, http_request)
+    _notary_or_404(me)
+    world = _load(me["signing_request_id"])
+    return pcor_offer.download(
+        world["deed"], f"PCOR-deed-{world['deed'].get('id')}.pdf")
+
+
+@router.get("/signing/{token}/pdf")
+def token_deed_pdf(token: str, http_request: Request):
+    """The stored instrument, for the notary who has to notarise it.
+
+    Served from `deed_pdfs` — the stored bytes, not a re-render — because
+    the document she signs must be the document that was generated. A
+    deed with no stored PDF says so rather than returning an empty
+    response somebody would mistake for a blank form.
+    """
+    me = _participant_by_token(token, http_request)
+    _notary_or_404(me)
+    world = _load(me["signing_request_id"])
+    deed = world["deed"]
+
+    with db.conn.cursor() as cur:
+        # `deed_id` IS the primary key — one stored instrument per deed,
+        # never overwritten (§9). There is no "latest" to order by, and a
+        # query that asked for one would be describing a history this
+        # table deliberately does not keep.
+        cur.execute("SELECT pdf_data FROM deed_pdfs WHERE deed_id = %s",
+                    (deed.get("id"),))
+        stored = cur.fetchone()
+    pdf_data = (dict(stored).get("pdf_data") if stored else None)
+
+    if not pdf_data:
+        # §4: a missing document is a stated condition, not an empty body.
+        raise HTTPException(
+            status_code=404,
+            detail="The deed PDF has not been generated yet. The escrow "
+                   "officer can generate it from the DeedPro dashboard.")
+
+    address = (deed.get("property_address") or "deed").split(",")[0]
+    safe = f"{deed.get('deed_type') or 'deed'}_{address}".replace(" ", "_")[:50]
+    return Response(content=bytes(pdf_data), media_type="application/pdf",
+                    headers={"Content-Disposition": f'inline; filename="{safe}.pdf"'})
 
 
 @router.post("/signing/{token}/windows")

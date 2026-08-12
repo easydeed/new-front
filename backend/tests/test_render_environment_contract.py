@@ -161,6 +161,38 @@ def test_every_variable_states_what_breaks(var):
         f"{var.key} describes its purpose rather than its absence")
 
 
+def test_every_required_variable_is_actually_read_by_something():
+    """THE PIN THIS FILE WAS MISSING, added because it was needed.
+
+    `ALLOWED_ORIGINS` sat here classified REQUIRED, with a consequence
+    describing a CORS failure, for the whole life of #166. **Nothing read
+    it.** `main.py` hardcodes its origin list and the name appeared in
+    exactly one place in the backend: the manifest declaring it required.
+
+    The cost was not theoretical. The boot check named it missing on the
+    first production deploy, and the owner set it on the strength of that
+    — an action taken on a claim this file made and could not support.
+
+    A manifest is a set of assertions about the running system. This is
+    the one that checks the assertions are about something.
+    """
+    sources = {}
+    for path in BACKEND.rglob("*.py"):
+        if {"tests", "__pycache__", "venv", ".venv"} & set(path.parts):
+            continue
+        if path.name == "environment.py":
+            continue        # the declaration is not a reading
+        sources[path] = code_only(path)
+
+    unread = [key for key in env.REQUIRED_KEYS
+              if not any(key in src for src in sources.values())]
+    assert unread == [], (
+        "declared REQUIRED and read by nothing: " + ", ".join(unread) +
+        " — either wire it up or reclassify it. A variable whose absence "
+        "changes no behaviour is not required, whatever the manifest says, "
+        "and somebody will act on this file believing otherwise.")
+
+
 def test_the_required_set_is_the_silent_ones():
     """The test is not importance — it is whether absence is SILENT and
     WRONG. A missing ADMIN_EMAIL loses a notification; a missing

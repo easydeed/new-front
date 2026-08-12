@@ -192,3 +192,83 @@ def assert_tables(conn, *names: str, expect_database: str = "") -> Dict[str, Any
         "the schema has not been created on this one. The message names "
         "both so you do not have to guess which."
     )
+
+
+# ── Is this a database I may destroy? ────────────────────────────────
+
+SCRATCH_MARKER = "deedpro_scratch_database"
+
+MARK_COMMAND = ("python scripts/mark_scratch_database.py "
+                "--yes-this-is-a-throwaway-database")
+
+
+def is_scratch(conn) -> bool:
+    """Does this database carry the throwaway marker."""
+    return not missing_tables(conn, [SCRATCH_MARKER])
+
+
+def assert_scratch(conn) -> Dict[str, Any]:
+    """Refuse to run a destructive harness against an unmarked database.
+
+    ═══ WHY A MARKER AND NOT A FLAG OR A NAME ═══
+
+    `s1_concurrency_proof` and `s2_restore_drill` insert users and deeds
+    into whatever `DATABASE_URL` points at, and `s2` runs `pg_dump` and
+    `pg_restore`. Pointed at production they would write junk rows into
+    real tables. Three mechanisms were considered and two were rejected:
+
+      - `ALLOW_DESTRUCTIVE_TESTS=1` — an opt-in somebody eventually sets
+        and forgets. A variable left set is indistinguishable from one
+        set on purpose, and the forgetting is silent.
+      - matching the production database NAME — fails the moment a second
+        production-shaped database exists, which is precisely the
+        situation this codebase just lived through.
+
+    Both of those BLACKLIST the dangerous thing. A marker table
+    WHITELISTS the safe one: throwaway databases carry it, production
+    never will, and the check is a positive fact rather than the absence
+    of a negative one. `EXPECTED_DATABASE` above is the same reasoning
+    pointed the other way — name the expected thing, never enumerate the
+    dangerous ones.
+
+    ═══ THE HONEST BOUND ═══
+
+    Creating the marker is itself a deliberate act, and nothing here can
+    stop somebody running the marking script against production. What
+    changes is the SHAPE of the mistake: "I pasted the wrong
+    DATABASE_URL" no longer destroys data, because a second, explicit,
+    differently-worded act is required first. Mis-pasting is common;
+    declaring production a throwaway database is not.
+    """
+    if is_scratch(conn):
+        return identity(conn)
+
+    who = identity(conn)
+    raise WrongDatabase(
+        f"{who['database']} on {who['host']}:{who['port']} is not marked as "
+        "a throwaway database, and this harness writes rows and drops "
+        "data. Refusing.\n\n"
+        f"If {who['database']} really is disposable, mark it once:\n"
+        f"    DATABASE_URL=... {MARK_COMMAND}\n\n"
+        "If it is not, this message is doing its job — check DATABASE_URL."
+    )
+
+
+def mark_scratch(conn) -> None:
+    """Declare this database disposable. Deliberate, never automatic.
+
+    Kept out of `create_tables` on purpose: the schema authority runs
+    against production on every boot, and a marker it created would mark
+    the one database that must never carry it.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            f"CREATE TABLE IF NOT EXISTS {SCRATCH_MARKER} ("
+            "  marked_at TIMESTAMPTZ NOT NULL DEFAULT now(),"
+            "  marked_by TEXT NOT NULL,"
+            "  note TEXT"
+            ")")
+        cur.execute(
+            f"INSERT INTO {SCRATCH_MARKER} (marked_by, note) VALUES (%s, %s)",
+            (identity(conn)["user"],
+             "Declared disposable. Destructive harnesses may run here."))

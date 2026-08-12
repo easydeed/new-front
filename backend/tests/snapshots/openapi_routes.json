@@ -293,6 +293,18 @@
  ],
  [
   "GET",
+  "/signing/{token}/pcor"
+ ],
+ [
+  "GET",
+  "/signing/{token}/pcor.pdf"
+ ],
+ [
+  "GET",
+  "/signing/{token}/pdf"
+ ],
+ [
+  "GET",
   "/usage/limit-check/user/{user_id}"
  ],
  [
