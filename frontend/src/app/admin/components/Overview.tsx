@@ -122,7 +122,8 @@ export default function OverviewTab(){
         <div style={{ fontSize: 12, opacity: 0.7, marginTop: -4 }}>
           The two deed counts measure different windows and are expected to
           disagree — early in a month the calendar figure is a fraction of the
-          rolling one. Neither is a trend; trends arrive with ADMIN6.
+          rolling one. Neither is a trend — this screen shows counts, not
+          direction over time.
         </div>
       )}
 

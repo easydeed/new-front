@@ -1,6 +1,6 @@
 "use client"
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Sidebar from "@/components/Sidebar"
 import { Send, Eye, Clock, CheckCircle, XCircle, AlertCircle, RotateCw, X, FileText, MessageSquare, CalendarClock } from "lucide-react"
 import { toast } from "sonner"
@@ -117,9 +117,49 @@ interface StructuredFeedback {
   timestamp?: string
 }
 
+/**
+ * DASH1 — `?focus=` WAS BEING SENT HERE AND NOBODY WAS LISTENING.
+ *
+ * Found while costing the Signings/Shared Deeds merge. Five places link
+ * to `/shared-deeds?focus={share_id}` — the approval notification, the
+ * rejection notification, the NOTARY1 schedule notice, and TWO EMAILS
+ * (`send_share_approved_with_reason` and `send_share_rejected_with_reason`
+ * both put it in the officer's inbox). This page has never read the
+ * parameter.
+ *
+ * So every "your deed was approved" email she has ever clicked landed
+ * her on an unfiltered list of every share she has, with no indication
+ * of which one the email was about. Exactly the defect DASH1 item 6
+ * fixed on the dashboard's own links — arriving from the other end, and
+ * older.
+ *
+ * The Suspense boundary is `useSearchParams()`'s: without it Next fails
+ * the BUILD rather than the render. Third time this wave.
+ */
 // ✅ PHASE 24-E: V0-generated Shared Deeds page with feedback modal and expiry countdown
 export default function SharedDeedsPageV0() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
+        <Sidebar />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-full border-4 border-purple-100 animate-spin border-t-[#7C4DFF]" />
+        </main>
+      </div>
+    }>
+      <SharedDeedsTracker />
+    </Suspense>
+  )
+}
+
+function SharedDeedsTracker() {
   const router = useRouter()
+  const params = useSearchParams()
+  const focusId = (() => {
+    const raw = params?.get("focus")
+    const id = raw ? Number(raw) : NaN
+    return Number.isInteger(id) ? id : null
+  })()
   const [sharedDeeds, setSharedDeeds] = useState<SharedDeed[]>([])
   const [signings, setSignings] = useState<SigningSummaryRow[]>([])
   const [filter, setFilter] = useState<TrackerFilter>("all")
@@ -543,7 +583,9 @@ export default function SharedDeedsPageV0() {
                         <tr
                           key={deed.id}
                           className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${
-                            index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
+                            deed.id === focusId
+                              ? "bg-violet-50 ring-2 ring-inset ring-[#7C4DFF]"
+                              : index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
                           }`}
                         >
                           <td className="py-4 px-6 font-medium text-slate-800">{deed.property}</td>

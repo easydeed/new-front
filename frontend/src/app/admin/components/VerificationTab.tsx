@@ -159,7 +159,8 @@ export default function VerificationTab() {
           Verification codes are issued by the partner API. Deeds created in the
           wizard are stored with a PDF hash but no short code, so they never
           appear here and are not counted below. Public verification for wizard
-          deeds is an open product decision (VERIFY1), not a gap in this table.
+          deeds has not been decided yet, so this table is complete as it
+          stands rather than missing rows.
         </div>
       </div>
 

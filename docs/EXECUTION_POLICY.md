@@ -51,9 +51,46 @@ substantively incomplete deed; the legal-choice doctrine was unchanged.
 - Stop-and-report gates are non-negotiable.
 - Evidence claims carry `file:line` citations.
 
+## Standing practice — when a new surface needs an existing judgment
+
+**The answer is never a second copy.** Owner-ruled 2026-08-11 (DASH1).
+
+`/signings` held `STUCK_AFTER_DAYS = 5` in TypeScript. The dashboard
+needed the same "has this gone quiet?" judgement, and the obvious move
+was a matching threshold in Python. That would have been the FOURTH
+instance of one disease in this codebase: the DTT city rates, the partner
+category list (four divergent copies), the Shared Deeds row keys, and
+this.
+
+So the number moved server-side, the payload carries the verdict per row,
+and the client constant was **deleted**. The ticket ended with one fewer
+copy than it started with, and that is the bar: a ticket that adds a
+surface should not add a copy of a judgement, and where it can, it should
+remove one.
+
+The mechanisms, in order of preference:
+
+1. **Move it server-side and send the answer** — the screen renders what
+   it is told (`officer_queue.is_stale`, `signing_loop.state_label`).
+2. **One shared corpus both suites read** — when both languages must
+   genuinely hold the logic (`phone_cases.json`,
+   `shared_deed_row_keys.json`, `vesting_cases.json`).
+3. **One module, both callers** — within a language (`lib/wallClock.ts`).
+
+Copying is not on the list.
+
 ## Verification invariants
 
 - Honest CI stays blocking. No `|| true`, ever again.
+- **`next build` runs locally before every frontend PR, and never becomes
+  optional or advisory.** Owner-ruled 2026-08-11 (DASH1). It is the only
+  gate that sees a whole class: `useSearchParams()` opts a page out of
+  static prerendering unless it sits under a `<Suspense>` boundary, and
+  Next fails the BUILD rather than the render — jest and tsc both stay
+  green while the deploy dies. It caught this twice in one wave
+  (`/signings`, then `/past-deeds`). The lesson generalises past that one
+  API: **gate diversity matters more than gate count**, because gates of
+  the same kind fail in the same direction.
 - The OpenAPI route-contract test and the six-flow behavioral baseline
   (`backend/scripts/six_flow_baseline.py`) must stay green. Neither is
   re-recorded to make a failure pass without an approved, documented reason

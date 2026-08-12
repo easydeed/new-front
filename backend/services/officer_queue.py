@@ -107,9 +107,10 @@ def idle_cutoff(now: Optional[datetime] = None) -> datetime:
 QUEUE_KEYS = frozenset({
     "upcoming",        # booked signings inside UPCOMING_DAYS
     "awaiting",        # requests nobody has answered
-    "idle_drafts",     # her own work, untouched
-    "needs_attention", # ONE number: stale awaiting + unbooked signings
+    "idle_drafts",     # untouched drafts
+    "needs_attention", # ONE number, and it is the stale ones
     "thresholds",      # the numbers above, so no screen retypes them
+    "badges",          # per-page waiting counts for the sidebar
 })
 
 UPCOMING_KEYS = frozenset({"kind", "id", "deed_id", "property", "when",
@@ -144,6 +145,21 @@ def queue(*, upcoming: Sequence[Dict[str, Any]],
         "awaiting": list(awaiting),
         "idle_drafts": list(idle_drafts),
         "needs_attention": len([r for r in awaiting if r["stale"]]),
+        # DASH1 item 6 — THE AMBIENT SIGNAL.
+        #
+        # Counted here rather than by the sidebar, for the same reason
+        # `needs_attention` is: a screen filtering the list itself would
+        # be a second opinion about what counts as waiting, and two
+        # numbers claiming to answer one question is the disease this
+        # ticket spent its first half removing.
+        #
+        # These are NOT the attention count. A badge says "there are
+        # things here"; the attention number says "these have gone
+        # quiet". Different claims, deliberately different numbers.
+        "badges": {
+            "signings": len([r for r in awaiting if r["kind"] == "signing"]),
+            "shared_deeds": len([r for r in awaiting if r["kind"] == "review"]),
+        },
         "thresholds": {
             "stale_after_days": STALE_AFTER_DAYS,
             "upcoming_days": UPCOMING_DAYS,
