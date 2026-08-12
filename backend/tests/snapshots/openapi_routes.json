@@ -153,14 +153,6 @@
  ],
  [
   "GET",
-  "/approve/{approval_token}/pcor"
- ],
- [
-  "GET",
-  "/approve/{approval_token}/pcor.pdf"
- ],
- [
-  "GET",
   "/approve/{approval_token}/pdf"
  ],
  [
@@ -413,10 +405,6 @@
  ],
  [
   "POST",
-  "/approve/{approval_token}/schedule"
- ],
- [
-  "POST",
   "/deeds"
  ],
  [
@@ -470,10 +458,6 @@
  [
   "POST",
   "/shared-deeds/{shared_deed_id}/revoke"
- ],
- [
-  "POST",
-  "/shared-deeds/{shared_deed_id}/schedule"
  ],
  [
   "POST",

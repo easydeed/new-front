@@ -134,13 +134,26 @@ def test_scheduling_is_never_written_into_status():
     orthogonal facts cannot share one column without one of them becoming
     unsayable. A signing request that has been VIEWED and SCHEDULED is
     the normal case; folding `scheduled` into `status` makes it
-    inexpressible."""
-    src = code_only(SHARING)
-    bad = re.findall(r"status\s*=\s*'(scheduled|proposed|completed)'", src)
-    assert bad == [], f"scheduling leaked into deed_shares.status: {bad}"
+    inexpressible.
 
-    for statement in ("SET scheduled_at", "scheduled_by"):
-        assert statement in src, f"{statement} should be its own column"
+    RETARGETED, and flagged. The second half used to assert that
+    `SET scheduled_at` and `scheduled_by` APPEAR in the router — a
+    positive check that the columns were written separately. Nothing in
+    the router writes them any more, so that half would now fail for the
+    right reason, which makes it the wrong assertion to keep.
+
+    What survives is the half that is still a rule: scheduling must never
+    be written into `status`, and it is now pinned across every backend
+    source rather than one file, because the writer that could reintroduce
+    it need not be this one.
+    """
+    for path in BACKEND.rglob("*.py"):
+        if {"tests", "__pycache__", "venv", ".venv"} & set(path.parts):
+            continue
+        bad = re.findall(r"status\s*=\s*'(scheduled|proposed)'", code_only(path))
+        assert bad == [], (
+            f"scheduling leaked into a status column in {path.name}: {bad} — "
+            "T-5's rule: two orthogonal facts never share one column")
 
 
 def test_scheduling_state_is_computed_not_stored():
@@ -250,7 +263,16 @@ def test_every_surface_takes_its_words_from_one_place():
     """
     sources = [code_only(SHARING), code_only(ROW_BUILDER)]
     calls = sum(s.count("signing.scheduling_label(") for s in sources)
-    assert calls >= 4, f"only {calls} surfaces take their words from one place"
+
+    # RETARGETED from `>= 4`, and flagged because a loosened threshold and
+    # a broken pin look identical in a diff. The four callers were the
+    # router's window picker, its status payload, the officer's list and
+    # the row builder; three of them retired with NOTARY1's read side.
+    # ONE surface remains, so "four" now measures history rather than the
+    # property. The property was never the number — it is that no surface
+    # writes its own scheduling sentence, and THAT half is unchanged and
+    # is where the teeth always were.
+    assert calls >= 1, "nothing takes its words from the one place any more"
     for src in sources:
         assert not re.search(r'f?"[^"]*[Ss]cheduled for', src), (
             "a surface is writing its own scheduling sentence")
@@ -259,36 +281,6 @@ def test_every_surface_takes_its_words_from_one_place():
 # ══════════════════════════════════════════════════════════════════════
 # Windows
 # ══════════════════════════════════════════════════════════════════════
-
-def test_at_most_three_windows():
-    four = [{"start": f"2026-09-0{i}T10:00:00-07:00",
-             "end": f"2026-09-0{i}T11:00:00-07:00"} for i in range(1, 5)]
-    with pytest.raises(signing.SigningRequestError):
-        signing.normalize_windows(four)
-
-
-def test_a_window_that_ends_before_it_starts_is_refused():
-    with pytest.raises(signing.SigningRequestError):
-        signing.normalize_windows([{"start": "2026-09-01T11:00:00-07:00",
-                                    "end": "2026-09-01T10:00:00-07:00"}])
-
-
-def test_the_officers_offset_survives_storage():
-    """Times are stored as entered. A signing happens at a place, in that
-    place's time, and helpfully normalising to UTC for display is how
-    somebody arrives an hour late."""
-    stored = signing.normalize_windows(
-        [{"start": "2026-09-01T10:00:00-07:00", "end": "2026-09-01T11:00:00-07:00"}])
-    assert stored[0]["start"].endswith("-07:00")
-
-
-def test_a_notary_can_only_choose_a_window_that_was_offered():
-    row = {"proposed_windows": [{"start": "2026-09-01T10:00:00-07:00",
-                                 "end": "2026-09-01T11:00:00-07:00"}]}
-    assert signing.find_window(row, 0) is not None
-    for bad in (1, -1, 99, "x", None):
-        assert signing.find_window(row, bad) is None
-
 
 def test_the_ics_is_a_copy_not_an_invitation():
     """METHOD:PUBLISH, not REQUEST. REQUEST makes it an invitation with
@@ -546,137 +538,94 @@ def test_a_stranger_cannot_share_a_deed_they_do_not_own(world):
 
 
 @dbonly
-def test_the_whole_handoff(world):
-    """Officer asks → notary sees windows and no approve buttons → notary
-    taps one → the record says who said so and when."""
+def test_a_notary1_link_says_it_is_retired_rather_than_going_quiet(world):
+    """What became of the handoff.
+
+    The window picker, the PCOR download and both scheduling routes went
+    with NOTARY1's read side. What must NOT happen is the other failure:
+    a link that opens onto a page with no actions and no explanation.
+    That is invariant #4 wearing an empty state — the officer cannot tell
+    "retired" from "broken", and one of those is her problem to solve.
+
+    So the payload states the condition, and the approval refusal is
+    still a RULE rather than a hidden button (§13: answering "approved"
+    on a signing request writes an approval into the record on behalf of
+    somebody who was asked a different question).
+    """
     from fastapi.testclient import TestClient
     from main import app
 
-    officer = world["users"][0]
     token = _make_notary1_share(world, notary_email="notary@notary1.test")["token"]
-
     public = TestClient(app)
+
     view = public.get(f"/approve/{token}")
     assert view.status_code == 200, view.text
     package = view.json()
     assert package["share_kind"] == "signing_request"
     assert package["can_approve"] is False, "a signing request has no approval"
-    assert package["signing"]["state"] == "proposed"
-    assert len(package["signing"]["windows"]) == 2
 
-    # The approval route refuses it as a RULE, not as a hidden button.
+    # The retired model says so, by name, with what to do next.
+    assert package["retired"]["model"] == "notary1"
+    assert "retired" in package["retired"]["reason"].lower()
+    assert package["retired"]["what_to_do"]
+    # And it does not still advertise what it can no longer do.
+    assert "signing" not in package, "the window picker payload survived"
+
     refused = public.post(f"/approve/{token}", json={"approved": True})
     assert refused.status_code == 409, refused.text
 
-    # High-water marks BEFORE the tap. `email_log` and `notifications`
-    # are append-only and survive between runs, so "a row with this
-    # template exists" is satisfied by yesterday's row — the first draft
-    # of the assertion below passed with the send deliberately broken,
-    # which is the whole reason a green result gets probed.
-    with world["conn"].cursor() as cur:
-        cur.execute("SELECT COALESCE(MAX(id), 0) AS m FROM email_log")
-        email_mark = cur.fetchone()["m"]
-        cur.execute("SELECT COALESCE(MAX(id), 0) AS m FROM notifications")
-        note_mark = cur.fetchone()["m"]
-
-    chosen = public.post(f"/approve/{token}/schedule", json={"window_index": 1})
-    assert chosen.status_code == 200, chosen.text
-    assert chosen.json()["scheduled_by"] == "notary"
-
-    after = public.get(f"/approve/{token}").json()
-    assert after["signing"]["state"] == "scheduled"
-    assert "availability" in after["signing"]["summary"].lower()
-
-    # RED-S4's shape, on the row: the value, who asserted it, and when.
-    with world["conn"].cursor() as cur:
-        cur.execute("SELECT status, share_kind, scheduled_at, scheduled_by, "
-                    "scheduled_asserted_at FROM deed_shares WHERE token = %s",
-                    (token,))
-        row = cur.fetchone()
-    assert row["share_kind"] == "signing_request"
-    assert row["scheduled_by"] == "notary"
-    assert row["scheduled_at"] is not None
-    assert row["scheduled_asserted_at"] is not None
-    # T-5: the two facts never share a column.
-    assert row["status"] in ("sent", "viewed")
-
-    # The officer was told, and the ATTEMPT is on the ledger whether or
-    # not a transport is configured (ADMIN3). This is also the only thing
-    # that proves the .ics was built and handed to the sender — the
-    # attachment path runs before the transport reports its outcome, so a
-    # row here means the whole chain executed rather than raising into
-    # the best-effort catch.
-    with world["conn"].cursor() as cur:
-        cur.execute("SELECT template, recipient FROM email_log "
-                    "WHERE template = 'signing_time_recorded' AND id > %s "
-                    "ORDER BY id DESC LIMIT 1", (email_mark,))
-        logged = cur.fetchone()
-        cur.execute("SELECT type, message FROM notifications "
-                    "WHERE type = 'signing_scheduled' AND id > %s "
-                    "ORDER BY id DESC LIMIT 1", (note_mark,))
-        note = cur.fetchone()
-    assert logged is not None, "the officer's email was never attempted"
-    assert note is not None, "the in-app record is missing — E1's unlosable copy"
-    for promise in ("will happen", "confirmed for"):
-        assert promise not in note["message"].lower()
-
 
 @dbonly
-def test_a_notary_cannot_assert_a_time_nobody_proposed(world):
-    from fastapi.testclient import TestClient
-    from main import app
-    officer = world["users"][0]
-    token = _make_notary1_share(world)["token"]
-    r = TestClient(app).post(f"/approve/{token}/schedule", json={"window_index": 7})
-    assert r.status_code == 400
+def test_the_retired_routes_are_gone_from_the_app(world):
+    """Not 404-by-guard — absent from the routing table.
+
+    A guard that 404s is a door with a lock on it; these are doors that
+    are not there. The distinction matters because a guard can be edited
+    out in one line by somebody who does not know why it exists.
+    """
+    import main
+    paths = {(m, getattr(r, "path", ""))
+             for r in main.app.routes
+             for m in (getattr(r, "methods", set()) or set())}
+    for gone in (("POST", "/approve/{approval_token}/schedule"),
+                 ("POST", "/shared-deeds/{shared_deed_id}/schedule"),
+                 ("GET", "/approve/{approval_token}/pcor"),
+                 ("GET", "/approve/{approval_token}/pcor.pdf")):
+        assert gone not in paths, f"{gone} came back"
+
+    # NOTARY2's equivalents are present, so this cannot pass by the whole
+    # signing feature having been deleted.
+    assert ("POST", "/signing-requests/v2") in paths
+    assert ("GET", "/signing/{token}") in paths
 
 
-@dbonly
-def test_the_officer_may_record_a_time_agreed_out_of_band(world):
-    """Owner ruling 3 — and the record keeps the two assertions apart."""
-    officer = world["users"][0]
-    client = _client_for(officer)
-    made = _make_notary1_share(world)
-    r = client.post(f"/shared-deeds/{made['share_id']}/schedule",
-                    json={"scheduled_at": "2026-09-15T10:00:00-07:00"})
-    assert r.status_code == 200, r.text
-    assert r.json()["scheduled_by"] == "officer"
-    assert "you recorded" in r.json()["message"].lower()
-
-    with world["conn"].cursor() as cur:
-        cur.execute("SELECT scheduled_by, scheduled_asserted_at FROM deed_shares "
-                    "WHERE id = %s", (made["share_id"],))
-        row = cur.fetchone()
-    assert row["scheduled_by"] == "officer"
-    assert row["scheduled_asserted_at"] is not None
-
-
-@dbonly
-def test_a_stranger_cannot_record_a_time_on_someone_elses_request(world):
-    officer, stranger = world["users"]
-    made = _make_notary1_share(world)
-    r = _client_for(stranger).post(f"/shared-deeds/{made['share_id']}/schedule",
-                                   json={"window_index": 0})
-    assert r.status_code == 404, r.text
+def _review_share(world, owner_index: int = 0) -> dict:
+    made = _client_for(world["users"][owner_index]).post("/shared-deeds", json={
+        "deed_id": world["deeds"][0], "recipient_email": "r@notary1.test",
+        "recipient_role": "Other"}).json()
+    return made["shared_deed"]
 
 
 @dbonly
 def test_one_expiry_semantic_per_link(world):
-    """Ruling 2, applied as a class. An expired token answers the deed,
-    the PDF and the PCOR the same way — 410 — because "which URL did you
-    ask" is not a property a permission may have.
+    """Ruling 2, applied as a class: an expired token answers the deed
+    and the PDF the same way — 410 — because "which URL did you ask" is
+    not a property a permission may have.
 
-    This also covers the second defect the ticket found: the deed view
-    used to 410 only when the status was still 'sent', so a link that had
-    been OPENED once kept serving the deed after expiry forever.
+    RETARGETED, and flagged as such. It used to run against a NOTARY1
+    signing share and cover four URLs including the two PCOR routes;
+    those routes are retired, so it runs against a REVIEW share, which is
+    the live kind, over the two URLs that remain. The rule is unchanged
+    and the surface it is pinned to shrank with the product.
+
+    It also still covers the second defect the original ticket found: the
+    deed view used to 410 only while the status was 'sent', so a link
+    somebody had OPENED kept serving the deed after expiry forever.
     """
     from fastapi.testclient import TestClient
     from main import app
 
-    officer = world["users"][0]
-    made = _make_notary1_share(world)
-    token = made["token"]
-
+    token = _review_share(world)["approval_token"]
     public = TestClient(app)
     assert public.get(f"/approve/{token}").status_code == 200  # marks it viewed
 
@@ -684,54 +633,29 @@ def test_one_expiry_semantic_per_link(world):
         cur.execute("UPDATE deed_shares SET expires_at = NOW() - INTERVAL '1 day' "
                     "WHERE token = %s", (token,))
 
-    for url in (f"/approve/{token}", f"/approve/{token}/pdf",
-                f"/approve/{token}/pcor", f"/approve/{token}/pcor.pdf"):
+    for url in (f"/approve/{token}", f"/approve/{token}/pdf"):
         assert public.get(url).status_code == 410, f"{url} still answers an expired link"
-    assert public.post(f"/approve/{token}/schedule",
-                       json={"window_index": 0}).status_code == 410
 
 
 @dbonly
 def test_a_revoked_link_stops_answering(world):
+    """Same retarget — and it found a live defect on the way.
+
+    Retargeting this onto a REVIEW share is what exposed it: the deed
+    view checked expiry and never checked revocation, so an officer who
+    revoked a share kept serving the address, APN, county and both party
+    names at that URL forever. Every existing revocation test went
+    through the PDF route or `_signing_share_by_token`, both of which
+    did check — which is exactly how a gap survives a suite.
+    """
     from fastapi.testclient import TestClient
     from main import app
-    officer = world["users"][0]
-    client = _client_for(officer)
-    made = _make_notary1_share(world)
-    assert client.post(f"/shared-deeds/{made['share_id']}/revoke").status_code == 200
+    share = _review_share(world)
+    client = _client_for(world["users"][0])
+    assert client.post(f"/shared-deeds/{share['id']}/revoke").status_code == 200
     public = TestClient(app)
-    assert public.get(f"/approve/{made['token']}/pcor").status_code == 403
-    assert public.post(f"/approve/{made['token']}/schedule",
-                       json={"window_index": 0}).status_code == 403
-
-
-@dbonly
-def test_a_review_token_does_not_open_the_pcor_route(world):
-    """The PCOR travels with the signing link, not with every link we
-    have ever issued."""
-    from fastapi.testclient import TestClient
-    from main import app
-    officer = world["users"][0]
-    made = _client_for(officer).post("/shared-deeds", json={
-        "deed_id": world["deeds"][0], "recipient_email": "r@notary1.test",
-        "recipient_role": "Other"}).json()
-    token = made["shared_deed"]["approval_token"]
-    assert TestClient(app).get(f"/approve/{token}/pcor").status_code == 404
-
-
-@dbonly
-def test_a_signing_request_is_stored_before_anybody_is_emailed(world):
-    """§4 applied to the create path: a notary holding a link to a row
-    that does not exist is worse than an officer who knows her request
-    did not go out."""
-    officer = world["users"][0]
-    made = _make_notary1_share(world)
-    with world["conn"].cursor() as cur:
-        cur.execute("SELECT proposed_windows FROM deed_shares WHERE id = %s",
-                    (made["share_id"],))
-        stored = cur.fetchone()["proposed_windows"]
-    stored = json.loads(stored) if isinstance(stored, str) else stored
-    assert len(stored) == 2
+    assert public.get(f"/approve/{share['approval_token']}").status_code == 403
+    assert public.get(f"/approve/{share['approval_token']}/pdf").status_code == 403
 
 
 @dbonly

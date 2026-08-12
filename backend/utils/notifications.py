@@ -25,10 +25,13 @@ TEMPLATES = (
     "welcome", "admin_api_key_request", "admin_new_user",
     # TRIAL1 — renewal failure. The event dunning actually runs on.
     "payment_failed",
-    # NOTARY1 — the two ends of the signing handoff. Officer→notary asks
-    # about availability; notary→officer (or officer→herself) records a
-    # time. There is deliberately no third: no signer is ever emailed.
-    "signing_time_recorded", "notary_dispatched",
+    # NOTARY1 — what is left of the signing handoff. `notary_dispatched`
+    # is NOTARY2's, named for the older flow and still sent.
+    # `signing_time_recorded` went with NOTARY1's read side: its only
+    # caller told the officer that a notary had tapped one of her
+    # proposed windows, and nothing can propose windows that way any
+    # more. The orphan pin below is what caught it, downward, again.
+    "notary_dispatched",
     # NOTARY2 — the coordination loop. Five, and the count is the point:
     # ask the notary, ask the signers, tell the signers when there is
     # something to answer, tell the notary when a signer proposes, and
@@ -199,22 +202,6 @@ def send_payment_failed_with_reason(user_email: str, full_name: str,
     return _send("payment_failed", user_email,
                  email_templates.payment_failed(full_name, amount_text, billing_url),
                  user_id=user_id)
-
-
-def send_signing_time_recorded_with_reason(owner_email: str, owner_name: str,
-                                           deed_type: str, property_address: Optional[str],
-                                           notary_email: str, when_text: str,
-                                           asserted_note: str, view_link: str,
-                                           user_id: Optional[int] = None,
-                                           attachments: Optional[list] = None) -> SendResult:
-    """NOTARY1 — a time is on the record; tell the officer who said so."""
-    return _send("signing_time_recorded", owner_email,
-                 email_templates.signing_time_recorded(
-                     owner_name, deed_type, property_address, notary_email,
-                     when_text, asserted_note, view_link),
-                 user_id=user_id,
-                 context={"deed_type": deed_type, "notary": notary_email},
-                 attachments=attachments)
 
 
 def send_notary_invited(recipient_email: str, notary_name: str, officer_name: str,

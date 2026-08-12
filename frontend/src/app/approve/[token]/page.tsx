@@ -21,35 +21,28 @@ import {
 } from 'lucide-react';
 
 /**
- * NOTARY1 — this page now serves two kinds of link.
+ * This page serves two kinds of link, and one of them is retired.
  *
- * A REVIEW share asks somebody to approve or request changes. A SIGNING
- * REQUEST asks a notary one question: are you free at one of these
- * times? It has no approve and no reject — the server refuses both for a
- * signing link, so hiding the buttons here is presentation of a rule
- * rather than the rule itself.
+ * A REVIEW share asks somebody to approve or request changes. That is
+ * the live kind and everything below is about it.
  *
- * `summary` is written by the backend and rendered VERBATIM. There is
- * exactly one place in this product that turns a scheduling state into a
- * sentence, and it is not this file: "scheduled" must never grow into
- * "the signing will happen", and it cannot drift here if the words never
- * originate here.
+ * A SIGNING REQUEST was NOTARY1: the officer proposed times and a notary
+ * tapped one. §13.1 reversed the model, NOTARY2 rebuilt it, and the
+ * routes behind this page's window picker are gone. Nothing can create
+ * such a link any more, so a visitor holding one is holding something
+ * from another era.
+ *
+ * WHAT THAT MEANS FOR THIS FILE: the picker is deleted, and in its place
+ * the page says what happened and what to do. A link that opens onto a
+ * page with no actions and no explanation is invariant #4 wearing an
+ * empty state — the reader cannot tell "retired" from "broken", and only
+ * one of those is theirs to solve. The words come from the server, which
+ * is where the condition is known.
  */
-interface SigningWindow {
-  index: number;
-  start: string;
-  end: string;
-  label: string;
-}
-
-interface SigningDetails {
-  state: 'proposed' | 'scheduled' | null;
-  summary: string | null;
-  windows: SigningWindow[];
-  scheduled_at: string | null;
-  scheduled_by: string | null;
-  can_choose_window: boolean;
-  pcor_url: string;
+interface RetiredNotice {
+  model: string;
+  reason: string;
+  what_to_do: string;
 }
 
 interface DeedDetails {
@@ -65,7 +58,7 @@ interface DeedDetails {
   can_approve: boolean;
   pdf_url?: string;
   share_kind?: string;
-  signing?: SigningDetails;
+  retired?: RetiredNotice;
 }
 
 // Common issues for structured feedback
@@ -94,39 +87,8 @@ export default function ApproveDeedPage() {
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectComments, setRejectComments] = useState('');
   const [selectedIssues, setSelectedIssues] = useState<string[]>([]);
-  const [choosing, setChoosing] = useState<number | null>(null);
 
   const isSigning = deed?.share_kind === 'signing_request';
-
-  const chooseWindow = async (windowIndex: number) => {
-    setChoosing(windowIndex);
-    setError(null);
-    try {
-      const api = process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com';
-      const response = await fetch(`${api}/approve/${token}/schedule`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ window_index: windowIndex }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        setError(data.detail || 'That time could not be recorded.');
-        return;
-      }
-      // Re-read rather than patching local state: the summary sentence
-      // is the server's to write, and a locally-composed one is exactly
-      // the drift this design exists to prevent.
-      await fetchDeedDetails();
-    } catch (err) {
-      setError('Unable to connect to server.');
-    } finally {
-      setChoosing(null);
-    }
-  };
-
-  useEffect(() => {
-    fetchDeedDetails();
-  }, [token]);
 
   const fetchDeedDetails = async () => {
     try {
@@ -478,60 +440,23 @@ export default function ApproveDeedPage() {
               </div>
             )}
 
-            {/* NOTARY1 — the signing card. No approve, no reject: the
-                question is availability, and the answer is a time. */}
-            {isSigning && deed?.signing && (
+            {/* NOTARY1's window picker retired with its routes. What is
+                left is the one thing a dead link owes its visitor: what
+                happened, and who can fix it. */}
+            {isSigning && (
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                 <h2 className="font-bold text-slate-800 mb-1 flex items-center gap-2">
-                  <CalendarClock className="w-5 h-5 text-[#7C4DFF]" />
-                  Are you available?
+                  <CalendarClock className="w-5 h-5 text-slate-400" />
+                  This scheduling link has been retired
                 </h2>
-                <p className="text-sm text-slate-500 mb-4">
-                  {deed.owner_name} proposed these times. Choosing one tells them you
-                  are available then — they confirm the appointment with the signers.
+                <p className="text-sm text-slate-600 mt-2">
+                  {deed?.retired?.reason ||
+                    'This link was created by an earlier scheduling flow that has been retired. It cannot be used to choose a time.'}
                 </p>
-
-                <div className="space-y-2">
-                  {deed.signing.windows.map((w) => {
-                    const chosen = deed.signing?.scheduled_at === w.start;
-                    return (
-                      <button
-                        key={w.index}
-                        onClick={() => chooseWindow(w.index)}
-                        disabled={choosing !== null || !deed.signing?.can_choose_window}
-                        className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg border text-left font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
-                          chosen
-                            ? 'border-[#7C4DFF] bg-purple-50 text-slate-800'
-                            : 'border-slate-300 text-slate-700 hover:bg-slate-50'
-                        }`}
-                      >
-                        <span className="text-sm">{w.label}</span>
-                        {choosing === w.index ? (
-                          <Loader2 className="w-4 h-4 animate-spin shrink-0" />
-                        ) : chosen ? (
-                          <CheckCircle className="w-4 h-4 text-[#7C4DFF] shrink-0" />
-                        ) : null}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* The server's sentence, verbatim. */}
-                {deed.signing.summary && (
-                  <p className="text-sm text-slate-600 mt-4 pt-4 border-t border-slate-200">
-                    {deed.signing.summary}
-                  </p>
-                )}
-
-                <a
-                  href={`${process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com'}${deed.signing.pcor_url}.pdf`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-4 inline-flex items-center gap-2 text-sm text-[#7C4DFF] hover:underline"
-                >
-                  <Download className="w-4 h-4" />
-                  Preliminary Change of Ownership Report
-                </a>
+                <p className="text-sm text-slate-600 mt-2">
+                  {deed?.retired?.what_to_do ||
+                    'Ask the escrow officer to send a new signing request.'}
+                </p>
               </div>
             )}
 

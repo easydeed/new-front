@@ -277,6 +277,28 @@ guard functions** to reject trivial `return True` implementations (the
 class-killer for stubbed guards). Six-flow baseline exercises real JWT
 issuance and authenticated flows against live Postgres.
 
+**Findings (2026-08-12, NOTARY1 read-side retirement). A revoked share
+link kept serving the deed.** `GET /approve/{token}` checked expiry and
+never checked `status = 'revoked'`, so after an officer revoked a share
+that URL went on returning the deed type, property address, APN, county
+and both party names — indefinitely, to anybody holding the link. The
+PDF route next door 403s a revoked share, and the retired
+`_signing_share_by_token` did too.
+
+**How it survived a suite that tests revocation:** every existing
+revocation test went through one of those two paths. The gap was found
+by RETARGETING a NOTARY1 test onto a review share — the live kind — when
+its original subject was removed. A pin that only ever exercises the
+strict door does not discover the unlocked one beside it.
+
+The rule is the one the same handler already states about expiry, and
+this is the half that was missing: **honouring a revocation on some URLs
+and not others is not honouring it.** Revocation is a deliberate act by
+the officer, not a timer.
+
+Fixed and pinned in
+`backend/tests/test_notary1_signing.py::test_a_revoked_link_stops_answering`.
+
 ---
 
 ## 7. Flagged items and owner rulings (2026-07-28)

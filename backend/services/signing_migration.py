@@ -41,6 +41,7 @@ import json
 import uuid
 from typing import Any, Dict, List
 
+from services import signing
 from services import signing_loop as loop
 
 SOURCE_SQL = """
@@ -55,16 +56,13 @@ SOURCE_SQL = """
 """
 
 
-def _windows_of(row: Dict[str, Any]) -> List[Dict[str, str]]:
-    raw = row.get("proposed_windows")
-    if raw is None:
-        return []
-    if isinstance(raw, str):
-        try:
-            raw = json.loads(raw)
-        except ValueError:
-            return []
-    return [w for w in (raw or []) if isinstance(w, dict)]
+# The `proposed_windows` parser lives in `services/signing.py` — this
+# file used to carry a second copy of it. Standing rule: when a new
+# surface needs an existing judgement the answer is never a second copy,
+# and with NOTARY1's read side retired this is now the ONLY caller, which
+# makes keeping two parsers for one column indefensible rather than
+# merely untidy.
+_windows_of = signing.windows_of
 
 
 def migrate(conn, *, dry_run: bool = False) -> Dict[str, Any]:

@@ -92,8 +92,18 @@ describe('NOTARY1 — no signer contact, anywhere', () => {
 });
 
 describe('NOTARY1 — the words come from one place', () => {
-  it('the token page renders the summary the server wrote', () => {
-    expect(APPROVE).toContain('deed.signing.summary');
+  it('the token page takes the retired notice from the server too', () => {
+    /**
+     * RETARGETED with NOTARY1's read side. The page used to render
+     * `deed.signing.summary` — the server's scheduling sentence — and
+     * there is no longer a scheduling sentence for it to render, because
+     * the routes behind the window picker are gone.
+     *
+     * The property is unchanged: the CONDITION is known on the server and
+     * the page renders what it is told. What changed is which condition.
+     */
+    expect(APPROVE).toContain('deed?.retired?.reason');
+    expect(APPROVE).toContain('deed?.retired?.what_to_do');
   });
 
   it('the token page never composes its own scheduling sentence', () => {
@@ -119,8 +129,19 @@ describe('NOTARY1 — a signing request is not an approval request', () => {
     expect(APPROVE).toContain('deed?.can_approve && !showRejectForm');
   });
 
-  it('the notary is told what tapping a time means', () => {
-    expect(flat(APPROVE)).toContain('you are available then');
+  it('a retired link says what happened rather than going quiet', () => {
+    /**
+     * The picker is gone; the visitor holding an old link is not. A page
+     * with no actions and no explanation is invariant #4 wearing an empty
+     * state — the reader cannot tell "retired" from "broken", and only
+     * one of those is theirs to solve.
+     */
+    const flatCode = flat(APPROVE);
+    expect(flatCode).toContain('This scheduling link has been retired');
+    expect(flatCode).toContain('Ask the escrow officer to send a new signing request');
+    // And it no longer offers what it cannot do.
+    expect(codeOnly(APPROVE)).not.toContain('chooseWindow');
+    expect(codeOnly(APPROVE)).not.toContain('pcor_url');
   });
 
   it('a notary is never sent the review reminder', () => {

@@ -27,16 +27,28 @@ checked, not because enough time had passed.
 ═══ WHAT THIS PIN DOES AND DOES NOT CLAIM ═══
 
 It forbids the ROUTE and the WRITE. It does not claim NOTARY1 data
-cannot exist: the `deed_shares` columns stay (a column drop is
+cannot exist: the `deed_shares` columns stay, because a column drop is
 irreversible, production is not the only database this schema runs on,
 and the migration script must keep being able to read a row it might
-find elsewhere), and the read-side routes stay and are now unreachable
-by construction — `_signing_share_by_token` 404s anything that is not a
-signing share, and nothing can create one.
+find elsewhere.
 
-Those three residual routes are FLAGGED, not removed. Retiring them is a
-second deletion with its own blast radius and its own doctrine tests,
-and it is not what this ticket ruled.
+═══ AND NOW THE READ SIDE (2026-08-12) ═══
+
+#162 left four read-side routes in place, flagged rather than decided,
+because a second removal has its own blast radius. This file now pins
+that second removal too: `/approve/{t}/schedule`,
+`/shared-deeds/{id}/schedule`, `/approve/{t}/pcor` and
+`/approve/{t}/pcor.pdf` are gone.
+
+The safety argument is one sentence and it is pinned below: **the read
+side was never the recovery path — the migration is.** A row found in
+another database is carried into NOTARY2's aggregate, not served through
+a model the product stopped believing in.
+
+Three things deliberately survive, and each has its own pin: the
+columns, the two fail-closed refusals (which are §13's rule, not
+NOTARY1's feature), and the vocabulary that lets the guards, the shared
+row contract and the migration RECOGNISE such a row.
 """
 from __future__ import annotations
 
@@ -159,22 +171,70 @@ def test_the_dead_modal_is_deleted():
         "exists")
 
 
-def test_the_residual_read_routes_are_flagged_not_forgotten():
-    """The three NOTARY1 routes that remain are unreachable by
-    construction, and this asserts somebody said so in the source rather
-    than leaving a reader to work it out.
+def test_the_read_side_is_retired_too():
+    """#162 removed the write path and FLAGGED four read-side routes.
+    This is the second removal, and the flag is now a fact.
 
-    They are not removed because that was not ruled. They are recorded
-    because an endpoint that cannot fire, with nothing saying why, is
-    indistinguishable from one nobody has looked at.
+    They were unreachable by construction rather than by decision —
+    nothing could create the row they load. That is not the same as
+    harmless: unreachable code is where a future change makes something
+    live again without anybody choosing it, and where a reader cannot
+    tell "deliberately kept" from "nobody looked".
     """
     routes = _routes()
-    for residual in (("POST", "/approve/{approval_token}/schedule"),
-                     ("POST", "/shared-deeds/{shared_deed_id}/schedule"),
-                     ("GET", "/approve/{approval_token}/pcor")):
-        assert residual in routes, (
-            f"{residual} was removed — that is a second deletion this "
-            "ticket did not rule; if it is now intended, say so here")
-    src = (BACKEND / "routers" / "sharing.py").read_text(encoding="utf-8")
-    assert "unreachable by\n# construction" in src, (
-        "the note explaining why the residual routes cannot fire is gone")
+    for gone in (("POST", "/approve/{approval_token}/schedule"),
+                 ("POST", "/shared-deeds/{shared_deed_id}/schedule"),
+                 ("GET", "/approve/{approval_token}/pcor"),
+                 ("GET", "/approve/{approval_token}/pcor.pdf")):
+        assert gone not in routes, (
+            f"{gone} is back — NOTARY1's read side is retired; the model "
+            "is NOTARY2's aggregate in routers/signing.py")
+
+
+def test_a_row_found_elsewhere_still_has_a_way_forward():
+    """THE SAFETY ARGUMENT, pinned rather than asserted in prose.
+
+    Retiring the read side does not strand a NOTARY1 row in some other
+    database, because the read side was never the recovery path — the
+    MIGRATION is. It still reads `deed_shares` directly, still carries a
+    share into the NOTARY2 aggregate, and now names the database it is
+    in before it starts.
+    """
+    from services import signing, signing_migration
+
+    src = code_only(BACKEND / "services" / "signing_migration.py")
+    assert "deed_shares" in src
+    assert "share_kind" in src, (
+        "the migration lost its ability to recognise a NOTARY1 row")
+    # It reads the windows through the one parser, not a private copy.
+    assert signing_migration._windows_of is signing.windows_of
+
+    script = code_only(BACKEND / "scripts" / "migrate_notary1_signings.py")
+    assert "assert_tables(" in script, (
+        "the migration no longer says which database it is in — the "
+        "db-identity ticket exists because a confident `found: 0` "
+        "against the wrong database looks exactly like success")
+
+
+def test_the_two_fail_closed_refusals_outlive_the_model():
+    """These are not features of NOTARY1 and do not retire with it.
+
+    A signing share must never be answered as if it were a review
+    request: §13 — approving one would write an approval into the record
+    on behalf of somebody who was asked a different question — and the
+    review reminder asks a notary the wrong question twice.
+    """
+    src = code_only(BACKEND / "routers" / "sharing.py")
+    assert src.count("signing.SHARE_KIND_SIGNING") >= 3, (
+        "a guard that recognises a NOTARY1 row has gone missing")
+    assert "not a review request" in src
+    assert "wrong question" in src
+
+
+def test_a_retired_link_says_so_rather_than_going_quiet():
+    """Invariant #4 wearing an empty state. A link that opens onto a page
+    with no actions and no explanation leaves the reader unable to tell
+    "retired" from "broken", and only one of those is theirs to solve."""
+    src = code_only(BACKEND / "routers" / "sharing.py")
+    assert '"retired"' in src or "'retired'" in src
+    assert "what_to_do" in src

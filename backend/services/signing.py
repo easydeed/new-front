@@ -1,68 +1,55 @@
-"""NOTARY1 — the signing handoff, and the line it must not cross.
+"""What survives NOTARY1: the vocabulary, one honest sentence, one .ics.
 
-═══ WHAT THIS IS ═══
+═══ WHAT THIS MODULE IS NOW ═══
 
-An officer picks a notary from her own partner list, sends a signing
-request with two or three proposed windows, and the notary taps one. She
-is told. That is the whole feature.
+NOTARY1 coordinated a signing as a `deed_shares` row — the officer
+proposed windows, the notary tapped one. §13.1 reversed that model,
+NOTARY2 rebuilt it as an aggregate across four tables
+(`services/signing_loop.py`), #162 removed NOTARY1's write path on
+evidence, and the read side went with it.
 
-What it removes is the leg she does not control. She already has her
-clients' numbers and already calls them; what she cannot do is stop
-playing phone tag with a notary. So the product coordinates
-officer↔notary and nothing else.
+What is left here is what OUTLIVED the feature, and each piece has a
+living caller:
 
-═══ NO SIGNER CONTACT. ANYWHERE. (owner-ruled) ═══
+  - THE VOCABULARY. `SHARE_KIND_REVIEW` / `SHARE_KIND_SIGNING` is how the
+    two fail-closed refusals in `routers/sharing.py`, the shared row
+    contract and the migration script RECOGNISE a NOTARY1 row. Removing
+    the ability to make more of them is not the same act as removing the
+    ability to read what exists.
+  - `windows_of` — the migration script's parser for `proposed_windows`.
+  - `scheduling_state` / `scheduling_label` — the officer's list still
+    renders a line for such a row (`services/shared_deed_row.py`).
+  - `build_ics` — NOTARY2 sends the same kind of calendar copy.
+  - `default_expiry` — every share, of either kind.
 
-Signers — grantors and grantees — are consumers. They have no account,
-never agreed to our terms, cannot see what we hold and cannot ask us to
-delete it. Storing their email or phone would make every deed row carry
-third-party contact data, which changes what a database dump IS, and it
-would do so to automate a message the officer is better placed to send.
+DELETED WITH THE FEATURE, and worth naming because they were a SECOND
+ANSWER to questions NOTARY2 answers for itself: `normalize_windows` and
+`MAX_WINDOWS = 3` (NOTARY2 validates its own posts, at five), `find_window`
+(index-into-officer-proposed-list, a shape that no longer exists),
+`window_label` and `window_labels` (`signing_loop.window_label` writes
+every window this product shows, and it takes a timezone, which this one
+never did), `window_to_ics`. Two divergent answers to "how many windows"
+lived in this repo, and only one of them was reachable.
 
-So the product captures no signer contact information, stores none, and
-messages no signer. `deeds` carries party NAMES because names print on
-the instrument; that is the whole of it, and it stays that way. Pinned
-fail-closed in `tests/test_notary1_signing.py` — a new
-`signer_email`-shaped field anywhere fails the suite rather than waiting
-to be noticed.
+═══ THE RULE THAT DID NOT RETIRE ═══
 
-═══ THE STATE IS DERIVED (T-5's ruling, transferred) ═══
+A scheduled time is an ARRANGEMENT, not a legal act, and "confirmed"
+must still mean somebody said so. `scheduling_label()` is why the words
+are written once: no surface may render `scheduled` as a claim that the
+signing WILL happen, and a label composed screen by screen is how that
+distinction erodes. It also refuses to attribute an arrangement to
+anybody it cannot name — an unrecognised asserter gets "Signing time
+recorded", not a person.
 
-`deed_shares.status` holds sent / viewed / approved / rejected / revoked
-/ expired. Scheduling is NOT one of those, and it must not become one.
+The same rule, in NOTARY2's vocabulary, is `signing_loop.state_label`.
 
-T-5 refused to add `superseded` to `deeds.status` because a superseded
-deed is still a completed deed — two orthogonal facts cannot share one
-column without one of them becoming unsayable. The same is true here: a
-signing request that has been viewed AND scheduled is the normal case,
-and folding `scheduled` into `status` makes it inexpressible.
+═══ NO SIGNER CONTACT ON THIS ROW ═══
 
-So `scheduled_at` is its own column and the scheduling state is computed
-from it. Nothing writes "scheduled" into `status`, ever.
-
-═══ THE DOCTRINE LINE ═══
-
-A scheduled time is an ARRANGEMENT, not a legal act. Nobody's rights
-change because a calendar says Tuesday, so this needs none of the violet
-machinery a vesting choice needs.
-
-But "confirmed" must still mean somebody said so, and this file mirrors
-RED-S4's recording shape exactly: `scheduled_by` + `scheduled_asserted_at`
-alongside the value, because the system's knowledge of a signing time is
-always somebody's statement and never its own inference.
-
-Three things follow, and all three are pinned:
-
-  1. THE SYSTEM NEVER ASSERTS A SIGNING OCCURRED. No auto-completion, no
-     timer, no inference from a window that has passed. A time that has
-     come and gone is not evidence that anybody met.
-  2. `completed` IS OFFICER-ONLY. The notary is not our user, has no
-     account, and a tap on a public token is not an attestation that a
-     notarial act was performed.
-  3. A NOTARY TAPPING A WINDOW ASSERTS AVAILABILITY, NOT ATTENDANCE. No
-     surface may render `scheduled` as a claim that the signing will
-     happen — `scheduling_label()` exists so that the words are written
-     once and cannot drift into a promise on some screen nobody rechecked.
+NOTARY1 stored none, deliberately, and that has not changed for
+`deed_shares`. §13.1 gave signers their own participation in NOTARY2 —
+on one purgeable row in `signing_participants`, with a purge job behind
+it — which is a different mechanism with its own retention rule, not a
+relaxation of this one.
 """
 from __future__ import annotations
 
@@ -84,52 +71,20 @@ ASSERTED_BY_NOTARY = "notary"
 ASSERTED_BY_OFFICER = "officer"
 ASSERTERS = (ASSERTED_BY_NOTARY, ASSERTED_BY_OFFICER)
 
-MAX_WINDOWS = 3
-MIN_WINDOWS = 1
-
-
-class SigningRequestError(ValueError):
-    """A signing request we will not create, with the reason."""
-
-
-def normalize_windows(raw: Any) -> List[Dict[str, str]]:
-    """Validate and normalise proposed windows.
-
-    Each window is `{start, end}` in ISO-8601 with an offset. Times are
-    stored as the officer entered them — a signing happens at a place, in
-    that place's time, and helpfully converting to UTC for display is how
-    somebody arrives an hour late.
-    """
-    if raw is None:
-        return []
-    if not isinstance(raw, list):
-        raise SigningRequestError("Proposed windows must be a list")
-    if len(raw) > MAX_WINDOWS:
-        raise SigningRequestError(
-            f"At most {MAX_WINDOWS} windows — more than three choices is a "
-            f"negotiation, and this is not one")
-
-    out: List[Dict[str, str]] = []
-    for i, window in enumerate(raw):
-        if not isinstance(window, dict):
-            raise SigningRequestError(f"Window {i + 1} is not an object")
-        start, end = window.get("start"), window.get("end")
-        if not start or not end:
-            raise SigningRequestError(f"Window {i + 1} needs a start and an end")
-        try:
-            s = datetime.fromisoformat(str(start))
-            e = datetime.fromisoformat(str(end))
-        except ValueError:
-            raise SigningRequestError(
-                f"Window {i + 1} is not a valid date/time") from None
-        if e <= s:
-            raise SigningRequestError(f"Window {i + 1} ends before it starts")
-        out.append({"start": str(start), "end": str(end)})
-    return out
-
-
 def windows_of(row: Dict[str, Any]) -> List[Dict[str, str]]:
-    """The stored windows, whatever shape the driver handed back."""
+    """The stored windows, whatever shape the driver handed back.
+
+    NON-DICT ENTRIES ARE DROPPED, and that is a widening of this function
+    rather than a quiet tightening: `signing_migration` carried its own
+    private copy that filtered them, this one did not, and the two have
+    now converged HERE — on the filtering behaviour, because every caller
+    goes on to read `w["start"]` and a bare string in the list is a
+    crash rather than a window.
+
+    Flagged because a narrowing and a widening look identical in a diff.
+    The migration's behaviour is unchanged; this function's is, and only
+    in the direction of not raising on data it cannot use.
+    """
     raw = row.get("proposed_windows")
     if raw is None:
         return []
@@ -138,54 +93,9 @@ def windows_of(row: Dict[str, Any]) -> List[Dict[str, str]]:
             raw = json.loads(raw)
         except ValueError:
             return []
-    return raw if isinstance(raw, list) else []
-
-
-def _fmt_time(dt: datetime) -> str:
-    return dt.strftime("%I:%M %p").lstrip("0")
-
-
-def window_label(window: Dict[str, str]) -> str:
-    """One window, in words. THE ONLY PLACE a window becomes English.
-
-    Every surface — the notary's email, the token page, the officer's
-    status line — calls this, for the same reason `scheduling_label` is
-    single-sourced: a second formatter is a second chance to print the
-    wrong hour, and the wrong hour is somebody driving to an empty
-    office.
-    """
-    try:
-        start = datetime.fromisoformat(str(window.get("start")))
-        end = datetime.fromisoformat(str(window.get("end")))
-    except (TypeError, ValueError):
-        return f"{window.get('start', '?')} – {window.get('end', '?')}"
-    day = start.strftime("%A, %B ") + str(start.day) + start.strftime(", %Y")
-    if end.date() == start.date():
-        return f"{day}, {_fmt_time(start)} – {_fmt_time(end)}"
-    end_day = end.strftime("%B ") + str(end.day)
-    return f"{day}, {_fmt_time(start)} – {end_day}, {_fmt_time(end)}"
-
-
-def window_labels(row: Dict[str, Any]) -> List[str]:
-    return [window_label(w) for w in windows_of(row)]
-
-
-def find_window(row: Dict[str, Any], index: Any) -> Optional[Dict[str, str]]:
-    """The window a notary tapped, by its position in the stored list.
-
-    Position, not a client-supplied time: accepting a time from the
-    request body would let a link holder assert any hour they liked,
-    including one the officer never offered.
-    """
-    windows = windows_of(row)
-    try:
-        i = int(index)
-    except (TypeError, ValueError):
-        return None
-    if i < 0 or i >= len(windows):
-        return None
-    w = windows[i]
-    return w if isinstance(w, dict) else None
+    if not isinstance(raw, list):
+        return []
+    return [w for w in raw if isinstance(w, dict)]
 
 
 def scheduling_state(row: Dict[str, Any]) -> Optional[str]:
@@ -270,24 +180,6 @@ def build_ics(*, summary: str, start: datetime, end: datetime,
         lines.append(f"LOCATION:{esc(location)}")
     lines += ["END:VEVENT", "END:VCALENDAR"]
     return ("\r\n".join(lines) + "\r\n").encode("utf-8")
-
-
-def window_to_ics(window: Dict[str, str], *, summary: str,
-                  location: Optional[str], description: str,
-                  uid: str) -> Optional[bytes]:
-    try:
-        start = datetime.fromisoformat(window["start"])
-        end = datetime.fromisoformat(window["end"])
-    except (KeyError, ValueError):
-        return None
-    if start.tzinfo is None:
-        # A naive time is ambiguous, and guessing a zone is how a
-        # calendar entry lands an hour out. Assume UTC only so the file
-        # is VALID, and say so in the description rather than silently.
-        start = start.replace(tzinfo=timezone.utc)
-        end = end.replace(tzinfo=timezone.utc)
-    return build_ics(summary=summary, start=start, end=end,
-                     location=location, description=description, uid=uid)
 
 
 def default_expiry(days: int = 14) -> datetime:
