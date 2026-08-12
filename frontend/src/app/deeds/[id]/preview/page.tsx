@@ -14,6 +14,9 @@ import {
   ArrowPathIcon 
 } from '@heroicons/react/24/solid';
 import Sidebar from '@/components/Sidebar';
+import { PartnersProvider } from '@/features/partners/PartnersContext';
+import { ShareForReviewModal } from '@/features/signing/ShareForReviewModal';
+import { RequestSigningModal } from '@/features/signing/RequestSigningModal';
 import '@/styles/dashboard.css';
 import './preview.css';
 
@@ -221,10 +224,31 @@ export default function DeedPreviewPage() {
     document.body.removeChild(a);
   };
 
-  // Share handler
-  const handleShare = () => {
-    router.push(`/requests?deed=${deedId}`);
-  };
+  /**
+   * SHARE OPENS THE DIALOG, ON THE DEED SHE IS LOOKING AT.
+   *
+   * It used to `router.push('/shared-deeds?deed={id}')` — and nothing
+   * has ever read `?deed=`. So a button labelled Share navigated away
+   * from the deed, landed on an unfiltered tracker with no dialog open,
+   * and left her to find the deed she had just been looking at. A
+   * parameter built by one half and read by neither, which is the same
+   * defect DASH1 found in `?focus=` from the other end.
+   *
+   * Teaching `/requests` to read `?deed=` would have worked and
+   * optimises the wrong journey (owner-ruled): the tracker is for
+   * FINDING things and she has already found it. A surface that tells
+   * you about a thing and then makes you go locate it is a list of
+   * chores — the same reasoning as the dashboard queue's `onOpen`.
+   *
+   * The kind is not asked. `share_kind` is set by which button she
+   * pressed, never inferred (PARTNER2/B), and this button has always
+   * meant a review — it pointed at the reviews tracker. The signing path
+   * is reachable only through the interrupt, which is FLOW1 item 1's
+   * other half rather than a chooser.
+   */
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [signingOpen, setSigningOpen] = useState(false);
+  const handleShare = () => setReviewOpen(true);
 
   // Edit handler
   const handleEdit = () => {
@@ -468,6 +492,41 @@ export default function DeedPreviewPage() {
           Back to Dashboard
         </button>
       </footer>
+
+      {/* Both modals sit under one PartnersProvider, as on Past Deeds:
+          the recipient picker and its inline "add a partner" reuse the
+          existing partner path rather than growing another creation
+          form. */}
+      {(reviewOpen || signingOpen) && (
+        <PartnersProvider>
+          {reviewOpen && (
+            <ShareForReviewModal
+              deedId={Number(deedId)}
+              onClose={() => setReviewOpen(false)}
+              /* FLOW1 item 1: the interrupt's other half. Asking "did you
+                 mean a signing?" and then making her close the modal and
+                 go find another button would be a scolding rather than a
+                 suggestion. */
+              onSwitchToSigning={() => {
+                setReviewOpen(false);
+                setSigningOpen(true);
+              }}
+            />
+          )}
+          {signingOpen && (
+            <RequestSigningModal
+              deedId={Number(deedId)}
+              propertyAddress={deed?.property_address}
+              /* Party NAMES only. The deed has never held a way to reach
+                 anybody (§13.1) and does not start now — she types the
+                 addresses. */
+              suggestedSigners={[deed?.grantor_name, deed?.grantee_name]
+                .filter((n): n is string => !!n && !!n.trim())}
+              onClose={() => setSigningOpen(false)}
+            />
+          )}
+        </PartnersProvider>
+      )}
         </div>
       </div>
     </div>

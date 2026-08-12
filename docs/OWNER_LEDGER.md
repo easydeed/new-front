@@ -469,26 +469,27 @@ we reach it.
   inherits the naming rule — a revoke confirm that does not name the deed
   is the same defect the delete confirm had.
 
-- **The preview page's Share button lands nowhere in particular** (found
-  2026-08-12 during the Requests merge, NOT fixed — pre-existing).
-  `/deeds/{id}/preview` pushes `/requests?deed={id}` (was
-  `/shared-deeds?deed={id}`); nothing has ever read `?deed=`. So a button
-  labelled Share drops the officer on an unfiltered tracker with no
-  dialog open and no indication which deed it was about — she has to
-  find the deed again on a page she reached *from* that deed.
+- **The preview page's Share button lands nowhere in particular** —
+  RULED AND FIXED 2026-08-12 (found during the Requests merge; the
+  pre-existing behaviour was carried across unchanged by the rename, then
+  fixed in its own PR).
 
-  Same class as the `?focus=` defect DASH1 found from the other end: a
-  parameter built by one half and read by neither. The rename carried it
-  across unchanged rather than fixing it, because the merge PR should be
-  a rename and not a behaviour change.
+  `/deeds/{id}/preview` pushed `/requests?deed={id}` and nothing has ever
+  read `?deed=`, so a button labelled Share navigated away from the deed,
+  landed on an unfiltered tracker with no dialog open, and left her to
+  find the deed she had been looking at a moment earlier.
 
-  Two candidate answers and they are genuinely different products, which
-  is why this is ledgered rather than decided: either the button opens
-  the review modal on the preview page (it is the deed she is looking
-  at — no navigation at all), or `/requests` learns `?deed=` and opens
-  the modal on arrival. The first is better if Share means "send THIS";
-  the second is better if the tracker is meant to be where sharing
-  happens. Owner's read on what the button means decides it.
+  **Owner's ruling: open the share dialog in place.** She is looking at
+  the deed; routing her to a tracker to locate the deed she is already
+  looking at is a detour ending in a lookup. Teaching `/requests` the
+  parameter would have worked and optimises the wrong journey — the
+  tracker is for finding, and she has already found it. Same reasoning as
+  the dashboard queue's `onOpen`.
+
+  Built as ruled: the review modal opens on the deed, with FLOW1 item 1's
+  signing interrupt wired to its other half so the "did you mean a
+  signing?" question has somewhere to go. No chooser — `share_kind` stays
+  set by which button she pressed.
 
 ## Parked tickets (scoped, not scheduled)
 
