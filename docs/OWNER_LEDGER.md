@@ -442,25 +442,65 @@ we reach it.
 
 ## Open — needs a ruling (found 2026-08-12, NOT fixed)
 
-- **Revoking a share tells the recipient nothing.** Found by the sweep
-  for other revoke-then-notify compositions (CANCEL1 item 2's class).
-  `POST /shared-deeds/{id}/revoke` flips the status and sends no email
-  and no in-app notice, so a reviewer keeps a link that has silently
-  stopped working and finds out by clicking it.
+- **Revoking a share notifies the reviewer — RULED 2026-08-12, not yet
+  built.** Found by the sweep for other revoke-then-notify compositions
+  (CANCEL1 item 2's class). `POST /shared-deeds/{id}/revoke` flips the
+  status and sends no email and no in-app notice, so a reviewer keeps a
+  link that has silently stopped working and finds out by clicking it.
 
-  This is NOT the composition bug — there is no notify loop to be
-  silenced, because there is no notify loop at all. It is the same
-  PRODUCT question the owner already ruled for cancellation: an invited
-  person holds a link, the link is dead, and discovering that by clicking
-  is worse than being told. The ruling there was yes-if-invited; whether
-  it carries to review shares is a separate call, because a revoked
-  review is sometimes a deliberate un-invitation the officer may not want
-  to announce.
+  It is NOT the composition bug — there is no notify loop to be
+  silenced, because there is no notify loop at all. It is the PRODUCT
+  question, and the owner has ruled it:
 
-  Cheap either way — the transport, the template shape and the two
-  registers all exist.
+  **A revoked review share SHOULD notify**, with softer copy than a
+  cancellation — *"this deed is no longer available for review"* rather
+  than the cancellation's account of who agreed to what — **and with an
+  officer opt-out: a "notify them" checkbox in the revoke confirm,
+  defaulted ON.**
+
+  The reasoning, recorded because it is the general shape: a reviewer who
+  finds a dead link assumes the PRODUCT broke, which is a worse outcome
+  than being told. But some revocations are deliberate un-invitations,
+  and the officer owns that call — so the default is courtesy and the
+  override is hers.
+
+  Cheap when it fires: the transport, the template shape and the two
+  registers all exist. Note the confirm gains a control, so it also
+  inherits the naming rule — a revoke confirm that does not name the deed
+  is the same defect the delete confirm had.
 
 ## Parked tickets (scoped, not scheduled)
+
+- **Audit the string-presence pins whose subject is a BRANCH** (CANCEL1
+  item 4 finding, owner-ruled a class 2026-08-12). Looked at
+  opportunistically as ruled, and the population is larger than an
+  opportunistic pass: **43 test files read source, carrying roughly 600
+  `toContain` assertions.**
+
+  Most are safe, and the discriminator is what makes this a ticket rather
+  than a grep: **is the assertion's subject a CONSTANT or a DECISION?**
+
+  - A constant — a copy string, a forbidden term, a class name, an
+    import — is fully checked by its presence. `expect(PAGE).not
+    .toContain('SOC 2')` cannot be fooled by dead code, because dead code
+    containing it is still a violation.
+  - A decision — "this button appears when X" — is NOT checked by
+    presence. `{false ? (` leaves every string in the file and the pin
+    stays green with the feature switched off, which is exactly what
+    happened here.
+
+  **The remedy generalises:** when a pin's subject is a decision, extract
+  the decision into a callable rule and test it with inputs.
+  `lib/signingRowAction.ts` and `lib/signingCopy.ts` are the two examples;
+  `lib/sitexProperty.ts` carried the reasoning first — *a rule you can
+  only test through a UI is a rule you do not test.*
+
+  **Not swept now, deliberately.** Six hundred assertions triaged badly is
+  worse than six hundred untriaged, because a pass that says "audited"
+  stops the next person looking. Effort: half a day to triage, unknown to
+  fix, and the fix is per-pin.
+
+
 
 - **CANCEL1's three post-creation gaps** (audit finding, ledgered
   2026-08-12 with the ticket that made them survivable). Every field on a
@@ -481,7 +521,12 @@ we reach it.
 
 
 
-- **Retire NOTARY1's read-side routes — DONE 2026-08-12.** All four
+- **Retire NOTARY1's read-side routes — DONE 2026-08-12, and VERIFIED
+  CLOSED 2026-08-12 before the follow-up ticket was started.** The route
+  table now carries only `/approve/{token}`, `/approve/{token}/pdf` and
+  `POST /approve/{token}` — the REVIEW share surface, which is the live
+  model and was never NOTARY1's. Nothing remained to retire; the
+  follow-up ticket shipped inside #170. All four
   removed (the ledger said three; `GET /approve/{token}/pcor.pdf` was
   not in the count), with `_signing_share_by_token`,
   `_pcor_deed_for_token`, `_tell_the_officer`, the `WindowChoice` /
