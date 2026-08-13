@@ -6,6 +6,7 @@ import Sidebar from "@/components/Sidebar"
 import { User, CreditCard, Bell, Lock, Check, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { TIERS, priceLabel } from "@/lib/pricing"
+import EmailVerificationNotice from "@/features/account/EmailVerificationNotice"
 
 type Tab = "profile" | "billing" | "notifications" | "security"
 
@@ -18,6 +19,9 @@ interface UserProfile {
      access. Two facts, one column, and the profile could only be given
      one of them safely. */
   job_title?: string
+  /* VERIFY-CHECK — reported to the person it is about, for the first
+     time. It was an admin column and nothing else. */
+  verified?: boolean
   phone?: string
   company_name?: string
   business_address?: string
@@ -475,6 +479,11 @@ function ProfileTab({ userProfile, onSaved }: {
             <p className="mt-2 text-xs text-slate-500">
               This is how you sign in. Contact us to change it.
             </p>
+            <EmailVerificationNotice
+              verified={userProfile?.verified}
+              email={userProfile?.email}
+              inline
+            />
           </div>
           {/* ROLE1 step 3 — THE BOX THE ADMIN CONSOLE ALREADY POINTED
               AT. Its refusal message tells an admin that a job title

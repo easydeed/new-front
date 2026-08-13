@@ -43,7 +43,16 @@ router = APIRouter()
 # the session rather than 401 at her.
 _bearer = HTTPBearer(auto_error=False)
 
-EMAIL_VERIFICATION_REQUIRED = os.getenv("EMAIL_VERIFICATION_REQUIRED", "false").lower() == "true"
+# VERIFY-CHECK — `EMAIL_VERIFICATION_REQUIRED` was defined here and read
+# NOWHERE. An operator could set it on Render, believing they had turned
+# required verification on, and nothing whatsoever would change. That is
+# worse than dead code: it is a dead CONTROL, and the owner ledger cited
+# it as evidence that "the plumbing exists".
+#
+# The plumbing does exist — both endpoints work — but the switch was
+# never wired to it. Gating is ruled out for now (see
+# services/verification.py), and when it is ruled back in it gets a flag
+# that something reads.
 REFRESH_TOKENS_ENABLED = os.getenv("REFRESH_TOKENS_ENABLED", "false").lower() == "true"
 LOGIN_RATE_LIMIT = os.getenv("LOGIN_RATE_LIMIT", "true").lower() == "true"
 # Resolved per CALL, not at import: a module-level read with a
@@ -169,12 +178,13 @@ def request_verify_email(payload: VerifyEmailRequest):
         verified = row['verified']
         if verified:
             return {"message": "Email already verified"}
-        token = create_access_token(
-            data={"sub": str(user_id), "type": "verify"},
-            expires_delta=timedelta(hours=VERIFY_TOKEN_TTL_HOURS)
-        )
-        verify_url = f"{FRONTEND_URL_()}/verify-email?token={token}"
-        v_sent, v_reason = send_verify_email_with_reason(email, full_name or "", verify_url)
+        # VERIFY-CHECK — one place mints the link. Registration needed
+        # exactly what this endpoint already did, and a second token
+        # mint would be a second TTL, a second URL shape and a second
+        # thing to get wrong.
+        from services.verification import send_verification
+
+        v_sent, v_reason = send_verification(user_id, email, full_name or "")
         if not v_sent:
             print(f"[verify-email] send failed: {v_reason}")
         return {"message": "If the email exists, we sent a verification link."}

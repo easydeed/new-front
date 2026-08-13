@@ -256,6 +256,32 @@ async def register_user(user: UserRegister = Body(...)):
             # Don't fail registration if notification fails
             print(f"[Phase 7] ⚠️ Admin notification error (non-blocking): {notif_error}")
 
+        # ── VERIFY-CHECK: SOMEBODY IS FINALLY ASKED ───────────────────
+        #
+        # `POST /users/verify-email/request` had no caller anywhere in
+        # the repo, so the verification chain was complete, correct and
+        # disconnected at both ends: no link was ever sent, and nothing
+        # ever read the result. This is the end that asks.
+        #
+        # Non-blocking, like the two sends above — a registration that
+        # fails because SendGrid is down is a lost customer over a
+        # message the product does not enforce. But the reason is
+        # printed, because non-blocking must not become silent (§4).
+        #
+        # NOTHING IS GATED ON THE ANSWER. Owner-ruled: every existing
+        # account is unverified, so a gate switched on today locks out
+        # the whole customer base. Send, watch, then decide.
+        try:
+            from services.verification import send_verification
+
+            v_ok, v_reason = send_verification(
+                new_user_id or 0, user.email.lower(),
+                clean_profile_text(user.full_name) or "")
+            if not v_ok:
+                print(f"[VERIFY-CHECK] ⚠️ Verification email not sent: {v_reason}")
+        except Exception as verify_error:
+            print(f"[VERIFY-CHECK] ⚠️ Verification email error (non-blocking): {verify_error}")
+
         # E1: welcome email to the registrant (lifecycle gap — there was
         # no first-touch email at all).
         try:
@@ -456,7 +482,8 @@ async def get_user_profile_endpoint(user_id: int = Depends(get_current_user_id))
         with db.conn.cursor() as cur:
             cur.execute("""
                 SELECT id, email, full_name, role, company_name, company_type,
-                       phone, state, plan, created_at, last_login, job_title
+                       phone, state, plan, created_at, last_login, job_title,
+                       verified
                 FROM users WHERE id = %s AND is_active = TRUE
             """, (user_id,))
             user = cur.fetchone()
@@ -513,6 +540,16 @@ async def get_user_profile_endpoint(user_id: int = Depends(get_current_user_id))
             # back rather than showing a blank field, and that fallback
             # is a dated thing: it goes when the migration has run.
             "job_title": user[11] or (None if is_admin_role(user[3]) else user[3]),
+            # VERIFY-CHECK — the state, said out loud.
+            #
+            # `verified` was readable in exactly one place before this: an
+            # admin column. The person whose address it is could not see
+            # it. A record that looks like a control, that its subject
+            # cannot observe, is the shape the /security ruling refused.
+            #
+            # It is REPORTED, not enforced. Nothing downstream may branch
+            # on it, and a sweep in test_verify_check.py holds that.
+            "verified": bool(user[12]),
             "role": user[3],
             "company_name": user[4],
             "company_type": user[5],

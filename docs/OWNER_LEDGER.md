@@ -1189,12 +1189,38 @@ we reach it.
 
 ## Ledgered triggers (machine-side, fire on condition)
 
-- **Verification-at-registration** (E1 Phase 1 ruling, 2026-08-03):
-  stays resend-only for now — enable required email verification at
-  registration **before first real customer onboarding or any public
-  launch**. The plumbing exists (`EMAIL_VERIFICATION_REQUIRED` +
-  `/users/verify-email`); the trigger is the go-to-market moment, not a
-  code change.
+- **Verification-at-registration** — ~~stays resend-only for now~~
+  **PARTLY FIRED (VERIFY-CHECK, 2026-08-13). This entry was wrong in two
+  ways and both are worth keeping visible.**
+
+  "Stays resend-only" described a resend nobody could reach:
+  `POST /users/verify-email/request` had **no caller anywhere in the
+  repo** — not registration, not the frontend, no button. And the
+  plumbing cited as existing, `EMAIL_VERIFICATION_REQUIRED`, was
+  **defined in `auth_extra.py` and read nowhere**. An operator could
+  have set it on Render before a launch, believed required verification
+  was on, and nothing whatsoever would have changed. A dead control is
+  worse than dead code, and a ledger entry citing it as evidence is how
+  it survives.
+
+  **Now true:** registration sends the link, the product tells the
+  account holder whether their address is confirmed and offers to resend,
+  and one place mints the token. `EMAIL_VERIFICATION_REQUIRED` is
+  deleted.
+
+  **Still open, and still the trigger:** nothing is GATED on `verified`,
+  by owner ruling — every existing account is unverified because nobody
+  had ever been asked, so a gate switched on today locks out the whole
+  customer base. `test_verify_check.py` holds the product to no-gate
+  until that is ruled otherwise. Gating needs two decisions, not a
+  commit: **which surface** (sharing is the narrowest defensible one;
+  login is the widest and worst) and **what happens to existing rows**
+  (grandfather, or send everybody a link at once). It also couples
+  customer access to our own email deliverability, which is a thing to
+  choose rather than inherit.
+
+  **Fire when:** first real customer onboarding or public launch — and
+  the honest order is send → watch how many verify → then gate.
 - ~~Parties JSONB migration~~ — FIRED and executed (PR #86).
 - **"Compact chassis" CSS variant** — consider if more one-page
   instruments accumulate (spike report note; the inline-acknowledgment
