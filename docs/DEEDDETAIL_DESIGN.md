@@ -237,3 +237,137 @@ overruled.
    deed, and the honest answer might be that the tracker's rows become
    links to the deed page — which would be a larger change than this
    ticket, and worth knowing before the layout is settled.
+
+---
+
+# UNIT 2 INPUTS — three investigations, reported before building
+
+## 1. The `/api/generate/{type}` proxy routes — REPORT, ruling needed
+
+Asked: confirm nothing external calls them, and whether the builder needs
+them under another name.
+
+**The builder does not need them.** It generates through
+`/api/deeds/generate`, a different Next route that maps the builder's
+payload to `DeedCreate` and forwards to backend `POST /deeds` — the path
+that stores. The six Next proxies at `app/api/generate/*` forward to
+backend `/api/generate/*`, and after DEEDPREVIEW-FIX **no source in the
+app calls any of them.**
+
+But they are not unreachable in the `/security` sense, and the difference
+matters:
+
+- `docs/API.md` documents both layers explicitly, as the frontend's
+  route handlers.
+- `middleware/qa_instrumentation.py` carries a latency budget for
+  `/api/generate/grant-deed-ca`.
+- **`admin_api_v2.py` tells an admin to use them.** When a deed has no
+  stored PDF it returns: *"PDF not available. Use
+  /api/generate/{deed_type} to regenerate."*
+
+**And that message is this ticket's defect one layer over.** The backend
+`/api/generate/*` handlers take a *render context* — not a deed id — and
+they **render and stream, storing nothing**. So an admin following that
+advice gets a fresh document that is not the instrument, and the deed
+still has no stored PDF afterwards. It is advice that cannot fix the
+problem it is offered for, and it produces exactly the "document that
+resembles the instrument" DEEDPREVIEW-FIX deleted.
+
+The correct advice is `/deeds/{id}/download`, which self-heals a
+completed deed and now refuses a draft.
+
+**My recommendation, not applied:** fix the admin message first — it is a
+live instruction pointing somewhere wrong. Hold the deletion question
+separately: removing the Next proxies would be cosmetic while the backend
+render endpoints they front stay documented and referenced, and those
+endpoints may be a deliberate capability (`grant-deed-ca-pixel` suggests
+a pixel-comparison path). Deleting a documented API because the app
+stopped calling it is a different decision from deleting `/security`,
+which had no caller *and* no documented contract.
+
+## 2. Invariants enforced only by conditional rendering — SWEPT
+
+Asked after the draft-finalisation catch. Method: every status-gated
+conditional in `app/` and `features/`, then the endpoint behind each.
+
+| gated action | UI condition | server |
+|---|---|---|
+| Download a deed | `status === "completed"` | **WAS UNGUARDED** — fixed in DEEDPREVIEW-FIX |
+| Approve/reject a share | already-decided message | guarded, 409 "already been {status}" |
+| Resend a share | — | guarded, 400 "Cannot resend - share is {status}" |
+| Revoke a verified document | `status === 'active'` | guarded, 400 "already revoked" |
+| Continue/edit a deed | `status === "draft"` | protected by §9 itself: regenerating different bytes raises `StoredPdfConflict` |
+| Delete a deed with a live signing | — | guarded, 409 naming the notary (CANCEL1) |
+
+**Result: the download case was the outlier, not the pattern.** The rest
+were already enforced below the UI.
+
+This is a SAMPLE, not an inventory — it covers status-gated conditionals,
+which is where the class was found, and not every action in the app. A
+pass that says "audited" stops the next person looking, so: what was
+checked is the table above.
+
+## 3. The activity element — WHAT EXISTS, honestly
+
+Ruled as load-bearing and new to both proposals: "the reviewer responded
+Tuesday, the notary accepted Wednesday." **There is no events table.** So
+the question is which timestamps are real recorded moments and which
+would be inferred.
+
+### Real, and usable today
+
+Each of these is a column written at the moment the thing happened.
+
+| event | source |
+|---|---|
+| deed started | `deeds.created_at` |
+| deed generated | `deeds.completed_at` (stamped by `store_deed_pdf`) |
+| deed superseded | `deeds.superseded_at`, `superseded_by` |
+| review sent | `deed_shares.created_at` |
+| reviewer opened it | `deed_shares.viewed_at` |
+| reviewer decided | `deed_shares.responded_at` — written on BOTH the approve and reject paths, and backfilled from `feedback_at` |
+| signing requested | `signing_requests.created_at` |
+| a party opened their link | `signing_participants.viewed_at` |
+| **a party answered a time** | `signing_responses.asserted_at` + `answer` + `participant_id` |
+| signing booked | `signing_requests.booked_at`, `booked_by` |
+| signing cancelled | `signing_requests.cancelled_at` |
+| document revoked | `document_authenticity.revoked_at` + reason |
+
+`signing_responses` is the best event data in the product: one row per
+answer, with who and when. It is already an event log.
+
+### What would be SYNTHESIZED, and must not be
+
+- **Status transitions other than the decision.** `status` is
+  current-state; only `responded_at` has a time. "Marked viewed at 3pm"
+  is available, "moved to expired at midnight" is not — expiry is
+  computed from `expires_at`, not recorded as an event.
+- **View counts as events.** `view_count` is a counter and `viewed_at`
+  is one timestamp. Rendering "opened 4 times" as four entries would
+  invent three moments.
+- **Reminders as a series.** `reminder_count` + `last_reminder_sent_at`
+  gives the LAST one only. Three reminders is one known time and two
+  fabrications.
+- **Anything from `updated_at`.** It moves for reasons that are not
+  events.
+
+### The gap worth naming
+
+`notifications` is close to an event log — type, title, message, link,
+created_at — but has **no `deed_id`**. The deed is encoded in the `link`
+URL. So "everything that happened on this deed" cannot be answered from
+it without parsing links, and it only holds events worth notifying
+about.
+
+### The smallest honest version
+
+A per-deed activity list assembled as a UNION of the columns in the first
+table, each rendered with the sentence its own subsystem already writes
+(§13 rule 3 — no screen composes an account of a scheduling state), and
+**nothing shown that is not one of those recorded moments.**
+
+It is never empty: `deeds.created_at` always exists, so the list has at
+least "started" and, for any generated deed, "generated".
+
+If that is too thin to be worth the section, the honest alternative is to
+record real events first — not to pad it.

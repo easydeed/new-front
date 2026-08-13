@@ -533,6 +533,58 @@ we reach it.
   where it sits — that is where the button was — but it reaches nobody
   until this is resolved. Flagging so the fix is not read as live.
 
+- **CLOSED 2026-08-13 — the preview served a re-render, not the stored
+  instrument.** Fixed in DEEDPREVIEW-FIX (#181): the preview fetches
+  `/deeds/{id}/download`, the re-render path is deleted, and a tree-wide
+  sweep pins that nothing outside the builder generates.
+
+  **And the fix as specified had a trap in it, which is the part worth
+  keeping.** `store_deed_pdf` sets `status='completed'`, stamps
+  `completed_at`, and refuses replacement under §9 — so "let the download
+  endpoint render when nothing is stored" would have converted a
+  half-filled draft into an immutable, unamendable instrument on a page
+  view. Rendering is not a read; under §9 it is a write that cannot be
+  undone, so **"generate if missing" is never a safe fallback on a
+  surface that merely displays.**
+
+  The invariant that prevented it was living in a SCREEN — Past Deeds
+  renders Download only when `status === "completed"` — which is exactly
+  why it survived until a second screen wanted the same document. A rule
+  enforced by a component is a rule the next component does not have.
+  The rule is `services/deed_pdf.may_self_heal` now, and the pin asserts
+  the draft is still a draft afterwards: it tests the harm, not the
+  response.
+
+- **The admin "regenerate" message points somewhere that cannot help**
+  (found 2026-08-13 while investigating the generate proxies; NOT fixed).
+  When a deed has no stored PDF, `admin_api_v2` returns *"PDF not
+  available. Use /api/generate/{deed_type} to regenerate."*
+
+  Those handlers take a render CONTEXT rather than a deed id, and they
+  render and stream **storing nothing** — so an admin following the
+  advice gets a document that is not the instrument, and the deed still
+  has no stored PDF. It is the same defect DEEDPREVIEW-FIX just closed,
+  one layer over, on an admin surface. The correct advice is
+  `/deeds/{id}/download`.
+
+  Small and self-contained; held only because it was found mid-ticket.
+
+- **The `app/api/generate/{type}` Next proxies have no in-app caller**
+  (found 2026-08-13, NOT deleted — ruling wanted). The preview page was
+  the last one. They are NOT unreachable in the `/security` sense:
+  `docs/API.md` documents them, QA instrumentation budgets one of them,
+  and the admin message above points at the backend routes they front.
+  Deleting the proxies would be cosmetic while those backend endpoints
+  stay documented and referenced. Reported rather than assumed; see
+  `docs/DEEDDETAIL_DESIGN.md`.
+
+- **TRIGGER — promote the matter to the unit** (ruled 2026-08-13).
+  DEEDDETAIL builds the DEED page with matter context on it, because
+  there is no `matters` table, matters are virtual, and officers
+  navigate from lists of deeds. **If officers consistently use the deed
+  page as a doorway to the file rather than to the deed, that is the
+  evidence to promote the matter.** Earned rather than assumed.
+
 ## Parked tickets (scoped, not scheduled)
 
 - **Audit the string-presence pins whose subject is a BRANCH** (CANCEL1
