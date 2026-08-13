@@ -182,7 +182,7 @@ def notary_package(*, request: Dict[str, Any], me: Dict[str, Any],
              "declined": bool(w.get("declined_at")),
              "start": _iso(w.get("starts_at")),
              "mine": mine.get(int(w["id"])),
-             "agreed_by": _agreed_names(participants, responses, int(w["id"]))}
+             "agreed_by": _agreed_names(participants, responses, w)}
             for w in windows
         ],
         "my_answers": mine,
@@ -197,13 +197,43 @@ def notary_package(*, request: Dict[str, Any], me: Dict[str, Any],
 
 
 def _agreed_names(participants: Sequence[Dict[str, Any]],
-                  responses: Sequence[Dict[str, Any]], window_id: int) -> List[str]:
+                  responses: Sequence[Dict[str, Any]],
+                  window: Dict[str, Any]) -> List[str]:
+    """Who AGREED to this time — never counting whoever offered it.
+
+    ═══ ANSWERING YOUR OWN QUESTION IS NOT AN AGREEMENT ═══
+
+    Posting a time writes an implicit `available` row for the poster:
+    saying "I am free Tuesday" is saying you are free Tuesday, and making
+    her tick her own window would be the product asking a question it
+    already has the answer to. That part is right and stays.
+
+    What was wrong is that the implicit row then came back to her as a
+    COUNT. Her own window read
+
+        You offered this · 1 agreed
+
+    directly above a summary saying "waiting on 1 more person" — so the
+    screen simultaneously told her somebody had agreed and that nobody
+    had. The 1 was her.
+
+    An agreement is somebody answering a question you asked. The offer is
+    the question; the offerer is not one of its answers.
+
+    Scoped to the WINDOW's proposer, not to the reader: a signer looking
+    at the notary's window should not see the notary counted either,
+    because she still has not agreed to anything — she proposed it.
+    """
     by_id = {int(p["id"]): p for p in participants}
+    proposer = window.get("proposed_by")
+    proposer_id = int(proposer) if proposer is not None else None
+    window_id = int(window["id"])
     return [
         (by_id[int(r["participant_id"])].get("display_name") or "Signer")
         for r in responses
         if int(r["window_id"]) == window_id and r.get("answer") == loop.ANSWER_AVAILABLE
         and int(r["participant_id"]) in by_id
+        and int(r["participant_id"]) != proposer_id
     ]
 
 
