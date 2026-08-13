@@ -683,6 +683,33 @@ we reach it.
   feature has to read ONE of them and picking the wrong one is a field
   that silently disagrees with Settings.
 
+- **Checkout returns to the WRONG TAB, and the confirmation is already
+  built** (tabled by the owner 2026-08-13, after verifying the first
+  successful payment in the product's history end to end — card charged,
+  webhook received, plan flipped to professional).
+
+  `success_url` is `{FRONTEND_URL}/account-settings?success=true` with no
+  tab, and `activeTab` defaults to `"profile"`. So somebody who has just
+  paid $99 lands on a form asking for their phone number and has to hunt
+  for evidence that anything happened.
+
+  **The confirmation is not missing — it is unreachable.** MONEY1's
+  banner renders under `activeTab === "billing" && checkout`, and the
+  retry/refetch effect fires correctly on `?success=true` regardless of
+  tab. The plan updates, the banner is composed, and she never sees it.
+
+  Same shape this wave keeps finding: the thing exists and nothing
+  connects to it — the orphaned `/deeds/{id}/preview`, the unused
+  `user_profiles.business_address`, now this.
+
+  **Fix:** deep-link the return to the billing tab — `success_url` gains
+  a tab parameter and the page reads it — alongside the `?success=true`
+  retry and refetch already ruled and shipped. Both halves of the same
+  return trip.
+
+  **OWNER-RULED: fold into the next billing-adjacent PR, do not fire
+  standalone.** Small, and it belongs with the work it completes.
+
 ## Parked tickets (scoped, not scheduled)
 
 - **Audit the string-presence pins whose subject is a BRANCH** (CANCEL1
