@@ -119,6 +119,7 @@ function DeedPageInner() {
   const act = (kind: string) => {
     if (kind === 'resume') router.push(`/create-deed?resume=${deedId}`);
     else if (kind === 'share_for_review') setShowShare(true);
+    else if (kind === 'request_signing') setShowSigning(true);
     // `open_signing` scrolls to the panel that is already on the page —
     // it never opens the CREATE modal. Offering "request a signing" on a
     // deed that already has one is an invitation to make a second, which
@@ -201,15 +202,34 @@ function DeedPageInner() {
                     This deed is in a state this page does not recognise yet.
                   </p>
                 )}
-                {detail.state.next_action && detail.state.next_action.kind !== 'none' && (
-                  <button
-                    onClick={() => act(detail.state.next_action!.kind)}
-                    className="mt-5 inline-flex items-center gap-2 bg-[#7C4DFF] text-white font-semibold px-5 py-3 rounded-lg"
-                  >
-                    {detail.state.next_action.label}
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                )}
+                {/* Primary, and at most ONE secondary beside it. The
+                    secondary is visually subordinate — ranked, not equal
+                    — because "one obvious action" means do not present a
+                    wall of choices, not hide the second most common
+                    move. Owner-ruled after the first build offered only
+                    review and left signing reachable solely through the
+                    share dialog's switch. */}
+                <div className="mt-5 flex flex-wrap items-center gap-3">
+                  {detail.state.next_action && detail.state.next_action.kind !== 'none' && (
+                    <button
+                      onClick={() => act(detail.state.next_action!.kind)}
+                      className="inline-flex items-center gap-2 bg-[#7C4DFF] text-white font-semibold px-5 py-3 rounded-lg"
+                    >
+                      {detail.state.next_action.label}
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  )}
+                  {detail.state.secondary_action
+                    && detail.state.secondary_action.kind !== 'none' && (
+                    <button
+                      data-testid="secondary-action"
+                      onClick={() => act(detail.state.secondary_action!.kind)}
+                      className="inline-flex items-center gap-2 border-2 border-slate-300 text-slate-700 font-semibold px-5 py-3 rounded-lg hover:bg-white"
+                    >
+                      {detail.state.secondary_action.label}
+                    </button>
+                  )}
+                </div>
               </section>
 
               {/* THE SIGNING, IN FULL — the panel that used to expand
@@ -310,7 +330,19 @@ function DeedPageInner() {
                 </div>
               </section>
 
-              {/* ══ 4. ONE LEVEL OUT ══════════════════════════════════ */}
+              {/* ══ 4. ONE LEVEL OUT ══════════════════════════════════
+                  OWNER-RULED TO STAY (a proposed cut was overruled).
+
+                  The ranking argument for cutting it was accepted and
+                  the conclusion was not: an officer arriving cold from a
+                  notification is the case this page exists for, and
+                  "which file is this on" is the question she has before
+                  she has any other.
+
+                  The success page's matter block is not a substitute —
+                  it serves somebody who just MADE the deed and might
+                  start a related one. This serves somebody RETURNING to
+                  it. Cut only on evidence nobody uses it. */}
               {detail.matter && (
                 <section data-testid="matter" className="mb-10">
                   <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-800 mb-3">

@@ -244,13 +244,49 @@ DEED_STATES = frozenset({
 #: job is telling a state from an action. A pin caught the collision;
 #: renaming it was cheaper than teaching every reader which one is meant.
 ACTION_KINDS = frozenset({
-    "resume", "share_for_review", "open_signing", "download", "none"})
+    "resume", "share_for_review", "request_signing", "open_signing",
+    "download", "none"})
+
+#: Every key a state block carries, asserted by `_state` before it
+#: leaves. `secondary_action` is present on EVERY state — as None where
+#: there is none — because a payload whose shape depends on its content
+#: gives the screen two contracts and the second is the one nothing
+#: tests. Same reason the page payload keeps its shape when disqualified.
+STATE_BLOCK_KEYS = frozenset({
+    "state", "headline", "sentence", "next_action", "secondary_action",
+    "signing_request_id", "asserted_at"})
 
 
 def _action(kind: str, label: str) -> Dict[str, str]:
     if kind not in ACTION_KINDS:
         raise ValueError(f"{kind!r} is not an action this page offers")
     return {"kind": kind, "label": label}
+
+
+def _state(**block: Any) -> Dict[str, Any]:
+    """One state block, with its shape asserted rather than trusted.
+
+    ═══ WHY THERE IS AT MOST ONE SECONDARY ═══
+
+    "One state, one obvious action" is still the rule, and `ready` is the
+    single deliberate exception (owner-ruled): a generated deed has two
+    genuinely common next moves, and reaching the second one only through
+    a dialog about the first is an affordance problem rather than a
+    simplification.
+
+    The field is SINGULAR on purpose. A list would grow, and a wall of
+    equal choices is exactly what the one-action rule exists to prevent —
+    the ruling was "do not hide the second most common move", not "offer
+    everything".
+    """
+    block.setdefault("secondary_action", None)
+    block.setdefault("signing_request_id", None)
+    if set(block) != STATE_BLOCK_KEYS:
+        raise ValueError(
+            "the state block no longer matches its contract: "
+            f"extra={sorted(set(block) - STATE_BLOCK_KEYS)} "
+            f"missing={sorted(STATE_BLOCK_KEYS - set(block))}")
+    return block
 
 
 def state_and_next(
@@ -287,91 +323,105 @@ def state_and_next(
         # who said it and when they said it, because the alternative is a
         # bare "Recorded" that reads as though we checked.
         number = (deed.get("instrument_number") or "").strip()
-        return {
-            "state": "recorded",
-            "headline": "Marked as recorded",
-            "sentence": (
+        return _state(
+            state="recorded",
+            headline="Marked as recorded",
+            sentence=(
                 "You recorded this instrument"
                 + (f" as {number}" if number else "")
                 + ". That is your statement — we are not told by the county."
             ),
-            "next_action": _action("download", "Download the instrument"),
-            "asserted_at": _iso(deed.get("recording_asserted_at")),
-        }
+            next_action=_action("download", "Download the instrument"),
+            asserted_at=_iso(deed.get("recording_asserted_at")),
+        )
 
     if not completed:
-        return {
-            "state": "draft",
-            "headline": "Draft",
-            "sentence": "Not generated yet. Nothing has been sent to anyone.",
-            "next_action": _action("resume", "Continue this deed"),
-            "asserted_at": None,
-        }
+        return _state(
+            state="draft",
+            headline="Draft",
+            sentence="Not generated yet. Nothing has been sent to anyone.",
+            next_action=_action("resume", "Continue this deed"),
+            asserted_at=None,
+        )
 
     live = [s for s in signings if s.get("live")]
     if live:
         first = live[0]
-        return {
-            "state": "signing",
-            "headline": "Out for signing",
+        return _state(
+            state="signing",
+            headline="Out for signing",
             # WHICH signing. Without it the page can only offer "request
             # a signing", and offering that on a deed that already has
             # one is an invitation to create a second — three more
             # emails and two notaries who each think they have it.
             # CANCEL1 item 4 found exactly this on Past Deeds.
-            "signing_request_id": first.get("id"),
+            signing_request_id=first.get("id"),
             # The server's sentence about a scheduling state is
             # signing_loop's, already composed. Rewriting it here would
             # be the second opinion §13 rule 3 exists to prevent.
-            "sentence": first.get("summary") or "A signing is in progress.",
-            "next_action": _action("open_signing", "Open the signing"),
-            "asserted_at": None,
-        }
+            sentence=first.get("summary") or "A signing is in progress.",
+            next_action=_action("open_signing", "Open the signing"),
+            asserted_at=None,
+        )
 
     decisions = [(s.get("status") or "").strip().lower() for s in shares]
     if "rejected" in decisions:
-        return {
-            "state": "changes_requested",
-            "headline": "Changes requested",
-            "sentence": (
+        return _state(
+            state="changes_requested",
+            headline="Changes requested",
+            sentence=(
                 "A reviewer asked for changes. Read what they said before "
                 "sending this anywhere else."
             ),
-            "next_action": _action("share_for_review", "See the review"),
-            "asserted_at": None,
-        }
+            next_action=_action("share_for_review", "See the review"),
+            asserted_at=None,
+        )
     outstanding = [d for d in decisions if d in ("sent", "viewed", "")]
     if outstanding:
-        return {
-            "state": "in_review",
-            "headline": "Out for review",
-            "sentence": "Sent for review. No answer yet.",
-            "next_action": _action("share_for_review", "See who has it"),
-            "asserted_at": None,
-        }
+        return _state(
+            state="in_review",
+            headline="Out for review",
+            sentence="Sent for review. No answer yet.",
+            next_action=_action("share_for_review", "See who has it"),
+            asserted_at=None,
+        )
     if "approved" in decisions:
-        return {
-            "state": "approved",
-            "headline": "Approved — ready to record",
-            "sentence": (
+        return _state(
+            state="approved",
+            headline="Approved — ready to record",
+            sentence=(
                 "A reviewer approved it. Recording happens at the county; "
                 "this product does not do that part and is not told when "
                 "it is done."
             ),
-            "next_action": _action("download", "Download the instrument"),
-            "asserted_at": None,
-        }
+            next_action=_action("download", "Download the instrument"),
+            asserted_at=None,
+        )
 
-    return {
-        "state": "ready",
-        "headline": "Generated",
-        "sentence": (
+    # ═══ THE ONE STATE WITH TWO ACTIONS (owner-ruled) ═══
+    #
+    # A generated deed has two genuinely common next moves and no basis
+    # for guessing which. The first build offered only review, and
+    # starting a signing was reachable only through the share modal's
+    # "did you mean a signing?" switch — which is FLOW1 item 1's
+    # affordance problem one screen over: the second most common move
+    # discoverable only by opening a dialog about the first.
+    #
+    # "One state, one obvious action" means DO NOT PRESENT A WALL OF
+    # EQUAL CHOICES. It does not mean hide the other one. The two are
+    # ranked rather than equal — review is primary — and there is no
+    # third, because `secondary_action` is singular by construction.
+    return _state(
+        state="ready",
+        headline="Generated",
+        sentence=(
             "The instrument exists and has not been sent to anyone. "
             "Send it for review, or out for signing."
         ),
-        "next_action": _action("share_for_review", "Send for review"),
-        "asserted_at": None,
-    }
+        next_action=_action("share_for_review", "Send for review"),
+        secondary_action=_action("request_signing", "Request signing"),
+        asserted_at=None,
+    )
 
 
 def _iso(value: Any) -> Optional[str]:

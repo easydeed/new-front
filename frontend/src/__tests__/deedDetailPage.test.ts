@@ -157,6 +157,73 @@ describe('both languages declare the same contract', () => {
   });
 });
 
+describe('the ready state offers both, ranked (owner-ruled)', () => {
+  it('the page renders a secondary action when there is one', () => {
+    /**
+     * The first build offered review alone, and starting a signing was
+     * reachable only through the share modal's "did you mean a
+     * signing?" switch — FLOW1 item 1's affordance problem one screen
+     * over. "One obvious action" means do not present a wall of equal
+     * choices, not hide the second most common move.
+     */
+    expect(PAGE).toContain('detail.state.secondary_action');
+    expect(PAGE).toContain('data-testid="secondary-action"');
+    expect(PAGE).toContain("act(detail.state.secondary_action!.kind)");
+  });
+
+  it('and renders it as subordinate, not as a twin', () => {
+    // Ranked rather than equal. Two identical buttons is the wall.
+    const at = PAGE.indexOf('data-testid="secondary-action"');
+    const block = PAGE.slice(at, at + 500);
+    expect(block).not.toContain('bg-[#7C4DFF] text-white');
+    expect(block).toContain('border-2 border-slate-300');
+  });
+
+  it('starting a signing and opening one are different verbs', () => {
+    // Collapsing them is how a deed with a live signing gets a second
+    // one — CANCEL1 item 4, one screen over.
+    expect(PAGE).toContain("kind === 'request_signing'");
+    expect(PAGE).toContain("kind === 'open_signing'");
+  });
+
+  it('there is no third action, in either language', () => {
+    // Singular by construction. A list would grow.
+    expect(PAGE).not.toContain('secondary_actions');
+    const block = PY.slice(PY.indexOf('STATE_BLOCK_KEYS = frozenset({'));
+    expect(block.slice(0, block.indexOf('})'))).toContain('"secondary_action"');
+    expect(block.slice(0, block.indexOf('})'))).not.toContain('"secondary_actions"');
+  });
+});
+
+describe('the matter section stays (a proposed cut was overruled)', () => {
+  it('it is still rendered', () => {
+    /**
+     * The ranking argument for cutting it was accepted; the conclusion
+     * was not. An officer arriving cold from a notification is the case
+     * this page exists for, and "which file is this on" is the question
+     * she has before she has any other.
+     *
+     * The success page's matter block is not a substitute: it serves
+     * somebody who just MADE the deed. This serves somebody RETURNING.
+     */
+    expect(PAGE).toContain('data-testid="matter"');
+    expect(PAGE).toContain('detail.matter.documents.map');
+  });
+
+  it('and it links each sibling to its own deed page', () => {
+    // The orphan resolved one more way: a file is only navigable if the
+    // documents on it are.
+    expect(PAGE).toContain('href={`/deeds/${d.id}`}');
+  });
+
+  it('the ruling is recorded where somebody would go to cut it', () => {
+    // A decision that lives only in a PR body is one the next reader
+    // re-derives from scratch.
+    const raw = read('app', 'deeds', '[id]', 'page.tsx');
+    expect(raw).toContain('OWNER-RULED TO STAY');
+  });
+});
+
 describe('the activity keeps the distinction the API went to trouble over', () => {
   it('an event and a derived timestamp are told apart', () => {
     expect(isRecordedAct({ kind: 'event' })).toBe(true);

@@ -868,6 +868,105 @@ we reach it.
   because the key-set assert raised the SAME EXCEPTION TYPE. Matching the
   reason rather than the type is the same fix at a smaller scale.
 
+- **RULED 2026-08-13 — the `ready` state offers BOTH actions**, review
+  primary, signing beside it. My own flag on the DEEDDETAIL report was
+  right and the ruling confirms it.
+
+  **"One state, one obvious action" means do not present a wall of equal
+  choices. It does not mean hide the second most common move.** Reaching
+  signing only through the share modal's "did you mean a signing?"
+  switch is FLOW1 item 1's affordance problem one screen over — the
+  thing you want discoverable only by opening a dialog about a different
+  thing.
+
+  `secondary_action` is SINGULAR in both languages, and `ready` is the
+  only state that has one. Both pinned, so a third action or a second
+  exception is a decision rather than a drift.
+
+- **RULED 2026-08-13 — the matter section STAYS on the deed page.** My
+  proposed cut is overruled.
+
+  The ranking argument was accepted and the conclusion was not: the cost
+  I named — an officer arriving cold from a notification — **is the case
+  the page exists for.** "Which file is this on" is the question she has
+  before she has any other.
+
+  The success page's matter block is not a substitute. It serves
+  somebody who just MADE the deed and might start a related one; this
+  serves somebody RETURNING to one. Cut later only on evidence nobody
+  uses it. The ruling is recorded in the page source, where somebody
+  would go to cut it.
+
+- **FOLLOW-UP — the PCOR and BOE-502-D offers exist ONLY on the success
+  page** (surfaced confirming DEEDDETAIL's premise, 2026-08-13).
+
+  A pre-filled companion form, built from facts the deed already holds,
+  reachable for exactly one page view. Leave and it is gone: nothing on
+  the deed page, Past Deeds or the tracker offers it, and the officer
+  has no way to know it ever existed.
+
+  Every conveyance is legally incomplete without a concurrent BOE-502-A
+  (R&T §480.3), so this is not a convenience that expires — it is the
+  companion document, lost on navigation.
+
+  Not built: it is not in the ruled order for the deed page, and adding
+  it there is a decision about that page's contents rather than a
+  defect fix. Sized: the endpoints exist (`/deeds/{id}/pcor`,
+  `/deeds/{id}/death-statement`) and the deed page already fetches one
+  payload, so it is a section and a download handler.
+
+- **FOLLOW-UP — `handleShare` on the success page still navigates**
+  (same investigation, 2026-08-13).
+
+  `router.push('/past-deeds?id=X&action=share')` — the exact pattern
+  #178 replaced on the preview page with a dialog opened in place. It
+  sends her to a list to re-find the deed she is looking at, so she can
+  be asked a question that could have been asked where she stood.
+
+  Left alone deliberately: it is the success page's, not the deed
+  page's, and folding it into Unit 2 would have widened that diff.
+  Small — the modal and its provider are already imported on pages
+  either side of it.
+
+- **SIXTH SIGHTING, one hour after recording the fifth — and the fix
+  that finally generalises** (2026-08-13).
+
+  The pins protecting the matter-section ruling asserted that
+  `data-testid="matter"` APPEARS IN THE SOURCE. A probe changed the
+  guard to `{false && detail.matter && (` — the section gone from every
+  screen, every string still present — and all 31 pins passed.
+
+  **The ledger entry recording the fifth sighting was written an hour
+  earlier, by me, and I wrote three more of the same pin immediately
+  after.** That is not carelessness; it is the entry's own claim
+  demonstrated: the lesson does not transfer by being known.
+
+  **What changed this time:** for a service, "convert the assertion to a
+  call" means calling the function. For a PAGE it means RENDERING it —
+  and until now nothing in this suite ever had. `jest-environment-jsdom`
+  and `@testing-library/react` were both installed and entirely unused
+  across 60 suites of source-text pins.
+
+  `deedPageRender.test.tsx` asks what an officer SEES for a given
+  payload. It does not replace the source pins beside it: those assert
+  rules about how the code is WRITTEN (no state vocabulary in the
+  screen, sentences rendered verbatim), which rendering cannot check.
+  One proves the rule is stated, the other proves it is reached.
+
+  **The class is now closed for this page** and the technique is
+  available to every other one. The parked string-presence audit (43
+  files, ~600 assertions) should be re-scoped against it: the branch-
+  subject pins on RENDERED surfaces have a real fix now, not just a
+  warning.
+
+  A second trap worth recording, found building it: `jest.mock` is only
+  hoisted above the imports when babel sees the GLOBAL `jest`. Every
+  other file here imports `jest` from `@jest/globals`, which silently
+  disables hoisting — the page loaded first, captured the real
+  `useRequireAuth`, found no token, and rendered an empty string with no
+  error and no warning. **A test that produces nothing looks exactly
+  like a test with nothing to say** — the same disease one level up.
+
 ## Parked tickets (scoped, not scheduled)
 
 - **Audit the string-presence pins whose subject is a BRANCH** (CANCEL1
