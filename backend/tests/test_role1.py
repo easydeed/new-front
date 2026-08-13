@@ -37,21 +37,24 @@ from auth import ADMIN_ROLES, is_admin_role
 # ── One definition ───────────────────────────────────────────────────
 
 def test_the_vocabulary_lives_in_exactly_one_place():
-    assert ADMIN_ROLES == ('admin', 'administrator', 'superadmin', 'super_admin')
+    assert ADMIN_ROLES == ('admin',)
     src = inspect.getsource(is_admin_role)
     assert "ADMIN_ROLES" in src
 
 
-@pytest.mark.parametrize("spelling", [
-    "admin", "Admin", "ADMIN", " administrator ", "Administrator",
-    "superadmin", "SUPER_ADMIN",
-])
+@pytest.mark.parametrize("spelling", ["admin", "Admin", "ADMIN", " admin "])
 def test_every_spelling_is_admin_everywhere(spelling):
     assert is_admin_role(spelling) is True
 
 
 @pytest.mark.parametrize("not_admin", [
     "Escrow Officer", "user", "", None, "adminn", "administrater", "Notary",
+    # NARROWED after the migration converged the column. These three were
+    # recognized while history held them; the migration verified that it
+    # no longer does — ('admin', None, 1), ('user', 'Escrow Officer', 1),
+    # ('user', 'Title Agent', 1), ('user', None, 1). Narrowing before it
+    # ran would have removed somebody's access silently.
+    "administrator", "superadmin", "super_admin",
 ])
 def test_and_nothing_else_is(not_admin):
     assert is_admin_role(not_admin) is False
@@ -139,12 +142,15 @@ def test_the_assignable_set_is_authorization_not_job_titles():
     assignable set is now two values, not five.
 
     The three that left (`administrator`, `superadmin`, `super_admin`)
-    are still RECOGNIZED by the gates, for rows history already wrote.
-    Recognizing a spelling and minting more of it are different acts.
+    stayed RECOGNIZED while rows history had written still held them.
+    The migration converged the column on 2026-08-13 and `ADMIN_ROLES`
+    narrowed with it, so recognized and assignable are now the same set —
+    the boundary case of recognized ⊇ assignable, reached deliberately
+    and in that order.
     """
     from routers.admin_api_v2 import ASSIGNABLE_ROLES
     assert ASSIGNABLE_ROLES == frozenset({'user', 'admin'})
-    assert ASSIGNABLE_ROLES < frozenset({*ADMIN_ROLES, 'user'})
+    assert ASSIGNABLE_ROLES == frozenset({*ADMIN_ROLES, 'user'})
     src = inspect.getsource(
         __import__('routers.admin_api_v2', fromlist=['x'])._validate_role_change)
     assert "job title" in src.lower()
@@ -229,16 +235,23 @@ def test_promotion_can_never_trip_the_lockout_check():
                   "boss@deedpro.com", "admin") is None
 
 
-def test_a_recognized_spelling_is_still_refused_as_an_ASSIGNMENT():
-    """The two sets differ, and this is where the difference is visible.
+def test_the_two_sets_have_converged_now_that_the_data_has():
+    """The interim shape had an expiry, and this is it.
 
-    `Administrator` opens every gate for a row that already holds it —
-    and cannot be written into a new one. A console that could write it
-    would be manufacturing more of the divergence ROLE1 converged.
+    Recognized was WIDER than assignable while rows existed that the
+    console must not mint more of. The migration converged the column, so
+    the sets are now equal — recognized ⊇ assignable still holds, at the
+    boundary case.
+
+    A spelling the gates no longer recognize is also refused as an
+    assignment, which is the same refusal arriving from both directions.
     """
     from fastapi import HTTPException
+    from routers.admin_api_v2 import ASSIGNABLE_ROLES
+
+    assert ASSIGNABLE_ROLES == frozenset({*ADMIN_ROLES, 'user'})
     for spelling in ("Administrator", "superadmin", "super_admin"):
-        assert is_admin_role(spelling) is True, "still recognized"
+        assert is_admin_role(spelling) is False, "no longer recognized"
         with pytest.raises(HTTPException) as exc:
             _check({"email": "x@y.z", "role": "user"}, "boss@deedpro.com", spelling)
         assert exc.value.status_code == 400

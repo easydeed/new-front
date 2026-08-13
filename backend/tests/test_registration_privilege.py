@@ -5,7 +5,7 @@ prints on a profile (Escrow Officer, Title Agent, ...) and the value
 `is_admin_role()` reads to open the admin console. Registration accepted
 that field verbatim from the request body, so:
 
-    POST /users/register {"role": "admin", ...}
+    POST /users/register {"job_title": "admin", ...}
 
 minted a working admin account — the token returned by the very same call
 carried role=admin, and /admin/* answered it, including POST
@@ -27,19 +27,37 @@ ADMIN_ROLE_SPELLINGS = ["admin", "Admin", "ADMIN", " administrator ",
 
 
 def test_registration_rejects_privileged_roles_structurally():
-    """The guard lives in the handler and must stay there."""
+    """STRUCTURALLY, and that word finally means what it says.
+
+    This asserted the handler contains `is_admin_role(user.role)` — a
+    string refusal, which was the right fix in #103 and is not the fix
+    now. ROLE1 step 3 gave the job title its own column and bound the
+    access column to a module constant, so no request value reaches it.
+    The refusal came out with the legacy `role` field once a frontend
+    sending `job_title` had been live through a deploy.
+
+    What is pinned instead is the structure.
+    """
     from routers import users_auth
+    from routers.users_auth import UserRegister
+
+    assert "role" not in UserRegister.model_fields, (
+        "a `role` field on the registration model is a field that can be "
+        "spelled at, which is the defect this replaced")
     src = inspect.getsource(users_auth.register_user)
-    assert "is_admin_role(user.role)" in src, "registration no longer checks the role"
+    assert "DEFAULT_ROLE," in src
 
 
-def test_is_admin_role_still_covers_every_spelling():
-    """The guard is only as wide as the predicate it shares with the
-    admin gate — they must not drift apart."""
+def test_no_spelling_a_registrant_could_try_grants_anything():
+    """The predicate NARROWED with the data — `ADMIN_ROLES` is ('admin',)
+    since the migration converged the column — so most of these are now
+    ordinary strings. That changes nothing about the protection, which is
+    the point: it never depended on the predicate being wide."""
     from auth import is_admin_role
-    for spelling in ADMIN_ROLE_SPELLINGS:
-        assert is_admin_role(spelling), spelling
-    for ordinary in ["escrow_officer", "Title Agent", "attorney", "user", ""]:
+    assert is_admin_role("admin") is True
+    assert is_admin_role(" ADMIN ") is True
+    for ordinary in ["escrow_officer", "Title Agent", "attorney", "user", "",
+                     "administrator", "superadmin", "super_admin"]:
         assert not is_admin_role(ordinary), ordinary
 
 
@@ -55,20 +73,36 @@ def test_cannot_self_register_as_admin(spelling):
 
     client = TestClient(app)
     email = f"escalate-{spelling.strip().lower()}@privilege.test"
+    import psycopg2
+    conn = psycopg2.connect(LIVE_DB)
+    conn.autocommit = True
+    with conn.cursor() as cur:
+        cur.execute("""DELETE FROM user_profiles WHERE user_id IN
+                       (SELECT id FROM users WHERE email = %s)""", (email,))
+        cur.execute("DELETE FROM users WHERE email = %s", (email,))
+    conn.close()
+
+    # Sent under the ONE wire name there is. The account IS created —
+    # this is a job title, and being called "admin" is not a claim on
+    # anything.
     resp = client.post("/users/register", json={
         "email": email, "password": "Escalate!Passw0rd",
         "confirm_password": "Escalate!Passw0rd", "full_name": "Escalation Probe",
-        "role": spelling, "state": "CA", "agree_terms": True,
+        "job_title": spelling, "state": "CA", "agree_terms": True,
     })
-    assert resp.status_code == 400, f"{spelling!r} was accepted: {resp.text}"
+    assert resp.status_code == 200, resp.text
 
-    # And no account exists to be promoted by a later login.
-    import psycopg2
+    # AND IT GRANTED NOTHING — a stronger statement than the 400 this
+    # used to assert, because it survives somebody adding a field back.
     conn = psycopg2.connect(LIVE_DB)
     with conn.cursor() as cur:
-        cur.execute("SELECT COUNT(*) FROM users WHERE email = %s", (email,))
-        assert cur.fetchone()[0] == 0
+        cur.execute("SELECT role, job_title FROM users WHERE email = %s", (email,))
+        assert cur.fetchone() == ("user", spelling.strip())
     conn.close()
+
+    token = resp.json()["access_token"]
+    assert client.get("/admin/api-keys",
+                      headers={"Authorization": f"Bearer {token}"}).status_code == 403
 
 
 @pytest.mark.skipif(not LIVE_DB, reason="live test DB required")
@@ -93,7 +127,7 @@ def test_ordinary_registration_still_works_and_is_not_admin():
     resp = client.post("/users/register", json={
         "email": email, "password": "Ordinary!Passw0rd",
         "confirm_password": "Ordinary!Passw0rd", "full_name": "Ordinary User",
-        "role": "Escrow Officer", "state": "CA", "agree_terms": True,
+        "job_title": "Escrow Officer", "state": "CA", "agree_terms": True,
     })
     assert resp.status_code == 200, resp.text
     token = resp.json()["access_token"]

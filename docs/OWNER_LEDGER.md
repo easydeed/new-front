@@ -212,6 +212,46 @@ when their trigger arrives.
   that audits the manifest against the code, which the new pin now does
   continuously.
 
+## ROLE1 migration — APPLIED and verified (2026-08-13)
+
+`backend/migrations/role1_separate_job_title.py --apply`, run by the
+owner against production after the plan was reviewed.
+
+**Final state, verified:**
+
+| role | job_title | rows |
+|---|---|---|
+| `admin` | — | 1 |
+| `user` | Escrow Officer | 1 |
+| `user` | Title Agent | 1 |
+| `user` | — | 1 |
+
+Two job titles moved out of the authorization column with `role` set to
+`user` EXPLICITLY, and the one admin was already canonically spelled, so
+no spelling was rewritten.
+
+**Both conditional rulings fired on the strength of it:**
+
+- `ADMIN_ROLES` narrowed from four spellings to `('admin',)`. It stayed
+  wide through steps 1–3 on purpose: narrowing before the migration would
+  have silently removed access from an unmigrated row, and narrowing
+  after removes nothing because there is nothing left to remove. The
+  interim shape (recognized ⊋ assignable) had an expiry and this was it —
+  the two sets are now equal.
+- The legacy `role` field came off the registration wire, with the string
+  refusal that guarded it. The trigger written into both files was "once
+  a frontend sending `job_title` has been live through a deploy", and it
+  fired rather than being forgotten.
+
+**What replaced the refusal is stronger than the refusal.** Registration
+binds a module constant to the access column, so no request value reaches
+it — there is no field to spell at. Every test-suite fixture registering
+with `role` had to move to `job_title`, which is a fair rehearsal of what
+a stale client would have experienced and is the reason the pair was kept
+through one deploy window rather than cut in one step.
+
+---
+
 ## Deferred by owner decision — credentials in git history (2026-08-13)
 
 **Status: DEFERRED BY DECISION, NOT OUTSTANDING, NOT FORGOTTEN.** The

@@ -126,7 +126,8 @@ INSTRUMENT_KEYS = frozenset({"deed_type", "count", "period"})
 #: "7 fields across 4 documents" from a list it also renders would be a
 #: second opinion about the product's own promise.
 ACCURACY_KEYS = frozenset({"fields", "documents", "items"})
-ACCURACY_ITEM_KEYS = frozenset({"deed_id", "deed_type", "property", "checks"})
+ACCURACY_ITEM_KEYS = frozenset({"deed_id", "deed_type", "property",
+                                "escrow_no", "checks"})
 
 UPCOMING_KEYS = frozenset({"kind", "id", "deed_id", "property", "when",
                            "who", "summary"})

@@ -35,10 +35,12 @@
  * Mirrors `ADMIN_ROLES` in `backend/auth.py`, and a test compares the
  * two files rather than trusting this comment.
  *
- * RECOGNIZED, not assignable: the console offers User and Admin only.
- * The other three exist because history wrote them.
+ * NARROWED to one, 2026-08-13, after the ROLE1 migration converged the
+ * column. Three spellings were recognized because history had written
+ * three; it no longer has. Narrowing before the migration would have
+ * silently removed somebody's access — narrowing after removes nothing.
  */
-export const ADMIN_ROLES = ['admin', 'administrator', 'superadmin', 'super_admin'] as const;
+export const ADMIN_ROLES = ['admin'] as const;
 
 /** Does this role string mean admin? The one answer. */
 export function isAdminRole(role: string | null | undefined): boolean {

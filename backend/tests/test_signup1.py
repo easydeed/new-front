@@ -147,20 +147,25 @@ def test_the_column_exists_in_the_one_schema_authority():
 # ── The role guard still holds on the new path ───────────────────────
 
 def test_a_free_text_role_cannot_grant_privilege():
-    """SIGNUP1 opens a NEW WAY INTO `users.role`.
+    """SIGNUP1 opened a NEW WAY INTO `users.role`, and ROLE1 step 3 shut
+    the door rather than widening the guard on it.
 
-    "Other" now resolves to whatever she typed, and `users.role` is the
-    column `is_admin_role()` reads to gate the admin console — the #103
-    escalation. The guard must sit on the resolved value, not on the
-    dropdown, or the free-text box is the escalation path reopened.
+    "Other" resolves to whatever she typed. While `users.role` was the
+    column `is_admin_role()` reads, that free-text box was the #103
+    escalation path reopened, and the answer was a refusal sitting on the
+    resolved value.
 
-    Verified structurally: the check reads `user.role`, which is what the
-    client sends after resolving "Other", so there is no second field
-    that bypasses it.
+    The answer now is that the resolved value goes to `job_title` and the
+    access column is written from a module constant. There is no field to
+    guard, which is why the guard is gone: what she types cannot reach
+    the column that decides anything.
     """
     src = inspect.getsource(mod.register_user)
-    assert "is_admin_role(user.role)" in src
-    assert src.index("is_admin_role(user.role)") < src.index("INSERT INTO users")
+    assert "job_title = clean_profile_text(user.job_title)" in src
+    assert "DEFAULT_ROLE," in src
+    # The resolved title is bound to `job_title` BEFORE the INSERT, and
+    # nothing between them touches the access column.
+    assert src.index("job_title = clean_profile_text") < src.index("INSERT INTO users")
 
 
 @pytest.mark.parametrize("claimed", ["admin", "Admin", "ADMIN"])

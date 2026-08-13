@@ -72,7 +72,7 @@ def admin_client():
     client.post("/users/register", json={
         "email": ADMIN_EMAIL, "password": ADMIN_PASSWORD,
         "confirm_password": ADMIN_PASSWORD, "full_name": "Contract Admin",
-        "role": "escrow_officer", "state": "CA", "agree_terms": True})
+        "job_title": "escrow_officer", "state": "CA", "agree_terms": True})
     conn = psycopg2.connect(LIVE_DB)
     conn.autocommit = True
     with conn.cursor() as cur:
