@@ -654,6 +654,35 @@ we reach it.
   page's activity list is a UNION of real timestamp columns, which is
   honest but is not the log this table nearly is.
 
+- **The officer's company reaches a deed by DEFAULT, not by becoming a
+  partner** (SETTINGS1 item 5, owner ruling reversed on the report,
+  2026-08-13). She gave us her company at signup and typed it again in
+  Settings; "Recording Requested By" is a Partner picker, so she would
+  have had to enter it a third time.
+
+  Auto-creating a partner row is cheap — `partners` needs `company_name`,
+  `created_by_user_id`, `category`, `role`, all of which we have — and
+  it is still the wrong move. **A partner is a COUNTERPARTY**: somebody
+  you send things to. Her own company is not one, and auto-inserting it
+  makes the picker a list where one entry means something categorically
+  different from the rest. That is the two-populations problem ruled in
+  DEEDDETAIL, one table over.
+
+  So: the requested-by field DEFAULTS from `user_profiles.company_name`,
+  and the picker stays for actual counterparties. Not built in
+  SETTINGS1 — it is a builder change and belongs with the builder.
+
+- **`users.company_name` and `user_profiles.company_name` both exist**
+  (found 2026-08-13 while extending ProfilePatch; NOT resolved). Two
+  columns for one fact, in two tables. `/users/profile` returns the
+  `users` one; SETTINGS1 patches that one. `user_profiles.company_name`
+  is written by the enhanced-profile endpoint and read by nothing this
+  ticket touched.
+
+  Ruling wanted before the requested-by default is built, because that
+  feature has to read ONE of them and picking the wrong one is a field
+  that silently disagrees with Settings.
+
 ## Parked tickets (scoped, not scheduled)
 
 - **Audit the string-presence pins whose subject is a BRANCH** (CANCEL1
