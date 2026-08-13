@@ -120,8 +120,9 @@ when their trigger arrives.
      on our side is **sent and rejected with a 400 (signature)** — and
      the handler now says which of the two 400s it is.
 
-  2. **Report `SELECT count(*) FROM users WHERE subscribe = true`** when
-     LEGAL1 is built. `subscribe` IS a real column — the consent value is
+  2. **Report `SELECT count(*) FROM users WHERE subscribe = true`.**
+     LEGAL1 has shipped the stop-collecting half; this count is the only
+     part I cannot run (production query, Tier 3). `subscribe` IS a real column — the consent value is
      STORED, not merely accepted and dropped: written at registration,
      then unreachable (no read path, no patch path, no unsubscribe). We
      are holding a consent flag we cannot show, cannot let them change,

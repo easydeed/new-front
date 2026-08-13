@@ -36,7 +36,36 @@ class UserRegister(BaseModel):
     phone: Optional[str] = None
     state: str
     agree_terms: bool
-    subscribe: bool = False
+    # ── LEGAL1: `subscribe` IS NO LONGER ACCEPTED ─────────────────────
+    #
+    # It was captured here and written to the users table, and then
+    # appeared NOWHERE ELSE in 119 endpoints: not in any response, not on
+    # /users/profile, not in admin search or export. `ProfilePatch` takes
+    # only default_county and onboarding_completed. There is no
+    # unsubscribe endpoint and no email-preferences endpoint, while
+    # /admin/emails and /admin/emails/stats both exist.
+    #
+    # So the consent was unreadable, unmodifiable by the person who gave
+    # it, unproducible by support, and had no opt-out path. Mailing a
+    # list whose consent cannot be produced and which offers no way out
+    # is a CAN-SPAM problem, not a UX gap.
+    #
+    # OWNER-RULED: stop collecting it. Collecting consent we cannot
+    # honour is worse than not collecting it — it manufactures a record
+    # that looks like permission and cannot function as one.
+    #
+    # The COLUMN stays and existing rows are untouched: dropping a column
+    # is a data operation, and those values are evidence of what was
+    # collected even though they are unusable as permission.
+    #
+    # The lifecycle gets built when there is an actual reason to mail
+    # anyone — stored, readable on the profile, patchable by the user, a
+    # real unsubscribe path, and a List-Unsubscribe header on any
+    # non-transactional send. All of it, or none of it.
+    #
+    # Pydantic's `extra = "ignore"` is NOT relied on here: the field is
+    # absent from the model, so a client still sending it is ignored
+    # rather than silently honoured.
 
 class UserLogin(BaseModel):
     email: str
@@ -104,8 +133,8 @@ async def register_user(user: UserRegister = Body(...)):
         with conn.cursor() as cur:
             cur.execute("""
                 INSERT INTO users (email, password_hash, full_name, role, company_name,
-                                 company_type, phone, state, subscribe, plan)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                 company_type, phone, state, plan)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
             """, (
                 # Profile-hygiene: name/company/phone print on deed faces
@@ -114,7 +143,7 @@ async def register_user(user: UserRegister = Body(...)):
                 clean_profile_text(user.full_name), user.role,
                 clean_profile_text(user.company_name), user.company_type,
                 clean_profile_text(user.phone), user.state.upper(),
-                user.subscribe, 'free'
+                'free'
             ))
             result = cur.fetchone()
             if result:

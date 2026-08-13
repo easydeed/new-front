@@ -98,7 +98,6 @@ export default function RegisterPage() {
     phone: "",
     state: "",
     agreeTerms: false,
-    subscribe: false,
   })
 
   const validateForm = () => {
@@ -176,7 +175,6 @@ export default function RegisterPage() {
             phone: formData.phone || null,
             state: formData.state,
             agree_terms: formData.agreeTerms,
-            subscribe: formData.subscribe,
           }),
         },
       )
@@ -288,6 +286,7 @@ export default function RegisterPage() {
                   type="email"
                   id="email"
                   name="email"
+                  autoComplete="email"
                   value={formData.email}
                   onChange={handleChange}
                   className={`${inputBase} ${validationErrors.email ? "border-error-500" : "border-gray-200"}`}
@@ -303,10 +302,19 @@ export default function RegisterPage() {
                     Password <span className="text-error-500">*</span>
                   </label>
                   <div className="relative">
+                    {/* LEGAL1: WITHOUT autoComplete="new-password", CHROME FILLS A
+                          SAVED CREDENTIAL. It does not recognise this as a
+                          registration form, reads a password field, and
+                          offers a login it has stored — the audit caught
+                          eight dots and a "Good" strength bar before a
+                          single keystroke, with Confirm empty. Somebody can
+                          create an account with a password they never chose
+                          and do not know they reused. */}
                     <input
                       type={showPassword ? "text" : "password"}
                       id="password"
                       name="password"
+                      autoComplete="new-password"
                       value={formData.password}
                       onChange={handleChange}
                       className={`${inputBase} pr-12 ${
@@ -350,6 +358,7 @@ export default function RegisterPage() {
                       type={showConfirmPassword ? "text" : "password"}
                       id="confirmPassword"
                       name="confirmPassword"
+                      autoComplete="new-password"
                       value={formData.confirmPassword}
                       onChange={handleChange}
                       className={`${inputBase} pr-12 ${
@@ -381,6 +390,7 @@ export default function RegisterPage() {
                   type="text"
                   id="fullName"
                   name="fullName"
+                  autoComplete="name"
                   value={formData.fullName}
                   onChange={handleChange}
                   className={`${inputBase} ${validationErrors.fullName ? "border-error-500" : "border-gray-200"}`}
@@ -448,6 +458,7 @@ export default function RegisterPage() {
                     type="text"
                     id="companyName"
                     name="companyName"
+                    autoComplete="organization"
                     value={formData.companyName}
                     onChange={handleChange}
                     className={`${inputBase} border-gray-200`}
@@ -485,6 +496,7 @@ export default function RegisterPage() {
                   type="tel"
                   id="phone"
                   name="phone"
+                  autoComplete="tel"
                   value={formData.phone}
                   onChange={handleChange}
                   className={`${inputBase} border-gray-200`}
@@ -519,19 +531,19 @@ export default function RegisterPage() {
                   <p className="ml-7 text-sm text-error-500">{validationErrors.agreeTerms}</p>
                 )}
 
-                <div className="flex items-start">
-                  <input
-                    type="checkbox"
-                    id="subscribe"
-                    name="subscribe"
-                    checked={formData.subscribe}
-                    onChange={handleChange}
-                    className="mt-1 h-4 w-4 text-brand-500 border-gray-200 rounded focus:ring-brand-500 focus:ring-2"
-                  />
-                  <label htmlFor="subscribe" className="ml-3 text-sm text-gray-700">
-                    Send me product updates and tips via email
-                  </label>
-                </div>
+                {/* LEGAL1 — THE MARKETING CONSENT CHECKBOX IS GONE.
+                    It was collected here and written to the users table,
+                    then appeared nowhere else in 119 endpoints: no
+                    response carried it, /users/profile did not show it,
+                    ProfilePatch could not change it, and there was no
+                    unsubscribe endpoint — while /admin/emails existed.
+
+                    Consent that cannot be read back, changed by the
+                    person who gave it, produced by support, or acted on
+                    is not consent. Owner-ruled: stop collecting it. The
+                    lifecycle gets built when there is a reason to mail
+                    anyone, and then all of it at once — profile field,
+                    patch path, unsubscribe, List-Unsubscribe header. */}
               </div>
 
               {/* Submit Button */}
