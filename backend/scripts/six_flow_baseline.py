@@ -170,7 +170,28 @@ def run_flows():
         "data": {"object": {"client_reference_id": str(uid),
                             "metadata": {"plan": "professional", "user_id": str(uid)}}},
     }
-    with patch("phase23_billing.router_webhook.init_stripe", return_value=stripe_stub):
+    # ── MONEY1: THIS FLOW WAS PASSING IN A CONFIGURATION PRODUCTION
+    #    CANNOT RUN IN. ────────────────────────────────────────────────
+    #
+    # `init_stripe` was stubbed and the SECRET was never set, so flow 6
+    # recorded {"ok": true, plan_after: "professional"} while never
+    # exercising signature verification at all. In production the secret
+    # was unset, every real Stripe event was refused with a 400, and a
+    # paying customer stayed on the free plan.
+    #
+    # So the baseline that exists to prove the six critical flows work
+    # could not have caught the one that was broken — it bypassed the
+    # exact step that was failing.
+    #
+    # The secret is set here so flow 6 tests what it is NAMED for: plan
+    # sync from a verified event. VERIFICATION ITSELF IS NOT COVERED BY
+    # THIS BASELINE and should not be read as covered — it is pinned in
+    # tests/test_phase23_webhook.py, which asserts the two refusals (not
+    # configured, and configured-but-mismatched) separately.
+    settings_stub = MagicMock()
+    settings_stub.STRIPE_WEBHOOK_SECRET = "whsec_baseline"
+    with patch("phase23_billing.router_webhook.init_stripe", return_value=stripe_stub), \
+         patch("phase23_billing.router_webhook.get_settings", return_value=settings_stub):
         hook = client.post("/payments/webhook", content=b"{}",
                            headers={"stripe-signature": "t=1,v1=baseline"})
     cur.execute("SELECT plan FROM users WHERE id=%s", (uid,))

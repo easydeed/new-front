@@ -149,10 +149,42 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
+
+    # ── MONEY1: NOT CONFIGURED IS NOT A BAD SIGNATURE ─────────────────
+    #
+    # Both used to arrive as one 400 reading "Webhook verification
+    # failed", and their remedies have nothing in common: one is "set an
+    # environment variable", the other is "the signing secret in the
+    # dashboard and the one deployed are different copies".
+    #
+    # §4 — an error that names its context ends an investigation in one
+    # run. This one had to be diagnosed from the outside, by noticing
+    # that a customer had been charged and not upgraded.
+    #
+    # It stays a 4xx either way, so Stripe's own delivery log shows the
+    # attempt and its response. That log is the only thing that tells
+    # "never sent" from "sent and rejected" apart, and it is worth being
+    # able to read the reason there.
+    if not (s.STRIPE_WEBHOOK_SECRET or "").strip():
+        print("[billing] STRIPE_WEBHOOK_SECRET IS NOT SET. Every Stripe "
+              "event is being refused, so no checkout can ever upgrade a "
+              "plan and no subscription row is ever written. Customers "
+              "are being charged. Set it on the API service to the "
+              "signing secret of the endpoint registered in the Stripe "
+              "dashboard.", flush=True)
+        raise HTTPException(
+            status_code=400,
+            detail="Webhook secret is not configured on this service, so "
+                   "no event can be verified. This is a deployment "
+                   "problem, not a problem with the event.")
     try:
         event = stripe.Webhook.construct_event(payload=payload, sig_header=sig_header, secret=s.STRIPE_WEBHOOK_SECRET)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Webhook verification failed: {e}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Signature verification failed: {e}. The secret is "
+                   f"configured, so it does not match the signing secret "
+                   f"of the endpoint that sent this event.")
 
     etype = event.get("type")
     obj = event.get("data", {}).get("object", {})

@@ -329,7 +329,17 @@ def _fire_checkout(session_obj):
     app = FastAPI()
     app.include_router(router)
     app.dependency_overrides[get_db] = lambda: se
-    with patch("phase23_billing.router_webhook.init_stripe", return_value=stub):
+    _settings = MagicMock()
+    _settings.STRIPE_WEBHOOK_SECRET = 'whsec_test'
+    # MONEY1: the secret is set because this test is about what the
+    # handler DOES with a verified event. Verification is now two
+    # distinct refusals (not configured / mismatched), pinned in
+    # test_phase23_webhook.py. Before that split, FIVE test files
+    # exercised this endpoint with NO secret — proving handler
+    # behaviour in exactly the configuration that refuses every
+    # real Stripe event, which is why none of them could catch it.
+    with patch("phase23_billing.router_webhook.init_stripe", return_value=stub), \
+         patch("phase23_billing.router_webhook.get_settings", return_value=_settings):
         resp = TestClient(app).post("/payments/webhook", json={},
                                     headers={"stripe-signature": "t=1,v1=stub"})
     plan = se.execute(text("SELECT plan FROM users WHERE id = :i"), {"i": uid}).scalar()

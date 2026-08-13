@@ -118,6 +118,12 @@ services:
     sync: false
   - key: STRIPE_PROFESSIONAL_PRICE_ID
     sync: false
+  # MONEY1. Declared here because it was declared NOWHERE — not in this
+  # file and not as a REQUIRED variable — while the entire paid path
+  # depends on it. The name is what is declared; `sync: false` keeps the
+  # value where a secret belongs.
+  - key: STRIPE_WEBHOOK_SECRET
+    sync: false
   # STRICT_ENV turns the boot-time report into a refusal to start.
   # DELIBERATELY UNSET until the owner has confirmed production carries
   # every required variable: a process that refuses to boot on an

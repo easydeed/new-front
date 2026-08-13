@@ -55,7 +55,17 @@ def _subscription_event(etype, status="active", unit_amount=2999,
 def _post(client, event):
     stripe_stub = MagicMock()
     stripe_stub.Webhook.construct_event.return_value = event
-    with patch("phase23_billing.router_webhook.init_stripe", return_value=stripe_stub):
+    _settings = MagicMock()
+    _settings.STRIPE_WEBHOOK_SECRET = 'whsec_test'
+    # MONEY1: the secret is set because this test is about what the
+    # handler DOES with a verified event. Verification is now two
+    # distinct refusals (not configured / mismatched), pinned in
+    # test_phase23_webhook.py. Before that split, FIVE test files
+    # exercised this endpoint with NO secret — proving handler
+    # behaviour in exactly the configuration that refuses every
+    # real Stripe event, which is why none of them could catch it.
+    with patch("phase23_billing.router_webhook.init_stripe", return_value=stripe_stub), \
+         patch("phase23_billing.router_webhook.get_settings", return_value=_settings):
         return client.post("/payments/webhook", json={},
                            headers={"stripe-signature": "t=1,v1=stub"})
 

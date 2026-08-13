@@ -320,7 +320,17 @@ def test_a_user_reaches_checkout_with_a_real_customer_id_and_the_webhook_upgrade
     wapp.include_router(webhook_router)
     wapp.dependency_overrides[
         __import__("phase23_billing.deps", fromlist=["get_db"]).get_db] = lambda: session
-    with patch("phase23_billing.router_webhook.init_stripe", return_value=stub):
+    _settings = MagicMock()
+    _settings.STRIPE_WEBHOOK_SECRET = 'whsec_test'
+    # MONEY1: the secret is set because this test is about what the
+    # handler DOES with a verified event. Verification is now two
+    # distinct refusals (not configured / mismatched), pinned in
+    # test_phase23_webhook.py. Before that split, FIVE test files
+    # exercised this endpoint with NO secret — proving handler
+    # behaviour in exactly the configuration that refuses every
+    # real Stripe event, which is why none of them could catch it.
+    with patch("phase23_billing.router_webhook.init_stripe", return_value=stub), \
+         patch("phase23_billing.router_webhook.get_settings", return_value=_settings):
         wr = TestClient(wapp).post("/payments/webhook", json={},
                                    headers={"stripe-signature": "t=1,v1=stub"})
     assert wr.status_code == 200, wr.text

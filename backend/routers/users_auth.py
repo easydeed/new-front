@@ -377,12 +377,42 @@ async def get_user_profile_endpoint(user_id: int = Depends(get_current_user_id))
             "plan": user[8],
             "created_at": user[9],
             "last_login": user[10],
+            # ── MONEY1: A LIMIT NOTHING ENFORCES IS NOT REPORTED ──────
+            #
+            # This returned `max_deeds_per_month: 5` (and four more) from
+            # hardcoded fallbacks whenever `plan_limits` had no row for
+            # the plan — which is always, because the table is never
+            # seeded. `check_plan_limits` exists in main.py with ZERO
+            # call sites, so nothing has ever counted a deed against a
+            # cap.
+            #
+            # A number in a payload reads as a rule. An officer on Free
+            # would have been told she has five a month, by the API, and
+            # it was not true in either direction: nothing stopped her at
+            # five, and nothing had decided she should be stopped.
+            #
+            # Same class TRIAL1 deleted from the pricing copy, surviving
+            # in a payload instead — which is the harder place to see it,
+            # because copy gets read by people and payloads do not.
+            #
+            # OWNER-RULED: Free is uncapped for now, and this says so.
+            # `null` rather than a large number or an omitted key: absent
+            # would let a consumer infer its own default, and a big
+            # number would be a different invented rule. If a cap is ever
+            # wanted it arrives with enforcement AND copy together, never
+            # as a payload number alone.
             "plan_limits": {
-                "max_deeds_per_month": limits[0] if limits else 5,
-                "api_calls_per_month": limits[1] if limits else 100,
+                "max_deeds_per_month": limits[0] if limits else None,
+                "api_calls_per_month": limits[1] if limits else None,
                 "ai_assistance": limits[2] if limits else True,
                 "integrations_enabled": limits[3] if limits else False,
-                "priority_support": limits[4] if limits else False
+                "priority_support": limits[4] if limits else False,
+                # Says WHY the numbers are absent, so a consumer does not
+                # read null as "failed to load" and substitute a guess.
+                "enforced": bool(limits),
+                "note": ("No plan limit is enforced. These are null "
+                         "because nothing counts against them, not "
+                         "because they failed to load.") if not limits else None,
             }
         }
 

@@ -98,6 +98,28 @@ when their trigger arrives.
 
 ## Open — owner's card
 
+- **MONEY1 — Stripe, owner-side (Tier 3), 2026-08-13.** Two items only
+  the owner can do, both blocking a live launch.
+
+  1. **Set `STRIPE_WEBHOOK_SECRET` on the API service** to the signing
+     secret of the endpoint registered in the Stripe dashboard, and
+     confirm the endpoint is registered and points at the production
+     API. It was declared in NEITHER render.yaml NOR the REQUIRED
+     manifest, so nothing anywhere told anybody it needed setting. Both
+     are fixed; the value is the owner's.
+
+     Then read Stripe's own delivery log for the test-mode checkout
+     event. It is the only thing that distinguishes *never sent* from
+     *sent and rejected* from *sent and silently ignored*. The prediction
+     on our side is **sent and rejected with a 400 (signature)** — and
+     the handler now says which of the two 400s it is.
+
+  2. **The Stripe account business name reads "EasyDeeds sandbox".** It
+     appears on the checkout page, in the authorization line, and on
+     customer card statements. Must be corrected before live mode.
+
+
+
 - **Stripe URL verification — Tier 3, real dollar behind it** (DASH1,
   2026-08-11). Run a live test checkout at the $99 price and confirm:
   the success landing is `/account-settings?success=true` on the
