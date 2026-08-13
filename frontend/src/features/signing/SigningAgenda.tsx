@@ -37,42 +37,17 @@
  * is the server's own label, rendered in the REQUEST's timezone.
  */
 
-import { useEffect, useState } from 'react';
-import { AlertCircle, CalendarClock, CheckCircle2, Clock, Loader2 } from 'lucide-react';
-import { SessionExpiredError, apiFetch } from '@/lib/apiClient';
-import { cancelWarning } from '@/lib/signingCopy';
+import Link from 'next/link';
+import { AlertCircle, CalendarClock, CheckCircle2, Clock } from 'lucide-react';
 import {
   SigningSummary, STATE_LABEL, groupSignings, isStuck,
 } from './signingSummary';
-
-/** What `GET /signing-requests/v2/{id}` returns for one signing. */
-type Detail = {
-  state: string;
-  summary: string;
-  property_address: string | null;
-  booked_at: string | null;
-  cancelled_at: string | null;
-  participants: Array<{
-    id: number;
-    party_role: string;
-    name: string | null;
-    viewed_at: string | null;
-    revoked: boolean;
-  }>;
-  windows: Array<{
-    id: number;
-    label: string;
-    declined: boolean;
-    waiting_on: string[];
-  }>;
-};
 
 export function SigningAgenda({
   rows,
   error,
   staleAfterDays,
   focusId,
-  onChanged,
 }: {
   rows: SigningSummary[];
   /** The signings half failing must not blank the reviews half. The
@@ -81,12 +56,10 @@ export function SigningAgenda({
   /** The threshold travels with the queue payload, so the sentence
    *  explaining the amber banner can say the number without knowing it. */
   staleAfterDays: number | null;
-  /** `?kind=signings&focus=<id>` opens that signing. A notification about
-   *  one signing should be able to point at that signing. */
+  /** `?kind=signings&focus=<id>` still points at a row — it marks it
+   *  rather than expanding it, now that the panel is a link. */
   focusId: number | null;
-  onChanged: () => void;
 }) {
-  const [open, setOpen] = useState<number | null>(focusId);
   const groups = groupSignings(rows);
   const stuck = rows.filter(isStuck);
 
@@ -98,9 +71,7 @@ export function SigningAgenda({
         </h2>
         <div className={`space-y-3 ${dimmed ? 'opacity-70' : ''}`}>
           {items.map((r) => (
-            <SigningRow key={r.id} row={r} open={open === r.id}
-                        onToggle={() => setOpen(open === r.id ? null : r.id)}
-                        onCancelled={onChanged} />
+            <SigningRow key={r.id} row={r} focused={focusId === r.id} />
           ))}
         </div>
       </>
@@ -156,25 +127,33 @@ export function SigningAgenda({
  * returns the participants, their links, whether each has opened theirs,
  * and every window with who is still outstanding on it.
  */
-function SigningRow({ row, open, onToggle, onCancelled }: {
+function SigningRow({ row, focused }: {
   row: SigningSummary;
-  open: boolean;
-  onToggle: () => void;
-  /* A cancelled request moves from the agenda to the closed list, and
-     the grouping is the server's — so the list is re-read rather than
-     patched here. Same reason the summary is never composed locally. */
-  onCancelled: () => void;
+  /* `?kind=signings&focus=<id>` still points at a row; it just marks it
+     rather than expanding it. */
+  focused: boolean;
 }) {
   const stuck = isStuck(row);
   const booked = row.state === 'booked';
   const age = row.days_waiting;
 
   return (
-    <div className={`bg-white rounded-xl border ${stuck ? 'border-amber-300' : 'border-slate-200'}`}>
-      <button
-        onClick={onToggle}
-        aria-expanded={open}
-        className="w-full text-left p-4 hover:bg-slate-50 rounded-xl transition-colors"
+    <div className={`bg-white rounded-xl border ${
+      focused ? 'border-[#7C4DFF] ring-2 ring-[#7C4DFF]/20'
+      : stuck ? 'border-amber-300' : 'border-slate-200'}`}>
+      {/* THE PANEL COLLAPSED TO A LINK.
+          This row used to expand in place and fetch one signing's
+          participants, times and Cancel. That answers a single-deed
+          question in the middle of a screen whose job is the cross-deed
+          one — scanning what has gone quiet across every file, which is
+          the question this list can answer and the deed page structurally
+          cannot.
+          State, summary and the stuck marking stay inline, because those
+          are what scanning needs. Everything else is one navigation away,
+          and cancelling costs a click more on purpose. */}
+      <Link
+        href={`/deeds/${row.deed_id}`}
+        className="block w-full text-left p-4 hover:bg-slate-50 rounded-xl transition-colors"
       >
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
@@ -216,173 +195,8 @@ function SigningRow({ row, open, onToggle, onCancelled }: {
             {stuck ? 'Gone quiet' : STATE_LABEL[row.state] || row.state}
           </span>
         </div>
-      </button>
-      {open && <SigningDetail requestId={row.id} onCancelled={onCancelled} />}
+      </Link>
     </div>
   );
 }
 
-/** The detail, fetched when she opens it. */
-function SigningDetail({ requestId, onCancelled }: {
-  requestId: number;
-  onCancelled: () => void;
-}) {
-  const [detail, setDetail] = useState<Detail | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [confirming, setConfirming] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
-
-  const cancel = async () => {
-    setCancelling(true);
-    setError(null);
-    try {
-      const r = await apiFetch(`/signing-requests/v2/${requestId}/cancel`, { method: 'POST' },
-                               { label: 'Cancelling this signing' });
-      if (!r.ok) {
-        throw new Error((await r.json().catch(() => ({}))).detail || `Failed (${r.status})`);
-      }
-      setDetail(await r.json());
-      setConfirming(false);
-      onCancelled();
-    } catch (err) {
-      if (err instanceof SessionExpiredError) return;
-      // §4: a cancellation that did not happen must not look like one
-      // that did. The panel says so and the request stays live.
-      setError(err instanceof Error ? err.message : 'Could not cancel this signing');
-    } finally {
-      setCancelling(false);
-    }
-  };
-
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const r = await apiFetch(`/signing-requests/v2/${requestId}`, {},
-                                 { label: 'Loading this signing' });
-        if (!r.ok) {
-          throw new Error((await r.json().catch(() => ({}))).detail || `Failed (${r.status})`);
-        }
-        setDetail(await r.json());
-      } catch (err) {
-        if (err instanceof SessionExpiredError) return;
-        // §4: a detail we could not load says so. An empty panel would
-        // read as "this signing has no participants".
-        setError(err instanceof Error ? err.message : 'Could not load this signing');
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [requestId]);
-
-  return (
-    <div className="border-t border-slate-100 p-4">
-      {loading && (
-        <p className="flex items-center gap-2 text-sm text-slate-500">
-          <Loader2 className="w-4 h-4 animate-spin" /> Loading this signing…
-        </p>
-      )}
-      {error && !loading && (
-        <p className="text-sm text-red-700">{error}</p>
-      )}
-      {detail && !loading && !error && (
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">
-              Who is involved
-            </h3>
-            <ul className="space-y-1.5">
-              {detail.participants.map((p) => (
-                <li key={p.id} className="text-sm text-slate-700 flex flex-wrap gap-x-2">
-                  <span className="font-medium">{p.name || 'Unnamed'}</span>
-                  <span className="text-slate-400">·</span>
-                  <span className="text-slate-500">{p.party_role}</span>
-                  <span className="text-slate-400">·</span>
-                  <span className="text-slate-500">
-                    {p.revoked ? 'Link revoked'
-                      : p.viewed_at ? 'Opened their link'
-                      : 'Has not opened their link'}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">
-              Times on the table
-            </h3>
-            {detail.windows.length === 0 ? (
-              <p className="text-sm text-slate-500">No times posted yet.</p>
-            ) : (
-              <ul className="space-y-1.5">
-                {detail.windows.map((w) => (
-                  <li key={w.id} className="text-sm text-slate-700">
-                    {/* window_label() wrote this, in the request's own
-                        timezone. This screen formats no signing time. */}
-                    <span className={w.declined ? 'line-through text-slate-400' : ''}>{w.label}</span>
-                    {w.declined && <span className="ml-2 text-xs text-slate-400">declined</span>}
-                    {!w.declined && w.waiting_on.length > 0 && (
-                      <span className="ml-2 text-xs text-amber-700">
-                        waiting on {w.waiting_on.join(', ')}
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          {/* CANCEL1 item 1 — the panel was read-only, with zero
-              interactive elements, on a feature whose recipient side has
-              always rendered "This link has been withdrawn." The state
-              existed, the endpoint existed, and no officer surface could
-              produce either. */}
-          {detail.cancelled_at ? (
-            <p className="text-sm text-slate-500 border-t border-slate-100 pt-4">
-              {/* Never deleted — a cancelled request that HAD a booked
-                  time still had one (T-5). It stays visible, and says so. */}
-              {detail.summary}
-            </p>
-          ) : (
-            <div className="border-t border-slate-100 pt-4">
-              {!confirming ? (
-                <button
-                  onClick={() => setConfirming(true)}
-                  className="text-sm font-medium text-red-700 hover:text-red-900 hover:underline"
-                >
-                  Cancel this signing request
-                </button>
-              ) : (
-                <div className="space-y-3 rounded-lg border border-red-200 bg-red-50 p-3">
-                  <p className="text-sm text-red-900">
-                    {cancelWarning(detail, detail.participants
-                      .filter((p) => !p.revoked)
-                      .map((p) => p.name || p.party_role))}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={cancel}
-                      disabled={cancelling}
-                      className="px-3 py-2 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
-                    >
-                      {cancelling ? 'Cancelling…' : 'Cancel the signing'}
-                    </button>
-                    <button
-                      onClick={() => setConfirming(false)}
-                      disabled={cancelling}
-                      className="px-3 py-2 text-sm font-medium rounded-lg border border-slate-300 text-slate-700 hover:bg-white disabled:opacity-60"
-                    >
-                      Keep it
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}

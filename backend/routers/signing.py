@@ -35,7 +35,7 @@ import db
 from auth import get_current_user_id
 from services import officer_queue, pcor_offer
 from services import signing_loop as loop
-from services import signing_purge, signing_summary, signing_surfaces
+from services import signing_purge, signing_rows, signing_summary, signing_surfaces
 from utils.throttle import client_key, throttle
 
 router = APIRouter()
@@ -359,54 +359,20 @@ def officer_agenda(user_id: int = Depends(get_current_user_id)):
     if not db.conn:
         raise HTTPException(status_code=500, detail="Database connection not available")
     with db.conn.cursor() as cur:
-        cur.execute("""
-            SELECT sr.*, d.property_address, d.deed_type,
-                   (SELECT display_name FROM signing_participants
-                     WHERE signing_request_id = sr.id AND party_role = 'notary'
-                     ORDER BY id LIMIT 1) AS notary_name
-              FROM signing_requests sr
-              JOIN deeds d ON d.id = sr.deed_id
-             WHERE sr.officer_user_id = %s
-             ORDER BY COALESCE(sr.booked_at, sr.expires_at) ASC
-        """, (user_id,))
-        rows = _rows(cur)
-
-        out = []
-        for row in rows:
-            cur.execute("SELECT * FROM signing_windows WHERE signing_request_id = %s",
-                        (row["id"],))
-            windows = _rows(cur)
-            cur.execute("SELECT r.* FROM signing_responses r JOIN signing_windows w "
-                        "ON w.id = r.window_id WHERE w.signing_request_id = %s",
-                        (row["id"],))
-            responses = _rows(cur)
-            cur.execute("SELECT * FROM signing_participants WHERE signing_request_id = %s",
-                        (row["id"],))
-            participants = _rows(cur)
-            # The shape lives in services/signing_summary.py, which
-            # asserts it against a corpus both languages read. It used to
-            # be a dict literal here, and TWO screens declared their own
-            # idea of what it contained — one of them three fields short,
-            # which is why the merged tracker could not mark a stuck
-            # signing or tell a closed one from a live one.
-            #
-            # The JUDGEMENTS stay here, where they were: which state this
-            # is, whether it is live, what sentence describes it, how long
-            # she has waited and whether that is too long. Only the shape
-            # moved.
-            state = loop.request_state(row, windows, responses)
-            days_waiting = officer_queue.days_since(row.get("created_at"))
-            out.append(signing_summary.signing_summary_row(
-                row,
-                state=state,
-                live=loop.is_live(state),
-                summary=loop.state_label(row, windows, responses, participants),
-                days_waiting=days_waiting,
-                stale=(state in (loop.STATE_REQUESTED, loop.STATE_WINDOWS_POSTED)
-                       and officer_queue.is_stale(days_waiting)),
-                signers=len([p for p in participants
-                             if p["party_role"] == loop.ROLE_SIGNER]),
-            ))
+        # The shape lives in services/signing_summary.py and the ASSEMBLY
+        # now lives in services/signing_rows.py.
+        #
+        # The shape moved first, because two screens had each declared
+        # their own idea of what a row contains and one was three fields
+        # short. The assembly moved for the same reason one level up: the
+        # deed page needs these rows for a single deed, and writing the
+        # six queries and five judgements a second time would have been
+        # two SERVERS disagreeing about a signing's state instead of two
+        # screens disagreeing about its keys.
+        #
+        # The judgements are still signing_loop's and officer_queue's.
+        # Nothing about which states are live moved anywhere.
+        out = signing_rows.for_officer(cur, user_id)
 
     # Housekeeping rides an authenticated read rather than a public one:
     # the officer's own page is a fine place to spend 20ms, and a

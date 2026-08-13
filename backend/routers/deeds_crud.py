@@ -716,8 +716,17 @@ def activity_endpoint(deed_id: int, user_id: int = Depends(get_current_user_id))
         # The one real event log in the product: a row per answer, with
         # who and when. Joined to its participant for the name only —
         # §13.1, no contact detail crosses into this payload.
+        # `display_name`, aliased. The column is not called `name`, and
+        # `SELECT p.name` made this endpoint 500 on EVERY call — Postgres
+        # rejects the column at parse time, so it failed whether or not
+        # any signing existed. It shipped that way because the pins were
+        # unit tests over `deed_activity.activity()` with dict fixtures:
+        # the statement had never once been executed.
+        #
+        # Same shape as MONEY1's `:items::jsonb`. See
+        # tests/test_endpoint_sql.py, which now parses the statements.
         cur.execute("""SELECT r.answer, r.asserted_at,
-                              p.name, p.party_role
+                              p.display_name AS name, p.party_role
                          FROM signing_responses r
                          JOIN signing_participants p ON p.id = r.participant_id
                          JOIN signing_requests s ON s.id = p.signing_request_id
@@ -728,6 +737,88 @@ def activity_endpoint(deed_id: int, user_id: int = Depends(get_current_user_id))
             "entries": deed_activity.activity(dict(deed), shares=shares,
                                               signings=signings,
                                               responses=responses)}
+
+
+@router.get("/deeds/{deed_id}/detail")
+def deed_detail_endpoint(deed_id: int, user_id: int = Depends(get_current_user_id)):
+    """Everything the deed page renders, in one answer.
+
+    ONE call, deliberately. The page's first decision is whether it may
+    render at all — a superseded deed replaces its own content — and a
+    screen that fetches lineage separately shows the working page first
+    and swaps it out when lineage lands. A second of "next action" on a
+    document she must not act on is a second long enough to click.
+
+    This handler assembles nothing and composes no sentence. It fetches
+    rows and hands them to `services/deed_page`, which is the one place
+    that turns this deed's state into English (§13 rule 3).
+    """
+    from services import deed_activity, deed_page, signing_rows
+    from services.matters import carry_forward, matter_key, party_names
+
+    deed = dict(_pcor_deed_row(deed_id, user_id))
+
+    with db.conn.cursor() as cur:
+        cur.execute("""SELECT id, recipient_name, recipient_email, status,
+                              created_at, viewed_at, responded_at
+                         FROM deed_shares WHERE deed_id = %s
+                        ORDER BY created_at DESC""", (deed_id,))
+        shares = [dict(r) for r in (cur.fetchall() or [])]
+
+        signings = signing_rows.for_deed(cur, deed_id)
+        signers = signing_rows.signers_for_deed(cur, deed_id)
+
+        # The activity feed's own sources, fetched the way its endpoint
+        # fetches them. `booked_asserted_at`, never `booked_at` — the
+        # event is the assertion, not the appointment.
+        cur.execute("""SELECT id, created_at, booked_asserted_at, booked_by,
+                              cancelled_at
+                         FROM signing_requests WHERE deed_id = %s""", (deed_id,))
+        activity_signings = [dict(r) for r in (cur.fetchall() or [])]
+        cur.execute("""SELECT r.answer, r.asserted_at,
+                              p.display_name AS name, p.party_role
+                         FROM signing_responses r
+                         JOIN signing_participants p ON p.id = r.participant_id
+                         JOIN signing_requests s ON s.id = p.signing_request_id
+                        WHERE s.deed_id = %s""", (deed_id,))
+        responses = [dict(r) for r in (cur.fetchall() or [])]
+
+        # ── Matter, one level out ─────────────────────────────────────
+        matter = None
+        key = matter_key(deed)
+        if key is not None:
+            kind, value = key
+            cur.execute("""
+                SELECT id, deed_type, status, property_address, apn,
+                       grantor_name, grantee_name, parties, created_at
+                  FROM deeds
+                 WHERE user_id = %s AND id <> %s AND status <> 'deleted'
+                   AND metadata->>%s = %s
+                 ORDER BY created_at DESC
+            """, (deed.get("user_id"), deed_id, kind, value))
+            siblings = [dict(r) for r in (cur.fetchall() or [])]
+            matter = {
+                "key": {"kind": kind, "value": value},
+                "documents": [{
+                    "id": s_["id"],
+                    "deed_type": s_["deed_type"],
+                    "status": s_["status"],
+                    "property_address": s_["property_address"],
+                    "parties": party_names(s_),
+                } for s_ in siblings],
+                "carry_forward": carry_forward(deed),
+            }
+
+    return deed_page.deed_page(
+        deed,
+        shares=shares,
+        signings=signings,
+        participants=signers,
+        activity=deed_activity.activity(deed, shares=shares,
+                                        signings=activity_signings,
+                                        responses=responses),
+        matter=matter,
+    )
 
 
 @router.get("/deeds/{deed_id}/lineage")

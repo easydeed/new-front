@@ -23,6 +23,13 @@ import { cancelWarning } from '../lib/signingCopy';
 
 const SIGNINGS = codeOnly(
   fs.readFileSync(path.join(__dirname, '..', 'features', 'signing', 'SigningAgenda.tsx'), 'utf8'));
+/** DEEDDETAIL: the agenda's expanding panel — the only place cancelling
+ *  has ever lived — became its own component, rendered on the deed page.
+ *  The pins about the PANEL read it here. */
+const PANEL = codeOnly(
+  fs.readFileSync(path.join(__dirname, '..', 'features', 'signing', 'SigningDetail.tsx'), 'utf8'));
+const DEED_PAGE = codeOnly(
+  fs.readFileSync(path.join(__dirname, '..', 'app', 'deeds', '[id]', 'page.tsx'), 'utf8'));
 
 describe('which states are over is the server’s judgement', () => {
   it('the screen holds no terminal-state list', () => {
@@ -105,19 +112,39 @@ describe('the cancel confirmation names what is being cancelled', () => {
 
 describe('the panel that had no controls', () => {
   it('offers the cancel, behind a confirmation', () => {
-    expect(SIGNINGS).toContain('Cancel this signing request');
-    expect(SIGNINGS).toContain('cancelWarning');
-    expect(SIGNINGS).toContain('Keep it');
+    expect(PANEL).toContain('Cancel this signing request');
+    expect(PANEL).toContain('cancelWarning');
+    expect(PANEL).toContain('Keep it');
   });
 
   it('does not compose its own scheduling sentence', () => {
+    expect(PANEL).not.toMatch(/scheduled for/i);
+    expect(PANEL).not.toMatch(/will (happen|take place)/i);
+    // The agenda row never did either, and still must not.
     expect(SIGNINGS).not.toMatch(/scheduled for/i);
-    expect(SIGNINGS).not.toMatch(/will (happen|take place)/i);
   });
 
   it('shows a cancelled request rather than hiding it', () => {
     /** T-5: a cancelled request that HAD a booked time still had one.
      * The row moves to the closed list and keeps saying what happened. */
-    expect(SIGNINGS).toContain('detail.cancelled_at');
+    expect(PANEL).toContain('detail.cancelled_at');
+  });
+
+  it('AND IT IS STILL REACHABLE — the panel moved, it did not close', () => {
+    /**
+     * The pin this retarget exists for.
+     *
+     * Collapsing the agenda row to a link removed the only surface that
+     * had ever offered cancelling. Retargeting the three pins above to
+     * the extracted component proves the CODE survived; it does not
+     * prove anything RENDERS it, and a component nothing mounts is the
+     * same as a deleted one.
+     *
+     * The named cost of the ruling was an extra navigation. A silently
+     * unreachable cancel would not have been a cost, it would have been
+     * a removed feature.
+     */
+    expect(DEED_PAGE).toContain('<SigningDetail');
+    expect(DEED_PAGE).toContain('requestId={detail.state.signing_request_id}');
   });
 });

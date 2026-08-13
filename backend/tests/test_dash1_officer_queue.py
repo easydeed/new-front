@@ -180,8 +180,12 @@ def test_only_one_place_decides_what_stale_means():
     assert "stale" in SIGNING_SUMMARY_KEYS, (
         "the agenda payload stopped carrying the verdict, so the screen "
         "has to form one")
-    payload = code_only(BACKEND / "routers" / "signing.py")
+    # Moved with the row assembly into services/signing_rows.py; the
+    # threshold itself never left officer_queue.py, which is the rule.
+    payload = code_only(BACKEND / "services" / "signing_rows.py")
     assert "officer_queue.is_stale(" in payload
+    assert "STALE_AFTER_DAYS" not in payload, (
+        "the assembler copied the threshold instead of asking for it")
 
 
 def test_the_queue_never_infers_that_a_signing_happened():
