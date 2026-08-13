@@ -13,6 +13,7 @@ import {
   buildPreflightOverridesPayload,
   buildProvenancePayload,
 } from '@/lib/provenance';
+import { isPrefillOnly } from '@/lib/requestedByDefault';
 import { formFamily, isSinglePartyType } from '@/lib/formRegistry';
 
 /**
@@ -150,6 +151,20 @@ export type DeedPayload = ReturnType<typeof buildDeedPayload>;
 /**
  * A draft is worth saving once the officer has entered ANYTHING that would
  * hurt to lose — not before (an untouched builder must not mint rows).
+ *
+ * ═══ THE RULE ABOVE WAS WRITTEN DOWN AND BROKEN BY A PREFILL ═══
+ *
+ * `requestedBy` gets filled the moment the Recording section is opened —
+ * by the last-used partner from localStorage, and now by the officer's
+ * own company. So "an untouched builder must not mint rows" stopped
+ * being true the day that prefill shipped: expanding Recording to see
+ * what is in it, and leaving it for the 2.5s autosave debounce, created
+ * a deed row containing one company name and nothing else.
+ *
+ * A default is not typing. `requestedByPrefilled` marks a value the
+ * product put there, and a state whose only content is that value is
+ * still an untouched builder. The instant she touches the control the
+ * flag clears and this counts it, because at that point it IS a choice.
  */
 export function hasMeaningfulData(s: DeedBuilderState): boolean {
   return !!(
@@ -158,7 +173,7 @@ export function hasMeaningfulData(s: DeedBuilderState): boolean {
     s.grantee?.trim() ||
     s.vesting ||
     s.dtt ||
-    s.requestedBy?.trim() ||
+    (!isPrefillOnly(s.requestedBy, s.requestedByPrefilled) && s.requestedBy?.trim()) ||
     s.titleOrderNo?.trim() ||
     s.escrowNo?.trim() ||
     // Typed instrument facts (affidavit/declaration families) are work

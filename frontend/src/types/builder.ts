@@ -232,6 +232,17 @@ export interface DeedBuilderState {
   requestedBy: string;
   /** D2: the requesting party's mailing address (one line, optional). */
   requestedByAddress?: string;
+  /**
+   * True while `requestedBy` holds a DEFAULT nobody chose — the officer's
+   * own company or her last-used partner, filled on open.
+   *
+   * Deliberately not a `Sourced<string>`: this must never become
+   * confirmable by the affordance built for county-record transcriptions.
+   * It answers exactly one question, for `hasMeaningfulData` — is there
+   * work here worth minting a deed row for? — and is cleared the moment
+   * she touches the control.
+   */
+  requestedByPrefilled?: boolean;
   returnTo: string;
   titleOrderNo?: string;
   escrowNo?: string;

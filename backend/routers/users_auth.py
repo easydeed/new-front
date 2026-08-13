@@ -20,7 +20,10 @@ from auth import (
     get_password_hash, verify_password, create_access_token,
     get_current_user_id, is_admin_role, AuthUtils
 )
-from database import clean_profile_text, get_user_profile, update_user_profile, get_recent_properties
+from database import (
+    PROFILE_COLUMNS, PROFILE_ELSEWHERE, clean_profile_text, get_user_profile,
+    update_user_profile, get_recent_properties,
+)
 
 router = APIRouter()
 
@@ -820,12 +823,38 @@ async def update_enhanced_user_profile(
     profile_data: dict = Body(...),
     user_id: int = Depends(get_current_user_id)
 ):
-    """Update user profile for AI-enhanced deed generation"""
+    """Update the deed-prefill profile columns.
+
+    Takes an untyped dict, so it says out loud what it will and will not
+    write. A field posted here and quietly discarded would come back
+    "Profile updated successfully" — the caller would believe a save that
+    never happened, which is the class of defect the whole billing story
+    was made of.
+    """
+    moved = sorted(set(profile_data) & set(PROFILE_ELSEWHERE))
+    if moved:
+        raise HTTPException(
+            status_code=400,
+            detail="; ".join(
+                f"'{k}' is not stored here — it lives in {PROFILE_ELSEWHERE[k]}"
+                for k in moved
+            ),
+        )
+
+    accepted = sorted(set(profile_data) & set(PROFILE_COLUMNS))
+    if not accepted:
+        raise HTTPException(
+            status_code=400,
+            detail="No profile fields to update. This endpoint writes: "
+                   + ", ".join(sorted(PROFILE_COLUMNS)),
+        )
+
     try:
         success = update_user_profile(user_id, profile_data)
-        if success:
-            return {"status": "updated", "message": "Profile updated successfully - AI suggestions will improve!"}
-        else:
-            raise HTTPException(status_code=500, detail="Failed to update profile")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Profile update failed: {str(e)}")
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to update profile")
+    # Echo what was written rather than a cheerful sentence: the fields
+    # named here are the fields that changed, and nothing else did.
+    return {"status": "updated", "updated": accepted}

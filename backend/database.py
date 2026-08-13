@@ -1324,17 +1324,51 @@ def get_user_deeds(user_id):
 
 # User profile functions
 def get_user_profile(user_id):
-    """Get user profile data for AI suggestions"""
+    """Profile facts used to pre-fill a deed. Company comes from `users`.
+
+    ═══ ONE FACT, ONE HOME ═══
+
+    `company_name` existed in BOTH `users` and `user_profiles`, written by
+    different endpoints and read by different screens. Settings writes
+    `users.company_name`; this read used `user_profiles.company_name`. So
+    an officer who corrected her company on the Settings page did not
+    change the company that pre-fills Recording Requested By — and
+    nothing anywhere told her the two were different columns.
+
+    Owner-ruled: `users.company_name` is canonical. The join reads it
+    from there. `user_profiles.company_name` is no longer written (see
+    `update_user_profile`) and is retired in a separate, owner-run step
+    after the row counts are read.
+
+    ═══ WHY LEFT JOIN, AND WHY THE COALESCE ═══
+
+    Anchoring on `users` means a person with no `user_profiles` row still
+    has a company. That changes this function's None contract: it now
+    returns a dict for any real user, so callers testing `if profile` are
+    asking "does this user exist", which is what they meant.
+
+    `auto_populate_company_info` MUST be coalesced. An absent profile row
+    yields SQL NULL, `.get()` returns None, and `suggest_defaults` reads
+    that as auto-populate OFF — the column's own DEFAULT TRUE never
+    applies to a row that was never inserted. A missing row would have
+    silently turned off the pre-fill for every officer who never opened
+    the old profile endpoint.
+    """
     conn = get_db_connection()
     if not conn:
         return None
-    
+
     try:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT company_name, business_address, license_number, role, 
-                   default_county, preferred_deed_type, auto_populate_company_info
-            FROM user_profiles WHERE user_id = %s
+            SELECT u.company_name,
+                   p.business_address, p.license_number, p.role,
+                   p.default_county, p.preferred_deed_type,
+                   COALESCE(p.auto_populate_company_info, TRUE)
+                       AS auto_populate_company_info
+            FROM users u
+            LEFT JOIN user_profiles p ON p.user_id = u.id
+            WHERE u.id = %s
         """, (user_id,))
         profile = cursor.fetchone()
         cursor.close()
@@ -1361,41 +1395,82 @@ def clean_profile_text(value):
     return cleaned or None
 
 
+def _profile_text(value):
+    """Deed-face string, normalized at the write choke point."""
+    return clean_profile_text(value)
+
+
+def _profile_asis(value):
+    """A flag or an enum — nothing to normalize, and nothing to guess."""
+    return value
+
+
+# The columns this writer owns, and how each is cleaned on the way in.
+#
+# `company_name` is NOT here and must not be added back: it lives in
+# `users` (see `get_user_profile`). `PROFILE_ELSEWHERE` names it and says
+# where it went, because a caller that posts a field and is silently
+# ignored is told its save worked.
+PROFILE_COLUMNS = {
+    'business_address': _profile_text,
+    'license_number': _profile_text,
+    'role': _profile_asis,
+    'default_county': _profile_text,
+    'preferred_deed_type': _profile_asis,
+    'auto_populate_company_info': _profile_asis,
+}
+
+PROFILE_ELSEWHERE = {
+    'company_name': 'users.company_name (write it with PATCH /users/profile)',
+}
+
+
 def update_user_profile(user_id, profile_data):
-    """Update or create user profile for AI defaults"""
+    """Write the profile columns actually given. Returns False if none were.
+
+    ═══ IT USED TO CLOBBER EVERY COLUMN, GIVEN OR NOT ═══
+
+    The old `ON CONFLICT DO UPDATE` set all eight columns from `EXCLUDED`
+    unconditionally, and `EXCLUDED` for an omitted key is None. So a call
+    carrying only `default_county` NULLed the business address, the
+    licence number and the company — a partial update that erased
+    everything it did not mention.
+
+    That was survivable while nothing else owned those columns. SETTINGS1
+    gave `business_address` to `PATCH /users/profile`, and an officer can
+    now save her address on the Settings page and have this endpoint wipe
+    it seconds later. The set of columns written is now the set of keys
+    supplied, so an omitted field is left alone.
+
+    An unrecognised key is not silently dropped either — the caller gets
+    False and the endpoint turns that into a 400 naming what it accepts.
+    """
+    given = {k: fn(profile_data[k])
+             for k, fn in PROFILE_COLUMNS.items()
+             if k in profile_data}
+    if not given:
+        return False
+
     conn = get_db_connection()
     if not conn:
         return False
 
     try:
+        cols = list(given)
+        # Column names come from PROFILE_COLUMNS, never from the caller —
+        # the interpolation below is over a fixed vocabulary, and the
+        # values stay bound.
+        placeholders = ", ".join(["%s"] * len(cols))
+        assignments = ", ".join(f"{c} = EXCLUDED.{c}" for c in cols)
         cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO user_profiles (user_id, company_name, business_address, 
-                                     license_number, role, default_county, 
-                                     preferred_deed_type, auto_populate_company_info)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (user_id) 
-            DO UPDATE SET 
-                company_name = EXCLUDED.company_name,
-                business_address = EXCLUDED.business_address,
-                license_number = EXCLUDED.license_number,
-                role = EXCLUDED.role,
-                default_county = EXCLUDED.default_county,
-                preferred_deed_type = EXCLUDED.preferred_deed_type,
-                auto_populate_company_info = EXCLUDED.auto_populate_company_info,
+        cursor.execute(f"""
+            INSERT INTO user_profiles (user_id, {", ".join(cols)})
+            VALUES (%s, {placeholders})
+            ON CONFLICT (user_id)
+            DO UPDATE SET
+                {assignments},
                 updated_at = CURRENT_TIMESTAMP
-        """, (
-            user_id,
-            # Deed-face fields are normalized at the write choke point —
-            # whatever endpoint or script feeds this, the row is clean.
-            clean_profile_text(profile_data.get('company_name')),
-            clean_profile_text(profile_data.get('business_address')),
-            clean_profile_text(profile_data.get('license_number')),
-            profile_data.get('role', 'escrow_officer'),
-            clean_profile_text(profile_data.get('default_county')),
-            profile_data.get('preferred_deed_type', 'grant_deed'),
-            profile_data.get('auto_populate_company_info', True)
-        ))
+        """, (user_id, *[given[c] for c in cols]))
         conn.commit()
         cursor.close()
         conn.close()

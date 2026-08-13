@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Building2, Plus } from 'lucide-react';
 import { usePartners } from '@/features/partners/PartnersContext';
 import { useAIAssist } from '@/contexts/AIAssistContext';
+import { useOwnCompany } from '@/hooks/useOwnCompany';
+import { defaultRequestedBy, requestedByChoices } from '@/lib/requestedByDefault';
 import { AISuggestion } from '../AISuggestion';
 import { AddPartnerModal, PartnerFormData } from '@/components/modals/AddPartnerModal';
 
@@ -11,44 +13,68 @@ interface RecordingSectionProps {
   requestedBy: string;
   /** D2: the requesting party's mailing address (prints under their name). */
   requestedByAddress?: string;
+  /** True while requestedBy holds a default nobody chose. */
+  requestedByPrefilled?: boolean;
   returnTo: string;
   titleOrderNo?: string;
   escrowNo?: string;
-  onChange: (updates: { requestedBy?: string; requestedByAddress?: string; returnTo?: string; titleOrderNo?: string; escrowNo?: string }) => void;
+  onChange: (updates: { requestedBy?: string; requestedByAddress?: string; requestedByPrefilled?: boolean; returnTo?: string; titleOrderNo?: string; escrowNo?: string }) => void;
 }
 
-export function RecordingSection({ requestedBy, requestedByAddress, returnTo, titleOrderNo, escrowNo, onChange }: RecordingSectionProps) {
+export function RecordingSection({ requestedBy, requestedByAddress, requestedByPrefilled, returnTo, titleOrderNo, escrowNo, onChange }: RecordingSectionProps) {
   const { enabled: aiEnabled } = useAIAssist();
   const [guidanceDismissed, setGuidanceDismissed] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const { partners, create: createPartner, error: partnersError, refresh: refreshPartners } = usePartners();
-  
+  const { companyName, companyAddress } = useOwnCompany();
+
+  // The officer's own company, then the rolodex. The own entry is
+  // synthetic — the owner ruled against filing yourself as a partner —
+  // so it exists only in this list, and only while the profile has a
+  // company to put in it.
+  const choices = useMemo(
+    () => requestedByChoices(partners, companyName, companyAddress),
+    [partners, companyName, companyAddress],
+  );
+
   useEffect(() => {
-    if (!requestedBy && partners.length > 0) {
-      const lastUsed = localStorage.getItem('lastPartnerUsed');
-      if (lastUsed) {
-        const partner = partners.find(p => p.id === lastUsed);
-        if (partner) {
-          onChange({ requestedBy: partner.label });
-        }
-      }
-    }
-  }, [partners, requestedBy, onChange]);
+    // Fill the box on open, and REMEMBER that we filled it. Without the
+    // flag this prefill mints a draft deed for an officer who typed
+    // nothing — see hasMeaningfulData.
+    if (requestedBy || choices.length === 0) return;
+    const chosen = defaultRequestedBy(choices, localStorage.getItem('lastPartnerUsed'));
+    if (chosen.origin === 'none') return;
+    onChange({
+      requestedBy: chosen.value,
+      ...(chosen.address ? { requestedByAddress: chosen.address } : {}),
+      requestedByPrefilled: true,
+    });
+  }, [choices, requestedBy, onChange]);
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
-    
+
     if (value === '__ADD_NEW__') {
       setShowAddModal(true);
       return;
     }
-    
+
     // D2: the partner record already carries the mailing address — selecting
     // a partner fills both the name and the address that print on the deed.
-    const partner = partners.find(p => p.label === value);
-    onChange({ requestedBy: value, requestedByAddress: partner?.address || requestedByAddress || '' });
-    if (partner) {
-      localStorage.setItem('lastPartnerUsed', partner.id);
+    const chosen = choices.find(c => c.label === value);
+    onChange({
+      requestedBy: value,
+      requestedByAddress: chosen?.address || requestedByAddress || '',
+      // Whatever this held before, it is now a decision rather than a
+      // default — and a decision is work worth saving.
+      requestedByPrefilled: false,
+    });
+    // Only a real partner is remembered as the last one used. Recording
+    // under your own company is the fallback, not a rolodex choice — and
+    // writing the synthetic id here would make it outrank the profile it
+    // came from on the next deed.
+    if (chosen && !chosen.own) {
+      localStorage.setItem('lastPartnerUsed', chosen.id);
     }
   };
 
@@ -74,7 +100,13 @@ export function RecordingSection({ requestedBy, requestedByAddress, returnTo, ti
           [newPartner.address_line1, newPartner.address_line2].filter(Boolean).join(' '),
           [newPartner.city, [newPartner.state, newPartner.postal_code].filter(Boolean).join(' ')].filter(Boolean).join(', '),
         ].filter(Boolean).join(', ');
-        onChange({ requestedBy: newPartner.company_name, requestedByAddress: addr });
+        // Creating a partner and having it selected is a choice, not a
+        // default — this draft is worth saving.
+        onChange({
+          requestedBy: newPartner.company_name,
+          requestedByAddress: addr,
+          requestedByPrefilled: false,
+        });
         localStorage.setItem('lastPartnerUsed', newPartner.id);
       }
       
@@ -87,7 +119,10 @@ export function RecordingSection({ requestedBy, requestedByAddress, returnTo, ti
   return (
     <div className="space-y-4">
       {/* AI Guidance */}
-      {aiEnabled && !guidanceDismissed && !requestedBy && (
+      {/* Shown while the box is empty OR merely pre-filled: a default is
+          not a decision, and the officer who most needs this explanation
+          is the one who has not chosen anything yet. */}
+      {aiEnabled && !guidanceDismissed && (!requestedBy || requestedByPrefilled) && (
         <AISuggestion
           message="Select who is submitting this deed for recording. This appears in the top-left corner of the deed."
           details="The 'Recording Requested By' is typically the title company, escrow officer, or attorney handling the transaction. 'Return To' specifies where the county recorder should mail the deed after recording — usually the same party, or directly to the new owner (grantee)."
@@ -107,10 +142,10 @@ export function RecordingSection({ requestedBy, requestedByAddress, returnTo, ti
             onChange={handleSelectChange}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 appearance-none bg-white"
           >
-            <option value="">Select partner...</option>
-            {partners.map((partner) => (
-              <option key={partner.id} value={partner.label}>
-                {partner.label}
+            <option value="">Select who is requesting recording...</option>
+            {choices.map((choice) => (
+              <option key={choice.id} value={choice.label}>
+                {choice.own ? `${choice.label} (your company)` : choice.label}
               </option>
             ))}
             <option value="__ADD_NEW__" className="text-brand-600 font-medium">
@@ -132,7 +167,10 @@ export function RecordingSection({ requestedBy, requestedByAddress, returnTo, ti
               Retry
             </button>
           </div>
-        ) : partners.length === 0 ? (
+        ) : choices.length === 0 ? (
+          // `choices`, not `partners`: with a company on the profile the
+          // list is not empty, and telling her there is nothing to pick
+          // while her own company sits in the dropdown is a plain lie.
           <p className="mt-1 text-xs text-gray-500">
             No partners yet. Select &quot;➕ Add New Partner&quot; to create one.
           </p>
