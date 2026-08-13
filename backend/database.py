@@ -182,6 +182,11 @@ def create_tables():
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS verified BOOLEAN DEFAULT FALSE",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscribe BOOLEAN DEFAULT FALSE",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS agree_terms BOOLEAN DEFAULT TRUE",
+            # SIGNUP1 — where somebody outside California told us they
+            # are. An interest signal, not an address: it is never used
+            # to serve anybody, and it is READABLE (admin user list)
+            # rather than write-only, which is the LEGAL1 bar.
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS interest_state VARCHAR(64)",
             "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS grantor_name VARCHAR(255)",
             "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS grantee_name VARCHAR(255)",
             "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS pdf_url VARCHAR(500)",
