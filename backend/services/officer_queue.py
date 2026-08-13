@@ -111,7 +111,15 @@ QUEUE_KEYS = frozenset({
     "needs_attention", # ONE number, and it is the stale ones
     "thresholds",      # the numbers above, so no screen retypes them
     "badges",          # per-page waiting counts for the sidebar
+    "accuracy",        # what stands between her documents and being ready
 })
+
+#: The hero number and the list under it, in ONE block from ONE pass —
+#: the same reason `needs_attention` is computed here. A screen deriving
+#: "7 fields across 4 documents" from a list it also renders would be a
+#: second opinion about the product's own promise.
+ACCURACY_KEYS = frozenset({"fields", "documents", "items"})
+ACCURACY_ITEM_KEYS = frozenset({"deed_id", "deed_type", "property", "checks"})
 
 UPCOMING_KEYS = frozenset({"kind", "id", "deed_id", "property", "when",
                            "who", "summary"})
@@ -122,7 +130,8 @@ IDLE_KEYS = frozenset({"kind", "id", "deed_type", "property", "days_idle"})
 
 def queue(*, upcoming: Sequence[Dict[str, Any]],
           awaiting: Sequence[Dict[str, Any]],
-          idle_drafts: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+          idle_drafts: Sequence[Dict[str, Any]],
+          accuracy: Dict[str, Any]) -> Dict[str, Any]:
     """Assemble the payload and assert its shape.
 
     `needs_attention` is computed HERE rather than by the screen, and it
@@ -140,7 +149,14 @@ def queue(*, upcoming: Sequence[Dict[str, Any]],
     for row in idle_drafts:
         assert set(row) == IDLE_KEYS, f"idle row drifted: {sorted(row)}"
 
+    assert set(accuracy) == ACCURACY_KEYS, \
+        f"accuracy block drifted: {sorted(accuracy)}"
+    for row in accuracy["items"]:
+        assert set(row) == ACCURACY_ITEM_KEYS, \
+            f"accuracy row drifted: {sorted(row)}"
+
     payload = {
+        "accuracy": accuracy,
         "upcoming": list(upcoming),
         "awaiting": list(awaiting),
         "idle_drafts": list(idle_drafts),

@@ -84,6 +84,24 @@ export function isPresent(field: string, value: unknown): boolean {
   return String(value).trim() !== '';
 }
 
+/**
+ * The corpus names a field once; the two shapes that carry it spell two
+ * of them differently. Builder state says `grantor`; a deed row says
+ * `grantor_name`. Mirrors `ROW_ALIASES` in `required_fields.py`, and a
+ * pin holds the two equal.
+ */
+const ROW_ALIASES: Record<string, string[]> = {
+  grantor: ['grantor', 'grantor_name'],
+  grantee: ['grantee', 'grantee_name'],
+};
+
+function read(field: string, data: Record<string, unknown>): unknown {
+  for (const name of ROW_ALIASES[field] ?? [field]) {
+    if (name in data) return data[name];
+  }
+  return undefined;
+}
+
 /** Every requirement this data does not yet satisfy. */
 export function missingRequired(
   family: string,
@@ -91,5 +109,5 @@ export function missingRequired(
   data: Record<string, unknown>,
 ): Requirement[] {
   return requirements(family, deedType)
-    .filter((r) => !isPresent(r.field, data[r.field]));
+    .filter((r) => !isPresent(r.field, read(r.field, data)));
 }

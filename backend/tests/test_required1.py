@@ -185,3 +185,32 @@ def test_the_endpoint_that_enforces_is_the_one_that_PRINTS():
         "the autosave path must stay permissive — an officer mid-work has "
         "not yet made the decisions, and losing her typing to a 422 is the "
         "failure the Thursday walkthrough exists to catch")
+
+
+def test_every_required_field_is_readable_from_a_DEED_ROW():
+    """§14.2 — would this check have failed if the property were false?
+
+    It would not have. The corpus names `grantor`; a deed row carries
+    `grantor_name`, so `missing()` reported grantor and grantee absent on
+    every create — silently, because that path raises only on the
+    `decision` population. A substance check that never matches is a
+    check nobody would notice was broken.
+
+    Driven with a COMPLETE row: nothing may be reported missing.
+    """
+    row = {"deed_type": "grant-deed", "grantor_name": "JANE ROE",
+           "grantee_name": "JOHN DOE", "legal_description": "LOT 3",
+           "vesting": "a single woman", "dtt": {"basis": "full_value"}}
+    absent = rf.missing("deed", "grant-deed", row)
+    assert absent == [], f"complete row reported missing: {[r.id for r in absent]}"
+
+
+def test_the_alias_map_matches_the_typescript_reader():
+    """Two shapes, one corpus — and the alias tables must agree or the
+    dashboard counts a field the builder shows as filled in."""
+    ts = (BACKEND.parent / "frontend" / "src" / "lib" / "requiredFields.ts") \
+        .read_text(encoding="utf-8")
+    for field, names in rf.ROW_ALIASES.items():
+        assert f"{field}: [" in ts, f"{field} missing from the TS alias map"
+        for name in names:
+            assert f"'{name}'" in ts, f"{field} → {name} missing in TS"
