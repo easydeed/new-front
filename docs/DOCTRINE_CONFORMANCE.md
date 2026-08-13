@@ -1047,10 +1047,112 @@ miss the point of it.
 
 ---
 
+## §14 — A record of what we can do states what was EXECUTED, not what exists (2026-08-13)
+
+**Statement.** When the ledger, a doc, or a comment claims the product
+*can* do something, the claim names what was run and what it produced.
+"The plumbing exists" is not a capability claim; it is a description of
+files.
+
+**The three sightings.** All the same shape, all found by executing
+rather than reading:
+
+1. **`EMAIL_VERIFICATION_REQUIRED`** — the ledger cited it as evidence
+   that required verification was ready to switch on. It was defined in
+   `auth_extra.py` and **read nowhere**. An operator could have set it on
+   Render before a launch, believed verification was required, and
+   nothing whatsoever would have changed. The same entry said
+   verification "stays resend-only", describing a resend endpoint with no
+   caller and no button — a resend nobody could reach.
+2. **The tsc baseline** read 114 in the ledger while CI enforced 94.
+3. **`scripts/role_census.py` and `company_name_consolidation.py`** were
+   both recorded as the "count first" mechanism and **neither had ever
+   run successfully** — two import-order defects and a miscalled
+   `assert_tables`. A green sweep asserted the call existed; nothing
+   asserted the call worked.
+
+**Why the direction matters.** Every one of these erred PERMISSIVELY:
+the record claimed more capability than existed. A record that
+understates is discovered the moment somebody needs the thing. A record
+that overstates is discovered at the worst moment — before a launch, in
+an incident, or during the run that was supposed to inform a decision.
+
+**The rule, operationally.**
+
+- A capability claim in the ledger cites the command that was run and
+  what it printed, or it says "not executed".
+- A flag, env var or switch is not evidence of a capability unless
+  something **reads** it — and "reads it" means a test drives the
+  behaviour, not that the name appears twice.
+- An enforcement sweep that checks a mechanism is *called* is not a check
+  that the mechanism *works*. Presence of a call is not correctness of a
+  call.
+
+**Why this is §0 applied to our own records.** §0 is about the product
+declining to state more than it knows. This is the same refusal pointed
+at the documents we use to decide with — and the reason it needed
+writing down is that all three sightings were in records written
+carefully, by people who believed them.
+
+**Enforced by.** Nothing automatic, and that is stated rather than
+glossed: this is a rule about prose. What is mechanical is narrower and
+real — `backend/tests/test_db_identity.py` pins the call SHAPE of every
+`assert_tables` caller and the exact set of unparseable files;
+`backend/tests/test_verify_check.py` pins that the verification chain is
+connected at both ends and gated at neither.
+
+---
+
+### §14.1 — A sweep matches the PROPERTY, not the spelling (2026-08-13)
+
+**Statement.** An enforcement sweep that enumerates syntax patterns is
+only as wide as the imagination of whoever wrote the list, **and it fails
+silently**: the forbidden thing gets added, the suite stays green, and
+the pin reads as proof.
+
+**Three sightings, in three languages.**
+
+1. The `job_title` sweep listed six literal patterns and walked past
+   `user.get('job_title') == 'Administrator'` — a closing quote sat where
+   the list expected a paren.
+2. The `assert_tables` sweep checked that a call *existed*. Three callers
+   had never worked.
+3. The first `verified` sweep matched lines rather than expressions, and
+   flagged an error message about transfer-tax rates and a sentence about
+   signing keys — the English word inside a string.
+
+**The rule.** Ask what CHARACTERISES the thing being forbidden, then
+match that:
+
+- a gate is a value that **steers** — so parse, and look inside `If`,
+  `IfExp`, `While`, `Assert` tests and comprehension conditions;
+- a miscall is an **argument shape** — so parse, and inspect the arg
+  nodes;
+- "one definition" is a **second occurrence** — so count occurrences of
+  the definition, not spellings of the use.
+
+When the property is structural, use `ast`. A regex over source is the
+right tool for prose and the wrong tool for grammar.
+
+**And know what the stripper does.** `code_only()` removes comments and
+docstrings. It does **not** remove string contents, because they are
+code. A sweep for a word that also occurs in English must therefore go
+through the AST, not through `code_only` plus a better regex — no amount
+of refining a pattern teaches a matcher that a string is not a gate.
+
+**The related habit.** Sweeps have four times caught their own
+explanation — the comment describing the forbidden thing IS the
+forbidden thing, textually. Reading through `code_only()` is the fix
+where the property is textual; where it is structural, the AST never had
+the problem.
+
+---
+
 ## Change log
 
 | Date | Change |
 |---|---|
+| 2026-08-13 | §14 and §14.1 added (VERIFY-CHECK, ROLE1 step 3). §14: a record of what we can do states what was EXECUTED, not what exists. Three sightings, all erring in the PERMISSIVE direction — `EMAIL_VERIFICATION_REQUIRED` was cited in the ledger as evidence that required verification was ready to switch on, and was defined in one file and read nowhere, so an operator could have set it on Render before a launch and had nothing change; the same entry described verification as "resend-only" when the resend endpoint had no caller and no button. The tsc baseline read 114 in the ledger while CI enforced 94. `role_census.py` and `company_name_consolidation.py` were both recorded as the count-first mechanism and neither had ever run successfully. A record that understates is found when somebody needs the thing; a record that overstates is found before a launch or during an incident. §14.1: an enforcement sweep matches the PROPERTY, not the spelling, because a list of syntax patterns is as wide as its author's imagination and fails SILENTLY — three sightings in three languages, most sharply a `job_title` gate sweep that walked past `user.get('job_title') == 'Administrator'` because a quote sat where the list expected a paren. Also recorded: `code_only()` strips comments and docstrings but NOT string contents, so a sweep for a word that also occurs in English belongs in the AST rather than in a better regex. |
 | 2026-08-12 | §13.3 added (UX2 item 1) — who chose the record the facts came from. An exact autocomplete pick returned 76 county candidates with the chosen address not ranked first; APN, legal description and vested owner all descend from whichever row is clicked, so a wrong row produces a confidently wrong deed out of a real source with a genuine confirmation on every field. `services/address_match.py` selects a parcel only when EXACTLY ONE candidate is unambiguously the chosen address, declines otherwise, and exposes no confidence score. Also recorded: the audit's proposed root cause — "we re-search by address string instead of passing the autocomplete's identifier" — was checked and is not fixable as framed. Google's `place_id` is not a SiteX key; SiteX takes an address or a FIPS+APN, and the FIPS+APN only exists once SiteX has answered. The defect was real and the diagnosis was not, which is a distinct outcome from DASH1's route rename, where neither was. |
 | 2026-08-11 | §13.2 added (FLOW1 item 7, DISPATCH) — `signing_responses.asserted_by`. See the section for the full reasoning; the short version is that convergence had to be able to count an officer-asserted signer answer without any surface being able to call it the signer's. Also: the §11.1 sweep was WIDENED after it missed two live habitats it should have caught — `services/signing_loop.state_label()` (the one function that turns a scheduling state into a sentence for every surface) and the `.ics` description that lands in the officer's own diary. Both said "she" about a notary. `services/vesting_split.py` exempted with a cited reason: it MATCHES recorded vesting language rather than writing prose about anybody. |
 | 2026-08-11 | §11.1 added (FLOW1 items 3–4) — the product never infers a fact about a PERSON from their name or role. A live email told a notary that the officer "confirms the appointment with the signers herself", asserting an escrow officer's pronouns to her own professional contact on no information; the screen did the same about the notary. Ruled the same family as the "filed as" constraint, which forbids reading a partner's category as a statement about their authority — one direction infers what someone IS, the other what they MAY DO, and both put a claim in the record nobody made. Swept fail-closed across every template. Two habitats exempted with cited reasons and their own liveness test: the Civil Code §1189 all-purpose acknowledgement (prescribed certificate wording, names no party) and vesting terms of art. Also item 4: the Signings agenda's stuck age was reconstructed as `expires_at − 21 days`, duplicating `default_expiry()`'s constant into TypeScript as a bare number — the server sends `created_at` now. And its "soonest first" claim covered rows sorted by `COALESCE(booked_at, expires_at)`, two orthogonal facts under one sort key (T-5 one layer up); booked and being-arranged are now separated and each sorted by the fact it has. |
