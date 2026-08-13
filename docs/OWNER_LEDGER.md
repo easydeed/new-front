@@ -212,6 +212,66 @@ when their trigger arrives.
   that audits the manifest against the code, which the new pin now does
   continuously.
 
+## Deferred by owner decision — credentials in git history (2026-08-13)
+
+**Status: DEFERRED BY DECISION, NOT OUTSTANDING, NOT FORGOTTEN.** The
+machine flagged this twice and asked for rotation; the owner has
+deliberately deferred it with the reasoning and trigger below. Recorded
+that way round so the record shows who decided what.
+
+**The finding.** Four backend files carry a `postgresql://user:password@host/db`
+literal — **two distinct credentials**, one repeated three times:
+
+| file | database | secret fingerprint |
+|---|---|---|
+| `backend/run_migration.py` | `deedpro` (Ohio) | `105f01e0` |
+| `backend/migrations/run_migration.py` | `deedpro` (Ohio) | `105f01e0` |
+| `backend/migrations/run_adminfix_migration.py` | `deedpro` (Ohio) | `105f01e0` |
+| `backend/set_admin_role.py` | `mr_staging_db` (Oregon) | `d6e6271a` |
+
+Fingerprints are `sha256(secret)[:8]`, so the owner can tell the two
+apart and confirm a rotation landed **without the value ever appearing in
+this file** — the standing rule that no credential value is written here
+holds, and a fingerprint is how the rule stays useful rather than merely
+observed. Found by an AST sweep written for an unrelated argument-shape
+bug.
+
+**Why deferring is defensible today.** Exposure requires clone access to
+a private repository with a single collaborator. Obscurity is not
+security, but access control is, and that is access control.
+
+**The two ways it actually bites — and neither is "an attacker finds us".**
+
+1. **The first outside clone makes the credential permanently theirs.**
+   A contractor, a design partner's engineer, an acquirer's diligence
+   team — the moment anyone else clones, it cannot be taken back, and
+   rotating afterwards does not un-give it.
+2. **Diligence will find it.** Live production credentials in git history
+   is a disclosure-schedule item, not a code smell. This is precisely
+   what RED0's reviewer #1 was simulating.
+
+**TRIGGER — rotate BEFORE any of, whichever comes first:**
+
+- a second person is granted access to the repository;
+- a design partner or contractor clones it;
+- acquisition or investment diligence begins.
+
+**Why the files stay unscrubbed until then.** Scrubbing the working tree
+while the secrets stay live in history is the appearance of a fix, and it
+**destroys the evidence of which credential needs rotating** — the table
+above stops being checkable against the code. Rotation first, then scrub
+to `os.getenv`, in that order. `run_migration.py` stays quarantined with
+them (it is also unparseable — a migration runner that has never parsed,
+so has never run a migration); deleting it is part of the same pass.
+
+**What is mechanical in the meantime.**
+`backend/tests/test_db_identity.py::test_no_new_file_hard_codes_a_database_password`
+holds the offender set at exactly these four. A fifth cannot arrive
+quietly, and a file cleaned up must be removed from the set — so the
+gate stops the next one without pretending to have fixed these.
+
+---
+
 ## Open — needs a ruling (found 2026-08-12, NOT fixed)
 
 - **CORS allows every origin, with credentials.** `backend/main.py:66-76`:
