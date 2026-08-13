@@ -377,3 +377,51 @@ def test_the_sweep_is_reading_a_plausible_corpus():
     assert found >= 3, (
         f"only {found} writes to `users` found — the sweep is no longer "
         "reading the statements it was written to guard")
+
+
+# ══════════════════════════════════════════════════════════════════════
+# 6. LEGAL1 — no consent is collected that cannot be honoured
+# ══════════════════════════════════════════════════════════════════════
+
+def test_registration_does_not_accept_a_marketing_consent():
+    """`subscribe` was accepted here and written to `users`, then appeared
+    NOWHERE ELSE in 119 endpoints — no response, no profile field, no
+    patch path, no unsubscribe endpoint, while /admin/emails exists.
+
+    Unreadable, unmodifiable by the person who gave it, unproducible by
+    support, unhonourable. Mailing a list whose consent cannot be
+    produced and which offers no way out is a CAN-SPAM problem.
+
+    OWNER-RULED: stop collecting it. Collecting consent we cannot honour
+    is worse than not collecting it — it manufactures a record that
+    looks like permission and cannot function as one.
+
+    THE COLUMN STAYS and existing rows are untouched: dropping a column
+    is a data operation, and those values are evidence of what was
+    collected even though they are unusable as permission.
+
+    This pin is what stops HALF the lifecycle reappearing. If collection
+    comes back, it comes back with a read path, a patch path, an
+    unsubscribe endpoint and a List-Unsubscribe header — or not at all.
+    """
+    from pathlib import Path
+
+    from tests.source_text import code_only
+
+    backend = Path(__file__).resolve().parents[1]
+    src = code_only(backend / "routers" / "users_auth.py")
+
+    model = src[src.index("class UserRegister"):]
+    model = model[: model.index("class UserLogin")]
+    assert "subscribe" not in model, (
+        "registration accepts a marketing consent again — it must arrive "
+        "with a read path, a patch path and an unsubscribe endpoint, or "
+        "not at all")
+
+    # And it is not written on the way past either. The checkbox going
+    # while the write stayed would be the worst of both: still collected,
+    # no longer even asked for.
+    handler = src[src.index("INSERT INTO users"):]
+    handler = handler[:600]
+    assert "subscribe" not in handler, (
+        "the registration INSERT still writes a consent nothing can read")
