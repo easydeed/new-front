@@ -1,6 +1,7 @@
 "use client"
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useState, useEffect, useRef } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { ATTEMPTS, afterAttempt, delayBeforeAttempt, type PlanWatch } from "@/lib/planRefresh"
 import Sidebar from "@/components/Sidebar"
 import { User, CreditCard, Bell, Lock, Check, Loader2 } from "lucide-react"
 import { toast } from "sonner"
@@ -34,18 +35,99 @@ interface UserProfile {
 }
 
 // ✅ PHASE 24-E: V0-generated Account Settings page with 5 tabs (Profile, Billing, Notifications, Security, Widget)
+/**
+ * The Suspense boundary is `useSearchParams()`'s. Without it Next fails
+ * the BUILD rather than the render, so jest and tsc both stay green
+ * while `next build` does not. Fourth time this wave.
+ */
 export default function AccountSettingsPageV0() {
+  return (
+    <Suspense fallback={null}>
+      <AccountSettingsPage />
+    </Suspense>
+  )
+}
+
+function AccountSettingsPage() {
   const router = useRouter()
+  const params = useSearchParams()
   const [activeTab, setActiveTab] = useState<Tab>("profile")
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  // Read by the checkout watcher without re-arming it on every fetch.
+  const userProfileRef = useRef<UserProfile | null>(null)
 
+  /**
+   * MONEY1 — THE PAGE ASKED ONCE AND NEVER AGAIN.
+   *
+   * The mount fetch was never the defect (the badge has always been
+   * bound to `userProfile.plan` from this call). The defect is that it
+   * happens exactly once, and the moment it matters most is the one
+   * moment it is guaranteed to be too early:
+   *
+   *   Stripe redirects to `?success=true` the instant checkout
+   *   completes. The webhook that upgrades the plan arrives
+   *   INDEPENDENTLY, over the same seconds. So the one fetch races the
+   *   upgrade and usually loses — and then nothing asks again until the
+   *   officer reloads by hand.
+   *
+   * She sees Free after paying, which is the same thing she would see if
+   * the payment had failed. The page is not wrong about the data; it is
+   * wrong about WHEN, and the two are indistinguishable from her seat.
+   *
+   * So: refetch on return from checkout with a short retry, and refetch
+   * when she comes back to the tab. Neither invents anything — both just
+   * ask again.
+   */
   useEffect(() => {
     fetchUserProfile()
   }, [])
 
-  const fetchUserProfile = async () => {
+  /**
+   * BACK FROM CHECKOUT. Stripe has redirected, so the payment is
+   * OBSERVED — that much is not a guess. What has not necessarily
+   * happened yet is the webhook, so this asks again on a short schedule
+   * and reports honestly when it runs out.
+   *
+   * The policy is `lib/planRefresh`, called rather than inlined: "what
+   * does it do on attempt four" is a question a test should be able to
+   * ask, and a setTimeout chain in a component can only be grepped.
+   */
+  const [checkout, setCheckout] = useState<PlanWatch | null>(null)
+  useEffect(() => {
+    if (params?.get("success") !== "true") return
+    let cancelled = false
+    const startedOn = userProfileRef.current?.plan ?? null
+    const run = async (attempt: number) => {
+      const wait = delayBeforeAttempt(attempt)
+      if (wait === null || cancelled) return
+      await new Promise((r) => setTimeout(r, wait))
+      if (cancelled) return
+      const profile = await fetchUserProfile({ silent: true })
+      if (cancelled) return
+      const next = afterAttempt(attempt, profile?.plan, startedOn)
+      setCheckout(next)
+      if (next.state === "checking") run(next.attempt)
+    }
+    setCheckout({ state: "checking", attempt: 0 })
+    run(0)
+    return () => { cancelled = true }
+  }, [params])
+
+  // Coming back to the tab is the cheapest honest signal that the world
+  // may have moved: she went to Stripe's portal, or waited, and returned.
+  useEffect(() => {
+    const onFocus = () => { fetchUserProfile({ silent: true }) }
+    window.addEventListener("focus", onFocus)
+    document.addEventListener("visibilitychange", onFocus)
+    return () => {
+      window.removeEventListener("focus", onFocus)
+      document.removeEventListener("visibilitychange", onFocus)
+    }
+  }, [])
+
+  const fetchUserProfile = async ({ silent = false }: { silent?: boolean } = {}) => {
     try {
       const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
       const token = localStorage.getItem("access_token")
@@ -67,10 +149,12 @@ export default function AccountSettingsPageV0() {
 
       const profile = await response.json()
       setUserProfile(profile)
+      userProfileRef.current = profile
+      return profile
     } catch (err) {
       console.error("Error fetching profile:", err)
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 
@@ -188,6 +272,40 @@ export default function AccountSettingsPageV0() {
             {/* Tab Content */}
             <div className="p-8">
               {activeTab === "profile" && <ProfileTab userProfile={userProfile} />}
+              {/* MONEY1 — back from checkout, saying only what is known.
+                  Stripe redirected, so the payment is OBSERVED. Whether
+                  the plan has caught up is a separate fact, and while it
+                  has not this says exactly that rather than claiming
+                  either outcome. */}
+              {activeTab === "billing" && checkout && (
+                <div className={`mb-6 rounded-xl border p-4 ${
+                  checkout.state === "changed"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                    : "border-amber-200 bg-amber-50 text-amber-900"
+                }`}>
+                  {checkout.state === "changed" ? (
+                    <p className="font-medium">
+                      Payment received — your plan is now {checkout.plan}.
+                    </p>
+                  ) : checkout.state === "checking" ? (
+                    <p className="font-medium">
+                      Payment received. Confirming your new plan…
+                    </p>
+                  ) : (
+                    <>
+                      <p className="font-medium">
+                        Payment received, and your plan has not updated yet.
+                      </p>
+                      <p className="text-sm mt-1">
+                        Stripe has your payment — this page stopped waiting after
+                        a few seconds, which is a delay on our side rather than a
+                        problem with your card. Refresh in a minute, and contact
+                        us if it has not changed.
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
               {activeTab === "billing" && (
                 <BillingTab
                   userProfile={userProfile}

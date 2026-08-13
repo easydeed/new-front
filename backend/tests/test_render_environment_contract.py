@@ -198,6 +198,28 @@ def test_the_required_set_is_the_silent_ones():
     WRONG. A missing ADMIN_EMAIL loses a notification; a missing
     FRONTEND_URL produces a confidently wrong redirect."""
     assert "FRONTEND_URL" in env.REQUIRED_KEYS
+
+    # MONEY1 — ADDED BECAUSE A MUTATION PROBE FOUND NOTHING HELD IT.
+    #
+    # This sat OPTIONAL, on reasoning that was right about security and
+    # wrong about availability: "the webhook path already refuses
+    # unverified payloads, so the failure is closed, not silent."
+    # Closed-failure means a forged payload cannot fake an upgrade. It
+    # equally means every LEGITIMATE Stripe event is refused, so a
+    # customer is charged and stays on the free plan.
+    #
+    # The classification defeated the mechanism built to catch exactly
+    # this — the boot report names missing REQUIRED variables, and this
+    # one told it not to look. Reverting it to OPTIONAL passed the whole
+    # file until this line existed.
+    #
+    # The inversion is the lesson: ALLOWED_ORIGINS was marked REQUIRED
+    # and read by nothing; this was marked OPTIONAL and the paid path
+    # depends on it. Both are a classification asserted rather than
+    # checked.
+    assert "STRIPE_WEBHOOK_SECRET" in env.REQUIRED_KEYS, (
+        "the webhook secret is optional again — without it every Stripe "
+        "event is refused and paid upgrades silently never happen")
     assert "STRIPE_PROFESSIONAL_PRICE_ID" in env.REQUIRED_KEYS
     assert "ADMIN_EMAIL" in env.OPTIONAL_KEYS
     assert "SENDGRID_API_KEY" in env.OPTIONAL_KEYS

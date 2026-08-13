@@ -233,3 +233,147 @@ def test_the_admin_message_does_not_promise_to_generate_for_her():
     handler = handler[: handler.index("\n@router.")]
     assert "draft" in handler.lower()
     assert "builder" in handler.lower()
+
+
+# ══════════════════════════════════════════════════════════════════════
+# 4. MONEY1 — a limit nothing enforces is not advertised
+# ══════════════════════════════════════════════════════════════════════
+
+def test_the_profile_does_not_report_a_cap_nothing_enforces():
+    """ADDED BECAUSE A MUTATION PROBE FOUND NOTHING HELD IT.
+
+    `/users/profile` returned `max_deeds_per_month: 5` from a hardcoded
+    fallback whenever `plan_limits` had no row — which is always, because
+    the table is never seeded. Meanwhile `check_plan_limits` sits in
+    main.py with ZERO call sites, so nothing has ever counted a deed
+    against a cap.
+
+    A number in a payload reads as a rule. An officer on Free was told by
+    the API that she has five a month, and it was untrue in both
+    directions: nothing stopped her at five, and nothing had decided she
+    should be.
+
+    Same class TRIAL1 deleted from the pricing copy, surviving in a
+    payload — the harder place to see it, because copy is read by people
+    and payloads are not.
+
+    THIS PIN CUTS BOTH WAYS. If enforcement is ever wired up, it fails
+    and tells you to restore the number: a cap that is enforced SHOULD be
+    reported, and the defect was only ever the mismatch.
+    """
+    from pathlib import Path
+
+    from tests.source_text import code_only
+
+    backend = Path(__file__).resolve().parents[1]
+    calls = []
+    for path in backend.rglob("*.py"):
+        if {"tests", "__pycache__", "venv", ".venv"} & set(path.parts):
+            continue
+        src = code_only(path)
+        for i, line in enumerate(src.splitlines(), start=1):
+            if "check_plan_limits(" in line and "def check_plan_limits" not in line:
+                calls.append(f"{path.relative_to(backend)}:{i}")
+
+    profile = code_only(backend / "routers" / "users_auth.py")
+    advertises = 'if limits else 5' in profile or 'if limits else 100' in profile
+
+    if calls:
+        assert advertises, (
+            "check_plan_limits is called from " + ", ".join(calls) +
+            " — the cap is enforced now, so the profile should report it "
+            "rather than null. Enforcement and disclosure move together.")
+    else:
+        assert not advertises, (
+            "the profile advertises a plan limit as a number while "
+            "check_plan_limits has no call sites — nothing counts against "
+            "it, so the number is a rule nobody enforces")
+        # And it says WHY the values are absent, so a consumer does not
+        # read null as "failed to load" and substitute its own default.
+        assert '"enforced"' in profile
+
+
+# ══════════════════════════════════════════════════════════════════════
+# 5. MONEY1 — a column only in the CREATE never reaches an old database
+# ══════════════════════════════════════════════════════════════════════
+
+def test_every_users_column_the_code_writes_has_an_ALTER():
+    """THE DEFECT THAT ATE EVERY PAYMENT, AS A RULE.
+
+    `users.updated_at` was in `CREATE TABLE IF NOT EXISTS users` and in
+    no ALTER. Production's `users` predates it, and CREATE IF NOT EXISTS
+    is a NO-OP on an existing table — so the column never arrived.
+    Confirmed against production: 22 columns, no `updated_at`.
+
+    Every webhook handler writing `SET ... updated_at = now()` threw
+    UndefinedColumn and returned 500, which is why
+    checkout.session.completed failed while handlers touching other
+    tables succeeded. The plan upgrade lives only in the failing one.
+
+    STRUCTURALLY BLIND, WHICH IS WHY THREE OCCURRENCES SURVIVED. A test
+    against a fresh database CANNOT SEE THIS CLASS — not "usually
+    misses it", cannot see it. A fresh database is built from the
+    current CREATE and therefore always agrees with it. The bug exists
+    only in the gap between a database's AGE and the code's, and no
+    environment built today has an age.
+
+    So this pin reads the SCHEMA SOURCE. It is the only vantage point
+    from which the gap is visible at all.
+
+    It earned that on its first run: it found is_platform_admin,
+    organization_id and widget_addon written with no ALTER, and two of
+    the three are genuinely absent from production — two more latent
+    500s waiting for whichever code path writes them. Fixing
+    users.updated_at alone would have left them.
+
+    Scoped to the columns the CODE ACTUALLY WRITES, deliberately. A
+    sweep of every column of every table is the right eventual pin and
+    is NOT this one — a first attempt at it mis-parsed across table
+    boundaries and reported columns belonging to other tables, and a
+    sweep that reports garbage is worse than no sweep. Ledgered.
+    """
+    import re
+    from pathlib import Path
+
+    from tests.source_text import code_only
+
+    backend = Path(__file__).resolve().parents[1]
+    schema = code_only(backend / "database.py")
+    altered = set(re.findall(r"ALTER TABLE users ADD COLUMN IF NOT EXISTS (\w+)", schema))
+
+    # Every column named in an UPDATE/INSERT against `users`, anywhere.
+    written = set()
+    for path in backend.rglob("*.py"):
+        if {"tests", "__pycache__", "venv", ".venv"} & set(path.parts):
+            continue
+        src = code_only(path)
+        for stmt in re.findall(r"UPDATE\s+users\s+SET\s+(.*?)(?:WHERE|\"\"\"|')", src,
+                               re.S | re.I):
+            written.update(re.findall(r"(\w+)\s*=", stmt))
+
+    # `id` is the primary key from the original CREATE and is never added.
+    missing = sorted(c for c in written - altered if c != "id")
+    assert missing == [], (
+        "these columns are written to `users` but have no "
+        "ALTER TABLE ... ADD COLUMN IF NOT EXISTS: " + ", ".join(missing) +
+        " — on a database that predates them the CREATE is a no-op, the "
+        "column is absent, and every write throws UndefinedColumn. This "
+        "cannot be caught by a test against a fresh database.")
+
+
+def test_the_sweep_is_reading_a_plausible_corpus():
+    """A scanner that finds no writes exempts every column."""
+    import re
+    from pathlib import Path
+
+    from tests.source_text import code_only
+
+    backend = Path(__file__).resolve().parents[1]
+    found = 0
+    for path in backend.rglob("*.py"):
+        if {"tests", "__pycache__", "venv", ".venv"} & set(path.parts):
+            continue
+        found += len(re.findall(r"UPDATE\s+users\s+SET", code_only(path), re.I))
+    assert found >= 3, (
+        f"only {found} writes to `users` found — the sweep is no longer "
+        "reading the statements it was written to guard")
