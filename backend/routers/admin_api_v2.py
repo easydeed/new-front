@@ -5,7 +5,7 @@ import os, csv, io
 
 # Import project-specific helpers (adjust if your module paths differ)
 try:
-    from auth import get_current_admin  # existing dependency
+    from auth import ADMIN_ROLES, get_current_admin, is_admin_role  # existing dependency
 except Exception:
     # If project uses package style imports
     from backend.auth import get_current_admin  # type: ignore
@@ -367,13 +367,94 @@ def admin_email_stats(days: int = Query(7, ge=1, le=90),
 # PHASE 12-3: USER CRUD OPERATIONS
 # ============================================================================
 
+#: What the admin console may ASSIGN to `users.role`.
+#:
+#: Every admin spelling, plus `user`. Deliberately NOT the job titles —
+#: and that is the interesting half of this ruling.
+#:
+#: `users.role` carries two meanings (ROLE1): a job title written by
+#: registration, and the authorization value the gates read. Registration
+#: legitimately writes free text there — SIGNUP1's "Other" resolves to
+#: whatever she typed — so a closed set covering BOTH meanings would
+#: reject values the product itself creates.
+#:
+#: But an admin editing this field is making an AUTHORIZATION decision.
+#: Job titles are the officer's own, entered where she enters them. So
+#: the console's assignable set is the authorization vocabulary, and the
+#: refusal says so rather than pretending the column is simpler than it
+#: is.
+#:
+#: When ROLE1 step 3 lands — job title to its own column, `role` reduced
+#: to a closed set — this becomes the whole vocabulary rather than a
+#: subset of it, and this comment can go.
+ASSIGNABLE_ROLES = frozenset({r.lower() for r in ADMIN_ROLES} | {'user'})
+
+
+def _validate_role_change(cur, target_user_id: int, admin_email: str,
+                          new_role) -> None:
+    """Refuse a role the product does not use, and refuse a self-lockout."""
+    value = (new_role or '').strip()
+    if not value:
+        raise HTTPException(
+            status_code=400,
+            detail="A role cannot be blank. Use 'user' for no special access.")
+
+    if value.lower() not in ASSIGNABLE_ROLES:
+        raise HTTPException(
+            status_code=400,
+            detail=(f"'{value}' would grant nothing. From here you can set "
+                    f"admin access ({', '.join(sorted(ADMIN_ROLES))}) or "
+                    f"'user'. A job title belongs to the person it describes "
+                    f"and is edited in their profile, not here."),
+        )
+
+    # ── THE SELF-LOCKOUT ─────────────────────────────────────────────
+    #
+    # Checked by EMAIL because that is what the admin dependency returns
+    # — `get_current_admin` yields `user_email` from the token, not an
+    # id. Comparing the target row's email to it is the comparison that
+    # is actually available, and it is the one that is true.
+    if is_admin_role(new_role):
+        return  # Promoting or keeping admin can never lock anybody out.
+    cur.execute("SELECT email, role FROM users WHERE id = %s", (target_user_id,))
+    row = cur.fetchone()
+    target = dict(row) if row else {}
+    if (target.get('email') or '').lower() == (admin_email or '').lower() \
+            and is_admin_role(target.get('role')):
+        raise HTTPException(
+            status_code=409,
+            detail=("You are removing your own admin access. Ask another "
+                    "admin to do it, so you are not locked out of the console "
+                    "you would need to undo it."),
+        )
+
+
 @router.put("/users/{user_id}")
 def admin_update_user(
     user_id: int, 
     updates: Dict[str, Any] = Body(...),
     admin=Depends(get_current_admin)
 ):
-    """Update user fields - Phase 12-3"""
+    """Update user fields - Phase 12-3.
+
+    ═══ ROLE1 — THE UNGUARDED PATH ═══
+
+    `role` was editable here with NO validation of the value and no
+    self-demotion guard. Three things followed, and none of them said
+    anything out loud:
+
+      - `Administrator` created a PARTIAL ADMIN — the console opened and
+        two gates inside it refused. (Fixed at the source: all three
+        gates now read `ADMIN_ROLES`.)
+      - `adminn` granted nothing, silently. An admin form that accepts a
+        typo and reports success is invariant #4 wearing a suit: the
+        product declined and did not say so.
+      - An admin could demote THEMSELVES and lose the console with no
+        warning. That is a lockout, not a decision.
+
+    The registration guard was the loud path and it was already closed.
+    This was the quiet one.
+    """
     with db_connection() as conn, conn.cursor() as cur:
         # Build dynamic UPDATE query
         set_clauses = []
@@ -382,7 +463,10 @@ def admin_update_user(
         # Allowed fields for update
         allowed_fields = ['full_name', 'email', 'role', 'plan', 'company_name', 
                          'phone', 'state', 'is_active', 'verified']
-        
+
+        if 'role' in updates:
+            _validate_role_change(cur, user_id, admin, updates['role'])
+
         for field in allowed_fields:
             if field in updates:
                 set_clauses.append(f"{field} = %s")
