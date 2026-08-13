@@ -176,6 +176,30 @@ def officer_queue(user_id: int = Depends(get_current_user_id)) -> Dict[str, Any]
                 "checks": checks,
             })
 
+        # ── What she actually files ───────────────────────────────────
+        #
+        # The catalog is 21 California instruments and an officer files
+        # three of them. Ordering the "start something new" list by her
+        # own frequency puts her next document first; ordering it
+        # alphabetically puts an affidavit she has never filed above the
+        # grant deed she files weekly.
+        #
+        # THIS YEAR, and the window is named in the payload rather than
+        # implied by the number — "14" over an unstated period is a
+        # figure the reader has to guess the meaning of.
+        cur.execute("""
+            SELECT deed_type, COUNT(*) AS n
+              FROM deeds
+             WHERE user_id = %s
+               AND COALESCE(status, '') <> 'deleted'
+               AND created_at >= date_trunc('year', now())
+             GROUP BY deed_type
+             ORDER BY n DESC, deed_type
+        """, (user_id,))
+        instruments = [{"deed_type": r["deed_type"], "count": r["n"],
+                        "period": "this year"}
+                       for r in _rows(cur) if r.get("deed_type")]
+
         # ── Her own drafts, untouched ─────────────────────────────────
         cur.execute("""
             SELECT id, deed_type, property_address, updated_at, created_at
@@ -202,6 +226,7 @@ def officer_queue(user_id: int = Depends(get_current_user_id)) -> Dict[str, Any]
     awaiting.sort(key=lambda r: (r["days_waiting"] is None,
                                  -(r["days_waiting"] or 0)))
     return q.queue(upcoming=upcoming, awaiting=awaiting, idle_drafts=idle,
+                   instruments=instruments,
                    accuracy={"fields": total_fields,
                              "documents": len(accuracy_items),
                              "items": accuracy_items})

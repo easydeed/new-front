@@ -112,7 +112,14 @@ QUEUE_KEYS = frozenset({
     "thresholds",      # the numbers above, so no screen retypes them
     "badges",          # per-page waiting counts for the sidebar
     "accuracy",        # what stands between her documents and being ready
+    "instruments",     # what THIS officer files, most-used first
 })
+
+#: "Start something new", ordered by what she actually files rather than
+#: alphabetically — and the count is the evidence for the order, shown
+#: rather than implied. An officer who files nothing but interspousal
+#: transfers should not scroll past four grant-deed variants.
+INSTRUMENT_KEYS = frozenset({"deed_type", "count", "period"})
 
 #: The hero number and the list under it, in ONE block from ONE pass —
 #: the same reason `needs_attention` is computed here. A screen deriving
@@ -131,7 +138,8 @@ IDLE_KEYS = frozenset({"kind", "id", "deed_type", "property", "days_idle"})
 def queue(*, upcoming: Sequence[Dict[str, Any]],
           awaiting: Sequence[Dict[str, Any]],
           idle_drafts: Sequence[Dict[str, Any]],
-          accuracy: Dict[str, Any]) -> Dict[str, Any]:
+          accuracy: Dict[str, Any],
+          instruments: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
     """Assemble the payload and assert its shape.
 
     `needs_attention` is computed HERE rather than by the screen, and it
@@ -155,8 +163,13 @@ def queue(*, upcoming: Sequence[Dict[str, Any]],
         assert set(row) == ACCURACY_ITEM_KEYS, \
             f"accuracy row drifted: {sorted(row)}"
 
+    for row in instruments:
+        assert set(row) == INSTRUMENT_KEYS, \
+            f"instrument row drifted: {sorted(row)}"
+
     payload = {
         "accuracy": accuracy,
+        "instruments": list(instruments),
         "upcoming": list(upcoming),
         "awaiting": list(awaiting),
         "idle_drafts": list(idle_drafts),
