@@ -118,7 +118,27 @@ def main():
     # `provenance` block. There is no builder_state blob, and writing the
     # walkthrough against one I imagined would have proved nothing about
     # the product — which is why this is a walkthrough and not a mock.
-    r = client.post("/deeds", json={
+    #
+    # ═══ WHY THIS MOVED FROM POST /deeds TO POST /deeds/draft ═══
+    #
+    # It posted to `/deeds`, which is the endpoint that RENDERS AND STORES
+    # THE PDF (`generate_and_store`, T2). That is the print path, and
+    # REQUIRED1 made it demand what a printed instrument must carry — a
+    # vesting statement and a transfer-tax declaration.
+    #
+    # Which broke this step, correctly: at this point in her Thursday she
+    # has typed some fields and has NOT decided the transfer tax. An
+    # officer mid-work is exactly who this walkthrough protects, and
+    # asking her for a legal decision before she prints anything would be
+    # the product hurrying a choice §1 says it must never make for her.
+    #
+    # So the step now uses the endpoint the PRODUCT uses for a partial
+    # save. The builder autosaves to `/deeds/draft` (U1), whose model
+    # exists precisely because "a draft may be arbitrarily incomplete".
+    # This is the walkthrough becoming MORE faithful, not less: it
+    # claimed to exercise the real save contract while using the
+    # finalize path.
+    r = client.post("/deeds/draft", json={
         "deed_type": "grant-deed", "property_address": HER_WORK["property"]["address"],
         "apn": HER_WORK["property"]["apn"],
         "legal_description": HER_WORK["property"]["legalDescription"],

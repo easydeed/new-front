@@ -155,3 +155,33 @@ def test_the_refusal_names_what_is_missing_and_why():
         BACKEND / "routers" / "deeds_crud.py", "create_deed_endpoint"))
     assert "r.label for r in decisions" in src
     assert "neither is inferred" in src
+
+
+def test_the_endpoint_that_enforces_is_the_one_that_PRINTS():
+    """WHY POST /deeds AND NOT SOMEWHERE ELSE — the question the six-flow
+    harness forced.
+
+    Converging onto this endpoint is only right because it renders and
+    stores the PDF (`generate_and_store`, T2). That makes it the print
+    path, and the doctrine is about what reaches the immutable stored
+    instrument: an unconfirmed field or an undeclared transfer tax must
+    not get onto a page.
+
+    A partial save is a different act and has a different endpoint.
+    `POST /deeds/draft` exists because "a draft may be arbitrarily
+    incomplete", and it is deliberately NOT tightened here — asking an
+    officer for a legal decision before she prints anything would hurry a
+    choice §1 says the product must never make for her.
+    """
+    src = code_only(function_source(
+        BACKEND / "routers" / "deeds_crud.py", "create_deed_endpoint"))
+    assert "generate_and_store" in src, (
+        "if this endpoint no longer prints, the argument for enforcing "
+        "the legal decisions HERE has moved with it")
+
+    draft = code_only(function_source(
+        BACKEND / "routers" / "deeds_crud.py", "save_draft_endpoint"))
+    assert "missing_required" not in draft, (
+        "the autosave path must stay permissive — an officer mid-work has "
+        "not yet made the decisions, and losing her typing to a 422 is the "
+        "failure the Thursday walkthrough exists to catch")
