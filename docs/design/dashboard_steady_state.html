@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DeedPro — main dashboard (document preparation)</title>
+<style>
+:root{
+  --brand:#7C4DFF; --brand-dk:#6A3DE8; --brand-ink:#5B2FD6; --brand-wash:#F3EFFF; --brand-line:#DDD2FF;
+  /* ordinal readiness ramp — validated: monotone L, ΔL≥.06, light end 2.01:1, hue spread 9° */
+  --s1:#C0AAFF; --s2:#A98EFF; --s3:#9070FF; --s4:#7C4DFF; --s5:#5426C2;
+  --good:#0ca30c; --good-ink:#046B04;
+  --warn:#fab219; --warn-ink:#8A5A00;
+  --serious:#ec835a; --serious-ink:#9A4420;
+  --crit:#d03b3b; --crit-ink:#B3261E;
+  --ink:#1F2937; --muted:#4B5563; --faint:#6B7280; --line:#E7E7EE;
+  --page:#F7F7FB; --card:#FFFFFF; --r:12px;
+  --sans:Inter,"Segoe UI",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--page);color:var(--ink);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5}
+
+.demobar{position:sticky;top:0;z-index:60;display:flex;gap:14px;align-items:center;flex-wrap:wrap;
+  padding:10px 18px;background:#14121C;color:#EDEAF6;font-size:12.5px}
+.demobar strong{font-weight:600}.demobar .sp{flex:1}
+.tgl{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none}
+.tgl input{accent-color:var(--brand);width:15px;height:15px}
+
+.app{display:grid;grid-template-columns:236px 1fr;min-height:calc(100vh - 42px)}
+.side{background:var(--card);border-right:1px solid var(--line);padding:22px 0}
+.logo{display:flex;align-items:center;gap:9px;padding:0 20px 26px;font-weight:700;font-size:19px;letter-spacing:-.02em}
+.logo i{width:28px;height:28px;border-radius:8px;background:var(--brand);display:grid;place-items:center;color:#fff;font-size:14px;font-style:normal}
+.grp{padding:0 20px;font-size:10.5px;font-weight:700;letter-spacing:.09em;color:#9AA1AC;margin:16px 0 7px}
+.nav{display:flex;align-items:center;gap:11px;padding:9px 20px;color:var(--muted);font-weight:500;cursor:pointer;border-left:3px solid transparent}
+.nav:hover{background:#FAFAFD;color:var(--ink)}
+.nav.on{color:var(--brand-ink);background:var(--brand-wash);border-left-color:var(--brand);font-weight:600}
+.nav .ic{width:17px;text-align:center;opacity:.85}
+.nav .pip{margin-left:auto;background:var(--brand);color:#fff;font-size:11px;font-weight:700;min-width:19px;height:19px;border-radius:99px;display:grid;place-items:center;padding:0 5px}
+.main{padding:26px 36px 80px;max-width:1250px}
+
+h1{font-size:22px;font-weight:650;letter-spacing:-.02em}
+.sub{color:var(--muted);margin-top:3px;font-size:13px}
+h2{font-size:12px;font-weight:700;letter-spacing:.08em;color:#8A919C;text-transform:uppercase}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r)}
+
+.btn{font:inherit;font-weight:600;font-size:13.5px;border:0;border-radius:9px;padding:10px 16px;cursor:pointer;background:var(--brand);color:#fff;display:inline-flex;align-items:center;gap:7px}
+.btn:hover{background:var(--brand-dk)}
+.btn.sec{background:#fff;color:var(--ink);border:1px solid #D9D9E3}
+.btn.sec:hover{background:#FAFAFD}
+.btn.sm{padding:7px 12px;font-size:13px}
+.btn.lg{padding:12px 20px;font-size:14.5px}
+.lnk{color:var(--brand-ink);font-weight:600;cursor:pointer;text-decoration:none;font-size:13px}
+.lnk:hover{text-decoration:underline}
+
+.topline{display:flex;align-items:flex-start;gap:18px;flex-wrap:wrap;margin-bottom:22px}
+.search{flex:1;min-width:240px;max-width:400px;position:relative;margin-left:auto}
+.search input{width:100%;font:inherit;font-size:13.5px;padding:10px 13px 10px 34px;border:1px solid #DEDEE6;border-radius:9px;background:#fff;color:var(--ink)}
+.search input::placeholder{color:#9AA1AC}
+.search .mag{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#9AA1AC;font-size:13px}
+
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 9px 3px 7px;border-radius:99px;border:1px solid transparent;white-space:nowrap}
+.pill .g{font-size:11px;line-height:1}
+.p-crit{color:var(--crit-ink);background:#FDECEB;border-color:#F6CFCC}
+.p-warn{color:var(--warn-ink);background:#FDF4E0;border-color:#F2E0B4}
+.p-ser {color:var(--serious-ink);background:#FDEFE8;border-color:#F5D8C8}
+.p-good{color:var(--good-ink);background:#E8F6E8;border-color:#C7E8C7}
+.p-idle{color:var(--muted);background:#F2F3F5;border-color:#E3E5E9}
+.p-brand{color:var(--brand-ink);background:var(--brand-wash);border-color:var(--brand-line)}
+
+/* ---- resume band ---- */
+.band{display:grid;grid-template-columns:1.75fr 1fr;gap:18px;align-items:stretch}
+.resume{padding:20px 22px;display:grid;grid-template-columns:132px 1fr;gap:20px;align-items:center}
+.thumb{border:1px solid var(--line);border-radius:8px;background:#FCFCFD;padding:11px 10px;font-family:Georgia,serif;font-size:7.5px;line-height:1.6;color:#4A4F5A;position:relative;overflow:hidden}
+.thumb .lab{font-family:var(--sans);font-size:6px;font-weight:700;letter-spacing:.06em;color:#8A919C}
+.thumb .ttl{text-align:center;font-weight:700;font-size:9.5px;letter-spacing:.04em;margin:7px 0 5px;border-top:1px solid #E4E4EA;border-bottom:1px solid #E4E4EA;padding:4px 0}
+.thumb .gap{display:block;height:5px;background:#F0ECFF;border:1px dashed var(--brand-line);border-radius:2px;margin:3px 0}
+.thumb .ok{display:block;height:5px;background:#EDEEF2;border-radius:2px;margin:3px 0}
+.resume .kick{font-size:11.5px;font-weight:700;letter-spacing:.07em;color:var(--brand-ink);text-transform:uppercase}
+.resume h3{font-size:19px;font-weight:650;letter-spacing:-.02em;margin-top:5px}
+.resume .m{color:var(--muted);font-size:13px;margin-top:2px}
+.checks{margin:13px 0 15px;display:flex;flex-direction:column;gap:5px}
+.ck{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}
+.ck i{width:14px;height:14px;border-radius:99px;flex-shrink:0;display:grid;place-items:center;font-size:8px;font-style:normal;color:#fff}
+.ck i.d{background:var(--good-ink)} .ck i.o{background:#fff;border:1.5px solid #CFD3DA}
+.ck.open{color:var(--ink);font-weight:550}
+
+.starter{padding:18px 20px}
+.starter h4{font-size:12px;font-weight:700;letter-spacing:.08em;color:#8A919C;text-transform:uppercase;margin-bottom:12px}
+.inst{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;margin-bottom:7px;cursor:pointer;font-size:13.5px;font-weight:550}
+.inst:hover{border-color:var(--brand-line);background:var(--brand-wash);color:var(--brand-ink)}
+.inst span{margin-left:auto;font-size:11.5px;color:#9AA1AC;font-weight:500}
+.inst:hover span{color:var(--brand-ink)}
+
+/* ---- hero ---- */
+.headline{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:34px 0 4px;flex-wrap:wrap}
+.hfig{display:flex;align-items:baseline;gap:13px}
+.hero-fig{font-size:52px;font-weight:660;letter-spacing:-.035em;line-height:1}
+.hero-cap{font-size:16px;color:var(--muted);font-weight:500;max-width:34ch}
+
+/* ---- rows ---- */
+.qgroup{margin-bottom:24px}
+.qhead{display:flex;align-items:center;gap:9px;margin:22px 0 9px}
+.qcount{font-size:11.5px;font-weight:700;color:var(--muted);background:#EDEEF2;border-radius:99px;padding:1px 8px}
+.qhead .lnk{margin-left:auto}
+.row{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center;padding:13px 16px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row:hover{background:#FAFAFD}
+.row .addr{font-weight:600;font-size:14.5px;letter-spacing:-.01em}
+.row .meta{color:var(--muted);font-size:12.5px;margin-top:2px}
+.row .why{margin-top:6px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.row .note{color:var(--faint);font-size:12.5px}
+.row .note b{color:var(--ink);font-weight:600}
+.acts{display:flex;gap:8px;align-items:center;flex-shrink:0}
+
+/* ---- readiness bar ---- */
+.pipe{padding:19px 21px 17px}
+.pipehead{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:15px;flex-wrap:wrap}
+.pipehead .t{font-size:15px;font-weight:650;letter-spacing:-.01em}
+.pipehead .t span{font-weight:500;color:var(--muted);font-size:13px}
+.bar{display:flex;gap:2px;height:34px;width:100%}
+.seg{position:relative;display:grid;place-items:center;cursor:pointer;transition:filter .12s}
+.seg:hover{filter:brightness(1.08)}
+.seg:first-child{border-radius:4px 0 0 4px}
+.seg:last-child{border-radius:0 4px 4px 0}
+.seg b{font-size:13px;font-weight:700;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.28)}
+.seg.lt b{color:#2A1A5E;text-shadow:none}
+.tip{position:absolute;bottom:calc(100% + 9px);left:50%;transform:translateX(-50%);background:#1B1830;color:#fff;font-size:12px;padding:7px 10px;border-radius:7px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s;z-index:5}
+.tip:after{content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1B1830}
+.seg:hover .tip{opacity:1}
+.legend{display:flex;gap:17px;flex-wrap:wrap;margin-top:14px}
+.lg{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted)}
+.lg i{width:11px;height:11px;border-radius:3px;flex-shrink:0}
+.lg b{color:var(--ink);font-weight:650}
+.tblview{display:none;margin-top:14px;width:100%;border-collapse:collapse;font-size:13px}
+body.tbl .tblview{display:table}
+.tblview th,.tblview td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line)}
+.tblview th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:#8A919C}
+.tblview td:last-child,.tblview th:last-child{text-align:right;font-variant-numeric:tabular-nums}
+
+/* ---- two-up ---- */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:24px}
+.pad{padding:18px 20px}
+.pad h3{font-size:15px;font-weight:650;margin-bottom:2px;letter-spacing:-.01em}
+.pad .cap{color:var(--muted);font-size:12.5px;margin-bottom:14px}
+.week{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+.day{border:1px solid var(--line);border-radius:9px;padding:9px 8px;min-height:98px;background:#FCFCFD}
+.day .dn{font-size:10.5px;font-weight:700;letter-spacing:.06em;color:#9AA1AC;text-transform:uppercase}
+.day .dd{font-size:17px;font-weight:650;letter-spacing:-.02em;margin-top:1px}
+.day.today{border-color:var(--brand-line);background:var(--brand-wash)}
+.day.today .dd{color:var(--brand-ink)}
+.appt{margin-top:7px;font-size:11px;line-height:1.35;background:#fff;border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:6px;padding:5px 6px;cursor:pointer}
+.appt b{display:block;font-weight:650}
+.appt span{color:var(--faint)}
+.appt.unc{border-left-color:var(--warn)}
+.act{display:flex;gap:11px;padding:10px 0;border-bottom:1px solid #F0F0F4;font-size:13px}
+.act:last-child{border-bottom:0}
+.act .av{width:26px;height:26px;border-radius:99px;flex-shrink:0;display:grid;place-items:center;font-size:11px;font-weight:700;color:#fff;margin-top:1px}
+.act .tx b{font-weight:650}
+.act .tm{color:#9AA1AC;font-size:12px;margin-top:1px}
+
+.ann{display:none}
+body.notes .ann{display:block;margin:10px 0 20px;border-left:3px solid var(--brand);background:var(--brand-wash);
+  padding:11px 15px;border-radius:0 9px 9px 0;font-size:12.5px;color:#3B3358;line-height:1.6;max-width:82ch}
+.ann b{color:var(--brand-ink)}
+.ann.cut{border-left-color:var(--crit-ink);background:#FDF1F0;color:#4A2320}
+.ann.cut b{color:var(--crit-ink)}
+@media(max-width:1080px){.app{grid-template-columns:1fr}.side{display:none}.two,.band{grid-template-columns:1fr}.week{grid-template-columns:repeat(2,1fr)}.resume{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="demobar">
+  <strong>DeedPro · dashboard v2 — document preparation</strong>
+  <label class="tgl"><input type="checkbox" onchange="document.body.classList.toggle('notes',this.checked)"> Design notes</label>
+  <label class="tgl"><input type="checkbox" onchange="document.body.classList.toggle('tbl',this.checked)"> Readiness as table</label>
+  <div class="sp"></div>
+  <span style="opacity:.6">24 documents in preparation</span>
+</div>
+
+<div class="app">
+  <aside class="side">
+    <div class="logo"><i>▤</i><span>Deed<span style="color:var(--brand)">Pro</span></span></div>
+    <div class="grp">WORK</div>
+    <div class="nav on"><span class="ic">▦</span> Dashboard</div>
+    <div class="nav"><span class="ic">✎</span> New Document</div>
+    <div class="nav"><span class="ic">▤</span> All Documents</div>
+    <div class="grp">TRACKING</div>
+    <div class="nav"><span class="ic">◷</span> Signings <span class="pip">4</span></div>
+    <div class="nav"><span class="ic">↗</span> Requests <span class="pip">2</span></div>
+    <div class="grp">SETUP</div>
+    <div class="nav"><span class="ic">◎</span> Partners</div>
+    <div class="nav"><span class="ic">⚙</span> Settings</div>
+  </aside>
+
+  <main class="main">
+
+    <div class="topline">
+      <div>
+        <h1>Good morning, Jaxxon.</h1>
+        <p class="sub">Wednesday, 13 August · Los Angeles County formatting · Professional</p>
+      </div>
+      <div class="search">
+        <span class="mag">⌕</span>
+        <input placeholder="Find an address, APN, escrow no. or party…">
+      </div>
+    </div>
+
+    <div class="ann cut"><b>What I got wrong last time.</b> I built you a recording-lifecycle tracker — “rejected by
+      recorder”, “at the county”, “median time to record”. You never submit anything, so you'd never see a rejection and
+      you can't act on county turnaround. All of that is gone. What replaces it is the thing you actually sell:
+      <em>a document that is right before it leaves</em>.</div>
+
+    <!-- ============ RESUME + START ============ -->
+    <div class="band">
+      <div class="card resume">
+        <div class="thumb">
+          <div class="lab">RECORDING REQUESTED BY:</div>
+          <span class="ok"></span>
+          <div class="ttl">GRANT DEED</div>
+          <span class="ok"></span><span class="ok"></span>
+          <span class="gap"></span>
+          <span class="ok"></span>
+          <span class="gap"></span>
+          <span class="ok"></span><span class="ok"></span>
+        </div>
+        <div>
+          <div class="kick">Pick up where you left off</div>
+          <h3>4420 Cahuenga Blvd, North Hollywood</h3>
+          <div class="m">Interspousal Transfer Deed · Escrow #24-0902 · last edited 4:52 PM yesterday</div>
+          <div class="checks">
+            <div class="ck"><i class="d">✓</i> Property &amp; APN confirmed against county records</div>
+            <div class="ck"><i class="d">✓</i> Grantor and grantee names confirmed</div>
+            <div class="ck open"><i class="o"></i> Legal description — not yet compared to the vesting deed</div>
+            <div class="ck open"><i class="o"></i> Transfer tax declaration — exemption not yet chosen</div>
+          </div>
+          <button class="btn lg">Continue — 2 checks left</button>
+          <span class="lnk" style="margin-left:14px">Preview the document</span>
+        </div>
+      </div>
+
+      <div class="card starter">
+        <h4>Start something new</h4>
+        <div class="inst">Grant Deed <span>most used</span></div>
+        <div class="inst">Interspousal Transfer <span>14 this year</span></div>
+        <div class="inst">Affidavit — Death of JT <span>9 this year</span></div>
+        <div class="inst" style="border-style:dashed">Reuse a past document <span>same property or parties</span></div>
+        <p style="font-size:12.5px;color:var(--muted);margin-top:11px;line-height:1.5">
+          All 21 California instruments · <span class="lnk">browse the catalog</span></p>
+      </div>
+    </div>
+
+    <div class="ann"><b>The fastest thing a preparation tool can do is put you back in the document.</b> Resume is the
+      single highest-frequency action in this category and it deserves the top of the page — with the two remaining
+      checks named, so you know what you're walking back into before you click. The thumbnail marks confirmed fields
+      solid and unconfirmed fields dashed: the page tells you the document's state without opening it.</div>
+    <div class="ann"><b>“Start something new” is ordered by what this user actually files</b>, not alphabetically —
+      and “reuse a past document” is there because in escrow the next deed is very often the same property or the same
+      parties. That's a preparation shortcut a tracker would never think to offer.</div>
+
+    <!-- ============ ACCURACY ============ -->
+    <div class="headline">
+      <div class="hfig">
+        <div class="hero-fig">7</div>
+        <div class="hero-cap">fields still need your eyes, across 4 documents</div>
+      </div>
+      <button class="btn sec">Review them in sequence →</button>
+    </div>
+
+    <div class="ann"><b>This is the hero number, and it is your promise made countable.</b> Your own words are “every
+      field confirmed by you before it prints.” Nothing in the product reports on that promise. A count of unconfirmed
+      fields does — and “Review them in sequence” turns four scattered documents into one focused pass, which is what
+      streamlined actually means.</div>
+
+    <div class="qgroup">
+      <div class="qhead"><h2>Needs your eyes</h2><span class="qcount">4</span></div>
+      <div class="card">
+        <div class="row">
+          <div>
+            <div class="addr">1358 5th St, Los Angeles</div>
+            <div class="meta">Grant Deed — Joint Tenancy · Escrow #24-0881</div>
+            <div class="why">
+              <span class="pill p-crit"><span class="g">✕</span> Names disagree</span>
+              <span class="note">Escrow instructions say <b>Maria L. Ruiz</b>; current vesting says <b>Maria Lucia Ruiz</b></span>
+            </div>
+          </div>
+          <div class="acts"><button class="btn sm">Resolve</button></div>
+        </div>
+        <div class="row">
+          <div>
+            <div class="addr">77 Marine Ave, Manhattan Beach</div>
+            <div class="meta">Affidavit — Death of Joint Tenant · Escrow #24-0866</div>
+            <div class="why">
+              <span class="pill p-crit"><span class="g">✕</span> Two parcels matched</span>
+              <span class="note">County records returned <b>4142-011-014</b> and <b>4142-011-015</b> for this address</span>
+            </div>
+          </div>
+          <div class="acts"><button class="btn sm">Pick the parcel</button></div>
+        </div>
+        <div class="row">
+          <div>
+            <div class="addr">910 S Hope St, #2204, Los Angeles</div>
+            <div class="meta">Grant Deed · Escrow #24-0874</div>
+            <div class="why">
+              <span class="pill p-warn"><span class="g">▲</span> Legal description unconfirmed</span>
+              <span class="note">Pulled from the 2019 vesting deed · condo unit &amp; parking stall not yet checked</span>
+            </div>
+          </div>
+          <div class="acts"><button class="btn sm">Compare side by side</button></div>
+        </div>
+        <div class="row">
+          <div>
+            <div class="addr">6301 Sunset Blvd, Hollywood</div>
+            <div class="meta">Grant Deed · Escrow #24-0888</div>
+            <div class="why">
+              <span class="pill p-warn"><span class="g">▲</span> Transfer tax not declared</span>
+              <span class="note">Computed on full value · no exemption claimed · City of LA rate applies here</span>
+            </div>
+          </div>
+          <div class="acts"><button class="btn sm">Confirm the declaration</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ann"><b>Every reason here is a document problem, not a workflow problem.</b> Names that disagree
+      between two sources, an address that matched two APNs, a legal description copied forward but never checked, a
+      transfer-tax declaration nobody chose. These are the four ways a prepared deed goes wrong, and surfacing them by
+      name on the home screen is the most direct expression of “most accurate” I can think of. It also gives you
+      something no competitor's dashboard has: it tells the preparer what it <em>doesn't</em> know yet.</div>
+
+    <!-- ============ EXECUTION (secondary) ============ -->
+    <div class="qgroup">
+      <div class="qhead"><h2>Out for signature or review</h2><span class="qcount">9</span><span class="lnk">See all 9</span></div>
+      <div class="card">
+        <div class="row">
+          <div>
+            <div class="addr">4420 Cahuenga Blvd, North Hollywood</div>
+            <div class="meta">Interspousal Transfer Deed · notary: Jerry Henrandez</div>
+            <div class="why">
+              <span class="pill p-warn"><span class="g">▲</span> Pick a time</span>
+              <span class="note">Offered Fri 15 Aug, 10:00 AM – 12:00 PM · expires in 2 days</span>
+            </div>
+          </div>
+          <div class="acts"><button class="btn sm">Confirm signing</button></div>
+        </div>
+        <div class="row">
+          <div>
+            <div class="addr">18 Fraser Ave, Santa Monica</div>
+            <div class="meta">Grant Deed — Community Property w/ ROS · sent to Priya Nair for review</div>
+            <div class="why">
+              <span class="pill p-ser"><span class="g">◷</span> 6 days, no reply</span>
+              <span class="note">Opened their link last Thursday, no comment since</span>
+            </div>
+          </div>
+          <div class="acts"><button class="btn sm sec">Copy link</button><button class="btn sm">Send a nudge</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ann"><b>Execution is on the page, but it is not the point of the page.</b> You built signings and
+      shared review, so they belong — but they sit below accuracy, because getting a signature on a document with a
+      wrong legal description is worse than not getting one at all. The nudge button still applies: the reminder
+      endpoint exists in your API with no UI anywhere.</div>
+
+    <!-- ============ READINESS ============ -->
+    <div class="card pipe">
+      <div class="pipehead">
+        <div class="t">How ready everything is <span>· 24 documents in preparation</span></div>
+        <span class="lnk">Filter the list by state ↑</span>
+      </div>
+      <div class="bar" role="img" aria-label="24 documents by readiness: 6 just started, 5 awaiting your review, 6 ready to print, 4 out for signature, 3 finished and delivered">
+        <div class="seg lt" style="background:var(--s1);flex:6"><b>6</b><span class="tip">Just started · 6 · address in, fields not yet pulled</span></div>
+        <div class="seg lt" style="background:var(--s2);flex:5"><b>5</b><span class="tip">Awaiting your review · 5 · fields pulled, not confirmed</span></div>
+        <div class="seg" style="background:var(--s3);flex:6"><b>6</b><span class="tip">Ready to print · 6 · every field confirmed</span></div>
+        <div class="seg" style="background:var(--s4);flex:4"><b>4</b><span class="tip">Out for signature · 4</span></div>
+        <div class="seg" style="background:var(--s5);flex:3"><b>3</b><span class="tip">Finished &amp; delivered · 3</span></div>
+      </div>
+      <div class="legend">
+        <span class="lg"><i style="background:var(--s1)"></i>Just started <b>6</b></span>
+        <span class="lg"><i style="background:var(--s2)"></i>Awaiting your review <b>5</b></span>
+        <span class="lg"><i style="background:var(--s3)"></i>Ready to print <b>6</b></span>
+        <span class="lg"><i style="background:var(--s4)"></i>Out for signature <b>4</b></span>
+        <span class="lg"><i style="background:var(--s5)"></i>Finished &amp; delivered <b>3</b></span>
+      </div>
+      <table class="tblview">
+        <thead><tr><th>State</th><th>What it means</th><th>Docs</th></tr></thead>
+        <tbody>
+          <tr><td>Just started</td><td>Address entered, county data not yet pulled</td><td>6</td></tr>
+          <tr><td>Awaiting your review</td><td>Fields pulled from records, not yet confirmed</td><td>5</td></tr>
+          <tr><td>Ready to print</td><td>Every field confirmed · recorder-formatted</td><td>6</td></tr>
+          <tr><td>Out for signature</td><td>With a notary or a reviewer</td><td>4</td></tr>
+          <tr><td>Finished &amp; delivered</td><td>Hash-stamped PDF handed off</td><td>3</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ann"><b>Same bar, completely different meaning.</b> It no longer tracks a document toward a
+      courthouse; it tracks it toward <em>correct</em>. The states are how-confirmed-is-this, and the terminal is
+      “finished &amp; delivered” — your job is done when a right document leaves your hands. The stages are still
+      genuinely ordered, so the single-hue ordinal ramp still applies; it was re-validated against the surface
+      (monotone L, ΔL ≥ 0.06, light end 2.01:1, 9° hue spread), direct-labelled, legended, with a table view a toggle
+      away.</div>
+    <div class="ann"><b>One word worth defending: “recorder-ready.”</b> That's a property of the document you
+      produce — margins, first-page space, §1189 acknowledgment, the transfer-tax declaration — not a service you
+      perform. Keep saying it. Just never say “we recorded it.”</div>
+
+    <!-- ============ TWO-UP ============ -->
+    <div class="two">
+      <div class="card pad">
+        <h3>This week</h3>
+        <p class="cap">Signings you've arranged, plus one that needs confirming.</p>
+        <div class="week">
+          <div class="day"><div class="dn">Mon</div><div class="dd">11</div></div>
+          <div class="day"><div class="dn">Tue</div><div class="dd">12</div>
+            <div class="appt"><b>2201 Ocean</b><span>9:00 · signed ✓</span></div></div>
+          <div class="day today"><div class="dn">Wed</div><div class="dd">13</div>
+            <div class="appt"><b>77 Marine</b><span>3:30 PM · Okafor</span></div></div>
+          <div class="day"><div class="dn">Thu</div><div class="dd">14</div></div>
+          <div class="day"><div class="dn">Fri</div><div class="dd">15</div>
+            <div class="appt unc"><b>4420 Cahuenga</b><span>10–12 · unconfirmed</span></div></div>
+        </div>
+      </div>
+
+      <div class="card pad">
+        <h3>Since you were last here</h3>
+        <p class="cap">Yesterday, 5:40 PM.</p>
+        <div class="act"><div class="av" style="background:var(--brand)">JH</div>
+          <div class="tx"><b>Jerry Henrandez</b> posted times for <b>4420 Cahuenga Blvd</b>.
+          <div class="tm">Yesterday, 8:26 PM</div></div></div>
+        <div class="act"><div class="av" style="background:var(--good-ink)">PN</div>
+          <div class="tx"><b>Priya Nair</b> approved <b>512 N Rodeo Dr</b> with no changes.
+          <div class="tm">Yesterday, 6:03 PM</div></div></div>
+        <div class="act"><div class="av" style="background:var(--serious-ink)">▤</div>
+          <div class="tx"><b>512 N Rodeo Dr</b> was corrected — v2 supersedes v1, lineage kept.
+          <div class="tm">Yesterday, 6:01 PM</div></div></div>
+        <div class="act"><div class="av" style="background:#6B7280">DP</div>
+          <div class="tx"><b>Dev Patel</b> started <b>77 Marine Ave</b> from the 2018 vesting deed.
+          <div class="tm">Yesterday, 5:58 PM</div></div></div>
+      </div>
+    </div>
+
+    <div class="ann"><b>Corrections belong in the activity feed.</b> You advertise “corrections with full lineage to
+      the superseded document” — that's a document-integrity feature and it should be visible when it happens, not
+      buried in a version history nobody opens.</div>
+
+  </main>
+</div>
+</body>
+</html>

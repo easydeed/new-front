@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DeedPro — Dashboard concept</title>
+<style>
+:root{
+  --brand:#7C4DFF; --brand-dk:#6A3DE8; --brand-ink:#5B2FD6; --brand-wash:#F3EFFF; --brand-line:#DDD2FF;
+  --good:#0ca30c; --good-ink:#046B04;
+  --warn:#fab219; --warn-ink:#8A5A00;
+  --serious:#ec835a; --serious-ink:#9A4420;
+  --crit:#d03b3b; --crit-ink:#B3261E;
+  --ink:#1F2937; --muted:#4B5563; --faint:#6B7280; --line:#E7E7EE;
+  --page:#F7F7FB; --card:#FFFFFF;
+  --r:12px;
+  --sans:Inter,"Segoe UI",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--page);color:var(--ink);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5}
+
+/* ---------- demo chrome ---------- */
+.demobar{position:sticky;top:0;z-index:50;display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  padding:10px 18px;background:#14121C;color:#EDEAF6;font-size:12.5px}
+.demobar strong{font-weight:600;letter-spacing:.02em}
+.demobar .sp{flex:1}
+.seg{display:flex;background:#251F36;border-radius:99px;padding:3px}
+.seg button{font:inherit;font-weight:600;color:#B9B0D6;background:none;border:0;padding:6px 14px;border-radius:99px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--brand);color:#fff}
+.tgl{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none}
+.tgl input{accent-color:var(--brand);width:15px;height:15px}
+
+/* ---------- app shell ---------- */
+.app{display:grid;grid-template-columns:236px 1fr;min-height:calc(100vh - 44px)}
+.side{background:var(--card);border-right:1px solid var(--line);padding:22px 0;display:flex;flex-direction:column}
+.logo{display:flex;align-items:center;gap:9px;padding:0 20px 26px;font-weight:700;font-size:19px;letter-spacing:-.02em}
+.logo i{width:28px;height:28px;border-radius:8px;background:var(--brand);display:grid;place-items:center;color:#fff;font-size:14px;font-style:normal}
+.grp{padding:0 20px;font-size:10.5px;font-weight:700;letter-spacing:.09em;color:#9AA1AC;margin:16px 0 7px}
+.nav{display:flex;align-items:center;gap:11px;padding:9px 20px;color:var(--muted);font-weight:500;cursor:pointer;border-left:3px solid transparent}
+.nav:hover{background:#FAFAFD;color:var(--ink)}
+.nav.on{color:var(--brand-ink);background:var(--brand-wash);border-left-color:var(--brand);font-weight:600}
+.nav .ic{width:17px;text-align:center;opacity:.85}
+.nav .pip{margin-left:auto;background:var(--brand);color:#fff;font-size:11px;font-weight:700;min-width:19px;height:19px;
+  border-radius:99px;display:grid;place-items:center;padding:0 5px}
+.main{padding:30px 38px 70px;max-width:1180px}
+
+/* ---------- type ---------- */
+h1{font-size:23px;font-weight:650;letter-spacing:-.02em}
+.sub{color:var(--muted);margin-top:3px;font-size:13.5px}
+h2{font-size:12px;font-weight:700;letter-spacing:.08em;color:#8A919C;text-transform:uppercase;margin-bottom:11px}
+
+/* ---------- pieces ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r)}
+.btn{font:inherit;font-weight:600;font-size:13.5px;border:0;border-radius:9px;padding:10px 17px;cursor:pointer;
+  background:var(--brand);color:#fff;display:inline-flex;align-items:center;gap:8px}
+.btn:hover{background:var(--brand-dk)}
+.btn.sec{background:#fff;color:var(--ink);border:1px solid #D9D9E3}
+.btn.sec:hover{background:#FAFAFD}
+.btn.sm{padding:7px 13px;font-size:13px}
+.lnk{color:var(--brand-ink);font-weight:600;text-decoration:none;cursor:pointer}
+.lnk:hover{text-decoration:underline}
+
+/* status pill: colour is NEVER alone — always glyph + word */
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
+  padding:3px 9px 3px 7px;border-radius:99px;border:1px solid transparent;white-space:nowrap}
+.pill .g{font-size:11px;line-height:1}
+.p-crit{color:var(--crit-ink);background:#FDECEB;border-color:#F6CFCC}
+.p-warn{color:var(--warn-ink);background:#FDF4E0;border-color:#F2E0B4}
+.p-ser {color:var(--serious-ink);background:#FDEFE8;border-color:#F5D8C8}
+.p-good{color:var(--good-ink);background:#E8F6E8;border-color:#C7E8C7}
+.p-idle{color:var(--muted);background:#F2F3F5;border-color:#E3E5E9}
+
+/* ---------- setup checklist (day one) ---------- */
+.hero{padding:26px 28px}
+.hero h3{font-size:17px;font-weight:650;letter-spacing:-.01em}
+.hero .lede{color:var(--muted);margin-top:5px;font-size:13.5px;max-width:58ch}
+.steps{margin-top:22px;border-top:1px solid var(--line)}
+.step{display:grid;grid-template-columns:30px 1fr auto;gap:15px;align-items:start;padding:17px 0;border-bottom:1px solid var(--line)}
+.dot{width:26px;height:26px;border-radius:99px;display:grid;place-items:center;font-size:12.5px;font-weight:700;margin-top:1px}
+.dot.todo{background:#fff;border:2px solid #D9D9E3;color:var(--faint)}
+.dot.err{background:#FDECEB;border:2px solid #EFB6B1;color:var(--crit-ink)}
+.dot.done{background:var(--good-ink);color:#fff;border:2px solid var(--good-ink)}
+.step .t{font-weight:600;font-size:14.5px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.step .d{color:var(--muted);font-size:13px;margin-top:3px;max-width:62ch}
+.step.is-done .t{color:var(--faint);text-decoration:line-through;text-decoration-color:#C9CDD4}
+.meterwrap{margin-top:20px;display:flex;align-items:center;gap:13px}
+.meter{flex:1;height:6px;border-radius:99px;background:#EDEBF6;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--brand);border-radius:99px}
+.meterwrap b{font-size:12.5px;color:var(--muted);font-weight:600;white-space:nowrap}
+
+/* ---------- right rail ---------- */
+.split{display:grid;grid-template-columns:1fr 330px;gap:22px;align-items:start}
+.rail .card{padding:19px}
+.rail h4{font-size:12px;font-weight:700;letter-spacing:.08em;color:#8A919C;text-transform:uppercase;margin-bottom:12px}
+.deedmini{border:1px solid var(--line);border-radius:9px;padding:14px 15px;font-family:Georgia,"Times New Roman",serif;
+  font-size:11px;line-height:1.65;color:#3A3F4A;background:#FCFCFD}
+.deedmini .lab{font-family:var(--sans);font-size:8.5px;font-weight:700;letter-spacing:.07em;color:#7A828E}
+.deedmini .slot{display:inline-block;background:var(--brand-wash);border:1px dashed var(--brand-line);
+  color:var(--brand-ink);padding:1px 7px;border-radius:4px;font-family:var(--sans);font-size:10.5px;font-weight:600}
+.deedmini hr{border:0;border-top:1px solid #E4E4EA;margin:9px 0}
+.railnote{font-size:12.5px;color:var(--muted);margin-top:11px;line-height:1.55}
+.planrow{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;padding:7px 0;border-bottom:1px solid #F0F0F4}
+.planrow:last-child{border:0}
+.planrow span{color:var(--muted)}
+.planrow b{font-weight:650}
+
+/* ---------- hero figure (exactly one per view) ---------- */
+.headline{display:flex;align-items:baseline;gap:13px;margin-bottom:5px}
+.hero-fig{font-size:52px;font-weight:660;letter-spacing:-.035em;line-height:1}
+.hero-cap{font-size:16px;color:var(--muted);font-weight:500}
+
+/* ---------- work queue ---------- */
+.qgroup{margin-bottom:26px}
+.qhead{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.qhead h2{margin:0}
+.qcount{font-size:11.5px;font-weight:700;color:var(--muted);background:#EDEEF2;border-radius:99px;padding:1px 8px}
+.row{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center;padding:14px 17px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row:hover{background:#FAFAFD}
+.row .addr{font-weight:600;font-size:14.5px;letter-spacing:-.01em}
+.row .meta{color:var(--muted);font-size:12.5px;margin-top:3px}
+.row .why{margin-top:6px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.acts{display:flex;gap:8px;align-items:center;flex-shrink:0}
+.empty{padding:15px 17px;color:var(--faint);font-size:13px}
+
+/* ---------- KPI row: stat tiles, no charts ---------- */
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px}
+.tile{padding:15px 17px}
+.tile .lab{font-size:12.5px;color:var(--muted);font-weight:500}
+.tile .val{font-size:27px;font-weight:650;letter-spacing:-.025em;margin-top:5px;line-height:1.1}
+.tile .dl{font-size:12px;margin-top:4px;font-weight:600;display:flex;align-items:center;gap:5px}
+.dl.up{color:var(--good-ink)} .dl.flat{color:var(--faint)} .dl.dn{color:var(--crit-ink)}
+.tile .dl span{font-weight:500;color:var(--faint)}
+
+/* ---------- annotations ---------- */
+.ann{display:none}
+body.notes .ann{display:block}
+.ann{margin:9px 0 20px;border-left:3px solid var(--brand);background:var(--brand-wash);
+  padding:11px 15px;border-radius:0 9px 9px 0;font-size:12.5px;color:#3B3358;line-height:1.6;max-width:80ch}
+.ann b{color:var(--brand-ink)}
+.view{display:none}
+.view.on{display:block}
+@media(max-width:1080px){.split{grid-template-columns:1fr}.kpi{grid-template-columns:repeat(2,1fr)}.app{grid-template-columns:1fr}.side{display:none}}
+</style>
+</head>
+<body>
+
+<div class="demobar">
+  <strong>DeedPro · dashboard concept</strong>
+  <div class="seg" role="group" aria-label="Which state to show">
+    <button id="b1" aria-pressed="true" onclick="show('v1')">Day one</button>
+    <button id="b2" aria-pressed="false" onclick="show('v2')">A normal Tuesday</button>
+  </div>
+  <label class="tgl"><input type="checkbox" id="nt" onchange="document.body.classList.toggle('notes',this.checked)"> Design notes</label>
+  <div class="sp"></div>
+  <span style="opacity:.6">Mockup — not wired to anything</span>
+</div>
+
+<div class="app">
+  <aside class="side">
+    <div class="logo"><i>▤</i><span>Deed<span style="color:var(--brand)">Pro</span></span></div>
+    <div class="grp">WORK</div>
+    <div class="nav on"><span class="ic">▦</span> Dashboard</div>
+    <div class="nav"><span class="ic">✎</span> Create Deed</div>
+    <div class="nav"><span class="ic">▤</span> Past Deeds</div>
+    <div class="grp">TRACKING</div>
+    <div class="nav"><span class="ic">◷</span> Signings <span class="pip" id="pipS">1</span></div>
+    <div class="nav"><span class="ic">↗</span> Requests</div>
+    <div class="grp">SETUP</div>
+    <div class="nav"><span class="ic">◎</span> Partners</div>
+    <div class="nav"><span class="ic">⚙</span> Settings</div>
+  </aside>
+
+  <main class="main">
+
+  <!-- ============ DAY ONE ============ -->
+  <section class="view on" id="v1">
+    <h1>Good afternoon, Jaxxon.</h1>
+    <p class="sub">Three things stand between you and a recordable deed.</p>
+
+    <div class="ann"><b>What changed.</b> The old page led with “Nothing is waiting on anyone” — a module that is
+      guaranteed empty on day one — then a second empty-state card saying the same thing, then four marketing bullets.
+      This leads with the only content that can be true on day one: the setup that isn’t finished. The greeting is one
+      line, not a hero.</div>
+
+    <div class="split" style="margin-top:20px">
+      <div>
+        <div class="card hero">
+          <h3>Finish setting up</h3>
+          <p class="lede">Each step below is something the deed itself needs. None of it is profile decoration.</p>
+
+          <div class="steps">
+            <div class="step">
+              <div class="dot err">!</div>
+              <div>
+                <div class="t">Confirm your recording county
+                  <span class="pill p-crit"><span class="g">✕</span> Didn’t save</span>
+                </div>
+                <div class="d">You picked Los Angeles County during setup, but it never reached us — the server was
+                  waking up. Nothing was lost on your end; it just needs one more tap.</div>
+              </div>
+              <div class="acts"><button class="btn sm">Retry</button></div>
+            </div>
+
+            <div class="step">
+              <div class="dot todo">2</div>
+              <div>
+                <div class="t">Add All Good Escrow as a partner
+                  <span class="pill p-warn"><span class="g">▲</span> Blocks recording</span>
+                </div>
+                <div class="d">This is the name that prints in <b>RECORDING REQUESTED BY</b> on every deed you make.
+                  Until it exists, that box comes out blank and the county will reject the document.</div>
+              </div>
+              <div class="acts"><button class="btn sm">Add company</button></div>
+            </div>
+
+            <div class="step">
+              <div class="dot todo">3</div>
+              <div>
+                <div class="t">Make your first deed</div>
+                <div class="d">Start from an address. The APN, legal description and current owner come back from
+                  county records — you confirm every value before it prints.</div>
+              </div>
+              <div class="acts"><button class="btn sm">Start</button></div>
+            </div>
+          </div>
+
+          <div class="meterwrap">
+            <div class="meter"><i style="width:8%"></i></div>
+            <b>0 of 3 done</b>
+          </div>
+        </div>
+
+        <div class="ann"><b>Why a checklist and not a welcome card.</b> Every item is derived from state you already
+          hold — <code>default_county</code> is null, the partner count is 0, the deed count is 0. Step 1 in particular
+          exists because the onboarding save failed silently; the page should be the thing that notices. A welcome
+          banner can’t notice anything.</div>
+        <div class="ann"><b>Status colour is never alone.</b> Each pill carries a glyph and a word as well as a hue —
+          “Didn’t save”, “Blocks recording” — so it survives colour-blindness, greyscale print and forced-colors mode.</div>
+      </div>
+
+      <div class="rail">
+        <div class="card">
+          <h4>Where your company lands</h4>
+          <div class="deedmini">
+            <div class="lab">RECORDING REQUESTED BY:</div>
+            <span class="slot">All Good Escrow</span>
+            <div style="height:7px"></div>
+            <div class="lab">AND WHEN RECORDED MAIL TO:</div>
+            <span class="slot">1200 Wilshire Blvd, Ste 400</span>
+            <hr>
+            <div style="text-align:center;font-weight:700;letter-spacing:.05em;font-size:12px">GRANT DEED</div>
+            <hr>
+            <div style="color:#9AA1AC">The undersigned grantor(s) declare(s)…</div>
+          </div>
+          <p class="railnote">Step 2 fills the purple boxes. This is the whole reason we ask.</p>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <h4>Your plan</h4>
+          <div class="planrow"><span>Plan</span><b>Free</b></div>
+          <div class="planrow"><span>Deeds this month</span><b>0 of 5</b></div>
+          <div class="planrow"><span>Recording county</span><b style="color:var(--crit-ink)">Not set</b></div>
+          <p class="railnote">Professional includes a 14-day free trial — no charge today.
+            <a class="lnk">See what’s included</a></p>
+        </div>
+
+        <div class="ann"><b>The rail replaces “WHAT I CAN HELP WITH”.</b> Those four bullets were landing-page copy
+          shown to somebody who had already signed up. A picture of where their own company name prints does the same
+          persuading and doubles as an explanation of step 2. The trial is mentioned here because today it is only ever
+          discovered <em>after</em> clicking Upgrade.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RETURNING ============ -->
+  <section class="view" id="v2">
+    <h1>Good afternoon, Jaxxon.</h1>
+    <p class="sub">Tuesday, 12 August · Los Angeles County · Free plan, 3 of 5 deeds used</p>
+
+    <div class="headline" style="margin-top:24px">
+      <div class="hero-fig">3</div>
+      <div class="hero-cap">things need you today</div>
+    </div>
+
+    <div class="ann"><b>One hero figure, and it’s actionable.</b> Not “Total Deeds: 10”. The number a deed dashboard
+      should lead with is how much is sitting on <em>you</em>. Everything below is ordered by who is blocked, not by
+      date — because “who do I chase” is the actual question this screen answers.</div>
+
+    <div class="qgroup" style="margin-top:26px">
+      <div class="qhead"><h2>Waiting on you</h2><span class="qcount">2</span></div>
+      <div class="card">
+        <div class="row">
+          <div>
+            <div class="addr">1358 5th St, Los Angeles</div>
+            <div class="meta">Grant Deed — Joint Tenancy · Escrow #24-0881</div>
+            <div class="why">
+              <span class="pill p-crit"><span class="g">✕</span> Untouched 15 days</span>
+              <span style="color:var(--faint);font-size:12.5px">Draft — nobody is waiting on this but you</span>
+            </div>
+          </div>
+          <div class="acts"><button class="btn sm sec">Discard</button><button class="btn sm">Finish draft</button></div>
+        </div>
+        <div class="row">
+          <div>
+            <div class="addr">4420 Cahuenga Blvd, North Hollywood</div>
+            <div class="meta">Interspousal Transfer Deed · Escrow #24-0902</div>
+            <div class="why">
+              <span class="pill p-warn"><span class="g">▲</span> Pick a time</span>
+              <span style="color:var(--faint);font-size:12.5px">Jerry Henrandez offered Fri 14 Aug, 10:00 AM – 12:00 PM</span>
+            </div>
+          </div>
+          <div class="acts"><button class="btn sm">Confirm signing</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="qgroup">
+      <div class="qhead"><h2>Waiting on someone else</h2><span class="qcount">1</span></div>
+      <div class="card">
+        <div class="row">
+          <div>
+            <div class="addr">910 S Hope St, Los Angeles</div>
+            <div class="meta">Grant Deed · sent to Priya Nair for review</div>
+            <div class="why">
+              <span class="pill p-ser"><span class="g">◷</span> 4 days, no reply</span>
+              <span style="color:var(--faint);font-size:12.5px">Opened their link Monday</span>
+            </div>
+          </div>
+          <div class="acts"><button class="btn sm sec">Copy link</button><button class="btn sm">Send a nudge</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ann"><b>“Send a nudge” already exists in your API</b> — <code>/signing-requests/v2/{id}/remind</code> —
+      with no button anywhere in the product, while the Signings page tells the user these are “the ones to chase.”
+      This is the screen that should hand them the way to chase.</div>
+
+    <div class="qgroup">
+      <div class="qhead"><h2>Ready to record</h2><span class="qcount">1</span></div>
+      <div class="card">
+        <div class="row">
+          <div>
+            <div class="addr">2201 Ocean Ave, Santa Monica</div>
+            <div class="meta">Quitclaim Deed · signed &amp; notarised 11 Aug</div>
+            <div class="why">
+              <span class="pill p-good"><span class="g">✓</span> Complete</span>
+              <span style="color:var(--faint);font-size:12.5px">Hash-stamped PDF · PCOR attached</span>
+            </div>
+          </div>
+          <div class="acts"><button class="btn sm">Download packet</button></div>
+        </div>
+      </div>
+    </div>
+
+    <h2 style="margin-top:32px">This month</h2>
+    <div class="kpi">
+      <div class="card tile"><div class="lab">Deeds created</div><div class="val">3</div>
+        <div class="dl up">▲ 1 <span>vs July</span></div></div>
+      <div class="card tile"><div class="lab">Recorded</div><div class="val">1</div>
+        <div class="dl flat">— <span>same as July</span></div></div>
+      <div class="card tile"><div class="lab">Open drafts</div><div class="val">2</div>
+        <div class="dl dn">▲ 2 <span>vs July</span></div></div>
+      <div class="card tile"><div class="lab">Median time to record</div><div class="val">6d</div>
+        <div class="dl up">▼ 2d <span>vs July</span></div></div>
+    </div>
+
+    <div class="ann"><b>Four stat tiles, zero charts — deliberately.</b> A handful of headline numbers is a KPI row, not
+      a bar chart; a single value is a stat tile, not a one-bar chart. Nothing here has a shape worth plotting. Note
+      “Open drafts ▲2” is coloured as <em>bad</em> and “time to record ▼2d” as <em>good</em> — direction is coloured by
+      whether the movement is good, not by its sign, and every delta names the period it compares to.</div>
+    <div class="ann"><b>These tiles sit below the queue, not above it.</b> They’re for the end of the week, not the
+      start of the morning. The old dashboard put the counts up top where the work should be.</div>
+  </section>
+
+  </main>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id===id));
+  b1.setAttribute('aria-pressed', id==='v1');
+  b2.setAttribute('aria-pressed', id==='v2');
+  pipS.style.display = id==='v2' ? 'grid' : 'none';
+  window.scrollTo({top:0});
+}
+pipS.style.display='none';
+</script>
+</body>
+</html>
