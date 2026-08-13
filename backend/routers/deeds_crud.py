@@ -9,7 +9,7 @@ from psycopg2.extras import RealDictCursor
 from pydantic import BaseModel, Field
 
 import db
-from auth import get_current_user_id
+from auth import ADMIN_ROLES, get_current_user_id
 from database import create_deed
 from services import pcor_offer
 
@@ -506,8 +506,8 @@ def get_deed_endpoint(deed_id: int, user_id: int = Depends(get_current_user_id))
             SELECT d.*, u.role
             FROM deeds d
             LEFT JOIN users u ON u.id = %s
-            WHERE d.id = %s AND (d.user_id = %s OR u.role = 'admin')
-        """, (user_id, deed_id, user_id))
+            WHERE d.id = %s AND (d.user_id = %s OR LOWER(u.role) = ANY(%s))
+        """, (user_id, deed_id, user_id, list(ADMIN_ROLES)))
 
         deed = cursor.fetchone()
         cursor.close()
@@ -625,8 +625,8 @@ def _pcor_deed_row(deed_id: int, user_id: int) -> dict:
             SELECT d.*, u.role
             FROM deeds d
             LEFT JOIN users u ON u.id = %s
-            WHERE d.id = %s AND (d.user_id = %s OR u.role = 'admin')
-        """, (user_id, deed_id, user_id))
+            WHERE d.id = %s AND (d.user_id = %s OR LOWER(u.role) = ANY(%s))
+        """, (user_id, deed_id, user_id, list(ADMIN_ROLES)))
         deed = cur.fetchone()
     if not deed:
         raise HTTPException(status_code=404, detail="Deed not found")
@@ -1070,8 +1070,8 @@ def download_deed_endpoint(deed_id: int, user_id: int = Depends(get_current_user
             SELECT d.*, u.role
             FROM deeds d
             LEFT JOIN users u ON u.id = %s
-            WHERE d.id = %s AND (d.user_id = %s OR u.role = 'admin')
-        """, (user_id, deed_id, user_id))
+            WHERE d.id = %s AND (d.user_id = %s OR LOWER(u.role) = ANY(%s))
+        """, (user_id, deed_id, user_id, list(ADMIN_ROLES)))
         deed = cursor.fetchone()
         cursor.close()
 

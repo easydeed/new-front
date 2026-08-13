@@ -241,12 +241,33 @@ class AuthUtils:
         }
         return state.upper() in valid_states
 
+#: Every spelling of "this person is an administrator". ONE tuple, and
+#: everything that asks the question reads it — including the SQL, which
+#: takes it as a bound parameter rather than repeating the literals.
+#:
+#: ROLE1 found three definitions of admin across three files:
+#: `is_admin_role` took these four case-insensitively, while
+#: `admin_partners.py` and the owner-or-admin deed fetch each took
+#: exactly 'admin'. Six of eight values diverged.
+#:
+#: The divergence was RESTRICTIVE, so it was never an escalation. What it
+#: produced was a PARTIAL ADMIN: somebody with role `Administrator`
+#: entered the console and was then refused by two gates inside it, which
+#: they would experience as the console being broken. Nothing recorded
+#: which of the three was authoritative.
+ADMIN_ROLES = ('admin', 'administrator', 'superadmin', 'super_admin')
+
+
 def is_admin_role(role: str) -> bool:
-    """Check if role string indicates admin access (case-insensitive)"""
+    """Check if role string indicates admin access (case-insensitive).
+
+    THE single definition. A second answer to "is this person an admin"
+    is a second answer to a security question, and the one that gets
+    missed is the one nobody knew existed.
+    """
     if not role:
         return False
-    r = role.strip().lower()
-    return r in ('admin', 'administrator', 'superadmin', 'super_admin')
+    return role.strip().lower() in ADMIN_ROLES
 
 async def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
     """Verify admin access from JWT token"""

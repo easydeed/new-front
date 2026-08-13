@@ -5,7 +5,7 @@ Admin-only CRUD for all partners across all organizations
 
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Dict
-from auth import get_current_user_id
+from auth import get_current_user_id, is_admin_role
 from database import get_db_connection
 from psycopg2.extras import RealDictCursor
 from services.partners import list_all_partners, get_partner, update_partner
@@ -27,8 +27,12 @@ def is_admin(user_id: int) -> bool:
         if not user:
             return False
         
-        # Check if user has admin role
-        return user.get('role') == 'admin'
+        # ROLE1 — ONE DEFINITION. This read `== 'admin'` exactly, so a
+        # user whose role was `Administrator` passed the JWT gate into
+        # the admin console and was refused here. Restrictive, so never
+        # an escalation — but a partial admin experiences the console as
+        # broken, and nothing recorded which gate was authoritative.
+        return is_admin_role(user.get('role'))
     except Exception as e:
         print(f"Error checking admin status: {e}")
         return False
