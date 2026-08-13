@@ -98,6 +98,17 @@ def test_ordinary_registration_still_works_and_is_not_admin():
     assert resp.status_code == 200, resp.text
     token = resp.json()["access_token"]
     claims = json.loads(base64.urlsafe_b64decode(token.split(".")[1] + "=="))
-    assert claims["role"] == "Escrow Officer"
+    # ROLE1 step 3 — this used to read "Escrow Officer": a job title in
+    # an authorization claim, which every gate and every screen then had
+    # to work out was not one. The title went to `job_title`; the claim
+    # is the answer.
+    assert claims["role"] == "user"
     assert client.get("/admin/api-keys",
                       headers={"Authorization": f"Bearer {token}"}).status_code == 403
+
+    # And the title was kept — moving it must not lose it.
+    conn = psycopg2.connect(LIVE_DB)
+    with conn.cursor() as cur:
+        cur.execute("SELECT job_title, role FROM users WHERE email = %s", (email,))
+        assert cur.fetchone() == ("Escrow Officer", "user")
+    conn.close()

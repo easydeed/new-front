@@ -269,6 +269,48 @@ def is_admin_role(role: str) -> bool:
         return False
     return role.strip().lower() in ADMIN_ROLES
 
+
+# ── RECOGNIZED vs ASSIGNABLE ─────────────────────────────────────────
+#
+# ROLE1 step 3 separates the two meanings `users.role` carried: the job
+# title moved to `users.job_title`, and this column is authorization
+# only. Two sets, and the difference between them is the whole point.
+#
+# ADMIN_ROLES above is what the product RECOGNIZES — four spellings,
+# because history wrote four spellings and refusing to recognize one
+# would silently remove somebody's access.
+#
+# ASSIGNABLE_ROLES is what the product will WRITE. Two values, because
+# four ways to spell one thing is the defect ROLE1 opened with, one
+# floor up: a vocabulary that admits synonyms grows a second answer.
+#
+# Recognized ⊇ assignable, deliberately and in that direction. The
+# reverse — assigning a spelling the gates do not recognize — is how a
+# console mints an account that cannot use it.
+ASSIGNABLE_ROLES = frozenset({'user', 'admin'})
+
+#: What `users.role` holds when nobody has decided anything about it.
+DEFAULT_ROLE = 'user'
+
+#: The canonical spelling, for anything that WRITES admin access.
+ADMIN_ROLE = 'admin'
+
+
+def authorization_role(role) -> str:
+    """The authorization answer for a stored role value: 'admin' or 'user'.
+
+    ONE PLACE TURNS THE COLUMN INTO THE CLAIM. The token used to carry
+    `users.role` verbatim, so a token could say `role: "Escrow Officer"`
+    — a job title travelling in an authorization claim, which every
+    reader then had to know was not an authorization answer.
+
+    It reads through `is_admin_role`, so it is the same answer the gates
+    give, and it is correct both before and after the migration: an
+    unmigrated `Administrator` row still resolves to admin.
+    """
+    return ADMIN_ROLE if is_admin_role(role) else DEFAULT_ROLE
+
+
 async def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
     """Verify admin access from JWT token"""
     try:

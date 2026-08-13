@@ -51,6 +51,7 @@ import os
 import re
 import subprocess
 import sys
+import ast
 from pathlib import Path
 
 import pytest
@@ -102,7 +103,14 @@ class _Conn:
         self._present = present
 
     def cursor(self):
-        return _Cursor(self._row, self._present)
+        cur = _Cursor(self._row, self._present)
+        # A real DB-API cursor carries `.connection`, and the normaliser
+        # in db_identity relies on it. The fake carried no such thing,
+        # which is another way of saying these tests could not have
+        # noticed a caller passing a cursor — the exact miscall three
+        # scripts shipped with.
+        cur.connection = self
+        return cur
 
 
 DICT_ROW = {"db": "deedpro", "host": None, "port": 5432, "who": "deedpro_user",
@@ -601,3 +609,201 @@ def describe_from(url: str) -> str:
 
 def identity_of(url: str) -> dict:
     return _with_connection(url, identity)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# THE CALL SHAPE — the half the sweep above could not see
+# ═══════════════════════════════════════════════════════════════════════
+#
+# `test_every_write_side_script_says_which_database` asserts that every
+# write-side script CALLS `assert_tables`. Three of them called it like
+# this:
+#
+#     with conn.cursor() as cur:
+#         assert_tables(cur, ["users"], expect_database=...)
+#
+# — a cursor where a connection was expected, and a list where the
+# signature is variadic. Both are wrong, and `role_census.py` and
+# `company_name_consolidation.py` had therefore NEVER RUN, in their
+# entire lives, while a green sweep recorded them as compliant.
+#
+# The sweep found the shape. It could not find the population: presence
+# of a call is not correctness of a call, and this module's own tests
+# pass because they construct the call themselves, correctly.
+#
+# This is the mechanism built after the wrong-database afternoon. A
+# safety mechanism whose misuse surfaces as an AttributeError three
+# frames deep, at the moment somebody needs it, is one nobody discovers
+# until then.
+
+def test_a_cursor_is_accepted_wherever_a_connection_is():
+    """NORMALISED, not punished. The natural place to check identity is
+    inside the `with conn.cursor()` block about to ask the questions, and
+    a mechanism that is awkward to call from where people call it is one
+    they call wrongly — three times out of six, as it turned out."""
+    conn = _Conn(DICT_ROW)
+    with conn.cursor() as cur:
+        who = assert_tables(cur, "signing_participants")
+    assert who["database"] == "deedpro"
+
+
+def test_a_list_of_names_is_refused_and_the_message_says_what_to_write():
+    """REFUSED, not flattened — and the asymmetry with the cursor above
+    is deliberate. A cursor and a connection mean the same thing here; a
+    list and a spread would be two spellings of one call living side by
+    side forever, which is the defect this line of work exists to remove.
+
+    Unflattened it would also mean "one table named `['users']`", so the
+    failure would have arrived as a Postgres type error about a value the
+    caller never typed.
+    """
+    with pytest.raises(TypeError) as exc:
+        assert_tables(_Conn(DICT_ROW), ["signing_participants"])
+    assert "separate arguments" in str(exc.value)
+    assert 'assert_tables(conn, "users", "user_profiles")' in str(exc.value)
+
+
+def test_something_that_is_neither_is_refused_by_name():
+    with pytest.raises(TypeError) as exc:
+        assert_tables("not a connection at all", "users")
+    assert "connection or a cursor" in str(exc.value)
+    assert "str" in str(exc.value)
+
+
+#: Backend files that are not valid Python. Exact-set equality below, so
+#: this is a quarantine with a reason rather than a silent skip.
+#:
+#: `run_migration.py` has a mis-indented `except ImportError:` at line 28
+#: — it has never parsed, so it has never run, so this "migration runner"
+#: has never run a migration. It was found by an AST sweep written for
+#: something else entirely, which is the point being made a section up:
+#: the enforcement finds the population.
+#:
+#: It is NOT deleted here. It also carries a hard-coded database URL with
+#: a password in it, which makes its removal part of a credential
+#: response and therefore an owner decision, not a side effect of a test.
+UNPARSEABLE = {"run_migration.py"}
+
+
+def test_the_unparseable_set_is_exactly_what_we_think_it_is():
+    """A file that cannot be parsed cannot be swept, linted, imported or
+    reasoned about — it is outside every check this codebase has, while
+    still looking like a thing somebody could run.
+
+    Exact equality: a new one has to be classified, and a fixed or
+    deleted one has to be removed from the set.
+    """
+    broken = set()
+    for path in sorted(BACKEND.rglob("*.py")):
+        if "__pycache__" in path.parts:
+            continue
+        try:
+            ast.parse(path.read_text(encoding="utf-8"), str(path))
+        except SyntaxError:
+            broken.add(str(path.relative_to(BACKEND)))
+    assert broken == UNPARSEABLE, (
+        f"unparseable backend files changed: {sorted(broken)} "
+        f"(recorded: {sorted(UNPARSEABLE)})")
+
+
+def _assert_tables_calls():
+    """Every real call site, parsed — not grepped.
+
+    AST rather than substring, because the defect being pinned IS the
+    argument shape, and a regex over `assert_tables\\(` is exactly the
+    check that already passed while three callers were broken.
+    """
+    out = []
+    for path in sorted(BACKEND.rglob("*.py")):
+        if "__pycache__" in path.parts or "tests" in path.parts:
+            continue
+        if str(path.relative_to(BACKEND)) in UNPARSEABLE:
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"), str(path))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            fn = node.func
+            name = getattr(fn, "id", None) or getattr(fn, "attr", None)
+            if name != "assert_tables":
+                continue
+            out.append((path.relative_to(BACKEND), node))
+    return out
+
+
+def test_every_call_site_passes_table_names_as_separate_strings():
+    """THE PIN THIS SECTION EXISTS FOR.
+
+    Every positional argument after the connection must be a string
+    LITERAL. A list, a variable or an f-string all mean the call cannot
+    be checked here — and this check is the only thing standing between a
+    miscall and an operator discovering it during an incident.
+    """
+    offenders = []
+    for where, node in _assert_tables_calls():
+        for arg in node.args[1:]:
+            if not (isinstance(arg, ast.Constant) and isinstance(arg.value, str)):
+                offenders.append(f"{where}:{node.lineno} → {ast.dump(arg)[:60]}")
+    assert offenders == [], (
+        "assert_tables() takes table names as separate string arguments: "
+        + "; ".join(offenders))
+
+
+def test_every_call_site_names_at_least_one_table():
+    """`assert_tables(conn)` asserts nothing while looking like it does."""
+    for where, node in _assert_tables_calls():
+        assert len(node.args) >= 2, f"{where}:{node.lineno} names no tables"
+
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# A CONNECTION STRING WITH A PASSWORD IN IT, COMMITTED
+# ═══════════════════════════════════════════════════════════════════════
+#
+# Found by the sweep above, which was written to check argument shapes.
+# Four files carry a `postgresql://user:password@host/db` literal — two
+# distinct credentials, one of them repeated three times, both pointing
+# at named Render databases.
+#
+# Deleting the literal does NOT remove it: it is in the git history, and
+# the only real remediation is rotation, which is an owner action. What
+# this gate does is stop the NEXT one, and make the existing set a
+# counted, named thing rather than a discovery.
+#
+# The set is exact, so a file that is cleaned up must be removed from it
+# and a new offender cannot join quietly.
+
+#: Files known to contain a connection string with an inline password.
+#: Held for the owner's credential response — rotation first, because
+#: scrubbing the working tree while the secret stays live in history is
+#: the appearance of a fix rather than a fix.
+CREDENTIALS_IN_SOURCE = {
+    "run_migration.py",
+    "migrations/run_migration.py",
+    "migrations/run_adminfix_migration.py",
+    "set_admin_role.py",
+}
+
+_DSN_WITH_PASSWORD = re.compile(
+    r"postgres(?:ql)?://[A-Za-z0-9_]+:[^@\s\"']{8,}@")
+
+
+def test_no_new_file_hard_codes_a_database_password():
+    """Exact-set equality, and the reason the set is not empty is
+    recorded above rather than implied."""
+    found = set()
+    for path in sorted(BACKEND.rglob("*.py")):
+        if "__pycache__" in path.parts:
+            continue
+        # Read through the stripper. The section above DESCRIBES the
+        # shape it forbids, and on the first run this sweep reported
+        # itself as an offender — the fourth time this week a check has
+        # caught its own explanation. Stripping comments and docstrings
+        # is the fix that keeps a real literal in a test file failing.
+        if _DSN_WITH_PASSWORD.search(code_only(path.read_text(encoding="utf-8"))):
+            found.add(str(path.relative_to(BACKEND)))
+    assert found == CREDENTIALS_IN_SOURCE, (
+        "committed database credentials changed. New offenders must use "
+        "os.getenv('DATABASE_URL'); a file that was cleaned up must come "
+        f"out of CREDENTIALS_IN_SOURCE. found={sorted(found)} "
+        f"recorded={sorted(CREDENTIALS_IN_SOURCE)}")

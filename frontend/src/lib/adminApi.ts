@@ -178,7 +178,13 @@ export type UserRow = {
   id: number;
   email: string;
   full_name?: string;
+  /* ROLE1 step 3 — two fields because they are two facts. `role` is
+     ACCESS ('user' or 'admin'); `job_title` is what the person is
+     called. They shared one column, so the console's "Role" answered a
+     question about permissions on some rows and about a career on
+     others. */
   role?: string;
+  job_title?: string | null;
   plan?: string;
   created_at?: string;
   last_login?: string | null;

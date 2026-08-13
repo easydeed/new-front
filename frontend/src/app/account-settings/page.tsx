@@ -12,6 +12,12 @@ type Tab = "profile" | "billing" | "notifications" | "security"
 interface UserProfile {
   full_name?: string
   email?: string
+  /* ROLE1 step 3 — what she calls herself, in its own column at last.
+     It shared `users.role` with authorization, so the field this screen
+     never offered was the same field the admin console edits to grant
+     access. Two facts, one column, and the profile could only be given
+     one of them safely. */
+  job_title?: string
   phone?: string
   company_name?: string
   business_address?: string
@@ -376,6 +382,7 @@ function ProfileTab({ userProfile, onSaved }: {
 }) {
   const [formData, setFormData] = useState({
     full_name: userProfile?.full_name || "",
+    job_title: userProfile?.job_title || "",
     company_name: userProfile?.company_name || "",
     phone: userProfile?.phone || "",
     state: userProfile?.state || "",
@@ -391,6 +398,7 @@ function ProfileTab({ userProfile, onSaved }: {
     if (!userProfile) return
     setFormData({
       full_name: userProfile.full_name || "",
+      job_title: userProfile.job_title || "",
       company_name: userProfile.company_name || "",
       phone: userProfile.phone || "",
       state: userProfile.state || "",
@@ -466,6 +474,18 @@ function ProfileTab({ userProfile, onSaved }: {
             />
             <p className="mt-2 text-xs text-slate-500">
               This is how you sign in. Contact us to change it.
+            </p>
+          </div>
+          {/* ROLE1 step 3 — THE BOX THE ADMIN CONSOLE ALREADY POINTED
+              AT. Its refusal message tells an admin that a job title
+              "is edited in their profile, not here", which was written
+              before there was anywhere to edit it. This is that
+              anywhere. */}
+          <div>
+            {field("Job title", "job_title")}
+            <p className="mt-2 text-xs text-slate-500">
+              What you do — Escrow Officer, Title Agent, whatever fits.
+              It does not affect what you can see or do here.
             </p>
           </div>
           {field("Phone", "phone", "tel")}

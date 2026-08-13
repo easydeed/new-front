@@ -153,6 +153,19 @@ export function validate(f: RegisterFields): FieldErrors {
  * "Other" role or company type resolves to what she typed — the free
  * text IS the answer, and storing the literal "Other" beside it would be
  * two columns disagreeing about one fact.
+ *
+ * ═══ TWO NAMES FOR THE PROFESSIONAL ROLE, FOR ONE RELEASE ═══
+ *
+ * ROLE1 step 3 gave the job title its own column, so `job_title` is the
+ * name that means what it holds. `role` is sent alongside it because
+ * this frontend (Vercel) and the API (Render) deploy separately: for the
+ * length of one deploy, one of them is new and the other is not, and
+ * registration is the front door.
+ *
+ * Both directions are covered by sending both — an old server reads
+ * `role` and ignores the rest; a new one prefers `job_title`. The pair
+ * comes out once a server that prefers `job_title` has been live through
+ * a deploy.
  */
 export function registrationPayload(f: RegisterFields, normalizedPhone: string) {
   const role = f.role === OTHER ? f.roleOther.trim() : f.role;
@@ -163,6 +176,7 @@ export function registrationPayload(f: RegisterFields, normalizedPhone: string) 
     password: f.password,
     confirm_password: f.confirmPassword,
     full_name: f.fullName,
+    job_title: role,
     role,
     company_name: f.companyName || null,
     company_type: companyType || null,

@@ -12,6 +12,7 @@ import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { AuthManager } from "../../utils/auth"
+import { isAdminRole } from "@/lib/authRole"
 import { Eye, EyeOff, AlertCircle, CheckCircle2, Zap, Copy, Check, ShieldCheck, FileCheck2, Landmark, ScrollText } from "lucide-react"
 import { LogoLockup } from "@/components/brand/Logo"
 
@@ -98,9 +99,9 @@ function LoginContent() {
         if (token) {
           try {
             const payload = JSON.parse(atob(token.split('.')[1]))
-            const role = (payload.role || '').toLowerCase().trim()
-            const isAdmin = ['admin', 'administrator', 'superadmin', 'super_admin'].includes(role)
-            if (isAdmin && !searchParams.get("redirect")) {
+            // ROLE1 — the vocabulary was spelled out here, and in two
+            // other files, and in three more in Python. One place now.
+            if (isAdminRole(payload.role) && !searchParams.get("redirect")) {
               redirectTo = "/admin"
             }
           } catch (e) {

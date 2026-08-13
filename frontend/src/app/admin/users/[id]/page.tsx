@@ -199,8 +199,17 @@ export default function UserDetailPage() {
                 <div style={{fontWeight: 500}}>{user.full_name || '—'}</div>
               </div>
               <div>
-                <div style={{opacity: 0.6, fontSize: 12, marginBottom: 4}}>Role</div>
+                <div style={{opacity: 0.6, fontSize: 12, marginBottom: 4}}>Access</div>
                 <div><span className="badge">{user.role || 'user'}</span></div>
+              </div>
+              {/* ROLE1 step 3 — shown, never edited here. The save form
+                  below has no job-title input on purpose: the refusal
+                  the API gives says a job title belongs to the person it
+                  describes, and a console that says that while editing
+                  it would be saying two things. */}
+              <div>
+                <div style={{opacity: 0.6, fontSize: 12, marginBottom: 4}}>Job title</div>
+                <div style={{fontWeight: 500}}>{user.job_title || '—'}</div>
               </div>
               <div>
                 <div style={{opacity: 0.6, fontSize: 12, marginBottom: 4}}>Plan</div>
@@ -269,7 +278,7 @@ export default function UserDetailPage() {
                 />
               </div>
               <div>
-                <label style={{display: 'block', fontSize: 12, marginBottom: 4, opacity: 0.7}}>Role</label>
+                <label style={{display: 'block', fontSize: 12, marginBottom: 4, opacity: 0.7}}>Access</label>
                 <select 
                   className="select" 
                   value={formData.role || 'user'} 

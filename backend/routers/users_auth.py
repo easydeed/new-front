@@ -18,7 +18,8 @@ from typing import Optional
 import db
 from auth import (
     get_password_hash, verify_password, create_access_token,
-    get_current_user_id, is_admin_role, AuthUtils
+    get_current_user_id, is_admin_role, authorization_role, DEFAULT_ROLE,
+    AuthUtils,
 )
 from database import (
     PROFILE_COLUMNS, PROFILE_ELSEWHERE, clean_profile_text, get_user_profile,
@@ -40,7 +41,23 @@ class UserRegister(BaseModel):
     password: str
     confirm_password: str
     full_name: str
-    role: str
+    # ── ROLE1 step 3: TWO WIRE NAMES, ONE COLUMN, ON PURPOSE ──────────
+    #
+    # What the form has always called "professional role" is a JOB TITLE
+    # and now lands in `users.job_title`. `job_title` is the name that
+    # means what it holds; `role` is the name the deployed frontend
+    # sends.
+    #
+    # Both are accepted for exactly one reason: this backend (Render) and
+    # that frontend (Vercel) deploy separately, so there is a window
+    # where one is new and the other is not. Registration is the front
+    # door and a 422 in that window is a lost signup.
+    #
+    # REMOVAL TRIGGER: once a frontend sending `job_title` has been live
+    # through one deploy, `role` comes out of this model and the refusal
+    # below goes with it.
+    job_title: Optional[str] = None
+    role: Optional[str] = None
     company_name: Optional[str] = None
     company_type: Optional[str] = None
     phone: Optional[str] = None
@@ -139,20 +156,39 @@ async def register_user(user: UserRegister = Body(...)):
         if not clean_profile_text(user.full_name):
             raise HTTPException(status_code=400, detail="Full name is required")
 
-        # SECURITY: registration must never grant privilege. users.role is
-        # the professional role that prints on the profile (Escrow Officer,
-        # Title Agent, ...) AND the value is_admin_role() reads to gate the
-        # admin console — one column, two meanings. The field was accepted
-        # verbatim from the request body, so registering with
-        # {"role": "admin"} minted a working admin account: the login token
-        # carried role=admin and /admin/* answered it, including API-key
-        # minting. Privilege is granted by an operator, never claimed by a
-        # registrant.
+        # ── SECURITY: REGISTRATION CANNOT GRANT PRIVILEGE ─────────────
+        #
+        # It used to. `users.role` was the professional role printed on
+        # the profile AND the value `is_admin_role()` reads to gate the
+        # admin console — one column, two meanings — and the field was
+        # taken verbatim from the request body. `{"role": "admin"}`
+        # minted a working admin account: the token this same call
+        # returns carried role=admin and /admin/* answered it, including
+        # API-key minting.
+        #
+        # #103 closed that with the string refusal below. ROLE1 step 3
+        # closes it STRUCTURALLY: what arrives here is a job title, it
+        # goes to `job_title`, and `role` is written from a literal this
+        # handler owns. There is no request value that reaches the
+        # authorization column, so there is nothing to spell.
+        #
+        # The refusal stays only for as long as the legacy `role` wire
+        # name does, and for the same reason: a request built for the old
+        # shape means what the old shape meant. It is checked against
+        # `user.role`, not the resolved title, so a registrant sending
+        # the new field is free to be called whatever they are called.
         if is_admin_role(user.role):
             raise HTTPException(
                 status_code=400,
                 detail="That role cannot be selected at registration.",
             )
+
+        # The form's "professional role", under the name that says what
+        # it is. `job_title` wins when both arrive: the specific name
+        # beats the legacy one.
+        job_title = clean_profile_text(user.job_title) or clean_profile_text(user.role)
+        if not job_title:
+            raise HTTPException(status_code=400, detail="Role is required")
 
         # Hash password
         hashed_password = get_password_hash(user.password)
@@ -164,15 +200,20 @@ async def register_user(user: UserRegister = Body(...)):
         new_user_id = None
         with conn.cursor() as cur:
             cur.execute("""
-                INSERT INTO users (email, password_hash, full_name, role, company_name,
+                INSERT INTO users (email, password_hash, full_name, job_title, role,
+                                 company_name,
                                  company_type, phone, state, plan, interest_state)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
             """, (
                 # Profile-hygiene: name/company/phone print on deed faces
                 # and emails — normalize whitespace at the write, never case.
                 user.email.lower(), hashed_password,
-                clean_profile_text(user.full_name), user.role,
+                clean_profile_text(user.full_name), job_title,
+                # THE AUTHORIZATION COLUMN, FROM A LITERAL. Not from the
+                # request, not from a variable that once held a request
+                # value. Registration decides nothing about access.
+                DEFAULT_ROLE,
                 clean_profile_text(user.company_name), user.company_type,
                 # SIGNUP1: E.164 at the write, using the normalizer
                 # PARTNER2 built and the partner API has used since.
@@ -235,7 +276,11 @@ async def register_user(user: UserRegister = Body(...)):
             data={
                 "sub": str(new_user_id),
                 "email": user.email.lower(),
-                "role": user.role or "user"
+                # The claim is an AUTHORIZATION answer. It used to be
+                # `user.role` — so a token could say role="Escrow
+                # Officer", a job title riding in a security claim that
+                # every reader then had to know was not one.
+                "role": DEFAULT_ROLE,
             }
         )
 
@@ -356,11 +401,21 @@ async def login_user(credentials: UserLogin = Body(...), request: Request = None
         record_attempt(credentials.email.lower(), _ip, succeeded=True)
 
         # Create access token (AdminFix: include role for admin access)
+        #
+        # ROLE1 step 3 — THE CLAIM IS AN ANSWER, NOT A COLUMN. This
+        # forwarded `users.role` verbatim, so before the migration a
+        # token reads `role: "Escrow Officer"`: a job title in a claim
+        # three gates and three screens treat as authorization. Each of
+        # them then had to reach the same conclusion about it separately.
+        #
+        # `authorization_role` reaches it once, through `is_admin_role`,
+        # so the claim is 'admin' or 'user' and nothing else — true of an
+        # unmigrated `Administrator` row as much as a converged one.
         access_token = create_access_token(
             data={
                 "sub": str(user_id),
                 "email": credentials.email.lower(),
-                "role": role or "user"  # Default to "user" if role is None
+                "role": authorization_role(role),
             }
         )
         from auth import create_refresh_token
@@ -401,7 +456,7 @@ async def get_user_profile_endpoint(user_id: int = Depends(get_current_user_id))
         with db.conn.cursor() as cur:
             cur.execute("""
                 SELECT id, email, full_name, role, company_name, company_type,
-                       phone, state, plan, created_at, last_login
+                       phone, state, plan, created_at, last_login, job_title
                 FROM users WHERE id = %s AND is_active = TRUE
             """, (user_id,))
             user = cur.fetchone()
@@ -445,6 +500,19 @@ async def get_user_profile_endpoint(user_id: int = Depends(get_current_user_id))
             "id": user[0],
             "email": user[1],
             "full_name": user[2],
+            # ROLE1 step 3 — BOTH, because they are two different facts
+            # and the screen needs a different one from the gate.
+            #
+            # `job_title` is what she calls herself and what the Profile
+            # tab edits. `role` is authorization and is read-only to her:
+            # nothing in the account settings screen writes it, and the
+            # admin console is where it changes.
+            #
+            # Before the migration `job_title` is NULL for every existing
+            # account and `role` still holds the title. The screen falls
+            # back rather than showing a blank field, and that fallback
+            # is a dated thing: it goes when the migration has run.
+            "job_title": user[11] or (None if is_admin_role(user[3]) else user[3]),
             "role": user[3],
             "company_name": user[4],
             "company_type": user[5],
@@ -542,6 +610,14 @@ class ProfilePatch(BaseModel):
     company_name: Optional[str] = None
     phone: Optional[str] = None
     state: Optional[str] = None
+    # ROLE1 step 3 — and the sentence in the admin console's refusal
+    # ("a job title belongs to the person it describes and is edited in
+    # their profile, not here") is TRUE from here on. It was written
+    # before this field existed, which made it a promise pointing at a
+    # screen that had no such box.
+    #
+    # `role` is deliberately absent: no self-service authorization.
+    job_title: Optional[str] = None
     # user_profiles
     business_address: Optional[str] = None
 
@@ -570,6 +646,7 @@ async def patch_user_profile(
                 "company_name": clean_profile_text(patch.company_name),
                 "phone": clean_profile_text(patch.phone),
                 "state": (patch.state or "").upper() or None,
+                "job_title": clean_profile_text(patch.job_title),
             }
             user_fields = {k: v for k, v in user_fields.items() if k in given}
             if user_fields:

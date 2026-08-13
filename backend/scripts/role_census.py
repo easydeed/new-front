@@ -28,16 +28,39 @@ Usage (where DATABASE_URL points at the database being counted):
 """
 import os
 import sys
+from pathlib import Path
 
-import psycopg2
-from db_rows import ROW_FACTORY
-from services.db_identity import (WrongDatabase, assert_tables, describe,
-                                  expected_database)
+# BEFORE the project imports, not after. This sat four lines lower, so
+# `python scripts/role_census.py` — the invocation this file's own
+# docstring gives — died on `ModuleNotFoundError: No module named
+# 'db_rows'` every time it was ever run.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import psycopg2  # noqa: E402
+from db_rows import ROW_FACTORY  # noqa: E402
+from services.db_identity import (WrongDatabase, assert_tables,  # noqa: E402
+                                  describe, expected_database)
 
 
 def main():
+    # ── WHY A PLACEHOLDER SECRET, IN A SCRIPT THAT SIGNS NOTHING ─────
+    #
+    # This census reads four columns and writes nothing. It imports
+    # `auth` for one thing: `ADMIN_ROLES`, the one definition of the
+    # vocabulary — and `auth.py` raises at IMPORT time if JWT_SECRET_KEY
+    # is unset, which is correct for an API that must not boot without a
+    # signing key and wrong for a read-only count.
+    #
+    # Without this, running the census means handing the operator the
+    # production JWT signing key to look at a `role` column. That is a
+    # worse instruction than the problem it solves. The placeholder is
+    # never used to sign or verify anything; a real value in the
+    # environment is left alone.
+    #
+    # The alternative — a second home for the vocabulary that does not
+    # drag the key in — is how `utils/roles.py` came to exist, and ROLE1
+    # deleted that for being a fourth definition of admin.
+    os.environ.setdefault("JWT_SECRET_KEY", "unused-by-this-read-only-census")
     from auth import ADMIN_ROLES
 
     db_url = os.getenv("DATABASE_URL")
@@ -50,7 +73,7 @@ def main():
     # the wrong database looks exactly like the right one.
     try:
         with conn.cursor() as cur:
-            assert_tables(cur, ["users"], expect_database=expected_database())
+            assert_tables(cur, "users", expect_database=expected_database())
             print(describe(cur))
     except WrongDatabase as e:
         conn.close()

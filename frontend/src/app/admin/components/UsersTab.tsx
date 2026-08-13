@@ -97,7 +97,11 @@ export default function UsersTab(){
               <th>ID</th>
               <th>Email</th>
               <th>Plan</th>
-              <th>Role</th>
+              {/* ROLE1 step 3 — two columns because they are two facts.
+                  "Role" used to be both, so this header answered a
+                  different question depending on the row. */}
+              <th>Access</th>
+              <th>Job title</th>
               <th>Deeds</th>
               <th>Last Login</th>
               <th></th>
@@ -105,13 +109,13 @@ export default function UsersTab(){
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7}>
+              <tr><td colSpan={8}>
                 <div className="skeleton" style={{height:42}}/>
                 <div className="skeleton" style={{height:42, marginTop:8}}/>
                 <div className="skeleton" style={{height:42, marginTop:8}}/>
               </td></tr>
             ) : loadError ? (
-              <tr><td colSpan={7} style={{color:'var(--dp-danger)'}}>
+              <tr><td colSpan={8} style={{color:'var(--dp-danger)'}}>
                 Could not load users — {loadError}. This is a failed request,
                 not an empty table.
               </td></tr>
@@ -119,14 +123,14 @@ export default function UsersTab(){
               // "No users" was shown for both an empty platform and a
               // search that matched nothing, so the operator could not
               // tell a typo from a fact.
-              <tr><td colSpan={7} style={{opacity:.8}}>
+              <tr><td colSpan={8} style={{opacity:.8}}>
                 No users match “{appliedSearch}”.{' '}
                 <button className="button ghost" onClick={()=> setSearch('')}>
                   Clear the search
                 </button>
               </td></tr>
             ) : rows.length === 0 ? (
-              <tr><td colSpan={7} style={{opacity:.75}}>
+              <tr><td colSpan={8} style={{opacity:.75}}>
                 No users have registered yet.
               </td></tr>
             ) : rows[0] && rows[0].id === undefined ? (
@@ -136,7 +140,7 @@ export default function UsersTab(){
               // sparse — and only announced itself when a drill-down
               // requested /admin/users/undefined. If the contract breaks
               // again, say so here rather than draw an empty table.
-              <tr><td colSpan={7} style={{color:'var(--dp-danger)'}}>
+              <tr><td colSpan={8} style={{color:'var(--dp-danger)'}}>
                 User rows arrived without an <code>id</code> field — the API
                 response shape does not match what this table reads. Not
                 rendering rows, because they would be blank.
@@ -147,6 +151,7 @@ export default function UsersTab(){
                 <td>{u.email}</td>
                 <td>{u.plan || '—'}</td>
                 <td>{u.role || '—'}</td>
+                <td>{u.job_title || '—'}</td>
                 <td>{u.deed_count ?? '—'}</td>
                 <td>{u.last_login ? new Date(u.last_login).toLocaleString() : '—'}</td>
                 <td style={{textAlign:'right'}}>
@@ -171,7 +176,8 @@ export default function UsersTab(){
             <div style={{display:'grid', gap:8, fontSize:13, marginBottom:16}}>
               <div><strong>Email:</strong> {modal.email}</div>
               <div><strong>Full Name:</strong> {modal.full_name || '—'}</div>
-              <div><strong>Role:</strong> {modal.role || '—'}</div>
+              <div><strong>Access:</strong> {modal.role || '—'}</div>
+              <div><strong>Job title:</strong> {modal.job_title || '—'}</div>
               <div><strong>Plan:</strong> {modal.plan || '—'}</div>
               <div><strong>Active:</strong> {modal.is_active ? 'Yes' : 'No'}</div>
               <div><strong>Created:</strong> {modal.created_at ? new Date(modal.created_at).toLocaleString() : '—'}</div>

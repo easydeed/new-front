@@ -42,9 +42,15 @@ Usage (where DATABASE_URL points at the database being consolidated):
 import argparse
 import os
 import sys
+from pathlib import Path
 
-import psycopg2
-from db_rows import ROW_FACTORY
+# There was no path insert here at all, so this script has never run
+# either — same ModuleNotFoundError, and this one has an `--apply` that
+# writes.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+import psycopg2  # noqa: E402
+from db_rows import ROW_FACTORY  # noqa: E402
 from services.db_identity import (WrongDatabase, assert_tables, describe,
                                   expected_database)
 
@@ -142,7 +148,7 @@ def main():
     # is worse than no report — it looks exactly like the right one.
     try:
         with conn.cursor() as cur:
-            assert_tables(cur, ["users", "user_profiles"],
+            assert_tables(cur, "users", "user_profiles",
                           expect_database=expected_database())
             print(describe(cur))
     except WrongDatabase as e:

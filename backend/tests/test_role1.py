@@ -125,21 +125,26 @@ def test_a_role_that_grants_nothing_is_refused_by_name():
     assert "ASSIGNABLE_ROLES" in src
     assert "would grant nothing" in src
     # And it names what WOULD work, or the admin retries the same typo.
-    assert "', '.join(sorted(ADMIN_ROLES))" in src
+    assert "' or '.join(sorted(ASSIGNABLE_ROLES))" in src
 
 
 def test_the_assignable_set_is_authorization_not_job_titles():
-    """The interesting half. `users.role` still carries both meanings, and
-    registration legitimately writes free text into it (SIGNUP1's
-    "Other"), so a closed set covering BOTH would reject values the
-    product itself creates.
+    """The interesting half, and step 3 narrowed it.
 
-    An admin editing this field is making an AUTHORIZATION decision, so
-    that is the vocabulary offered — and the refusal says where a job
-    title is edited instead.
+    While `users.role` carried both meanings this had to stay wide:
+    registration wrote free text into the same column, so a closed set
+    covering BOTH would have rejected values the product itself created.
+    Step 3 removed that constraint — the job title has its own column and
+    registration writes the authorization value from a literal — so the
+    assignable set is now two values, not five.
+
+    The three that left (`administrator`, `superadmin`, `super_admin`)
+    are still RECOGNIZED by the gates, for rows history already wrote.
+    Recognizing a spelling and minting more of it are different acts.
     """
     from routers.admin_api_v2 import ASSIGNABLE_ROLES
-    assert ASSIGNABLE_ROLES == frozenset({*ADMIN_ROLES, 'user'})
+    assert ASSIGNABLE_ROLES == frozenset({'user', 'admin'})
+    assert ASSIGNABLE_ROLES < frozenset({*ADMIN_ROLES, 'user'})
     src = inspect.getsource(
         __import__('routers.admin_api_v2', fromlist=['x'])._validate_role_change)
     assert "job title" in src.lower()
@@ -215,10 +220,28 @@ def test_promotion_can_never_trip_the_lockout_check():
     worse than the defect it fixes.
 
     Driven with a row that WOULD trip it if the early return were gone.
+
+    One spelling, since step 3: the other three are recognized but no
+    longer assignable, and asking this question about them would be
+    asking it past a refusal that comes first.
     """
-    for spelling in ("admin", "Administrator", "super_admin"):
-        assert _check({"email": "boss@deedpro.com", "role": "admin"},
-                      "boss@deedpro.com", spelling) is None
+    assert _check({"email": "boss@deedpro.com", "role": "admin"},
+                  "boss@deedpro.com", "admin") is None
+
+
+def test_a_recognized_spelling_is_still_refused_as_an_ASSIGNMENT():
+    """The two sets differ, and this is where the difference is visible.
+
+    `Administrator` opens every gate for a row that already holds it —
+    and cannot be written into a new one. A console that could write it
+    would be manufacturing more of the divergence ROLE1 converged.
+    """
+    from fastapi import HTTPException
+    for spelling in ("Administrator", "superadmin", "super_admin"):
+        assert is_admin_role(spelling) is True, "still recognized"
+        with pytest.raises(HTTPException) as exc:
+            _check({"email": "x@y.z", "role": "user"}, "boss@deedpro.com", spelling)
+        assert exc.value.status_code == 400
 
 
 def test_an_unknown_role_is_refused_by_the_call_too():
