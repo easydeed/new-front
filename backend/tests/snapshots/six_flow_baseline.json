@@ -25,6 +25,7 @@
     "pdf_url_set": true,
     "returned_keys": [
       "apn",
+      "archived_at",
       "completed_at",
       "county",
       "created_at",
@@ -56,6 +57,7 @@
   "3_deed_detail": {
     "keys": [
       "apn",
+      "archived_at",
       "completed_at",
       "county",
       "created_at",

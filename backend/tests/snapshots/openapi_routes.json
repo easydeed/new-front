@@ -437,6 +437,10 @@
  ],
  [
   "POST",
+  "/deeds/{deed_id}/archive"
+ ],
+ [
+  "POST",
   "/deeds/{deed_id}/recording"
  ],
  [

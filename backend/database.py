@@ -224,6 +224,21 @@ def create_tables():
             # ticket refuses to do.
             "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS superseded_by INTEGER REFERENCES deeds(id)",
             "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS superseded_at TIMESTAMPTZ",
+            # UX2 items 8/9 — ARCHIVE IS ITS OWN COLUMN, NOT A STATUS.
+            #
+            # `status` carries the lifecycle: draft -> completed, plus
+            # `deleted`. Archiving is orthogonal to all of it — an
+            # archived draft is still a draft, and she may want it back.
+            #
+            # The same reasoning `supersession.lineage_state` records for
+            # supersession: "`status` keeps its lifecycle vocabulary;
+            # this is the orthogonal fact." And the practical half: NINE
+            # query sites filter `status <> 'deleted'`, so a new status
+            # value leaks into every one I do not find. A nullable
+            # timestamp is additive and cannot leak by omission — a query
+            # that ignores it shows archived rows, which is visible,
+            # rather than hiding live ones, which is not.
+            "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ",
             "CREATE INDEX IF NOT EXISTS idx_deeds_superseded_by ON deeds(superseded_by)",
             # RED-S2: RESTRICT, not CASCADE.
             #
@@ -1308,14 +1323,22 @@ def save_draft_row(user_id, deed_id, deed_data):
             conn.close()
         return None
 
-def get_user_deeds(user_id):
+def get_user_deeds(user_id, include_archived=False):
     conn = get_db_connection()
     if not conn:
         return []
     
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM deeds WHERE user_id = %s AND COALESCE(status, '') <> 'deleted' ORDER BY created_at DESC", (user_id,))
+        # Archived drafts are hers and are kept; they are simply not in
+        # the list she works from. `include_archived` is the one way to
+        # see them, so "where did it go" has an answer.
+        cursor.execute(
+            "SELECT * FROM deeds WHERE user_id = %s "
+            "AND COALESCE(status, '') <> 'deleted' "
+            "AND (archived_at IS NULL OR %s) "
+            "ORDER BY created_at DESC",
+            (user_id, include_archived))
         deeds = cursor.fetchall()
         cursor.close()
         conn.close()

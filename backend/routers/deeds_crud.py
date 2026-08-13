@@ -1,6 +1,6 @@
 """Deed CRUD endpoints (T8 split — moved verbatim from main.py)."""
 import os
-from datetime import timezone
+from datetime import datetime, timezone
 from time import time
 from typing import Dict, Optional, Union
 
@@ -271,8 +271,15 @@ def create_deed_endpoint(deed: DeedCreate, user_id: int = Depends(get_current_us
     return new_deed
 
 @router.get("/deeds")
-def list_deeds_endpoint(user_id: int = Depends(get_current_user_id)):
-    """List all deeds for current user"""
+def list_deeds_endpoint(include_archived: bool = False,
+                        user_id: int = Depends(get_current_user_id)):
+    """List the deeds she works from. Archived ones on request.
+
+    UX2 items 8/9. An archived draft is kept, not deleted — the whole
+    point is that she can put a dead attempt out of the way without
+    destroying it, and can find it again. So the default list omits
+    them and `?include_archived=true` is the way back.
+    """
     try:
         if not db.conn:
             raise HTTPException(status_code=500, detail="Database connection not available")
@@ -280,11 +287,13 @@ def list_deeds_endpoint(user_id: int = Depends(get_current_user_id)):
         with db.conn.cursor() as cur:
             cur.execute("""
                 SELECT id, deed_type, property_address, grantor_name, grantee_name,
-                       county, status, pdf_url, created_at, updated_at, apn, parties
+                       county, status, pdf_url, created_at, updated_at, apn, parties,
+                       archived_at
                 FROM deeds
                 WHERE user_id = %s AND COALESCE(status, '') <> 'deleted'
+                  AND (archived_at IS NULL OR %s)
                 ORDER BY created_at DESC
-            """, (user_id,))
+            """, (user_id, include_archived))
 
             deeds = cur.fetchall()
 
@@ -737,6 +746,60 @@ def activity_endpoint(deed_id: int, user_id: int = Depends(get_current_user_id))
             "entries": deed_activity.activity(dict(deed), shares=shares,
                                               signings=signings,
                                               responses=responses)}
+
+
+class ArchiveRequest(BaseModel):
+    """Which way. One endpoint, because archiving and un-archiving are
+    the same decision pointed in two directions, and two routes would be
+    two places to forget the draft-only rule."""
+    archived: bool = True
+
+
+@router.post("/deeds/{deed_id}/archive")
+def archive_deed_endpoint(deed_id: int, body: ArchiveRequest,
+                          user_id: int = Depends(get_current_user_id)):
+    """Put a dead draft out of the way, or bring it back.
+
+    ═══ DRAFTS ONLY, AND THE REFUSAL SAYS WHY ═══
+
+    A completed deed is an INSTRUMENT (§9). It has a stored PDF with a
+    fingerprint, it may have been sent, signed or recorded, and the
+    correct way to retire one is supersession — which records a
+    relationship rather than hiding a row. Archiving one would be a
+    filing decision quietly standing in for a legal one.
+
+    ═══ AND IT IS NOT A DELETE ═══
+
+    Nothing is destroyed and nothing is un-recorded. The row keeps every
+    column; it stops appearing in the list she works from. That is the
+    entire promise, and `?include_archived=true` is how she checks it.
+    """
+    if not db.conn:
+        raise HTTPException(status_code=500, detail="Database connection not available")
+    with db.conn.cursor() as cur:
+        cur.execute("SELECT status, archived_at FROM deeds "
+                    "WHERE id = %s AND user_id = %s", (deed_id, user_id))
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Deed not found")
+        status = (dict(row).get("status") or "draft").strip().lower()
+        if status == "completed":
+            raise HTTPException(
+                status_code=409,
+                detail="This deed is generated, so it is an instrument rather "
+                       "than a draft. Correct it with a superseding deed — "
+                       "that records the relationship instead of hiding the row.",
+            )
+        if status == "deleted":
+            raise HTTPException(status_code=409, detail="This deed was deleted.")
+        when = datetime.now(timezone.utc) if body.archived else None
+        cur.execute(
+            "UPDATE deeds SET archived_at = %s, updated_at = NOW() "
+            "WHERE id = %s AND user_id = %s RETURNING archived_at",
+            (when, deed_id, user_id))
+        out = dict(cur.fetchone() or {})
+    db.conn.commit()
+    return {"id": deed_id, "archived_at": _iso_utc(out.get("archived_at"))}
 
 
 @router.get("/deeds/{deed_id}/detail")

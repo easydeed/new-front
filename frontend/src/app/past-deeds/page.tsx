@@ -14,6 +14,7 @@ import { toast } from "sonner"
 import { SessionExpiredError, apiFetch } from "@/lib/apiClient"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { deedTypeLabel } from "@/lib/deedTypes"
+import { StaleCluster, nudgeSentence, staleClusters } from "@/lib/staleDrafts"
 
 interface Deed {
   id: number
@@ -27,6 +28,8 @@ interface Deed {
   status: "completed" | "draft" | "in_progress"
   created_at: string
   updated_at: string
+  /** UX2 items 8/9 — set means put away, never deleted. */
+  archived_at?: string | null
   pdf_url?: string
 }
 
@@ -97,19 +100,60 @@ function PastDeedsList() {
    * `?status=` seeds the filter; `?focus=` highlights one row.
    */
   const params = useSearchParams()
-  const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "draft">(() => {
+  const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "draft" | "archived">(() => {
     const wanted = params?.get("status")
-    return wanted === "completed" || wanted === "draft" ? wanted : "all"
+    return wanted === "completed" || wanted === "draft" || wanted === "archived"
+      ? wanted : "all"
   })
+  /* UX2 item 6 — carried from the partner row. The rolodex cannot pick
+     a deed (there is none on that row, and guessing one would be the
+     product choosing her document), so it carries the notary here and
+     the deed is chosen where the deeds are. */
+  const notaryFromPartner = params?.get("notary") || null
+  /* UX2 items 8/9 — the nudge. The rule is lib/staleDrafts.ts so it can
+     be asked a question; this screen only renders the answer. */
+  const [archiving, setArchiving] = useState(false)
+  const [dismissed, setDismissed] = useState<string[]>([])
+  const clusters = staleClusters(deeds).filter((c) => !dismissed.includes(c.address))
+
+  const archiveCluster = async (cluster: StaleCluster) => {
+    setArchiving(true)
+    try {
+      // Sequential, and every failure surfaces. A partial archive that
+      // reported success would leave her list disagreeing with what she
+      // was told — the §4 case, on a bulk action.
+      for (const draft of cluster.older) {
+        const res = await apiFetch(`/deeds/${draft.id}/archive`,
+          { method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ archived: true }) },
+          { label: "Archiving" })
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          throw new Error(String(body.detail || `Could not archive #${draft.id}`))
+        }
+      }
+      toast.success(`Archived ${cluster.older.length} drafts. They are kept — filter to Archived to see them.`)
+      await fetchDeeds()
+    } catch (err) {
+      if (err instanceof SessionExpiredError) return
+      toast.error(err instanceof Error ? err.message : "Could not archive those drafts")
+    } finally {
+      setArchiving(false)
+    }
+  }
   const focusId = (() => {
     const raw = params?.get("focus")
     const id = raw ? Number(raw) : NaN
     return Number.isInteger(id) ? id : null
   })()
 
+  /* Refetch when she switches to or from Archived: those rows are not
+     in the default payload, so filtering client-side alone would show
+     an empty Archived list on a page that has them. */
   useEffect(() => {
     fetchDeeds()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter === "archived"])
 
   const fetchDeeds = async () => {
     try {
@@ -120,7 +164,12 @@ function PastDeedsList() {
       }
 
       // X1: apiFetch surfaces every failure (401 = session-expired redirect).
-      const response = await apiFetch(`/deeds`, {}, { label: "Loading deeds" })
+      /* UX2 items 8/9 — archived rows only when she asks for them. The
+         promise archiving makes is "kept, not deleted", and a filter
+         that cannot show them is a promise she has no way to check. */
+      const response = await apiFetch(
+        `/deeds${statusFilter === "archived" ? "?include_archived=true" : ""}`,
+        {}, { label: "Loading deeds" })
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}))
@@ -257,6 +306,8 @@ function PastDeedsList() {
 
   // X2.7: filter over address, grantee, doc id, APN, and type label.
   const visibleDeeds = deeds.filter((deed) => {
+    if (statusFilter === "archived") return !!deed.archived_at
+    if (deed.archived_at) return false
     if (statusFilter === "completed" && deed.status !== "completed") return false
     if (statusFilter === "draft" && deed.status === "completed") return false
     const q = searchQuery.trim().toLowerCase()
@@ -307,13 +358,15 @@ function PastDeedsList() {
                 </div>
                 <select
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as "all" | "completed" | "draft")}
+                  onChange={(e) => setStatusFilter(
+                    e.target.value as "all" | "completed" | "draft" | "archived")}
                   className="px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF]"
                   aria-label="Filter by status"
                 >
                   <option value="all">All statuses</option>
                   <option value="completed">Completed</option>
                   <option value="draft">Drafts</option>
+                  <option value="archived">Archived</option>
                 </select>
               </div>
               <button
@@ -376,6 +429,49 @@ function PastDeedsList() {
           )}
 
           {/* Table */}
+          {/* UX2 items 8/9 — THE NUDGE.
+
+              Five drafts at one address is somebody trying the same
+              conveyance five times. The product cannot know which one is
+              current, so it says what it sees and offers the action
+              rather than tidying up on her behalf — archiving the
+              attempt she is working on is the one outcome that would
+              make this worse than nothing, so the newest is never in the
+              offer. */}
+          {clusters.map((cluster) => (
+            <div key={cluster.address} role="status"
+                 className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <p className="text-sm text-amber-900">{nudgeSentence(cluster)}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  onClick={() => archiveCluster(cluster)}
+                  disabled={archiving}
+                  className="px-3 py-2 text-sm font-medium rounded-lg bg-amber-700 text-white hover:bg-amber-800 disabled:opacity-60"
+                >
+                  {archiving ? "Archiving…" : `Archive the ${cluster.older.length} older`}
+                </button>
+                <button
+                  onClick={() => setDismissed([...dismissed, cluster.address])}
+                  disabled={archiving}
+                  className="px-3 py-2 text-sm font-medium rounded-lg border border-amber-300 text-amber-900 hover:bg-white disabled:opacity-60"
+                >
+                  Not now
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {/* UX2 item 6 — SHE ARRIVED FROM A PARTNER ROW, and the page
+              says so. Landing on an unfiltered list with a modal that
+              mysteriously knows a notary is the dead-button defect
+              inverted: the outcome is right and the reason is absent. */}
+          {notaryFromPartner && signingDeedId === null && (
+            <div role="status"
+                 className="mb-4 rounded-xl border border-[#7C4DFF]/30 bg-[#7C4DFF]/5 p-4 text-sm text-slate-700">
+              Pick the deed you want signed — the notary you chose is
+              already selected.
+            </div>
+          )}
           {!loading && !error && deeds.length > 0 && (
             <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
               <div className="overflow-x-auto">
@@ -387,7 +483,28 @@ function PastDeedsList() {
                       <th className="text-left py-4 px-6 text-sm font-semibold text-slate-700">Deed Type</th>
                       <th className="text-left py-4 px-6 text-sm font-semibold text-slate-700">Status</th>
                       <th className="text-left py-4 px-6 text-sm font-semibold text-slate-700">Created</th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-slate-700">Updated</th>
+                      {/* UX2 item 7 — "UPDATED" IS GONE.
+
+                          Seven columns at px-6 made the table 1197px in
+                          a 1150px viewport. `overflow-x-auto` was
+                          already here, so Actions was not clipped — it
+                          was off-screen behind a sideways scroll nothing
+                          signalled, which is worse: a clipped control
+                          looks broken, an absent one looks like it does
+                          not exist.
+
+                          Owner-ruled: actions stay visible, the
+                          lowest-value column goes. `updated_at` is the
+                          one, and not by elimination — it is on
+                          `deed_activity.FORBIDDEN` with the reason "it
+                          moves for reasons that are not events, so
+                          ordering by it narrates writes rather than
+                          acts". A column showing it invites exactly the
+                          reading this codebase already ruled against.
+
+                          Every other column undoes a prior decision:
+                          X2.7 promoted Doc ID out of the address cell on
+                          purpose, and Created is what orders the list. */}
                       <th className="text-left py-4 px-6 text-sm font-semibold text-slate-700">Actions</th>
                     </tr>
                   </thead>
@@ -443,7 +560,7 @@ function PastDeedsList() {
                           )}
                         </td>
                         <td className="py-4 px-6 text-sm text-slate-600">{formatDate(deed.created_at)}</td>
-                        <td className="py-4 px-6 text-sm text-slate-600">{formatDate(deed.updated_at)}</td>
+
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-2">
                             {deed.status === "draft" && (
@@ -592,6 +709,7 @@ function PastDeedsList() {
             return (
               <RequestSigningModal
                 deedId={signingDeedId}
+                preselectNotaryId={notaryFromPartner}
                 propertyAddress={deed?.property_address}
                 // The deed's party NAMES seed the signer rows. Names only:
                 // the deed has never held a way to reach anybody (§13.1)
