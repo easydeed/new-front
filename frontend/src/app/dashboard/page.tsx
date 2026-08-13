@@ -8,6 +8,7 @@ import { AIGreeting } from "@/components/ui/AIGreeting"
 import { AICard } from "@/components/ui/AICard"
 import { AIEmptyState } from "@/components/ui/AIEmptyState"
 import { AuthManager } from "@/utils/auth"
+import EmailVerificationNotice from "@/features/account/EmailVerificationNotice"
 import { pickInProgressDeed } from "@/lib/latestDraft"
 import { SessionExpiredError, apiFetch } from "@/lib/apiClient"
 import { 
@@ -47,6 +48,9 @@ export default function Dashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
   const [userName, setUserName] = useState<string>("")
+  // VERIFY-CHECK — this screen already fetches /users/profile, so saying
+  // whether the address is confirmed costs one field and no request.
+  const [account, setAccount] = useState<{ verified?: boolean; email?: string }>({})
   const [recentDeeds, setRecentDeeds] = useState<any[]>([])
   const [deedsError, setDeedsError] = useState<string | null>(null)
   const [summary, setSummary] = useState<{
@@ -83,6 +87,7 @@ export default function Dashboard() {
           if (profileData.full_name) {
             setUserName(profileData.full_name.split(' ')[0])
           }
+          setAccount({ verified: profileData.verified, email: profileData.email })
           
           // Check if onboarding is completed
           const onboardingComplete = localStorage.getItem("onboarding_completed") === "true"
@@ -233,6 +238,11 @@ export default function Dashboard() {
       <Sidebar />
       <main className="flex-1 p-4 md:p-8 overflow-auto">
         <div className="max-w-6xl mx-auto">
+          {/* VERIFY-CHECK — the one screen everybody lands on. It asks
+              and offers; it withholds nothing, because nothing in this
+              product is gated on the answer. */}
+          <EmailVerificationNotice verified={account.verified} email={account.email} />
+
           {/* AI Greeting */}
           <div className="mb-8">
             <AIGreeting userName={userName} />
