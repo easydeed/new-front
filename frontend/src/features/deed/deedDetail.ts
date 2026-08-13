@@ -41,7 +41,8 @@ export type DeedState = (typeof DEED_STATES)[number];
  * payload whose job is telling a state from an action. A pin caught it.
  */
 export const ACTION_KINDS = [
-  'resume', 'share_for_review', 'open_signing', 'download', 'none'] as const;
+  'resume', 'share_for_review', 'request_signing', 'open_signing',
+  'download', 'none'] as const;
 export type ActionKind = (typeof ACTION_KINDS)[number];
 
 export interface DeedAction {
@@ -54,10 +55,21 @@ export interface DeedStateBlock {
   headline: string;
   sentence: string;
   next_action: DeedAction | null;
+  /**
+   * The one deliberate exception to "one state, one obvious action"
+   * (owner-ruled): `ready` offers review AND signing, ranked rather than
+   * equal.
+   *
+   * SINGULAR by construction, in both languages. A list would grow, and
+   * a wall of equal choices is what the one-action rule exists to
+   * prevent — the ruling was "do not hide the second most common move",
+   * not "offer everything".
+   */
+  secondary_action: DeedAction | null;
   asserted_at: string | null;
   /** Present on `signing`: WHICH signing, so "open the signing" opens
    *  the one that exists rather than starting a second. */
-  signing_request_id?: number | null;
+  signing_request_id: number | null;
 }
 
 export interface Disqualification {

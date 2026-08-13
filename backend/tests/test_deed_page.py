@@ -26,9 +26,22 @@ import pytest
 
 from services.deed_page import (
     ACTION_KINDS, CONTACT_FRAGMENTS, DEED_PAGE_KEYS, DEED_STATES,
-    ContactOnTheDocument, deed_page, disqualification, document_parties,
-    document_party, refuse_contact, state_and_next, working_parties,
+    STATE_BLOCK_KEYS, ContactOnTheDocument, deed_page, disqualification,
+    document_parties, document_party, refuse_contact, state_and_next,
+    working_parties,
 )
+
+#: Every state, with the rows that produce it. Used by the sweeps below
+#: so a new state cannot be added without appearing in all of them.
+EVERY_STATE = [
+    ("draft", {"status": "draft"}, [], []),
+    ("ready", {}, [], []),
+    ("in_review", {}, [{"status": "sent"}], []),
+    ("approved", {}, [{"status": "approved"}], []),
+    ("changes_requested", {}, [{"status": "rejected"}], []),
+    ("signing", {}, [], [{"id": 3, "live": True, "summary": "x"}]),
+    ("recorded", {"recorded_at": "2026-08-05T00:00:00Z"}, [], []),
+]
 
 
 def _deed(**over):
@@ -142,18 +155,83 @@ def test_the_signing_sentence_is_the_servers_not_a_second_one():
     assert got["sentence"] == "Waiting on Maria and two signers."
 
 
-def test_every_state_offers_exactly_one_action_of_a_known_kind():
-    for row, shares, signings in [
-        (_deed(status="draft"), [], []),
-        (_deed(), [], []),
-        (_deed(), [{"status": "sent"}], []),
-        (_deed(), [{"status": "approved"}], []),
-        (_deed(), [{"status": "rejected"}], []),
-        (_deed(), [], [{"live": True, "summary": "x"}]),
-        (_deed(recorded_at="2026-08-05T00:00:00Z"), [], []),
-    ]:
-        action = state_and_next(row, shares=shares, signings=signings)["next_action"]
-        assert action["kind"] in ACTION_KINDS
+def test_every_state_offers_a_primary_action_of_a_known_kind():
+    for name, over, shares, signings in EVERY_STATE:
+        got = state_and_next(_deed(**over), shares=shares, signings=signings)
+        assert got["next_action"]["kind"] in ACTION_KINDS, name
+
+
+# ── The one state with two actions (owner-ruled) ─────────────────────
+
+def test_ready_offers_review_AND_signing():
+    """THE RULING THIS BLOCK EXISTS FOR.
+
+    The first build offered review alone, and starting a signing was
+    reachable only through the share modal's "did you mean a signing?"
+    switch — FLOW1 item 1's affordance problem one screen over: the
+    second most common move discoverable only by opening a dialog about
+    the first.
+
+    "One state, one obvious action" means DO NOT PRESENT A WALL OF EQUAL
+    CHOICES. It does not mean hide the other one.
+    """
+    got = state_and_next(_deed())
+    assert got["state"] == "ready"
+    assert got["next_action"] == {"kind": "share_for_review",
+                                  "label": "Send for review"}
+    assert got["secondary_action"] == {"kind": "request_signing",
+                                       "label": "Request signing"}
+
+
+def test_the_two_actions_are_ranked_not_equal():
+    """Review is the primary. If they were interchangeable this would be
+    a list, and a list is what the one-action rule prevents."""
+    got = state_and_next(_deed())
+    assert got["next_action"]["kind"] != got["secondary_action"]["kind"]
+
+
+def test_ready_is_the_ONLY_state_with_a_second_action():
+    """The exception is one state wide, deliberately. Every other state
+    has one obvious move, and a second offered beside it would be this
+    page drifting back into a menu."""
+    for name, over, shares, signings in EVERY_STATE:
+        got = state_and_next(_deed(**over), shares=shares, signings=signings)
+        if name == "ready":
+            assert got["secondary_action"] is not None
+        else:
+            assert got["secondary_action"] is None, name
+
+
+def test_there_can_never_be_a_third():
+    """`secondary_action` is SINGULAR by construction — a list would
+    grow. This is the pin that makes that structural rather than a
+    convention somebody remembers."""
+    for name, over, shares, signings in EVERY_STATE:
+        got = state_and_next(_deed(**over), shares=shares, signings=signings)
+        assert not isinstance(got["secondary_action"], list), name
+        assert set(got) == STATE_BLOCK_KEYS, name
+
+
+def test_starting_a_signing_and_opening_one_are_different_verbs():
+    """`request_signing` creates; `open_signing` opens the one that
+    exists. Collapsing them is how a deed with a live signing gets a
+    second one — three more emails and two notaries who each think they
+    have it (CANCEL1 item 4)."""
+    ready = state_and_next(_deed())
+    live = state_and_next(_deed(), signings=[{"id": 3, "live": True, "summary": "x"}])
+    assert ready["secondary_action"]["kind"] == "request_signing"
+    assert live["next_action"]["kind"] == "open_signing"
+    assert live["secondary_action"] is None
+
+
+def test_every_state_block_carries_the_same_keys():
+    """A payload whose shape depends on its content gives the screen two
+    contracts, and the second is the one nothing tests. `secondary_action`
+    and `signing_request_id` are present everywhere, as None where there
+    is none."""
+    for name, over, shares, signings in EVERY_STATE:
+        got = state_and_next(_deed(**over), shares=shares, signings=signings)
+        assert set(got) == STATE_BLOCK_KEYS, name
 
 
 # ── THE LADDER STOPS AT READY TO RECORD ──────────────────────────────
@@ -173,18 +251,17 @@ def test_no_state_claims_a_county_did_anything():
     forbidden = ("was recorded by", "the county has", "filed with the county",
                  "accepted by the recorder", "rejected by the recorder",
                  "recording confirmed")
-    for row, shares, signings in [
-        (_deed(status="draft"), [], []),
-        (_deed(), [], []),
-        (_deed(), [{"status": "sent"}], []),
-        (_deed(), [{"status": "approved"}], []),
-        (_deed(), [{"status": "rejected"}], []),
-        (_deed(), [], [{"live": True, "summary": "x"}]),
-    ]:
-        got = state_and_next(row, shares=shares, signings=signings)
-        blob = f"{got['headline']} {got['sentence']}".lower()
+    for name, over, shares, signings in EVERY_STATE:
+        if name == "recorded":
+            continue  # attributed to her; its own stricter test below
+        got = state_and_next(_deed(**over), shares=shares, signings=signings)
+        blob = " ".join([
+            got["headline"], got["sentence"],
+            (got["next_action"] or {}).get("label", ""),
+            (got["secondary_action"] or {}).get("label", ""),
+        ]).lower()
         for phrase in forbidden:
-            assert phrase not in blob, f"{got['state']} claims: {phrase}"
+            assert phrase not in blob, f"{name} claims: {phrase}"
 
 
 def test_recorded_is_attributed_to_her_and_never_to_us():
