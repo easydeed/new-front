@@ -39,8 +39,19 @@ def suggest_defaults(user_data, deed_data, recent_properties=None):
     # Auto-populate company/business information
     if profile.get('auto_populate_company_info', True):
         if not deed_data.get('recordingRequestedBy') and profile.get('company_name'):
-            suggestions['recordingRequestedBy'] = f"{profile['company_name']} - {profile.get('role', 'Escrow Officer').title()}"
-        
+            # The company, and only the company.
+            #
+            # This used to append the role: `f"{company} - {role.title()}"`,
+            # which on the stored value 'escrow_officer' produces
+            # "Escrow_Officer" — the underscore survives .title(). That
+            # string is a deed face, printed in the recorder's top-left box.
+            #
+            # A job title does not belong there in any case: the box names
+            # the PARTY requesting recording, and the live path (the
+            # builder's partner picker) has always put a bare company name
+            # in it. One field, one meaning, whichever path fills it.
+            suggestions['recordingRequestedBy'] = profile['company_name']
+
         if not deed_data.get('mailTo') and profile.get('business_address'):
             suggestions['mailTo'] = profile['business_address']
     

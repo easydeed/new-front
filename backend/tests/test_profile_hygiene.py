@@ -31,13 +31,21 @@ def test_clean_profile_text_blank_collapses_to_none():
 
 
 def test_update_user_profile_normalizes_deed_face_fields():
+    """SETTINGS1 item 5 moved `company_name` out of this writer (it lives
+    in `users` now) and made the column list the set of keys supplied —
+    so the parameters are no longer at fixed positions. The rule under
+    test is unchanged: whitespace is fixed at the write, case is not.
+
+    Company-name normalization did not disappear with the column; it
+    happens where the column now is (`clean_profile_text(patch.company_name)`
+    in PATCH /users/profile, and in the registration INSERT below).
+    """
     conn = MagicMock()
     cursor = MagicMock()
     conn.cursor.return_value = cursor
 
     with patch("database.get_db_connection", return_value=conn):
         ok = update_user_profile(7, {
-            "company_name": "  Pacific COast TItle ",
             "business_address": " 123  Main   St ",
             "license_number": "  LIC-99  ",
             "default_county": " Los   Angeles ",
@@ -45,10 +53,18 @@ def test_update_user_profile_normalizes_deed_face_fields():
 
     assert ok is True
     params = cursor.execute.call_args[0][1]
-    assert params[1] == "Pacific COast TItle"   # trimmed, case untouched
-    assert params[2] == "123 Main St"
-    assert params[3] == "LIC-99"
-    assert params[5] == "Los Angeles"
+    assert params[0] == 7
+    assert set(params[1:]) == {"123 Main St", "LIC-99", "Los Angeles"}
+
+
+def test_company_name_normalization_did_not_go_missing_with_the_column():
+    """A pin that would otherwise have been deleted along with the case
+    it covered. `clean_profile_text` on the company still has to run —
+    'Pacific COast TItle ' printed on deeds, trailing space and all."""
+    import inspect
+    import routers.users_auth as mod
+    src = inspect.getsource(mod.patch_user_profile)
+    assert "clean_profile_text(patch.company_name)" in src
 
 
 def test_registration_normalizes_and_rejects_blank_names():

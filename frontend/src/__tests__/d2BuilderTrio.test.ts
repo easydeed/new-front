@@ -39,8 +39,26 @@ describe('D2.1 — Next buttons on typed sections, never confirm affordances', (
 });
 
 describe('D2.2 — the requesting-party address travels the full path', () => {
-  it('selecting a partner carries the address into state', () => {
-    expect(RECORDING).toContain('requestedByAddress: partner?.address');
+  it('selecting an entry carries the address into state', () => {
+    /**
+     * SETTINGS1 item 5 renamed `partner` to `chosen` — the picker now
+     * offers the officer's own company alongside the rolodex, and both
+     * kinds carry an address. The rule is unchanged and the pin follows
+     * the identifier.
+     *
+     * That this pin broke on a pure rename is the small lesson: it
+     * asserts a LINE rather than the behaviour, so it fails on correct
+     * code. The behavioural half is the payload test below, which is
+     * why that one did not move.
+     */
+    expect(RECORDING).toContain('requestedByAddress: chosen?.address');
+  });
+
+  it('the own-company entry carries an address too', () => {
+    // Recording under your own company should fill the address line the
+    // same way a partner does — the value is on the profile either way,
+    // and typing it again is how the two copies diverge.
+    expect(RECORDING).toContain('requestedByChoices(partners, companyName, companyAddress)');
   });
 
   it('the address is editable as its own field', () => {
