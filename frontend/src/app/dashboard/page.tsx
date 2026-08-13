@@ -9,6 +9,9 @@ import { AICard } from "@/components/ui/AICard"
 import { AIEmptyState } from "@/components/ui/AIEmptyState"
 import { AuthManager } from "@/utils/auth"
 import EmailVerificationNotice from "@/features/account/EmailVerificationNotice"
+import AccuracySection from "@/features/dashboard/AccuracySection"
+import ResumeCard from "@/features/dashboard/ResumeCard"
+import StartSomethingNew from "@/features/dashboard/StartSomethingNew"
 import { pickInProgressDeed } from "@/lib/latestDraft"
 import { SessionExpiredError, apiFetch } from "@/lib/apiClient"
 import { 
@@ -31,6 +34,12 @@ import {
  * `services/officer_queue.py`. Nothing here decides what "stale" means.
  */
 type Queue = {
+  /* Both added by the dashboard rebuild and both computed server-side:
+     the hero number's two populations come from `required_fields.json`
+     and a stored provenance block, and the instrument order comes from
+     her own filing history. Neither is derivable here. */
+  accuracy?: import('@/features/dashboard/AccuracySection').Accuracy;
+  instruments?: Array<{ deed_type: string; count: number; period: string }>;
   upcoming: Array<{ kind: string; id: number; deed_id: number; property: string | null;
                     when: string; who: string | null; summary: string }>;
   awaiting: Array<{ kind: string; id: number; deed_id: number; property: string | null;
@@ -44,6 +53,9 @@ type Queue = {
 
 export default function Dashboard() {
   const [queue, setQueue] = useState<Queue | null>(null)
+  /* The accuracy block and the instrument list ride on the queue's one
+     response (DASH1) — a second request would let the page render a
+     partial truth when one of the two failed. */
   const [queueError, setQueueError] = useState<string | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -60,6 +72,14 @@ export default function Dashboard() {
     lastThirtyDays: number
   } | null>(null)
   const router = useRouter()
+
+  /* THE DOCUMENT SHE WAS LAST IN, and it is the accuracy list's first
+     row rather than a second query: the server already ordered those by
+     most-recently-touched, so asking again would be a second opinion
+     about which document is hers to resume. */
+  const resumeTarget = queue?.accuracy?.items?.length
+    ? { ...queue.accuracy.items[0], escrow_no: null }
+    : null
 
   // Authentication check and load user data
   useEffect(() => {
@@ -242,6 +262,29 @@ export default function Dashboard() {
               and offers; it withholds nothing, because nothing in this
               product is gated on the answer. */}
           <EmailVerificationNotice verified={account.verified} email={account.email} />
+
+          {/* THE MOCKUP'S ORDER, AND IT IS AN ARGUMENT: resume is the
+              highest-frequency action in a preparation tool, so it sits
+              above everything, with the remaining checks NAMED. */}
+          <div className="mb-6 grid gap-4 lg:grid-cols-[2fr,1fr]">
+            <ResumeCard
+              target={resumeTarget}
+              onResume={(id) => router.push(`/deed-builder/grant-deed?resume=${id}`)}
+            />
+            <StartSomethingNew
+              instruments={queue?.instruments}
+              onStart={(t) => router.push(`/deed-builder/${t}`)}
+              onBrowse={() => router.push('/create-deed')}
+            />
+          </div>
+
+          {/* The promise, made countable. */}
+          <div className="mb-8">
+            <AccuracySection
+              accuracy={queue?.accuracy}
+              onOpen={(id) => router.push(`/deeds/${id}`)}
+            />
+          </div>
 
           {/* AI Greeting */}
           <div className="mb-8">

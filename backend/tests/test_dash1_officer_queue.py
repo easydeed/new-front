@@ -60,6 +60,9 @@ dbonly = pytest.mark.skipif(not os.getenv("DATABASE_URL"), reason="needs a datab
 #: that omits the hero number would get "nothing outstanding", which is
 #: exactly the reading the two-population design exists to prevent.
 NOTHING_OUTSTANDING = {"fields": 0, "documents": 0, "items": []}
+#: She has filed nothing yet — stated, like the accuracy block, rather
+#: than defaulted.
+FILES_NOTHING: list = []
 
 
 def test_an_unknown_age_is_unknown_rather_than_today():
@@ -100,6 +103,7 @@ def test_the_attention_count_is_stale_requests_and_nothing_else():
         idle_drafts=[{"kind": "draft", "id": 5, "deed_type": "grant_deed",
                       "property": "z", "days_idle": 30}],
         accuracy=NOTHING_OUTSTANDING,
+        instruments=FILES_NOTHING,
     )
     assert payload["needs_attention"] == 1
 
@@ -120,6 +124,7 @@ def test_a_badge_counts_presence_and_the_attention_number_counts_silence():
         ],
         idle_drafts=[],
         accuracy=NOTHING_OUTSTANDING,
+        instruments=FILES_NOTHING,
     )
     assert payload["badges"] == {"signings": 1, "shared_deeds": 2}
     assert payload["needs_attention"] == 1
@@ -128,7 +133,8 @@ def test_a_badge_counts_presence_and_the_attention_number_counts_silence():
 def test_the_payload_shape_is_asserted_by_equality():
     from services.officer_queue import QUEUE_KEYS
 
-    payload = q.queue(upcoming=[], awaiting=[], idle_drafts=[], accuracy=NOTHING_OUTSTANDING)
+    payload = q.queue(upcoming=[], awaiting=[], idle_drafts=[], accuracy=NOTHING_OUTSTANDING,
+        instruments=FILES_NOTHING)
     assert set(payload) == QUEUE_KEYS
     assert payload["needs_attention"] == 0
     # And the thresholds travel WITH it, so no screen retypes them.
@@ -141,7 +147,8 @@ def test_a_row_that_grew_a_field_is_refused():
     bad = _awaiting(True)
     bad["extra"] = 1
     with pytest.raises(AssertionError):
-        q.queue(upcoming=[], awaiting=[bad], idle_drafts=[], accuracy=NOTHING_OUTSTANDING)
+        q.queue(upcoming=[], awaiting=[bad], idle_drafts=[], accuracy=NOTHING_OUTSTANDING,
+        instruments=FILES_NOTHING)
 
 
 def test_only_one_place_decides_what_stale_means():
