@@ -17,6 +17,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 import db
 from auth import get_current_user_id
+from services import deed_accuracy as accuracy
 from services import officer_queue as q
 from services import signing_loop as loop
 
@@ -137,6 +138,44 @@ def officer_queue(user_id: int = Depends(get_current_user_id)) -> Dict[str, Any]
                             else "Sent, not opened yet"),
             })
 
+        # ── What stands between her documents and being ready ─────────
+        #
+        # THE HERO NUMBER. Every unfinished document, not just the idle
+        # ones: "7 fields still need your eyes, across 4 documents" is
+        # the product's own promise made countable, and a promise counted
+        # over a subset is a smaller promise.
+        #
+        # One pass, server-side, because the two populations come from
+        # `required_fields.json` and a stored provenance block — neither
+        # of which the screen holds.
+        cur.execute("""
+            SELECT id, deed_type, property_address, grantor_name, grantee_name,
+                   legal_description, apn, vesting, parties, metadata
+              FROM deeds
+             WHERE user_id = %s
+               AND COALESCE(status, 'draft') NOT IN ('completed', 'deleted')
+               AND archived_at IS NULL
+             ORDER BY COALESCE(updated_at, created_at) DESC
+        """, (user_id,))
+        accuracy_items: List[Dict[str, Any]] = []
+        total_fields = 0
+        for row in _rows(cur):
+            meta = row.get("metadata") or {}
+            checks = accuracy.outstanding(
+                {**row,
+                 "dtt": meta.get("dtt"),
+                 "current_owner": meta.get("current_owner")},
+                provenance=meta.get("provenance"))
+            if not checks:
+                continue
+            total_fields += len(checks)
+            accuracy_items.append({
+                "deed_id": row["id"],
+                "deed_type": row.get("deed_type"),
+                "property": row.get("property_address"),
+                "checks": checks,
+            })
+
         # ── Her own drafts, untouched ─────────────────────────────────
         cur.execute("""
             SELECT id, deed_type, property_address, updated_at, created_at
@@ -162,4 +201,7 @@ def officer_queue(user_id: int = Depends(get_current_user_id)) -> Dict[str, Any]
     # last rather than first — an unknown age is not evidence of urgency.
     awaiting.sort(key=lambda r: (r["days_waiting"] is None,
                                  -(r["days_waiting"] or 0)))
-    return q.queue(upcoming=upcoming, awaiting=awaiting, idle_drafts=idle)
+    return q.queue(upcoming=upcoming, awaiting=awaiting, idle_drafts=idle,
+                   accuracy={"fields": total_fields,
+                             "documents": len(accuracy_items),
+                             "items": accuracy_items})

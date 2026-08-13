@@ -55,6 +55,13 @@ dbonly = pytest.mark.skipif(not os.getenv("DATABASE_URL"), reason="needs a datab
 # The rules, without a database
 # ══════════════════════════════════════════════════════════════════════
 
+#: An empty accuracy block, stated rather than defaulted. `queue()` takes
+#: it as a required keyword for the reason the key sets exist: a caller
+#: that omits the hero number would get "nothing outstanding", which is
+#: exactly the reading the two-population design exists to prevent.
+NOTHING_OUTSTANDING = {"fields": 0, "documents": 0, "items": []}
+
+
 def test_an_unknown_age_is_unknown_rather_than_today():
     """Zero reads as "asked today", which is a claim. None reads as "we
     do not know", which is true."""
@@ -92,6 +99,7 @@ def test_the_attention_count_is_stale_requests_and_nothing_else():
         awaiting=[_awaiting(True), _awaiting(False)],
         idle_drafts=[{"kind": "draft", "id": 5, "deed_type": "grant_deed",
                       "property": "z", "days_idle": 30}],
+        accuracy=NOTHING_OUTSTANDING,
     )
     assert payload["needs_attention"] == 1
 
@@ -111,6 +119,7 @@ def test_a_badge_counts_presence_and_the_attention_number_counts_silence():
             dict(_awaiting(False), kind="review"),
         ],
         idle_drafts=[],
+        accuracy=NOTHING_OUTSTANDING,
     )
     assert payload["badges"] == {"signings": 1, "shared_deeds": 2}
     assert payload["needs_attention"] == 1
@@ -119,7 +128,7 @@ def test_a_badge_counts_presence_and_the_attention_number_counts_silence():
 def test_the_payload_shape_is_asserted_by_equality():
     from services.officer_queue import QUEUE_KEYS
 
-    payload = q.queue(upcoming=[], awaiting=[], idle_drafts=[])
+    payload = q.queue(upcoming=[], awaiting=[], idle_drafts=[], accuracy=NOTHING_OUTSTANDING)
     assert set(payload) == QUEUE_KEYS
     assert payload["needs_attention"] == 0
     # And the thresholds travel WITH it, so no screen retypes them.
@@ -132,7 +141,7 @@ def test_a_row_that_grew_a_field_is_refused():
     bad = _awaiting(True)
     bad["extra"] = 1
     with pytest.raises(AssertionError):
-        q.queue(upcoming=[], awaiting=[bad], idle_drafts=[])
+        q.queue(upcoming=[], awaiting=[bad], idle_drafts=[], accuracy=NOTHING_OUTSTANDING)
 
 
 def test_only_one_place_decides_what_stale_means():

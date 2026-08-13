@@ -76,6 +76,33 @@ def requirements(family: str, deed_type: str) -> List[Requirement]:
     return out
 
 
+#: The corpus names a field once; the two shapes that carry it spell two
+#: of them differently.
+#:
+#: FOUND BY THE DASHBOARD, and it was dormant rather than harmless. The
+#: builder's state says `grantor`; a deed ROW says `grantor_name`. The
+#: create path passes a row, so `missing()` reported grantor and grantee
+#: absent on every call — and nothing showed, because that path raises
+#: only on the `decision` population. A substance check that never
+#: matches is a check that would not have failed if the property were
+#: false (§14.2).
+#:
+#: The alias belongs here rather than in the corpus: which column a shape
+#: uses is a fact about the shape, not about what an instrument requires.
+ROW_ALIASES = {
+    "grantor": ("grantor", "grantor_name"),
+    "grantee": ("grantee", "grantee_name"),
+}
+
+
+def _read(field: str, data: Dict[str, Any]) -> Any:
+    """The field's value, under whichever name this shape uses."""
+    for name in ROW_ALIASES.get(field, (field,)):
+        if name in data:
+            return data[name]
+    return None
+
+
 def _present(field: str, value: Any) -> bool:
     """Is this field answered?
 
@@ -108,4 +135,4 @@ def missing(family: str, deed_type: str, data: Dict[str, Any]) -> List[Requireme
     are the same list read by two callers.
     """
     return [r for r in requirements(family, deed_type)
-            if not _present(r.field, data.get(r.field))]
+            if not _present(r.field, _read(r.field, data))]
