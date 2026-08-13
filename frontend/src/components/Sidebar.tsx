@@ -165,12 +165,32 @@ export default function Sidebar() {
           {!collapsed && <span className="truncate flex-1">{item.label}</span>}
           {/* The badge counts what is WAITING, not what exists. Zero
               renders nothing rather than a "0" — a badge saying zero is
-              a thing to read that says there is nothing to read. */}
+              a thing to read that says there is nothing to read.
+
+              ═══ UX2 item 4 — IT NAMES ITS CLAIM ═══
+
+              This number and the dashboard's headline are DIFFERENT
+              CLAIMS, deliberately (see officer_queue.queue): a badge
+              says "there are things here"; the attention number says
+              "these have gone quiet". Forcing them to match destroys
+              one or the other.
+
+              But two different claims presented as two identical bare
+              numbers invite the reading that they are one claim. The
+              evidence is that the ticket asking for them to be
+              reconciled was written by somebody WITH THE CODE IN FRONT
+              OF HIM. If he misread it there, an officer misreads it
+              here.
+
+              So the fix is labelling, not arithmetic. The aria-label
+              already said "waiting"; the tooltip says it too, because
+              the reading that goes wrong is the sighted one. */}
           {count > 0 && (
             <span
               className={`shrink-0 rounded-full bg-brand-100 text-brand-700 text-xs font-semibold ${
                 collapsed ? 'absolute top-1 right-1 px-1.5' : 'px-2 py-0.5'
               }`}
+              title={`${count} waiting on you here`}
               aria-label={`${count} waiting`}
             >
               {count}

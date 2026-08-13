@@ -967,6 +967,70 @@ we reach it.
   error and no warning. **A test that produces nothing looks exactly
   like a test with nothing to say** — the same disease one level up.
 
+- **STANDING CHECK — quality tracks the feedback loop** (two consecutive
+  tickets, 2026-08-13). Not a lesson. A question to ask on every ticket.
+
+  **#192**: the notary's availability inputs sat in `grid-cols-2` at
+  every width and truncated on a phone. `RequestSigningModal`, one file
+  over, had `grid-cols-1 sm:grid-cols-2` WITH labels the whole time.
+
+  **#193**: registration stored `"not-a-phone!!"` verbatim and production
+  holds a nine-digit number. A full phone normalizer has existed in BOTH
+  languages since PARTNER2, refereed by a shared corpus, and the partner
+  screens have used it all along.
+
+  Both capabilities were already in the tree. Both were absent from the
+  surface a STRANGER meets — the notary with no account, the visitor who
+  has not signed up. The fix landed everywhere a user could complain and
+  nowhere they could not.
+
+  **THE CHECK, to run when fixing any surface:** what capability already
+  exists elsewhere in this repo that THIS surface never adopted? The
+  answer is usually "the one whose users could complain."
+
+  Two-for-two on consecutive tickets is a pattern, not a coincidence.
+  Worth stating that the surfaces without a feedback loop are exactly the
+  ones where somebody who is not our customer forms an impression of our
+  customer.
+
+- **A refusal must distinguish a typo from a policy** (SIGNUP1,
+  2026-08-13). `AAA` is a malformed state code. `AZ` is a real state we
+  do not serve. Collapsing them into "invalid state" tells somebody their
+  typo was a business decision — and tells somebody in Arizona that they
+  mistyped.
+
+  Pinned by ORDER: the format check runs first, then the served-state
+  refusal. Two answers, in the order that makes each one true.
+
+  The same ticket's larger half: **removing the dropdown while the
+  endpoint still accepts the value is cosmetic.** Registration is public.
+  An API caller opens an account the product cannot serve and discovers
+  it by hunting for forms that do not exist.
+
+- **A RULE ABOUT A PAIR CANNOT BE SURFACED BY A RULE ABOUT ONE FIELD**
+  (SIGNUP1, 2026-08-13). New, and found by a render test.
+
+  "Show errors for fields she has touched" is correct for single fields
+  and WRONG for pairs. The company name and type are one fact in two
+  inputs: filling the type and leaving the name raises the error on the
+  NAME, which she has not visited — so the filter hid it, and the form
+  refused to submit while saying nothing.
+
+  **A silent form that will not submit is worse than the missing check
+  it replaced.** Touching either half now reveals both.
+
+- **LEGAL1 APPLIED BEFORE THE MISTAKE, for once** (SIGNUP1,
+  2026-08-13). Noted with approval because the opposite is the norm.
+
+  The interest signal could have been a second write-only column —
+  exactly `subscribe`, which was collected, stored, and readable by
+  nobody, manufacturing a record that looked like information and could
+  not function as one. It reaches the admin user view instead, and the
+  copy promises nothing, because a promise would have made it a consent.
+
+  The lesson transferring is rarer than it should be. Four sightings this
+  week of a lesson NOT transferring; this is the one that did.
+
 ## Parked tickets (scoped, not scheduled)
 
 - **Audit the string-presence pins whose subject is a BRANCH** (CANCEL1

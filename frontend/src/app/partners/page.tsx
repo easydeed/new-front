@@ -44,8 +44,10 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import {
-  Plus, Pencil, Trash2, X, Save, Search, Users, MapPin, Mail, Loader2,
+  CalendarClock, Plus, Pencil, Trash2, X, Save, Search, Users, MapPin, Mail,
+  Phone, Loader2,
 } from 'lucide-react';
 import Sidebar from '../../components/Sidebar';
 import {
@@ -108,6 +110,7 @@ export function partnerAddressLine(p: Partial<Partner>): string {
 }
 
 export default function PartnersPage() {
+  const router = useRouter();
   const [items, setItems] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState<Partial<Partner> | null>(null);
@@ -393,16 +396,77 @@ export default function PartnersPage() {
                         {p.contact_name || '—'}
                       </td>
                       <td className="px-4 py-4">{categoryChip(p.category)}</td>
+                      {/* UX2 item 6 — THE PHONE WAS ONLY IN THE EDITOR.
+                          The rolodex existed to save her looking somebody
+                          up, and the number she most often wants was
+                          behind a click into a form built for CHANGING
+                          it. Reading and editing are different acts.
+
+                          (The email was already here. Recorded because
+                          the ticket asked for both and half of it was
+                          done — a ticket's record should match reality.) */}
                       <td className="hidden xl:table-cell px-4 py-4 break-words">
                         {p.email ? (
                           <a href={`mailto:${p.email}`} className="text-brand-600 hover:underline inline-flex items-center gap-1">
                             <Mail className="w-3.5 h-3.5 flex-shrink-0" />
                             <span className="break-all">{p.email}</span>
                           </a>
-                        ) : '—'}
+                        ) : null}
+                        {p.phone ? (
+                          <a href={`tel:${p.phone}`}
+                             className="mt-1 text-gray-600 hover:text-brand-600 hover:underline inline-flex items-center gap-1">
+                            <Phone className="w-3.5 h-3.5 flex-shrink-0" />
+                            {/* Regional display, E.164 storage — the
+                                PARTNER2 split. A person reads a phone
+                                number the way a person writes one. */}
+                            <span>{formatPhone(p.phone)}</span>
+                          </a>
+                        ) : null}
+                        {!p.email && !p.phone ? '—' : null}
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center justify-end gap-1">
+                          {/* UX2 item 6 — ONE CLICK TO A SIGNING.
+                              A notary in the rolodex and a signing that
+                              needs one were two screens apart, and the
+                              route between them was "remember the name,
+                              go to Past Deeds, find the deed, open the
+                              modal, search for her again".
+
+                              It cannot create the request from here —
+                              there is no deed on this row, and inventing
+                              one would be the product guessing which
+                              document she meant. So it carries the
+                              notary to the place the deed is chosen. */}
+                          {/* OFFERED ON EVERY ROW, and that is the
+                              correct reading rather than a shortcut.
+
+                              The first draft gated this on
+                              `category === 'notary'`. The registry pin
+                              caught the literal, and the rule behind the
+                              pin is the stronger objection:
+                              partnerRegistry.ts says a category "says how
+                              the officer FILES them. It says nothing
+                              about their authority, their licensure, or
+                              what they are permitted to do, and no code
+                              may read it as though it did."
+
+                              Gating the button on the category IS reading
+                              it as permission. Who she asks to notarize is
+                              her judgement; the modal's existing mismatch
+                              notice says a dismissible sentence if the
+                              filing looks unexpected, which is the
+                              established way this product raises a
+                              doubt without overruling her. */}
+                          <button
+                            aria-label={`Request a signing with ${p.company_name}`}
+                            title="Request a signing"
+                            className="p-2 rounded-md text-gray-500 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+                            onClick={() => router.push(
+                              `/past-deeds?action=signing&notary=${encodeURIComponent(p.id)}`)}
+                          >
+                            <CalendarClock className="w-4 h-4" />
+                          </button>
                           <button
                             aria-label={`Edit ${p.company_name}`}
                             title="Edit"

@@ -29,11 +29,12 @@
  * email into a product they have never heard of.
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CalendarClock, Info, Loader2, Plus, Trash2, X } from 'lucide-react';
 import { apiFetch } from '@/lib/apiClient';
 import { withOffset } from '@/lib/wallClock';
 import { PartnerRecipientPicker, Recipient } from '@/features/partners/PartnerRecipientPicker';
+import { usePartners } from '@/features/partners/PartnersContext';
 import {
   RecipientMismatchNotice,
   filedAsSentence,
@@ -68,10 +69,16 @@ export function RequestSigningModal({
   deedId,
   propertyAddress,
   suggestedSigners = [],
+  preselectNotaryId,
   onClose,
   onCreated,
 }: {
   deedId: number;
+  /** UX2 item 6 — arrived from a partner row, which knew the notary and
+   *  not the deed. Resolved against the rolodex rather than trusted:
+   *  an id from a URL is a string somebody could type, and a notary
+   *  this officer does not have must not appear as though she does. */
+  preselectNotaryId?: string | null;
   propertyAddress?: string;
   /** The deed's party NAMES, as a starting point. Names only — the deed
    * has never held a way to reach anybody and does not start now. */
@@ -80,6 +87,26 @@ export function RequestSigningModal({
   onCreated?: (id: number) => void;
 }) {
   const [notary, setNotary] = useState<Recipient | null>(null);
+  const { partners: rolodex } = usePartners();
+
+  useEffect(() => {
+    // Once only, and only onto an empty field: re-running this would
+    // undo a change she made after arriving.
+    if (!preselectNotaryId || notary) return;
+    const found = rolodex.find((p) => p.id === preselectNotaryId);
+    if (found) {
+      // `partnerId`, not `id`: a Recipient records WHICH ROLODEX ROW it
+      // came from, and a typed address has none. Filling it wrongly
+      // would make a hand-typed recipient look like a filed one.
+      setNotary({
+        partnerId: found.id,
+        name: found.label,
+        email: found.email || '',
+        company: found.company_name,
+        category: found.category,
+      });
+    }
+  }, [preselectNotaryId, notary, rolodex]);
   const [fallbackAcknowledged, setFallbackAcknowledged] = useState(false);
   const [signers, setSigners] = useState<SignerRow[]>(() =>
     (suggestedSigners.length ? suggestedSigners : ['']).slice(0, MAX_SIGNERS)

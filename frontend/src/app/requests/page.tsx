@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { SessionExpiredError, apiFetch } from "@/lib/apiClient"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { readFocus, initialFilter, isFocused, type TrackerFilter } from "@/lib/requestsFocus"
+import { deedTypeLabel } from "@/lib/deedTypes"
 import { requestsSections } from "@/lib/requestsSections"
 import { SigningAgenda } from "@/features/signing/SigningAgenda"
 import type { SigningSummary } from "@/features/signing/signingSummary"
@@ -425,7 +426,20 @@ function SharedDeedsTracker() {
     // absent until there is a reminder written for her — and the server
     // refuses the call too, so this is a rule and not a hidden button.
     if (deed.share_type === "signing_request") return false
-    return !["expired", "approved", "rejected", "revoked"].includes(deed.status)
+    // UX2 item 5 — "expired" IS NOT IN THIS LIST ANY MORE.
+    //
+    // `resend_approval_email` has always handled a lapsed share: it
+    // extends the expiry by 24 hours and sends. The capability was
+    // built, on the server, and the one screen that could offer it
+    // refused — so the officer's only route back from an expired share
+    // was to create a second one, which is a second link, a second
+    // email, and a reviewer holding two.
+    //
+    // The other three stay: approved and rejected are ANSWERED, and
+    // nudging somebody who already replied asks them to reply again;
+    // revoked was withdrawn on purpose and un-withdrawing it silently
+    // would undo her decision.
+    return !["approved", "rejected", "revoked"].includes(deed.status)
   }
 
   const canRevoke = (deed: SharedDeed) => {
@@ -620,7 +634,15 @@ function SharedDeedsTracker() {
                           }`}
                         >
                           <td className="py-4 px-6 font-medium text-slate-800">{deed.property}</td>
-                          <td className="py-4 px-6 text-slate-600">{deed.deed_type}</td>
+                          {/* UX2 item 3 — ONE VOCABULARY. Past Deeds rendered
+                              "Grant Deed" and this rendered `grant-deed`, for
+                              the same document, two clicks apart. The registry
+                              is the one place a document is named; a screen
+                              that prints the slug is showing our storage key
+                              to somebody who never chose it. */}
+                          <td className="py-4 px-6 text-slate-600">
+                            {deedTypeLabel(deed.deed_type)}
+                          </td>
                           <td className="py-4 px-6">
                             <div className="flex flex-col">
                               <span className="font-medium text-slate-800">{deed.shared_with}</span>

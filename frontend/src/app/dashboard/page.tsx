@@ -414,7 +414,19 @@ function ActionQueue({ queue, error }: { queue: Queue | null; error: string | nu
             her. It is the requests that have gone quiet. */}
         {queue.needs_attention > 0 && (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-900">
-            {queue.needs_attention} need{queue.needs_attention === 1 ? 's' : ''} your attention
+            {/* UX2 item 4 — THIS NUMBER SAYS SOMETHING NARROWER THAN THE
+                SIDEBAR BADGES, and now says so.
+
+                "Needs your attention" is true of everything on this
+                page, so it named nothing. This count is the STALE
+                unanswered requests — the ones that have gone quiet —
+                which is the number that means "nobody is waiting on me
+                and nobody has gone silent" when it is zero.
+
+                The threshold rides on the payload so no screen retypes
+                it (DASH1). */}
+            {queue.needs_attention} {queue.needs_attention === 1 ? 'has' : 'have'} gone
+            quiet — no answer in {queue.thresholds.stale_after_days}+ days
           </span>
         )}
       </div>
