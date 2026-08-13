@@ -442,7 +442,11 @@ function ActionQueue({ queue, error }: { queue: Queue | null; error: string | nu
                 hour: 'numeric', minute: '2-digit',
               })}${r.who ? ` · ${r.who}` : ''}`,
               urgent: false,
-              onOpen: () => router.push(`/requests?kind=signings&focus=${r.id}`),
+              // DEEDDETAIL: the deed, not the tracker. The queue's job is
+              // "what needs me"; the answer to "and then what" is the
+              // deed page's state-and-next-action, which the tracker
+              // cannot show because it is a cross-deed list.
+              onOpen: () => router.push(`/deeds/${r.deed_id}`),
             }))}
           />
           <QueueList
@@ -458,9 +462,11 @@ function ActionQueue({ queue, error }: { queue: Queue | null; error: string | nu
                   : `${r.days_waiting} day${r.days_waiting === 1 ? '' : 's'}`
               }`,
               urgent: r.stale,
-              onOpen: () => router.push(
-                r.kind === 'signing' ? `/requests?kind=signings&focus=${r.id}`
-                                    : `/requests?kind=reviews&focus=${r.id}`),
+              // Both kinds land on the same page, because from here the
+              // question is the same one: what is happening on this deed
+              // and what do I do about it. Which table the delay lives in
+              // is our problem, not hers.
+              onOpen: () => router.push(`/deeds/${r.deed_id}`),
             }))}
           />
           <QueueList
@@ -472,6 +478,9 @@ function ActionQueue({ queue, error }: { queue: Queue | null; error: string | nu
               detail: 'Draft — nobody is waiting on this but you.',
               meta: r.days_idle === null ? 'untouched' : `${r.days_idle} days`,
               urgent: false,
+              // Deliberately NOT the deed page. A draft has exactly one
+              // action and the deed page would only offer that same
+              // action one navigation later — a hop that buys nothing.
               onOpen: () => router.push(
                 `/deed-builder/${r.deed_type || 'grant-deed'}?resume=${r.id}`),
             }))}

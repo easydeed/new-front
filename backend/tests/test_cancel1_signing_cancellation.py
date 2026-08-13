@@ -148,15 +148,31 @@ def test_the_agenda_sends_the_verdict_so_no_screen_has_to_decide():
         "the agenda no longer sends the verdict, so every screen that "
         "needs it will decide for itself")
 
-    src = code_only(BACKEND / "routers" / "signing.py")
-    assert "live=loop.is_live(" in src, (
+    # The row assembly moved from the router to
+    # `services/signing_rows.py` when the deed page needed the same rows
+    # for one deed. Retargeted, and made stricter while retargeting: the
+    # rule was always "the verdict is signing_loop's", and the old pin
+    # could only see one file — so a SECOND caller forming its own
+    # verdict elsewhere would not have failed it.
+    rows = code_only(BACKEND / "services" / "signing_rows.py")
+    assert "live=loop.is_live(" in rows, (
         "the verdict is no longer signing_loop's — a second opinion about "
         "which states are over is the defect this field exists to prevent")
+
+    # ONE caller, across the whole backend, decides `live`. Anything
+    # else is the second opinion arriving by a different door.
+    callers = sorted(
+        path.relative_to(BACKEND).as_posix()
+        for path in BACKEND.rglob("*.py")
+        if "tests" not in path.parts and "__pycache__" not in path.parts
+        and "live=" in code_only(path)
+    )
+    assert callers == ["services/signing_rows.py"], (
+        f"more than one place decides `live`: {callers}")
+
     # And the vocabulary is not re-listed beside the call.
-    agenda = src[src.index("def officer_agenda"):]
-    agenda = agenda[: agenda.index("\n@router.")]
-    assert "STATE_CANCELLED" not in agenda and "STATE_EXPIRED" not in agenda, (
-        "the agenda names terminal states itself; that list belongs to "
+    assert "STATE_CANCELLED" not in rows and "STATE_EXPIRED" not in rows, (
+        "the assembler names terminal states itself; that list belongs to "
         "signing_loop and nowhere else")
 
 

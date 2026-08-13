@@ -731,7 +731,6 @@ function SharedDeedsTracker() {
               error={signingError}
               staleAfterDays={staleAfterDays}
               focusId={focus.kind === "signings" ? focus.id : null}
-              onChanged={fetchSharedDeeds}
             />
           )}
         </div>

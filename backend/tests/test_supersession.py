@@ -13,7 +13,7 @@ longer describes, silently.
 """
 import pytest
 
-from tests.source_text import code_only
+from tests.source_text import code_only, function_source
 from pathlib import Path
 
 from services.supersession import (
@@ -120,24 +120,35 @@ def test_the_only_write_is_the_pointer():
         )
 
 
+# These three read the supersede handler's EXACT span.
+#
+# They used to slice the file from `def supersede_endpoint(` to
+# `def lineage_endpoint(` — "this function and everything after it until
+# a function I happened to name". Inserting `/deeds/{id}/detail` between
+# the two pulled its `status <> 'deleted'` into the slice and failed the
+# no-DELETE assert on code that had not changed.
+#
+# The rule is unchanged and the coverage is now exactly the rule's
+# subject. `function_source` ends where the function ends.
+
 def test_supersession_never_deletes():
-    src = code_only(BACKEND / "routers/deeds_crud.py")
-    body = src[src.index("def supersede_endpoint("):src.index("def lineage_endpoint(")]
+    body = code_only(function_source(BACKEND / "routers/deeds_crud.py",
+                                     "supersede_endpoint"))
     assert "DELETE" not in body.upper()
 
 
 def test_the_write_is_guarded_in_sql_not_only_in_python():
     """Two concurrent corrections must not both win. The application
     check cannot promise that; the IS NULL predicate can."""
-    src = code_only(BACKEND / "routers/deeds_crud.py")
-    body = src[src.index("def supersede_endpoint("):src.index("def lineage_endpoint(")]
+    body = code_only(function_source(BACKEND / "routers/deeds_crud.py",
+                                     "supersede_endpoint"))
     assert "superseded_by IS NULL" in body
 
 
 def test_the_officer_is_told_a_correction_is_a_new_instrument():
     """We record the relationship; we do not un-record documents."""
-    src = (BACKEND / "routers/deeds_crud.py").read_text(encoding="utf-8")
-    body = src[src.index("def supersede_endpoint("):src.index("def lineage_endpoint(")]
+    body = function_source(BACKEND / "routers/deeds_crud.py",
+                           "supersede_endpoint")
     assert "new instrument" in body
     assert "un-record" in body
 

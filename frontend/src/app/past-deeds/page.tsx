@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { Suspense, useState, useEffect } from "react"
+import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import Sidebar from "@/components/Sidebar"
 import { FileText, Download, Share2, Trash2, AlertCircle, CheckCircle, Clock, X, Plus, Loader2, Search, CalendarClock } from "lucide-react"
@@ -403,11 +404,24 @@ function PastDeedsList() {
                             : index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
                         }`}
                       >
-                        <td className="py-4 px-6 font-mono text-sm text-slate-600">#{deed.id}</td>
+                        <td className="py-4 px-6 font-mono text-sm text-slate-600">
+                          {/* DEEDDETAIL: the id is the way in. Every row
+                              here used to be a set of actions with no
+                              document behind them — the deed page existed
+                              at no URL, so "open this deed" was the one
+                              thing this list could not do. */}
+                          <Link href={`/deeds/${deed.id}`}
+                                className="hover:underline hover:text-[#7C4DFF]">
+                            #{deed.id}
+                          </Link>
+                        </td>
                         <td className="py-4 px-6">
                           {/* U3: a row identifies its deed — address alone
                               can't when one property has several. */}
-                          <p className="font-medium text-slate-800">{deed.property_address}</p>
+                          <Link href={`/deeds/${deed.id}`}
+                                className="font-medium text-slate-800 hover:text-[#7C4DFF] hover:underline">
+                            {deed.property_address}
+                          </Link>
                           {deed.grantee_name ? (
                             <p className="text-sm text-slate-500">To {deed.grantee_name}</p>
                           ) : partyNames(deed) ? (

@@ -115,6 +115,7 @@ It does not strip ordinary string literals. A pin searching for a value
 that legitimately appears in a STRING (an error message, a SQL fragment)
 is asking a different question and should say so at the call site.
 """
+import ast
 import io
 import tokenize
 from pathlib import Path
@@ -201,3 +202,36 @@ def code_only(source: Union[str, Path]) -> str:
 def read_code(*segments: str) -> str:
     """Read a file relative to `backend/` and return it as code only."""
     return code_only(Path(__file__).resolve().parent.parent.joinpath(*segments))
+
+
+def function_source(source: Union[str, Path], name: str) -> str:
+    """Exactly one function's source — its `def` line through its last line.
+
+    ═══ WHY THIS EXISTS ═══
+
+    Pins about a handler used to slice the file between two markers:
+
+        src[src.index("def supersede_endpoint("):src.index("def lineage_endpoint(")]
+
+    which means "this function AND EVERYTHING AFTER IT until a function
+    I happened to name". The moment somebody inserts a handler between
+    the two, the slice silently grows and the pin starts asserting things
+    about code it was never about.
+
+    That is exactly what happened: adding `/deeds/{id}/detail` between
+    them pulled `status <> 'deleted'` into a body asserted to contain no
+    "DELETE", and three supersession pins failed on code that had not
+    changed. A pin that fails for a reason unrelated to its rule teaches
+    people to widen it, and a widened pin is how the rule dies.
+
+    An AST span cannot drift: it ends where the function ends.
+    """
+    src = Path(source).read_text(encoding="utf-8") if isinstance(source, Path) else source
+    tree = ast.parse(src)
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name:
+            lines = src.splitlines(keepends=True)
+            # `decorator_list` is excluded deliberately: a pin about what
+            # a handler DOES should not pass or fail on its route path.
+            return "".join(lines[node.lineno - 1:node.end_lineno])
+    raise AssertionError(f"no function named {name!r} in this source")

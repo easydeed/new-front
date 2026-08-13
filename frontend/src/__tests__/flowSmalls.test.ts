@@ -46,8 +46,18 @@ describe('U3 — deed types display as names, not slugs', () => {
   it('Past Deeds rows carry grantee and doc id', () => {
     const pastDeeds = codeOnly(readSource('app', 'past-deeds', 'page.tsx'));
     expect(pastDeeds).toContain('deed.grantee_name');
-    // X2.7 promoted the doc id from an under-address line to its own column.
-    expect(pastDeeds).toContain('>#{deed.id}</td>');
+    // X2.7 promoted the doc id from an under-address line to its own
+    // column. DEEDDETAIL made it a link to the deed page, so the id is
+    // no longer the cell's only child — the rule (its own column) is
+    // unchanged and the pin now says that rather than describing markup.
+    // Its own <td>, and that cell links to the deed. Asserted as two
+    // facts rather than as one exact string of markup, because the
+    // previous spelling (`>#{deed.id}</td>`) broke on wrapping the id in
+    // a link — correct code failing a pin that described a layout.
+    const cell = pastDeeds.slice(0, pastDeeds.indexOf('#{deed.id}'));
+    expect(cell.lastIndexOf('<td')).toBeGreaterThan(cell.lastIndexOf('</td>'));
+    expect(cell.lastIndexOf('<Link')).toBeGreaterThan(cell.lastIndexOf('<td'));
+    expect(pastDeeds).toContain('href={`/deeds/${deed.id}`}');
   });
 });
 

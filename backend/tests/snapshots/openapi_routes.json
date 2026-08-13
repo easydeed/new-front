@@ -197,6 +197,10 @@
  ],
  [
   "GET",
+  "/deeds/{deed_id}/detail"
+ ],
+ [
+  "GET",
   "/deeds/{deed_id}/download"
  ],
  [

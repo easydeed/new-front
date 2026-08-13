@@ -57,6 +57,10 @@ const SIGNINGS = read('features', 'signing', 'SigningAgenda.tsx');
  *  sharedDeedsContract.test.ts for the retarget reasoning. */
 const SHARED = read('app', 'requests', 'page.tsx');
 const SIGNINGS_CODE = codeOnly(SIGNINGS);
+/** DEEDDETAIL: the agenda's expanding panel became its own component and
+ *  is rendered on the deed page. The pins about the PANEL read it here;
+ *  the pins about the ROW still read the agenda. */
+const DETAIL_CODE = codeOnly(read('features', 'signing', 'SigningDetail.tsx'));
 const SUMMARY_CODE = codeOnly(read('features', 'signing', 'signingSummary.ts'));
 
 /** A signing row with only the fields a test cares about named. */
@@ -163,24 +167,40 @@ describe('FLOW1 item 4 — the card opens the signing', () => {
     expect(SIGNINGS_CODE).not.toContain("onOpen={() => router.push(`/past-deeds`)}");
   });
 
-  it('the row expands onto the signing itself', () => {
-    expect(SIGNINGS_CODE).toContain('aria-expanded={open}');
-    expect(flat(SIGNINGS_CODE)).toContain('apiFetch(`/signing-requests/v2/${requestId}`');
+  it('the row LEADS to the signing itself — it no longer expands onto it', () => {
+    /**
+     * DEEDDETAIL retargeted this, and the direction is worth naming: the
+     * rule was "a row leads somewhere", and it still does. What changed
+     * is where the panel lives.
+     *
+     * The tracker's job is the CROSS-DEED question — what has gone quiet
+     * across every file. A panel that opens one signing in place answers
+     * a single-deed question in the middle of it, and single-deed is
+     * exactly what the deed page is for.
+     *
+     * The named cost was accepted: cancel goes from one click to
+     * navigate-plus-click.
+     */
+    expect(SIGNINGS_CODE).toContain('href={`/deeds/${row.deed_id}`}');
+    expect(SIGNINGS_CODE).not.toContain('aria-expanded');
+    // And the detail it used to fetch is fetched by the component that
+    // moved — same request, one place.
+    expect(flat(DETAIL_CODE)).toContain('apiFetch(`/signing-requests/v2/${requestId}`');
   });
 
   it('is linkable, so a notification can point at one signing', () => {
-    /* The agenda is a component now; the merged page reads `?focus=` and
-       hands down the id, so the parameter is parsed in exactly one place
-       for both kinds of row. */
+    /* `?focus=` still reaches a row; it marks it rather than expanding
+       it. The parameter is still parsed in exactly one place for both
+       kinds of row, which is the rule this pin is actually about. */
     expect(SIGNINGS_CODE).toContain('focusId');
-    expect(SIGNINGS_CODE).toContain('useState<number | null>(focusId)');
+    expect(SIGNINGS_CODE).toContain('focused={focusId === r.id}');
     expect(SHARED_CODE).toContain('focusId={focus.kind === "signings" ? focus.id : null}');
   });
 
   it('a detail that fails to load says so rather than looking empty', () => {
     // §4: an empty panel would read as "this signing has no
-    // participants", which is a claim.
-    expect(SIGNINGS_CODE).toContain('Could not load this signing');
+    // participants", which is a claim. The panel moved; the rule did not.
+    expect(DETAIL_CODE).toContain('Could not load this signing');
   });
 });
 
