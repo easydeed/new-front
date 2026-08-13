@@ -272,6 +272,7 @@ export function InputPanel({
           <RecordingSection
             requestedBy={state.requestedBy}
             requestedByAddress={state.requestedByAddress}
+            requestedByPrefilled={state.requestedByPrefilled}
             returnTo={state.returnTo}
             titleOrderNo={state.titleOrderNo}
             escrowNo={state.escrowNo}
