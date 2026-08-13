@@ -1,0 +1,80 @@
+{
+  "_doc": [
+    "REQUIRED1 — what a valid instrument must carry, declared once.",
+    "",
+    "THIS FILE IS THE AUTHORITY. `backend/services/required_fields.py` and",
+    "`frontend/src/lib/requiredFields.ts` both read it, and both test suites",
+    "assert against it. Neither implementation is the source of truth —",
+    "the same arrangement `vesting_cases.json` uses, for the same reason:",
+    "two implementations of one rule drift, and that is not a risk, it is a",
+    "schedule.",
+    "",
+    "WHY IT EXISTS: three definitions of 'required' were live at once.",
+    "  1. deeds_crud.py's critical-field check — grantor, grantee, legal",
+    "     description. No transfer tax, no vesting.",
+    "  2. the partner API (api_catalog.TYPE_REQUIREMENTS + CreateDeedRequest)",
+    "     — transfer_tax required as a model field, vesting per type.",
+    "  3. the browser gate (deedValidation.evaluateSubstantive) — vesting",
+    "     AND a transfer-tax decision, family-aware.",
+    "",
+    "So POST /deeds accepted an instrument the wizard would have refused to",
+    "generate and the partner API would have rejected. Owner ruling: the",
+    "STRICTER set wins — a transfer-tax declaration and a vesting decision",
+    "are required for a valid conveyance, and an endpoint accepting less is",
+    "accepting something it should not.",
+    "",
+    "`population` is what the dashboard's count needs and is a real",
+    "distinction rather than a display detail:",
+    "  'substance'  — the instrument is not valid without it;",
+    "  'decision'   — a legal choice the officer must MAKE (never inferred,",
+    "                 §1), which is absent in a different way from a blank",
+    "                 name field."
+  ],
+
+  "families": {
+    "deed": {
+      "note": "Two-party conveyances. Family names match services/form_families.FAMILY_BY_DEED_TYPE — a fourth vocabulary would be the disease this file cures.",
+      "required": [
+        {"id": "grantor_present", "field": "grantor", "label": "Grantor stated", "population": "substance", "section": "grantor"},
+        {"id": "grantee_present", "field": "grantee", "label": "Grantee stated", "population": "substance", "section": "grantee"},
+        {"id": "legal_description_present", "field": "legal_description", "label": "Legal description present", "population": "substance", "section": "property"},
+        {"id": "vesting_stated", "field": "vesting", "label": "Vesting stated", "population": "decision", "section": "vesting", "unless": "fixed_vesting"},
+        {"id": "dtt_decided", "field": "dtt", "label": "Transfer tax decided", "population": "decision", "section": "transferTax"}
+      ]
+    },
+    "affidavit": {
+      "note": "Death-of-joint-tenant and siblings: one affiant, one decedent, and the parcel.",
+      "required": [
+        {"id": "grantor_present", "field": "grantor", "label": "Decedent stated", "population": "substance", "section": "grantor"},
+        {"id": "grantee_present", "field": "grantee", "label": "Affiant stated", "population": "substance", "section": "grantee"},
+        {"id": "legal_description_present", "field": "legal_description", "label": "Legal description present", "population": "substance", "section": "property"}
+      ]
+    },
+    "declaration": {
+      "note": "Single-party instruments. The named party rides in `parties`; grantor/grantee are legitimately empty.",
+      "required": [
+        {"id": "named_party_present", "field": "parties", "label": "Party named", "population": "substance", "section": "affidavit"},
+        {"id": "legal_description_present", "field": "legal_description", "label": "Legal description present", "population": "substance", "section": "property", "unless": "no_legal_description"}
+      ]
+    }
+  },
+
+  "types": {
+    "_doc": [
+      "Per-instrument exceptions, by the flag names the `unless` keys above",
+      "refer to. `fixed_vesting` means the form's own title IS the vesting",
+      "decision (Flag-3): its template never reads a stored vesting value,",
+      "so requiring one would demand a field the instrument refuses.",
+      "",
+      "These mirror `api_catalog.TYPE_REQUIREMENTS`, which the partner API",
+      "already reads — a pin holds the two equal rather than a comment",
+      "claiming they match."
+    ],
+    "grant-deed-jt": {"fixed_vesting": true},
+    "grant-deed-cp-ros": {"fixed_vesting": true},
+    "quitclaim-deed": {"fixed_vesting": true, "note": "Quitclaim conveys whatever interest the grantor holds; vesting is optional."},
+    "trust-certification": {"no_legal_description": true, "note": "Prob C 18100.5 — property-less; the substance is the trust and its certifying trustees."},
+    "trustee-substitution": {"no_legal_description": true, "note": "The deed of trust is identified by its recording reference, which identifies the property."},
+    "poa-statutory": {"no_legal_description": true, "note": "Describes no parcel."}
+  }
+}
