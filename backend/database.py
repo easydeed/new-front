@@ -1156,7 +1156,7 @@ def create_deed(user_id, deed_data):
             key: deed_data.get(key)
             for key in ('dtt', 'title_order_no', 'escrow_no', 'return_to', 'source', 'provenance',
                         'property_city', 'property_state', 'property_zip', 'current_owner',
-                        'requested_by_address', 'affidavit')
+                        'requested_by_address', 'affidavit', 'parcel')
             if deed_data.get(key)
         }
 
@@ -1214,7 +1214,7 @@ def update_deed_draft(user_id, deed_id, deed_data):
             key: deed_data.get(key)
             for key in ('dtt', 'title_order_no', 'escrow_no', 'return_to', 'source', 'provenance',
                         'property_city', 'property_state', 'property_zip', 'current_owner',
-                        'requested_by_address', 'affidavit')
+                        'requested_by_address', 'affidavit', 'parcel')
             if deed_data.get(key)
         }
         cursor.execute("""
@@ -1270,7 +1270,7 @@ def save_draft_row(user_id, deed_id, deed_data):
             key: deed_data.get(key)
             for key in ('dtt', 'title_order_no', 'escrow_no', 'return_to', 'source', 'provenance',
                         'property_city', 'property_state', 'property_zip', 'current_owner',
-                        'requested_by_address', 'affidavit')
+                        'requested_by_address', 'affidavit', 'parcel')
             if deed_data.get(key)
         }
         if deed_id:

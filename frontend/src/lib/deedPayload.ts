@@ -135,6 +135,16 @@ export function buildDeedPayload(genState: DeedBuilderState) {
       city_name: genState.dtt?.cityName || '',
       calculated_amount: genState.dtt?.calculatedAmount || '',
     },
+    // §13.3 — who chose this parcel, kept WITH THE DOCUMENT. It lived in
+    // component state and died when the page unmounted, so the record
+    // could not tell a parcel the server matched from one she picked.
+    parcel: genState.property?.parcelSelection
+      ? {
+          basis: genState.property.parcelSelection.basis,
+          matched_address: genState.property.parcelSelection.matchedAddress,
+          alternative_count: genState.property.parcelSelection.alternativeCount,
+        }
+      : null,
     // Who-confirmed-what-when, persisted into deeds.metadata.provenance
     // alongside the stored PDF's hash.
     provenance: {

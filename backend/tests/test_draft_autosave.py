@@ -133,3 +133,54 @@ def test_list_endpoint_never_regresses_to_date_only_strings():
     import routers.deeds_crud as mod
     src = inspect.getsource(mod)
     assert 'strftime("%Y-%m-%d")' not in src
+
+
+def test_the_single_party_reaches_the_draft_row():
+    """FOUND BY AUDIT. `parties` carries the ONLY party a declaration-family
+    instrument has — the homestead declaration's declarant, the trust
+    certification's certifying trustee, the statutory POA's principal.
+
+    The draft proxy's hand-written field list omitted it while the create
+    proxy forwards the payload wholesale, so those drafts autosaved
+    without their party and resumed with it blank: work discarded by a
+    save that reported success.
+    """
+    payload = {
+        "deed_type": "homestead-declaration",
+        "parties": {"declarant": "JANE ROE"},
+    }
+    with authed_client() as client, \
+            patch("database.save_draft_row", return_value=dict(FAKE_ROW)) as save:
+        resp = client.post("/deeds/draft", json=payload)
+
+    assert resp.status_code == 200
+    _, _, draft_data = save.call_args[0]
+    assert draft_data["parties"] == {"declarant": "JANE ROE"}
+
+
+def test_who_chose_the_parcel_survives_the_page():
+    """§13.3 — `basis` and `alternativeCount` were computed at search time
+    and held in React state, so the record could not tell a parcel the
+    SERVER matched from one SHE picked. Her confirmation proves she read
+    the fields; it does not prove the row was the property she meant."""
+    parcel = {"basis": "officer_choice",
+              "matched_address": "1358 5TH ST",
+              "alternative_count": 2}
+    with authed_client() as client, \
+            patch("database.save_draft_row", return_value=dict(FAKE_ROW)) as save:
+        resp = client.post("/deeds/draft",
+                           json={"deed_type": "grant-deed", "parcel": parcel})
+
+    assert resp.status_code == 200
+    _, _, draft_data = save.call_args[0]
+    assert draft_data["parcel"] == parcel
+
+
+def test_the_parcel_is_carried_into_the_stored_metadata():
+    """The model accepting it is half; the DB layer has its own key list
+    and a field absent from THAT is a field the row never sees."""
+    from tests.source_text import code_only
+    from pathlib import Path
+    src = code_only(Path(__file__).resolve().parents[1] / "database.py")
+    keys = src[src.index("'requested_by_address', 'affidavit'"):][:80]
+    assert "'parcel'" in keys
