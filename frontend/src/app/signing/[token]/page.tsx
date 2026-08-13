@@ -267,9 +267,20 @@ function SignerView({ pkg, busy, post, error }: {
           proposing ? (
             <div className="mt-4 space-y-2">
               <p className="text-sm text-slate-600">Suggest a time instead:</p>
-              <input type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)}
+              {/* Already stacked; what they lacked was names. An input
+                  whose only label is its position is unusable with a
+                  screen reader, and these two are identical controls. */}
+              <label htmlFor="propose-start" className="block text-xs text-slate-500">
+                Starts
+              </label>
+              <input id="propose-start" type="datetime-local" value={start}
+                     onChange={(e) => setStart(e.target.value)}
                      className="w-full px-3 py-3 border border-slate-300 rounded-lg" />
-              <input type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)}
+              <label htmlFor="propose-end" className="block text-xs text-slate-500">
+                Ends
+              </label>
+              <input id="propose-end" type="datetime-local" value={end}
+                     onChange={(e) => setEnd(e.target.value)}
                      className="w-full px-3 py-3 border border-slate-300 rounded-lg" />
               <div className="flex gap-2">
                 <button onClick={() => setProposing(false)}
@@ -318,6 +329,9 @@ function NotaryView({ pkg, busy, post, error }: {
   const [rows, setRows] = useState<Array<{ start: string; end: string }>>([{ start: '', end: '' }]);
   const [posting, setPosting] = useState(false);
   const complete = rows.filter((r) => r.start && r.end);
+  // Something typed, but not enough of it — the case that used to grey
+  // out Post with no explanation.
+  const incomplete = rows.some((r) => (r.start || r.end) && !(r.start && r.end));
 
   const submit = async () => {
     setPosting(true);
@@ -412,15 +426,65 @@ function NotaryView({ pkg, busy, post, error }: {
         {pkg.state !== 'booked' && (
           <>
             <p className="text-sm font-medium text-slate-700 mb-2">Add times you are free</p>
-            <div className="space-y-2">
+            {/* ═══ ONE COLUMN UNTIL THERE IS ROOM FOR TWO ═══
+
+                These sat in `grid-cols-2` at every width. On a phone that
+                is ~150px per control, and Chrome needs about 200px to
+                render a datetime-local — so it truncates, and what the
+                notary saw after typing a date and a time was
+
+                    2026 10:00 AM
+
+                with the date gone. She cannot check the time she just
+                entered on the one device she is holding.
+
+                This is a CONSUMER surface: the notary is not our
+                customer, is on her phone, and has no account to fall
+                back to. The officer's own dispatch inputs, one file over
+                in RequestSigningModal, have had `grid-cols-1
+                sm:grid-cols-2` with labels the whole time. The pattern
+                existed; the screen nobody signs in to never got it. */}
+            <div className="space-y-3">
               {rows.map((r, i) => (
-                <div key={i} className="grid grid-cols-2 gap-2">
-                  <input type="datetime-local" value={r.start}
-                         onChange={(e) => setRows((p) => p.map((x, n) => n === i ? { ...x, start: e.target.value } : x))}
-                         className="px-3 py-2.5 border border-slate-300 rounded-lg text-sm" />
-                  <input type="datetime-local" value={r.end}
-                         onChange={(e) => setRows((p) => p.map((x, n) => n === i ? { ...x, end: e.target.value } : x))}
-                         className="px-3 py-2.5 border border-slate-300 rounded-lg text-sm" />
+                <div key={i} className="rounded-lg border border-slate-200 p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-medium text-slate-500">
+                      Time {i + 1}
+                    </p>
+                    {/* "Another" was one-way: a row added by a mis-tap
+                        could not be taken back, and a half-filled one
+                        silently disabled Post with no way to clear it. */}
+                    {rows.length > 1 && (
+                      <button
+                        type="button"
+                        aria-label={`Remove time ${i + 1}`}
+                        onClick={() => setRows((p) => p.filter((_, n) => n !== i))}
+                        className="text-xs text-slate-500 hover:text-red-700 hover:underline"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label htmlFor={`start-${i}`}
+                             className="block text-xs text-slate-500 mb-1">
+                        Starts
+                      </label>
+                      <input id={`start-${i}`} type="datetime-local" value={r.start}
+                             onChange={(e) => setRows((p) => p.map((x, n) => n === i ? { ...x, start: e.target.value } : x))}
+                             className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm" />
+                    </div>
+                    <div>
+                      <label htmlFor={`end-${i}`}
+                             className="block text-xs text-slate-500 mb-1">
+                        Ends
+                      </label>
+                      <input id={`end-${i}`} type="datetime-local" value={r.end}
+                             onChange={(e) => setRows((p) => p.map((x, n) => n === i ? { ...x, end: e.target.value } : x))}
+                             className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm" />
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -434,6 +498,23 @@ function NotaryView({ pkg, busy, post, error }: {
                 {posting ? 'Posting…' : `Post ${complete.length || ''} time${complete.length === 1 ? '' : 's'}`}
               </button>
             </div>
+            {/* ═══ A DISABLED BUTTON THAT SAYS WHY ═══
+
+                Post disables whenever no row has BOTH ends. A browser
+                hands back `''` for a half-typed datetime, so a date with
+                no time reads to this code exactly like an empty field —
+                and the officer's most likely mistake was indistinguishable
+                from having typed nothing.
+
+                Greyed out with no explanation is the product declining
+                and not saying so, which is §4 wearing a UI hat. */}
+            {!posting && !complete.length && (
+              <p role="status" className="text-xs text-amber-700 mt-2">
+                {incomplete
+                  ? 'Each time needs both a start and an end before it can be posted.'
+                  : 'Add a time you are free, then post it.'}
+              </p>
+            )}
             <p className="text-xs text-slate-500 mt-2 flex items-start gap-1.5">
               <Clock className="w-3.5 h-3.5 shrink-0 mt-0.5" />
               Posting a time says you are free then — you do not need to confirm it again.

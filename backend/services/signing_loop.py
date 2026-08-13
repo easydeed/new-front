@@ -320,12 +320,25 @@ def state_label(request: Dict[str, Any], windows: Sequence[Dict[str, Any]],
             when = _fmt_instant(dispatch.get("starts_at"), request.get("tz_name"))
             return f"You proposed {when} — waiting on {who} to accept"
 
+    # ── "1 times offered" ────────────────────────────────────────────
+    #
+    # Three sentences here counted with a hard-coded plural. The exact
+    # broken string is QUOTED IN THE COMMENT ABOVE, as the example of a
+    # useless-but-true sentence that the dispatch branch was added to
+    # avoid — so it was read, typed out, and shipped unfixed in the same
+    # edit. A defect can be visible in a comment about a different defect
+    # and still not be seen.
+    #
+    # One function, and every surface renders it verbatim (§13 rule 3),
+    # so the notary's phone and the officer's card are both fixed here.
+    # The audit reported it as two bugs; there is one place.
+    offered = f"{len(live)} time{'' if len(live) == 1 else 's'} offered"
     if state == STATE_PARTIALLY_AGREED:
         pending = _pending_count(participants, live, responses)
         if pending == 1:
-            return f"{len(live)} times offered — waiting on 1 more person"
-        return f"{len(live)} times offered — waiting on {pending} more people"
-    return f"{len(live)} times offered — nobody has answered yet"
+            return f"{offered} — waiting on 1 more person"
+        return f"{offered} — waiting on {pending} more people"
+    return f"{offered} — nobody has answered yet"
 
 
 def _booked_window_id(request: Dict[str, Any],
