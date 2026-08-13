@@ -38,6 +38,19 @@ export async function POST(req: NextRequest) {
       return_to: payload.return_to || null,
       provenance: payload.provenance || null,
       affidavit: payload.affidavit || null,
+      // FOUND BY AUDIT, and the file's own docstring already forbade it:
+      // "a draft must never persist a poorer payload than generate does."
+      // `parties` carries the single named party of every declaration-family
+      // instrument — the homestead's declarant, the trust certification's
+      // trustee, the POA's principal, the TOD revocation's grantor. The
+      // create proxy forwards the payload wholesale so generate kept it;
+      // this map listed twenty-two fields and not this one, so every
+      // single-party draft autosaved without the only party it has, and
+      // resumed with that field blank.
+      parties: payload.parties || null,
+      // §13.3 — see deedPayload.ts. Dropping it here would persist a
+      // document that cannot say who chose its parcel.
+      parcel: payload.parcel || null,
     };
 
     const authHeader = req.headers.get('authorization');

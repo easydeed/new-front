@@ -61,6 +61,18 @@ class DeedCreate(BaseModel):
     return_to: Optional[Union[str, Dict[str, Optional[str]]]] = Field(
         default=None, description="Mail-to for the recorded deed (name or address block)")
     provenance: Optional[Dict] = Field(default=None, description="Per-field source + confirmation timestamps (Ticket B)")
+    # §13.3 — WHO CHOSE THIS PARCEL, kept with the document rather than
+    # with the page. `basis` is 'exact_address_match' (the server matched
+    # her address), 'officer_choice' (she picked from the list), or
+    # 'only_county_match' (nobody chose — there was one), alongside how
+    # many alternatives there were.
+    #
+    # It was computed at search time and held in React state, so it died
+    # when the page unmounted: the record could not tell a parcel the
+    # SERVER matched from one SHE picked, which is the exact distinction
+    # §13.3 exists to preserve. Her confirmation of the fields proves she
+    # read them; it does not prove the row was the property she meant.
+    parcel: Optional[Dict] = Field(default=None, description="§13.3 parcel selection: basis, matchedAddress, alternativeCount")
     # Resume-persistence follow-up: city/state/zip and the county-records
     # owner were only recoverable by parsing the address string (or not at
     # all) — persist them into metadata so a resumed draft restores fully.
@@ -112,6 +124,9 @@ class DraftSave(BaseModel):
     escrow_no: Optional[str] = None
     return_to: Optional[Union[str, Dict[str, Optional[str]]]] = None
     provenance: Optional[Dict] = None
+    # §13.3 — see DeedCreate.parcel above. A draft that drops it resumes
+    # unable to say who chose the parcel.
+    parcel: Optional[Dict] = None
     property_city: Optional[str] = None
     property_state: Optional[str] = None
     property_zip: Optional[str] = None
