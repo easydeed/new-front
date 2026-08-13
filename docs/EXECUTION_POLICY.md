@@ -194,6 +194,31 @@ one is useful, and the difference is four values Postgres gives away.
   against this page would have believed they had twenty errors of
   headroom they did not have.
 
+## Which gates to run is decided by the SHAPE of the change (2026-08-13)
+
+**Owner-ruled, from a failure.** REQUIRED1 tightened a write endpoint. I
+ran pytest, tsc, jest and banned-claims — and not the proof harnesses —
+then reported green. CI failed on `proof-harnesses`, and the harness was
+right: the tightened endpoint refused an officer's partial work in the
+Thursday walkthrough.
+
+**The generalisation, which is the useful part: the gates most likely to
+break are knowable in advance from the shape of the change.**
+
+| the change | the gate that will find it first |
+|---|---|
+| tightening or loosening a write endpoint | the end-to-end harnesses (six-flow, Thursday, API baseline) — unit tests hold fixtures the endpoint no longer accepts |
+| a page's markup, state or conditional rendering | `next build`, then a render test — jest and tsc both stay green while the deploy dies |
+| a shared vocabulary or a definition | the OTHER language's suite, and the cross-language pins |
+| a schema or persistence shape | the resume/round-trip pins, then the harnesses |
+| a refusal or a guard | a mutation probe, because a guard that never fires is invisible to every other check |
+
+Running four of six and reporting green is the failure to avoid, and it
+is worse than skipping arbitrary gates: **the skipped ones were the two
+most likely to break.** This does not replace running everything before a
+PR — it decides what to run FIRST, and what a "quick check" may never
+omit.
+
 ## Dead code and revived code
 
 **Reviving a dead file makes its violations live.** A file with no

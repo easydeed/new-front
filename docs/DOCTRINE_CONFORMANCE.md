@@ -1103,6 +1103,67 @@ connected at both ends and gated at neither.
 
 ---
 
+## §15 — The enforcement point is the endpoint that PRINTS, not the builder (2026-08-13, owner-ruled)
+
+**Statement.** Every rule this document states about what may reach a
+recorded instrument is enforced at the endpoint that renders and stores
+the PDF. **A rule enforced only by a screen is a rule the next screen
+does not have.**
+
+**How it was found, and why it is the most consequential instance.**
+REQUIRED1 set out to unify "required" and found the loosest definition
+was the front door:
+
+| where | required |
+|---|---|
+| `POST /deeds` — the endpoint that prints | grantor, grantee, legal description |
+| the partner API | + `transfer_tax` (required model field), vesting per type, entity recitals |
+| the browser gate | + vesting AND a transfer-tax decision, family-aware |
+
+So the wizard's protection was **a property of the client, not of the
+product**. Anything reaching that endpoint another way — a script, a
+retry, a replayed request, a future integration — created a deed and
+stored its PDF having skipped both legal decisions, holding nothing but
+an ordinary user token.
+
+Every finding in the sections above is a smaller version of this shape.
+This one landed on the legal decisions the whole document exists to
+protect: §1 says a vesting or transfer-tax choice is never auto-applied,
+and the endpoint that prints the instrument never asked whether one had
+been made.
+
+**The corrected premise, recorded because the ruling was made on the
+inverted one.** The partner API is the STRICTEST surface, not the
+loosest — `CreateDeedRequest.transfer_tax` has no default, and
+`api_catalog.TYPE_REQUIREMENTS` enforces vesting per instrument. There
+was no versioning question and no integration to break; the tightening
+was entirely internal.
+
+**And the line the proof harness drew.** Tightening the print path broke
+the Thursday walkthrough, correctly: its step 2 posted an officer's
+PARTIAL work to `POST /deeds`, and a partial save is a different act.
+
+> A legal decision is required before the product PRINTS. Requiring one
+> before it SAVES would be the product hurrying a choice §1 forbids it to
+> make.
+
+`POST /deeds/draft` therefore stays permissive, deliberately, and its own
+model says why: *a draft may be arbitrarily incomplete.* The walkthrough
+now posts to the endpoint the product actually uses for a partial save —
+which made it more faithful rather than more permissive, since its
+comment had claimed to exercise "the REAL save contract" while using the
+finalize path. **That distinction is what separates a legitimate harness
+change from making the instrument agree with the result.**
+
+**Enforced by.** `backend/tests/test_required1.py`, in particular
+`test_the_endpoint_that_enforces_is_the_one_that_PRINTS` — it fails if
+`generate_and_store` leaves that handler, because a refactor moving the
+render elsewhere would silently relocate this section's enforcement
+point — and its sibling asserting the autosave path never acquires the
+check.
+
+---
+
 ### §14.1 — A sweep matches the PROPERTY, not the spelling (2026-08-13)
 
 **Statement.** An enforcement sweep that enumerates syntax patterns is
@@ -1148,10 +1209,50 @@ the problem.
 
 ---
 
+### §14.2 — A control is checked before its result is believed (2026-08-13)
+
+**Statement.** Verification instruments fail in ways that look exactly
+like success. Before acting on what a check reports, establish that the
+check ran and measured what you think it measured.
+
+**Four in one week, and none of them looked wrong at the time.**
+
+1. **A probe that broke the fixture.** Removing an entry from
+   `required_fields.json` left a trailing comma; the suite ERRORED on
+   malformed JSON while `grep -c FAILED` counted zero. The probe was
+   read as "the pin holds". A probe that breaks the fixture proves
+   nothing about the pin, and "0 failures" reads identically either way.
+2. **A comparison against the wrong baseline.** Checking whether a change
+   broke a harness, `git stash` was a no-op because everything was
+   already committed — so the "does main break too?" run tested the very
+   branch under suspicion, and would have exonerated it.
+3. **A measurement counting the wrong things.** A regex over
+   `deedPayload.ts` matched every four-space-indented key and so counted
+   nested object contents as top-level, reporting 36 silently dropped
+   fields. Two were real. **The 33-name exemption list it produced looked
+   exactly like a considered decision.**
+4. **A sweep that could not see its subject.** `test_every_write_side_script_says_which_database`
+   asserted that each script CALLS `assert_tables`. Three callers had
+   never worked; presence of a call is not correctness of a call.
+
+**The rule.** A check gets a validity question of its own, separate from
+its result: *did it run, against the thing I meant, and would it have
+failed if the property were false?* The last clause is what a mutation
+probe answers, which is why probes are run — and why a probe needs the
+same question asked of it.
+
+**Why it belongs beside §14.** §14 is about records overstating what
+exists. This is the same failure in the instruments: a green tick and an
+unexecuted check are indistinguishable from the outside, and both are
+believed by default.
+
+---
+
 ## Change log
 
 | Date | Change |
 |---|---|
+| 2026-08-13 | §15 added (REQUIRED1) — the enforcement point is the endpoint that PRINTS, not the builder. Three definitions of "required" were live and the loosest was `POST /deeds`, which renders and stores the PDF: grantor, grantee and legal description, with no vesting statement and no transfer-tax declaration, while the browser gate demanded both and the partner API demanded both. The wizard's protection was a property of the CLIENT, not of the product — anything reaching that endpoint another way stored an instrument having skipped both legal decisions on an ordinary user token. Recorded with the corrected premise, since the ruling was made on the inverted one: the partner API is the strictest surface, not the loosest, so there was no versioning question and no integration to break. Also records the line the Thursday walkthrough drew: a legal decision is required before the product PRINTS, and requiring one before it SAVES would hurry a choice §1 forbids it to make — so `POST /deeds/draft` stays permissive and the walkthrough moved to it, which made the harness more faithful rather than more permissive. §14.2 added — a control is checked before its result is believed, from four instruments in one week that failed in ways indistinguishable from success: a probe that broke its fixture (the suite errored on malformed JSON while `grep -c FAILED` counted zero), a `git stash` no-op that made the "does main break too?" run test the branch under suspicion, a regex that counted nested keys as top-level and produced a 33-name exemption list that looked exactly like a considered decision, and a sweep asserting a mechanism is CALLED while three of its callers had never worked. |
 | 2026-08-13 | §14 and §14.1 added (VERIFY-CHECK, ROLE1 step 3). §14: a record of what we can do states what was EXECUTED, not what exists. Three sightings, all erring in the PERMISSIVE direction — `EMAIL_VERIFICATION_REQUIRED` was cited in the ledger as evidence that required verification was ready to switch on, and was defined in one file and read nowhere, so an operator could have set it on Render before a launch and had nothing change; the same entry described verification as "resend-only" when the resend endpoint had no caller and no button. The tsc baseline read 114 in the ledger while CI enforced 94. `role_census.py` and `company_name_consolidation.py` were both recorded as the count-first mechanism and neither had ever run successfully. A record that understates is found when somebody needs the thing; a record that overstates is found before a launch or during an incident. §14.1: an enforcement sweep matches the PROPERTY, not the spelling, because a list of syntax patterns is as wide as its author's imagination and fails SILENTLY — three sightings in three languages, most sharply a `job_title` gate sweep that walked past `user.get('job_title') == 'Administrator'` because a quote sat where the list expected a paren. Also recorded: `code_only()` strips comments and docstrings but NOT string contents, so a sweep for a word that also occurs in English belongs in the AST rather than in a better regex. |
 | 2026-08-12 | §13.3 added (UX2 item 1) — who chose the record the facts came from. An exact autocomplete pick returned 76 county candidates with the chosen address not ranked first; APN, legal description and vested owner all descend from whichever row is clicked, so a wrong row produces a confidently wrong deed out of a real source with a genuine confirmation on every field. `services/address_match.py` selects a parcel only when EXACTLY ONE candidate is unambiguously the chosen address, declines otherwise, and exposes no confidence score. Also recorded: the audit's proposed root cause — "we re-search by address string instead of passing the autocomplete's identifier" — was checked and is not fixable as framed. Google's `place_id` is not a SiteX key; SiteX takes an address or a FIPS+APN, and the FIPS+APN only exists once SiteX has answered. The defect was real and the diagnosis was not, which is a distinct outcome from DASH1's route rename, where neither was. |
 | 2026-08-11 | §13.2 added (FLOW1 item 7, DISPATCH) — `signing_responses.asserted_by`. See the section for the full reasoning; the short version is that convergence had to be able to count an officer-asserted signer answer without any surface being able to call it the signer's. Also: the §11.1 sweep was WIDENED after it missed two live habitats it should have caught — `services/signing_loop.state_label()` (the one function that turns a scheduling state into a sentence for every surface) and the `.ics` description that lands in the officer's own diary. Both said "she" about a notary. `services/vesting_split.py` exempted with a cited reason: it MATCHES recorded vesting language rather than writing prose about anybody. |
