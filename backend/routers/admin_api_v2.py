@@ -5,7 +5,8 @@ import os, csv, io
 
 # Import project-specific helpers (adjust if your module paths differ)
 try:
-    from auth import ADMIN_ROLES, get_current_admin, is_admin_role  # existing dependency
+    from auth import (ADMIN_ROLES, ASSIGNABLE_ROLES as _ASSIGNABLE_ROLES,
+                      get_current_admin, is_admin_role)  # existing dependency
 except Exception:
     # If project uses package style imports
     from backend.auth import get_current_admin  # type: ignore
@@ -95,7 +96,8 @@ def admin_users_search(
         total = cur.fetchone()['count']
 
         cur.execute(f"""
-            SELECT u.id, u.email, u.full_name, COALESCE(u.role,'') as role, u.plan,
+            SELECT u.id, u.email, u.full_name, COALESCE(u.role,'') as role,
+                   u.job_title, u.plan,
                    u.last_login, u.created_at, u.is_active,
                    (SELECT COUNT(*) FROM deeds d WHERE d.user_id = u.id) as deed_count
             FROM users u
@@ -120,7 +122,8 @@ def admin_user_detail(user_id: int, admin=Depends(get_current_admin)):
     """
     with db_connection() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT id, email, full_name, COALESCE(role,'') as role, plan, company_name, company_type,
+            SELECT id, email, full_name, COALESCE(role,'') as role, job_title,
+                   plan, company_name, company_type,
                    interest_state,
                    phone, state, verified, stripe_customer_id, last_login, created_at, is_active
             FROM users WHERE id = %s
@@ -217,10 +220,12 @@ def export_users_csv(admin=Depends(get_current_admin)):
     writer = csv.writer(output)
     with db_connection() as conn, conn.cursor() as cur:
         cur.execute("""
-            SELECT id, email, full_name, role, plan, created_at, last_login, is_active
+            SELECT id, email, full_name, role, job_title, plan, created_at,
+                   last_login, is_active
             FROM users ORDER BY created_at DESC
         """)
-        writer.writerow(["id","email","full_name","role","plan","created_at","last_login","is_active"])
+        writer.writerow(["id","email","full_name","role","job_title","plan",
+                         "created_at","last_login","is_active"])
         for row in cur.fetchall():  # RealDictCursor returns dicts
             writer.writerow(row.values())  # Extract values in column order
     return Response(content=output.getvalue(), media_type="text/csv",
@@ -367,27 +372,24 @@ def admin_email_stats(days: int = Query(7, ge=1, le=90),
 # PHASE 12-3: USER CRUD OPERATIONS
 # ============================================================================
 
-#: What the admin console may ASSIGN to `users.role`.
+#: What the admin console may ASSIGN to `users.role` — `user` or `admin`,
+#: and nothing else.
 #:
-#: Every admin spelling, plus `user`. Deliberately NOT the job titles —
-#: and that is the interesting half of this ruling.
+#: ROLE1 step 3 landed, so this is now the whole vocabulary rather than
+#: the subset it was: registration writes the job title to its own
+#: column and the authorization column from a literal, so `role` no
+#: longer receives free text from anywhere and a closed set costs
+#: nothing.
 #:
-#: `users.role` carries two meanings (ROLE1): a job title written by
-#: registration, and the authorization value the gates read. Registration
-#: legitimately writes free text there — SIGNUP1's "Other" resolves to
-#: whatever she typed — so a closed set covering BOTH meanings would
-#: reject values the product itself creates.
+#: It narrowed from five values to two in the same move. The other three
+#: were `administrator`, `superadmin` and `super_admin` — spellings the
+#: gates RECOGNIZE (ADMIN_ROLES, for rows history already wrote) but
+#: which this console has no business creating more of. Offering four
+#: ways to spell one thing is the defect ROLE1 opened with.
 #:
-#: But an admin editing this field is making an AUTHORIZATION decision.
-#: Job titles are the officer's own, entered where she enters them. So
-#: the console's assignable set is the authorization vocabulary, and the
-#: refusal says so rather than pretending the column is simpler than it
-#: is.
-#:
-#: When ROLE1 step 3 lands — job title to its own column, `role` reduced
-#: to a closed set — this becomes the whole vocabulary rather than a
-#: subset of it, and this comment can go.
-ASSIGNABLE_ROLES = frozenset({r.lower() for r in ADMIN_ROLES} | {'user'})
+#: The console's own <select> has offered exactly User and Admin the
+#: whole time. The API accepted three values its only caller never sent.
+ASSIGNABLE_ROLES = _ASSIGNABLE_ROLES
 
 
 def _validate_role_change(cur, target_user_id: int, admin_email: str,
@@ -402,10 +404,10 @@ def _validate_role_change(cur, target_user_id: int, admin_email: str,
     if value.lower() not in ASSIGNABLE_ROLES:
         raise HTTPException(
             status_code=400,
-            detail=(f"'{value}' would grant nothing. From here you can set "
-                    f"admin access ({', '.join(sorted(ADMIN_ROLES))}) or "
-                    f"'user'. A job title belongs to the person it describes "
-                    f"and is edited in their profile, not here."),
+            detail=(f"'{value}' would grant nothing. This field is access, "
+                    f"and it takes {' or '.join(sorted(ASSIGNABLE_ROLES))}. "
+                    f"A job title belongs to the person it describes and is "
+                    f"edited in their profile, not here."),
         )
 
     # ── THE SELF-LOCKOUT ─────────────────────────────────────────────
@@ -460,8 +462,14 @@ def admin_update_user(
         set_clauses = []
         params = []
         
-        # Allowed fields for update
-        allowed_fields = ['full_name', 'email', 'role', 'plan', 'company_name', 
+        # Allowed fields for update.
+        #
+        # `job_title` is deliberately NOT here. The refusal above tells an
+        # admin that a job title is edited in the person's own profile,
+        # and a console that says that while also editing it would be
+        # saying two things. It is hers; this screen shows it and does
+        # not touch it.
+        allowed_fields = ['full_name', 'email', 'role', 'plan', 'company_name',
                          'phone', 'state', 'is_active', 'verified']
 
         if 'role' in updates:

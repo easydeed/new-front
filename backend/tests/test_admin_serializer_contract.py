@@ -165,7 +165,9 @@ def test_the_mock_half_of_the_split_is_deleted():
 # ── CSV exports share the serializer; check them too ─────────────────
 
 @pytest.mark.parametrize("path,expected_header", [
-    ("/admin/export/users.csv", "id,email,full_name,role,plan"),
+    # ROLE1 step 3 — `job_title` sits between them, so an export tells an
+    # operator who somebody is as well as what they may do.
+    ("/admin/export/users.csv", "id,email,full_name,role,job_title,plan"),
     ("/admin/export/deeds.csv", "id,deed_type,status"),
 ])
 def test_csv_exports_emit_populated_columns(admin_client, path, expected_header):

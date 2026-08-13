@@ -2,6 +2,7 @@
  * Authentication utilities for DeedPro
  * Handles JWT token management and user authentication state
  */
+import { isAdminRole } from '@/lib/authRole';
 
 export interface User {
   id: number;
@@ -121,7 +122,6 @@ export class AuthManager {
    * Check if user is an admin
    */
   static isAdmin(): boolean {
-    const adminRoles = ['admin', 'administrator', 'superadmin', 'super_admin'];
     const token = this.getToken();
     let role: string | null = null;
 
@@ -138,7 +138,11 @@ export class AuthManager {
       role = this.getUser()?.role || null;
     }
 
-    return adminRoles.includes(role?.toLowerCase().trim() || '');
+    // ROLE1 — one definition, shared with the login redirect and the
+    // admin layout guard. The stored-user fallback is the reason this
+    // still has to read a vocabulary at all: `users.role` used to hold
+    // job titles too, so a cached user object can say "Escrow Officer".
+    return isAdminRole(role);
   }
 
   /**

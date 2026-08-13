@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { isAdminRole } from '@/lib/authRole';
 import './styles/tokens.css';
 import './styles/admin-layout.css';
 
@@ -111,11 +112,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       const payload = JSON.parse(atob(token.split('.')[1]));
       setUserEmail(payload.email || '');
       
-      // Flexible admin check (case-insensitive, multiple variations)
-      const role = (payload.role || '').toLowerCase().trim();
-      const isAdminRole = ['admin', 'administrator', 'superadmin', 'super_admin'].includes(role);
-      
-      if (!isAdminRole) {
+      // ROLE1 — the one definition, shared with login, AuthService and
+      // (through a test that compares the files) `backend/auth.py`.
+      if (!isAdminRole(payload.role)) {
         // Not admin - redirect to dashboard
         alert('Admin access required. Your role: ' + (payload.role || 'none'));
         router.push('/dashboard');

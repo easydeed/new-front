@@ -187,6 +187,13 @@ def create_tables():
             # to serve anybody, and it is READABLE (admin user list)
             # rather than write-only, which is the LEGAL1 bar.
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS interest_state VARCHAR(64)",
+            # ROLE1 step 3 — the job title stops sharing a column with
+            # authorization. `role` carried both: registration wrote
+            # "Escrow Officer" into the same field `is_admin_role()`
+            # reads to open the admin console. Two meanings in one column
+            # means every reader has to know which one it is holding, and
+            # the one that gets it wrong is a security answer.
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS job_title VARCHAR(120)",
             "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS grantor_name VARCHAR(255)",
             "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS grantee_name VARCHAR(255)",
             "ALTER TABLE deeds ADD COLUMN IF NOT EXISTS pdf_url VARCHAR(500)",
