@@ -13,58 +13,20 @@ import { Eye, EyeOff, ShieldCheck } from "lucide-react"
 import { LogoLockup } from "@/components/brand/Logo"
 import { AuthManager } from "@/utils/auth"
 
-const states = [
-  { code: "AL", name: "Alabama" },
-  { code: "AK", name: "Alaska" },
-  { code: "AZ", name: "Arizona" },
-  { code: "AR", name: "Arkansas" },
-  { code: "CA", name: "California" },
-  { code: "CO", name: "Colorado" },
-  { code: "CT", name: "Connecticut" },
-  { code: "DE", name: "Delaware" },
-  { code: "FL", name: "Florida" },
-  { code: "GA", name: "Georgia" },
-  { code: "HI", name: "Hawaii" },
-  { code: "ID", name: "Idaho" },
-  { code: "IL", name: "Illinois" },
-  { code: "IN", name: "Indiana" },
-  { code: "IA", name: "Iowa" },
-  { code: "KS", name: "Kansas" },
-  { code: "KY", name: "Kentucky" },
-  { code: "LA", name: "Louisiana" },
-  { code: "ME", name: "Maine" },
-  { code: "MD", name: "Maryland" },
-  { code: "MA", name: "Massachusetts" },
-  { code: "MI", name: "Michigan" },
-  { code: "MN", name: "Minnesota" },
-  { code: "MS", name: "Mississippi" },
-  { code: "MO", name: "Missouri" },
-  { code: "MT", name: "Montana" },
-  { code: "NE", name: "Nebraska" },
-  { code: "NV", name: "Nevada" },
-  { code: "NH", name: "New Hampshire" },
-  { code: "NJ", name: "New Jersey" },
-  { code: "NM", name: "New Mexico" },
-  { code: "NY", name: "New York" },
-  { code: "NC", name: "North Carolina" },
-  { code: "ND", name: "North Dakota" },
-  { code: "OH", name: "Ohio" },
-  { code: "OK", name: "Oklahoma" },
-  { code: "OR", name: "Oregon" },
-  { code: "PA", name: "Pennsylvania" },
-  { code: "RI", name: "Rhode Island" },
-  { code: "SC", name: "South Carolina" },
-  { code: "SD", name: "South Dakota" },
-  { code: "TN", name: "Tennessee" },
-  { code: "TX", name: "Texas" },
-  { code: "UT", name: "Utah" },
-  { code: "VT", name: "Vermont" },
-  { code: "VA", name: "Virginia" },
-  { code: "WA", name: "Washington" },
-  { code: "WV", name: "West Virginia" },
-  { code: "WI", name: "Wisconsin" },
-  { code: "WY", name: "Wyoming" },
-]
+/* SIGNUP1 — THE FIFTY-STATE LIST IS GONE.
+   The catalog, the chassis, the DTT rate registry and every county form
+   in this product are California by construction: 58 California
+   counties, California code sections, California transfer tax. Fifty
+   options was a promise broken the moment somebody in Arizona
+   registered and found no Arizona forms.
+   Owner-ruled: California, displayed rather than chosen. The state now
+   lives in lib/registerForm.ts as a VALUE, not a default. */
+
+import { maskUS, normalizePhone } from "@/lib/phone"
+import {
+  FieldErrors, OTHER, SERVED_STATE_NAME, fieldProps, registrationPayload,
+  revealedBy, validate,
+} from "@/lib/registerForm"
 
 const roles = [
   "Escrow Officer",
@@ -95,56 +57,47 @@ export default function RegisterPage() {
     role: "",
     companyName: "",
     companyType: "",
+    companyTypeOther: "",
+    roleOther: "",
     phone: "",
-    state: "",
+    interestState: "",
     agreeTerms: false,
   })
+  /* Validation used to fire ONLY on submit, so every mistake was
+     discovered at the end, all at once, after the work. A field that has
+     been visited and left is a field she is done with — that is the
+     moment to answer, and not before. */
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
 
+  /* The rules moved to lib/registerForm.ts. They were forty lines
+     inside a seven-hundred-line page, called from one place, on submit —
+     so "does a company type without a company name fail?" was answerable
+     only by filling in a form and pressing a button. Called, a test can
+     ask. */
   const validateForm = () => {
-    const errors: Record<string, string> = {}
-
-    // Email: Required, valid format
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
-    if (!formData.email) {
-      errors.email = "Email is required"
-    } else if (!emailRegex.test(formData.email)) {
-      errors.email = "Please enter a valid email address"
-    }
-
-    // Password: 8+ chars, uppercase, lowercase, number
-    if (!formData.password) {
-      errors.password = "Password is required"
-    } else {
-      if (formData.password.length < 8) {
-        errors.password = "Password must be at least 8 characters long"
-      } else if (!/(?=.*[a-z])/.test(formData.password)) {
-        errors.password = "Password must contain at least one lowercase letter"
-      } else if (!/(?=.*[A-Z])/.test(formData.password)) {
-        errors.password = "Password must contain at least one uppercase letter"
-      } else if (!/(?=.*\d)/.test(formData.password)) {
-        errors.password = "Password must contain at least one number"
-      }
-    }
-
-    // Confirm Password: Must match
-    if (!formData.confirmPassword) {
-      errors.confirmPassword = "Please confirm your password"
-    } else if (formData.password !== formData.confirmPassword) {
-      errors.confirmPassword = "Passwords do not match"
-    }
-
-    // Required text fields
-    if (!formData.fullName) errors.fullName = "Full name is required"
-    if (!formData.role) errors.role = "Role is required"
-    if (!formData.state) errors.state = "State is required"
-
-    // Terms checkbox
-    if (!formData.agreeTerms) {
-      errors.agreeTerms = "You must agree to the terms and conditions"
-    }
-
-    setValidationErrors(errors)
+    const errors = validate(formData)
+    setValidationErrors(errors as Record<string, string>)
     return Object.keys(errors).length === 0
+  }
+
+  /* Answer as she leaves a field, but only about fields she has
+     finished. Validating on every keystroke tells somebody their email
+     is invalid while they are typing the @ — which is true, useless, and
+     reads as the product arguing with them. */
+  const blur = (name: string) => {
+    /* Touching one half of a pair reveals both. The company name and
+       type are one fact in two inputs, and an error raised on the half
+       she has not visited would otherwise be filtered away — leaving a
+       silent form that refuses to submit. */
+    const next = { ...touched }
+    for (const k of revealedBy(name)) next[k] = true
+    setTouched(next)
+    const all = validate(formData) as FieldErrors
+    setValidationErrors(
+      Object.fromEntries(
+        Object.entries(all).filter(([k]) => next[k]),
+      ) as Record<string, string>,
+    )
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -164,18 +117,15 @@ export default function RegisterPage() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: formData.email,
-            password: formData.password,
-            confirm_password: formData.confirmPassword,
-            full_name: formData.fullName,
-            role: formData.role,
-            company_name: formData.companyName || null,
-            company_type: formData.companyType || null,
-            phone: formData.phone || null,
-            state: formData.state,
-            agree_terms: formData.agreeTerms,
-          }),
+          /* One serializer, so the payload cannot drift from the rules
+             that validated it. The phone is normalized to E.164 HERE,
+             using the same lib the partner screens have used since
+             PARTNER2 — the server normalizes again at the write, because
+             a rule that only the browser enforces is a rule the API does
+             not have. */
+          body: JSON.stringify(
+            registrationPayload(formData, normalizePhone(formData.phone)),
+          ),
         },
       )
 
@@ -387,16 +337,20 @@ export default function RegisterPage() {
                   Full name <span className="text-error-500">*</span>
                 </label>
                 <input
+                  {...fieldProps("fullName", validationErrors.fullName, true)}
                   type="text"
-                  id="fullName"
-                  name="fullName"
                   autoComplete="name"
                   value={formData.fullName}
                   onChange={handleChange}
+                  onBlur={() => blur("fullName")}
                   className={`${inputBase} ${validationErrors.fullName ? "border-error-500" : "border-gray-200"}`}
                   placeholder="John Smith"
                 />
-                {validationErrors.fullName && <p className="mt-1 text-sm text-error-500">{validationErrors.fullName}</p>}
+                {validationErrors.fullName && (
+                  <p id="fullName-error" role="alert" className="mt-1 text-sm text-error-500">
+                    {validationErrors.fullName}
+                  </p>
+                )}
               </div>
 
               {/* Role & State */}
@@ -406,10 +360,10 @@ export default function RegisterPage() {
                     Professional role <span className="text-error-500">*</span>
                   </label>
                   <select
-                    id="role"
-                    name="role"
+                    {...fieldProps("role", validationErrors.role, true)}
                     value={formData.role}
                     onChange={handleChange}
+                    onBlur={() => blur("role")}
                     className={`${inputBase} bg-white ${
                       validationErrors.role ? "border-error-500" : "border-gray-200"
                     }`}
@@ -421,30 +375,54 @@ export default function RegisterPage() {
                       </option>
                     ))}
                   </select>
-                  {validationErrors.role && <p className="mt-1 text-sm text-error-500">{validationErrors.role}</p>}
+                  {validationErrors.role && (
+                    <p id="role-error" role="alert" className="mt-1 text-sm text-error-500">
+                      {validationErrors.role}
+                    </p>
+                  )}
+                  {/* "Other" was not an answer. The product recorded a
+                      professional role of literally "Other" — for a
+                      column the deed face and the admin console read. */}
+                  {formData.role === OTHER && (
+                    <div className="mt-2 space-y-1.5">
+                      <label htmlFor="roleOther" className="block text-sm font-medium text-gray-700">
+                        What is your role? <span className="text-error-500">*</span>
+                      </label>
+                      <input
+                        {...fieldProps("roleOther", validationErrors.roleOther, true)}
+                        type="text"
+                        value={formData.roleOther}
+                        onChange={handleChange}
+                        onBlur={() => blur("roleOther")}
+                        className={`${inputBase} ${
+                          validationErrors.roleOther ? "border-error-500" : "border-gray-200"}`}
+                        placeholder="Notary, Loan Officer, …"
+                      />
+                      {validationErrors.roleOther && (
+                        <p id="roleOther-error" role="alert" className="mt-1 text-sm text-error-500">
+                          {validationErrors.roleOther}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
 
+                {/* ═══ THE STATE IS A FACT WE STATE, NOT A QUESTION ═══
+
+                    A dropdown asks. Asking implies the answer changes
+                    something, and it does not: every form, rate and
+                    county in this product is California. So the screen
+                    says what we serve, and does not pretend to take an
+                    order it cannot fill. */}
                 <div className="space-y-1.5">
-                  <label htmlFor="state" className="block text-sm font-semibold text-gray-900">
-                    State <span className="text-error-500">*</span>
-                  </label>
-                  <select
-                    id="state"
-                    name="state"
-                    value={formData.state}
-                    onChange={handleChange}
-                    className={`${inputBase} bg-white ${
-                      validationErrors.state ? "border-error-500" : "border-gray-200"
-                    }`}
-                  >
-                    <option value="">Select your state</option>
-                    {states.map((state) => (
-                      <option key={state.code} value={state.code}>
-                        {state.name}
-                      </option>
-                    ))}
-                  </select>
-                  {validationErrors.state && <p className="mt-1 text-sm text-error-500">{validationErrors.state}</p>}
+                  <p className="block text-sm font-semibold text-gray-900">State</p>
+                  <div className={`${inputBase} border-gray-200 bg-gray-50 text-gray-700`}>
+                    {SERVED_STATE_NAME}
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    DeedPro serves California today. Our forms, transfer-tax
+                    rates and county requirements are California-specific.
+                  </p>
                 </div>
               </div>
 
@@ -455,15 +433,26 @@ export default function RegisterPage() {
                     Company name <span className="text-gray-400 text-xs font-normal">(Optional)</span>
                   </label>
                   <input
+                    {...fieldProps("companyName", validationErrors.companyName)}
                     type="text"
-                    id="companyName"
-                    name="companyName"
                     autoComplete="organization"
                     value={formData.companyName}
                     onChange={handleChange}
-                    className={`${inputBase} border-gray-200`}
+                    onBlur={() => blur("companyName")}
+                    className={`${inputBase} ${
+                      validationErrors.companyName ? "border-error-500" : "border-gray-200"}`}
                     placeholder="Your Company LLC"
                   />
+                  {/* The pair is checked BOTH ways: a type with no name
+                      is a company we cannot print on a deed face, a name
+                      with no type is one we cannot categorise, and each
+                      was separately optional so both halves could sit
+                      half-filled with the form happy. */}
+                  {validationErrors.companyName && (
+                    <p id="companyName-error" role="alert" className="mt-1 text-sm text-error-500">
+                      {validationErrors.companyName}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
@@ -471,11 +460,12 @@ export default function RegisterPage() {
                     Company type <span className="text-gray-400 text-xs font-normal">(Optional)</span>
                   </label>
                   <select
-                    id="companyType"
-                    name="companyType"
+                    {...fieldProps("companyType", validationErrors.companyType)}
                     value={formData.companyType}
                     onChange={handleChange}
-                    className={`${inputBase} bg-white border-gray-200`}
+                    onBlur={() => blur("companyType")}
+                    className={`${inputBase} bg-white ${
+                      validationErrors.companyType ? "border-error-500" : "border-gray-200"}`}
                   >
                     <option value="">Select company type</option>
                     {companyTypes.map((type) => (
@@ -484,6 +474,33 @@ export default function RegisterPage() {
                       </option>
                     ))}
                   </select>
+                  {validationErrors.companyType && (
+                    <p id="companyType-error" role="alert" className="mt-1 text-sm text-error-500">
+                      {validationErrors.companyType}
+                    </p>
+                  )}
+                  {formData.companyType === OTHER && (
+                    <div className="mt-2 space-y-1.5">
+                      <label htmlFor="companyTypeOther" className="block text-sm font-medium text-gray-700">
+                        What kind of company? <span className="text-error-500">*</span>
+                      </label>
+                      <input
+                        {...fieldProps("companyTypeOther", validationErrors.companyTypeOther, true)}
+                        type="text"
+                        value={formData.companyTypeOther}
+                        onChange={handleChange}
+                        onBlur={() => blur("companyTypeOther")}
+                        className={`${inputBase} ${
+                          validationErrors.companyTypeOther ? "border-error-500" : "border-gray-200"}`}
+                        placeholder="Lender, Notary service, …"
+                      />
+                      {validationErrors.companyTypeOther && (
+                        <p id="companyTypeOther-error" role="alert" className="mt-1 text-sm text-error-500">
+                          {validationErrors.companyTypeOther}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -493,15 +510,63 @@ export default function RegisterPage() {
                   Phone number <span className="text-gray-400 text-xs font-normal">(Optional)</span>
                 </label>
                 <input
+                  {...fieldProps("phone", validationErrors.phone)}
                   type="tel"
-                  id="phone"
-                  name="phone"
+                  /* The number pad, on the device most people register
+                     on. `type="tel"` alone does not summon it reliably. */
+                  inputMode="tel"
                   autoComplete="tel"
                   value={formData.phone}
-                  onChange={handleChange}
-                  className={`${inputBase} border-gray-200`}
+                  /* Masked as she types, by the same lib the partner
+                     screens have used since PARTNER2. "not-a-phone!!" was
+                     accepted here, and production holds a nine-digit
+                     number nobody can call. */
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: maskUS(e.target.value) })}
+                  onBlur={() => blur("phone")}
+                  className={`${inputBase} ${
+                    validationErrors.phone ? "border-error-500" : "border-gray-200"}`}
                   placeholder="(555) 123-4567"
                 />
+                {validationErrors.phone && (
+                  <p id="phone-error" role="alert" className="mt-1 text-sm text-error-500">
+                    {validationErrors.phone}
+                  </p>
+                )}
+              </div>
+
+              {/* ═══ THE INTEREST SIGNAL, WHICH IS NOT A DROPDOWN ═══
+
+                  Owner-ruled. A free-text box records that somebody
+                  outside California wanted us; a dropdown would imply we
+                  would accept the answer.
+
+                  It is READABLE — it reaches the admin user list rather
+                  than sitting in a column nobody queries. LEGAL1 is the
+                  precedent: `subscribe` was collected, stored, and
+                  visible to nobody, which manufactured a record that
+                  looked like information and could not function as one.
+
+                  The copy promises nothing. A sentence like "we will let
+                  you know" would make this a consent, and a consent we
+                  cannot honour is the thing LEGAL1 deleted. */}
+              <div className="space-y-1.5">
+                <label htmlFor="interestState" className="block text-sm font-semibold text-gray-900">
+                  Working outside California?{" "}
+                  <span className="text-gray-400 text-xs font-normal">(Optional)</span>
+                </label>
+                <input
+                  {...fieldProps("interestState", undefined)}
+                  type="text"
+                  value={formData.interestState}
+                  onChange={handleChange}
+                  className={`${inputBase} border-gray-200`}
+                  placeholder="Which state?"
+                />
+                <p className="text-xs text-gray-500">
+                  Tell us where and we will record it. We are not taking
+                  orders outside California yet.
+                </p>
               </div>
 
               {/* Checkboxes */}

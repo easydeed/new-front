@@ -121,6 +121,7 @@ def admin_user_detail(user_id: int, admin=Depends(get_current_admin)):
     with db_connection() as conn, conn.cursor() as cur:
         cur.execute("""
             SELECT id, email, full_name, COALESCE(role,'') as role, plan, company_name, company_type,
+                   interest_state,
                    phone, state, verified, stripe_customer_id, last_login, created_at, is_active
             FROM users WHERE id = %s
         """, (user_id,))

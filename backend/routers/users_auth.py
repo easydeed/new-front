@@ -24,6 +24,13 @@ from database import (
     PROFILE_COLUMNS, PROFILE_ELSEWHERE, clean_profile_text, get_user_profile,
     update_user_profile, get_recent_properties,
 )
+from services.phone import normalize_phone
+
+#: The one state this product serves. Mirrors SERVED_STATE in
+#: frontend/src/lib/registerForm.ts; a jest/pytest pair holds them equal,
+#: because a screen that stops offering a state while the server keeps
+#: accepting it is the cosmetic version of this fix.
+SERVED_STATE = "CA"
 
 router = APIRouter()
 
@@ -39,6 +46,10 @@ class UserRegister(BaseModel):
     phone: Optional[str] = None
     state: str
     agree_terms: bool
+    # SIGNUP1 — an interest signal, not an order. Somebody outside
+    # California telling us where they are. Free text on purpose: a
+    # dropdown implies we would accept the answer.
+    interest_state: Optional[str] = None
     # ── LEGAL1: `subscribe` IS NO LONGER ACCEPTED ─────────────────────
     #
     # It was captured here and written to the users table, and then
@@ -101,9 +112,27 @@ async def register_user(user: UserRegister = Body(...)):
         if not AuthUtils.validate_email(user.email):
             raise HTTPException(status_code=400, detail="Invalid email format")
 
-        # Validate state code
+        # ── CALIFORNIA, AND THE REFUSAL IS REAL ───────────────────────
+        #
+        # The form no longer offers fifty states; it states one. That
+        # alone would be cosmetic — the endpoint is public and takes
+        # whatever it is sent, so an API caller could still register in
+        # Arizona and receive an account this product cannot serve.
+        #
+        # Owner-ruled: the catalog, chassis, DTT registry and county
+        # knowledge are California by construction. So the server refuses,
+        # and says what it does serve rather than "invalid".
         if not AuthUtils.validate_state_code(user.state):
             raise HTTPException(status_code=400, detail="Invalid state code")
+        if (user.state or "").strip().upper() != SERVED_STATE:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "DeedPro serves California today — our forms, transfer-tax "
+                    "rates and county requirements are California-specific. "
+                    "Tell us which state you are in and we will record it."
+                ),
+            )
 
         # Profile-hygiene: a name that is all whitespace is no name — the
         # value prints on deed faces and emails.
@@ -136,8 +165,8 @@ async def register_user(user: UserRegister = Body(...)):
         with conn.cursor() as cur:
             cur.execute("""
                 INSERT INTO users (email, password_hash, full_name, role, company_name,
-                                 company_type, phone, state, plan)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                 company_type, phone, state, plan, interest_state)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
             """, (
                 # Profile-hygiene: name/company/phone print on deed faces
@@ -145,8 +174,18 @@ async def register_user(user: UserRegister = Body(...)):
                 user.email.lower(), hashed_password,
                 clean_profile_text(user.full_name), user.role,
                 clean_profile_text(user.company_name), user.company_type,
-                clean_profile_text(user.phone), user.state.upper(),
-                'free'
+                # SIGNUP1: E.164 at the write, using the normalizer
+                # PARTNER2 built and the partner API has used since.
+                # `clean_profile_text` only collapses whitespace, which is
+                # how "not-a-phone!!" was stored verbatim and how
+                # production came to hold a nine-digit number.
+                #
+                # The browser masks as she types AND the server normalizes
+                # here, deliberately: a rule only the browser enforces is
+                # a rule the API does not have.
+                normalize_phone(clean_profile_text(user.phone)) or None,
+                user.state.upper(),
+                'free', clean_profile_text(user.interest_state),
             ))
             result = cur.fetchone()
             if result:
