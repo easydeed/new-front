@@ -654,6 +654,74 @@ we reach it.
   page's activity list is a UNION of real timestamp columns, which is
   honest but is not the log this table nearly is.
 
+- **RULED 2026-08-13 — `users.company_name` is canonical; the
+  `user_profiles` copy dies.** One fact, two columns, two tables.
+
+  **Why users wins:** `/users/profile` returns it, SETTINGS1 patches it,
+  and Settings — the surface where she edits her company — writes it.
+  The requested-by default MUST read what Settings writes, or the field
+  silently disagrees with the page she just filled in. That is the class
+  this wave keeps closing.
+
+  **The work, in order:**
+  1. Item 5's requested-by default reads `users.company_name`.
+  2. `update_user_profile` (database.py, called by the enhanced-profile
+     endpoint at users_auth.py:825) stops writing
+     `user_profiles.company_name`.
+  3. Report row counts for both columns.
+  4. Migrate any value present in `user_profiles` and absent in `users`.
+  5. Retire the duplicate column — a SEPARATE data operation, owner's go
+     (Tier 3).
+
+  **AND A SECOND OVERLAP FOUND WHILE CONFIRMING THIS, worth folding in.**
+  `update_user_profile` is a CLOBBERING writer: its `ON CONFLICT DO
+  UPDATE` sets every column from `EXCLUDED` unconditionally, including
+  `business_address` — which SETTINGS1 now owns through `ProfilePatch`.
+  So a partial call to the enhanced endpoint would NULL an address the
+  officer had just saved in Settings.
+
+  Not a duplicate column this time but the same disagreement: two write
+  paths to one fact, one of which does not know the other exists.
+  `ProfilePatch` was built not to clobber; the enhanced endpoint was
+  not. Whichever survives, only one of them should own these fields.
+
+- **RECORDED — the ordering pin is reachable-vs-present applied to
+  CONTROL FLOW** (SETTINGS1, 2026-08-13). `handleSave` was three lines
+  that reported success and issued no request. A presence check would
+  have PASSED it: it contained `toast.success`. The defect was never
+  that success went unreported — it was that success was reported
+  FIRST.
+
+  So the pin asserts POSITION: `toast.success` must appear after the
+  `!response.ok` throw, which is unreachable without a completed
+  request.
+
+  **Generalized:** any pin asserting "the product reports X" must assert
+  WHERE IN THE FLOW it reports it, not merely that the string exists.
+  The string-presence family already covers dead code (`signingRowAction`
+  — present but unreachable); this is its mirror — reachable, present,
+  and in the wrong place.
+
+- **RECORDED — item 3 and the two-column finding are one disease from
+  opposite ends.** SETTINGS1's address section was built against storage
+  it INVENTED while real storage (`user_profiles.business_address`) sat
+  one table over. Then a fact turned out to have TWO homes. First the
+  code could not find its column; then the column existed twice. Both
+  are the schema and the code disagreeing about where a fact lives, and
+  the `users.updated_at` bug that ate every payment was a third face of
+  it — the column the code was certain existed and did not.
+
+- **STANDING RULE — how to read an external audit.** Across SETTINGS1,
+  every premise describing a MECHANISM was wrong (zero API calls, no
+  toast, the county step navigating, an endpoint to wire to) and every
+  premise describing a SYMPTOM was right (fields blank, nine fields
+  lost, county unsaved, company entered three times). Five for five, and
+  the same split held in MONEY1 and LEGAL1.
+
+  **Take the symptom, discard the diagnosis, verify.** An external
+  auditor sees behaviour correctly and can only guess at mechanism — and
+  a guess stated confidently reads exactly like a finding.
+
 ## Parked tickets (scoped, not scheduled)
 
 - **Audit the string-presence pins whose subject is a BRANCH** (CANCEL1
