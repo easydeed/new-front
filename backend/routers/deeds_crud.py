@@ -186,6 +186,40 @@ def create_deed_endpoint(deed: DeedCreate, user_id: int = Depends(get_current_us
                 detail=f"Validation failed: {field_label} is required and cannot be empty"
             )
 
+    # ── REQUIRED1: THE LEGAL DECISIONS, WHICH THIS ENDPOINT DID NOT ASK
+    # FOR ──────────────────────────────────────────────────────────────
+    #
+    # AFTER the substance loop above, deliberately. A missing grantee is a
+    # more fundamental absence than an undeclared exemption, and naming
+    # the legal choices while a party is still blank would lead with the
+    # smaller problem.
+    #
+    # This check required grantor, grantee and legal description. The
+    # browser gate additionally requires a VESTING statement and a
+    # TRANSFER-TAX decision, and the partner API requires both too
+    # (`transfer_tax` is a required model field there). So this endpoint
+    # accepted an instrument the wizard refuses to generate and the
+    # partner API rejects — and the wizard's gate runs in the browser, so
+    # anything calling here directly skipped both legal choices.
+    #
+    # Owner-ruled: the stricter set wins. The list now comes from
+    # `required_fields.json`, which both languages read, so a fourth
+    # definition cannot be added by editing one side.
+    from services.form_families import family_of
+    from services.required_fields import missing as missing_required
+
+    family = family_of(deed_data.get('deed_type'))
+    absent = missing_required(family, deed_data.get('deed_type') or '', deed_data)
+    decisions = [r for r in absent if r.population == 'decision']
+    if decisions:
+        raise HTTPException(
+            status_code=422,
+            detail=("Validation failed: " + ", ".join(r.label for r in decisions)
+                    + ". A conveyance states its vesting and declares its "
+                      "transfer tax; neither is inferred (doctrine §1), so "
+                      "neither can be omitted."),
+        )
+
     # Enhanced logging for diagnostics
     print(f"[Backend /deeds] ✅ Creating deed for user_id={user_id}")
     print(f"[Backend /deeds] deed_type: {deed_data.get('deed_type')}")
