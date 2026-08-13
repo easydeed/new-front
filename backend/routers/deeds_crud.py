@@ -881,14 +881,25 @@ def download_deed_endpoint(deed_id: int, user_id: int = Depends(get_current_user
             cur.execute("SELECT pdf_data FROM deed_pdfs WHERE deed_id = %s", (deed_id,))
             stored = cur.fetchone()
 
+        from services.deed_pdf import (
+            DraftHasNoInstrument, may_self_heal, render_deed_pdf, store_deed_pdf,
+        )
+
         if stored and stored[0]:
             pdf_bytes = bytes(stored[0])
-        else:
+        elif may_self_heal(dict(deed)):
             # Legacy row saved before the stored-PDF pipeline: render now,
             # store, and serve — subsequent downloads hit the stored copy.
-            from services.deed_pdf import render_deed_pdf, store_deed_pdf
+            # It HAS an instrument; we merely failed to keep the bytes.
             pdf_bytes = render_deed_pdf(dict(deed))
             store_deed_pdf(db.conn, deed_id, pdf_bytes)
+        else:
+            # A DRAFT. Rendering here would not preview it — storing is
+            # INSERT-OR-REFUSE and stamps `completed`, so this call would
+            # finalise a half-entered deed permanently. Until now the only
+            # thing preventing that was Past Deeds hiding the button.
+            raise HTTPException(status_code=409,
+                                detail=str(DraftHasNoInstrument(deed_id)))
 
         return Response(
             content=pdf_bytes,
