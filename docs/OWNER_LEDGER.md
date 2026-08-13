@@ -555,8 +555,18 @@ we reach it.
   the draft is still a draft afterwards: it tests the harm, not the
   response.
 
-- **The admin "regenerate" message points somewhere that cannot help**
-  (found 2026-08-13 while investigating the generate proxies; NOT fixed).
+- **CLOSED 2026-08-13 — the admin "regenerate" message pointed somewhere
+  that could not help.** Fixed: `admin_get_deed_pdf` now tells the two
+  cases apart with `may_self_heal` (the same rule the download endpoint
+  asks) and names `/deeds/{id}/download`, which repairs the row on the
+  way through. A draft is told it is a draft, and no admin tool offers to
+  generate on the officer's behalf — that would be the §9 write dressed
+  as a convenience.
+
+  §4 REACHES HELP STRINGS. A refusal that names the wrong remedy is
+  worse than one that names none: it spends an afternoon before failing.
+
+  _Original finding:_
   When a deed has no stored PDF, `admin_api_v2` returns *"PDF not
   available. Use /api/generate/{deed_type} to regenerate."*
 
@@ -584,6 +594,29 @@ we reach it.
   navigate from lists of deeds. **If officers consistently use the deed
   page as a doorway to the file rather than to the deed, that is the
   evidence to promote the matter.** Earned rather than assumed.
+
+- **TRIGGER — retire the `/api/generate/{type}` render layer.** The six
+  Next proxies at `app/api/generate/*` have no in-app caller (owner-ruled
+  2026-08-13: hold the deletion). They are not the `/security` case —
+  that had no caller AND no contract; these have `docs/API.md`, a QA
+  budget line, and until today an admin-facing reference.
+
+  **FIRES WHEN** either: `docs/API.md` stops documenting the render
+  layer, or the render layer is deliberately retired as a public
+  contract. Deleting the proxies before then is cosmetic — the backend
+  render endpoints they front would remain documented and reachable.
+
+- **`notifications` has no `deed_id`** (found 2026-08-13 during the
+  activity-element scoping; NOT fixed, and correctly not this ticket).
+  The table is close to an event log — type, title, message, link,
+  created_at — but the deed it concerns is encoded only in the `link`
+  URL. So "everything that happened on this deed" cannot be answered
+  from it without parsing links, and it holds only events worth
+  notifying about.
+
+  Adding the column is the right eventual answer. Until then the deed
+  page's activity list is a UNION of real timestamp columns, which is
+  honest but is not the log this table nearly is.
 
 ## Parked tickets (scoped, not scheduled)
 

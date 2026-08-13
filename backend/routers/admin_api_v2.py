@@ -442,16 +442,41 @@ def admin_delete_deed(deed_id: int, admin=Depends(get_current_admin)):
 
 @router.get("/deeds/{deed_id}/pdf")
 def admin_get_deed_pdf(deed_id: int, admin=Depends(get_current_admin)):
-    """Get the PDF for a deed - Phase 5B
-    
-    Returns the stored PDF URL or regenerates the PDF if needed.
+    """Where an admin can get this deed's document, if it has one.
+
+    ═══ THIS USED TO GIVE ADVICE THAT COULD NOT WORK ═══
+
+    When no PDF was stored it said: *"PDF not available. Use
+    /api/generate/{deed_type} to regenerate."*
+
+    Those handlers take a RENDER CONTEXT rather than a deed id, and they
+    render and stream **storing nothing**. So an admin who followed the
+    instruction got a document that is not the instrument, and the deed
+    still had no stored PDF afterwards — the advice could not fix the
+    problem it was offered for.
+
+    It is the same defect DEEDPREVIEW-FIX closed on the officer's side
+    (a re-render standing in for the recorded document), arriving as a
+    help string. §4 reaches messages: a refusal that names the wrong
+    remedy is worse than one that names none, because it spends
+    somebody's afternoon before failing.
+
+    The endpoint that actually repairs this is `/deeds/{id}/download`,
+    which self-heals a deed that HAS an instrument whose bytes were
+    never captured. Whether this deed is such a row is
+    `deed_pdf.may_self_heal` — the same rule the download endpoint asks,
+    not a second opinion about it.
     """
+    from services.deed_pdf import may_self_heal
+
     with db_connection() as conn, conn.cursor() as cur:
-        # Get deed with PDF info
+        # `completed_at` is read because may_self_heal needs it: a row
+        # stamped complete has been through generation whatever its
+        # status column now says.
         cur.execute("""
-            SELECT id, deed_type, status, pdf_url, property_address, 
-                   grantor_name, grantee_name, created_at
-            FROM deeds 
+            SELECT id, deed_type, status, pdf_url, property_address,
+                   grantor_name, grantee_name, created_at, completed_at
+            FROM deeds
             WHERE id = %s
         """, (deed_id,))
         row = cur.fetchone()
@@ -470,13 +495,34 @@ def admin_get_deed_pdf(deed_id: int, admin=Depends(get_current_admin)):
                 "message": "PDF available"
             }
         
-        # No PDF stored - return info for regeneration
+        # Nothing stored. Two different situations, and telling them
+        # apart is the whole point — one is recoverable and one is not a
+        # fault at all.
+        if may_self_heal(deed):
+            return {
+                "success": False,
+                "pdf_url": None,
+                "deed_type": deed['deed_type'],
+                "deed_id": deed_id,
+                "message": (
+                    f"No PDF stored for a completed deed. GET /deeds/{deed_id}/download "
+                    "serves it and stores the bytes on the way through, which repairs "
+                    "this row permanently."
+                ),
+            }
         return {
             "success": False,
             "pdf_url": None,
             "deed_type": deed['deed_type'],
             "deed_id": deed_id,
-            "message": "PDF not available. Use /api/generate/{deed_type} to regenerate."
+            # Neutral phrasing, and NOT a stylistic preference: the §11.1
+            # sweep caught "on her behalf" in this very string. Rendered
+            # copy names the role, never a pronoun for it.
+            "message": (
+                "This deed is a draft and has no document yet, which is not a "
+                "fault. Generating one is the officer's act, in the builder, and "
+                "it happens once — no admin tool should produce it for them."
+            ),
         }
 
 

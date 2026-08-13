@@ -183,3 +183,53 @@ def test_downloading_a_draft_is_refused_and_the_draft_stays_a_draft(world):
         "than the divergence this ticket set out to fix")
     assert row["completed_at"] is None
     assert stored is None, "a draft was given a permanent instrument"
+
+
+# ══════════════════════════════════════════════════════════════════════
+# 3. The advice we give points somewhere that can help
+# ══════════════════════════════════════════════════════════════════════
+
+def test_the_admin_pdf_message_names_an_endpoint_that_can_fix_it():
+    """§4 REACHES HELP STRINGS.
+
+    This handler used to tell an admin: "PDF not available. Use
+    /api/generate/{deed_type} to regenerate." Those handlers take a
+    render CONTEXT rather than a deed id and store NOTHING — so the
+    admin got a document that is not the instrument, and the deed still
+    had no stored PDF. Advice that cannot fix the problem it is offered
+    for, which is worse than no advice: it spends an afternoon first.
+
+    The same defect DEEDPREVIEW-FIX closed on the officer's side,
+    arriving as a help string.
+    """
+    from pathlib import Path
+
+    from tests.source_text import code_only
+
+    src = code_only(Path(__file__).resolve().parents[1] / "routers" / "admin_api_v2.py")
+    handler = src[src.index("def admin_get_deed_pdf("):]
+    handler = handler[: handler.index("\n@router.")]
+
+    assert "/api/generate/" not in handler, (
+        "the admin is being sent to a render endpoint that stores nothing, "
+        "so following the advice leaves the deed exactly as it was")
+    assert "/download" in handler, (
+        "the message names no endpoint that repairs the row")
+    # And the recoverable case is told apart from the draft, using the
+    # SAME rule the download endpoint asks rather than a second opinion.
+    assert "may_self_heal(" in handler
+
+
+def test_the_admin_message_does_not_promise_to_generate_for_her():
+    """A draft with no document is not a fault, and an admin tool that
+    offered to produce one would be asserting an instrument on the
+    officer's behalf — the §9 write dressed as a convenience."""
+    from pathlib import Path
+
+    from tests.source_text import code_only
+
+    src = code_only(Path(__file__).resolve().parents[1] / "routers" / "admin_api_v2.py")
+    handler = src[src.index("def admin_get_deed_pdf("):]
+    handler = handler[: handler.index("\n@router.")]
+    assert "draft" in handler.lower()
+    assert "builder" in handler.lower()
