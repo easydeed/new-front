@@ -491,6 +491,48 @@ we reach it.
   signing?" question has somewhere to go. No chooser — `share_kind` stays
   set by which button she pressed.
 
+- **The deed preview page shows a RE-RENDER, not the stored instrument**
+  (found 2026-08-12 while verifying DEEDDETAIL's premises; NOT fixed —
+  it is a correctness defect and wants its own unit).
+
+  `/deeds/{id}/preview` POSTs the deed's fields to `/api/generate/{type}`
+  on every visit and displays the result; its Download button hands over
+  that blob. `/deed-builder/{type}/success` does the opposite — it
+  fetches `/deeds/{id}/download`, which serves the bytes stored in
+  `deed_pdfs`.
+
+  `deed_pdfs` is one row per deed, INSERT-OR-REFUSE under §9, with a
+  sha256 stamped on the deed row, deliberately immutable because
+  verification survives as data and that hash is the substrate. The
+  preview page routes around all of it.
+
+  The two agree until a template, the rate registry, or the deed's own
+  fields change after generation. Nothing checks that they agree — and
+  RED-S4 is queued precisely because the registry version is not yet
+  stamped at generation time, so one of those inputs is already known to
+  move.
+
+  Not urgent in the sense that nothing links to `/deeds/{id}/preview`
+  today (see the next item), which is also why it has gone unnoticed.
+  Urgent in the sense that DEEDDETAIL is the ticket that decides what
+  "the instrument" means on screen and would otherwise enshrine the
+  ambiguity. See `docs/DEEDDETAIL_DESIGN.md`.
+
+- **`/deeds/{id}/preview` is orphaned — nothing navigates to it** (found
+  2026-08-12, NOT fixed). No `router.push` and no `href` anywhere in the
+  app reaches it; it is a full single-deed page, with a PDF viewer, a
+  details panel and (as of #178) the share and signing modals, that can
+  only be opened by typing the URL.
+
+  Recorded rather than fixed because the fix is a design decision, not a
+  missing link: DEEDDETAIL has to rule whether this page is the deed page
+  or whether the success page's content is promoted instead. Adding an
+  entrance first would be choosing that by accident.
+
+  NOTE on #178: the ruled Share fix landed on this page and is correct
+  where it sits — that is where the button was — but it reaches nobody
+  until this is resolved. Flagging so the fix is not read as live.
+
 ## Parked tickets (scoped, not scheduled)
 
 - **Audit the string-presence pins whose subject is a BRANCH** (CANCEL1
