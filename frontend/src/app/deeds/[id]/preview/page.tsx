@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 
-import { validateDeedCompleteness, generateWithRetry } from '@/lib/preview/guard';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { 
@@ -14,6 +13,7 @@ import {
   ArrowPathIcon 
 } from '@heroicons/react/24/solid';
 import Sidebar from '@/components/Sidebar';
+import { SessionExpiredError, apiFetch } from '@/lib/apiClient';
 import { PartnersProvider } from '@/features/partners/PartnersContext';
 import { ShareForReviewModal } from '@/features/signing/ShareForReviewModal';
 import { RequestSigningModal } from '@/features/signing/RequestSigningModal';
@@ -45,10 +45,12 @@ export default function DeedPreviewPage() {
   const [deed, setDeed] = useState<DeedData | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
+  const [loadingPdf, setLoadingPdf] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  /** Set when the server says this deed has no instrument yet. Not an
+   *  error — a draft that has not been generated is a normal state, and
+   *  the honest answer is the builder rather than a broken frame. */
+  const [notGenerated, setNotGenerated] = useState<string | null>(null);
 
   // Format deed type for display
   const formatDeedType = (type: string) => {
@@ -58,25 +60,17 @@ export default function DeedPreviewPage() {
       .join(' ');
   };
 
-  // Validate deed data completeness before PDF generation
-  const validateDeedData = (deedData: DeedData): string[] => {
-    const errors: string[] = [];
-    
-    if (!deedData.grantor_name || deedData.grantor_name.trim() === '') {
-      errors.push('Grantor name is required');
-    }
-    if (!deedData.grantee_name || deedData.grantee_name.trim() === '') {
-      errors.push('Grantee name is required');
-    }
-    if (!deedData.property_address || deedData.property_address.trim() === '') {
-      errors.push('Property address is required');
-    }
-    if (!deedData.apn || deedData.apn.trim() === '') {
-      errors.push('APN is required');
-    }
-    
-    return errors;
-  };
+  /**
+   * `validateDeedData` USED TO LIVE HERE and is deleted with the
+   * re-render it guarded. It checked grantor / grantee / address / APN
+   * before POSTing to the generate endpoint — a pre-flight for a
+   * generation this page no longer performs, and a second opinion about
+   * completeness beside the builder's own.
+   *
+   * What replaced it is the server's answer: a deed with no stored
+   * instrument is a draft, and the builder is where its missing fields
+   * are named and filled.
+   */
 
   // Fetch deed details
   useEffect(() => {
@@ -106,110 +100,76 @@ export default function DeedPreviewPage() {
     }
   }, [deedId]);
 
-  // Generate PDF with validation and retry limiting
+  /**
+   * THE INSTRUMENT IS SERVED, NOT RE-MADE.
+   *
+   * ═══ WHAT THIS REPLACED ═══
+   *
+   * This page used to POST the deed's fields to `/api/generate/{type}`
+   * on every visit and display the result, and its Download button
+   * handed over that blob. Meanwhile the success page fetched
+   * `/deeds/{id}/download`, which serves the bytes stored in
+   * `deed_pdfs`.
+   *
+   * So two surfaces showed "the deed" and only one showed the deed.
+   * `deed_pdfs` is one row per deed, INSERT-OR-REFUSE under §9, with a
+   * sha256 stamped on the deed row — deliberately immutable, because
+   * verification survives as data and that hash is the substrate. A
+   * re-render routes around all of it.
+   *
+   * The two agree until a template, the rate registry, or the deed's own
+   * fields change after generation. Nothing checked that they agreed,
+   * and the registry version is a known mover (RED-S4). "Probably the
+   * instrument" is the wrong phrase for the thing being signed and
+   * recorded.
+   *
+   * ═══ AND WHY A DRAFT IS NOT RENDERED INSTEAD ═══
+   *
+   * The obvious repair — call the download endpoint, let it render when
+   * nothing is stored — has a trap in it. Storing stamps `completed`
+   * and refuses to be replaced, so rendering a draft on demand does not
+   * preview it, it FINALISES it, with whatever half-entered fields it
+   * had at that moment.
+   *
+   * So the server decides (`deed_pdf.may_self_heal`) and this page shows
+   * what it is told: a completed deed shows its instrument, a draft says
+   * it has not been generated and points at the builder. Generation
+   * stays the act that creates an instrument, in one place, once.
+   */
   useEffect(() => {
-    const generatePDF = async () => {
-      if (!deed) return;
-
-      // Step 1: Validate deed data completeness
-      const errors = validateDeedData(deed);
-      if (errors.length > 0) {
-        console.warn('[Preview] Deed data validation failed:', errors);
-        setValidationErrors(errors);
-        setError('Cannot generate PDF: deed data is incomplete');
-        return; // Stop here - don't attempt generation
-      }
-
-      // Step 2: Check retry limit (max 3 attempts)
-      if (retryCount >= 3) {
-        console.error('[Preview] Max retry attempts reached (3)');
-        setError('Failed to generate PDF after 3 attempts. Please try again later.');
-        return;
-      }
-
+    if (!deed || pdfUrl || loadingPdf) return;
+    let revoked = false;
+    let url: string | null = null;
+    (async () => {
+      setLoadingPdf(true);
+      setError(null);
       try {
-        setGenerating(true);
-        setError(null);
-        setValidationErrors([]);
-        const token = localStorage.getItem('token') || localStorage.getItem('access_token');
-        
-        // Map deed type to API endpoint
-        const deedTypeMap: Record<string, string> = {
-          'grant-deed': 'grant-deed-ca',
-          'quitclaim-deed': 'quitclaim-deed-ca',
-          'interspousal-transfer': 'interspousal-transfer-ca',
-          'warranty-deed': 'warranty-deed-ca',
-          'tax-deed': 'tax-deed-ca'
-        };
-
-        const endpoint = deedTypeMap[deed.deed_type] || 'grant-deed-ca';
-        
-        console.log(`[Preview] Attempting PDF generation (attempt ${retryCount + 1}/3)`);
-        // 🔧 FIX: Map database field names to PDF generation endpoint field names
-        const pdfPayload = {
-          // Property fields (same names)
-          property_address: deed.property_address,
-          apn: deed.apn,
-          county: deed.county,
-          // 🔧 FIX: Map grantor_name → grantors_text
-          grantors_text: deed.grantor_name,
-          // 🔧 FIX: Map grantee_name → grantees_text
-          grantees_text: deed.grantee_name,
-          // Add missing legal_description
-          legal_description: deed.legal_description,
-          vesting: deed.vesting,
-          // Phase 16: Add requested_by
-          requested_by: deed.requested_by
-        };
-        console.log('[Preview] PDF payload:', pdfPayload);
-        
-        const res = await generateWithRetry(`/api/generate/${endpoint}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          },
-          body: JSON.stringify(pdfPayload)
-        });
-
-        if (!res.ok) {
-          // Only retry on server errors (500+), not client errors (400)
-          if (res.status >= 500 && retryCount < 2) {
-            console.warn(`[Preview] Server error ${res.status}, will retry (${retryCount + 1}/3)`);
-            setRetryCount(prev => prev + 1);
-            throw new Error(`Server error (${res.status}). Retrying...`);
-          } else {
-            // Client error (400, 403, etc.) OR max retries reached - don't retry
-            const errorText = await res.text();
-            console.error(`[Preview] Error ${res.status}:`, errorText);
-            // Set retryCount to max to prevent further attempts
-            setRetryCount(3);
-            throw new Error(`Failed to generate PDF: ${errorText || res.statusText}`);
-          }
+        const res = await apiFetch(`/deeds/${deedId}/download`, {},
+                                   { label: 'Loading this deed' });
+        if (res.status === 409) {
+          // Not an error: a draft honestly has no instrument yet.
+          const body = await res.json().catch(() => ({}));
+          setNotGenerated(body.detail
+            || 'This deed has not been generated yet.');
+          return;
         }
-
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        setPdfUrl(url);
-        setRetryCount(0); // Reset retry count on success
-        console.log('[Preview] PDF generation successful');
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.detail || `Could not load the document (${res.status})`);
+        }
+        url = window.URL.createObjectURL(await res.blob());
+        if (!revoked) setPdfUrl(url);
       } catch (e: any) {
-        console.error('[Preview] PDF generation error:', e);
-        setError(e.message || 'Failed to generate PDF');
+        if (e instanceof SessionExpiredError) return;
+        // §4: a document we could not fetch says so. An empty frame
+        // would read as a deed with nothing in it.
+        setError(e?.message || 'Could not load this deed\u2019s document');
       } finally {
-        setGenerating(false);
+        setLoadingPdf(false);
       }
-    };
-
-    // Only attempt generation if:
-    // 1. Deed is loaded
-    // 2. No PDF URL yet
-    // 3. Not currently generating
-    // 4. Not exceeded retry limit
-    if (deed && !pdfUrl && !generating && retryCount < 3) {
-      generatePDF();
-    }
-  }, [deed, pdfUrl, generating, retryCount]);
+    })();
+    return () => { revoked = true; if (url) window.URL.revokeObjectURL(url); };
+  }, [deed, deedId, pdfUrl, loadingPdf]);
 
   // Download handler
   const handleDownload = () => {
@@ -295,8 +255,9 @@ export default function DeedPreviewPage() {
     );
   }
 
-  // Validation error state - deed loaded but has incomplete data
-  if (validationErrors.length > 0 && deed) {
+  // A draft has no instrument yet. Not an error — a normal state with
+  // an obvious next step, which is the builder.
+  if (notGenerated && deed) {
     return (
       <div style={{ display: 'flex' }}>
         <Sidebar />
@@ -304,21 +265,16 @@ export default function DeedPreviewPage() {
           <div className="wizard-container">
             <div className="preview-error">
               <div className="error-icon">📝</div>
-              <h2>Deed Data Incomplete</h2>
-              <p>This deed cannot be generated because some required information is missing:</p>
-              <ul style={{ textAlign: 'left', marginTop: '1rem', marginBottom: '1.5rem' }}>
-                {validationErrors.map((err, i) => (
-                  <li key={i} style={{ color: '#dc2626' }}>{err}</li>
-                ))}
-              </ul>
+              <h2>This deed has not been generated yet</h2>
+              <p>{notGenerated}</p>
               <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
                 <button onClick={handleEdit} className="btn-primary">
                   <PencilIcon style={{ width: 18, height: 18 }} />
-                  Edit Deed
+                  Continue in the builder
                 </button>
-                <button onClick={() => router.push('/dashboard')} className="btn-secondary">
+                <button onClick={() => router.push('/past-deeds')} className="btn-secondary">
                   <HomeIcon style={{ width: 18, height: 18 }} />
-                  Back to Dashboard
+                  Back to your deeds
                 </button>
               </div>
             </div>
@@ -374,11 +330,12 @@ export default function DeedPreviewPage() {
 
       {/* PDF Viewer */}
       <section className="preview-pdf-section">
-        {generating ? (
+        {loadingPdf ? (
           <div className="pdf-loading">
             <ArrowPathIcon className="animate-spin" style={{ width: 48, height: 48 }} />
-            <p>Generating your document...</p>
-            <small>This may take up to 30 seconds</small>
+            {/* Loading, not generating. This page no longer makes a
+                document — it fetches the one that was recorded. */}
+            <p>Loading the recorded document…</p>
           </div>
         ) : pdfUrl ? (
           <div className="pdf-viewer">

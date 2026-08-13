@@ -368,3 +368,60 @@ def generate_and_store(conn, row) -> str:
     """Render the PDF for a deed row and persist it. Returns the sha256."""
     pdf_bytes = render_deed_pdf(row)
     return store_deed_pdf(conn, row["id"], pdf_bytes)
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Who may be rendered on demand
+# ══════════════════════════════════════════════════════════════════════
+
+class DraftHasNoInstrument(Exception):
+    """A draft was asked for its instrument, and it does not have one."""
+
+    def __init__(self, deed_id: int):
+        self.deed_id = deed_id
+        super().__init__(
+            f"Deed {deed_id} has not been generated yet, so there is no "
+            "document to serve. Finish it in the builder — generating is "
+            "what creates the instrument, and it is recorded once."
+        )
+
+
+def may_self_heal(row) -> bool:
+    """May this deed be rendered on demand and stored as its instrument?
+
+    ═══ WHY THIS IS A RULE AND NOT AN `if` IN THE HANDLER ═══
+
+    `GET /deeds/{id}/download` serves the stored artifact, and renders +
+    stores one when a deed has none. That self-heal exists for LEGACY
+    ROWS — deeds completed before the stored-PDF pipeline, which have a
+    finished document and simply never had it captured.
+
+    It cannot tell a legacy row from a DRAFT, and the difference is
+    severe. `store_deed_pdf` sets `status = 'completed'`, stamps
+    `completed_at`, and is INSERT-OR-REFUSE by design (§9): the first
+    artifact stored for a deed is the only one it will ever have. So
+    rendering a draft on demand does not preview it — **it finalises it,
+    permanently, with whatever half-entered fields it had at that
+    moment.**
+
+    Nothing in the API stopped that. What stopped it was a button:
+    Past Deeds renders Download only when `status === "completed"`. A
+    rule that lives in a screen is a rule the next screen does not have,
+    and this ticket adds a second surface that wants the same document.
+
+    ═══ WHAT IT DECIDES ═══
+
+    A deed that has already been completed may be rendered on demand —
+    it HAS an instrument, we merely failed to keep the bytes. A draft may
+    not: it has no instrument yet, and saying so is the honest answer.
+    Generation stays the act that creates one, in the builder, once.
+    """
+    status = (row.get("status") or "draft").strip().lower()
+    if status == "completed":
+        return True
+    # `completed_at` is stamped at store time and never cleared, so a row
+    # carrying one has been through generation whatever its status says.
+    # Checked second, and separately, because the two disagreeing is a
+    # real state — a deleted deed keeps its completion — and reading only
+    # `status` would refuse a legacy row that has a document.
+    return row.get("completed_at") is not None
