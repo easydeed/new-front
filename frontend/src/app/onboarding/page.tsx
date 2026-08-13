@@ -29,9 +29,37 @@ export default function OnboardingPage() {
   const router = useRouter()
   const [county, setCounty] = useState("Los Angeles")
   const [loading, setLoading] = useState(false)
+  const [skipping, setSkipping] = useState(false)
+  // Set when the skip could not be recorded — she is told before
+  // the navigation, because the consequence lands on another day.
+  const [skipNotice, setSkipNotice] = useState(false)
   const [error, setError] = useState("")
 
+  /**
+   * SETTINGS1 — RETRY, because the first thing anybody does in this
+   * product is the thing we least want to lose.
+   *
+   * The audit saw this PATCH return 503. A single attempt against a
+   * service that cold-starts is a coin flip at the worst possible
+   * moment, so it is attempted twice with a pause between.
+   *
+   * Retrying is asking again, not deciding: a failure that survives both
+   * attempts is REPORTED, never swallowed.
+   */
   const saveProfile = async (body: { default_county?: string; onboarding_completed: boolean }) => {
+    let lastError: Error | null = null
+    for (const wait of [0, 1200]) {
+      if (wait) await new Promise((r) => setTimeout(r, wait))
+      try {
+        return await saveProfileOnce(body)
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error("Save failed")
+      }
+    }
+    throw lastError
+  }
+
+  const saveProfileOnce = async (body: { default_county?: string; onboarding_completed: boolean }) => {
     const token = localStorage.getItem("access_token")
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"}/users/profile`,
@@ -71,13 +99,34 @@ export default function OnboardingPage() {
   }
 
   const handleSkip = async () => {
-    // Skip still records completion server-side so the dashboard gate stops
-    // re-prompting; if the save fails, this device passes via localStorage
-    // and a fresh device gets asked again — which is the honest outcome.
+    /**
+     * SETTINGS1 — SKIP MAY LEAVE, BUT IT MAY NOT LIE.
+     *
+     * This swallowed the failure entirely. The comment called that "the
+     * honest outcome" because a fresh device would ask again — but that
+     * describes the SYSTEM's state, not what the person knows. What
+     * actually happened: `onboarding_completed` stayed false, the
+     * dashboard gate re-fired, and she was returned to onboarding
+     * forever with no indication why.
+     *
+     * A trap loop, and worse than a lost field: a lost field is noticed
+     * once, a loop is noticed every time and explains itself never.
+     *
+     * Skipping still navigates — "skip" means get me out of here, and
+     * holding her hostage to our own 503 would be a second failure on
+     * top of the first. But she is TOLD, so a repeat prompt is a thing
+     * she was warned about rather than a product that will not let her
+     * past.
+     */
+    setSkipping(true)
     try {
       await saveProfile({ onboarding_completed: true })
     } catch {
-      // non-blocking: skip means "get me out of here"
+      setSkipNotice(true)
+      // Long enough to read before the page changes under her.
+      await new Promise((r) => setTimeout(r, 2600))
+    } finally {
+      setSkipping(false)
     }
     localStorage.setItem("onboarding_completed", "true")
     router.push("/dashboard")
@@ -97,11 +146,22 @@ export default function OnboardingPage() {
           <button
             type="button"
             onClick={handleSkip}
-            className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
+            disabled={skipping}
+            className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors disabled:opacity-60"
           >
-            Skip for now
+            {skipping ? "Skipping…" : "Skip for now"}
           </button>
         </div>
+        {/* SETTINGS1: the skip was not recorded. She is told BEFORE the
+            navigation, because the consequence — being asked again —
+            arrives on a different day and would otherwise look like the
+            product refusing to let her past. */}
+        {skipNotice && (
+          <div className="max-w-6xl mx-auto mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            We could not record that you skipped setup, so you may be asked
+            again next time you sign in. Taking you to your dashboard now.
+          </div>
+        )}
       </header>
 
       {/* Centered single-step */}

@@ -721,6 +721,152 @@ we reach it.
   **Take the symptom, discard the diagnosis, verify.** An external
   auditor sees behaviour correctly and can only guess at mechanism — and
   a guess stated confidently reads exactly like a finding.
+- **The officer's company reaches a deed by DEFAULT, not by becoming a
+  partner** (SETTINGS1 item 5, owner ruling reversed on the report,
+  2026-08-13). She gave us her company at signup and typed it again in
+  Settings; "Recording Requested By" is a Partner picker, so she would
+  have had to enter it a third time.
+
+  Auto-creating a partner row is cheap — `partners` needs `company_name`,
+  `created_by_user_id`, `category`, `role`, all of which we have — and
+  it is still the wrong move. **A partner is a COUNTERPARTY**: somebody
+  you send things to. Her own company is not one, and auto-inserting it
+  makes the picker a list where one entry means something categorically
+  different from the rest. That is the two-populations problem ruled in
+  DEEDDETAIL, one table over.
+
+  So: the requested-by field DEFAULTS from `user_profiles.company_name`,
+  and the picker stays for actual counterparties. Not built in
+  SETTINGS1 — it is a builder change and belongs with the builder.
+
+- **`users.company_name` and `user_profiles.company_name` both exist**
+  (found 2026-08-13 while extending ProfilePatch; NOT resolved). Two
+  columns for one fact, in two tables. `/users/profile` returns the
+  `users` one; SETTINGS1 patches that one. `user_profiles.company_name`
+  is written by the enhanced-profile endpoint and read by nothing this
+  ticket touched.
+
+  Ruling wanted before the requested-by default is built, because that
+  feature has to read ONE of them and picking the wrong one is a field
+  that silently disagrees with Settings.
+
+- **Checkout returns to the WRONG TAB, and the confirmation is already
+  built** (tabled by the owner 2026-08-13, after verifying the first
+  successful payment in the product's history end to end — card charged,
+  webhook received, plan flipped to professional).
+
+  `success_url` is `{FRONTEND_URL}/account-settings?success=true` with no
+  tab, and `activeTab` defaults to `"profile"`. So somebody who has just
+  paid $99 lands on a form asking for their phone number and has to hunt
+  for evidence that anything happened.
+
+  **The confirmation is not missing — it is unreachable.** MONEY1's
+  banner renders under `activeTab === "billing" && checkout`, and the
+  retry/refetch effect fires correctly on `?success=true` regardless of
+  tab. The plan updates, the banner is composed, and she never sees it.
+
+  Same shape this wave keeps finding: the thing exists and nothing
+  connects to it — the orphaned `/deeds/{id}/preview`, the unused
+  `user_profiles.business_address`, now this.
+
+  **Fix:** deep-link the return to the billing tab — `success_url` gains
+  a tab parameter and the page reads it — alongside the `?success=true`
+  retry and refetch already ruled and shipped. Both halves of the same
+  return trip.
+
+  **OWNER-RULED: fold into the next billing-adjacent PR, do not fire
+  standalone.** Small, and it belongs with the work it completes.
+
+- **RULED 2026-08-13 — the requested-by default: LAST-USED PARTNER wins
+  over own-company.** Confirmed on the report.
+
+  **Her own company is the FALLBACK FOR A BLANK FIELD, not a preference
+  that should override an explicit prior choice.** If she picked a
+  partner last time, that is a decision she made; the company default
+  exists for the case where no decision exists.
+
+  Pinned as an ORDERING rather than an outcome, so flipping it is
+  somebody's decision rather than a diff nobody notices. Both orders have
+  a wrong case — last-partner re-imposes a title company used once for an
+  unusual deal; own-company re-imposes her own name on an officer who
+  always records under a partner — which is exactly why the tie-break is
+  written down instead of re-derived.
+
+- **A DEFECT THAT PRODUCES NO ERROR — the COALESCE case** (SETTINGS1
+  item 5, 2026-08-13). The best kind of finding, and the hardest class
+  to notice.
+
+  Moving the company read to `users` means anchoring the join on `users`,
+  which means a person with no `user_profiles` row comes back as a dict
+  of NULLs rather than as None. `auto_populate_company_info` then reads
+  falsy — and **a column's `DEFAULT TRUE` never applies to a row that was
+  never inserted.**
+
+  Nothing raises. Nothing logs. The deed pre-fill would simply have been
+  absent for every officer who never touched the old profile endpoint.
+
+  **Absence looks like a design decision.** That is the whole reason this
+  class survives: a missing feature reads as a feature nobody built, and
+  there is no error message to search for. Fixed with an explicit
+  COALESCE and pinned by name.
+
+- **"A DEFAULT IS NOT TYPING" — permanent, beside `hasMeaningfulData`'s
+  own comment** (SETTINGS1 item 5, 2026-08-13).
+
+  A RULE THAT BROKE ITSELF. `hasMeaningfulData` carries the comment "an
+  untouched builder must not mint rows", and `requestedBy` is one of the
+  fields it counts. The localStorage prefill populates `requestedBy` when
+  the Recording section is expanded — so expand it, look, leave, and the
+  2.5s autosave debounce writes a deed row holding one company name and
+  nothing else.
+
+  Pre-existing for every officer who had ever picked a partner. The new
+  own-company default would have extended it to everyone with a company
+  on their profile.
+
+  The sentence lives in the source beside the comment it repairs.
+
+- **THE VALUABLE HALF OF A CLASS SWEEP IS WHAT IT REJECTS** — `role` is
+  a name collision, not a duplicated fact (2026-08-13).
+
+  `users` and `user_profiles` both carry `role`. It is NOT the
+  `company_name` disease and merging them would be the bug:
+
+    - `users.role` is AUTHORIZATION — the value `is_admin_role()` reads
+      to gate the admin console.
+    - `user_profiles.role` is PROFESSIONAL — escrow_officer /
+      title_officer / notary, used to shape deed defaults.
+
+  One word, two meanings, two correct columns.
+
+  Recorded because **"we swept and found nothing else" only means
+  something if it says what it looked at.** A sweep that reports zero
+  findings and no inventory is indistinguishable from a sweep that did
+  not run.
+
+  **Pre-finding for ROLE1**: that ticket inherits this, and the collision
+  is the thing to name rather than resolve.
+
+- **FIFTH SIGHTING: a string-presence pin over an UNREACHABLE branch**
+  (SETTINGS1 item 5 mutation probe, 2026-08-13).
+
+  Three endpoint pins asserted that `PROFILE_ELSEWHERE` and
+  `status_code=400` APPEAR IN THE SOURCE. The probe set `moved = []`,
+  leaving the raise block intact and unreachable. All three passed.
+
+  This was on a rule cited two tickets earlier — *a string-presence pin
+  cannot tell REACHABLE from PRESENT* — by the same author, in the same
+  wave.
+
+  **THE LESSON DOES NOT TRANSFER BY BEING KNOWN.** Knowing the rule did
+  not stop the pin being written that way; only converting the assertion
+  to a CALL catches it. Where a pin's subject is a branch, the pin must
+  execute the branch.
+
+  Same shape as the `document_party` probe in DEEDDETAIL Unit 2 hours
+  later: a contact check deleted from the constructor, still green,
+  because the key-set assert raised the SAME EXCEPTION TYPE. Matching the
+  reason rather than the type is the same fix at a smaller scale.
 
 ## Parked tickets (scoped, not scheduled)
 

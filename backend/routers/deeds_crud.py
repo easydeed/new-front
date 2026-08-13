@@ -683,6 +683,53 @@ def supersede_endpoint(deed_id: int, body: SupersedeRequest,
     }
 
 
+@router.get("/deeds/{deed_id}/activity")
+def activity_endpoint(deed_id: int, user_id: int = Depends(get_current_user_id)):
+    """What happened on this deed, from what was actually recorded.
+
+    There is no events table, so this is a UNION of columns that exist
+    for other reasons — which is precisely the shape in which a
+    fabricated history gets built. `services/deed_activity` is where the
+    epistemics live: every entry carries the column it came from and
+    whether it is an EVENT (an act with a surviving record) or a DERIVED
+    timestamp (a column that merely carries a time).
+
+    The distinction is in the payload rather than in a comment because a
+    consumer cannot recover it. If the API cannot tell them apart,
+    neither can a screen, and the first person to add "expired" will do
+    it because everything already looked like an event.
+
+    This handler assembles NOTHING. It fetches rows and hands them over.
+    """
+    from services import deed_activity
+
+    deed = _pcor_deed_row(deed_id, user_id)
+    with db.conn.cursor() as cur:
+        cur.execute("""SELECT id, recipient_name, recipient_email, status,
+                              created_at, viewed_at, responded_at
+                         FROM deed_shares WHERE deed_id = %s""", (deed_id,))
+        shares = [dict(r) for r in (cur.fetchall() or [])]
+        cur.execute("""SELECT id, created_at, booked_asserted_at, booked_by,
+                              cancelled_at
+                         FROM signing_requests WHERE deed_id = %s""", (deed_id,))
+        signings = [dict(r) for r in (cur.fetchall() or [])]
+        # The one real event log in the product: a row per answer, with
+        # who and when. Joined to its participant for the name only —
+        # §13.1, no contact detail crosses into this payload.
+        cur.execute("""SELECT r.answer, r.asserted_at,
+                              p.name, p.party_role
+                         FROM signing_responses r
+                         JOIN signing_participants p ON p.id = r.participant_id
+                         JOIN signing_requests s ON s.id = p.signing_request_id
+                        WHERE s.deed_id = %s""", (deed_id,))
+        responses = [dict(r) for r in (cur.fetchall() or [])]
+
+    return {"deed_id": deed_id,
+            "entries": deed_activity.activity(dict(deed), shares=shares,
+                                              signings=signings,
+                                              responses=responses)}
+
+
 @router.get("/deeds/{deed_id}/lineage")
 def lineage_endpoint(deed_id: int, user_id: int = Depends(get_current_user_id)):
     """The correction chain, forwards and backwards, all of it readable.

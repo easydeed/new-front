@@ -10,15 +10,12 @@ import { TIERS, priceLabel } from "@/lib/pricing"
 type Tab = "profile" | "billing" | "notifications" | "security"
 
 interface UserProfile {
-  first_name?: string
-  last_name?: string
+  full_name?: string
   email?: string
   phone?: string
-  company?: string
-  street_address?: string
-  city?: string
+  company_name?: string
+  business_address?: string
   state?: string
-  zip_code?: string
   plan?: string
   plan_limits?: any
   /* PRICING1: the Widget Add-on TAB is deleted (owner-ruled). It priced
@@ -271,7 +268,10 @@ function AccountSettingsPage() {
 
             {/* Tab Content */}
             <div className="p-8">
-              {activeTab === "profile" && <ProfileTab userProfile={userProfile} />}
+              {activeTab === "profile" && (
+                <ProfileTab userProfile={userProfile}
+                            onSaved={() => fetchUserProfile({ silent: true })} />
+              )}
               {/* MONEY1 — back from checkout, saying only what is known.
                   Stripe redirected, so the payment is OBSERVED. Whether
                   the plan has caught up is a separate fact, and while it
@@ -325,131 +325,178 @@ function AccountSettingsPage() {
 }
 
 // Profile Tab Component
-function ProfileTab({ userProfile }: { userProfile: UserProfile | null }) {
+/**
+ * SETTINGS1 — the tab that told her it had saved.
+ *
+ * ═══ WHAT `handleSave` USED TO BE ═══
+ *
+ *     const handleSave = () => { toast.success("Profile saved!") }
+ *
+ * Three lines. No request, and a SUCCESS TOAST. Not a missing
+ * confirmation — a fabricated one, on the one screen where somebody is
+ * deliberately handing us their details. Nine fields vanished on every
+ * reload and nobody suspected a bug, because the product had said it
+ * worked.
+ *
+ * Wiring the button was not enough: `ProfilePatch` accepted
+ * `default_county` and `onboarding_completed` and nothing else, so
+ * there was no endpoint to wire it TO. The patch surface came first.
+ *
+ * ═══ AND THE FIELDS WERE READING KEYS THE SERVER NEVER SENT ═══
+ *
+ * `first_name`, `last_name`, `company`, `street_address`, `city`,
+ * `zip_code` — six of nine. The server sends `full_name` and
+ * `company_name`, and has never had an address in that shape. A missing
+ * key is `undefined`, `undefined` renders blank, and the page showed
+ * somebody their own account with their name and company missing. That
+ * reads as "we lost your data".
+ *
+ * FLOW1 item 0's defect in its fourth habitat. The fix is the same:
+ * ONE set of names, and both halves use it.
+ *
+ * ═══ THE RULINGS BAKED IN HERE ═══
+ *
+ * ONE NAME FIELD. First/Last is gone. The server has `full_name`;
+ * splitting a name to satisfy a form is a data-model decision made
+ * backwards, and Recording Requested By prints a name AS WRITTEN, not as
+ * parsed.
+ *
+ * ONE ADDRESS FIELD, backed by `user_profiles.business_address` — which
+ * was in the schema the whole time. The three-field section was built
+ * against columns that never existed anywhere.
+ *
+ * EMAIL IS READ-ONLY. It is the login identity; changing it is an
+ * account operation with a verification step, not a text input on a
+ * settings form. Showing it as editable and then not saving it would be
+ * the same lie in a smaller place.
+ */
+function ProfileTab({ userProfile, onSaved }: {
+  userProfile: UserProfile | null
+  onSaved: () => void
+}) {
   const [formData, setFormData] = useState({
-    first_name: userProfile?.first_name || "",
-    last_name: userProfile?.last_name || "",
-    email: userProfile?.email || "",
+    full_name: userProfile?.full_name || "",
+    company_name: userProfile?.company_name || "",
     phone: userProfile?.phone || "",
-    company: userProfile?.company || "",
-    street_address: userProfile?.street_address || "",
-    city: userProfile?.city || "",
     state: userProfile?.state || "",
-    zip_code: userProfile?.zip_code || "",
+    business_address: userProfile?.business_address || "",
   })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSave = () => {
-    toast.success("Profile saved!")
+  // The profile arrives after mount, so the form follows it in. Without
+  // this the fields stay empty even once the data lands — which was
+  // half of what "the page does not load what we have" looked like.
+  useEffect(() => {
+    if (!userProfile) return
+    setFormData({
+      full_name: userProfile.full_name || "",
+      company_name: userProfile.company_name || "",
+      phone: userProfile.phone || "",
+      state: userProfile.state || "",
+      business_address: userProfile.business_address || "",
+    })
+  }, [userProfile])
+
+  const handleSave = async () => {
+    setSaving(true)
+    setError(null)
+    try {
+      const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
+      const token = localStorage.getItem("access_token")
+      const response = await fetch(`${api}/users/profile`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.detail || `Save failed (${response.status})`)
+      }
+      // Re-read rather than trusting what we sent: the server normalises
+      // whitespace and upper-cases the state, so what she sees after
+      // saving is what is stored, not what she typed.
+      onSaved()
+      toast.success("Profile saved")
+    } catch (err) {
+      // §4: a save that did not happen must never look like one that
+      // did. THIS IS THE WHOLE TICKET — the previous version of this
+      // function reported success unconditionally.
+      const message = err instanceof Error ? err.message : "Could not save your profile"
+      setError(message)
+      toast.error(message)
+    } finally {
+      setSaving(false)
+    }
   }
+
+  const field = (label: string, key: keyof typeof formData, type = "text") => (
+    <div>
+      <label className="block text-sm font-medium text-slate-700 mb-2">{label}</label>
+      <input
+        type={type}
+        value={formData[key]}
+        onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
+        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
+      />
+    </div>
+  )
 
   return (
     <div className="space-y-8">
-      {/* Personal Information */}
       <div>
-        <h3 className="text-xl font-bold text-slate-800 mb-6">Personal Information</h3>
+        <h3 className="text-xl font-bold text-slate-800 mb-6">Your details</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">First Name</label>
-            <input
-              type="text"
-              value={formData.first_name}
-              onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
-            />
+          <div className="md:col-span-2">
+            {field("Name", "full_name")}
+            <p className="mt-2 text-xs text-slate-500">
+              Printed as written on deeds and in emails.
+            </p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Last Name</label>
-            <input
-              type="text"
-              value={formData.last_name}
-              onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Email Address</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
             <input
               type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
+              value={userProfile?.email || ""}
+              readOnly
+              className="w-full px-4 py-3 border border-slate-200 bg-slate-50 text-slate-500 rounded-lg"
             />
+            <p className="mt-2 text-xs text-slate-500">
+              This is how you sign in. Contact us to change it.
+            </p>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Phone Number</label>
-            <input
-              type="tel"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
-            />
-          </div>
+          {field("Phone", "phone", "tel")}
+          {field("Company", "company_name")}
+          {field("State", "state")}
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-slate-700 mb-2">Company</label>
-            <input
-              type="text"
-              value={formData.company}
-              onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
-            />
+            {field("Business address", "business_address")}
+            <p className="mt-2 text-xs text-slate-500">
+              Used as the return address on deeds you record.
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Address Information */}
-      <div>
-        <h3 className="text-xl font-bold text-slate-800 mb-6">Address Information</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-slate-700 mb-2">Street Address</label>
-            <input
-              type="text"
-              value={formData.street_address}
-              onChange={(e) => setFormData({ ...formData, street_address: e.target.value })}
-              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">City</label>
-            <input
-              type="text"
-              value={formData.city}
-              onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">State</label>
-            <input
-              type="text"
-              value={formData.state}
-              onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">ZIP Code</label>
-            <input
-              type="text"
-              value={formData.zip_code}
-              onChange={(e) => setFormData({ ...formData, zip_code: e.target.value })}
-              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
-            />
-          </div>
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {error}
         </div>
-      </div>
+      )}
 
       <button
         onClick={handleSave}
-        className="px-8 py-4 bg-[#7C4DFF] hover:bg-[#6a3de8] text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all"
+        disabled={saving}
+        className="px-8 py-4 bg-[#7C4DFF] hover:bg-[#6a3de8] disabled:opacity-60 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all"
       >
-        Save Changes
+        {saving ? "Saving…" : "Save Changes"}
       </button>
     </div>
   )
 }
 
-// Billing Tab Component
 function BillingTab({
   userProfile,
   onUpgrade,

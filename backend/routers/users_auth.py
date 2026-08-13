@@ -380,7 +380,7 @@ async def get_user_profile_endpoint(user_id: int = Depends(get_current_user_id))
         # from this response, never from localStorage alone (bug #10).
         with db.conn.cursor() as cur:
             cur.execute("""
-                SELECT default_county, onboarding_completed
+                SELECT default_county, onboarding_completed, business_address
                 FROM user_profiles WHERE user_id = %s
             """, (user_id,))
             prof = cur.fetchone()
@@ -394,6 +394,11 @@ async def get_user_profile_endpoint(user_id: int = Depends(get_current_user_id))
         return {
             "default_county": prof[0] if prof else None,
             "onboarding_completed": bool(prof[1]) if prof else False,
+            # SETTINGS1 — the address the Settings form always wanted and
+            # never had. The column was in `user_profiles` the whole
+            # time; the form was built against street/city/ZIP, which
+            # exist nowhere and never did.
+            "business_address": (prof[2] if prof and len(prof) > 2 else None),
             "total_deeds": total_deeds,
             "id": user[0],
             "email": user[1],
@@ -452,8 +457,51 @@ async def get_user_profile_endpoint(user_id: int = Depends(get_current_user_id))
         raise HTTPException(status_code=500, detail=f"Failed to get profile: {str(e)}")
 
 class ProfilePatch(BaseModel):
+    """SETTINGS1 — the fields the Settings form can actually save.
+
+    ═══ WHY THIS GREW ═══
+
+    Settings rendered nine fields and a Save button whose handler was:
+
+        const handleSave = () => { toast.success("Profile saved!") }
+
+    Three lines, no request, and a SUCCESS TOAST. Not a missing
+    confirmation — a fabricated one, on the single screen where somebody
+    is deliberately entrusting us with their details. That is why nine
+    fields vanished on reload with nobody suspecting a bug: the product
+    told her it had worked.
+
+    Wiring the button was not enough, because there was nothing to wire
+    it to: this model accepted `default_county` and
+    `onboarding_completed` and nothing else. No name, no company, no
+    phone.
+
+    ═══ WHAT IS HERE AND WHAT IS NOT ═══
+
+    Every field below has a COLUMN. Nothing is accepted that cannot be
+    stored — the LEGAL1 rule one screen over: a field we take and cannot
+    keep is worse than a field we do not offer.
+
+    `full_name` stays ONE field (owner-ruled). The form showed First and
+    Last; the server has only `full_name`. Splitting a name to satisfy a
+    form is a data-model decision made backwards, and Recording Requested
+    By prints a name AS WRITTEN, not as parsed.
+
+    Street/city/ZIP are NOT here. There are no such columns and never
+    were — the form was built against imaginary ones. What does exist is
+    `user_profiles.business_address`, already in the schema and unused by
+    that form, so the address is one field backed by the column that was
+    there all along.
+    """
     default_county: Optional[str] = None
     onboarding_completed: Optional[bool] = None
+    # users
+    full_name: Optional[str] = None
+    company_name: Optional[str] = None
+    phone: Optional[str] = None
+    state: Optional[str] = None
+    # user_profiles
+    business_address: Optional[str] = None
 
 @router.patch("/users/profile")
 async def patch_user_profile(
@@ -463,29 +511,52 @@ async def patch_user_profile(
     """Partial profile update (F3 — the endpoint onboarding used to PATCH
     didn't exist, bug #9). Only touches the fields provided; unlike
     POST /users/profile/enhanced it never clobbers unspecified columns."""
-    if patch.default_county is None and patch.onboarding_completed is None:
+    given = patch.dict(exclude_unset=True)
+    if not given:
         raise HTTPException(status_code=400, detail="No fields to update")
     conn = None
     try:
         conn = db.get_db_connection()
         with conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO user_profiles (user_id, default_county, onboarding_completed)
-                VALUES (%s, %s, COALESCE(%s, FALSE))
-                ON CONFLICT (user_id) DO UPDATE SET
-                    default_county = COALESCE(EXCLUDED.default_county,
-                                              user_profiles.default_county),
-                    onboarding_completed = COALESCE(%s,
-                                              user_profiles.onboarding_completed),
-                    updated_at = CURRENT_TIMESTAMP
-            """, (user_id, patch.default_county, patch.onboarding_completed,
-                  patch.onboarding_completed))
+            # ── users: name, company, phone, state ────────────────────
+            #
+            # Whitespace normalised at the WRITE and case left alone —
+            # these print on deed faces and in emails, and a name is
+            # spelled the way its owner spells it.
+            user_fields = {
+                "full_name": clean_profile_text(patch.full_name),
+                "company_name": clean_profile_text(patch.company_name),
+                "phone": clean_profile_text(patch.phone),
+                "state": (patch.state or "").upper() or None,
+            }
+            user_fields = {k: v for k, v in user_fields.items() if k in given}
+            if user_fields:
+                sets = ", ".join(f"{k} = %s" for k in user_fields)
+                cur.execute(f"UPDATE users SET {sets} WHERE id = %s",
+                            (*user_fields.values(), user_id))
+
+            # ── user_profiles: county, onboarding, business address ───
+            profile_fields = {"default_county", "onboarding_completed",
+                              "business_address"}
+            if profile_fields & set(given):
+                cur.execute("""
+                    INSERT INTO user_profiles (user_id, default_county,
+                                               onboarding_completed, business_address)
+                    VALUES (%s, %s, COALESCE(%s, FALSE), %s)
+                    ON CONFLICT (user_id) DO UPDATE SET
+                        default_county = COALESCE(EXCLUDED.default_county,
+                                                  user_profiles.default_county),
+                        onboarding_completed = COALESCE(%s,
+                                                  user_profiles.onboarding_completed),
+                        business_address = COALESCE(EXCLUDED.business_address,
+                                                  user_profiles.business_address),
+                        updated_at = CURRENT_TIMESTAMP
+                """, (user_id, patch.default_county, patch.onboarding_completed,
+                      patch.business_address, patch.onboarding_completed))
             conn.commit()
-        return {
-            "status": "updated",
-            "default_county": patch.default_county,
-            "onboarding_completed": patch.onboarding_completed,
-        }
+        # What was actually written, echoed back — so the screen renders
+        # the server's answer rather than the value it hoped for.
+        return {"status": "updated", **given}
     except Exception as e:
         try:
             if conn and not conn.closed:

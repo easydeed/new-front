@@ -185,6 +185,10 @@
  ],
  [
   "GET",
+  "/deeds/{deed_id}/activity"
+ ],
+ [
+  "GET",
   "/deeds/{deed_id}/death-statement"
  ],
  [
