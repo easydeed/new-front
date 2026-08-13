@@ -194,3 +194,62 @@ def test_neither_refusal_writes_anything():
             make_client(session).post("/payments/webhook", content=b"{}",
                                       headers={"stripe-signature": "t=1,v1=stub"})
         assert session.statements == [], f"a refused event wrote rows (secret={secret!r})"
+
+
+def test_invoice_created_actually_inserts():
+    """MONEY1 — THIS HANDLER HAD NEVER ONCE SUCCEEDED.
+
+    The insert ended `:items::jsonb`. In a SQLAlchemy `text()`, `::`
+    collides with bind-parameter syntax and the statement never parses,
+    so every `invoice.created` raised ProgrammingError and 500'd.
+
+    It survived because NO TEST EVER POSTED THIS EVENT. The suite covered
+    checkout, subscriptions and payments; the one handler nothing
+    exercised is the one that had never worked.
+
+    A trial invoice is used because that is what production sent: no
+    number, no due_date, null tax, zero amounts.
+    """
+    session = RecordingSession()
+    response = post_event(session, {"type": "invoice.created", "data": {"object": {
+        "id": "in_TRIAL", "number": None, "customer": "cus_T",
+        "amount_due": 0, "subtotal": 0, "total": 0, "tax": None,
+        "currency": "usd", "status": "draft", "created": 1786000000,
+        "period_start": 1786000000, "period_end": 1788592000,
+        "due_date": None, "metadata": {},
+        "lines": {"data": [{"description": "Trial", "quantity": 1, "amount": 0,
+                            "price": {"unit_amount": None}}]},
+    }}})
+    assert response.status_code == 200, response.text
+    assert statements_matching(session, "INSERT INTO invoices"), (
+        "the handler returned 200 without inserting the invoice")
+
+
+def test_no_bind_parameter_is_followed_by_a_postgres_cast():
+    """THE CLASS, swept.
+
+    `:name::type` cannot be parsed by SQLAlchemy's `text()`. It is a
+    silent trap: it looks like ordinary Postgres, it passes review, and
+    it fails only when the statement actually runs — which for a webhook
+    handler nothing tested meant "in production, forever".
+
+    `CAST(:name AS type)` is the same thing and unambiguous.
+    """
+    import re
+    from pathlib import Path
+
+    from tests.source_text import code_only
+
+    backend = Path(__file__).resolve().parents[1]
+    offenders = []
+    for path in backend.rglob("*.py"):
+        if {"tests", "__pycache__", "venv", ".venv"} & set(path.parts):
+            continue
+        src = code_only(path)
+        for i, line in enumerate(src.splitlines(), start=1):
+            if re.search(r":[a-z_][a-z_0-9]*::", line):
+                offenders.append(f"{path.relative_to(backend)}:{i}")
+    assert offenders == [], (
+        "a bind parameter is followed by a Postgres cast, which "
+        "SQLAlchemy's text() cannot parse — use CAST(:name AS type): "
+        + ", ".join(offenders))

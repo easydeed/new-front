@@ -132,6 +132,41 @@ def create_tables():
         # Any deliberate test-only divergence requires a cited comment.
         # ──────────────────────────────────────────────────────────────
         for stmt in [
+            # ── MONEY1: THE COLUMN THAT ATE EVERY PAYMENT ─────────────
+            #
+            # `updated_at` is in the CREATE TABLE above and was in NO
+            # ALTER. On production's `users` — which predates it —
+            # `CREATE TABLE IF NOT EXISTS` is a no-op, so the column
+            # never arrived. Confirmed against production: 22 columns,
+            # `updated_at` not among them.
+            #
+            # Every webhook handler that writes to `users` does
+            # `SET ... updated_at = now()`, so every one of them threw
+            # `UndefinedColumn` and returned 500. Stripe's delivery log
+            # showed the shape exactly: checkout.session.completed and
+            # invoice.created failing while customer.subscription.created
+            # and invoice.payment_succeeded — which touch other tables —
+            # returned 200. The plan upgrade lives ONLY in the crashing
+            # handler, so customers were charged and never upgraded.
+            #
+            # INVISIBLE LOCALLY, which is the whole trap: a local
+            # database is created fresh from the current CREATE, so it
+            # has the column and every test passes.
+            #
+            # Third occurrence of this class — `subscriptions` missing in
+            # production (ADMIN1), the warning comment on `deed_pdfs`
+            # ("CREATE TABLE IF NOT EXISTS does not alter them"), and now
+            # this. First one that cost money.
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+            # FOUND BY THE PIN ABOVE ON ITS FIRST RUN — the same class,
+            # two of them live. Cross-checked against production's 22
+            # columns: `organization_id` is there, `is_platform_admin`
+            # and `widget_addon` are NOT. Any code path writing either
+            # would have thrown UndefinedColumn exactly as the payment
+            # path did.
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_platform_admin BOOLEAN DEFAULT FALSE",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS organization_id INTEGER",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS widget_addon BOOLEAN DEFAULT FALSE",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name VARCHAR(255)",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'user'",

@@ -258,6 +258,24 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         return {"ok": True}
 
     # --- Invoice created ---
+    #
+    # ── MONEY1: THIS HANDLER HAS NEVER ONCE SUCCEEDED ─────────────────
+    #
+    # The insert ended `:items::jsonb`. In a SQLAlchemy `text()`, `::`
+    # collides with bind-parameter syntax — the statement never parses,
+    # so EVERY `invoice.created` event since this was written raised
+    # ProgrammingError and returned 500. Stripe retried each one and gave
+    # up.
+    #
+    # Nothing to do with the schema: `invoices` exists in production with
+    # 23 columns, more than the 17 written here. Reproduced on a FRESH
+    # local database, which is what separates it from the `users`
+    # column bug in the same log — that one is invisible locally, this
+    # one was always visible and nothing looked.
+    #
+    # It survived because no test ever posted an `invoice.created`
+    # event. `CAST(:items AS jsonb)` says the same thing without the
+    # collision, and the sweep below is the general form.
     if etype == "invoice.created":
         inv = obj
         stripe_invoice_id = inv["id"]
@@ -288,7 +306,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             ) VALUES (
                 :user_id, NULL, :num, :sid, :subtotal, :tax, 0,
                 :total, 0, :amount_due, :currency, :status,
-                :bstart, :bend, :due, :items::jsonb, NULL
+                :bstart, :bend, :due, CAST(:items AS jsonb), NULL
             )
             ON CONFLICT (stripe_invoice_id) DO NOTHING
         """), {

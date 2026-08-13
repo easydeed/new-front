@@ -101,6 +101,12 @@ when their trigger arrives.
 - **MONEY1 — Stripe, owner-side (Tier 3), 2026-08-13.** Two items only
   the owner can do, both blocking a live launch.
 
+  **DIAGNOSIS SETTLED 2026-08-13 — the secret was never the bug.** The
+  delivery log showed events arriving and verifying; two handlers threw
+  500s. Both are now fixed (see below). Setting the secret remains worth
+  doing as hardening, and the reclassification stands, but item 1 below
+  is no longer blocking the paid path.
+
   1. **Set `STRIPE_WEBHOOK_SECRET` on the API service** to the signing
      secret of the endpoint registered in the Stripe dashboard, and
      confirm the endpoint is registered and points at the production
@@ -114,7 +120,14 @@ when their trigger arrives.
      on our side is **sent and rejected with a 400 (signature)** — and
      the handler now says which of the two 400s it is.
 
-  2. **The Stripe account business name reads "EasyDeeds sandbox".** It
+  2. **Report `SELECT count(*) FROM users WHERE subscribe = true`** when
+     LEGAL1 is built. `subscribe` IS a real column — the consent value is
+     STORED, not merely accepted and dropped: written at registration,
+     then unreachable (no read path, no patch path, no unsubscribe). We
+     are holding a consent flag we cannot show, cannot let them change,
+     and cannot honour. Strengthens the stop-collecting ruling.
+
+  3. **The Stripe account business name reads "EasyDeeds sandbox".** It
      appears on the checkout page, in the authorization line, and on
      customer card statements. Must be corrected before live mode.
 

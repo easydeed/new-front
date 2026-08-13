@@ -291,3 +291,78 @@ def test_the_profile_does_not_report_a_cap_nothing_enforces():
         # And it says WHY the values are absent, so a consumer does not
         # read null as "failed to load" and substitute its own default.
         assert '"enforced"' in profile
+
+
+# ══════════════════════════════════════════════════════════════════════
+# 5. MONEY1 — a column only in the CREATE never reaches an old database
+# ══════════════════════════════════════════════════════════════════════
+
+def test_every_users_column_the_code_writes_has_an_ALTER():
+    """THE DEFECT THAT ATE EVERY PAYMENT, AS A RULE.
+
+    `users.updated_at` was in `CREATE TABLE IF NOT EXISTS users` and in
+    no ALTER. Production's `users` predates it, and CREATE IF NOT EXISTS
+    is a NO-OP on an existing table — so the column never arrived.
+    Confirmed against production: 22 columns, no `updated_at`.
+
+    Every webhook handler writing `SET ... updated_at = now()` threw
+    UndefinedColumn and returned 500, which is why
+    checkout.session.completed failed while handlers touching other
+    tables succeeded. The plan upgrade lives only in the failing one.
+
+    INVISIBLE LOCALLY: a fresh database is built from the current CREATE,
+    so it has every column and the whole suite passes. That is why this
+    pin reads the SCHEMA SOURCE rather than a live database — a test
+    against a fresh database cannot see this class at all.
+
+    Scoped to the columns the CODE ACTUALLY WRITES, deliberately. A
+    sweep of every column of every table is the right eventual pin and
+    is NOT this one — a first attempt at it mis-parsed across table
+    boundaries and reported columns belonging to other tables, and a
+    sweep that reports garbage is worse than no sweep. Ledgered.
+    """
+    import re
+    from pathlib import Path
+
+    from tests.source_text import code_only
+
+    backend = Path(__file__).resolve().parents[1]
+    schema = code_only(backend / "database.py")
+    altered = set(re.findall(r"ALTER TABLE users ADD COLUMN IF NOT EXISTS (\w+)", schema))
+
+    # Every column named in an UPDATE/INSERT against `users`, anywhere.
+    written = set()
+    for path in backend.rglob("*.py"):
+        if {"tests", "__pycache__", "venv", ".venv"} & set(path.parts):
+            continue
+        src = code_only(path)
+        for stmt in re.findall(r"UPDATE\s+users\s+SET\s+(.*?)(?:WHERE|\"\"\"|')", src,
+                               re.S | re.I):
+            written.update(re.findall(r"(\w+)\s*=", stmt))
+
+    # `id` is the primary key from the original CREATE and is never added.
+    missing = sorted(c for c in written - altered if c != "id")
+    assert missing == [], (
+        "these columns are written to `users` but have no "
+        "ALTER TABLE ... ADD COLUMN IF NOT EXISTS: " + ", ".join(missing) +
+        " — on a database that predates them the CREATE is a no-op, the "
+        "column is absent, and every write throws UndefinedColumn. This "
+        "cannot be caught by a test against a fresh database.")
+
+
+def test_the_sweep_is_reading_a_plausible_corpus():
+    """A scanner that finds no writes exempts every column."""
+    import re
+    from pathlib import Path
+
+    from tests.source_text import code_only
+
+    backend = Path(__file__).resolve().parents[1]
+    found = 0
+    for path in backend.rglob("*.py"):
+        if {"tests", "__pycache__", "venv", ".venv"} & set(path.parts):
+            continue
+        found += len(re.findall(r"UPDATE\s+users\s+SET", code_only(path), re.I))
+    assert found >= 3, (
+        f"only {found} writes to `users` found — the sweep is no longer "
+        "reading the statements it was written to guard")
