@@ -203,9 +203,13 @@ def test_invoice_created_actually_inserts():
     collides with bind-parameter syntax and the statement never parses,
     so every `invoice.created` raised ProgrammingError and 500'd.
 
-    It survived because NO TEST EVER POSTED THIS EVENT. The suite covered
-    checkout, subscriptions and payments; the one handler nothing
-    exercised is the one that had never worked.
+    IT SURVIVED BECAUSE NO TEST EVER POSTED THIS EVENT, and that is a
+    lesson of its own. The suite covered checkout, subscriptions and
+    payments — the important paths, tested well. "Did we cover the
+    important paths" and "is there a path nothing touches" are DIFFERENT
+    QUESTIONS with different answers, and only the second one finds a
+    handler that has never run in its life. The inventory pin below asks
+    the second.
 
     A trial invoice is used because that is what production sent: no
     number, no due_date, null tax, zero amounts.
@@ -253,3 +257,90 @@ def test_no_bind_parameter_is_followed_by_a_postgres_cast():
         "a bind parameter is followed by a Postgres cast, which "
         "SQLAlchemy's text() cannot parse — use CAST(:name AS type): "
         + ", ".join(offenders))
+
+
+def test_every_webhook_event_the_handler_claims_is_actually_exercised():
+    """THE SECOND QUESTION: is there a path nothing touches?
+
+    `invoice.created` had never succeeded — a plain SQL syntax error,
+    500 on every event since it was written — and it survived because no
+    test ever posted one. The suite covered the important paths and
+    covered them well. It never asked whether some path was covered by
+    nothing at all.
+
+    So: every event type this router branches on must appear in a test.
+    A handler nobody has ever posted to is a handler nobody has ever
+    seen run, and "it looks right" is the only evidence it has.
+    """
+    import re
+    from pathlib import Path
+
+    from tests.source_text import code_only
+
+    backend = Path(__file__).resolve().parents[1]
+    handler = code_only(backend / "phase23_billing" / "router_webhook.py")
+    handled = set(re.findall(r'etype (?:==|in) \(?["\']([a-z_.]+)["\']', handler))
+    handled |= set(re.findall(r'["\']([a-z_]+\.[a-z_.]+)["\']', handler)) & {
+        "customer.subscription.created", "customer.subscription.updated",
+        "customer.subscription.deleted"}
+
+    # ANY quoted event string in a test file, not only a `"type": "..."`
+    # literal. The first draft matched the literal alone and reported six
+    # false positives — BILL1 posts through `_subscription_event("...")`
+    # and the payment tests build theirs the same way. A detector that
+    # only sees one spelling of a call is the same mistake as a
+    # string-presence pin, arriving in the auditor rather than the code.
+    posted = set()
+    for path in backend.glob("tests/test_*.py"):
+        src = path.read_text(encoding="utf-8")
+        posted |= set(re.findall(r'["\']([a-z_]+\.[a-z_.]+)["\']', src))
+
+    untested = sorted(handled - posted)
+    assert untested == [], (
+        "these webhook events are handled and NEVER posted by any test: "
+        + ", ".join(untested) +
+        " — a handler nothing has ever exercised is one whose only "
+        "evidence is that it looks right, which is exactly how "
+        "invoice.created ran broken for its entire life")
+
+
+# ══════════════════════════════════════════════════════════════════════
+# The three handlers the inventory pin found untouched
+# ══════════════════════════════════════════════════════════════════════
+#
+# `invoice.created` had never succeeded and nothing noticed, because
+# nothing had ever posted one. The inventory pin above asked which OTHER
+# handlers were in that position and named three. These are them.
+#
+# Smoke tests deliberately: post a realistic event, assert it does not
+# throw and that it writes what it claims to. That is the bar
+# `invoice.created` failed for its entire life.
+
+def test_invoice_payment_succeeded_runs():
+    session = RecordingSession()
+    r = post_event(session, {"type": "invoice.payment_succeeded", "data": {"object": {
+        "id": "in_paid", "amount_paid": 9900, "total": 9900, "currency": "usd",
+        "payment_intent": "pi_1",
+    }}})
+    assert r.status_code == 200, r.text
+    assert statements_matching(session, "INSERT INTO payment_history")
+
+
+def test_payment_intent_succeeded_runs():
+    session = RecordingSession()
+    r = post_event(session, {"type": "payment_intent.succeeded", "data": {"object": {
+        "id": "pi_2", "amount": 9900, "currency": "usd",
+        "payment_method_types": ["card"], "charges": {"data": [{"id": "ch_1"}]},
+    }}})
+    assert r.status_code == 200, r.text
+    assert statements_matching(session, "INSERT INTO payment_history")
+
+
+def test_charge_refunded_runs():
+    session = RecordingSession()
+    r = post_event(session, {"type": "charge.refunded", "data": {"object": {
+        "id": "ch_1",
+        "refunds": {"data": [{"amount": 9900, "reason": "requested_by_customer"}]},
+    }}})
+    assert r.status_code == 200, r.text
+    assert statements_matching(session, "UPDATE payment_history")

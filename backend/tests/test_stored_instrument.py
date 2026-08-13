@@ -310,10 +310,21 @@ def test_every_users_column_the_code_writes_has_an_ALTER():
     checkout.session.completed failed while handlers touching other
     tables succeeded. The plan upgrade lives only in the failing one.
 
-    INVISIBLE LOCALLY: a fresh database is built from the current CREATE,
-    so it has every column and the whole suite passes. That is why this
-    pin reads the SCHEMA SOURCE rather than a live database — a test
-    against a fresh database cannot see this class at all.
+    STRUCTURALLY BLIND, WHICH IS WHY THREE OCCURRENCES SURVIVED. A test
+    against a fresh database CANNOT SEE THIS CLASS — not "usually
+    misses it", cannot see it. A fresh database is built from the
+    current CREATE and therefore always agrees with it. The bug exists
+    only in the gap between a database's AGE and the code's, and no
+    environment built today has an age.
+
+    So this pin reads the SCHEMA SOURCE. It is the only vantage point
+    from which the gap is visible at all.
+
+    It earned that on its first run: it found is_platform_admin,
+    organization_id and widget_addon written with no ALTER, and two of
+    the three are genuinely absent from production — two more latent
+    500s waiting for whichever code path writes them. Fixing
+    users.updated_at alone would have left them.
 
     Scoped to the columns the CODE ACTUALLY WRITES, deliberately. A
     sweep of every column of every table is the right eventual pin and
