@@ -49,6 +49,14 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import psycopg2  # noqa: E402
 
+# `auth.py` raises at import without JWT_SECRET_KEY — correct for an API
+# that must not boot unable to sign, wrong for a migration that signs
+# nothing. Importing it here is for `ADMIN_ROLES`, the one definition of
+# the vocabulary; requiring the production signing key to move a column
+# would be a worse instruction than the problem it solves. A real value
+# in the environment is left alone.
+os.environ.setdefault("JWT_SECRET_KEY", "unused-by-this-migration")
+
 from auth import ADMIN_ROLES, ADMIN_ROLE, DEFAULT_ROLE  # noqa: E402
 from db_rows import ROW_FACTORY  # noqa: E402
 from services.db_identity import (WrongDatabase, assert_tables,  # noqa: E402
@@ -139,7 +147,7 @@ def main():
         with conn.cursor() as cur:
             # WHICH DATABASE, BEFORE WRITING TO IT.
             try:
-                assert_tables(cur, ["users"], expect_database=expected_database())
+                assert_tables(cur, "users", expect_database=expected_database())
                 print(describe(cur))
             except WrongDatabase as e:
                 sys.exit(str(e))

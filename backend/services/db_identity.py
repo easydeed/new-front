@@ -64,6 +64,43 @@ class WrongDatabase(RuntimeError):
     """
 
 
+def _as_connection(obj):
+    """A connection, whether the caller had one or only a cursor.
+
+    ═══ THE SAFETY MECHANISM WHOSE FIRST REAL CALLERS MISUSED IT ═══
+
+    This module was built after an afternoon spent hunting a schema that
+    was fine, because a service was pointed at the wrong database. Its
+    own tests passed throughout. Three of the callers outside those tests
+    were written like this:
+
+        with conn.cursor() as cur:
+            assert_tables(cur, ["users"], ...)
+
+    which died on `AttributeError: 'HybridCursor' object has no attribute
+    'cursor'` — three frames deep, inside the diagnostic, at the moment
+    somebody needed a diagnostic. `role_census.py` and
+    `company_name_consolidation.py` had therefore never run successfully
+    in their lives, and nothing said so: the tests construct the call
+    themselves, correctly, and a sweep checked only that a call EXISTS.
+
+    A cursor is not a mistake worth punishing. The natural place to check
+    identity is inside the `with conn.cursor()` block that is about to
+    ask the questions, and a mechanism that is awkward to call from where
+    people call it is one they call wrongly. So it is normalised here,
+    once, rather than being a rule every script must remember.
+    """
+    if hasattr(obj, "cursor"):
+        return obj                      # a connection
+    conn = getattr(obj, "connection", None)
+    if conn is not None and hasattr(conn, "cursor"):
+        return conn                     # a cursor; DB-API exposes its own
+    raise TypeError(
+        f"db_identity needs a connection or a cursor, got {type(obj).__name__}. "
+        "Pass the connection, or the cursor you already have open."
+    )
+
+
 def identity(conn) -> Dict[str, Any]:
     """Who am I connected to.
 
@@ -72,7 +109,7 @@ def identity(conn) -> Dict[str, Any]:
     "local socket" rather than as an empty string that looks like a
     lookup that failed.
     """
-    with conn.cursor() as cur:
+    with _as_connection(conn).cursor() as cur:
         cur.execute("SELECT current_database() AS db, "
                     "inet_server_addr() AS host, "
                     "inet_server_port() AS port, "
@@ -118,7 +155,7 @@ def missing_tables(conn, names: Sequence[str]) -> list:
     not care whether you could read it.
     """
     absent = []
-    with conn.cursor() as cur:
+    with _as_connection(conn).cursor() as cur:
         for name in names:
             cur.execute("SELECT to_regclass(%s) IS NULL AS gone", (name,))
             row = cur.fetchone()
@@ -164,6 +201,32 @@ def assert_tables(conn, *names: str, expect_database: str = "") -> Dict[str, Any
     """
     if not names:
         raise ValueError("assert_tables() with no table names asserts nothing")
+
+    # ── AND THE SECOND HALF OF THE SAME MISCALL ──────────────────────
+    #
+    # `names` is VARIADIC. The three broken callers wrote
+    #
+    #     assert_tables(cur, ["users"], ...)
+    #
+    # which means "one table whose name is the list `['users']`" — so
+    # even past the cursor fix, `to_regclass` would have been handed an
+    # array and the failure would have arrived as a Postgres type error
+    # about a value the caller never typed.
+    #
+    # Unlike the connection, this one is REFUSED rather than flattened.
+    # A cursor and a connection mean the same thing here; a list and a
+    # spread would be two spellings of one call living side by side
+    # forever, which is the defect this line of work exists to remove.
+    # It refuses at the boundary and names the fix, and an AST sweep over
+    # every call site stops it reaching a script at all.
+    for name in names:
+        if not isinstance(name, str):
+            raise TypeError(
+                f"assert_tables() takes table names as separate arguments, "
+                f"got {type(name).__name__}. Write "
+                f"assert_tables(conn, \"users\", \"user_profiles\") — "
+                f"not a list."
+            )
 
     # The name first: if it is wrong, a missing table is a symptom rather
     # than the finding, and reporting the symptom sends the reader back

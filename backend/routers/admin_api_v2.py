@@ -416,6 +416,20 @@ def _validate_role_change(cur, target_user_id: int, admin_email: str,
     # — `get_current_admin` yields `user_email` from the token, not an
     # id. Comparing the target row's email to it is the comparison that
     # is actually available, and it is the one that is true.
+    #
+    # AND IT IS SOUND, WHICH IS A SCHEMA FACT RATHER THAN AN ASSUMPTION:
+    # `users.email` carries a UNIQUE constraint (`users_email_key`), so
+    # an address identifies at most one row and two accounts cannot share
+    # one to slip past this. Recorded here because the next reader's
+    # first question about an email-keyed guard is exactly that, and the
+    # answer lives in a different file.
+    #
+    # The constraint is BYTE-wise, so it alone would still permit
+    # `Boss@x.com` beside `boss@x.com`. Every write normalises to
+    # lower-case — registration, and this endpoint (see below) — which is
+    # what makes the constraint mean what this comparison needs it to
+    # mean. The `.lower()` here is the belt to that braces: a token minted
+    # before any of it carries whatever case it carried.
     if is_admin_role(new_role):
         return  # Promoting or keeping admin can never lock anybody out.
     cur.execute("SELECT email, role FROM users WHERE id = %s", (target_user_id,))
@@ -477,8 +491,24 @@ def admin_update_user(
 
         for field in allowed_fields:
             if field in updates:
+                value = updates[field]
+                # ── AN ADDRESS IS STORED ONE WAY ──────────────────────
+                #
+                # Found while checking whether the lockout guard above can
+                # be defeated. It cannot — but this endpoint wrote `email`
+                # VERBATIM, and the UNIQUE constraint is byte-wise, so an
+                # admin correcting somebody's address to `Jane@Firm.com`
+                # created a row that LOGIN CAN NEVER FIND: it looks up
+                # `WHERE email = %s` with the typed address lower-cased.
+                #
+                # The console would report success and the user would be
+                # locked out of the product with no message, no error and
+                # nothing in the row that looks wrong. Registration has
+                # always lower-cased; this was the one write that did not.
+                if field == 'email' and isinstance(value, str):
+                    value = value.strip().lower()
                 set_clauses.append(f"{field} = %s")
-                params.append(updates[field])
+                params.append(value)
         
         if not set_clauses:
             raise HTTPException(status_code=400, detail="No valid fields to update")
