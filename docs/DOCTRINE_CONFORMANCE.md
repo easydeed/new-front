@@ -1103,6 +1103,103 @@ connected at both ends and gated at neither.
 
 ---
 
+### §14.3 — One DECLARATION, not one screen: a mirror is re-scoped when its subject gains a second surface (2026-08-14)
+
+**Statement.** A control that compares two sides of a boundary is only as
+good as its reading of each side. When a value gains a second home on one
+side, a mirror that still reads the first home **stays green through the
+exact divergence it exists to catch.**
+
+**How it was found — by nearly violating it.** TRIAL1 built a mirror: the
+advertised trial length and the length Checkout charges on must be one
+number, because *"a trial whose advertised length and actual length
+differ is discovered by the customer, on the day it ends — by being
+charged."* The frontend side was a const in `app/page.tsx` carrying the
+comment:
+
+> `// TRIAL1's mirror reads this number off the page and compares it with`
+> `// the server's TRIAL_PERIOD_DAYS. One number, stated once per side.`
+
+That was **true when it was written and false the moment a second surface
+mentioned a trial.** The day-one rail is that second surface. Typing `14`
+into it would have created two claims on the frontend side while the
+mirror read one, and the mirror would have reported agreement while a
+customer was shown a number nobody had checked.
+
+**The correction, and its durable form.** *One number per side* means
+**one DECLARATION per side, not one per screen.** The constant moved to
+`lib/trial.ts`; both surfaces import it; the mirror follows the
+declaration rather than the file it happened to start in.
+
+And the closing half matters more than the move: the gate now also
+**refuses the length written as prose anywhere** — a screen that retypes
+the digits instead of importing them is a second claim, and a mirror that
+only counts declarations would not see it. Narrowing a control to what it
+can currently read is how it becomes decorative.
+
+**Same shape, three times now.** `code_only()` — one opinion about what a
+comment is, not one per suite. The DTT rate mirror — one rate table, not
+one per surface. This — one declaration, not one screen. The recurring
+error is not the duplication; it is a **rule whose scope was stated in
+terms of the world at the time it was written**, and which nobody
+re-reads when the world grows.
+
+**The self-check this earns.** When adding a second surface for any value
+a mirror or sweep protects, ask what that instrument READS — not what it
+asserts. An instrument's scope is a fact about its implementation, and
+the comment describing it is the least reliable place to learn it.
+
+---
+
+## §16 — When a ruling's literal reading would remove something previously ruled, build the unambiguous half and flag the rest (2026-08-14, owner-ruled)
+
+**Statement.** Rulings are executed by their intent where letter and
+intent agree, and **split** where they do not. If a ruling's literal
+reading would delete behaviour an earlier ruling deliberately put there,
+the executor builds the half that is unambiguous, holds the half that
+collides, and says which is which. Neither half is decided silently.
+
+**This is the deviation doctrine applied to half a ruling rather than a
+whole one**, and it exists because the collision is usually invisible to
+the person ruling — they are answering the question in front of them, not
+re-reading a decision they made weeks earlier about a different screen.
+
+**It fired twice on its first day, both times against the same owner.**
+
+1. **The empty queue card.** Ruled: the "Nothing is waiting on anyone"
+   module *goes*. The stated intent was the day-one officer being told
+   three times that nothing needed her before she had done anything. Read
+   literally it also deletes the card for a returning officer whose queue
+   is genuinely clear — and for her, DASH1 ruled that sentence in on
+   purpose: *the empty state is a RESULT, not an absence*, the screen
+   saying so rather than rendering nothing and leaving her to wonder
+   whether it loaded. Built for the deedless officer, held for the
+   returning one. **Owner confirmed the split and kept both.**
+2. **The greeting.** Ruled: keep *the one-line greeting* as drawn. The
+   mockup's complaint is that the greeting was a HERO — weight and
+   position — and both were fixed. Read literally, "one line" also
+   deletes *"Here's where your deeds stand"*, which is U3's ruling, added
+   so the greeting states what the page IS rather than making a
+   chat-style promise with no chat behind it. Weight and position built;
+   the sentence held. **Owner confirmed and kept the sentence.**
+
+**Why to expect more of these, not fewer.** Both collisions were a new
+ruling brushing an earlier ruling by the same person. That is the
+predictable consequence of accumulated doctrine: the denser the body of
+decisions, the more often a new one lands on top of an old one without
+anybody noticing. **Frequency is evidence the split is load-bearing, not
+evidence that the executor is being difficult.**
+
+**How to tell a split from an ordinary ambiguity.** A split is warranted
+only when the literal reading would remove something **previously
+ruled** — recorded in this document, in a ticket, or in a comment citing
+one. An ambiguity with no prior ruling on either side is an ordinary
+judgement call: make it, state it, move on. The test is not "could this
+be read two ways" — it is "does one reading overturn a decision already
+made?"
+
+---
+
 ## §15 — The enforcement point is the endpoint that PRINTS, not the builder (2026-08-13, owner-ruled)
 
 **Statement.** Every rule this document states about what may reach a
@@ -1266,6 +1363,7 @@ on.
 
 | Date | Change |
 |---|---|
+| 2026-08-14 | §16 added — when a ruling's literal reading would remove something previously ruled, build the unambiguous half and flag the rest. Fired twice on its first day, both times where a new owner ruling brushed an earlier owner ruling: the empty-queue card (ruled "goes"; DASH1 had ruled it in for the returning officer as a RESULT rather than an absence) and the greeting (ruled "one line"; U3 had ruled the sentence under it in so the greeting states what the page IS). Both splits confirmed by the owner, both prior rulings kept. Recorded with the owner's reading of the frequency: accumulated doctrine gets dense enough that new rulings collide with old ones, so expect more of these rather than fewer. §14.3 added — one DECLARATION, not one screen. `TRIAL_DAYS` was a const in `app/page.tsx` commented "one number, stated once per side", true while the landing page was the only surface mentioning a trial and false the moment the day-one rail became a second; retyping 14 there would have made two claims on the frontend side while TRIAL1's mirror read one, and the mirror would have stayed green through exactly the divergence it exists to catch. Moved to `lib/trial.ts`, both surfaces import it, the mirror follows the declaration, and the gate now also refuses the length written as prose anywhere — narrowing a control to what it can currently read is how it becomes decorative. Same shape as `code_only()` and the DTT rate mirror: the error is not the duplication but a rule whose scope was stated in terms of the world at the time it was written. |
 | 2026-08-13 | §15 added (REQUIRED1) — the enforcement point is the endpoint that PRINTS, not the builder. Three definitions of "required" were live and the loosest was `POST /deeds`, which renders and stores the PDF: grantor, grantee and legal description, with no vesting statement and no transfer-tax declaration, while the browser gate demanded both and the partner API demanded both. The wizard's protection was a property of the CLIENT, not of the product — anything reaching that endpoint another way stored an instrument having skipped both legal decisions on an ordinary user token. Recorded with the corrected premise, since the ruling was made on the inverted one: the partner API is the strictest surface, not the loosest, so there was no versioning question and no integration to break. Also records the line the Thursday walkthrough drew: a legal decision is required before the product PRINTS, and requiring one before it SAVES would hurry a choice §1 forbids it to make — so `POST /deeds/draft` stays permissive and the walkthrough moved to it, which made the harness more faithful rather than more permissive. §14.2 added — a control is checked before its result is believed, from four instruments in one week that failed in ways indistinguishable from success: a probe that broke its fixture (the suite errored on malformed JSON while `grep -c FAILED` counted zero), a `git stash` no-op that made the "does main break too?" run test the branch under suspicion, a regex that counted nested keys as top-level and produced a 33-name exemption list that looked exactly like a considered decision, and a sweep asserting a mechanism is CALLED while three of its callers had never worked. |
 | 2026-08-13 | §14 and §14.1 added (VERIFY-CHECK, ROLE1 step 3). §14: a record of what we can do states what was EXECUTED, not what exists. Three sightings, all erring in the PERMISSIVE direction — `EMAIL_VERIFICATION_REQUIRED` was cited in the ledger as evidence that required verification was ready to switch on, and was defined in one file and read nowhere, so an operator could have set it on Render before a launch and had nothing change; the same entry described verification as "resend-only" when the resend endpoint had no caller and no button. The tsc baseline read 114 in the ledger while CI enforced 94. `role_census.py` and `company_name_consolidation.py` were both recorded as the count-first mechanism and neither had ever run successfully. A record that understates is found when somebody needs the thing; a record that overstates is found before a launch or during an incident. §14.1: an enforcement sweep matches the PROPERTY, not the spelling, because a list of syntax patterns is as wide as its author's imagination and fails SILENTLY — three sightings in three languages, most sharply a `job_title` gate sweep that walked past `user.get('job_title') == 'Administrator'` because a quote sat where the list expected a paren. Also recorded: `code_only()` strips comments and docstrings but NOT string contents, so a sweep for a word that also occurs in English belongs in the AST rather than in a better regex. |
 | 2026-08-12 | §13.3 added (UX2 item 1) — who chose the record the facts came from. An exact autocomplete pick returned 76 county candidates with the chosen address not ranked first; APN, legal description and vested owner all descend from whichever row is clicked, so a wrong row produces a confidently wrong deed out of a real source with a genuine confirmation on every field. `services/address_match.py` selects a parcel only when EXACTLY ONE candidate is unambiguously the chosen address, declines otherwise, and exposes no confidence score. Also recorded: the audit's proposed root cause — "we re-search by address string instead of passing the autocomplete's identifier" — was checked and is not fixable as framed. Google's `place_id` is not a SiteX key; SiteX takes an address or a FIPS+APN, and the FIPS+APN only exists once SiteX has answered. The defect was real and the diagnosis was not, which is a distinct outcome from DASH1's route rename, where neither was. |

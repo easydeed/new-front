@@ -1133,6 +1133,29 @@ we reach it.
 
 ## Parked tickets (scoped, not scheduled)
 
+- **A plan card for the RETURNING officer** (day-one diff, owner-ruled a
+  candidate 2026-08-14 — ledgered rather than built). `DayOneRail`
+  carries Plan and Recording county and disappears with the setup
+  checklist, because the mockup only draws it in the day-one view.
+
+  The card is arguably useful to a returning officer too — her plan and
+  her default county do not stop being facts once she has made a deed.
+  **Not built on that inference.** `dashboard_day_one.html` draws no
+  returning-state rail, and its returning section is a populated queue;
+  inventing a layout for a view the design does not cover is a different
+  ticket from correcting one it does.
+
+  **What it would need first:** a ruling on where it sits relative to the
+  queue and the accuracy figure, both of which currently own the top of
+  that page for a returning officer. Not a rendering question — an
+  ordering one, and ordering on this screen has been ruled twice.
+
+  **Explicitly NOT in scope if it fires:** the deeds-this-month row.
+  MONEY1 stands — Free is uncapped, `max_deeds_per_month` is `null` so
+  that no consumer infers a cap, and a screen is the harder place to see
+  a false limit than a payload.
+
+
 - **Audit the string-presence pins whose subject is a BRANCH** (CANCEL1
   item 4 finding, owner-ruled a class 2026-08-12). Looked at
   opportunistically as ruled, and the population is larger than an
