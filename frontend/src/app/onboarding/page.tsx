@@ -13,17 +13,10 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ShieldCheck, MapPin, ArrowRight, Sparkles } from "lucide-react"
 
-// California counties for the dropdown
-const CA_COUNTIES = [
-  "Alameda", "Alpine", "Amador", "Butte", "Calaveras", "Colusa", "Contra Costa", "Del Norte",
-  "El Dorado", "Fresno", "Glenn", "Humboldt", "Imperial", "Inyo", "Kern", "Kings", "Lake",
-  "Lassen", "Los Angeles", "Madera", "Marin", "Mariposa", "Mendocino", "Merced", "Modoc",
-  "Mono", "Monterey", "Napa", "Nevada", "Orange", "Placer", "Plumas", "Riverside", "Sacramento",
-  "San Benito", "San Bernardino", "San Diego", "San Francisco", "San Joaquin", "San Luis Obispo",
-  "San Mateo", "Santa Barbara", "Santa Clara", "Santa Cruz", "Shasta", "Sierra", "Siskiyou",
-  "Solano", "Sonoma", "Stanislaus", "Sutter", "Tehama", "Trinity", "Tulare", "Tuolumne",
-  "Ventura", "Yolo", "Yuba"
-]
+// T-2's registry owns place identity, and now the county NAMES too:
+// this was a local 58-element array until account-settings grew the
+// second picker (DASH-FIX #1). One declaration, not one screen.
+import { CA_COUNTY_NAMES } from "@/lib/jurisdictions"
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -204,7 +197,7 @@ export default function OnboardingPage() {
                   autoFocus
                   className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all appearance-none"
                 >
-                  {CA_COUNTIES.map((c) => (
+                  {CA_COUNTY_NAMES.map((c) => (
                     <option key={c} value={c}>
                       {c} County
                     </option>

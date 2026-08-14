@@ -6,6 +6,7 @@ import Sidebar from "@/components/Sidebar"
 import { User, CreditCard, Bell, Lock, Check, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { TIERS, priceLabel } from "@/lib/pricing"
+import { CA_COUNTY_NAMES } from "@/lib/jurisdictions"
 import EmailVerificationNotice from "@/features/account/EmailVerificationNotice"
 
 type Tab = "profile" | "billing" | "notifications" | "security"
@@ -26,6 +27,9 @@ interface UserProfile {
   company_name?: string
   business_address?: string
   state?: string
+  /* `user_profiles.default_county` — the county she records in most
+     often, and the default on every new deed. */
+  default_county?: string
   plan?: string
   plan_limits?: any
   /* PRICING1: the Widget Add-on TAB is deleted (owner-ruled). It priced
@@ -391,6 +395,15 @@ function ProfileTab({ userProfile, onSaved }: {
     phone: userProfile?.phone || "",
     state: userProfile?.state || "",
     business_address: userProfile?.business_address || "",
+    /* DASH-FIX #1 — THE SECOND HOME, WHICH WAS ALREADY HALF-BUILT.
+       `ProfilePatch` has accepted `default_county` since SETTINGS1 and
+       this form has always PATCHed its whole `formData` to it; the
+       control is the only piece that was missing. Until it existed the
+       only way to set a recording county was to re-enter onboarding —
+       and the day-one checklist's "Set county" button routed HERE, to a
+       page with no county on it, so the one open setup step could not be
+       finished from its own call to action. */
+    default_county: userProfile?.default_county || "",
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -407,6 +420,12 @@ function ProfileTab({ userProfile, onSaved }: {
       phone: userProfile.phone || "",
       state: userProfile.state || "",
       business_address: userProfile.business_address || "",
+      // Caught by tsc rather than by a person, and it is exactly the
+      // defect this effect was written for: a field added to the form
+      // and not to the hydration reads empty after the profile lands,
+      // so the page shows a county she set as "Not set" — and saving
+      // anything else would then write that blank back over it.
+      default_county: userProfile.default_county || "",
     })
   }, [userProfile])
 
@@ -500,6 +519,29 @@ function ProfileTab({ userProfile, onSaved }: {
           {field("Phone", "phone", "tel")}
           {field("Company", "company_name")}
           {field("State", "state")}
+          <div>
+            <label htmlFor="default_county"
+                   className="block text-sm font-medium text-slate-700 mb-2">
+              Recording county
+            </label>
+            <select
+              id="default_county"
+              value={formData.default_county}
+              onChange={(e) => setFormData({ ...formData, default_county: e.target.value })}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF] transition-colors"
+            >
+              {/* An empty option, because "not set" is a real state and
+                  a select with no blank silently asserts Alameda. */}
+              <option value="">Not set</option>
+              {CA_COUNTY_NAMES.map((c) => (
+                <option key={c} value={c}>{c} County</option>
+              ))}
+            </select>
+            <p className="mt-2 text-xs text-slate-500">
+              The county you record in most often. It becomes the default on new
+              deeds, and you can change it on any one of them.
+            </p>
+          </div>
           <div className="md:col-span-2">
             {field("Business address", "business_address")}
             <p className="mt-2 text-xs text-slate-500">
