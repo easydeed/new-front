@@ -350,6 +350,16 @@ def create_tables():
             # what we actually know. The one exception is backfilled
             # below because it is a recorded fact rather than a guess.
             "ALTER TABLE deed_shares ADD COLUMN IF NOT EXISTS recipient_name TEXT",
+            # EMAIL2 — the fee THE OFFICER TYPED, carried to the notary
+            # who is deciding whether to accept. Optional, free text,
+            # never computed: NOTARY0b's no-fee-handling ruling stands,
+            # and passing on a figure one person set for another is
+            # carrying information rather than brokering between them.
+            #
+            # TEXT rather than numeric, deliberately. It is a thing she
+            # wrote — "85", "$85 + travel" — not an amount this product
+            # owns, and a numeric column would invite arithmetic on it.
+            "ALTER TABLE signing_requests ADD COLUMN IF NOT EXISTS offered_fee TEXT",
             "ALTER TABLE deed_shares ADD COLUMN IF NOT EXISTS responded_at TIMESTAMPTZ",
             # `feedback_at` is stamped in exactly one place — the reject
             # branch of POST /approve/{token} — so for a rejected share it

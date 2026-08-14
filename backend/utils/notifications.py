@@ -212,10 +212,24 @@ def send_payment_failed_with_reason(user_email: str, full_name: str,
 def send_notary_invited(recipient_email: str, notary_name: str, officer_name: str,
                         officer_company: Optional[str], deed_type: str,
                         property_address: Optional[str], county: Optional[str],
-                        link: str, expires_at: Optional[str]) -> SendResult:
+                        link: str, expires_at: Optional[str],
+                        fee: Optional[str] = None,
+                        signer_count: Optional[str] = None,
+                        decline_link: str = "",
+                        respond_by: str = "") -> SendResult:
+    """EMAIL2 — `fee` is PASSED THROUGH, never derived.
+
+    It arrives from the officer's own typing and is displayed to the
+    person deciding whether to accept. Nothing in this module or the
+    template computes, defaults or suggests one, which is what keeps
+    NOTARY0b's no-fee-handling ruling intact: carrying a figure between
+    two people is not brokering between them.
+    """
     return _send("notary_invited", recipient_email, email_templates.notary_invited(
         notary_name, officer_name, officer_company, deed_type,
-        property_address, county, link, expires_at),
+        property_address, county, link, expires_at, fee=fee,
+        signer_count=signer_count, decline_link=decline_link,
+        respond_by=respond_by),
         context={"deed_type": deed_type})
 
 
@@ -224,13 +238,22 @@ def send_notary_dispatched(recipient_email: str, notary_name: str,
                            deed_type: str, property_address: Optional[str],
                            county: Optional[str], when_text: str,
                            location: Optional[str], link: str,
-                           expires_at: Optional[str]) -> SendResult:
-    """FLOW1 item 7 — the assignment. One time, a place, accept or decline."""
+                           expires_at: Optional[str],
+                           fee: Optional[str] = None,
+                           signer_count: Optional[str] = None,
+                           decline_link: str = "",
+                           respond_by: str = "") -> SendResult:
+    """FLOW1 item 7 — the assignment. One time, a place, accept or decline.
+
+    EMAIL2 — see `send_notary_invited` on the fee: passed through from
+    what the officer typed, never derived here or anywhere.
+    """
     return _send("notary_dispatched", recipient_email,
                  email_templates.notary_dispatched(
                      notary_name, officer_name, officer_company, deed_type,
                      property_address, county, when_text, location, link,
-                     expires_at),
+                     expires_at, fee=fee, signer_count=signer_count,
+                     decline_link=decline_link, respond_by=respond_by),
                  context={"deed_type": deed_type, "dispatched": True})
 
 
