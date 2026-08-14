@@ -361,43 +361,335 @@ def admin_api_key_request(company_name, contact_email, business_type,
 # test_admin3_email_outcomes.py is what caught it.
 
 
+# ── EMAIL2: the signing-request email, from the owner's design ────────
+#
+# `docs/design/email_signing_request.html` is the reference. What is
+# adopted from it, and what is not, is recorded at each site rather than
+# in a commit message nobody reads next year.
+
+
+def _decision_block(when_text: str, fee: Optional[str], where: str) -> str:
+    """WHEN / FEE / WHERE — the three things a notary decides on.
+
+    THE DESIGN'S CENTRAL IDEA, and its own comment gives the reason: a
+    notary reading an assignment decides in that order — can I be there
+    then, is it worth the trip, and where is it. Burying any of the three
+    in a facts table makes her hunt for the thing she is deciding on.
+
+    ═══ THE FEE IS DISPLAYED, NEVER COMPUTED ═══
+    ═══
+    NOTARY0b ruled no fee handling and that ruling stands: this product
+    does not quote, process, split, or suggest a fee. What it does here is
+    pass on a figure THE OFFICER TYPED, to the person deciding whether to
+    accept — which is carrying information between two people, not
+    brokering between them.
+    ═══
+    So the block renders only when she set one. There is no default, no
+    suggestion, no "typical", and no arithmetic anywhere in this file. A
+    pin holds that.
+    """
+    # OWNER-RULED: exactly three. `signer_count` was in the first build
+    # and came out — it is CONTEXT, not a decision input, and the block's
+    # whole strength is that every element in it is something she decides
+    # on. A fourth cell that is merely useful dilutes the three that are
+    # not. It still reaches her, in the facts table below.
+    cells = [("When", when_text)]
+    if (fee or "").strip():
+        cells.append(("Fee", f"${_esc(fee)}"))
+    cells.append(("Where", where))
+
+    tds = "".join(
+        f'<td valign="top" style="padding:0 14px 0 0;'
+        f'font-family:-apple-system,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif;">'
+        f'<div style="font-size:11px;letter-spacing:0.6px;text-transform:uppercase;'
+        f'color:#5C6370;padding-bottom:4px;">{_esc(label)}</div>'
+        f'<div style="font-size:16px;line-height:22px;font-weight:700;color:{INK};">'
+        f'{_esc(value)}</div></td>'
+        for label, value in cells if value
+    )
+    return (
+        '<table role="presentation" cellpadding="0" cellspacing="0" border="0" '
+        'width="100%" style="background-color:#F7F6FB;border:1px solid #E7E3F5;'
+        'border-radius:10px;margin:20px 0 0;">'
+        f'<tr><td style="padding:18px 20px 16px;"><table role="presentation" '
+        f'cellpadding="0" cellspacing="0" border="0" width="100%"><tr>{tds}</tr>'
+        "</table></td></tr></table>"
+    )
+
+
+def _respond_by(respond_by: Optional[str]) -> str:
+    """The deadline, as its own chip rather than a row in a table.
+
+    A response deadline that reads like another fact is a deadline she
+    finds after deciding. Renders only when there is one — an invented
+    urgency would be the product hurrying somebody on no information.
+    """
+    if not (respond_by or "").strip():
+        return ""
+    return (
+        '<table role="presentation" cellpadding="0" cellspacing="0" border="0" '
+        'style="margin:22px 0 0;"><tr><td style="background-color:#F3EEFF;'
+        'border:1px solid #DDD1FA;border-radius:6px;padding:8px 12px;'
+        "font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;"
+        'font-size:13px;line-height:18px;font-weight:600;color:#4C1D95;">'
+        f"Please respond by {_esc(respond_by)}</td></tr></table>"
+    )
+
+
+def _escape_hatch(decline_link: str) -> str:
+    """"Can't take this one" as a REAL link, not a sentence asking her to
+    reply.
+
+    A notary who cannot take an assignment is the most useful early
+    answer the officer can get, and making that the hard path is how a
+    request sits unanswered for three days. The design made it an
+    explicit escape hatch and it is adopted as such.
+    """
+    if not decline_link:
+        return ""
+    return _p(
+        f'<a href="{_esc(decline_link)}" style="color:#5B21B6;font-weight:600;'
+        'text-decoration:underline;">Can\u2019t take this one</a>'
+        '<span style="color:#6E7480;">&nbsp;&mdash;&nbsp;lets the officer '
+        "reassign it right away</span>"
+    )
+
+
+def _reply_line(officer_name: str) -> str:
+    """WHERE A REPLY ACTUALLY GOES.
+
+    The design said "Reply to this email — it goes to our signing team."
+    There is no signing team. Owner-ruled out: a support channel that
+    does not exist is worse than no sentence, because she waits for an
+    answer from nobody.
+
+    Replies reach the officer, and the officer is named.
+    """
+    who = _esc(officer_name) or "the officer who sent it"
+    return _p(
+        f'<span style="font-size:13px;color:#8a94a0;">Questions about this '
+        f"signing? Replying to this email reaches {who} directly.</span>"
+    )
+
+
+#: The one legal footer for anything sent to somebody who is not our
+#: customer. Adopted verbatim from the design.
+SIGNING_FOOTER = (
+    "DeedPro prepares recorder-formatted documents at your direction. "
+    "Nothing in this email is legal advice."
+)
+
+
 def notary_invited(notary_name, officer_name, officer_company, deed_type,
-                   property_address, county, link, expires_at) -> Rendered:
+                   property_address, county, link, expires_at,
+                   signer_count=None, decline_link="", respond_by="",
+                   window_text="") -> Rendered:
     """NOTARY2 — officer → notary: post the times you are free.
+
+    ═══ THE FALLBACK VARIANT (EMAIL2) ═══
+
+    The owner's design was drawn for exactly this case — its primary
+    button is "Post my availability" — and the flow was re-ruled after
+    the drawing: dispatch became the primary path, this the fallback. So
+    the design's structure lands on BOTH, and the question stays
+    different, because these two emails want different answers.
 
     Professional-to-professional. The notary gets the address, the
     instrument and the county because they are going there to notarise
     that document; what they do NOT get is any way to reach the signers,
     because they have no reason to and the officer does.
+
+    ═══ AND NO FEE ON THIS PATH ═══
+
+    OWNER-RULED, and the reason is the shape of the two paths rather than
+    squeamishness about the number. On dispatch a fee attaches to a
+    SPECIFIC job at a SPECIFIC time — unambiguous. Here she is posting
+    windows before anything is agreed, so a figure shown now reads as an
+    offer that survives whatever time is eventually picked. That is the
+    product implying a term nobody agreed to, which is the same family as
+    every other invented-fact ruling in this codebase.
+
+    No distance either: see `notary_dispatched`. We hold a city, not a
+    point.
     """
     addr = _short_addr(property_address)
     subject = f"Signing request — {addr}" if addr else "Notary signing request"
+
+    preheader = " · ".join(x for x in [
+        _esc(deed_type) or "Signing request",
+        f"respond by {_esc(respond_by)}" if (respond_by or "").strip() else "",
+    ] if x)
+
     content = (
         _p(f"Hi {_esc(notary_name) or 'there'},")
         + _p(f"<strong>{_esc(officer_name)}</strong>"
              + (f" at {_esc(officer_company)}" if officer_company else "")
              + " is asking whether you can notarize a signing.")
-        + _facts([("Document", deed_type), ("Property", addr),
+        # The three decisions, with WHEN as the window she is being asked
+        # about rather than a time anybody has agreed — nothing is
+        # proposed on this path, so it says so.
+        + _decision_block(window_text or "You post the times", None,
+                          addr or (county or ""))
+        + _facts([("Document", deed_type), ("Address", property_address),
                   ("County", county), ("Link expires", expires_at or "")])
+        + _respond_by(respond_by)
         + _button(link, "Post the times you are free")
+        + _escape_hatch(decline_link)
         + _p('<span style="font-size:13px;color:#8a94a0;">The signers pick from the '
              "times you post. When you and they land on the same one, it is booked and "
              "everybody is told.</span>")
+        + _reply_line(officer_name)
+        + _p(f'<span style="font-size:12px;color:#8a94a0;">{SIGNING_FOOTER}</span>')
     )
     text = (
         f"{officer_name} is asking whether you can notarize a signing.\n\n"
-        f"Document: {deed_type}\nProperty: {addr}\nCounty: {county}\n"
-        f"Link expires: {expires_at or ''}\n\n"
-        f"Post the times you are free: {link}\n\n"
-        "The signers pick from the times you post."
+        + f"Document: {deed_type}\nProperty: {addr}\nCounty: {county}\n"
+        f"Link expires: {expires_at or ''}\n"
+        + (f"Please respond by: {respond_by}\n" if (respond_by or "").strip() else "")
+        + f"\nPost the times you are free: {link}\n"
+        + (f"Can't take this one: {decline_link}\n" if decline_link else "")
+        + "\nThe signers pick from the times you post.\n\n"
+        f"Questions? Replying to this email reaches {officer_name} directly.\n\n"
+        f"{SIGNING_FOOTER}"
     )
-    return subject, _base(f"{officer_name} asked about your availability", content, True), text
+    return subject, _base(preheader, content, True), text
+
+
+
+# ── EMAIL2: the signing-request email, from the owner's design ────────
+#
+# `docs/design/email_signing_request.html` is the reference. What is
+# adopted from it, and what is not, is recorded at each site rather than
+# in a commit message nobody reads next year.
+
+
+def _decision_block(when_text: str, fee: Optional[str], where: str) -> str:
+    """WHEN / FEE / WHERE — the three things a notary decides on.
+
+    THE DESIGN'S CENTRAL IDEA, and its own comment gives the reason: a
+    notary reading an assignment decides in that order — can I be there
+    then, is it worth the trip, and where is it. Burying any of the three
+    in a facts table makes her hunt for the thing she is deciding on.
+
+    ═══ THE FEE IS DISPLAYED, NEVER COMPUTED ═══
+    ═══
+    NOTARY0b ruled no fee handling and that ruling stands: this product
+    does not quote, process, split, or suggest a fee. What it does here is
+    pass on a figure THE OFFICER TYPED, to the person deciding whether to
+    accept — which is carrying information between two people, not
+    brokering between them.
+    ═══
+    So the block renders only when she set one. There is no default, no
+    suggestion, no "typical", and no arithmetic anywhere in this file. A
+    pin holds that.
+    """
+    # OWNER-RULED: exactly three. `signer_count` was in the first build
+    # and came out — it is CONTEXT, not a decision input, and the block's
+    # whole strength is that every element in it is something she decides
+    # on. A fourth cell that is merely useful dilutes the three that are
+    # not. It still reaches her, in the facts table below.
+    cells = [("When", when_text)]
+    if (fee or "").strip():
+        cells.append(("Fee", f"${_esc(fee)}"))
+    cells.append(("Where", where))
+
+    tds = "".join(
+        f'<td valign="top" style="padding:0 14px 0 0;'
+        f'font-family:-apple-system,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif;">'
+        f'<div style="font-size:11px;letter-spacing:0.6px;text-transform:uppercase;'
+        f'color:#5C6370;padding-bottom:4px;">{_esc(label)}</div>'
+        f'<div style="font-size:16px;line-height:22px;font-weight:700;color:{INK};">'
+        f'{_esc(value)}</div></td>'
+        for label, value in cells if value
+    )
+    return (
+        '<table role="presentation" cellpadding="0" cellspacing="0" border="0" '
+        'width="100%" style="background-color:#F7F6FB;border:1px solid #E7E3F5;'
+        'border-radius:10px;margin:20px 0 0;">'
+        f'<tr><td style="padding:18px 20px 16px;"><table role="presentation" '
+        f'cellpadding="0" cellspacing="0" border="0" width="100%"><tr>{tds}</tr>'
+        "</table></td></tr></table>"
+    )
+
+
+def _respond_by(respond_by: Optional[str]) -> str:
+    """The deadline, as its own chip rather than a row in a table.
+
+    A response deadline that reads like another fact is a deadline she
+    finds after deciding. Renders only when there is one — an invented
+    urgency would be the product hurrying somebody on no information.
+    """
+    if not (respond_by or "").strip():
+        return ""
+    return (
+        '<table role="presentation" cellpadding="0" cellspacing="0" border="0" '
+        'style="margin:22px 0 0;"><tr><td style="background-color:#F3EEFF;'
+        'border:1px solid #DDD1FA;border-radius:6px;padding:8px 12px;'
+        "font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;"
+        'font-size:13px;line-height:18px;font-weight:600;color:#4C1D95;">'
+        f"Please respond by {_esc(respond_by)}</td></tr></table>"
+    )
+
+
+def _escape_hatch(decline_link: str) -> str:
+    """"Can't take this one" as a REAL link, not a sentence asking her to
+    reply.
+
+    A notary who cannot take an assignment is the most useful early
+    answer the officer can get, and making that the hard path is how a
+    request sits unanswered for three days. The design made it an
+    explicit escape hatch and it is adopted as such.
+    """
+    if not decline_link:
+        return ""
+    return _p(
+        f'<a href="{_esc(decline_link)}" style="color:#5B21B6;font-weight:600;'
+        'text-decoration:underline;">Can\u2019t take this one</a>'
+        '<span style="color:#6E7480;">&nbsp;&mdash;&nbsp;lets the officer '
+        "reassign it right away</span>"
+    )
+
+
+def _reply_line(officer_name: str) -> str:
+    """WHERE A REPLY ACTUALLY GOES.
+
+    The design said "Reply to this email — it goes to our signing team."
+    There is no signing team. Owner-ruled out: a support channel that
+    does not exist is worse than no sentence, because she waits for an
+    answer from nobody.
+
+    Replies reach the officer, and the officer is named.
+    """
+    who = _esc(officer_name) or "the officer who sent it"
+    return _p(
+        f'<span style="font-size:13px;color:#8a94a0;">Questions about this '
+        f"signing? Replying to this email reaches {who} directly.</span>"
+    )
+
+
+#: The one legal footer for anything sent to somebody who is not our
+#: customer. Adopted verbatim from the design.
+SIGNING_FOOTER = (
+    "DeedPro prepares recorder-formatted documents at your direction. "
+    "Nothing in this email is legal advice."
+)
 
 
 def notary_dispatched(notary_name, officer_name, officer_company, deed_type,
                       property_address, county, when_text, location, link,
-                      expires_at) -> Rendered:
+                      expires_at, fee=None, signer_count=None,
+                      decline_link="", respond_by="") -> Rendered:
     """FLOW1 item 7 — officer → notary: can you take this, at this time?
+
+    ═══ THE PRIMARY VARIANT (EMAIL2) ═══
+
+    The owner's design was drawn for the availability case ("Post my
+    availability"), and the flow was RE-RULED after it was drawn:
+    dispatch is the primary path — the officer proposes a specific time
+    and the notary accepts or declines — with availability-posting as the
+    fallback. So this template gets the design's structure and the
+    dispatch question, and `notary_invited` keeps the design's original
+    ask.
 
     ═══ WHY THIS IS A SECOND TEMPLATE AND NOT A BRANCH ═══
 
@@ -419,35 +711,65 @@ def notary_dispatched(notary_name, officer_name, officer_company, deed_type,
     And it does not say the officer "confirmed" anything on the signers'
     behalf in a way that implies they spoke to us. She rang them. The
     email says she did.
+
+    ═══ AND NO DISTANCE ═══
+
+    The design shows "~6 mi from you". This product holds a notary's
+    city, state and postal code — not a geocoded point — so any mileage
+    would be arithmetic on data we do not have. §0: a figure that would
+    be roughly right most of the time is exactly the kind this product
+    declines. The block is omitted rather than shipped unreachable.
     """
     addr = _short_addr(property_address)
+    where = location or addr
     subject = f"Signing assignment — {addr}" if addr else "Notary signing assignment"
+
+    # PREHEADER — document · fee · respond-by, so she can triage from the
+    # inbox list without opening. The design's idea and a good one: a
+    # notary scanning ten requests decides which to open on exactly these.
+    preheader = " · ".join(x for x in [
+        _esc(deed_type) or "Signing request",
+        f"${_esc(fee)}" if (fee or "").strip() else "",
+        f"respond by {_esc(respond_by)}" if (respond_by or "").strip() else "",
+    ] if x)
+
     content = (
         _p(f"Hi {_esc(notary_name) or 'there'},")
         + _p(f"<strong>{_esc(officer_name)}</strong>"
              + (f" at {_esc(officer_company)}" if officer_company else "")
              + " is asking whether you can take a signing at a set time.")
-        + _facts([("When", when_text), ("Where", location or addr),
-                  ("Document", deed_type), ("County", county),
+        + _decision_block(when_text, fee, where)
+        + _facts([("Document", deed_type), ("Address", property_address),
+                  ("County", county), ("Signers", signer_count or ""),
                   ("Link expires", expires_at or "")])
-        + _button(link, "Accept or decline this time")
+        + _respond_by(respond_by)
+        + _button(link, "Accept this signing")
+        + _escape_hatch(decline_link)
         + _p('<span style="font-size:13px;color:#8a94a0;">'
              f"{_esc(officer_name)} has already agreed this time with the "
              "signers. Nothing is booked until you accept — and if the time "
              "does not work, decline it and post the times you are free "
              "instead.</span>")
+        + _reply_line(officer_name)
+        + _p(f'<span style="font-size:12px;color:#8a94a0;">{SIGNING_FOOTER}</span>')
     )
     text = (
         f"{officer_name} is asking whether you can take a signing at a set time.\n\n"
-        f"When: {when_text}\nWhere: {location or addr}\n"
+        f"When: {when_text}\n"
+        + (f"Fee: ${fee}\n" if (fee or "").strip() else "")
+        + f"Where: {where}\n"
         f"Document: {deed_type}\nCounty: {county}\n"
-        f"Link expires: {expires_at or ''}\n\n"
-        f"Accept or decline: {link}\n\n"
-        f"{officer_name} has already agreed this time with the signers. "
+        f"Link expires: {expires_at or ''}\n"
+        + (f"Please respond by: {respond_by}\n" if (respond_by or "").strip() else "")
+        + f"\nAccept: {link}\n"
+        + (f"Can't take this one: {decline_link}\n" if decline_link else "")
+        + f"\n{officer_name} has already agreed this time with the signers. "
         "Nothing is booked until you accept. If it does not work, decline "
-        "it and post the times you are free instead."
+        "it and post the times you are free instead.\n\n"
+        f"Questions? Replying to this email reaches {officer_name} directly.\n\n"
+        f"{SIGNING_FOOTER}"
     )
-    return subject, _base(f"{officer_name} asked you to take a signing", content, True), text
+    return subject, _base(preheader, content, True), text
 
 
 def signing_windows_posted(signer_name, officer_name, officer_company, notary_name,

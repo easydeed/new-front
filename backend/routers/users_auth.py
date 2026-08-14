@@ -47,6 +47,13 @@ class UserRegister(BaseModel):
     # comment carried. A registrant sending `role` is ignored by
     # Pydantic, which is the right outcome — it was never the
     # authorization column and now it is not a field at all.
+    #
+    # AND THE DEPLOY WINDOW WAS REAL, which is worth recording because
+    # the pair looked like fussiness when it was written. Removing the
+    # field broke TEN test fixtures at once — every one registering with
+    # `role`, every one failing with no access token. Those fixtures are
+    # exactly what a browser holding the previous bundle would have been.
+    # The caution was the deploy topology made visible, not timidity.
     job_title: Optional[str] = None
     company_name: Optional[str] = None
     company_type: Optional[str] = None

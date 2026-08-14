@@ -419,6 +419,26 @@ def create_tables():
                 created_at TIMESTAMPTZ DEFAULT now(),
                 updated_at TIMESTAMPTZ DEFAULT now()
             )""",
+            # EMAIL2 — the fee THE OFFICER TYPED, carried to the notary
+            # who is deciding whether to accept. Optional, free text,
+            # never computed: NOTARY0b's no-fee-handling ruling stands,
+            # and passing on a figure one person set for another is
+            # carrying information rather than brokering between them.
+            #
+            # TEXT rather than numeric, deliberately. It is a thing she
+            # wrote — "85", "$85 + travel" — not an amount this product
+            # owns, and a numeric column would invite arithmetic on it.
+            #
+            # AND IT SITS HERE, AFTER THE CREATE, FOR A REASON THAT COST
+            # A RED CI RUN. It was first written thirty lines above, among
+            # the deed_shares ALTERs. Against a database that already had
+            # `signing_requests` — every developer's, and production's —
+            # it worked. Against an EMPTY one it raises UndefinedTable,
+            # and because this whole list runs in ONE transaction with a
+            # single commit at the end, that one failure rolls back the
+            # entire schema: not a missing column, NO TABLES AT ALL.
+            # `test_schema_statement_order.py` now holds the ordering.
+            "ALTER TABLE signing_requests ADD COLUMN IF NOT EXISTS offered_fee TEXT",
             # SIGNER CONTACT LIVES HERE AND NOWHERE ELSE (§13.1). One
             # table, one row per participant, a purge stamp beside it, and
             # a fail-closed sweep in the suite asserting no other table
