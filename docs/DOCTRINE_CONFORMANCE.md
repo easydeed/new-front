@@ -1246,6 +1246,20 @@ exists. This is the same failure in the instruments: a green tick and an
 unexecuted check are indistinguishable from the outside, and both are
 believed by default.
 
+**And the fifth, which is the same family from the other end: an
+instrument that ALTERS what it measures.** `git stash` was used twice in
+one day as though it were a query — "does this break on main too?" is a
+read-shaped question, and the command answers it by pocketing the entire
+working tree. The first time it made an empty stash and the comparison
+silently tested the branch under suspicion; the second it removed a
+narrowed `ADMIN_ROLES` and an edited model, so three passing tests looked
+broken and two phantom failures were chased before the cause was found.
+
+The generalisable form: **a command that changes state is not a query,
+however read-shaped the question was.** For "does main break too", copy
+the file or use a second checkout; never move the tree you are standing
+on.
+
 ---
 
 ## Change log
