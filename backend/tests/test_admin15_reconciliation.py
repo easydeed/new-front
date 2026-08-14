@@ -158,7 +158,7 @@ def test_the_dashboard_serves_both_windows_and_the_label():
 
     client.post("/users/register", json={
         "email": email, "password": password, "confirm_password": password,
-        "full_name": "Recon Admin", "role": "escrow_officer",
+        "full_name": "Recon Admin", "job_title": "escrow_officer",
         "state": "CA", "agree_terms": True})
     conn = psycopg2.connect(os.environ["DATABASE_URL"])
     conn.autocommit = True

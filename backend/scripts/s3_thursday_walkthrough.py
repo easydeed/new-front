@@ -101,7 +101,7 @@ def main():
     print("\n[1] 4:20pm — she signs in")
     r = client.post("/users/register", json={
         "email": email, "password": password, "confirm_password": password,
-        "full_name": "Thursday Officer", "role": "escrow_officer",
+        "full_name": "Thursday Officer", "job_title": "escrow_officer",
         "state": "CA", "agree_terms": True})
     check("registered", r.status_code == 200, r.text[:120])
     r = client.post("/users/login", json={"email": email, "password": password})
@@ -156,7 +156,7 @@ def main():
     print("\n[3] the phone goes. Her access token EXPIRES (for real)")
     expired = create_access_token(
         data={"sub": jwt.get_unverified_claims(access)["sub"], "email": email,
-              "role": "escrow_officer"},
+              "job_title": "escrow_officer"},
         expires_delta=timedelta(seconds=-5))
     r = client.get("/deeds", headers={"Authorization": f"Bearer {expired}"})
     check("an expired token is refused (401)", r.status_code == 401, str(r.status_code))

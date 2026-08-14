@@ -115,7 +115,7 @@ def run_flows(db_url):
     # ── Flow 1: admin mints a key ─────────────────────────────────
     client.post("/users/register", json={
         "email": ADMIN_EMAIL, "password": ADMIN_PASSWORD, "confirm_password": ADMIN_PASSWORD,
-        "full_name": "API Baseline Admin", "role": "escrow_officer", "state": "CA",
+        "full_name": "API Baseline Admin", "job_title": "escrow_officer", "state": "CA",
         "agree_terms": True,
     })
     _sql(db_url, "UPDATE users SET role = 'admin' WHERE email = %s", (ADMIN_EMAIL,))

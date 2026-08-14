@@ -182,25 +182,20 @@ describe('"Other" is not an answer', () => {
     const payload = registrationPayload(
       ok({ role: OTHER, roleOther: ' Notary ', companyType: OTHER,
            companyTypeOther: ' Lender ' }), '');
-    expect(payload.role).toBe('Notary');
     expect(payload.job_title).toBe('Notary');
     expect(payload.company_type).toBe('Lender');
   });
 
-  it('sends the professional role under BOTH names, for one release', () => {
+  it('sends the professional role under the one name the column has', () => {
     /**
-     * ROLE1 step 3 — `job_title` is the name that means what it holds.
-     * `role` rides along because this frontend (Vercel) and the API
-     * (Render) deploy separately: for the length of one deploy one is
-     * new and the other is not, and registration is the front door.
-     *
-     * An old server reads `role` and ignores the rest; a new one prefers
-     * `job_title`. Both directions are covered only if both are sent —
-     * dropping either half is what makes a deploy window a lost signup.
+     * The paired `role` came out once a server preferring `job_title`
+     * had been live through a deploy. Two names for one thing was a
+     * deploy-window affordance with a stated trigger, and the trigger
+     * fired.
      */
     const payload = registrationPayload(ok({ role: 'Escrow Officer' }), '');
     expect(payload.job_title).toBe('Escrow Officer');
-    expect(payload.role).toBe('Escrow Officer');
+    expect('role' in payload).toBe(false);
   });
 });
 

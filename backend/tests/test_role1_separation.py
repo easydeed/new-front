@@ -43,17 +43,24 @@ BACKEND = Path(__file__).resolve().parents[1]
 
 # ── The two vocabularies ─────────────────────────────────────────────
 
-def test_assignable_is_a_strict_subset_of_recognized():
-    """The whole shape of the ruling, in one line.
+def test_assignable_never_exceeds_recognized():
+    """The whole shape of the ruling, and the direction is what matters.
 
-    If these were equal, the console would be minting `super_admin` rows.
-    If assignable had a value recognized did not, the console could grant
-    access that no gate honours — an account that logs in and finds every
-    admin surface closed, with the console reporting success.
+    Assignable must never hold a value recognized does not: the console
+    would grant access no gate honours — an account that logs in and
+    finds every admin surface closed, with the console reporting success.
+
+    It was a STRICT subset while history held spellings the console must
+    not mint more of. The migration converged the column
+    (('admin', None, 1), ('user', 'Escrow Officer', 1),
+    ('user', 'Title Agent', 1), ('user', None, 1)) and `ADMIN_ROLES`
+    narrowed with it, so the two are now equal — the boundary case of
+    the same rule, reached in the only safe order.
     """
     assert ASSIGNABLE_ROLES == frozenset({'user', 'admin'})
     recognized = frozenset({r.lower() for r in ADMIN_ROLES} | {DEFAULT_ROLE})
-    assert ASSIGNABLE_ROLES < recognized
+    assert ASSIGNABLE_ROLES <= recognized
+    assert ASSIGNABLE_ROLES == recognized, "converged: the interim shape expired"
 
 
 def test_every_assignable_value_is_understood_by_the_gates():
@@ -71,13 +78,15 @@ def test_every_assignable_value_is_understood_by_the_gates():
     (None, "user"),
     ("user", "user"),
     ("admin", "admin"),
-    ("Administrator", "admin"),   # unmigrated, and still an admin
-    (" SUPER_ADMIN ", "admin"),
+    # Recognized until the migration ran. It has, and these now resolve
+    # to `user` — which is correct precisely because no row holds them.
+    ("Administrator", "user"),
+    (" SUPER_ADMIN ", "user"),
 ])
 def test_authorization_role_is_the_one_translation(stored, expected):
-    """Correct before the migration and after it. An `Administrator` row
-    that has not been converged yet still resolves to admin — the
-    translation is not waiting on the data."""
+    """One translation, and its answers moved WITH the data rather than
+    ahead of it. `Administrator` resolved to admin while a row could hold
+    it; the migration verified none does, and only then did it stop."""
     assert authorization_role(stored) == expected
 
 
@@ -129,10 +138,10 @@ def test_registration_writes_the_authorization_column_from_a_literal():
     assert re.search(r"clean_profile_text\(user\.full_name\), job_title,\s*"
                      r"DEFAULT_ROLE,", src)
 
-    # And the request's own `role` reaches exactly two places: the legacy
-    # refusal, and the job-title fallback. A third is a request value
-    # heading somewhere new, which is the whole class of defect here.
-    assert src.count("user.role") == 2
+    # And the request has no `role` at all any more. Zero, not two: the
+    # legacy field and the refusal that guarded it came out together once
+    # a frontend sending `job_title` had been live through a deploy.
+    assert src.count("user.role") == 0
 
 
 def test_the_registration_token_says_user_and_cannot_say_otherwise():
@@ -142,23 +151,31 @@ def test_the_registration_token_says_user_and_cannot_say_otherwise():
     assert '"role": user.role' not in src
 
 
-def test_the_legacy_wire_name_is_still_refused_an_admin_spelling():
-    """The `role` field on the request is what the deployed frontend
-    sends, and a request built for the old shape means what the old shape
-    meant. The refusal stays as long as the field does."""
+def test_the_legacy_wire_name_is_gone_and_so_is_its_refusal():
+    """The removal trigger fired.
+
+    `role` was accepted beside `job_title` for exactly one deploy window,
+    with the string refusal that guarded it. Both came out together: the
+    refusal existed because a request built for the old shape meant what
+    the old shape meant, and there is no old shape now.
+
+    What replaced it is structural and stronger — the INSERT binds a
+    module constant to the authorization column, so no request value
+    reaches it and there is nothing to spell.
+    """
+    from routers.users_auth import UserRegister
+    assert "role" not in UserRegister.model_fields
+    assert "job_title" in UserRegister.model_fields
+
     src = code_only(function_source(
         BACKEND / "routers" / "users_auth.py", "register_user"))
-    assert "is_admin_role(user.role)" in src
-    # And the resolved title is NOT what gets checked — a registrant on
-    # the new field is free to be called whatever they are called.
-    assert "is_admin_role(job_title)" not in src
+    assert "is_admin_role(user.role)" not in src
 
 
 def test_job_title_prefers_the_field_that_means_what_it_holds():
     src = code_only(function_source(
         BACKEND / "routers" / "users_auth.py", "register_user"))
-    assert ("job_title = clean_profile_text(user.job_title) "
-            "or clean_profile_text(user.role)") in src
+    assert "job_title = clean_profile_text(user.job_title)" in src
 
 
 # ── The screen the admin console pointed at ──────────────────────────
@@ -264,17 +281,20 @@ def test_the_migration_is_one_transaction():
     assert "conn.rollback()" in src
 
 
-def test_the_migration_does_not_also_narrow_what_the_gates_recognize():
-    """Two decisions, and this script takes one. Narrowing ADMIN_ROLES is
-    safe only once a census of the MIGRATED table shows nothing but
-    'admin' — and a script that converged the data and changed what the
-    converged data means would be impossible to review."""
+def test_the_migration_did_not_also_narrow_what_the_gates_recognize():
+    """Two decisions, and the script took one.
+
+    Narrowing `ADMIN_ROLES` was safe only once the MIGRATED table showed
+    nothing but 'admin', and a script that converged the data and changed
+    what the converged data means would have been impossible to review.
+    It ran first; the narrowing followed as its own change, which is why
+    this pin now reads the narrowed value.
+    """
     import migrations.role1_separate_job_title as mig
     src = code_only(inspect.getsource(mig))
     assert "ADMIN_ROLES = " not in src
     auth_src = (BACKEND / "auth.py").read_text(encoding="utf-8")
-    assert "ADMIN_ROLES = ('admin', 'administrator', 'superadmin', 'super_admin')" \
-        in auth_src
+    assert "ADMIN_ROLES = ('admin',)" in auth_src
 
 
 def test_the_migration_is_rerunnable():

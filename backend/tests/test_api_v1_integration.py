@@ -63,7 +63,7 @@ def admin_token(client):
     import psycopg2
     client.post("/users/register", json={
         "email": API_EMAIL, "password": API_PASSWORD, "confirm_password": API_PASSWORD,
-        "full_name": "API Harness", "role": "escrow_officer", "state": "CA", "agree_terms": True,
+        "full_name": "API Harness", "job_title": "escrow_officer", "state": "CA", "agree_terms": True,
     })
     conn = psycopg2.connect(LIVE_DB)
     conn.autocommit = True

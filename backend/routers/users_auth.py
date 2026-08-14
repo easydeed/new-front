@@ -41,23 +41,13 @@ class UserRegister(BaseModel):
     password: str
     confirm_password: str
     full_name: str
-    # ── ROLE1 step 3: TWO WIRE NAMES, ONE COLUMN, ON PURPOSE ──────────
-    #
-    # What the form has always called "professional role" is a JOB TITLE
-    # and now lands in `users.job_title`. `job_title` is the name that
-    # means what it holds; `role` is the name the deployed frontend
-    # sends.
-    #
-    # Both are accepted for exactly one reason: this backend (Render) and
-    # that frontend (Vercel) deploy separately, so there is a window
-    # where one is new and the other is not. Registration is the front
-    # door and a 422 in that window is a lost signup.
-    #
-    # REMOVAL TRIGGER: once a frontend sending `job_title` has been live
-    # through one deploy, `role` comes out of this model and the refusal
-    # below goes with it.
+    # ROLE1 step 3, completed. `job_title` is the only name now: the
+    # legacy `role` field came out once a frontend sending `job_title`
+    # had been live through a deploy, which was the removal trigger this
+    # comment carried. A registrant sending `role` is ignored by
+    # Pydantic, which is the right outcome — it was never the
+    # authorization column and now it is not a field at all.
     job_title: Optional[str] = None
-    role: Optional[str] = None
     company_name: Optional[str] = None
     company_type: Optional[str] = None
     phone: Optional[str] = None
@@ -172,21 +162,15 @@ async def register_user(user: UserRegister = Body(...)):
         # handler owns. There is no request value that reaches the
         # authorization column, so there is nothing to spell.
         #
-        # The refusal stays only for as long as the legacy `role` wire
-        # name does, and for the same reason: a request built for the old
-        # shape means what the old shape meant. It is checked against
-        # `user.role`, not the resolved title, so a registrant sending
-        # the new field is free to be called whatever they are called.
-        if is_admin_role(user.role):
-            raise HTTPException(
-                status_code=400,
-                detail="That role cannot be selected at registration.",
-            )
-
+        # The string refusal that used to sit here went with the legacy
+        # `role` field it guarded. What remains is stronger and is what
+        # the test now drives: the INSERT binds `DEFAULT_ROLE`, a module
+        # constant, to the authorization column. There is no request
+        # value that reaches it, so there is nothing to spell.
         # The form's "professional role", under the name that says what
         # it is. `job_title` wins when both arrive: the specific name
         # beats the legacy one.
-        job_title = clean_profile_text(user.job_title) or clean_profile_text(user.role)
+        job_title = clean_profile_text(user.job_title)
         if not job_title:
             raise HTTPException(status_code=400, detail="Role is required")
 

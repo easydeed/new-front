@@ -78,7 +78,7 @@ export default function Dashboard() {
      most-recently-touched, so asking again would be a second opinion
      about which document is hers to resume. */
   const resumeTarget = queue?.accuracy?.items?.length
-    ? { ...queue.accuracy.items[0], escrow_no: null }
+    ? queue.accuracy.items[0]
     : null
 
   // Authentication check and load user data

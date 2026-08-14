@@ -39,6 +39,7 @@ export interface AccuracyItem {
   deed_id: number;
   deed_type?: string | null;
   property?: string | null;
+  escrow_no?: string | null;
   checks: AccuracyCheck[];
 }
 

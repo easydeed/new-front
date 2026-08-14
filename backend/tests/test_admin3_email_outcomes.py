@@ -245,7 +245,7 @@ def test_the_admin_surface_reads_the_ledger():
 
     client.post("/users/register", json={
         "email": email, "password": password, "confirm_password": password,
-        "full_name": "Email Admin", "role": "escrow_officer",
+        "full_name": "Email Admin", "job_title": "escrow_officer",
         "state": "CA", "agree_terms": True})
     conn = psycopg2.connect(os.environ["DATABASE_URL"])
     conn.autocommit = True

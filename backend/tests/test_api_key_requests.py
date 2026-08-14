@@ -99,7 +99,7 @@ def client_and_token():
     conn.close()
     client.post("/users/register", json={
         "email": email, "password": password, "confirm_password": password,
-        "full_name": "Funnel Tester", "role": "escrow_officer", "state": "CA",
+        "full_name": "Funnel Tester", "job_title": "escrow_officer", "state": "CA",
         "agree_terms": True,
     })
     token = client.post("/users/login", json={

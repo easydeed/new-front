@@ -173,6 +173,13 @@ def officer_queue(user_id: int = Depends(get_current_user_id)) -> Dict[str, Any]
                 "deed_id": row["id"],
                 "deed_type": row.get("deed_type"),
                 "property": row.get("property_address"),
+                # The field that ties this deed to the FILE, which is the
+                # orientation the resume card exists to give. Added
+                # deliberately rather than left to render blank where the
+                # design shows a fact.
+                # In `metadata`, not a column — the draft extras list is
+                # where it has always lived.
+                "escrow_no": meta.get("escrow_no"),
                 "checks": checks,
             })
 

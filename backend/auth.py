@@ -255,7 +255,20 @@ class AuthUtils:
 #: entered the console and was then refused by two gates inside it, which
 #: they would experience as the console being broken. Nothing recorded
 #: which of the three was authoritative.
-ADMIN_ROLES = ('admin', 'administrator', 'superadmin', 'super_admin')
+#: NARROWED 2026-08-13, after the ROLE1 migration ran and was verified.
+#: Final state: ('admin', None, 1), ('user', 'Escrow Officer', 1),
+#: ('user', 'Title Agent', 1), ('user', None, 1) — four rows, one admin,
+#: canonically spelled, and no other spelling anywhere in the column.
+#:
+#: The four spellings were RECOGNIZED because history had written four.
+#: History no longer has: narrowing before the migration would have
+#: silently removed access from an unmigrated row, and narrowing after it
+#: removes nothing, because there is nothing left to remove. That
+#: ordering was the whole reason this stayed wide through step 3.
+#:
+#: Recognized and assignable are now the same set, which is the point:
+#: the interim shape had an expiry and this is it.
+ADMIN_ROLES = ('admin',)
 
 
 def is_admin_role(role: str) -> bool:

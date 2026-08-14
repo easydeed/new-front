@@ -82,7 +82,7 @@ def test_probe_reports_down_when_the_engine_is_broken():
     conn.close()
     client.post("/users/register", json={
         "email": email, "password": password, "confirm_password": password,
-        "full_name": "Probe", "role": "escrow_officer", "state": "CA", "agree_terms": True})
+        "full_name": "Probe", "job_title": "escrow_officer", "state": "CA", "agree_terms": True})
     conn = psycopg2.connect(LIVE_DB)
     conn.autocommit = True
     with conn.cursor() as cur:

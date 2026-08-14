@@ -84,7 +84,7 @@ def run_flows():
     reg = client.post("/users/register", json={
         "email": BASELINE_EMAIL, "password": BASELINE_PASSWORD,
         "confirm_password": BASELINE_PASSWORD, "full_name": "Baseline User",
-        "role": "escrow_officer", "state": "CA", "agree_terms": True,
+        "job_title": "escrow_officer", "state": "CA", "agree_terms": True,
     })
     login = client.post("/users/login", json={
         "email": BASELINE_EMAIL, "password": BASELINE_PASSWORD,
