@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation"
 import Sidebar from "../../components/Sidebar"
 import { AIGreeting } from "@/components/ui/AIGreeting"
 import { AICard } from "@/components/ui/AICard"
-import { AIEmptyState } from "@/components/ui/AIEmptyState"
 import { AuthManager } from "@/utils/auth"
 import EmailVerificationNotice from "@/features/account/EmailVerificationNotice"
 import AccuracySection from "@/features/dashboard/AccuracySection"
@@ -312,7 +311,7 @@ export default function Dashboard() {
           {/* DASH1 — THE QUEUE LEADS. What is waiting on somebody comes
               before what has been made, because that is the order she
               works in. */}
-          <ActionQueue queue={queue} error={queueError} />
+          <ActionQueue queue={queue} error={queueError} hasDeeds={hasDeeds} />
 
           {/* Stats Grid — DASH1: every tile is a LINK now. A count with
               no drill-down is trivia: "4 Drafts" that cannot be pressed
@@ -403,23 +402,22 @@ export default function Dashboard() {
                 ))}
               </div>
             </div>
-          ) : (
-            <AIEmptyState
-              title="Welcome to your dashboard!"
-              message="This is where you'll see all your deeds. Let's create your first one — I'll guide you through every step."
-              action={{
-                label: "Create Your First Deed",
-                onClick: () => router.push('/deed-builder')
-              }}
-              icon="deed"
-              tips={[
-                "Enter an address — I'll find the property data",
-                "Tell me who's involved — I'll format the names",
-                "I'll calculate transfer tax (including city rates)",
-                "Download a ready-to-record PDF in under 2 minutes"
-              ]}
-            />
-          )}
+          ) : null /* ═══ THE WELCOME CARD AND ITS FOUR BULLETS, DELETED
+              ═══
+
+              OWNER-RULED, from `docs/design/dashboard_day_one.html`,
+              whose annotation makes the argument better than a comment
+              can: "a welcome banner can't notice anything", and four
+              bullets describing what the product does are landing-page
+              copy shown to somebody who has already signed up.
+
+              What she is left with on day one is the thing that acts:
+              `StartSomethingNew` offers the catalog, and the greeting
+              says where she is. Nothing here now claims a state.
+
+              Note for whoever builds the setup checklist: THIS is where
+              it goes. The gap is deliberate and it is the right shape —
+              a list derived from state, not a banner. */}
         </div>
       </main>
     </div>
@@ -437,7 +435,9 @@ export default function Dashboard() {
  * a good morning — the screen says so rather than rendering nothing and
  * letting her wonder whether it loaded.
  */
-function ActionQueue({ queue, error }: { queue: Queue | null; error: string | null }) {
+function ActionQueue({ queue, error, hasDeeds }: {
+  queue: Queue | null; error: string | null; hasDeeds: boolean;
+}) {
   const router = useRouter()
 
   if (error) {
@@ -457,6 +457,31 @@ function ActionQueue({ queue, error }: { queue: Queue | null; error: string | nu
     queue.upcoming.length === 0 &&
     queue.awaiting.length === 0 &&
     queue.idle_drafts.length === 0
+
+  // ═══ A GUARANTEED-EMPTY QUEUE IS NOT AN EMPTY QUEUE ═══
+  //
+  // Same ruling as AccuracySection's, and the same reasoning: an officer
+  // who has never made a deed cannot have a signing, an unanswered
+  // request or an idle draft, so "nothing is waiting on anyone" tells
+  // her nothing about her work and reads as a result she earned.
+  //
+  // ── AND HERE IS THE HALF I AM NOT DECIDING ──
+  //
+  // The ruling said this module "goes". Read literally that deletes the
+  // empty card for EVERYONE, including the returning officer whose
+  // queue is genuinely clear — and for her the sentence is the DASH1
+  // ruling working as intended: "the empty state is a RESULT, not an
+  // absence", the screen saying so rather than rendering nothing and
+  // leaving her to wonder whether it loaded.
+  //
+  // Both readings deliver the stated intent, which was about the new
+  // officer. Only the literal one also removes ruled behaviour from a
+  // case the mockup does not cover — its own returning-state section
+  // draws a POPULATED queue, so the drawing does not settle it either.
+  //
+  // So the day-one half is built and the returning half is HELD. If the
+  // card should go outright, it is this condition and nothing else.
+  if (empty && !hasDeeds) return null
 
   return (
     <section className="mb-8" aria-label="What's waiting">

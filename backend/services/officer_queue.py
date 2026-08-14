@@ -125,7 +125,11 @@ INSTRUMENT_KEYS = frozenset({"deed_type", "count", "period"})
 #: the same reason `needs_attention` is computed here. A screen deriving
 #: "7 fields across 4 documents" from a list it also renders would be a
 #: second opinion about the product's own promise.
-ACCURACY_KEYS = frozenset({"fields", "documents", "items"})
+#: `documents` is how many have something outstanding; `open_documents`
+#: is how many there were. Both, because zero of the first means either
+#: "all clean" or "none exist" and the screen may not say the same thing
+#: about those two.
+ACCURACY_KEYS = frozenset({"fields", "documents", "open_documents", "items"})
 ACCURACY_ITEM_KEYS = frozenset({"deed_id", "deed_type", "property",
                                 "escrow_no", "checks"})
 

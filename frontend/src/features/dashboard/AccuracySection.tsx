@@ -45,7 +45,14 @@ export interface AccuracyItem {
 
 export interface Accuracy {
   fields: number;
+  /** Documents with something outstanding. */
   documents: number;
+  /**
+   * Documents there were to look at. Optional only because a payload
+   * from before this field existed must not render a figure that means
+   * something else — see the guard in the component.
+   */
+  open_documents?: number;
   items: AccuracyItem[];
 }
 
@@ -77,6 +84,24 @@ export default function AccuracySection({ accuracy, onOpen }: {
 }) {
   // Nothing received: say nothing. Not zero — zero is a claim.
   if (!accuracy) return null;
+
+  // ═══ AND NEITHER IS A CLAIM ABOUT AN EMPTY SET ═══
+  //
+  // OWNER-RULED, against something I built three tickets ago and got
+  // right in the same session on ResumeCard: "every field on every open
+  // document is confirmed" is vacuously true when there are no open
+  // documents. An officer on her first morning was told her work was
+  // in good order before she had done any.
+  //
+  // The card stays for the case it was written for — she HAS documents
+  // and they are all confirmed, which is real and earned. So the test
+  // is the size of the population, not the size of the count.
+  //
+  // `open_documents` undefined means the payload predates this field.
+  // Falling back to the old behaviour would re-render the vacuous
+  // sentence; rendering nothing withholds a true one for a moment.
+  // Withholding is the cheaper mistake, and it is the one §0 picks.
+  if (!accuracy.open_documents) return null;
 
   if (accuracy.fields === 0) {
     return (
