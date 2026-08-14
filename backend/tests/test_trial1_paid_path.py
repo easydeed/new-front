@@ -52,13 +52,26 @@ def test_the_advertised_trial_length_matches_the_one_we_charge_on():
     from routers.users_auth import TRIAL_PERIOD_DAYS
 
     import re
-    page = (REPO / "frontend" / "src" / "app" / "page.tsx").read_text(encoding="utf-8")
+    FRONTEND = REPO / "frontend" / "src"
     # PRICING1 moved the copy to `Start {TRIAL_DAYS}-day trial`, so the
     # page states the number once as a constant instead of twice as
     # prose. Read the constant — that IS the claim now.
-    claimed = {int(n) for n in re.findall(r"const TRIAL_DAYS\s*=\s*(\d+)", page)}
-    claimed |= {int(n) for n in re.findall(r"(\d+)[\s-]day trial", page, re.I)}
-    assert claimed, "the marketing page no longer states a trial length"
+    #
+    # AND THE CONSTANT MOVED AGAIN, to `lib/trial.ts`, when the day-one
+    # dashboard grew a second mention of the trial. That is the same
+    # rule one level up: one number per side means one DECLARATION per
+    # side, not one per screen. The mirror follows the declaration.
+    trial = (FRONTEND / "lib" / "trial.ts").read_text(encoding="utf-8")
+    claimed = {int(n) for n in re.findall(r"TRIAL_DAYS\s*=\s*(\d+)", trial)}
+    assert claimed, "lib/trial.ts no longer states a trial length"
+    # Any surface that writes the number as PROSE instead of importing it
+    # is a second claim, and it is checked here rather than trusted.
+    for surface in sorted(FRONTEND.rglob("*.tsx")):
+        if "__tests__" in surface.parts:
+            continue
+        text = surface.read_text(encoding="utf-8")
+        for n in re.findall(r"(\d+)[\s-]day (?:free )?trial", text, re.I):
+            claimed.add(int(n))
     assert claimed == {TRIAL_PERIOD_DAYS}, (
         f"the page advertises {sorted(claimed)}-day trial(s); the server "
         f"opens Checkout with trial_period_days={TRIAL_PERIOD_DAYS}")

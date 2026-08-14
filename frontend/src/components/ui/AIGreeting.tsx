@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Sparkles } from "lucide-react"
 
 interface AIGreetingProps {
   userName?: string
@@ -36,12 +35,12 @@ export function AIGreeting({ userName, className = "" }: AIGreetingProps) {
         ${className}
       `}
     >
-      <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
-        <Sparkles className="w-5 h-5 text-emerald-600 animate-pulse" />
-      </div>
+      {/* "One line, not a hero" (the day-one mockup). The pulsing badge
+          and the 2xl heading were the hero part; the sentence below is
+          not, and it is U3's ruling — see the dashboard's comment. */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          {greeting}, {displayName}!
+        <h1 className="text-xl font-bold text-gray-900">
+          {greeting}, {displayName}.
         </h1>
         {/* U3: no chat-style promise with no chat behind it — the line under
             the greeting states what the page actually is. */}

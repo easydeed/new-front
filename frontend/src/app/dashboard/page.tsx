@@ -11,6 +11,8 @@ import EmailVerificationNotice from "@/features/account/EmailVerificationNotice"
 import AccuracySection from "@/features/dashboard/AccuracySection"
 import ResumeCard from "@/features/dashboard/ResumeCard"
 import StartSomethingNew from "@/features/dashboard/StartSomethingNew"
+import SetupChecklist, { setupSteps } from "@/features/dashboard/SetupChecklist"
+import DayOneRail from "@/features/dashboard/DayOneRail"
 import { pickInProgressDeed } from "@/lib/latestDraft"
 import { SessionExpiredError, apiFetch } from "@/lib/apiClient"
 import { 
@@ -62,6 +64,14 @@ export default function Dashboard() {
   // VERIFY-CHECK — this screen already fetches /users/profile, so saying
   // whether the address is confirmed costs one field and no request.
   const [account, setAccount] = useState<{ verified?: boolean; email?: string }>({})
+  /* Undefined until /users/profile answers. The checklist is NOT rendered
+     from a default of "nothing is set up" — that would tell a fully
+     configured officer she has three things to do, for as long as the
+     request takes. Same rule as the accuracy figure. */
+  const [setup, setSetup] = useState<{
+    county?: string | null; companyName?: string | null;
+    businessAddress?: string | null; plan?: string | null; deedCount: number;
+  } | null>(null)
   const [recentDeeds, setRecentDeeds] = useState<any[]>([])
   const [deedsError, setDeedsError] = useState<string | null>(null)
   const [summary, setSummary] = useState<{
@@ -107,7 +117,18 @@ export default function Dashboard() {
             setUserName(profileData.full_name.split(' ')[0])
           }
           setAccount({ verified: profileData.verified, email: profileData.email })
-          
+          /* The setup checklist's three signals, all of them already in
+             this response — no second request and no new endpoint. The
+             deed count is the server's, not `recentDeeds.length`, which
+             is a page of the list rather than the whole of it. */
+          setSetup({
+            county: profileData.default_county,
+            companyName: profileData.company_name,
+            businessAddress: profileData.business_address,
+            plan: profileData.plan,
+            deedCount: Number(profileData.total_deeds) || 0,
+          })
+
           // Check if onboarding is completed
           const onboardingComplete = localStorage.getItem("onboarding_completed") === "true"
           const hasDeeds = profileData.total_deeds > 0
@@ -252,6 +273,11 @@ export default function Dashboard() {
     String(b.updated_at || b.created_at || '').localeCompare(
       String(a.updated_at || a.created_at || '')))
 
+  /* The rail exists to explain the steps, so it goes when they do —
+     §13 rule 3: the page does not recompute "is setup finished", it
+     asks the one function that decides what a step is. */
+  const setupIncomplete = !!setup && setupSteps(setup).some((st) => !st.done)
+
   return (
     <div className="flex bg-gray-50 min-h-screen">
       <Sidebar />
@@ -261,6 +287,50 @@ export default function Dashboard() {
               and offers; it withholds nothing, because nothing in this
               product is gated on the answer. */}
           <EmailVerificationNotice verified={account.verified} email={account.email} />
+
+          {/* ═══ THE GREETING MOVED UP, AND IS NOT A HERO ═══
+
+              The day-one mockup puts it first and small. It was sitting
+              below three cards, which is neither.
+
+              WHAT DID NOT CHANGE, AND IS FLAGGED: the line under it.
+              "Keep as drawn: the one-line greeting" read literally
+              deletes "Here's where your deeds stand" — and that sentence
+              is U3's ruling, added deliberately so the greeting states
+              what the page IS rather than making a chat-style promise
+              with no chat behind it. The mockup's complaint is that the
+              greeting was a HERO, which is about weight and position,
+              and both of those are fixed here. Deleting a ruled sentence
+              on the strength of a phrase about size is the half I am not
+              deciding. */}
+          <div className="mb-6">
+            <AIGreeting userName={userName} />
+          </div>
+
+          {/* ═══ FINISH SETTING UP ═══
+
+              Where the welcome card and its four bullets used to be, and
+              the shape its removal argued for: a list derived from state
+              rather than a banner. It renders nothing once the three are
+              done, and nothing at all until the profile has answered. */}
+          {setup && (
+            <div className="mb-6 grid gap-4 lg:grid-cols-[2fr,1fr] items-start">
+              <SetupChecklist
+                state={setup}
+                onAct={(id) => router.push(
+                  id === 'first-deed' ? '/deed-builder' : '/account-settings')}
+              />
+              {setupIncomplete && (
+                <DayOneRail
+                  companyName={setup.companyName}
+                  businessAddress={setup.businessAddress}
+                  county={setup.county}
+                  plan={setup.plan}
+                  onSeePlans={() => router.push('/pricing')}
+                />
+              )}
+            </div>
+          )}
 
           {/* THE MOCKUP'S ORDER, AND IT IS AN ARGUMENT: resume is the
               highest-frequency action in a preparation tool, so it sits
@@ -283,11 +353,6 @@ export default function Dashboard() {
               accuracy={queue?.accuracy}
               onOpen={(id) => router.push(`/deeds/${id}`)}
             />
-          </div>
-
-          {/* AI Greeting */}
-          <div className="mb-8">
-            <AIGreeting userName={userName} />
           </div>
 
           {/* Draft deed card (Ticket R: resume is real — the card opens the

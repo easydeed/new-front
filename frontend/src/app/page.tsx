@@ -26,9 +26,11 @@ const AnimatedDeed = dynamic(() => import("@/components/landing-v2/AnimatedDeed"
 // "Contact information coming soon" — a tier nobody could buy, above a
 // contact route nobody could use.
 
-// TRIAL1's mirror reads this number off the page and compares it with
-// the server's TRIAL_PERIOD_DAYS. One number, stated once per side.
-const TRIAL_DAYS = 14
+// TRIAL1's mirror compares this with the server's TRIAL_PERIOD_DAYS.
+// It moved to `lib/trial.ts` when the day-one dashboard grew a second
+// mention: one number per side means one DECLARATION per side, not one
+// per screen.
+import { TRIAL_DAYS } from "@/lib/trial"
 
 export default function LandingPage() {
   return (
