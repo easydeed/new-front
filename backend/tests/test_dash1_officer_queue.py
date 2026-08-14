@@ -59,7 +59,12 @@ dbonly = pytest.mark.skipif(not os.getenv("DATABASE_URL"), reason="needs a datab
 #: it as a required keyword for the reason the key sets exist: a caller
 #: that omits the hero number would get "nothing outstanding", which is
 #: exactly the reading the two-population design exists to prevent.
-NOTHING_OUTSTANDING = {"fields": 0, "documents": 0, "items": []}
+#:
+#: `open_documents` is separate from `documents` because zero of the
+#: latter means either "all clean" or "none exist", and the screen may
+#: not say the same thing about those two.
+NOTHING_OUTSTANDING = {"fields": 0, "documents": 0, "open_documents": 3,
+                       "items": []}
 #: She has filed nothing yet — stated, like the accuracy block, rather
 #: than defaulted.
 FILES_NOTHING: list = []
@@ -472,3 +477,37 @@ def test_the_summary_counts_thirty_days_rather_than_a_calendar_page(world):
     assert body["last_30_days"] == 2, body
     assert body["drafts"] == 1
     assert body["completed"] == 1
+
+
+# ══════════════════════════════════════════════════════════════════════
+# The two kinds of zero
+# ══════════════════════════════════════════════════════════════════════
+
+def test_the_accuracy_block_says_how_many_documents_there_were_to_look_at():
+    """OWNER-RULED, after the day-one diff.
+
+    `documents` counts the ones with something outstanding, so it reads
+    zero when every open document is confirmed AND when there are no
+    open documents. The screen was rendering the same congratulation for
+    both, which meant an officer who had made nothing was told her work
+    was in good order on her first morning.
+
+    The block therefore carries the size of the population as well as
+    the size of the count. This is DASH1's naming-which-kind-of-absence
+    rule — already applied to a single row on the resume card — reaching
+    the population.
+    """
+    payload = q.queue(upcoming=[], awaiting=[], idle_drafts=[],
+                      accuracy=NOTHING_OUTSTANDING, instruments=FILES_NOTHING)
+    assert payload["accuracy"]["open_documents"] == 3
+
+
+def test_an_accuracy_block_without_the_population_is_refused():
+    """The key set is equality, not a subset, and that is the point: a
+    caller that forgets this field would send a block the screen cannot
+    read the two zeros apart in, and the screen would have to guess."""
+    import pytest
+    with pytest.raises(AssertionError):
+        q.queue(upcoming=[], awaiting=[], idle_drafts=[],
+                accuracy={"fields": 0, "documents": 0, "items": []},
+                instruments=FILES_NOTHING)

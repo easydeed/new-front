@@ -40,7 +40,7 @@ describe('the hero number', () => {
 
   it('says how many fields across how many documents', () => {
     render(<AccuracySection accuracy={{
-      fields: 7, documents: 4,
+      fields: 7, documents: 4, open_documents: 9,
       items: [{ deed_id: 1, property: '1358 5th St', checks: [check()] }],
     }} />);
     expect(screen.getByTestId('accuracy-figure')).toHaveTextContent('7');
@@ -49,10 +49,41 @@ describe('the hero number', () => {
 
   it('says so plainly when nothing is outstanding', () => {
     /** Zero is a real answer once it has been counted — and it is worth
-     *  saying, because "no list" and "nothing left" look identical. */
-    render(<AccuracySection accuracy={{ fields: 0, documents: 0, items: [] }} />);
+     *  saying, because "no list" and "nothing left" look identical.
+     *
+     *  Nine open documents and none of them outstanding: the sentence is
+     *  EARNED here, which is why the card survives at all. */
+    render(<AccuracySection accuracy={{
+      fields: 0, documents: 0, open_documents: 9, items: [],
+    }} />);
     expect(screen.getByText(/Every field on every open document is confirmed/))
       .toBeInTheDocument();
+  });
+
+  it('says nothing at all when there are no documents to say it about', () => {
+    /**
+     * OWNER-RULED, and the reason the field above exists. `documents` is
+     * zero in two unrelated situations — every document confirmed, and
+     * no documents — and this component was congratulating a brand-new
+     * officer for the state of work she had not started.
+     *
+     * A claim about a set is not a claim when the set is empty.
+     */
+    const { container } = render(<AccuracySection accuracy={{
+      fields: 0, documents: 0, open_documents: 0, items: [],
+    }} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('withholds rather than guesses when the payload predates the field', () => {
+    /** An older server sends no `open_documents`. Falling back to the
+     *  old behaviour would restore the vacuous sentence for exactly the
+     *  officer it was removed for; withholding costs a true sentence for
+     *  a deploy window. */
+    const { container } = render(<AccuracySection accuracy={{
+      fields: 0, documents: 0, items: [],
+    }} />);
+    expect(container).toBeEmptyDOMElement();
   });
 });
 

@@ -159,7 +159,23 @@ def officer_queue(user_id: int = Depends(get_current_user_id)) -> Dict[str, Any]
         """, (user_id,))
         accuracy_items: List[Dict[str, Any]] = []
         total_fields = 0
+        # ── AND HOW MANY DOCUMENTS THERE WERE TO LOOK AT ──────────────
+        #
+        # `documents` below counts the ones with something outstanding,
+        # which means it is zero in TWO unrelated situations: every open
+        # document is confirmed, and there are no open documents. The
+        # screen was rendering "every field on every open document is
+        # confirmed" for both — a sentence that is earned in the first
+        # case and vacuous in the second, where an officer who has made
+        # nothing is congratulated for it on her first morning.
+        #
+        # This is the count of documents SCANNED. It is what lets the
+        # screen tell an empty set from a clean one, which is DASH1's
+        # naming-which-kind-of-absence rule applied to the population
+        # rather than to a single row.
+        open_documents = 0
         for row in _rows(cur):
+            open_documents += 1
             meta = row.get("metadata") or {}
             checks = accuracy.outstanding(
                 {**row,
@@ -236,4 +252,5 @@ def officer_queue(user_id: int = Depends(get_current_user_id)) -> Dict[str, Any]
                    instruments=instruments,
                    accuracy={"fields": total_fields,
                              "documents": len(accuracy_items),
+                             "open_documents": open_documents,
                              "items": accuracy_items})
