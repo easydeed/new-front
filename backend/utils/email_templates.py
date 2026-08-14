@@ -368,8 +368,7 @@ def admin_api_key_request(company_name, contact_email, business_type,
 # in a commit message nobody reads next year.
 
 
-def _decision_block(when_text: str, fee: Optional[str], where: str,
-                    signer_count: Optional[str] = None) -> str:
+def _decision_block(when_text: str, fee: Optional[str], where: str) -> str:
     """WHEN / FEE / WHERE — the three things a notary decides on.
 
     THE DESIGN'S CENTRAL IDEA, and its own comment gives the reason: a
@@ -389,13 +388,15 @@ def _decision_block(when_text: str, fee: Optional[str], where: str,
     suggestion, no "typical", and no arithmetic anywhere in this file. A
     pin holds that.
     """
-    cells = []
-    cells.append(("When", when_text))
+    # OWNER-RULED: exactly three. `signer_count` was in the first build
+    # and came out — it is CONTEXT, not a decision input, and the block's
+    # whole strength is that every element in it is something she decides
+    # on. A fourth cell that is merely useful dilutes the three that are
+    # not. It still reaches her, in the facts table below.
+    cells = [("When", when_text)]
     if (fee or "").strip():
         cells.append(("Fee", f"${_esc(fee)}"))
     cells.append(("Where", where))
-    if (signer_count or "").strip():
-        cells.append(("Signers", signer_count))
 
     tds = "".join(
         f'<td valign="top" style="padding:0 14px 0 0;'
@@ -480,7 +481,7 @@ SIGNING_FOOTER = (
 
 
 def notary_invited(notary_name, officer_name, officer_company, deed_type,
-                   property_address, county, link, expires_at, fee=None,
+                   property_address, county, link, expires_at,
                    signer_count=None, decline_link="", respond_by="",
                    window_text="") -> Rendered:
     """NOTARY2 — officer → notary: post the times you are free.
@@ -498,14 +499,24 @@ def notary_invited(notary_name, officer_name, officer_company, deed_type,
     that document; what they do NOT get is any way to reach the signers,
     because they have no reason to and the officer does.
 
-    No distance: see `notary_dispatched`. We hold a city, not a point.
+    ═══ AND NO FEE ON THIS PATH ═══
+
+    OWNER-RULED, and the reason is the shape of the two paths rather than
+    squeamishness about the number. On dispatch a fee attaches to a
+    SPECIFIC job at a SPECIFIC time — unambiguous. Here she is posting
+    windows before anything is agreed, so a figure shown now reads as an
+    offer that survives whatever time is eventually picked. That is the
+    product implying a term nobody agreed to, which is the same family as
+    every other invented-fact ruling in this codebase.
+
+    No distance either: see `notary_dispatched`. We hold a city, not a
+    point.
     """
     addr = _short_addr(property_address)
     subject = f"Signing request — {addr}" if addr else "Notary signing request"
 
     preheader = " · ".join(x for x in [
         _esc(deed_type) or "Signing request",
-        f"${_esc(fee)}" if (fee or "").strip() else "",
         f"respond by {_esc(respond_by)}" if (respond_by or "").strip() else "",
     ] if x)
 
@@ -517,8 +528,8 @@ def notary_invited(notary_name, officer_name, officer_company, deed_type,
         # The three decisions, with WHEN as the window she is being asked
         # about rather than a time anybody has agreed — nothing is
         # proposed on this path, so it says so.
-        + _decision_block(window_text or "You post the times", fee,
-                          addr or (county or ""), signer_count)
+        + _decision_block(window_text or "You post the times", None,
+                          addr or (county or ""))
         + _facts([("Document", deed_type), ("Address", property_address),
                   ("County", county), ("Link expires", expires_at or "")])
         + _respond_by(respond_by)
@@ -532,7 +543,6 @@ def notary_invited(notary_name, officer_name, officer_company, deed_type,
     )
     text = (
         f"{officer_name} is asking whether you can notarize a signing.\n\n"
-        + (f"Fee: ${fee}\n" if (fee or "").strip() else "")
         + f"Document: {deed_type}\nProperty: {addr}\nCounty: {county}\n"
         f"Link expires: {expires_at or ''}\n"
         + (f"Please respond by: {respond_by}\n" if (respond_by or "").strip() else "")
@@ -553,8 +563,7 @@ def notary_invited(notary_name, officer_name, officer_company, deed_type,
 # in a commit message nobody reads next year.
 
 
-def _decision_block(when_text: str, fee: Optional[str], where: str,
-                    signer_count: Optional[str] = None) -> str:
+def _decision_block(when_text: str, fee: Optional[str], where: str) -> str:
     """WHEN / FEE / WHERE — the three things a notary decides on.
 
     THE DESIGN'S CENTRAL IDEA, and its own comment gives the reason: a
@@ -574,13 +583,15 @@ def _decision_block(when_text: str, fee: Optional[str], where: str,
     suggestion, no "typical", and no arithmetic anywhere in this file. A
     pin holds that.
     """
-    cells = []
-    cells.append(("When", when_text))
+    # OWNER-RULED: exactly three. `signer_count` was in the first build
+    # and came out — it is CONTEXT, not a decision input, and the block's
+    # whole strength is that every element in it is something she decides
+    # on. A fourth cell that is merely useful dilutes the three that are
+    # not. It still reaches her, in the facts table below.
+    cells = [("When", when_text)]
     if (fee or "").strip():
         cells.append(("Fee", f"${_esc(fee)}"))
     cells.append(("Where", where))
-    if (signer_count or "").strip():
-        cells.append(("Signers", signer_count))
 
     tds = "".join(
         f'<td valign="top" style="padding:0 14px 0 0;'
@@ -727,9 +738,10 @@ def notary_dispatched(notary_name, officer_name, officer_company, deed_type,
         + _p(f"<strong>{_esc(officer_name)}</strong>"
              + (f" at {_esc(officer_company)}" if officer_company else "")
              + " is asking whether you can take a signing at a set time.")
-        + _decision_block(when_text, fee, where, signer_count)
+        + _decision_block(when_text, fee, where)
         + _facts([("Document", deed_type), ("Address", property_address),
-                  ("County", county), ("Link expires", expires_at or "")])
+                  ("County", county), ("Signers", signer_count or ""),
+                  ("Link expires", expires_at or "")])
         + _respond_by(respond_by)
         + _button(link, "Accept this signing")
         + _escape_hatch(decline_link)

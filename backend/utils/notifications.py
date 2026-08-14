@@ -213,21 +213,19 @@ def send_notary_invited(recipient_email: str, notary_name: str, officer_name: st
                         officer_company: Optional[str], deed_type: str,
                         property_address: Optional[str], county: Optional[str],
                         link: str, expires_at: Optional[str],
-                        fee: Optional[str] = None,
                         signer_count: Optional[str] = None,
                         decline_link: str = "",
                         respond_by: str = "") -> SendResult:
-    """EMAIL2 — `fee` is PASSED THROUGH, never derived.
+    """EMAIL2 — NO FEE ON THIS PATH, owner-ruled.
 
-    It arrives from the officer's own typing and is displayed to the
-    person deciding whether to accept. Nothing in this module or the
-    template computes, defaults or suggests one, which is what keeps
-    NOTARY0b's no-fee-handling ruling intact: carrying a figure between
-    two people is not brokering between them.
+    She is posting windows before anything is agreed, so a figure shown
+    now would read as an offer surviving whatever time is picked. The fee
+    lives on `send_notary_dispatched`, where it attaches to a specific
+    job at a specific time.
     """
     return _send("notary_invited", recipient_email, email_templates.notary_invited(
         notary_name, officer_name, officer_company, deed_type,
-        property_address, county, link, expires_at, fee=fee,
+        property_address, county, link, expires_at,
         signer_count=signer_count, decline_link=decline_link,
         respond_by=respond_by),
         context={"deed_type": deed_type})
@@ -245,8 +243,15 @@ def send_notary_dispatched(recipient_email: str, notary_name: str,
                            respond_by: str = "") -> SendResult:
     """FLOW1 item 7 — the assignment. One time, a place, accept or decline.
 
-    EMAIL2 — see `send_notary_invited` on the fee: passed through from
-    what the officer typed, never derived here or anywhere.
+    EMAIL2 — `fee` is PASSED THROUGH, never derived. It arrives from the
+    officer's own typing and is shown to the person deciding whether to
+    accept. Nothing in this module or the template computes, defaults or
+    suggests one, which is what keeps NOTARY0b's no-fee-handling ruling
+    intact: carrying a figure between two people is not brokering between
+    them.
+
+    Dispatch only — see `send_notary_invited` for why the availability
+    path carries no fee.
     """
     return _send("notary_dispatched", recipient_email,
                  email_templates.notary_dispatched(

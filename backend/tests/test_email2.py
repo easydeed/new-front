@@ -173,9 +173,45 @@ def test_dispatch_is_the_primary_path_and_asks_its_own_question():
 def test_availability_is_the_fallback_and_keeps_the_designs_ask():
     _, html, _ = T.notary_invited(
         "Jerry", "John Doe", "Acme", "Grant Deed", "1358 5th St, Santa Monica",
-        "Los Angeles", "https://app.test/s/ABC", "Sep 1, 2026", fee="85")
+        "Los Angeles", "https://app.test/s/ABC", "Sep 1, 2026")
     assert "Post the times you are free" in html
     assert "Accept this signing" not in html
+
+
+def test_the_availability_path_carries_no_fee_at_all():
+    """OWNER-RULED, and the reason is the shape of the two paths.
+
+    On dispatch a fee attaches to a SPECIFIC job at a SPECIFIC time. Here
+    she is posting windows before anything is agreed, so a figure shown
+    now reads as an offer that survives whatever time gets picked — the
+    product implying a term nobody agreed to.
+
+    Pinned at the SIGNATURE, not just the output: a `fee` parameter that
+    exists is a fee somebody wires up later.
+    """
+    import inspect
+    assert "fee" not in inspect.signature(T.notary_invited).parameters
+    assert "fee" not in inspect.signature(
+        __import__("utils.notifications", fromlist=["x"]).send_notary_invited
+    ).parameters
+    _, html, text = T.notary_invited(
+        "J", "O", "C", "Grant Deed", "1 A St", "LA", "https://l", "Sep 1")
+    assert "$" not in html and "$" not in text
+
+
+def test_the_decision_block_holds_exactly_the_three_decisions():
+    """`signer_count` was in the first build and came out, owner-ruled:
+    context, not a decision input. The block's strength is that every
+    element in it is something she decides on, and a fourth cell that is
+    merely useful dilutes the three that are not.
+
+    It still reaches her — in the quieter facts table below.
+    """
+    _, html, _ = dispatched(fee="85", signer_count="1 signer")
+    start = html.lower().index("when</div>")
+    block = html[start:start + 1400]
+    assert "1 signer" not in block, "the block took on a fourth, non-decision cell"
+    assert "1 signer" in html, "and it must still reach her somewhere"
 
 
 def test_neither_variant_says_anything_is_booked():
