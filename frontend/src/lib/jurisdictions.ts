@@ -136,6 +136,51 @@ export interface Jurisdiction extends Place {
   pcorRouting?: PcorRouting;
 }
 
+/**
+ * EVERY CALIFORNIA COUNTY, BY NAME — the list a county picker offers.
+ *
+ * ═══ WHY THIS IS NOT `COUNTIES` BELOW, AND MUST NOT BECOME IT ═══
+ *
+ * These are two different sets and the difference is load-bearing:
+ *
+ *   `CA_COUNTY_NAMES`  every county an officer may record in — all 58,
+ *                      because she may record anywhere in the state and
+ *                      a picker that omits hers is a picker she cannot
+ *                      use.
+ *   `COUNTIES`         the counties we hold RECORDER FACTS for — PCOR
+ *                      routing, recorder preferences, local knowledge.
+ *                      A handful, and it grows one county at a time as
+ *                      each is actually researched.
+ *
+ * Collapsing them costs something in both directions. Driving the picker
+ * off `COUNTIES` shrinks it to the handful we have studied. Filling
+ * `COUNTIES` out to 58 would imply we hold recorder facts we do not —
+ * which is the shape §0 declines and the shape T-2 was built after: a
+ * place treated as a string that code then reasoned about as though it
+ * were knowledge.
+ *
+ * So: one list of names, imported by every picker, and it says here that
+ * a name is all it is.
+ *
+ * ═══ AND WHY IT LIVES HERE ═══
+ *
+ * It was a local `const CA_COUNTIES` inside `app/onboarding/page.tsx`,
+ * which was the only county picker in the product. The account-settings
+ * form is the second (DASH-FIX #1), and a second copy of a 58-element
+ * list is §14.3 — one DECLARATION, not one screen. This registry already
+ * owns place identity by ruling, so it owns the names too.
+ */
+export const CA_COUNTY_NAMES: readonly string[] = [
+  'Alameda', 'Alpine', 'Amador', 'Butte', 'Calaveras', 'Colusa', 'Contra Costa', 'Del Norte',
+  'El Dorado', 'Fresno', 'Glenn', 'Humboldt', 'Imperial', 'Inyo', 'Kern', 'Kings', 'Lake',
+  'Lassen', 'Los Angeles', 'Madera', 'Marin', 'Mariposa', 'Mendocino', 'Merced', 'Modoc',
+  'Mono', 'Monterey', 'Napa', 'Nevada', 'Orange', 'Placer', 'Plumas', 'Riverside', 'Sacramento',
+  'San Benito', 'San Bernardino', 'San Diego', 'San Francisco', 'San Joaquin', 'San Luis Obispo',
+  'San Mateo', 'Santa Barbara', 'Santa Clara', 'Santa Cruz', 'Shasta', 'Sierra', 'Siskiyou',
+  'Solano', 'Sonoma', 'Stanislaus', 'Sutter', 'Tehama', 'Trinity', 'Tulare', 'Tuolumne',
+  'Ventura', 'Yolo', 'Yuba',
+] as const;
+
 export const COUNTIES: Record<string, County> = {
   'los angeles': {
     name: 'Los Angeles',
