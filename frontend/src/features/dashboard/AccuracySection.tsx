@@ -78,6 +78,38 @@ export function checkSentence(check: AccuracyCheck): string {
 
 const HEADLINE = 'fields still need your eyes';
 
+/**
+ * ═══ WHAT THIS CARD IS ALLOWED TO SAY ═══
+ *
+ * It said: "Every field on every open document is confirmed. Nothing is
+ * waiting on your eyes." An external audit found it rendering directly
+ * above "What's waiting", which was listing five items. Both sentences
+ * were wrong, in different ways, and the fix is to say what this module
+ * actually counts (owner-ruled).
+ *
+ * THE SECOND SENTENCE IS GONE. "Nothing is waiting" borrows the queue's
+ * vocabulary — "What's waiting" is literally the next heading on the
+ * page — and this module has no knowledge of the queue's population. It
+ * counts FIELDS; the queue counts REQUESTS. A document can be
+ * field-perfect and workflow-stuck, and the card was denying that.
+ *
+ * THE FIRST SENTENCE WAS NARROWED TOO, and this is the half that was
+ * nearly missed. "Every open document" means, in the query,
+ * `status NOT IN ('completed','deleted') AND archived_at IS NULL` — that
+ * is to say, still being PREPARED. To a reader "open" means "not
+ * finished". The gap between those two readings is exactly the document
+ * the audit found: authoring-complete, therefore invisible here, and
+ * sitting in the queue with an unanswered signing request. The card was
+ * silently excluding it while appearing to speak for everything.
+ *
+ * The suppression alternative was considered and refused: hiding this
+ * card whenever the queue is non-empty couples two modules by LAYOUT
+ * rather than by meaning, silences a true field report for an unrelated
+ * reason, and makes the card near-unreachable for any officer with one
+ * unanswered share — dead code that looks alive.
+ */
+const CONFIRMED = 'Every field is confirmed on the documents you are still preparing.';
+
 export default function AccuracySection({ accuracy, onOpen }: {
   accuracy?: Accuracy | null;
   onOpen?: (deedId: number) => void;
@@ -107,7 +139,7 @@ export default function AccuracySection({ accuracy, onOpen }: {
     return (
       <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4">
         <p className="text-sm text-emerald-900">
-          Every field on every open document is confirmed. Nothing is waiting on your eyes.
+          {CONFIRMED}
         </p>
       </div>
     );

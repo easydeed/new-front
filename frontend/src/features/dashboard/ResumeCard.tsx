@@ -91,14 +91,32 @@ export default function ResumeCard({ target, onResume }: {
           {[target.deed_type, target.escrow_no].filter(Boolean).join(' · ')}
         </div>
 
-        <ul className="mt-3 space-y-1">
-          {target.checks.map((check) => (
-            <li key={`${check.field}-${check.population}`}
-                className="text-sm text-slate-700">
-              {checkSentence(check)}
-            </li>
-          ))}
-        </ul>
+        {left > 0 ? (
+          <ul className="mt-3 space-y-1">
+            {target.checks.map((check) => (
+              <li key={`${check.field}-${check.population}`}
+                  className="text-sm text-slate-700">
+                {checkSentence(check)}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          /* ═══ A DRAFT WITH NOTHING OUTSTANDING IS STILL A DRAFT ═══
+
+             This card only ever received documents WITH outstanding
+             checks, because its target was the accuracy list's first
+             row. A draft she had fully confirmed but not finished
+             therefore fell out of it — and an audit found the gap being
+             filled by a pre-#203 card drawing from a third population,
+             which said "You have a deed in progress" and named nothing.
+
+             So the card takes the case: no checks, and it says that
+             rather than rendering an empty list under a button reading
+             "0 checks left". */
+          <p className="mt-3 text-sm text-slate-700">
+            Every field on this one is confirmed — it is waiting on you to finish it.
+          </p>
+        )}
 
         <button
           type="button"
@@ -107,7 +125,9 @@ export default function ResumeCard({ target, onResume }: {
         >
           {/* The count and the list are the same data, so they cannot
               disagree about how much is left. */}
-          Continue — {left} {left === 1 ? 'check' : 'checks'} left
+          {left > 0
+            ? `Continue — ${left} ${left === 1 ? 'check' : 'checks'} left`
+            : 'Continue'}
         </button>
       </div>
     </section>
