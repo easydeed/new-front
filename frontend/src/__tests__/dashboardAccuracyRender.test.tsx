@@ -56,8 +56,40 @@ describe('the hero number', () => {
     render(<AccuracySection accuracy={{
       fields: 0, documents: 0, open_documents: 9, items: [],
     }} />);
-    expect(screen.getByText(/Every field on every open document is confirmed/))
+    expect(screen.getByText(/Every field is confirmed on the documents you are still preparing/))
       .toBeInTheDocument();
+  });
+
+  it('says nothing about what is or is not waiting', () => {
+    /**
+     * THE PIN THE AUDIT EARNED.
+     *
+     * The card read "…Nothing is waiting on your eyes." and rendered
+     * directly above "What's waiting", which was listing five items.
+     * This module counts FIELDS; the queue counts REQUESTS; a document
+     * can be field-perfect and workflow-stuck. Borrowing the other
+     * module's vocabulary made a true count into a false claim.
+     */
+    render(<AccuracySection accuracy={{
+      fields: 0, documents: 0, open_documents: 9, items: [],
+    }} />);
+    expect(document.body.textContent).not.toMatch(/waiting/i);
+  });
+
+  it('does not claim to speak for every open document', () => {
+    /**
+     * The half that was nearly missed. "Every OPEN document" means, in
+     * the query, `status NOT IN ('completed','deleted')` — still being
+     * PREPARED. To a reader it means "not finished". The audit's
+     * document sat in that gap: authoring-complete, so invisible here,
+     * and in the queue with an unanswered signing request. The card was
+     * excluding it while appearing to speak for everything.
+     */
+    render(<AccuracySection accuracy={{
+      fields: 0, documents: 0, open_documents: 9, items: [],
+    }} />);
+    expect(document.body.textContent).not.toMatch(/every open document/i);
+    expect(document.body.textContent).toMatch(/still preparing/i);
   });
 
   it('says nothing at all when there are no documents to say it about', () => {

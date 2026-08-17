@@ -5,7 +5,6 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Sidebar from "../../components/Sidebar"
 import { AIGreeting } from "@/components/ui/AIGreeting"
-import { AICard } from "@/components/ui/AICard"
 import { AuthManager } from "@/utils/auth"
 import EmailVerificationNotice from "@/features/account/EmailVerificationNotice"
 import AccuracySection from "@/features/dashboard/AccuracySection"
@@ -86,9 +85,6 @@ export default function Dashboard() {
      row rather than a second query: the server already ordered those by
      most-recently-touched, so asking again would be a second opinion
      about which document is hers to resume. */
-  const resumeTarget = queue?.accuracy?.items?.length
-    ? queue.accuracy.items[0]
-    : null
 
   // Authentication check and load user data
   useEffect(() => {
@@ -267,6 +263,30 @@ export default function Dashboard() {
   // U1.2: the LAST-TOUCHED draft (updated_at desc), not the first draft in
   // a created_at-ordered list — that offered users their oldest work back.
   const inProgressDeed = pickInProgressDeed(recentDeeds)
+
+  /* ═══ ONE POPULATION, AND THE CHECKS ARE AN ATTRIBUTE OF IT ═══
+
+     #203 ruled the resume target is the accuracy list's first row, and
+     that stands wherever the list has one. What it could not rule on —
+     because the pre-#203 card was quietly covering the case — is the
+     document she was last in that has NOTHING outstanding. It is absent
+     from the accuracy list by construction, so the ruled card went dark
+     and the unruled one spoke.
+
+     So the fallback is the last-touched open draft with an empty check
+     list, which is additive rather than a re-ruling: the accuracy row
+     still wins whenever it exists. */
+  const resumeTarget = queue?.accuracy?.items?.length
+    ? queue.accuracy.items[0]
+    : inProgressDeed
+      ? {
+          deed_id: inProgressDeed.id,
+          deed_type: inProgressDeed.deed_type ?? null,
+          property: inProgressDeed.property_address ?? null,
+          escrow_no: null,
+          checks: [],
+        }
+      : null
   // DASH1: by when something last happened to it, drafts included —
   // which is what "recent activity" claimed and creation order is not.
   const recentlyTouched = [...recentDeeds].sort((a: any, b: any) =>
@@ -355,23 +375,24 @@ export default function Dashboard() {
             />
           </div>
 
-          {/* Draft deed card (Ticket R: resume is real — the card opens the
-              builder hydrated from the saved row, decisions intact) */}
-          {inProgressDeed && (
-            <AICard
-              message={`You have a deed in progress. Continue where you left off?`}
-              action={{
-                label: `Continue: ${inProgressDeed.property_address || inProgressDeed.deed_type || 'Draft'}`,
-                onClick: () => router.push(`/deed-builder/${inProgressDeed.deed_type || 'grant-deed'}?resume=${inProgressDeed.id}`)
-              }}
-              secondaryAction={{
-                label: "Start a new deed",
-                onClick: () => router.push('/deed-builder')
-              }}
-              details="Your saved draft reopens with everything you entered — confirmations and tax decisions included."
-              className="mb-8"
-            />
-          )}
+          {/* ═══ THE PRE-#203 RESUME CARD, DELETED ═══
+
+              "You have a deed in progress. Continue where you left off?"
+              — a sparkle, no property named, no checks, drawing from a
+              THIRD population (`pickInProgressDeed(recentDeeds)`).
+
+              #203 replaced it with ResumeCard, which names the document
+              and the remaining checks and draws a thumbnail from that
+              same list. Both shipped. An audit saw only this one,
+              because ResumeCard returns null when the accuracy list is
+              empty and that account's was — so the ruled card was
+              absent and the pre-ruling card filled the space.
+
+              A pre-ruling component still rendering under a post-ruling
+              one is the AIEmptyState shape exactly, and it goes the same
+              way. The capability it carried — resuming a draft with
+              nothing outstanding — did not go with it; ResumeCard now
+              takes that case (see `resumeTarget` above). */}
 
           {/* DASH1 — THE QUEUE LEADS. What is waiting on somebody comes
               before what has been made, because that is the order she
