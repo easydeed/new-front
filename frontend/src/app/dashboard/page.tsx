@@ -13,6 +13,7 @@ import StartSomethingNew from "@/features/dashboard/StartSomethingNew"
 import SetupChecklist, { setupSteps } from "@/features/dashboard/SetupChecklist"
 import DayOneRail from "@/features/dashboard/DayOneRail"
 import { pickInProgressDeed } from "@/lib/latestDraft"
+import { authoringStateLabel, authoringStateHint, LAST_WORKED_ON } from "@/lib/authoringState"
 import { SessionExpiredError, apiFetch } from "@/lib/apiClient"
 import { 
   FileText, Clock, CheckCircle, Send, 
@@ -872,12 +873,22 @@ function DeedRow({ deed }: { deed: any }) {
       </button>
 
       <div className="flex items-center gap-3 flex-shrink-0">
-        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusStyle(deed.status)}`}>
+        {/* DASH-FIX #3 — this rendered `{deed.status}` RAW, so the badge
+            showed the database's own token and a generated document read
+            "completed" while its signing sat unanswered in the queue
+            below. `deeds.status` is AUTHORING state; one place turns it
+            into English now. */}
+        <span title={authoringStateHint(deed.status) ?? undefined}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusStyle(deed.status)}`}>
           {getStatusIcon(deed.status)}
-          {deed.status || 'Draft'}
+          {authoringStateLabel(deed.status)}
         </span>
+        {/* DASH-FIX #5 — the date is `updated_at`, which is correct for a
+            module called "Recently worked on" and is NOT what Past Deeds
+            shows. A bare date invites a reader to compare two different
+            facts, so it carries its name. */}
         <span className="text-sm text-gray-400 hidden sm:block">
-          {formatDate(deed.updated_at || deed.created_at)}
+          {LAST_WORKED_ON} {formatDate(deed.updated_at || deed.created_at)}
         </span>
         
         {/* Actions */}

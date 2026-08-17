@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { authoringStateLabel } from "@/lib/authoringState"
 import { Suspense, useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -276,11 +277,10 @@ function PastDeedsList() {
       in_progress: "bg-blue-100 text-blue-800 border-blue-200",
     }
 
-    const labels = {
-      completed: "Completed",
-      draft: "Draft",
-      in_progress: "In Progress",
-    }
+    // DASH-FIX #3 — the labels moved to `lib/authoringState.ts`. This
+    // map said "Completed" while the dashboard rendered the raw token
+    // and the queue said the same document was waiting on a reply: two
+    // surfaces, two vocabularies, neither citing the other.
 
     return (
       <span
@@ -288,7 +288,7 @@ function PastDeedsList() {
       >
         {status === "completed" && <CheckCircle className="w-3.5 h-3.5" />}
         {status === "in_progress" && <Clock className="w-3.5 h-3.5" />}
-        {labels[status]}
+        {authoringStateLabel(status)}
       </span>
     )
   }
