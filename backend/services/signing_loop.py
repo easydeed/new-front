@@ -130,6 +130,26 @@ STATE_PARTIALLY_AGREED = "partially_agreed"
 STATE_BOOKED = "booked"
 STATE_CANCELLED = "cancelled"
 STATE_EXPIRED = "expired"
+#: Times were offered and every one of them has now passed, unanswered.
+#:
+#: DASH-FIX #4. An audit found a request with a window offered for that
+#: morning, 10:00–12:00, which had gone by half an hour before the audit
+#: ran. "Signing in the next 7 days" said "Nothing booked this week",
+#: which was true; the sidebar badged Signings 1, which was also true;
+#: and the request's own sentence still read "You proposed 10:00 — waiting
+#: on them to accept", about a time that no longer exists.
+#:
+#: Nothing in the vocabulary could say otherwise, because `request_state`
+#: had no notion of a window's time passing. STATE_EXPIRED is about
+#: `expires_at` on the REQUEST — the whole invitation timing out — not
+#: about the offer inside it going stale.
+#:
+#: It is NOT terminal. A lapsed request is the most actionable thing on
+#: the page: nobody has refused anything, the times simply ran out, and
+#: somebody has to offer new ones. That is precisely the stuck state the
+#: agenda exists to surface, and it was the one state the agenda could
+#: not see.
+STATE_LAPSED = "lapsed"
 
 
 #: The states in which a request is still somebody's problem. Cancelled
@@ -171,7 +191,30 @@ def request_state(request: Dict[str, Any], windows: Sequence[Dict[str, Any]],
         return STATE_REQUESTED
     if any(r.get("answer") == ANSWER_AVAILABLE for r in responses):
         return STATE_PARTIALLY_AGREED
+    # ── EVERY OFFERED TIME HAS PASSED ───────────────────────────────
+    #
+    # Checked AFTER partial agreement, deliberately. If somebody said
+    # they were available for a window that has since gone by, this is
+    # not "nobody answered" — it is an agreement that did not finish
+    # converging, and calling it lapsed would erase an answer a person
+    # actually gave.
+    #
+    # `ends_at`, not `starts_at`: a window running 10:00–12:00 is still
+    # a live offer at 11:00. A naive timestamp is treated as UTC the
+    # same way `days_since` does rather than raising — but note that it
+    # is READ, not guessed at, and a window with no end is not lapsed.
+    if live and all(_has_passed(w.get("ends_at"), now) for w in live):
+        return STATE_LAPSED
     return STATE_WINDOWS_POSTED
+
+
+def _has_passed(when: Optional[datetime], now: datetime) -> bool:
+    """Is this instant in the past. A missing one is NOT (§4)."""
+    if not when:
+        return False
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=timezone.utc)
+    return when < now
 
 
 # ── Convergence ──────────────────────────────────────────────────────
@@ -263,6 +306,22 @@ def state_label(request: Dict[str, Any], windows: Sequence[Dict[str, Any]],
         return "Signing request cancelled"
     if state == STATE_EXPIRED:
         return "Signing request expired — nobody agreed a time before the links lapsed"
+    if state == STATE_LAPSED:
+        # DASH-FIX #4, and every word here is load-bearing under §13.
+        #
+        # It says the TIMES passed. It does not say the signing failed,
+        # that anybody refused, or that anybody was at fault — none of
+        # which this product knows. The notary may have been ill, or the
+        # email may have gone to spam, or she may have offered a slot two
+        # hours out on a Friday.
+        #
+        # And it names the action, because a stuck request that does not
+        # say what unsticks it is a row somebody looks at every morning
+        # and does nothing about.
+        live = [w for w in windows if not w.get("declined_at")]
+        n = len(live)
+        return (f"{n} time{'' if n == 1 else 's'} offered, all now passed "
+                f"with no answer — offer new times")
     if state == STATE_BOOKED:
         when = _fmt_instant(request.get("booked_at"), request.get("tz_name"))
         if request.get("booked_by") == BOOKED_BY_OFFICER:

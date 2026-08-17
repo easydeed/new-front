@@ -185,6 +185,15 @@ def test_no_state_means_it_happened():
     assert set(consts.values()) == {
         "requested", "windows_posted", "partially_agreed",
         "booked", "cancelled", "expired",
+        # DASH-FIX #4. Added here as a DECISION, which is what an
+        # equality assertion over a vocabulary is for — this test went
+        # red the moment `lapsed` existed, so no state can join the
+        # vocabulary without somebody writing it down next to the rule
+        # it has to satisfy.
+        #
+        # It satisfies it: "lapsed" is about the OFFER running out, and
+        # says nothing about whether a signing occurred.
+        "lapsed",
     }
     for value in consts.values():
         assert "complete" not in value and "happen" not in value and "signed" not in value
