@@ -8,6 +8,7 @@ import { toast } from "sonner"
 import { TIERS, priceLabel, priceWithCadence } from "@/lib/pricing"
 import { CA_COUNTY_NAMES } from "@/lib/jurisdictions"
 import { saveProfile } from "@/lib/profileSave"
+import { BillingPortalError, openBillingPortal } from "@/lib/billingPortal"
 import EmailVerificationNotice from "@/features/account/EmailVerificationNotice"
 
 type Tab = "profile" | "billing" | "notifications" | "security"
@@ -67,6 +68,9 @@ function AccountSettingsPage() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  // PILOT1: the portal failure is shown ON the page as well as in a
+  // toast — a toast that has faded is a failure nobody can re-read.
+  const [portalError, setPortalError] = useState<string | null>(null)
   // Read by the checkout watcher without re-arming it on every fetch.
   const userProfileRef = useRef<UserProfile | null>(null)
 
@@ -197,29 +201,25 @@ function AccountSettingsPage() {
     }
   }
 
+  // PILOT1. This was a bare `fetch` that threw away the API's own
+  // reason: any non-2xx became "Failed to create portal session", so a
+  // 404 saying "No billing information found" — the one answer that
+  // tells the officer something useful — reached her as a generic
+  // failure (§4). The call, and the sentence for every way it can fail,
+  // now live in `lib/billingPortal.ts`.
   const handleManageSubscription = async () => {
     setSaving(true)
+    setPortalError(null)
     try {
-      const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
-      const token = localStorage.getItem("access_token")
-
-      const response = await fetch(`${api}/payments/create-portal-session`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to create portal session")
-      }
-
-      const data = await response.json()
-      if (data.url) {
-        window.location.href = data.url
-      }
+      const url = await openBillingPortal()
+      window.location.href = url
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to open billing portal")
+      if (err instanceof Error && err.name === "SessionExpiredError") return
+      const message = err instanceof BillingPortalError
+        ? err.message
+        : "The billing portal could not be opened."
+      setPortalError(message)
+      toast.error(message)
     } finally {
       setSaving(false)
     }
@@ -327,6 +327,7 @@ function AccountSettingsPage() {
                   onUpgrade={handleUpgrade}
                   onManageSubscription={handleManageSubscription}
                   saving={saving}
+                  portalError={portalError}
                 />
               )}
               {activeTab === "notifications" && <NotificationsTab />}
@@ -569,11 +570,13 @@ function BillingTab({
   onUpgrade,
   onManageSubscription,
   saving,
+  portalError,
 }: {
   userProfile: UserProfile | null
   onUpgrade: (plan: string) => void
   onManageSubscription: () => void
   saving: boolean
+  portalError?: string | null
 }) {
   // ONE VOCABULARY (TRIAL1). This read `|| "starter"` while the database
   // stores 'free', so every free user fell through every comparison
@@ -743,6 +746,58 @@ function BillingTab({
             </button>
           </div>
         )}
+      </div>
+
+      {/* ═══ CANCELLING — PILOT1 ═══════════════════════════════════════
+          THE FINDING WAS NOT THE ONE EXPECTED. The portal endpoint was
+          never unreachable: "Manage Payment Methods" and "View Billing
+          History" both call it. What was missing is that **nothing said
+          CANCEL**, while the homepage promises "cancel anytime". An
+          officer acting on that promise had to already know that Stripe's
+          portal is where cancelling lives.
+
+          AND IT IS NOT GATED ON `plan`. Every other control here renders
+          only when `users.plan` says she is paying — a denormalised copy
+          of Stripe's state, written by the webhook. If that column is
+          stale, a customer WITH A CARD ON FILE sees "No payment method on
+          file" and no exit at all. So this section always renders, asks
+          Stripe, and reports Stripe's answer.
+
+          THE COPY CLAIMS NOTHING ABOUT WHAT CANCELLING DOES — whether
+          access ends immediately or at the period end is Stripe portal
+          configuration, and this repository cannot see it. Saying "you
+          keep access until the end of the period" would be a promise made
+          from a guess. */}
+      <div>
+        <h3 className="text-xl font-bold text-slate-800 mb-2">Cancel subscription</h3>
+        <div className="bg-white border border-slate-200 rounded-xl p-6">
+          <p className="text-slate-600 mb-4 max-w-prose">
+            Cancelling happens in Stripe&apos;s billing portal, where you can
+            also see exactly what you will be charged and when. This button
+            opens it.
+          </p>
+          <button
+            onClick={onManageSubscription}
+            disabled={saving}
+            data-testid="cancel-subscription"
+            className="px-6 py-3 border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Opening the billing portal...
+              </>
+            ) : (
+              "Cancel subscription"
+            )}
+          </button>
+          {portalError && (
+            <p role="alert" data-testid="portal-error"
+               className="mt-4 max-w-prose text-sm text-red-600">
+              {portalError}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   )
