@@ -1133,6 +1133,56 @@ we reach it.
 
 ## Parked tickets (scoped, not scheduled)
 
+- **W0 §3 — A RULING DECIDED, PARKED, AND NEVER BUILT** (surfaced by
+  HOME2, 2026-08-18). Recorded loudly because it was invisible for weeks
+  and because of HOW it stayed invisible.
+
+  **The ruling.** Model 2 — confirmation stays in our UI; API submissions
+  land as drafts with a confirmation URL. Decided 2026-07-30.
+
+  **What is actually deployed.** `POST /api/v1/deeds` inserts with
+  `status = 'active'` and returns `urls.pdf` immediately. No draft state,
+  no confirmation URL, no officer step. `status = 'active'` is a plain
+  record status and nothing in the code treats it as awaiting
+  confirmation — confirmed with the owner rather than inferred.
+
+  **What is on the marketing surfaces.** The homepage and `/developers`
+  both describe direct generation, and **both are accurate to the
+  product.** HOME2 opened with an instruction to rewrite the homepage
+  because it "contradicts the product"; it does not. The product
+  contradicts the ruling, and the copy is honestly reporting the product.
+
+  **THE LEDGER ENTRY READ AS IMPLEMENTED TO THE PERSON WHO MADE THE
+  RULING.** The line says *"DECIDED: Model 2 = confirmation in our UI…
+  PR #79 closed as decided; the W1 draft stays parked pending the owner's
+  lane call."* Every word is true, and the owner read it as built. The
+  qualification that mattered — parked, never implemented — is prose in
+  the middle of a sentence about something else.
+
+  **This is §14's family, in the ledger itself, and it is the second
+  time.** The first was `EMAIL_VERIFICATION_REQUIRED`, recorded as
+  evidence that required verification was ready to switch on, while it
+  was defined in one file and read nowhere — and the same entry described
+  verification as "resend-only" when the resend endpoint had no caller.
+  A record that overstates is found before a launch or during an
+  incident. This one was found four days before pilot traffic.
+
+  **PROPOSAL, for the owner's ruling: DECIDED and BUILT should be
+  separate FIELDS rather than prose.** Every entry in this document that
+  records a decision carries its implementation status somewhere in a
+  sentence, and a reader scanning for "what is true of the product"
+  cannot distinguish the two without reading each entry closely enough
+  to notice a subordinate clause. Two markers — `DECIDED 2026-07-30 /
+  BUILT —` — make an unbuilt ruling visible at a glance and make the
+  gap countable. The cost is a convention; the benefit is that this
+  class of miss becomes a `grep`.
+
+  **NOT built as part of HOME2.** Model 2 is a partner-API change with a
+  versioning question and belongs to the parked W1 lane. Building it as a
+  side-effect of a homepage ticket would be the largest scope creep in
+  the engagement (owner-ruled).
+
+
 - **A plan card for the RETURNING officer** (day-one diff, owner-ruled a
   candidate 2026-08-14 — ledgered rather than built). `DayOneRail`
   carries Plan and Recording county and disappears with the setup

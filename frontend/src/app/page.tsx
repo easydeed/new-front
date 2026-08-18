@@ -137,7 +137,10 @@ export default function LandingPage() {
                 { icon: Clock, label: "Recorder-ready deed", value: "~9 clicks", color: "text-[#7C4DFF]" },
                 { icon: Check, label: "Fields confirmed by your officer", value: "Every one", color: "text-[#4F76F6]" },
                 { icon: Shield, label: "Hash-stamped, immutable PDFs", value: "SHA-256", color: "text-[#7C4DFF]" },
-                { icon: FileDigit, label: "CA deed types supported", value: "5", color: "text-[#4F76F6]" },
+                /* HOME2 — was 5, while the catalog section three screens down says
+                   21 recordable instruments. The 21 is the true one: it comes
+                   from the form registry, which is what the builder offers. */
+                { icon: FileDigit, label: "CA instruments supported", value: "21", color: "text-[#4F76F6]" },
               ].map((stat) => (
                 <div key={stat.label} className="text-center">
                   <div className="text-5xl sm:text-6xl font-bold text-[#1F2B37] mb-3">{stat.value}</div>
@@ -152,7 +155,7 @@ export default function LandingPage() {
         </section>
 
         {/* 4. FEATURES */}
-        <section id="features" aria-label="Features" className="py-28 bg-white">
+        <section id="features" style={{ scrollMarginTop: 80 }} aria-label="Features" className="py-28 bg-white">
           <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
             <div className="text-center mb-20">
               <Badge className="bg-[#4F76F6]/10 text-[#4F76F6] border border-[#4F76F6]/20 text-lg font-semibold px-6 py-3 mb-6">
@@ -162,7 +165,7 @@ export default function LandingPage() {
                 Everything you need to create deeds faster
               </h2>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-loose">
-                Built for escrow officers, loved by title companies. Trusted integrations for seamless workflow.
+                Built for California escrow and title professionals — your officer confirms every field before it prints.
               </p>
             </div>
 
@@ -206,9 +209,23 @@ export default function LandingPage() {
                       <Shield className="h-5 w-5 text-[#4F76F6]" />
                     </div>
                     <div className="space-y-2.5">
+                      {/* HOME2 — was "All 58 CA Counties", asserted flat.
+                          The jurisdictions registry holds recorder facts for
+                          ONE county and city transfer-tax rates for 52 places,
+                          and nothing in the product gates on county — so the
+                          claim was true in the weakest sense (nothing stops
+                          you) and misleading in the sense a title rep reads
+                          it (we have done the county-specific work for all
+                          58). What replaced it is what T-2 already ruled the
+                          product does, and it is the stronger thing to tell a
+                          professional: it says what happens at the EDGE. */}
                       <div className="flex items-center gap-2 text-xs">
                         <Check className="h-4 w-4 text-green-600" />
-                        <span className="text-gray-700 font-medium">All 58 CA Counties</span>
+                        <span className="text-gray-700 font-medium">Any California county</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <Check className="h-4 w-4 text-green-600" />
+                        <span className="text-gray-700 font-medium">Unknown city rate says so</span>
                       </div>
                       <div className="flex items-center gap-2 text-xs">
                         <Check className="h-4 w-4 text-green-600" />
@@ -220,14 +237,19 @@ export default function LandingPage() {
                       </div>
                     </div>
                     <div className="mt-3 px-2 py-1.5 bg-green-50 rounded text-xs text-green-700 font-semibold">
-                      ✓ Formatting checks surfaced for review
+                      ✓ Measured against published requirements
                     </div>
                   </div>
                 </div>
 
                 <h3 className="text-2xl font-bold text-[#1F2B37] mb-4">County Formatting Built-in</h3>
                 <p className="text-lg text-gray-600 leading-loose">
-                  Recorder-formatting checks for California counties — margins, fonts, and the statutory furniture — surfaced for your officer&apos;s review.
+                  {/* HOME2 — "county recorder formatting rules" asserted what a
+                      recorder ACCEPTS. We measure against what they PUBLISH,
+                      which is a different and checkable claim, and it is
+                      hedged this way everywhere else in the product. */}
+                  Margins, fonts and the statutory furniture, measured against California recorders&apos; published
+                  requirements and surfaced for your officer&apos;s review. Acceptance is the recorder&apos;s call.
                 </p>
               </div>
 
@@ -284,7 +306,7 @@ export default function LandingPage() {
         </section>
 
         {/* 5. STEPS/WORKFLOW */}
-        <section id="steps" aria-label="How it works" className="py-28 bg-gray-50">
+        <section id="steps" style={{ scrollMarginTop: 80 }} aria-label="How it works" className="py-28 bg-gray-50">
           <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
             <div className="text-center mb-20">
               <Badge className="bg-[#7C4DFF]/10 text-[#7C4DFF] border border-[#7C4DFF]/20 text-lg font-semibold px-6 py-3 mb-6">
@@ -294,7 +316,9 @@ export default function LandingPage() {
                 Three simple steps to perfect deeds
               </h2>
               <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-loose">
-                From input to recording in minutes, not hours.
+                {/* HOME2 — was "From input to recording in minutes". We prepare;
+                    we do not record and do not submit. The scope rule. */}
+                From an address to a recorder-formatted PDF in minutes, not hours.
               </p>
             </div>
 
@@ -409,8 +433,13 @@ export default function LandingPage() {
                         <div className="bg-white rounded-lg p-6 border border-gray-300 shadow-sm">
                           <div className="flex items-center justify-between mb-4 pb-3 border-b-2 border-gray-200">
                             <div className="text-xs font-bold text-gray-500 tracking-wider">GRANT DEED</div>
+                            {/* HOME2 — was "AI Generated", which says the
+                                software authored the instrument. Three
+                                columns below say it SUGGESTS. The badge on a
+                                deed face is the most authorship-shaped place
+                                on the page to say it. */}
                             <Badge className="bg-[#4F76F6]/10 text-[#4F76F6] border border-[#4F76F6]/20 text-xs">
-                              AI Generated
+                              Officer confirmed
                             </Badge>
                           </div>
 
@@ -458,11 +487,14 @@ export default function LandingPage() {
                         <div className="flex items-center justify-center h-14 w-14 rounded-full border border-dashed border-[#4F76F6] bg-[#4F76F6]/10 text-[#4F76F6] text-xl font-bold">
                           2
                         </div>
-                        <h3 className="text-2xl font-bold text-[#1F2B37]">AI Generates</h3>
+                        {/* HOME2 — was "AI Generates". Same correction: the step's own
+                            sentence beneath it already says the officer confirms
+                            every field, so the heading contradicted its body. */}
+                        <h3 className="text-2xl font-bold text-[#1F2B37]">AI Suggests</h3>
                       </div>
 
                       <p className="text-base text-gray-600 leading-relaxed mb-6">
-                        AI prepares the document; your officer confirms every field before anything generates.
+                        AI proposes values from county records; your officer confirms every one before anything prints.
                       </p>
 
                       <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -522,12 +554,16 @@ export default function LandingPage() {
                         <div className="flex items-center justify-center h-14 w-14 rounded-full border border-dashed border-[#7C4DFF] bg-[#7C4DFF]/10 text-[#7C4DFF] text-xl font-bold">
                           3
                         </div>
-                        <h3 className="text-2xl font-bold text-[#1F2B37]">Review & Record</h3>
+                        {/* HOME2 — was "Review & Record". We prepare; the officer records.
+                            Naming an act we do not perform is the scope rule's
+                            plainest violation. */}
+                        <h3 className="text-2xl font-bold text-[#1F2B37]">Review &amp; Print</h3>
                       </div>
 
                       <p className="text-base text-gray-600 leading-relaxed mb-6">
-                        Two-stage checks — substantive completeness and county recorder formatting — surfaced for
-                        your officer&apos;s review. One click generates the final, hash-stamped PDF.
+                        Two-stage checks — substantive completeness, and formatting measured against the
+                        recorder&apos;s published requirements — surfaced for your officer&apos;s review. One click
+                        produces the final, hash-stamped PDF for her to record.
                       </p>
 
                       <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -540,15 +576,12 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="mt-16 text-center">
-              <div className="inline-flex items-center gap-3 px-8 py-5 bg-white rounded-full shadow-lg border border-gray-200">
-                <div className="flex items-center gap-2">
-                  <div className="h-3 w-3 rounded-full bg-[#7C4DFF] animate-pulse" />
-                  <span className="text-base font-semibold text-gray-700">Average completion time:</span>
-                </div>
-                <span className="text-2xl font-bold text-[#1F2B37]">5 minutes</span>
-              </div>
-            </div>
+            {/* HOME2 — an "Average completion time: 5 minutes" badge sat
+                here, contradicting the comparison table's "5-10 min" three
+                sections up and carrying a stronger word than either can
+                support: an AVERAGE is a measurement, and nothing measures
+                one. Deleted rather than hedged — the table already makes
+                the estimate, once, as an estimate. */}
           </div>
         </section>
 
@@ -582,8 +615,20 @@ export default function LandingPage() {
               </h2>
             </div>
 
+            {/* HOME2 ROUGH — the table is ~926px of content inside
+                `overflow-hidden`, so on a narrow viewport the third column
+                was CLIPPED with no way to reach it: not a squeeze, a
+                silent truncation of the "Manual" column the comparison
+                exists to make.
+
+                `overflow-x-auto` on an inner wrapper keeps the rounded
+                corners on the card while letting the table scroll inside
+                it. The card keeps `overflow-hidden` for its radius; the
+                scrolling happens one level in, which is the arrangement
+                that satisfies both. */}
             <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
-              <table className="w-full">
+              <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px]">
                 <thead className="bg-gray-100">
                   <tr>
                     <th className="py-6 px-6 text-left text-lg font-bold text-[#1F2B37]">Feature</th>
@@ -594,7 +639,10 @@ export default function LandingPage() {
                 <tbody>
                   {[
                     { feature: "Time to complete", deedpro: "5-10 min", manual: "45-90 min" },
-                    { feature: "Error rate", deedpro: "<1%", manual: "15-25%" },
+                    { feature: "Every field confirmed before printing", deedpro: true, manual: false },
+                    /* HOME2 — an "<1% vs 15-25%" error-rate comparison was here with
+                       nothing behind either number. Deleted rather than
+                       hedged: there is no measurement to soften. */
                     { feature: "Recorder formatting checks", deedpro: "Built-in", manual: "Manual tracking" },
                     { feature: "Multi-user collaboration", deedpro: true, manual: false },
                     { feature: "API access", deedpro: true, manual: false },
@@ -620,6 +668,7 @@ export default function LandingPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         </section>
@@ -628,7 +677,7 @@ export default function LandingPage() {
             two in-page "Explore Integrations" links used to target the
             removed #integrations section and would otherwise scroll
             nowhere. */}
-        <section id="api" aria-label="API" className="py-28 bg-[#1F2B37]">
+        <section id="api" style={{ scrollMarginTop: 80 }} aria-label="API" className="py-28 bg-[#1F2B37]">
           <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <div>
@@ -646,9 +695,25 @@ export default function LandingPage() {
                 </div>
 
                 <h2 className="text-4xl sm:text-5xl font-bold text-white tracking-tight mb-6">
+                  {/* HOME2 item 1, OWNER-RULED (option 1).
+                      Was "One API call. / Instant deed generation."
+
+                      The correction is NOT that the copy contradicted the
+                      product — it did not. `POST /api/v1/deeds` inserts with
+                      status 'active' and returns a PDF URL, and /developers
+                      describes exactly that. What the copy did wrong is
+                      smaller and its own defect: "generation" frames the
+                      software as the author.
+
+                      W0 §3 ruled Model 2 — confirmation in our UI, API
+                      submissions landing as drafts — and that ruling was
+                      DECIDED and then parked. It was never built. Rewriting
+                      this to describe Model 2 would have made the homepage
+                      promise something that does not exist, so the gap is
+                      ledgered instead and this states what is true today. */}
                   One API call.
                   <br />
-                  Instant deed generation.
+                  A deed your officer signs off.
                 </h2>
 
                 <p className="text-xl text-gray-300 leading-loose mb-8">
@@ -657,8 +722,10 @@ export default function LandingPage() {
                       integration exists. What the API does today is what it
                       says now — deed generation over REST, which is real
                       and documented at /developers. */}
-                  Generate a recorder-formatted California deed from your own system over REST, and get back the same
-                  PDF the app produces. Keys are issued after a conversation.
+                  Submit a California deed from your own system over REST and get back the same recorder-formatted
+                  PDF the app produces. The API asks for MORE than the app does — a transfer-tax declaration and a
+                  vesting statement are required up front, per instrument — because a deed that arrives incomplete is
+                  refused rather than half-made. Keys are issued after a conversation.
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4">
@@ -684,8 +751,8 @@ export default function LandingPage() {
                     <div className="text-sm text-gray-400">JSON in, PDF out</div>
                   </div>
                   <div>
-                    <div className="text-3xl font-bold text-[#4F76F6] mb-2">5</div>
-                    <div className="text-sm text-gray-400">CA deed types</div>
+                    <div className="text-3xl font-bold text-[#4F76F6] mb-2">21</div>
+                    <div className="text-sm text-gray-400">CA instruments</div>
                   </div>
                 </div>
               </div>
@@ -723,12 +790,14 @@ Content-Type: application/json
   }
 }
 
-// Response (< 200ms)
+// Response
 {
   "deed_id": "deed_abc123",
-  "status": "generated",
-  "pdf_url": "https://...",
-  "compliance": "verified"
+  "status": "active",
+  "urls": {
+    "pdf": "https://...",
+    "verification": "https://..."
+  }
 }`}
                   </pre>
                 </div>
@@ -738,7 +807,9 @@ Content-Type: application/json
         </section>
 
         {/* 9. SECURITY & COMPLIANCE */}
-        <section aria-label="Security" className="py-28 bg-white">
+        {/* HOME2 — this section had no id, so it was unreachable by nav and
+            was where a short scroll from "Pricing" came to rest. */}
+        <section id="security" style={{ scrollMarginTop: 80 }} aria-label="Security" className="py-28 bg-white">
           <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
             <div className="text-center mb-20">
               <Badge className="bg-[#4F76F6]/10 text-[#4F76F6] border border-[#4F76F6]/20 text-lg font-semibold px-6 py-3 mb-6">
@@ -765,7 +836,7 @@ Content-Type: application/json
                 {
                   icon: Shield,
                   title: "Hash-Stamped PDFs",
-                  desc: "Every generated document is fingerprinted (SHA-256) at creation and stored immutably.",
+                  desc: "Every PDF is fingerprinted (SHA-256) at creation, and the row that holds it is insert-or-refuse: a differing hash is rejected rather than overwritten.",
                 },
                 {
                   icon: Lock,
@@ -791,7 +862,7 @@ Content-Type: application/json
         </section>
 
         {/* 10. PRICING */}
-        <section id="pricing" aria-label="Pricing" className="py-28 bg-gray-50">
+        <section id="pricing" style={{ scrollMarginTop: 80 }} aria-label="Pricing" className="py-28 bg-gray-50">
           <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
             <div className="text-center mb-20">
               <Badge className="bg-[#7C4DFF]/10 text-[#7C4DFF] border border-[#7C4DFF]/20 text-lg font-semibold px-6 py-3 mb-6">
@@ -877,7 +948,7 @@ Content-Type: application/json
         </section>
 
         {/* 11. FAQ */}
-        <section id="faq" aria-label="FAQ" className="py-28 bg-white">
+        <section id="faq" style={{ scrollMarginTop: 80 }} aria-label="FAQ" className="py-28 bg-white">
           <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-12">
             <div className="text-center mb-16">
               <Badge className="bg-[#4F76F6]/10 text-[#4F76F6] border border-[#4F76F6]/20 text-lg font-semibold px-6 py-3 mb-6">
@@ -927,7 +998,7 @@ Content-Type: application/json
                 },
                 {
                   q: "What about security?",
-                  a: "Token-based sessions over encrypted transport, and every generated PDF is hash-stamped (SHA-256) and stored immutably. Formal certifications are on the roadmap — we'd rather show you the mechanism than a badge.",
+                  a: "Token-based sessions over encrypted transport. Every PDF is hash-stamped (SHA-256) at creation, and storing one is insert-or-refuse — a differing hash for the same document is rejected rather than overwriting what is there. Formal certifications are on the roadmap; we would rather show you the mechanism than a badge.",
                 },
               ].map((faq) => (
                 <div
@@ -977,7 +1048,7 @@ Content-Type: application/json
                   </li>
                   <li>
                     <a href="#api" className="hover:text-[#7C4DFF] transition-colors">
-                      Integrations
+                      API
                     </a>
                   </li>
                   <li>
@@ -1005,8 +1076,45 @@ Content-Type: application/json
               </div>
             </div>
 
+            {/* ═══ HOME2 item 5 — CONTACT AND IDENTITY ═══
+
+                There was no email, no phone and no form anywhere on this
+                page, and the footer read "DeedPro · California, USA" with
+                no legal entity. A title company's counsel expects both
+                before anyone attaches their name to a stranger's tool.
+
+                BOTH COME FROM THE ENVIRONMENT AND NEITHER IS INVENTED.
+                The entity name and the contact address are the owner's to
+                supply — a legal entity guessed at is worse than one
+                absent, because an absent one is obviously missing and a
+                wrong one looks answered. When the vars are unset this
+                block renders nothing rather than a placeholder, and the
+                gap stays visible instead of being papered over.
+
+                `homepageTruth.test.ts` pins that no entity string is
+                hard-coded here. */}
+            {(process.env.NEXT_PUBLIC_LEGAL_ENTITY || process.env.NEXT_PUBLIC_CONTACT_EMAIL) && (
+              <div className="mt-12 pt-8 border-t border-gray-800 text-sm">
+                <h3 className="font-bold text-white mb-3">Contact</h3>
+                {process.env.NEXT_PUBLIC_LEGAL_ENTITY && (
+                  <div className="mb-1">{process.env.NEXT_PUBLIC_LEGAL_ENTITY}</div>
+                )}
+                {process.env.NEXT_PUBLIC_CONTACT_ADDRESS && (
+                  <div className="mb-1 whitespace-pre-line">{process.env.NEXT_PUBLIC_CONTACT_ADDRESS}</div>
+                )}
+                {process.env.NEXT_PUBLIC_CONTACT_EMAIL && (
+                  <a href={`mailto:${process.env.NEXT_PUBLIC_CONTACT_EMAIL}`}
+                     className="hover:text-[#7C4DFF] transition-colors">
+                    {process.env.NEXT_PUBLIC_CONTACT_EMAIL}
+                  </a>
+                )}
+              </div>
+            )}
+
             <div className="mt-12 pt-8 border-t border-gray-800 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm">
-              <div>&copy; 2026 DeedPro. All rights reserved.</div>
+              <div>
+                &copy; 2026 {process.env.NEXT_PUBLIC_LEGAL_ENTITY || 'DeedPro'}. All rights reserved.
+              </div>
               <div className="flex gap-6">
                 <a href="/privacy" className="hover:text-[#7C4DFF] transition-colors">
                   Privacy

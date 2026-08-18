@@ -5,7 +5,7 @@ import { ATTEMPTS, afterAttempt, delayBeforeAttempt, type PlanWatch } from "@/li
 import Sidebar from "@/components/Sidebar"
 import { User, CreditCard, Bell, Lock, Check, Loader2 } from "lucide-react"
 import { toast } from "sonner"
-import { TIERS, priceLabel } from "@/lib/pricing"
+import { TIERS, priceLabel, priceWithCadence } from "@/lib/pricing"
 import { CA_COUNTY_NAMES } from "@/lib/jurisdictions"
 import { saveProfile } from "@/lib/profileSave"
 import EmailVerificationNotice from "@/features/account/EmailVerificationNotice"
@@ -601,8 +601,12 @@ function BillingTab({
               <p className="text-slate-600">Your current subscription</p>
             </div>
             <div className="text-right">
-              <div className="text-3xl font-bold text-[#7C4DFF]">{(() => { const t = plans.find((p) => p.key === currentPlan); return t ? priceLabel(t) : ''; })()}</div>
-              <div className="text-sm text-slate-600">per month</div>
+              {/* HOME2 — this rendered the figure and then a HARDCODED
+                  "per month" beneath it, while Professional is charged
+                  per USER per month and the registry has said so all
+                  along. The homepage pricing cards already render
+                  `tier.cadence`; this one invented its own unit. */}
+              <div className="text-3xl font-bold text-[#7C4DFF]">{(() => { const t = plans.find((p) => p.key === currentPlan); return t ? priceWithCadence(t) : ''; })()}</div>
             </div>
           </div>
           <button
