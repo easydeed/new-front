@@ -135,8 +135,14 @@ ACCURACY_ITEM_KEYS = frozenset({"deed_id", "deed_type", "property",
 
 UPCOMING_KEYS = frozenset({"kind", "id", "deed_id", "property", "when",
                            "who", "summary"})
+#: `stale` and `lapsed` are two different kinds of gone-quiet and are
+#: deliberately two fields. Stale is BY AGE — nobody has answered in
+#: STALE_AFTER_DAYS. Lapsed is BY EVENT — every time she offered has now
+#: passed unanswered. Collapsing them into one boolean would make the
+#: screen unable to say which happened, and they need different sentences
+#: and different remedies.
 AWAITING_KEYS = frozenset({"kind", "id", "deed_id", "property", "who",
-                           "days_waiting", "stale", "summary"})
+                           "days_waiting", "stale", "lapsed", "summary"})
 IDLE_KEYS = frozenset({"kind", "id", "deed_type", "property", "days_idle"})
 
 
@@ -152,8 +158,22 @@ def queue(*, upcoming: Sequence[Dict[str, Any]],
     booked for Thursday needs nothing from her, and counting it would
     make the number she checks first mean "there are rows below".
 
-    It is the stale unanswered requests. That is the number that, when it
-    is zero, means nobody is waiting on her and nobody has gone quiet.
+    It is the requests that have gone quiet. That is the number that,
+    when it is zero, means nobody is waiting on her and nobody has gone
+    quiet.
+
+    ═══ AND "GONE QUIET" HAS TWO SHAPES (owner-ruled, DASH-FIX #4) ═══
+
+    STALE, by age — nobody has answered in STALE_AFTER_DAYS.
+    LAPSED, by event — every window she offered has now passed unanswered.
+
+    This counted only the first, so a request whose morning slot went by
+    an hour ago contributed nothing to the number an officer checks
+    before anything else, and could sit at zero-attention all day.
+
+    A lapse is STRONGER evidence than an age, not weaker: waiting five
+    days is a request that may yet be answered, and an offer that has run
+    out cannot be. Zero has to mean nothing needs her.
     """
     for row in upcoming:
         assert set(row) == UPCOMING_KEYS, f"upcoming row drifted: {sorted(row)}"
@@ -178,7 +198,8 @@ def queue(*, upcoming: Sequence[Dict[str, Any]],
         "upcoming": list(upcoming),
         "awaiting": list(awaiting),
         "idle_drafts": list(idle_drafts),
-        "needs_attention": len([r for r in awaiting if r["stale"]]),
+        "needs_attention": len([r for r in awaiting
+                                if r["stale"] or r["lapsed"]]),
         # DASH1 item 6 — THE AMBIENT SIGNAL.
         #
         # Counted here rather than by the sidebar, for the same reason
