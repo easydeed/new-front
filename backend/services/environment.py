@@ -103,30 +103,39 @@ MANIFEST: Tuple[EnvVar, ...] = (
            "checkout failed at Stripe with an error about a price that "
            "was never real. Fail loudly with a named reason, never fall "
            "back to a placeholder."),
-    # ⚠️ THIS ENTRY WAS WRONG, AND THE CORRECTION MATTERS MORE THAN THE
-    # ENTRY. It said CORS breaks without this variable. **Nothing reads
-    # it.** `main.py` hardcodes its origin list, and a grep of the whole
-    # backend finds this name in exactly one place: here, declaring it
-    # required.
+    # ⚠️ THIS ENTRY WAS WRONG TWICE, AND THE HISTORY IS THE POINT.
     #
-    # The boot check named it missing on the first production deploy, the
+    # v1 said CORS breaks without this variable. Nothing read it. The
+    # boot check named it missing on the first production deploy, the
     # owner set it on the strength of that, and setting it changed
-    # nothing — because the claim it was acting on was mine and it was
-    # false. A manifest that is believed is a manifest that has to be
-    # right.
+    # nothing — because the claim it was acting on was false.
     #
-    # Classified OPTIONAL because that is the truth about its ABSENCE:
-    # nothing changes. It is not deleted, because `render.yaml` declares
-    # it and the two files are checked against each other — and because
-    # the open question is whether `main.py` should read it, which is a
-    # production CORS change and the owner's to rule. See the ledger.
+    # v2 corrected that to "Read by NOTHING today", classified it
+    # OPTIONAL, and left the open question for a ruling. **That
+    # correction was written before the CORS incident and read after
+    # it.** Two more rounds were spent on this variable during a live
+    # outage whose cause was a missing PATCH in `allow_methods`, with the
+    # sentence that would have ended the search sitting in this file.
+    #
+    # A BOOT CHECK VERIFIES PRESENCE, NOT CONSUMPTION. That is the
+    # general shape and it is now in the ledger: a variable can be
+    # declared, classified REQUIRED, set by hand, and reported healthy
+    # while being wired to nothing at all.
+    #
+    # CORS1 resolved it the way the owner ruled — the middleware now
+    # READS it (services/cors_policy.py). Still OPTIONAL, and now that is
+    # a statement about behaviour rather than an admission: absent, the
+    # code's own origin list applies, and that list is correct today.
     EnvVar("ALLOWED_ORIGINS", OPTIONAL,
-           "Read by NOTHING today. `main.py` hardcodes `allow_origins` "
-           "and never consults this name, so its absence changes no "
-           "behaviour and setting it changes none either. Declared here "
-           "and in render.yaml, which is how it came to be set on a "
-           "service that does not consume it. Pending an owner ruling on "
-           "whether CORS should be configured from it."),
+           "Comma-separated extra browser origins, read by "
+           "services/cors_policy.py since CORS1. ADDS to the list in "
+           "code; it cannot remove from it, deliberately — a stale "
+           "single-origin value would otherwise take the real domain "
+           "offline on deploy. Absent, the built-in list applies and "
+           "nothing changes. A `*` entry is IGNORED and named in the "
+           "boot report: with credentials enabled it is invalid per "
+           "spec, and it is what hid a wrong CORS configuration for "
+           "months."),
     EnvVar("SENDGRID_API_KEY", OPTIONAL,
            "No email leaves the building. OPTIONAL and it is a close "
            "call: the product degrades honestly — every sender returns "

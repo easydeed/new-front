@@ -61,25 +61,65 @@ if os.getenv("ENVIRONMENT") == "staging":
         enable_detailed_logging=True
     )
 
-# Allow CORS for local dev and frontend
+# ── CORS: who may call this API from a browser, and how ──────────────
+#
+# CORS1. The old list here omitted PATCH, which is the method the entire
+# settings and onboarding save path uses — so every profile save died at
+# the preflight, and the browser reported "failed to fetch", which is
+# what it says when a preflight is refused and is indistinguishable from
+# the API being down. The owner could not set his own recording county.
+#
+# It stayed invisible because `"*"` was in the origin list: every origin
+# was already accepted, so no origin experiment could ever fail and the
+# method list was never the suspect. Two rounds went into ALLOWED_ORIGINS,
+# a variable nothing read.
+#
+# The policy — origins, preview regex, methods, and the reasoning for
+# each — now lives in services/cors_policy.py, where a pin can assert
+# properties about it. The one that matters:
+# `test_cors_contract.py::every method the app serves is allowed`.
+from services.cors_policy import (
+    ALLOWED_METHODS as _CORS_METHODS,
+    PREVIEW_ORIGIN_REGEX as _CORS_PREVIEW_REGEX,
+    effective_origins as _cors_origins,
+    policy_report as _cors_report,
+)
+
+print(_cors_report(), flush=True)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "https://deedpro-frontend-new.vercel.app",
-        "https://deedpro-frontend-new-*.vercel.app",  # Preview deployments
-        "*"  # Fallback for development
-    ],
+    allow_origins=_cors_origins(),
+    # Preview deployments. The old list carried this as a literal glob
+    # string in `allow_origins`, where Starlette compares exactly and
+    # never globs — so it matched nothing, and previews worked only
+    # because of the wildcard that is now gone.
+    allow_origin_regex=_CORS_PREVIEW_REGEX,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=list(_CORS_METHODS),
     allow_headers=["*"],
 )
 
 # RED-S1: one connection per request, checked out here and returned here.
 #
-# Registered AFTER the metrics middleware below, which means Starlette
-# runs it FIRST — the connection is bound before any handler touches
-# `db.conn` and returned after the response is produced.
+# ⚠️ THE ORDERING SENTENCE HERE WAS WRONG, corrected during CORS1 and
+# left visible rather than quietly replaced. It read: "Registered AFTER
+# the metrics middleware below, which means Starlette runs it FIRST."
+# This decorator runs BEFORE metrics' at import, and `add_middleware`
+# prepends — so the real order, outermost first, is metrics → this →
+# CORS → routes. Verified by reading `app.user_middleware` rather than by
+# reasoning about it a second time.
+#
+# The claim that MATTERED is unaffected: this middleware still wraps every
+# route, so the connection is bound before any handler touches `db.conn`
+# and returned after the response is produced.
+#
+# ⚠️ AND CORS IS INNERMOST, which has a cost worth naming: a preflight
+# OPTIONS passes through both middlewares and OPENS A DATABASE CONNECTION
+# before CORS answers it — measured, one connection per preflight, for a
+# request that never reaches a route. Reported rather than changed in
+# CORS1 (owner-scoped); the fix is either an OPTIONS early-return here or
+# registering CORS last so it becomes outermost.
 #
 # Before this, every request shared one connection and therefore one
 # TRANSACTION: request B's commit() could commit request A's uncommitted
