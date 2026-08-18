@@ -637,6 +637,35 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
   },
 };
 
+/**
+ * How many instruments this product actually offers — the number the
+ * MARKETING surfaces print.
+ *
+ * ═══ WHY A DERIVED CONSTANT AND NOT A NUMBER IN THE COPY ═══
+ *
+ * HOME2 corrected the homepage from "5 CA instruments" to 21 and I
+ * flagged the result as the thing I was least sure of: 21 was correct on
+ * the day and pinned to nothing, so the day a 22nd instrument shipped the
+ * homepage would quietly be wrong again — the same defect, one number
+ * later. The owner ruled it a real gap and put the fix here, with the
+ * registry, rather than in the page.
+ *
+ * The number is now DERIVED, so a new entry below updates every surface
+ * that prints it without anyone remembering to. That ordering is
+ * deliberate and it is §14.7's rule: a note is a thing to remember, and
+ * remembering is the faculty that just failed. The pin in
+ * `formRegistry.test.ts` is the backstop for the derivation, not the
+ * mechanism — it fails when a literal count reappears anywhere near the
+ * word "instrument", which is what re-hardcoding looks like.
+ *
+ * WHAT THIS COUNTS is entries in the registry, which is exactly what the
+ * builder offers an officer. If a future entry is ever added in a
+ * not-yet-offered state, this stops being the marketing number and the
+ * count needs a predicate — that would be a change to what is being
+ * claimed, so it should be visible here rather than in the copy.
+ */
+export const INSTRUMENT_COUNT = Object.keys(FORM_REGISTRY).length;
+
 export function formConfig(slug: string | undefined | null): FormTypeConfig | undefined {
   return slug ? FORM_REGISTRY[slug] : undefined;
 }
