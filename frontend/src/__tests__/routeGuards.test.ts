@@ -116,9 +116,26 @@ function usesGuardHook(src: string): boolean {
  *
  * Matched as a pair rather than as two independent facts — a file may
  * legitimately contain both a `!token` check and an unrelated redirect,
- * so the redirect must be inside the branch. The window is the branch's
- * own text up to its close, NOT a character count (§14.1.1's cousin: a
- * fixed window shrinks by whatever prose is added inside it).
+ * so the redirect must be inside the branch.
+ *
+ * ═══ AND YES, THIS IS A BOUNDED WINDOW. IT IS NOT §14.4's MISTAKE ═══
+ *
+ * A note for the next reader, who will have read §14.4 about the tsc
+ * gate and may be tempted to "fix" this into symmetry with it.
+ *
+ * That window failed OPEN: a file tsc could not parse dropped out of the
+ * error count, and the gate — which only checked that the number had not
+ * RISEN — reported an improvement. Breaking the measurement made the
+ * result better.
+ *
+ * This window fails CLOSED. If the branch is longer than the slice, or
+ * shaped in a way this cannot read, the guard reads as ABSENT and the
+ * sweep goes RED. The page's author is told to look; nobody is told
+ * everything is fine. A heuristic that cannot see a guard reports an
+ * unguarded page, which is the safe direction for a security sweep and
+ * the whole reason the imprecision is acceptable here.
+ *
+ * Same shape, opposite safety direction. Do not make them match.
  */
 function redirectsWhenTokenAbsent(src: string): boolean {
   const test = /if\s*\(\s*!\s*(?:\w*[Tt]oken|localStorage\.getItem\([^)]*token[^)]*\))\s*\)/gi;

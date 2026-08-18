@@ -1191,6 +1191,77 @@ domain should be narrowed until it is.
 
 ---
 
+### §14.7 — Knowing a failure mode does not confer immunity from it (2026-08-18)
+
+**Statement.** A shape recognised, named, documented and reasoned about
+in the morning is fully available to recur in the afternoon, in the code
+written to prevent it, by the person who wrote it down. **This is why
+every entry in this document that can carry a mechanism does — a note is
+a thing you have to remember, and remembering is the faculty that just
+failed.**
+
+**Three instances in one day, and the third is the one that settles it.**
+
+1. **A pin that broke on a correct change** (§14.1.1). `ux2Items.test.ts`
+   quoted `officer_queue.py`'s literal expression; a later ruling changed
+   the predicate and the pin went red while the ruling it guarded was
+   intact. Loud, self-announcing, survivable.
+
+2. **A pin that stayed green through a wrong one** (§14.1.1's second
+   half). `StartSomethingNew`'s own test asserted
+   `getByText('grant-deed')` — the test for a component rendering raw
+   storage slugs checked that it rendered raw storage slugs, which is why
+   that file survived UX2 item 3's sweep across three other surfaces.
+
+3. **The same defect in the remedy for the first two.** The route-guard
+   sweep detected a guard by matching a marker string, one of which
+   appears in every file that builds an Authorization header. The fix
+   moved two unguarded pages onto `useRequireAuth` — and was about to
+   have the sweep detect a guard by matching the HOOK'S NAME.
+
+   That would have been the identical defect one level up. The hook
+   navigates from an effect, so a page that calls it and ignores its
+   `checked` flag still paints its content for a frame; `/team` had
+   `if (!checked) return null` and only the hook had been copied. A
+   name-matching sweep would have certified the half-adoption exactly as
+   the old one certified a send-only token read.
+
+   It was caught by reading how `/team` actually USED the hook rather
+   than treating the import as the whole pattern — the same act that
+   found the original defect, applied to the fix for it.
+
+**A note on the rate, before the count is misread.** Three instances in
+one day is evidence that this shape is COMMON IN THIS KIND OF WORK — a
+day of unusually dense pin-writing, where nearly every ticket added or
+rewrote an assertion. It is NOT evidence that anything is accelerating or
+degrading. A future reader meeting "three in one day" could reasonably
+infer a trend; the rate reflects the activity, and a week of building
+features rather than instruments would show none of them while the shape
+stayed exactly as available.
+
+**What makes the third instance different.** The first two were written
+by somebody who had not yet formulated the rule. The third was written
+the same day the rule was written down, in the remedy for it, by its
+author. There is no amount of having-just-explained-it that prevents the
+next occurrence.
+
+**The consequence, and it is the operative part.** When a shape is
+identified here, ask what MECHANISM can hold it — a gate, a sweep, a
+constructor that asserts its key set, a type that will not compile.
+Prefer that to a paragraph every time, and where a paragraph is all
+there is, say so explicitly rather than letting it look like coverage.
+§14.4's tsc floor, §14.3's declaration count, and this sweep's property
+check are all the same move: converting a thing to remember into a thing
+that fails.
+
+**A corollary worth stating.** A mechanism ADOPTED PARTIALLY fails in the
+gap between its halves. `useRequireAuth` without `if (!checked)` is a
+redirect without a render gate, and only the sweep can enforce that both
+arrived — the page compiles, runs, and redirects, and is wrong for one
+frame in a way no human will reliably notice.
+
+---
+
 ### §14.4 — A monotonic invariant is satisfied by breaking the thing it measures (2026-08-18)
 
 **Statement.** Any gate of the form *"this number may only go down"*
@@ -1631,6 +1702,7 @@ on.
 
 | Date | Change |
 |---|---|
+| 2026-08-18 | §14.7 added — knowing a failure mode does not confer immunity from it. Three instances of one shape in a day: a pin quoting an implementation that broke on a correct change; a pin quoting an implementation that WAS the defect and stayed green through it; and the same defect inside the remedy for the first two, where the route-guard sweep — being rewritten because it matched a marker string — was about to match a hook's NAME instead. `useRequireAuth` navigates from an effect, so a page ignoring its `checked` flag still paints content for a frame, and a name-matching sweep would have certified that half-adoption exactly as the old one certified a send-only token read. Caught by reading how `/team` actually used the hook rather than treating the import as the whole pattern. The third instance settles the question the first two raise: it was written the same day the rule was written down, in the remedy for it, by its author. The rate is stated in the entry as evidence the shape is COMMON IN THIS KIND OF WORK rather than accelerating — three in a day reflects a day of unusually dense pin-writing, and a week of building features rather than instruments would show none while the shape stayed exactly as available. Operative consequence — when a shape is identified, ask what MECHANISM can hold it and prefer that to a paragraph, since a note is a thing to remember and remembering is the faculty that just failed. Corollary: a mechanism adopted partially fails in the gap between its halves, and only a sweep can enforce that both arrived. Also recorded in `routeGuards.test.ts` beside its bounded window: it fails CLOSED — an unreadable guard reports an unguarded page — where §14.4's tsc window failed open, so the two must not be made symmetric. And a prediction that missed: three of fourteen pages were passing incidentally, so at least one of the four unverified was expected to fail; none did. A base rate is not evidence about a particular case. |
 | 2026-08-18 | §14.6 added and §15.1 widened, from DASH-SOFTEN. §14.6: when a rule IS the design, the pin covers the domain rather than a point. The setup checklist expands exactly one step and that is not a feature of the card, it is the card — so the pin renders all sixteen arrangements of its four booleans rather than one. A sample would have passed against the obvious wrong implementation: rendering every incomplete step as open is indistinguishable from rendering the first when only the first is incomplete. Probed by making exactly that substitution — four assertions fail. A pin checking an invariant in one arrangement records an observation where a constraint was wanted. §15.1 widened past code: the same shape appeared in a document. DASH-SOFTEN needed to know whether violet — doctrinal, reserved for "proposed legal choice" — could be an ordinary accent on a card with no legal choices in it. BRAND.md answers it in the ADMIN-CONSOLE section, which is not where anyone with a dashboard question would look; the reasoning was never about admin and neither is its scope. General form: an answer filed under the surface it was first needed for is invisible to the next surface that needs it — so when a ruling resolves a question about a doctrinal rule, the instance goes with the surface and the principle goes with the doctrine. Also recorded: "All Good Escow" is absent from the repository, so it is a real row rather than fixture data, and `requestedByDefault.ts` makes `users.company_name` the RECORDING REQUESTED BY default — a typo in a profile field reaches the face of a recorded instrument with no confirmation step between. Correctly not fixed by a gate, since the officer typing her own company name is the authority on it, but it is the shortest path from a keystroke to a recorded document in this product. |
 | 2026-08-18 | §14.4 and §14.5 added, from one bug report. §14.4: a monotonic invariant is satisfied by breaking the thing it measures. A stray `{/* comment */}` in a ternary branch made `dashboard/page.tsx` unparseable, tsc stopped type-checking it and everything depending on it, and the error count fell from 88 to SIX — a gate that fails when the number RISES was delighted, and prints a notice inviting you to lock the improvement in. Jest stayed green at 1084 throughout because no test imports that page, so the frontend suite is fully compatible with the dashboard being unparseable; the only two instruments that could see it were tsc and next build, which is exactly what a shape-based gate rule would have permitted skipping. The fix is a FLOOR that is not a number — an assertion that nothing failed to parse (tsc's TS1xxx family is syntactic) — because no count can express "the measurement happened". General test for any threshold gate: what would happen to this number if the thing it measures stopped existing? §14.5: checking that a change is right is not checking what it exposes. DASH-FIX #1's routing of "Set county" to account-settings was correct on every premise and moved a first-run action onto a page whose save had no retry, while the page it came from had one for exactly this sleeping API — the owner hit it on their first new user. The defect lives entirely in the difference between the page's old population and the one the routing created, which no diff displays. The question it earns for any new route, link, redirect or CTA: who reaches this page now who did not before, and what does that page assume about them? |
 | 2026-08-18 | §14.1.1 gains its second and more dangerous symptom, and §15.1 added. THE SILENT HALF: `StartSomethingNew`'s own test asserted `getByText('grant-deed')`, so the test for a component rendering raw storage slugs was checking that it rendered raw storage slugs — which is why it survived UX2 item 3's sweep across three other surfaces. A pin written against the storage key rather than the product's language does not merely fail to catch the defect, it CERTIFIES it: the sweep had no reason to open a file whose test was green, and the test was green because it asserted the defect. One root, two symptoms — quote an implementation that is later fixed and the pin goes red while the rule is intact (noise); quote an implementation that IS the defect and it stays green forever (a defect with a certificate). The second cannot be found by watching CI, which is why the tell is a review question. §15.1: a rule about how a surface must be ENTERED is invisible where it is written on the surface. Past Deeds' own docstring names the dead-button-defect-wearing-a-URL and the dashboard's "Last 30 days" tile committed it, linking to that page unfiltered — the rule was written in the one place its violators never look. Any invariant of the form "callers must X" is mis-filed if it lives only with the callee: the callee is where the rule is understood, the callers are where it is broken, and documentation follows understanding while defects follow construction. |
