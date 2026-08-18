@@ -1151,6 +1151,46 @@ the comment describing it is the least reliable place to learn it.
 
 ---
 
+### §14.6 — When a rule IS the design, the pin covers the domain rather than a point (2026-08-18)
+
+**Statement.** A pin that checks an invariant in ONE arrangement of
+state proves the invariant held once. That is the transcript form of an
+invariant — it records an observation where a constraint was wanted. If
+the rule is load-bearing enough to be the design, the pin enumerates the
+reachable states.
+
+**The instance.** DASH-SOFTEN's setup checklist expands EXACTLY ONE
+step: the first incomplete one. That is not a feature of the card, it is
+the card — the whole redesign exists because four steps expanded at once
+told the eye nothing about what to read first.
+
+Its state is four booleans: company name, business address, recording
+county, first deed. Sixteen reachable arrangements, and the pin renders
+all sixteen, asserting one open row in fifteen of them and none in the
+sixteenth.
+
+**Why a sample would have failed.** `activeStep()` returns the first
+incomplete step, and the obvious wrong implementation — render every
+incomplete step as open — is INDISTINGUISHABLE from the correct one when
+only the first step is incomplete. A pin rendering the empty state alone
+passes against both. The probe confirms it: replacing
+`step.id === active.id` with `!step.done` fails four assertions, and the
+first-arrangement check is not among the ones that would have caught it
+in isolation.
+
+**The cost is nothing.** Sixteen renders in a jest suite is
+milliseconds. The domain is only enumerable because the state is four
+booleans — but that is the common case for an invariant worth having,
+because a rule stated over an unbounded domain is usually a rule about
+something else.
+
+**The test to apply:** *is this rule a property of the design, or a
+detail of it?* A detail can be checked where it matters. A property is
+checked everywhere it must hold, and if that is not enumerable, the
+domain should be narrowed until it is.
+
+---
+
 ### §14.4 — A monotonic invariant is satisfied by breaking the thing it measures (2026-08-18)
 
 **Statement.** Any gate of the form *"this number may only go down"*
@@ -1269,6 +1309,33 @@ mis-filed if it lives only with the callee. The callee is where the rule
 is UNDERSTOOD; the callers are where it is BROKEN. Documentation follows
 understanding and defects follow construction, and those are different
 files.
+
+**═══ AND IT IS NOT ONLY ABOUT CODE (widened 2026-08-18) ═══**
+
+The same shape appeared in a document. DASH-SOFTEN needed to know
+whether violet — a DOCTRINAL colour, reserved for "proposed legal
+choice" — could be used as an ordinary accent on the setup checklist. A
+reference design had assigned it "the one thing to do next", which reads
+as a reassignment of a reserved meaning.
+
+BRAND.md answers it, in the section about the ADMIN CONSOLE: *"The
+console has no officer decisions in it, so violet's 'proposed legal
+choice' has nothing to attach to and purple is simply the accent
+there."* The setup checklist has no officer decisions in it either. The
+question was settled, and settled in a section nobody with a question
+about the dashboard would open.
+
+**The general form, which is the useful one:** *an answer filed under
+the surface it was first needed for is invisible to the next surface
+that needs it.* The admin console was simply where somebody first had to
+decide what violet means in the absence of legal choices — the
+reasoning was never about admin, and neither is its scope.
+
+**What to do about it.** When a ruling resolves a question about a
+DOCTRINAL rule, it belongs beside the rule, not beside the first surface
+that raised it. The instance goes in the section about the surface; the
+principle goes in the section about the doctrine. If the reasoning would
+answer the same question asked from anywhere else, it is a principle.
 
 ---
 
@@ -1564,6 +1631,7 @@ on.
 
 | Date | Change |
 |---|---|
+| 2026-08-18 | §14.6 added and §15.1 widened, from DASH-SOFTEN. §14.6: when a rule IS the design, the pin covers the domain rather than a point. The setup checklist expands exactly one step and that is not a feature of the card, it is the card — so the pin renders all sixteen arrangements of its four booleans rather than one. A sample would have passed against the obvious wrong implementation: rendering every incomplete step as open is indistinguishable from rendering the first when only the first is incomplete. Probed by making exactly that substitution — four assertions fail. A pin checking an invariant in one arrangement records an observation where a constraint was wanted. §15.1 widened past code: the same shape appeared in a document. DASH-SOFTEN needed to know whether violet — doctrinal, reserved for "proposed legal choice" — could be an ordinary accent on a card with no legal choices in it. BRAND.md answers it in the ADMIN-CONSOLE section, which is not where anyone with a dashboard question would look; the reasoning was never about admin and neither is its scope. General form: an answer filed under the surface it was first needed for is invisible to the next surface that needs it — so when a ruling resolves a question about a doctrinal rule, the instance goes with the surface and the principle goes with the doctrine. Also recorded: "All Good Escow" is absent from the repository, so it is a real row rather than fixture data, and `requestedByDefault.ts` makes `users.company_name` the RECORDING REQUESTED BY default — a typo in a profile field reaches the face of a recorded instrument with no confirmation step between. Correctly not fixed by a gate, since the officer typing her own company name is the authority on it, but it is the shortest path from a keystroke to a recorded document in this product. |
 | 2026-08-18 | §14.4 and §14.5 added, from one bug report. §14.4: a monotonic invariant is satisfied by breaking the thing it measures. A stray `{/* comment */}` in a ternary branch made `dashboard/page.tsx` unparseable, tsc stopped type-checking it and everything depending on it, and the error count fell from 88 to SIX — a gate that fails when the number RISES was delighted, and prints a notice inviting you to lock the improvement in. Jest stayed green at 1084 throughout because no test imports that page, so the frontend suite is fully compatible with the dashboard being unparseable; the only two instruments that could see it were tsc and next build, which is exactly what a shape-based gate rule would have permitted skipping. The fix is a FLOOR that is not a number — an assertion that nothing failed to parse (tsc's TS1xxx family is syntactic) — because no count can express "the measurement happened". General test for any threshold gate: what would happen to this number if the thing it measures stopped existing? §14.5: checking that a change is right is not checking what it exposes. DASH-FIX #1's routing of "Set county" to account-settings was correct on every premise and moved a first-run action onto a page whose save had no retry, while the page it came from had one for exactly this sleeping API — the owner hit it on their first new user. The defect lives entirely in the difference between the page's old population and the one the routing created, which no diff displays. The question it earns for any new route, link, redirect or CTA: who reaches this page now who did not before, and what does that page assume about them? |
 | 2026-08-18 | §14.1.1 gains its second and more dangerous symptom, and §15.1 added. THE SILENT HALF: `StartSomethingNew`'s own test asserted `getByText('grant-deed')`, so the test for a component rendering raw storage slugs was checking that it rendered raw storage slugs — which is why it survived UX2 item 3's sweep across three other surfaces. A pin written against the storage key rather than the product's language does not merely fail to catch the defect, it CERTIFIES it: the sweep had no reason to open a file whose test was green, and the test was green because it asserted the defect. One root, two symptoms — quote an implementation that is later fixed and the pin goes red while the rule is intact (noise); quote an implementation that IS the defect and it stays green forever (a defect with a certificate). The second cannot be found by watching CI, which is why the tell is a review question. §15.1: a rule about how a surface must be ENTERED is invisible where it is written on the surface. Past Deeds' own docstring names the dead-button-defect-wearing-a-URL and the dashboard's "Last 30 days" tile committed it, linking to that page unfiltered — the rule was written in the one place its violators never look. Any invariant of the form "callers must X" is mis-filed if it lives only with the callee: the callee is where the rule is understood, the callers are where it is broken, and documentation follows understanding while defects follow construction. |
 | 2026-08-18 | §14.1.1 added — a pin asserts the PROPERTY it guards, never the line that currently expresses it. A jest test held UX2 item 4 (the badge counts presence, the attention number counts silence, and they must not become one number) by quoting `officer_queue.py`'s literal `"needs_attention": len([r for r in awaiting if r["stale"]])`. When a later ruling made that number count lapsed requests too, the pin went red while the ruling it guarded was intact — reporting that a line had changed and saying nothing about whether the two counts were still two. A pin that cannot tell "the rule is broken" from "the code was rewritten" gets edited to match whatever the code now says, which makes it a transcript of the code rather than a constraint on it. This is §14.1 arriving in a pin that already knew which ruling it protected and named it in the docstring — knowing the property is not the same as asserting it. The tell, usable in review: ask what a correct unrelated rewrite would do to the pin; if the answer is "it goes red and somebody updates it", it is a transcript. Also: EXECUTION_POLICY's gate-selection table REPLACED rather than amended. Its premise — that a change's shape bounds which gates can fail — is false in this repo by design, because suites read the other language's source so that one decision is not made twice; a backend-only change is policed by the frontend suite on purpose. The rule is now to run both suites and the harnesses, four minutes together, which is cheaper than the reasoning required to skip one correctly — and that reasoning is not available anyway, since what bounds the blast radius is which files the suites READ, which the diff cannot tell you. Recorded with the meta-lesson: the first gate-selection error produced the table, the second happened with the table available and consulted, and the response to a judgement failure was a finer judgement aid when the correct response was removing the judgement. |
