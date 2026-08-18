@@ -132,12 +132,20 @@ describe('account settings', () => {
 
 describe('the checklist button', () => {
   it('points at the page that now holds the field', () => {
-    const dash = read(join(SRC, 'app', 'dashboard', 'page.tsx'));
-    expect(dash).toContain('/account-settings');
-    // And NOT at the completion flow: re-entering onboarding to change
-    // one field re-runs `onboarding_completed` and a navigation she did
-    // not ask for.
-    expect(dash).not.toContain("'/onboarding'");
+    /* Asserted against the STEP, not the page. DASH-SOFTEN moved each
+       destination onto its step definition so the page holds no second
+       opinion about where "Set county" goes — and this pin, which
+       quoted the route string as it appeared in `page.tsx`, went red on
+       that move while the property it guards was untouched (§14.1.1). */
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { setupSteps } = require('../features/dashboard/SetupChecklist');
+    const county = setupSteps({ deedCount: 0 })
+      .find((st: { id: string }) => st.id === 'county');
+    expect(county.href).toBe('/account-settings');
+    // And NOT the completion flow: re-entering onboarding to change one
+    // field re-runs `onboarding_completed` and a navigation she did not
+    // ask for.
+    expect(county.href).not.toContain('/onboarding');
   });
 
   it('leaves onboarding importing the shared list rather than its own', () => {
