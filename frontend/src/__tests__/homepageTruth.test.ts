@@ -15,11 +15,27 @@
 import { describe, expect, it } from '@jest/globals';
 import * as fs from 'fs';
 import * as path from 'path';
+import { codeOnly } from '../test-support/sourceText';
 
-const PAGE = fs.readFileSync(
+/**
+ * HOME2 — ROUTED THROUGH `codeOnly`, and the reason is this file's own
+ * subject matter.
+ *
+ * Every banned sentence here is a phrase somebody once put on the page,
+ * so the natural way to record its removal is a comment saying what it
+ * used to say — and a pin reading raw source then trips on the comment
+ * explaining the very claim it forbids. That happened on the first run
+ * of this ticket: two assertions failed against explanatory comments
+ * while the rendered copy was correct.
+ *
+ * `codeOnly` blanks comments and docstrings and leaves string contents
+ * alone, which is exactly the distinction this pin needs: it must see
+ * what the page SAYS, not what its history says it used to say.
+ */
+const PAGE = codeOnly(fs.readFileSync(
   path.join(__dirname, '..', 'app', 'page.tsx'),
   'utf8'
-);
+));
 
 describe('HM2 — unverifiable claims are gone', () => {
   const BANNED_CLAIMS = [
@@ -54,9 +70,57 @@ describe('HM2 — no legal outcome asserted as a software outcome', () => {
   }
 
   it('the doctrine sentences replaced them', () => {
-    expect(PAGE).toContain('your officer confirms every field before anything generates');
+    /**
+     * HOME2 — two of these quoted copy this ticket deliberately changed,
+     * and one of them would have forced a claim back onto the page.
+     *
+     * "county recorder formatting" asserted what a RECORDER ACCEPTS. We
+     * measure against what recorders PUBLISH, which is a different and
+     * checkable thing and is how it is hedged everywhere else in the
+     * product. A pin demanding the unhedged phrase is a pin holding a
+     * claim in place.
+     *
+     * "…before anything generates" went with item 7's authorship pass:
+     * the software suggests, the officer decides, and the document
+     * PRINTS. Same doctrine, and the sentence says it more exactly.
+     *
+     * What is pinned is the DOCTRINE, not the wording — the officer
+     * confirming before the document prints, and formatting stated as
+     * measurement rather than acceptance.
+     */
+    expect(PAGE).toMatch(/officer confirms every one before anything prints/);
     expect(PAGE).toContain('Two-stage checks');
-    expect(PAGE).toContain('county recorder formatting');
+    expect(PAGE).toMatch(/published requirements/);
+    expect(PAGE).not.toMatch(/county recorder formatting rules/);
+  });
+
+  it('never describes the software as the author of a deed', () => {
+    /**
+     * HOME2 item 1 and item 7, and the pin is deliberately NARROWER than
+     * the ticket proposed.
+     *
+     * The ask was to pin that no copy describes generation without an
+     * officer in the loop. That cannot be honestly asserted:
+     * `POST /api/v1/deeds` inserts with status 'active' and returns a PDF
+     * URL with no officer step. W0 §3 ruled Model 2 — API submissions
+     * landing as drafts — and that ruling was DECIDED and then parked. It
+     * was never built.
+     *
+     * A pin asserting an officer-in-the-loop API would be true of the
+     * copy and false of the product, which is the §14 shape: a record
+     * stating what exists rather than what was executed. Owner-ruled
+     * option 1 — the copy describes today's API accurately and the gap is
+     * ledgered, loudly, instead.
+     *
+     * So this pins what IS true: no surface calls the software the
+     * author.
+     */
+    for (const authorship of [
+      'Instant deed generation', 'AI Generated', 'AI Generates',
+      'generates your deed', 'the AI creates',
+    ]) {
+      expect(PAGE).not.toContain(authorship);
+    }
   });
 });
 

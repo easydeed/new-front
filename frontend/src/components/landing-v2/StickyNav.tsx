@@ -34,22 +34,38 @@ export default function StickyNav() {
             {[
               { label: "Features", id: "features" },
               { label: "How it Works", id: "steps" },
-              { label: "Integrations", id: "integrations" },
+              /* HOME2 — an "Integrations" item pointed at id="integrations",
+                 a section RED-H1.1 deleted when it found the SoftPro/Qualia
+                 claim behind it was untrue. The item outlived the section and
+                 scrolled nowhere.
+                 NOT re-pointed at the API section: a nav item reading
+                 "Integrations" that lands on an API card re-implies the
+                 integrations the FAQ on this same page says we do not have. */
               { label: "Pricing", id: "pricing" },
               { label: "FAQ", id: "faq" },
             ].map((item) => (
               <button
                 key={item.id}
                 onClick={() => {
-                  const element = document.getElementById(item.id)
-                  if (element) {
-                    const offset = 80
-                    const elementPosition = element.getBoundingClientRect().top + window.scrollY
-                    window.scrollTo({
-                      top: elementPosition - offset,
-                      behavior: "smooth",
-                    })
-                  }
+                  /* HOME2 — Pricing landed on Security and FAQ landed on
+                     Pricing: consistently one section short.
+
+                     The cause is this arithmetic. It measures the target's
+                     position ONCE, at click time, and scrolls to a number —
+                     so anything above the target that grows during the smooth
+                     scroll (a font swapping in, an image getting its
+                     intrinsic height) leaves the page short by roughly that
+                     growth, which on this page is about one section.
+
+                     `scrollIntoView` re-resolves the element rather than a
+                     coordinate, and `scroll-margin-top` on the sections
+                     supplies the 80px the header needs. The fix is to stop
+                     computing a position that can go stale, not to compute it
+                     better. */
+                  document.getElementById(item.id)?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                  })
                 }}
                 className="px-4 py-2 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:text-[#1F2B37] hover:bg-gray-50"
               >

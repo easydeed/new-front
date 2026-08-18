@@ -44,7 +44,12 @@ const inter = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "DeedPro - AI-Enhanced Real Estate Deed Platform",
+  /* HOME2 — the page title led with "AI-Enhanced", which is the risk
+     word first for the audience this page is about to receive: title reps
+     and referred escrow officers deciding whether a stranger's tool is
+     safe to attach their name to. The product's own framing is that the
+     software suggests and the officer decides; the title now says that. */
+  title: "DeedPro — California deed preparation, confirmed by your officer",
   // RED-H1.1: "seamless integrations" and the SoftPro/Qualia keywords sold
   // title-software integrations that do not exist in this codebase in any
   // form — not a client, not a stub. "Trusted by 1,200+ escrow officers"
@@ -53,9 +58,28 @@ export const metadata: Metadata = {
   keywords: "real estate, deed preparation, California deeds, grant deed, quitclaim deed, escrow, title",
   authors: [{ name: "DeedPro Team" }],
   openGraph: {
-    title: "DeedPro - AI-Enhanced Real Estate Deed Platform",
-    description: "Transform deed creation with AI assistance and enterprise API",
+    /* HOME2 — this is what every shared link showed, and it contradicted
+       the positioning of the page it linked to. "Transform deed creation
+       with AI assistance" makes the software the actor; the page says the
+       officer decides. A forwarded link is often the FIRST thing a title
+       rep sees, and it was the one surface still selling the old story.
+       The image is the deed hero already in `public/images` — the page
+       previewed as text only, which for a forwarded link reads as a page
+       nobody finished. */
+    title: "DeedPro — California deed preparation, confirmed by your officer",
+    description:
+      "Recorder-formatted California deeds for escrow and title professionals. "
+      + "The software suggests from county records; your officer confirms every field before it prints.",
     type: "website",
+    images: [{ url: "/images/deed-hero.png", width: 1200, height: 630,
+               alt: "A California grant deed prepared in DeedPro" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "DeedPro — California deed preparation, confirmed by your officer",
+    description:
+      "The software suggests from county records; your officer confirms every field before it prints.",
+    images: ["/images/deed-hero.png"],
   }
 };
 
@@ -73,13 +97,21 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} ${inter.variable} font-inter antialiased`} suppressHydrationWarning>
         {children}
-        {/* Google Maps API for address autocomplete */}
-        {(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY) && (
-          <Script
-            src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY}&libraries=places`}
-            strategy="beforeInteractive"
-          />
-        )}
+        {/* HOME2 — THE GOOGLE MAPS SCRIPT WAS LOADED HERE, IN THE ROOT
+            LAYOUT, on every page including the logged-out homepage.
+
+            It is REDUNDANT, not merely misplaced: `useGoogleMaps` creates
+            and appends its own script tag when `window.google` is absent,
+            so every consumer — the builder's property section and the
+            property search — already loads it on demand. Removing it here
+            changes nothing about whether autocomplete works.
+
+            What it does change is that a marketing page visited by someone
+            who has not signed in stops making a third-party request and
+            stops carrying the browser key in its HTML. The key is a
+            `NEXT_PUBLIC_*` value and is therefore public by design — this
+            is not a secret leaking — but a logged-out visitor should not
+            be announced to Google to read a page about deeds. */}
         {/* U2.2: every toast is dismissable (closeButton) and none survives
             a route change (ToastRouteDismiss) — the immortal-toast fix. */}
         <ToastRouteDismiss />

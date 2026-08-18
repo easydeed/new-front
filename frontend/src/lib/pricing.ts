@@ -117,6 +117,24 @@ export const TIERS: Tier[] = [
 
 export const PROFESSIONAL = TIERS.find((t) => t.key === 'professional')!;
 
+/**
+ * `$99/user/month` / `$249/month` — the price WITH the unit it is charged in.
+ *
+ * ═══ HOME2 ═══
+ *
+ * `priceLabel` returns the figure alone, and the surfaces that render two
+ * tiers side by side were showing "$99" beside "$249" with no unit on
+ * either — while the registry itself says one is per USER per month and
+ * the other is per month. A reader comparing them was comparing different
+ * things and had nothing on screen telling them so.
+ *
+ * The cadence has always been on the tier. Nothing was missing except a
+ * formatter that used it.
+ */
+export function priceWithCadence(tier: Tier): string {
+  return tier.priceMonthly === 0 ? priceLabel(tier) : `${priceLabel(tier)}${tier.cadence}`;
+}
+
 /** `$0` / `$99`. The only place a dollar sign meets a plan price. */
 export function priceLabel(tier: Tier): string {
   return `$${tier.priceMonthly}`;
