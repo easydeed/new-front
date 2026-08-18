@@ -59,7 +59,15 @@ describe('two numbers, two claims, each named', () => {
     /** THE PIN THIS BLOCK EXISTS FOR — it protects a RULING against a
      *  ticket, which is the unusual direction. */
     expect(PY_QUEUE).toContain('These are NOT the attention count');
-    expect(PY_QUEUE).toContain('"needs_attention": len([r for r in awaiting if r["stale"]])');
+    /* The attention count now counts GONE QUIET in both its shapes —
+       stale by age, lapsed by event (DASH-FIX #4). What this pin
+       protects is unchanged and is the RULING, not the expression: the
+       badge counts presence, the attention number counts silence, and
+       they must not become one number. So it asserts the two are
+       computed from different predicates rather than pinning a literal
+       line, which broke here the moment the ruling was applied and
+       taught nothing when it did. */
+    expect(PY_QUEUE).toMatch(/"needs_attention": len\(\[r for r in awaiting\s*\n?\s*if r\["stale"\] or r\["lapsed"\]\]\)/);
     expect(PY_QUEUE).toContain('"signings": len([r for r in awaiting if r["kind"] == "signing"])');
   });
 
