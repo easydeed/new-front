@@ -250,3 +250,72 @@ def test_a_preview_deployment_is_allowed_through_the_regex():
     )
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == origin
+
+
+# ═══ ORDER — CORS2 ═══════════════════════════════════════════════════
+
+def test_cors_is_the_outermost_middleware():
+    """CORS answers a preflight before anything else runs.
+
+    CORS1 measured the old arrangement: CORS was innermost, so every
+    preflight passed through the metrics and connection middlewares and
+    OPENED A DATABASE CONNECTION before being answered — one per
+    preflight, against a pool of 40, for a request that never reaches a
+    route.
+
+    THIS IS A POSITION, AND A POSITION IS INVISIBLE IN A DIFF.
+    `add_middleware` prepends, so registration ORDER is what decides it,
+    and moving the CORS block up the file — the natural place for it, and
+    where it lived until now — silently puts the connection back in front
+    of every preflight. Nothing about that edit would look wrong.
+    """
+    app = _app()
+    outermost = app.user_middleware[0]
+    assert getattr(outermost.cls, "__name__", "") == "CORSMiddleware", (
+        "CORS must be registered LAST so it is outermost; found "
+        f"{[getattr(m.cls, '__name__', m.cls) for m in app.user_middleware]}"
+    )
+
+
+def test_a_preflight_costs_no_database_connection():
+    """The property the ordering exists for, measured rather than argued.
+
+    §14.2 — a control is checked before its result is believed. The
+    position assertion above is a claim ABOUT this; this is the thing
+    itself.
+    """
+    import db
+    from fastapi.testclient import TestClient
+
+    opened = {"n": 0}
+    original = db.request_connection
+
+    class Counting:
+        def __init__(self):
+            self._cm = original()
+
+        def __enter__(self):
+            opened["n"] += 1
+            return self._cm.__enter__()
+
+        def __exit__(self, *exc):
+            return self._cm.__exit__(*exc)
+
+    db.request_connection = Counting
+    try:
+        client = TestClient(_app())
+        response = client.options("/users/profile", headers={
+            "Origin": "https://deedpro.io",
+            "Access-Control-Request-Method": "PATCH",
+        })
+        assert response.status_code == 200
+        assert opened["n"] == 0, (
+            f"the preflight opened {opened['n']} database connection(s) — "
+            "CORS is not answering before the connection middleware"
+        )
+        # And a REAL request still gets one, so the ordering did not
+        # simply switch the connection off.
+        client.get("/health")
+        assert opened["n"] >= 1
+    finally:
+        db.request_connection = original
