@@ -13,6 +13,7 @@ import {
   ArrowPathIcon 
 } from '@heroicons/react/24/solid';
 import Sidebar from '@/components/Sidebar';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { SessionExpiredError, apiFetch } from '@/lib/apiClient';
 import { PartnersProvider } from '@/features/partners/PartnersContext';
 import { ShareForReviewModal } from '@/features/signing/ShareForReviewModal';
@@ -36,6 +37,16 @@ interface DeedData {
 }
 
 export default function DeedPreviewPage() {
+  /* HX0 — THE ROUTE GUARD THIS PAGE NEVER HAD.
+     Its only `access_token` reference read a token to SEND it, inside a
+     data fetch, and the sweep detected guards by looking for that
+     string — so the page counted as guarded for as long as it called an
+     authenticated endpoint. A logged-out visitor loaded it and learned
+     she was logged out only when the fetch was refused.
+     The shared hook rather than a fifth inline check: it redirects to
+     /login carrying the path she was trying to reach. */
+  const { checked } = useRequireAuth();
+
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -217,6 +228,14 @@ export default function DeedPreviewPage() {
   };
 
   // Loading state
+  /* THE HOOK REDIRECTS; THIS IS WHAT STOPS THE CONTENT RENDERING.
+     `useRequireAuth` navigates from an effect, so without this line the
+     page paints its chrome for a frame first — and the property the
+     sweep asserts is not "redirects eventually", it is "does not render
+     its content when no token is present". `/team` had both; adopting
+     only the hook would have been adopting half the mechanism. */
+  if (!checked) return null;
+
   if (loading) {
     return (
       <div style={{ display: 'flex' }}>

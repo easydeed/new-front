@@ -45,6 +45,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import {
   CalendarClock, Plus, Pencil, Trash2, X, Save, Search, Users, MapPin, Mail,
   Phone, Loader2,
@@ -110,6 +111,16 @@ export function partnerAddressLine(p: Partial<Partner>): string {
 }
 
 export default function PartnersPage() {
+  /* HX0 — THE ROUTE GUARD THIS PAGE NEVER HAD.
+     Its only `access_token` reference read a token to SEND it, inside a
+     data fetch, and the sweep detected guards by looking for that
+     string — so the page counted as guarded for as long as it called an
+     authenticated endpoint. A logged-out visitor loaded it and learned
+     she was logged out only when the fetch was refused.
+     The shared hook rather than a fifth inline check: it redirects to
+     /login carrying the path she was trying to reach. */
+  const { checked } = useRequireAuth();
+
   const router = useRouter();
   const [items, setItems] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(false);
@@ -240,7 +251,15 @@ export default function PartnersPage() {
       lender: 'bg-gray-100 text-gray-700 ring-gray-300',
       other: 'bg-gray-50 text-gray-500 ring-gray-200',
     };
-    return (
+    /* THE HOOK REDIRECTS; THIS IS WHAT STOPS THE CONTENT RENDERING.
+     `useRequireAuth` navigates from an effect, so without this line the
+     page paints its chrome for a frame first — and the property the
+     sweep asserts is not "redirects eventually", it is "does not render
+     its content when no token is present". `/team` had both; adopting
+     only the hook would have been adopting half the mechanism. */
+  if (!checked) return null;
+
+  return (
       <span
         className={`inline-block whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${tone[category] || tone.other}`}
       >

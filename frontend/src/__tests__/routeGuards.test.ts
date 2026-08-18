@@ -54,12 +54,83 @@ const PUBLIC_ROUTES = new Set([
   // the shape and PROVES the exemption instead of asserting it.
 ]);
 
-const GUARD_MARKERS = [
-  'useRequireAuth',
-  'AuthManager',
-  "localStorage.getItem('access_token')",
-  'localStorage.getItem("access_token")',
-];
+/**
+ * ═══ WHAT COUNTS AS A GUARD, AND WHY THE LIST WAS NOT IT ═══
+ *
+ * This used to be four strings, one of which was
+ * `localStorage.getItem('access_token')` — a line that appears in EVERY
+ * file calling an authenticated endpoint, because that is how you build
+ * an Authorization header. So a page reading a token TO SEND IT counted
+ * as a page that guards its route.
+ *
+ * Three of fourteen non-public pages passed that way: `/onboarding`,
+ * `/deeds/[id]/preview` and `/partners`. None had a guard. The first was
+ * found only when an unrelated refactor moved its token read into a
+ * module and took the string with it — the sweep then reported what had
+ * always been true.
+ *
+ * §14.1.1's silent half, in a security sweep, which is the worst
+ * habitat it has appeared in: a pin matching a string rather than a
+ * property did not merely miss the gap, it CERTIFIED it. A later audit
+ * had no reason to open a file whose test was green.
+ *
+ * ═══ THE PROPERTY ═══
+ *
+ * A guard is not "the file mentions a token". It is: **when no token is
+ * present, the page does not render its content.** That is one of two
+ * shapes, and both are checkable:
+ *
+ *   1. `useRequireAuth()` — the hook, which reads the token and
+ *      `router.replace`s to /login when it is absent. Verified as
+ *      behaviour rather than trusted as a name: five pages rest entirely
+ *      on it, so a hook that was a name without a behaviour would have
+ *      made this a five-page finding instead of a two-page one.
+ *
+ *   2. An inline redirect on ABSENCE — a `!token` test whose branch
+ *      navigates. `if (!res.ok)` does not qualify: that is the page
+ *      discovering it is unauthenticated by being REFUSED, which is the
+ *      late failure this sweep exists to prevent.
+ */
+
+/**
+ * Shape 1: the shared hook, AND the render gate it hands back.
+ *
+ * The hook navigates from an effect, so a page that calls it and ignores
+ * its `checked` flag still paints its content for a frame. The property
+ * is not "redirects eventually" — it is "does not render its content
+ * when no token is present", and `if (!checked) return null` is what
+ * delivers the second half.
+ *
+ * Asserting only the hook's name would have been this sweep repeating
+ * its own original mistake one level up: matching the presence of a
+ * mechanism rather than its effect. `/team` had both halves; two pages
+ * moved onto the hook in this ticket got both because of this check.
+ */
+function usesGuardHook(src: string): boolean {
+  return src.includes('useRequireAuth')
+      && /if\s*\(\s*!\s*checked\s*\)\s*return/.test(src);
+}
+
+/**
+ * Shape 2: a test for an ABSENT token whose branch leaves the page.
+ *
+ * Matched as a pair rather than as two independent facts — a file may
+ * legitimately contain both a `!token` check and an unrelated redirect,
+ * so the redirect must be inside the branch. The window is the branch's
+ * own text up to its close, NOT a character count (§14.1.1's cousin: a
+ * fixed window shrinks by whatever prose is added inside it).
+ */
+function redirectsWhenTokenAbsent(src: string): boolean {
+  const test = /if\s*\(\s*!\s*(?:\w*[Tt]oken|localStorage\.getItem\([^)]*token[^)]*\))\s*\)/gi;
+  let m: RegExpExecArray | null;
+  // eslint-disable-next-line no-cond-assign
+  while ((m = test.exec(src)) !== null) {
+    const after = src.slice(m.index, m.index + 400);
+    const branch = after.slice(0, after.indexOf('}') + 1 || after.length);
+    if (/router\.(push|replace)\(|redirect\(/.test(branch)) return true;
+  }
+  return false;
+}
 
 function collectPages(dir: string, route = ''): Array<{ route: string; file: string }> {
   const out: Array<{ route: string; file: string }> = [];
@@ -114,16 +185,19 @@ function isRedirectOnly(file: string): boolean {
   return !LEAK_SIGNS.some((sign) => src.includes(sign));
 }
 
+function guards(src: string): boolean {
+  return usesGuardHook(src) || redirectsWhenTokenAbsent(src);
+}
+
 function hasGuard(file: string): boolean {
-  const src = fs.readFileSync(file, 'utf8');
-  if (GUARD_MARKERS.some((m) => src.includes(m))) return true;
+  const src = codeOnly(fs.readFileSync(file, 'utf8'));
+  if (guards(src)) return true;
   // A layout guard covers its subtree (the admin section guards there).
   let dir = path.dirname(file);
   while (dir.startsWith(APP_DIR)) {
     const layout = path.join(dir, 'layout.tsx');
-    if (fs.existsSync(layout)) {
-      const layoutSrc = fs.readFileSync(layout, 'utf8');
-      if (GUARD_MARKERS.some((m) => layoutSrc.includes(m))) return true;
+    if (fs.existsSync(layout) && guards(codeOnly(fs.readFileSync(layout, 'utf8')))) {
+      return true;
     }
     dir = path.dirname(dir);
   }
