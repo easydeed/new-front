@@ -101,6 +101,13 @@ def officer_queue(user_id: int = Depends(get_current_user_id)) -> Dict[str, Any]
                 "who": req.get("notary_name"),
                 "days_waiting": days,
                 "stale": q.is_stale(days),
+                # GONE QUIET BY EVENT rather than by age. Every time she
+                # offered has passed with no answer, which is a stronger
+                # signal than five days of silence: a waiting request may
+                # yet be answered, and an offer that has run out cannot
+                # be. Kept separate from `stale` because the two need
+                # different sentences and different remedies.
+                "lapsed": state == loop.STATE_LAPSED,
                 # The server's sentence, verbatim — §13 rule 3. This
                 # screen does not compose its own account of a scheduling
                 # state any more than the other three do.
@@ -134,6 +141,13 @@ def officer_queue(user_id: int = Depends(get_current_user_id)) -> Dict[str, Any]
                        or row.get("recipient_email"),
                 "days_waiting": days,
                 "stale": q.is_stale(days),
+                # A REVIEW SHARE CANNOT LAPSE. Lapsing is about offered
+                # times running out and a share offers none — it carries
+                # an `expires_at`, and an expired share is already
+                # filtered out by the query above rather than reported as
+                # gone quiet. False rather than absent, because the row
+                # shape is asserted by equality.
+                "lapsed": False,
                 "summary": ("Opened, no answer yet" if row["status"] == "viewed"
                             else "Sent, not opened yet"),
             })

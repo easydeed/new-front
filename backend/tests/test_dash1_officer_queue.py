@@ -18,8 +18,10 @@ which she does once per file.
 
  2. THE ATTENTION NUMBER MEANS SOMETHING. If it counted every row it
     would mean "there are rows below", and she would stop reading it. It
-    counts stale unanswered requests: when it is zero, nobody is waiting
-    on her and nobody has gone quiet.
+    counts the requests that have GONE QUIET, in either of the two shapes
+    that has: stale by AGE (nobody has answered in STALE_AFTER_DAYS) and
+    lapsed by EVENT (every window she offered has passed unanswered).
+    When it is zero, nobody is waiting on her and nothing has run out.
 
  3. AN UNKNOWN AGE IS NOT URGENT. A row we cannot date must not be
     pushed into that count on the strength of a missing timestamp.
@@ -90,13 +92,14 @@ def test_an_unknown_age_is_never_stale():
     assert q.is_stale(q.STALE_AFTER_DAYS) is True
 
 
-def _awaiting(stale: bool, days=9):
+def _awaiting(stale: bool, days=9, lapsed=False):
     return {"kind": "review", "id": 1, "deed_id": 2, "property": "x",
             "who": "Nora", "days_waiting": days if stale else 1,
-            "stale": stale, "summary": "Sent, not opened yet"}
+            "stale": stale, "lapsed": lapsed,
+            "summary": "Sent, not opened yet"}
 
 
-def test_the_attention_count_is_stale_requests_and_nothing_else():
+def test_the_attention_count_is_gone_quiet_and_nothing_else():
     """Not "everything in the queue". A signing booked for Thursday needs
     nothing from her, and counting it would make the number mean "there
     are rows below" — at which point she stops reading it."""
@@ -511,3 +514,43 @@ def test_an_accuracy_block_without_the_population_is_refused():
         q.queue(upcoming=[], awaiting=[], idle_drafts=[],
                 accuracy={"fields": 0, "documents": 0, "items": []},
                 instruments=FILES_NOTHING)
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Gone quiet has two shapes
+# ══════════════════════════════════════════════════════════════════════
+
+def test_a_lapsed_request_needs_her_attention_however_young_it_is():
+    """OWNER-RULED, DASH-FIX #4.
+
+    The count was stale-only, so a request whose morning slot went by an
+    hour ago contributed nothing to the number an officer checks before
+    anything else — and could sit at zero-attention all day while being
+    the most stuck thing she owns.
+
+    A LAPSE IS STRONGER EVIDENCE THAN AN AGE, not weaker. Five days of
+    silence is a request that may yet be answered; an offer whose every
+    window has passed cannot be. Zero has to mean nothing needs her.
+    """
+    fresh_but_lapsed = _awaiting(False, days=0, lapsed=True)
+    payload = q.queue(upcoming=[], awaiting=[fresh_but_lapsed], idle_drafts=[],
+                      accuracy=NOTHING_OUTSTANDING, instruments=FILES_NOTHING)
+    assert payload["needs_attention"] == 1
+
+
+def test_stale_and_lapsed_stay_two_fields_rather_than_one_boolean():
+    """They are different kinds of gone-quiet and need different
+    sentences and different remedies: stale is BY AGE and answered by a
+    phone call, lapsed is BY EVENT and answered by offering new times.
+    One flag would leave the screen unable to say which happened."""
+    from services.officer_queue import AWAITING_KEYS
+    assert {"stale", "lapsed"} <= AWAITING_KEYS
+
+
+def test_one_request_that_is_both_is_counted_once():
+    """An old request whose windows have also passed is one row and one
+    problem, not two — the number counts requests, not reasons."""
+    both = _awaiting(True, days=30, lapsed=True)
+    payload = q.queue(upcoming=[], awaiting=[both], idle_drafts=[],
+                      accuracy=NOTHING_OUTSTANDING, instruments=FILES_NOTHING)
+    assert payload["needs_attention"] == 1
