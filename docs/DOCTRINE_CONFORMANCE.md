@@ -1306,6 +1306,55 @@ the problem.
 
 ---
 
+### §14.1.1 — A pin asserts the PROPERTY it guards, never the line that currently expresses it (2026-08-18)
+
+**Statement.** A pin that quotes an implementation verbatim breaks on
+every correct change to that implementation, and breaks **without saying
+whether the rule it was protecting still holds.** A pin that cannot
+distinguish "the rule is broken" from "the code was rewritten" is a pin
+that gets edited to match whatever the code now says — at which point it
+has become a TRANSCRIPT of the code rather than a CONSTRAINT on it.
+
+**The instance.** UX2 item 4 ruled that two numbers on the dashboard are
+deliberately different: the sidebar badge counts PRESENCE ("there are
+things here") and the attention number counts SILENCE ("these have gone
+quiet"). Collapsing them would make the badge alarming and the attention
+number decorative.
+
+A jest test guarded that ruling by reading `officer_queue.py` and
+asserting the literal:
+
+    "needs_attention": len([r for r in awaiting if r["stale"]])
+
+When a later ruling made the attention number count lapsed requests as
+well as stale ones, the pin went red — correctly reporting that the line
+had changed, and saying nothing whatever about whether the badge and the
+attention number were still two numbers. The ruling was intact; the
+transcript was stale.
+
+**The corrected form** asserts what UX2 item 4 actually decided: that the
+two counts are computed from DIFFERENT predicates. It is probed by
+collapsing them into `len(awaiting)` — the single thing the ruling
+forbids — which is a probe the literal version could not express, because
+"the line is different" was already its only failure.
+
+**Where this sits.** It is §14.1 (match the property, not the spelling)
+arriving in a pin that was ALREADY guarding a ruling — which is why it
+deserves its own entry rather than a footnote. §14.1's instances were
+sweeps whose authors reached for syntax when they meant semantics. This
+one is subtler and more likely to recur: the author knew exactly which
+ruling they were protecting, wrote it down in the docstring, and then
+asserted the current code instead of the rule. **Knowing the property is
+not the same as asserting it.**
+
+**The tell, usable during review:** ask what a correct, unrelated rewrite
+of the code under the pin would do to it. If the answer is "the pin goes
+red and somebody updates it to match", the pin is a transcript. A real
+constraint survives refactors of the thing it constrains, and dies only
+when the rule dies.
+
+---
+
 ### §14.2 — A control is checked before its result is believed (2026-08-13)
 
 **Statement.** Verification instruments fail in ways that look exactly
@@ -1363,6 +1412,7 @@ on.
 
 | Date | Change |
 |---|---|
+| 2026-08-18 | §14.1.1 added — a pin asserts the PROPERTY it guards, never the line that currently expresses it. A jest test held UX2 item 4 (the badge counts presence, the attention number counts silence, and they must not become one number) by quoting `officer_queue.py`'s literal `"needs_attention": len([r for r in awaiting if r["stale"]])`. When a later ruling made that number count lapsed requests too, the pin went red while the ruling it guarded was intact — reporting that a line had changed and saying nothing about whether the two counts were still two. A pin that cannot tell "the rule is broken" from "the code was rewritten" gets edited to match whatever the code now says, which makes it a transcript of the code rather than a constraint on it. This is §14.1 arriving in a pin that already knew which ruling it protected and named it in the docstring — knowing the property is not the same as asserting it. The tell, usable in review: ask what a correct unrelated rewrite would do to the pin; if the answer is "it goes red and somebody updates it", it is a transcript. Also: EXECUTION_POLICY's gate-selection table REPLACED rather than amended. Its premise — that a change's shape bounds which gates can fail — is false in this repo by design, because suites read the other language's source so that one decision is not made twice; a backend-only change is policed by the frontend suite on purpose. The rule is now to run both suites and the harnesses, four minutes together, which is cheaper than the reasoning required to skip one correctly — and that reasoning is not available anyway, since what bounds the blast radius is which files the suites READ, which the diff cannot tell you. Recorded with the meta-lesson: the first gate-selection error produced the table, the second happened with the table available and consulted, and the response to a judgement failure was a finer judgement aid when the correct response was removing the judgement. |
 | 2026-08-14 | §16 added — when a ruling's literal reading would remove something previously ruled, build the unambiguous half and flag the rest. Fired twice on its first day, both times where a new owner ruling brushed an earlier owner ruling: the empty-queue card (ruled "goes"; DASH1 had ruled it in for the returning officer as a RESULT rather than an absence) and the greeting (ruled "one line"; U3 had ruled the sentence under it in so the greeting states what the page IS). Both splits confirmed by the owner, both prior rulings kept. Recorded with the owner's reading of the frequency: accumulated doctrine gets dense enough that new rulings collide with old ones, so expect more of these rather than fewer. §14.3 added — one DECLARATION, not one screen. `TRIAL_DAYS` was a const in `app/page.tsx` commented "one number, stated once per side", true while the landing page was the only surface mentioning a trial and false the moment the day-one rail became a second; retyping 14 there would have made two claims on the frontend side while TRIAL1's mirror read one, and the mirror would have stayed green through exactly the divergence it exists to catch. Moved to `lib/trial.ts`, both surfaces import it, the mirror follows the declaration, and the gate now also refuses the length written as prose anywhere — narrowing a control to what it can currently read is how it becomes decorative. Same shape as `code_only()` and the DTT rate mirror: the error is not the duplication but a rule whose scope was stated in terms of the world at the time it was written. |
 | 2026-08-13 | §15 added (REQUIRED1) — the enforcement point is the endpoint that PRINTS, not the builder. Three definitions of "required" were live and the loosest was `POST /deeds`, which renders and stores the PDF: grantor, grantee and legal description, with no vesting statement and no transfer-tax declaration, while the browser gate demanded both and the partner API demanded both. The wizard's protection was a property of the CLIENT, not of the product — anything reaching that endpoint another way stored an instrument having skipped both legal decisions on an ordinary user token. Recorded with the corrected premise, since the ruling was made on the inverted one: the partner API is the strictest surface, not the loosest, so there was no versioning question and no integration to break. Also records the line the Thursday walkthrough drew: a legal decision is required before the product PRINTS, and requiring one before it SAVES would hurry a choice §1 forbids it to make — so `POST /deeds/draft` stays permissive and the walkthrough moved to it, which made the harness more faithful rather than more permissive. §14.2 added — a control is checked before its result is believed, from four instruments in one week that failed in ways indistinguishable from success: a probe that broke its fixture (the suite errored on malformed JSON while `grep -c FAILED` counted zero), a `git stash` no-op that made the "does main break too?" run test the branch under suspicion, a regex that counted nested keys as top-level and produced a 33-name exemption list that looked exactly like a considered decision, and a sweep asserting a mechanism is CALLED while three of its callers had never worked. |
 | 2026-08-13 | §14 and §14.1 added (VERIFY-CHECK, ROLE1 step 3). §14: a record of what we can do states what was EXECUTED, not what exists. Three sightings, all erring in the PERMISSIVE direction — `EMAIL_VERIFICATION_REQUIRED` was cited in the ledger as evidence that required verification was ready to switch on, and was defined in one file and read nowhere, so an operator could have set it on Render before a launch and had nothing change; the same entry described verification as "resend-only" when the resend endpoint had no caller and no button. The tsc baseline read 114 in the ledger while CI enforced 94. `role_census.py` and `company_name_consolidation.py` were both recorded as the count-first mechanism and neither had ever run successfully. A record that understates is found when somebody needs the thing; a record that overstates is found before a launch or during an incident. §14.1: an enforcement sweep matches the PROPERTY, not the spelling, because a list of syntax patterns is as wide as its author's imagination and fails SILENTLY — three sightings in three languages, most sharply a `job_title` gate sweep that walked past `user.get('job_title') == 'Administrator'` because a quote sat where the list expected a paren. Also recorded: `code_only()` strips comments and docstrings but NOT string contents, so a sweep for a word that also occurs in English belongs in the AST rather than in a better regex. |
