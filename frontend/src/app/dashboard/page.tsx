@@ -357,7 +357,14 @@ export default function Dashboard() {
           {/* THE MOCKUP'S ORDER, AND IT IS AN ARGUMENT: resume is the
               highest-frequency action in a preparation tool, so it sits
               above everything, with the remaining checks NAMED. */}
-          <div className="mb-6 grid gap-4 lg:grid-cols-[2fr,1fr]">
+          {/* ROUGH — `items-start`. Without it these two stretch to the
+              taller of them, so a short resume card is padded out to
+              match the catalog beside it. The audit reported this as a
+              "dead band under 2 of 3 done" and located it one row up, at
+              the checklist grid — which already carries `items-start`
+              and whose ~68px is ordinary card padding. An auditor sees a
+              symptom and places it approximately; this is where it is. */}
+          <div className="mb-6 grid gap-4 lg:grid-cols-[2fr,1fr] items-start">
             <ResumeCard
               target={resumeTarget}
               onResume={(id) => router.push(`/deed-builder/grant-deed?resume=${id}`)}
@@ -611,7 +618,15 @@ function ActionQueue({ queue, error, hasDeeds }: {
           </p>
         </div>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-3">
+        /* ROUGH — `items-start`, and it is one class for ~300px of
+           white. All three columns stretched to the tallest, so an empty
+           "Signing in the next 7 days" holding one sentence was padded
+           out to match a column holding five rows.
+
+           NOT hidden: DASH1 ruled the empty state is a RESULT, not an
+           absence, and the card still says its sentence. It just stops
+           taking a third of the row to say it. */
+        <div className="grid gap-4 lg:grid-cols-3 items-start">
           <QueueList
             title={`Signing in the next ${queue.thresholds.upcoming_days} days`}
             emptyNote="Nothing booked this week."
@@ -877,7 +892,19 @@ function DeedRow({ deed }: { deed: any }) {
   return (
     // X2.7: drafts read as "needs action" at a glance — amber edge + a
     // labeled Continue button, not an unexplained arrow.
-    <div className={`p-4 hover:bg-gray-50 transition-colors flex items-center justify-between gap-4 ${
+    /* ROUGH — THE ROW STACKS BELOW `sm`, and stacking is the only
+       remedy that exists. The right-hand cluster is `flex-shrink-0` and
+       every item in it is already at its minimum, so there is nothing
+       to shrink: at 390px the title and parties line was left roughly
+       60px of the ~240px it needs, which truncates "Grant Deed - 1358
+       5th St" to about four characters.
+
+       NOTARYPHONE1's principle decides the priority. The officer is at a
+       desk most of the time and on a phone at a client's table or
+       between appointments — and the surfaces nobody complains about are
+       the ones that break. A row truncated to four characters is not
+       degraded, it is unusable. */
+    <div className={`p-4 hover:bg-gray-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 ${
       needsAction ? 'border-l-4 border-amber-400' : ''
     }`}>
       {/* DASH1: THE ROW LINKS TO THE DEED. A feed of things she has
@@ -906,7 +933,7 @@ function DeedRow({ deed }: { deed: any }) {
         </div>
       </button>
 
-      <div className="flex items-center gap-3 flex-shrink-0">
+      <div className="flex items-center gap-3 flex-shrink-0 pl-14 sm:pl-0">
         {/* DASH-FIX #3 — this rendered `{deed.status}` RAW, so the badge
             showed the database's own token and a generated document read
             "completed" while its signing sat unanswered in the queue

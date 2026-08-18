@@ -8,7 +8,7 @@
 // server-side, and the builder route is /deed-builder.
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ShieldCheck, MapPin, ArrowRight, Sparkles } from "lucide-react"
@@ -17,6 +17,7 @@ import { ShieldCheck, MapPin, ArrowRight, Sparkles } from "lucide-react"
 // this was a local 58-element array until account-settings grew the
 // second picker (DASH-FIX #1). One declaration, not one screen.
 import { CA_COUNTY_NAMES } from "@/lib/jurisdictions"
+import { saveProfile } from "@/lib/profileSave"
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -29,6 +30,36 @@ export default function OnboardingPage() {
   const [error, setError] = useState("")
 
   /**
+   * ═══ THE ROUTE GUARD THIS PAGE NEVER HAD ═══
+   *
+   * Found by the HX0 sweep going red during an unrelated refactor, and
+   * the way it was found is the finding.
+   *
+   * `routeGuards.test.ts` detects a guard by looking for one of four
+   * strings in the file, one of which is
+   * `localStorage.getItem("access_token")`. This page contained that
+   * string — INSIDE the save function, reading a token to send it — and
+   * so counted as guarded for as long as the save was written inline.
+   * Moving the save into `lib/profileSave.ts` took the string with it
+   * and the sweep immediately said what had always been true: there was
+   * no guard here at all.
+   *
+   * A logged-out visitor could open the first screen a new customer
+   * sees, choose a county, press Finish, and learn only then that
+   * nothing had been saved — because the API refused a bearer token
+   * reading `null`. Not a data exposure; the server was never fooled.
+   * A late, confusing failure on the page least able to afford one.
+   *
+   * §14.1.1's silent half, in a security sweep: a pin matching a string
+   * rather than the property CERTIFIED the gap it was meant to close.
+   */
+  useEffect(() => {
+    if (!localStorage.getItem("access_token")) {
+      router.push("/login?redirect=/onboarding")
+    }
+  }, [router])
+
+  /**
    * SETTINGS1 — RETRY, because the first thing anybody does in this
    * product is the thing we least want to lose.
    *
@@ -39,37 +70,11 @@ export default function OnboardingPage() {
    * Retrying is asking again, not deciding: a failure that survives both
    * attempts is REPORTED, never swallowed.
    */
-  const saveProfile = async (body: { default_county?: string; onboarding_completed: boolean }) => {
-    let lastError: Error | null = null
-    for (const wait of [0, 1200]) {
-      if (wait) await new Promise((r) => setTimeout(r, wait))
-      try {
-        return await saveProfileOnce(body)
-      } catch (err) {
-        lastError = err instanceof Error ? err : new Error("Save failed")
-      }
-    }
-    throw lastError
-  }
-
-  const saveProfileOnce = async (body: { default_county?: string; onboarding_completed: boolean }) => {
-    const token = localStorage.getItem("access_token")
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"}/users/profile`,
-      {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      }
-    )
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}))
-      throw new Error(data.detail || `Save failed (${response.status})`)
-    }
-  }
+  /* The retry that used to live here moved to `lib/profileSave.ts`.
+     It was written for this page and account-settings never got it —
+     same endpoint, same payload, one tolerant of a sleeping server and
+     the other not, neither knowing the other existed. §14.3: one
+     declaration, not one screen. */
 
   const handleComplete = async (destination: string) => {
     setLoading(true)

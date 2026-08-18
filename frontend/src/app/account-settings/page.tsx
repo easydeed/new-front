@@ -7,6 +7,7 @@ import { User, CreditCard, Bell, Lock, Check, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { TIERS, priceLabel } from "@/lib/pricing"
 import { CA_COUNTY_NAMES } from "@/lib/jurisdictions"
+import { saveProfile } from "@/lib/profileSave"
 import EmailVerificationNotice from "@/features/account/EmailVerificationNotice"
 
 type Tab = "profile" | "billing" | "notifications" | "security"
@@ -433,20 +434,15 @@ function ProfileTab({ userProfile, onSaved }: {
     setSaving(true)
     setError(null)
     try {
-      const api = process.env.NEXT_PUBLIC_API_URL || "https://deedpro-main-api.onrender.com"
-      const token = localStorage.getItem("access_token")
-      const response = await fetch(`${api}/users/profile`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      })
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}))
-        throw new Error(data.detail || `Save failed (${response.status})`)
-      }
+      /* DASH-FIX bug report: "I tried to set county and it said failed
+         to fetch." This was a bare `fetch` whose `TypeError` message —
+         the browser's own "Failed to fetch" — went straight into the
+         error box and the toast. Onboarding had a two-attempt retry for
+         exactly this and this page had none, and DASH-FIX #1 then
+         pointed a FIRST-RUN action here, at the population most likely
+         to meet a sleeping server. One save path now, with the
+         tolerance, and a sentence somebody wrote. */
+      await saveProfile(formData)
       // Re-read rather than trusting what we sent: the server normalises
       // whitespace and upper-cases the state, so what she sees after
       // saving is what is stored, not what she typed.

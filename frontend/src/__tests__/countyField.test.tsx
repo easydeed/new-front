@@ -120,7 +120,13 @@ describe('account settings', () => {
   });
 
   it('sends the whole form to the endpoint that already accepted county', () => {
-    expect(read(SETTINGS)).toContain('JSON.stringify(formData)');
+    /* Asserted as "the whole form reaches the save", not as the literal
+       `JSON.stringify(formData)` — that string moved into
+       `lib/profileSave.ts` when the two save paths converged, and a pin
+       quoting it went red on a change that fixed a bug (§14.1.1). */
+    expect(read(SETTINGS)).toContain('saveProfile(formData)');
+    expect(codeOnly(readFileSync(join(SRC, 'lib', 'profileSave.ts'), 'utf8')))
+      .toContain('JSON.stringify(patch)');
   });
 });
 
