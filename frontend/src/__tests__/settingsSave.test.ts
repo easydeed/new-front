@@ -39,14 +39,23 @@ import { codeOnly } from '../test-support/sourceText';
 const SRC = path.join(__dirname, '..');
 const read = (...p: string[]) => codeOnly(fs.readFileSync(path.join(SRC, ...p), 'utf8'));
 const SETTINGS = read('app', 'account-settings', 'page.tsx');
+const SAVE_MODULE = codeOnly(
+  fs.readFileSync(path.join(SRC, 'lib', 'profileSave.ts'), 'utf8'));
 const ONBOARDING = read('app', 'onboarding', 'page.tsx');
 
 describe('Save Changes issues a request', () => {
   it('actually calls the profile endpoint', () => {
-    // The whole ticket. A button that reports an outcome it never
-    // requested is the defect; this is its absence.
-    expect(SETTINGS).toContain('method: "PATCH"');
-    expect(SETTINGS).toContain('/users/profile');
+    /* The whole ticket. A button that reports an outcome it never
+       requested is the defect; this is its absence.
+
+       ASSERTED AGAINST THE MODULE, not against this page. The request
+       moved to `lib/profileSave.ts` when onboarding and settings stopped
+       having two of it — pinning `method: "PATCH"` HERE was pinning
+       where the code lives rather than that the button issues a request,
+       and it went red on a refactor that fixed a bug (§14.1.1). */
+    expect(SETTINGS).toContain('saveProfile(formData)');
+    expect(SAVE_MODULE).toContain("method: 'PATCH'");
+    expect(SAVE_MODULE).toContain('/users/profile');
   });
 
   it('never announces success before the response', () => {
@@ -57,18 +66,19 @@ describe('Save Changes issues a request', () => {
      */
     const handler = SETTINGS.slice(SETTINGS.indexOf('const handleSave'));
     const body = handler.slice(0, handler.indexOf('const field'));
-    const fetchAt = body.indexOf('await fetch');
-    const okCheck = body.indexOf('!response.ok');
+    const saveAt = body.indexOf('await saveProfile');
     const success = body.indexOf('toast.success');
-    expect(fetchAt).toBeGreaterThan(-1);
-    expect(okCheck).toBeGreaterThan(fetchAt);
-    expect(success).toBeGreaterThan(okCheck);
+    expect(saveAt).toBeGreaterThan(-1);
+    expect(success).toBeGreaterThan(saveAt);
+    // And the module throws rather than returning a verdict the caller
+    // could ignore — which is what makes the ordering above sufficient.
+    expect(SAVE_MODULE).toContain('throw new ProfileSaveError');
   });
 
   it('a failed save is visible, and says why', () => {
     // §4: the reason travels. "Something went wrong" sends her to
     // support with nothing; the server's detail sends her to the cause.
-    expect(SETTINGS).toContain('data.detail');
+    expect(SAVE_MODULE).toContain('detail');
     expect(SETTINGS).toContain('toast.error');
     expect(SETTINGS).toContain('setError(message)');
   });
@@ -125,8 +135,12 @@ describe('skipping onboarding may leave, but may not lie', () => {
   it('retries before giving up', () => {
     // The first action anybody takes in the product, against a service
     // that cold-starts. One attempt is a coin flip.
-    expect(ONBOARDING).toContain('saveProfileOnce');
-    expect(ONBOARDING).toMatch(/for \(const wait of \[0, \d+\]\)/);
+    /* The retry moved to `lib/profileSave.ts` so that settings got it
+       too — it had none, and DASH-FIX #1 then pointed a first-run
+       action at that page. Pinned where it lives, and its BEHAVIOUR is
+       pinned in `profileSave.test.ts` against the function itself. */
+    expect(ONBOARDING).toContain('saveProfile(');
+    expect(SAVE_MODULE).toMatch(/const WAITS = \[0, \d+\]/);
   });
 
   it('tells her when the skip was not recorded', () => {
