@@ -21,9 +21,19 @@ the decision is made from the live answer every time.
 """
 from __future__ import annotations
 
+import os
 from datetime import date
 
 import pytest
+
+#: The suite runs in TWO jobs: one with a Postgres service and one
+#: without. The convention every DB-backed test here follows is to skip
+#: rather than fail when there is no database — the no-Postgres job is a
+#: real gate for everything else, and a test that cannot run must not
+#: turn it red. Caught by CI, which is where it should have been caught,
+#: but it should have been written this way.
+needs_db = pytest.mark.skipif(not os.getenv("DATABASE_URL"),
+                              reason="live test DB required")
 
 from services import renewal_notice as rn
 
@@ -338,6 +348,7 @@ class Recorder:
         return self.ok, self.reason
 
 
+@needs_db
 def test_the_run_sends_once_and_records_what_it_sent():
     conn = _db()
     try:
@@ -379,6 +390,7 @@ def test_the_run_sends_once_and_records_what_it_sent():
         conn.close()
 
 
+@needs_db
 def test_what_stripe_said_is_recorded_but_never_consulted():
     """THE DISCIPLINE, PINNED.
 
@@ -408,6 +420,7 @@ def test_what_stripe_said_is_recorded_but_never_consulted():
         conn.close()
 
 
+@needs_db
 def test_a_failed_send_is_recorded_with_its_reason_and_fails_the_run():
     """§4. The row exists either way; what must not happen is a run that
     looks successful while nobody was told."""
@@ -434,6 +447,7 @@ def test_a_failed_send_is_recorded_with_its_reason_and_fails_the_run():
         conn.close()
 
 
+@needs_db
 def test_a_superseded_notice_is_recorded_rather_than_dropped():
     """"Why did the 15-day notice never go out" has an answer in the
     table, rather than being a gap somebody has to infer."""
@@ -464,6 +478,7 @@ def test_a_superseded_notice_is_recorded_rather_than_dropped():
         conn.close()
 
 
+@needs_db
 def test_a_cancelled_subscription_is_not_asked_about():
     conn = _db()
     try:
