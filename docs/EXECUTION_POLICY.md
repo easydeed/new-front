@@ -194,18 +194,50 @@ one is useful, and the difference is four values Postgres gives away.
   against this page would have believed they had twenty errors of
   headroom they did not have.
 
-## Which gates to run is decided by the SHAPE of the change (2026-08-13)
+## Run every gate. Which one will find it first is guidance, not permission (2026-08-13, replaced 2026-08-18)
 
-**Owner-ruled, from a failure.** REQUIRED1 tightened a write endpoint. I
-ran pytest, tsc, jest and banned-claims — and not the proof harnesses —
-then reported green. CI failed on `proof-harnesses`, and the harness was
-right: the tightened endpoint refused an officer's partial work in the
-Thursday walkthrough.
+**Owner-ruled, from two failures — and the second one happened despite
+the fix for the first.**
 
-**The generalisation, which is the useful part: the gates most likely to
-break are knowable in advance from the shape of the change.**
+FAILURE ONE. REQUIRED1 tightened a write endpoint. I ran pytest, tsc,
+jest and banned-claims — and not the proof harnesses — then reported
+green. CI failed on `proof-harnesses`, and the harness was right: the
+tightened endpoint refused an officer's partial work in the Thursday
+walkthrough.
 
-| the change | the gate that will find it first |
+The fix was the table below, as a **decision aid for which gates to
+skip.** It encoded a premise: that a change's shape bounds which gates
+can fail.
+
+FAILURE TWO. DASH-FIX #4's follow-on changed one expression in
+`officer_queue.py`. Backend-only, so pytest, the harnesses and
+banned-claims were run and jest was not. CI failed on `frontend-tests`.
+
+**The premise was false, and false BY DESIGN.** This repo's
+cross-language discipline works by suites reading the OTHER language's
+source — `ux2Items.test.ts` reads `officer_queue.py` precisely so that
+"the badge counts presence, the attention number counts silence" is one
+decision rather than two. A backend-only change is therefore policed by
+the frontend suite *on purpose*, and a rule saying otherwise is arguing
+with the architecture.
+
+**So the rule is now: RUN BOTH SUITES AND THE HARNESSES. They are about
+four minutes together, which is cheaper than the reasoning required to
+skip one correctly.**
+
+And the reasoning is not merely expensive — it is not available. What
+bounds which gates can fail is **which files the suites READ**, and that
+is not knowable from the diff. A change to a Python expression cannot
+tell you that a TypeScript test is holding a ruling about it.
+
+### The table survives, stripped of its permission
+
+It was always better as a diagnostic than as a licence. Read it as *this
+is the gate most likely to catch this change's defect, so look there
+first when something is red* — never as *these are the gates that can
+be red.*
+
+| the change | the gate most likely to find its defect |
 |---|---|
 | tightening or loosening a write endpoint | the end-to-end harnesses (six-flow, Thursday, API baseline) — unit tests hold fixtures the endpoint no longer accepts |
 | a page's markup, state or conditional rendering | `next build`, then a render test — jest and tsc both stay green while the deploy dies |
@@ -213,11 +245,23 @@ break are knowable in advance from the shape of the change.**
 | a schema or persistence shape | the resume/round-trip pins, then the harnesses |
 | a refusal or a guard | a mutation probe, because a guard that never fires is invisible to every other check |
 
-Running four of six and reporting green is the failure to avoid, and it
-is worse than skipping arbitrary gates: **the skipped ones were the two
-most likely to break.** This does not replace running everything before a
-PR — it decides what to run FIRST, and what a "quick check" may never
-omit.
+### Why this replaces the table rather than amending it
+
+Worth recording plainly, because the shape recurs: **the response to a
+judgement failure was a finer judgement aid, when the correct response
+was removing the judgement.**
+
+The first error was a person deciding which gates could be skipped and
+deciding wrong. The remedy shipped was a better basis for that same
+decision — which left the decision in place, and the second error was
+made with the table available and consulted. An aid that makes a
+judgement more accurate still fails at the rate the judgement fails.
+Deleting the judgement does not.
+
+The same test applies to any future rule of this kind: *does it make a
+call easier to get right, or does it remove the call?* Prefer the second
+whenever the call is cheap to eliminate — and four minutes of CPU is
+cheap.
 
 ## Dead code and revived code
 
