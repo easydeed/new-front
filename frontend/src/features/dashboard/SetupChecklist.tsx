@@ -1,204 +1,315 @@
 /**
- * Finish setting up — the only content that can be true on day one.
+ * Finish setting up — one step at a time.
  *
- * ═══ WHY A CHECKLIST AND NOT A WELCOME CARD ═══
+ * ═══ THE DIAGNOSIS, WHICH IS SHARPER THAN THE REQUEST ═══
  *
- * From `docs/design/dashboard_day_one.html`, whose argument is that
- * every item here is derived from state the product already holds:
- * `default_county` is null, `company_name` is blank, the deed count is
- * zero. A welcome banner cannot notice any of that. This can, and each
- * item is something the DEED needs rather than profile decoration.
+ * The question asked was "is this cognitive overload, can we colour it
+ * up". The answer this was rebuilt on: the problem is not QUANTITY, it
+ * is that nothing tells the eye what to read first — four steps expanded
+ * at once, three competing calls to action, and a right-hand column
+ * restating the left in different words. The fix is not more colour. It
+ * is colour that means something, and one thing to do next.
  *
- * ═══ THE MOCKUP'S THREE STEPS, TWO OF THEM REWRITTEN ═══
+ * `docs/design/dashboard-soften/` is the reference implementation this
+ * was built against, committed whole so the next reader sees what was
+ * proposed as well as what was adopted.
  *
- * STEP 1 was drawn as "Confirm your recording county", with a red
- * "Didn't save" pill, copy reading "You picked Los Angeles County during
- * setup, but it never reached us", and a Retry button.
+ * ═══ THE ACCORDION INVARIANT, ENFORCED STRUCTURALLY ═══
  *
- * Cut, owner-ruled, and the reason is that the sentence asserts
- * something we cannot know. If the save never reached us there is no
- * record of Los Angeles to name — the mockup's own annotation says the
- * items derive from `default_county` being null, and null yields "not
- * set", not "you picked LA". SETTINGS1 also closed that silent failure
- * at its source: a failed submit keeps her on the onboarding page with
- * the error, and a skip tells her plainly. What is left is the honest
- * state — she has no default county — and that is what this says.
+ * Exactly one step is expanded: the first incomplete one. That is not a
+ * convention this component follows, it is a value `activeStep()`
+ * DERIVES from state — there is no prop that could open a second, and no
+ * arrangement of state that yields two. Same instinct as the officer
+ * queue asserting its key set rather than trusting its callers.
  *
- * STEP 2 was drawn as "Add {company} as a partner", with copy saying the
- * RECORDING REQUESTED BY box "comes out blank and the county will
- * reject the document".
+ * ═══ THE COPY IS DEFERRED, NOT DELETED ═══
  *
- * Three corrections, all owner-ruled. It targets her COMPANY NAME, not a
- * partner: `requestedByDefault.ts` already falls back to a synthetic
- * own-company option built from `users.company_name`, and adding herself
- * to the rolodex is ruled against there — "a partner is a counterparty,
- * and the rolodex is not a place to file yourself". The real gap is the
- * narrower one where `company_name` is blank, which is a real
- * population because the field is optional at registration. And the
- * county-rejection line is cut under §1: it is a legal assertion about
- * what a recorder will do, printed in our own UI.
+ * Every step still carries its `why`. It renders only on that step's
+ * turn, so the card holds ~18 words instead of ~90 and the reasoning is
+ * all still there, arriving when it is the thing she is doing.
  *
- * ═══ NO PILLS, AND THAT IS A RULING RATHER THAN A DEFAULT ═══
+ * ═══ THE COLOUR RULE, IN OUR VOCABULARY ═══
  *
- * The mockup gives each step a status pill — "Didn't save", "Blocks
- * recording". Both steps here are "not set" states with nothing having
- * failed, and a pill implies a status CHANGE occurred. It follows from
- * cutting the rejection claim: we do not tell her something is blocked
- * or broken when nothing is blocked or broken. A step is either not done
- * yet or done. If a real failure state ever exists — a save that
- * actually errored — that earns a pill and its own copy at that point.
+ * The reference set proposed four jobs with stated budgets, which is
+ * right, and assigned amber to "a real problem the user must fix —
+ * rejected recording, failed signature". Both halves of that are wrong
+ * here and BRAND.md already says why.
  *
- * What survives from the mockup is the rule UNDER the pills: status is
- * never carried by colour alone. A finished step is marked with a glyph
- * AND the word "Done", and the meter states the count in words.
+ * AMBER IS RESERVED for unconfirmed external data — "a machine suggested
+ * this; a human has not yet said yes". Nothing on this card is
+ * county-sourced, so amber never appears on it. BRAND.md's admin section
+ * states the general form: "Absence is neutral gray, not amber: that is
+ * a fact about our instrumentation, not a warning about data." That IS
+ * the reference set's own "Empty ≠ error", written down before it.
+ *
+ * FAILURE IS RED, not amber — so the row was carrying two meanings and
+ * splits into two. And its examples go rather than being translated:
+ * rejected recording and failed signature are recording-lifecycle states
+ * this product does not have.
+ *
+ * VIOLET was the correction nobody had flagged. It is doctrinal too —
+ * "proposed legal choice; the system proposes, only the officer's
+ * explicit acceptance records it" — and the reference set leans on it
+ * harder than on amber, making it the one-CTA colour. BRAND.md resolves
+ * it one surface over, in the admin-console section: where there are no
+ * officer decisions, violet's meaning "has nothing to attach to and
+ * purple is simply the accent there". A company name is not a vesting
+ * proposal, so violet is the accent here too.
+ *
+ * NET: this card uses NO DOCTRINAL COLOUR AT ALL. Violet as accent,
+ * green for done, grey for everything else — including every empty
+ * field. That is tighter than the four-job rule it came from, and it
+ * falls out of our own doctrine rather than being imposed on it.
  */
 'use client';
 
+export type SetupStepId = 'company' | 'address' | 'county' | 'first-deed';
+
 export interface SetupState {
-  /** `user_profiles.default_county`, or null when she has not set one. */
-  county?: string | null;
-  /** `users.company_name` — optional at registration, hence this step. */
+  /** `users.company_name` — optional at registration, hence step one. */
   companyName?: string | null;
+  /** `user_profiles.business_address`. */
+  businessAddress?: string | null;
+  /** `user_profiles.default_county`. */
+  county?: string | null;
   /** Every deed she has, deleted ones excluded. */
   deedCount: number;
-  /** `user_profiles.business_address` — see the fourth step. */
-  businessAddress?: string | null;
 }
 
 export interface SetupStep {
-  id: 'county' | 'company' | 'address' | 'first-deed';
+  id: SetupStepId;
+  /** Shown when the step is collapsed — done or still to come. */
   title: string;
-  detail: string;
-  action: string;
+  /** Shown while the step is the active one. */
+  activeTitle: string;
+  /** Why it matters, IN DEED TERMS. Rendered only on this step's turn. */
+  why: string;
+  cta: string;
+  href: string;
   done: boolean;
+  /** The value she supplied, echoed back on a completed row. */
+  value?: string;
 }
 
 const blank = (v?: string | null) => !((v || '').trim());
+const trim = (v?: string | null) => (v || '').trim() || undefined;
 
 /**
- * The three steps and whether each is finished — exported because the
- * page needs the count for its own line and must not recompute it.
- * §13 rule 3: one place turns state into English.
+ * The four steps, IN THE ORDER THE DEED HEADER PRINTS THEM.
+ *
+ * ═══ AND THAT ORDER IS A DECISION, OWNER-RULED ═══
+ *
+ * Three orders were on the table. What shipped in #207 led with the
+ * county. The reference set led with the company name. This leads with
+ * company → address → county, which is neither, and the reason is the
+ * card beside it.
+ *
+ * `DeedHeaderPreview` shows the block that prints at the top of every
+ * deed, and its lines are in PRINT order: RECORDING REQUESTED BY, AND
+ * WHEN RECORDED MAIL TO, COUNTY. Matching the steps to that order makes
+ * the preview fill strictly TOP-DOWN as she works, which is the reward
+ * loop the whole redesign rests on.
+ *
+ * The reference set's own copy convicts the alternative: under its
+ * order, its COUNTY line reads "fills in at step 2" while sitting third.
+ * A design admitting its sequence does not match its own picture.
+ *
+ * Consistency with onboarding's county-first prompt is worth less than
+ * this: she passes through onboarding once, and watches this card
+ * assemble every time she comes back.
  */
 export function setupSteps(state: SetupState): SetupStep[] {
   return [
     {
-      id: 'county',
-      title: 'Set your recording county',
-      detail: 'The county you record in most often. It becomes the default on '
-            + 'every new deed, and you can change it on any one of them.',
-      action: 'Set county',
-      done: !blank(state.county),
-    },
-    {
       id: 'company',
-      title: 'Add your company name',
-      detail: 'This is the name that prints in RECORDING REQUESTED BY at the top '
-            + 'of the deed. Without it that box starts empty and you fill it in '
-            + 'by hand each time.',
-      action: 'Add company',
+      title: 'Company name',
+      activeTitle: 'Add your company name',
+      why: 'Prints on the RECORDING REQUESTED BY line at the top of every deed.',
+      cta: 'Add company name',
+      href: '/account-settings',
       done: !blank(state.companyName),
+      value: trim(state.companyName),
     },
     {
-      // ═══ THE FOURTH STEP, ADDED AFTER AN AUDIT ═══
-      //
-      // The checklist counted itself complete at 2 of 3 while
-      // `business_address` was empty — and the rail beside it was
-      // rendering a dashed placeholder in AND WHEN RECORDED MAIL TO,
-      // which is a box that PRINTS on the instrument. The screen was
-      // showing her a gap and not counting it.
-      //
-      // It qualifies on this list's own stated test: every step is
-      // something the deed itself needs. The return address is on the
-      // face of the document, which is a stronger claim to a place here
-      // than the county default has.
       id: 'address',
-      title: 'Add your business address',
-      detail: 'This prints under AND WHEN RECORDED MAIL TO, directly below your '
-            + 'company name. It is where the recorder sends the document back.',
-      action: 'Add address',
+      title: 'Business address',
+      activeTitle: 'Add your business address',
+      why: 'Where the recorder mails the document back after it records.',
+      cta: 'Add address',
+      href: '/account-settings',
       done: !blank(state.businessAddress),
+      value: trim(state.businessAddress),
+    },
+    {
+      id: 'county',
+      title: 'Recording county',
+      activeTitle: 'Set your recording county',
+      why: 'Becomes the default on every new deed. You can change it on any single one.',
+      cta: 'Set county',
+      href: '/account-settings',
+      done: !blank(state.county),
+      value: trim(state.county),
     },
     {
       id: 'first-deed',
       title: 'Make your first deed',
-      detail: 'Start from an address. The APN, legal description and current owner '
-            + 'come back from county records — you confirm every value before it '
-            + 'prints.',
-      action: 'Start',
+      activeTitle: 'Make your first deed',
+      why: 'Start from an address — the APN, legal description and current owner '
+         + 'come back from county records, and you confirm every value before it prints.',
+      cta: 'Start a deed',
+      href: '/deed-builder',
       done: state.deedCount > 0,
     },
   ];
 }
 
+/**
+ * The first incomplete step, or null once there is nothing left.
+ *
+ * THE INVARIANT LIVES HERE. Every render asks this one function which
+ * step is open, so "exactly one is expanded" is a property of the data
+ * rather than a rule the JSX remembers to follow.
+ */
+export function activeStep(state: SetupState): SetupStep | null {
+  return setupSteps(state).find((s) => !s.done) ?? null;
+}
+
+export function completedCount(state: SetupState): number {
+  return setupSteps(state).filter((s) => s.done).length;
+}
+
 export default function SetupChecklist({ state, onAct }: {
   state: SetupState;
-  onAct?: (id: SetupStep['id']) => void;
+  onAct?: (id: SetupStepId, href: string) => void;
 }) {
   const steps = setupSteps(state);
-  const done = steps.filter((s) => s.done).length;
+  const active = activeStep(state);
+  const done = completedCount(state);
 
-  // Nothing left to set up: the card goes. A checklist with every box
-  // ticked is the guaranteed-empty module this ticket's predecessor
-  // removed three of.
-  if (done === steps.length) return null;
+  // Nothing left to set up: the card GOES. It does not linger as an
+  // all-green trophy — a checklist with every box ticked is the
+  // guaranteed-empty module whose siblings were removed in #206.
+  if (!active) return null;
 
   return (
     <section aria-labelledby="setup-heading"
              className="rounded-2xl border border-gray-200 bg-white p-5 md:p-6">
-      <h2 id="setup-heading" className="text-lg font-bold text-gray-900">
-        Finish setting up
-      </h2>
-      <p className="mt-1 text-sm text-gray-500">
-        Each step below is something the deed itself needs. None of it is
-        profile decoration.
-      </p>
+      <div className="flex items-center gap-3">
+        <h2 id="setup-heading" className="text-lg font-bold text-gray-900">
+          Finish setting up
+        </h2>
+        {/* PROGRESS AT THE TOP. It was 12px grey at the bottom of the
+            card, which put the reward where nobody looks. */}
+        <div className="ml-auto flex items-center gap-2">
+          <div role="progressbar" aria-valuenow={done} aria-valuemin={0}
+               aria-valuemax={steps.length}
+               aria-label={`${done} of ${steps.length} steps done`}
+               className="h-1.5 w-24 overflow-hidden rounded-full bg-gray-100">
+            <div className="h-full rounded-full bg-emerald-500 transition-all
+                            motion-reduce:transition-none"
+                 style={{ width: `${(done / steps.length) * 100}%` }} />
+          </div>
+          <span className="text-xs font-bold tabular-nums text-gray-500"
+                data-testid="setup-progress">
+            {done} of {steps.length}
+          </span>
+        </div>
+      </div>
 
-      <ol className="mt-5 space-y-4">
-        {steps.map((step, i) => (
-          <li key={step.id} className="flex items-start gap-3">
-            {/* STATUS IS NEVER COLOUR ALONE (the mockup's rule, kept).
-                A finished step carries a glyph and the word; an
-                unfinished one carries its position. Both survive
-                greyscale, forced-colors and a screen reader. */}
-            <span aria-hidden="true"
-                  className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center
-                              rounded-full text-xs font-bold ${
-                    step.done ? 'bg-emerald-100 text-emerald-700'
-                              : 'bg-gray-100 text-gray-600'}`}>
-              {step.done ? '✓' : i + 1}
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="font-medium text-gray-900">
-                {step.title}
-                {step.done && (
-                  <span className="ml-2 text-xs font-semibold text-emerald-700">
-                    Done
-                  </span>
-                )}
-              </div>
-              {!step.done && (
-                <p className="mt-0.5 text-sm text-gray-500">{step.detail}</p>
-              )}
-            </div>
-            {!step.done && (
-              <button
-                type="button"
-                onClick={() => onAct?.(step.id)}
-                className="shrink-0 rounded-lg border border-gray-200 px-3 py-1.5
-                           text-sm font-semibold text-gray-800 hover:bg-gray-50"
-              >
-                {step.action}
-              </button>
-            )}
-          </li>
-        ))}
+      <ol className="mt-4 space-y-2">
+        {steps.map((step, i) => {
+          if (step.done) return <DoneRow key={step.id} step={step} />;
+          if (step.id === active.id) {
+            return <ActiveRow key={step.id} step={step} index={i + 1} onAct={onAct} />;
+          }
+          return <PendingRow key={step.id} step={step} index={i + 1} />;
+        })}
       </ol>
 
-      <p className="mt-5 text-sm font-semibold text-gray-700"
-         data-testid="setup-progress">
-        {done} of {steps.length} done
+      {/* The reassurance line, demoted to a footnote. At the top it
+          competed with the steps for the eye it was meant to settle. */}
+      <p className="mt-4 border-t border-gray-100 pt-3 text-xs text-gray-500">
+        Every step here is something the deed itself prints — none of it is
+        profile decoration.
       </p>
     </section>
+  );
+}
+
+function DoneRow({ step }: { step: SetupStep }) {
+  return (
+    <li className="flex items-center gap-3 rounded-xl px-3.5 py-3 opacity-70">
+      <span aria-hidden
+            className="flex h-[23px] w-[23px] shrink-0 items-center justify-center
+                       rounded-full border border-emerald-200 bg-emerald-50
+                       text-[11px] font-bold text-emerald-600">
+        ✓
+      </span>
+      <span className="flex-1 text-sm font-medium text-gray-700">
+        {step.title}
+        {/* Status never rides on colour alone — the rule that outlived
+            the pill design it was written for (#207). */}
+        <span className="sr-only"> — done</span>
+      </span>
+      {step.value && (
+        <span className="max-w-[45%] truncate rounded-full bg-emerald-50 px-2 py-0.5
+                         text-[11.5px] font-semibold text-emerald-600">
+          {step.value}
+        </span>
+      )}
+    </li>
+  );
+}
+
+function ActiveRow({ step, index, onAct }: {
+  step: SetupStep; index: number;
+  onAct?: (id: SetupStepId, href: string) => void;
+}) {
+  return (
+    <li aria-current="step"
+        className="flex items-start gap-3 rounded-xl border border-[#E4DDFF]
+                   bg-[var(--color-brand-light)] p-4">
+      <span aria-hidden
+            className="mt-0.5 flex h-[23px] w-[23px] shrink-0 items-center justify-center
+                       rounded-full bg-[var(--color-brand)] text-[11.5px] font-bold text-white">
+        {index}
+      </span>
+      <div className="min-w-0 flex-1">
+        <h3 className="text-[15.5px] font-semibold text-gray-900">{step.activeTitle}</h3>
+        {/* THE ONLY BODY COPY ON THE CARD. */}
+        <p className="mt-1 max-w-[52ch] text-[13px] leading-relaxed text-[#4B3B7A]">
+          {step.why}
+        </p>
+        <button
+          type="button"
+          onClick={() => onAct?.(step.id, step.href)}
+          className="mt-3 inline-flex items-center rounded-lg bg-[var(--color-brand)]
+                     px-3.5 py-2 text-[13px] font-semibold text-white shadow-sm
+                     transition hover:bg-[var(--color-brand-hover)]
+                     focus-visible:outline focus-visible:outline-2
+                     focus-visible:outline-offset-2 focus-visible:outline-[var(--color-brand)]"
+        >
+          {step.cta}
+        </button>
+      </div>
+    </li>
+  );
+}
+
+function PendingRow({ step, index }: { step: SetupStep; index: number }) {
+  return (
+    <li className="flex items-center gap-3 rounded-xl border border-gray-100 px-3.5 py-3">
+      <span aria-hidden
+            className="flex h-[23px] w-[23px] shrink-0 items-center justify-center
+                       rounded-full bg-gray-100 text-[11.5px] font-bold text-gray-400">
+        {index}
+      </span>
+      {/* No `why`, no button. Deliberately: this step is not her turn. */}
+      <span className="flex-1 text-sm font-medium text-gray-700">{step.title}</span>
+      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11.5px]
+                       font-semibold text-gray-400">
+        next
+      </span>
+    </li>
   );
 }

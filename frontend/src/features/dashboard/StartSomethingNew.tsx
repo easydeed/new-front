@@ -32,10 +32,21 @@ export interface InstrumentUse {
 /** The types offered when she has filed nothing yet. */
 export const STARTERS = ['grant-deed', 'interspousal-transfer', 'quitclaim-deed'];
 
-export default function StartSomethingNew({ instruments, onStart, onBrowse }: {
+export default function StartSomethingNew({ instruments, onStart, onBrowse, muted = false }: {
   instruments?: InstrumentUse[] | null;
   onStart?: (deedType: string) => void;
   onBrowse?: () => void;
+  /**
+   * ONE VIOLET CALL TO ACTION PER SCREEN.
+   *
+   * While the setup checklist is on the page it owns the accent, because
+   * it holds the thing to do next. This card stays grey and becomes
+   * primary the moment the checklist unmounts — which is not a taste
+   * decision but the budget: a second violet control means neither is
+   * "the one thing", and the officer has to choose which prominent
+   * button to believe.
+   */
+  muted?: boolean;
 }) {
   const used = instruments ?? [];
   const rows = used.length
@@ -44,7 +55,9 @@ export default function StartSomethingNew({ instruments, onStart, onBrowse }: {
 
   return (
     <section aria-labelledby="start-heading"
-             className="rounded-xl border border-slate-200 bg-white p-5">
+             data-muted={muted ? 'true' : undefined}
+             className={`rounded-xl border bg-white p-5 ${
+               muted ? 'border-slate-200' : 'border-[#E4DDFF] ring-1 ring-[var(--color-brand-light)]'}`}>
       <h3 id="start-heading" className="font-semibold text-slate-900">
         Start something new
       </h3>

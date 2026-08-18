@@ -10,7 +10,7 @@ import EmailVerificationNotice from "@/features/account/EmailVerificationNotice"
 import AccuracySection from "@/features/dashboard/AccuracySection"
 import ResumeCard from "@/features/dashboard/ResumeCard"
 import StartSomethingNew from "@/features/dashboard/StartSomethingNew"
-import SetupChecklist, { setupSteps } from "@/features/dashboard/SetupChecklist"
+import SetupChecklist, { activeStep } from "@/features/dashboard/SetupChecklist"
 import DayOneRail from "@/features/dashboard/DayOneRail"
 import { pickInProgressDeed } from "@/lib/latestDraft"
 import { authoringStateLabel, LAST_WORKED_ON } from "@/lib/authoringState"
@@ -297,8 +297,10 @@ export default function Dashboard() {
 
   /* The rail exists to explain the steps, so it goes when they do —
      §13 rule 3: the page does not recompute "is setup finished", it
-     asks the one function that decides what a step is. */
-  const setupIncomplete = !!setup && setupSteps(setup).some((st) => !st.done)
+     asks the one function that decides which step is open. `activeStep`
+     returning null IS "setup is done", and there is no second way to
+     ask. */
+  const setupIncomplete = !!setup && activeStep(setup) !== null
 
   return (
     <div className="flex bg-gray-50 min-h-screen">
@@ -337,11 +339,13 @@ export default function Dashboard() {
               done, and nothing at all until the profile has answered. */}
           {setup && (
             <div className="mb-6 grid gap-4 lg:grid-cols-[2fr,1fr] items-start">
-              <SetupChecklist
-                state={setup}
-                onAct={(id) => router.push(
-                  id === 'first-deed' ? '/deed-builder' : '/account-settings')}
-              />
+              {/* The step carries its own destination, so the page does
+                  not hold a second opinion about where "Add address"
+                  goes. Invented routes in the reference set —
+                  /settings/company, /settings/county, /settings/address,
+                  /deeds/new — are corrected at the source rather than
+                  translated here. */}
+              <SetupChecklist state={setup} onAct={(_id, href) => router.push(href)} />
               {setupIncomplete && (
                 <DayOneRail
                   companyName={setup.companyName}
@@ -371,6 +375,7 @@ export default function Dashboard() {
             />
             <StartSomethingNew
               instruments={queue?.instruments}
+              muted={setupIncomplete}
               onStart={(t) => router.push(`/deed-builder/${t}`)}
               onBrowse={() => router.push('/create-deed')}
             />

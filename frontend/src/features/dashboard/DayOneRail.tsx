@@ -1,32 +1,48 @@
 /**
- * The rail beside the setup checklist: where her company name lands, and
- * what her plan is.
+ * The deed header, assembling itself.
  *
- * ═══ WHAT THIS REPLACED ═══
+ * ═══ WHAT THIS REPLACED, AND WHY IT IS THE BEST IDEA IN THE REDESIGN ═══
  *
- * Four bullets headed "what I can help with", which were landing-page
- * copy shown to somebody who had already signed up. The mockup's
- * argument for the swap is that a picture of where her own company name
- * prints does the same persuading and doubles as the explanation for the
- * step asking for it.
+ * The previous card restated the checklist in different words: a picture
+ * of a deed face with "your company name" written where her company name
+ * would go, beside a list telling her to add her company name. A new
+ * officer read the same three facts twice, and the column earned
+ * nothing.
  *
- * ═══ THE PLAN CARD, MINUS ONE ROW ═══
+ * This shows the ACTUAL artifact being assembled. Each line fills in as
+ * its step completes, so the same pixels flip from redundant noise into
+ * feedback — she watches the thing she is building appear. It is also
+ * the best answer anybody has given to "where does my company name go?",
+ * because it does not answer the question, it shows the place.
  *
- * The mockup draws "Deeds this month — 0 of 5". Cut, owner-ruled, and
- * the ruling already existed: MONEY1 found `max_deeds_per_month: 5`
- * being returned from a hardcoded fallback while `check_plan_limits` had
- * zero call sites, so nothing had ever counted a deed against a cap. An
- * officer on Free was being told she had five a month by an API, and it
- * was untrue in both directions — nothing stopped her at five, and
- * nothing had decided she should be stopped. Free is uncapped and the
- * payload says so with `null`.
+ * ═══ THE LINES ARE IN PRINT ORDER, AND THE STEPS FOLLOW THEM ═══
  *
- * Rebuilding the row on a screen would restore exactly that, in the
- * harder place to see: copy gets read by people, payloads do not.
+ * RECORDING REQUESTED BY, then AND WHEN RECORDED MAIL TO, then the
+ * county. `setupSteps()` is ordered to match, so completing step one
+ * fills line one — the card fills strictly top-down.
  *
- * The trial line stays, because it is true — `TRIAL_PERIOD_DAYS = 14`
- * on the server, mirrored by a test — and because today the trial is
- * only ever discovered AFTER clicking Upgrade.
+ * The reference implementation had these two out of step: its COUNTY
+ * line read "fills in at step 2" while sitting third. Fixed by moving
+ * the STEPS, not the lines, because the lines are not ours to reorder —
+ * that is the order a recorder sees.
+ *
+ * ═══ EMPTY LINES ARE GREY ═══
+ *
+ * Never amber, never red. Amber is reserved for unconfirmed external
+ * data and nothing here is county-sourced; red is failure and nothing
+ * here has failed. An unfilled field is an absence, and BRAND.md is
+ * explicit that absence is neutral grey — "a fact about our
+ * instrumentation, not a warning about data".
+ *
+ * ═══ AND THE PLAN CARD IS ONE LINE ═══
+ *
+ * It was three rows and a paragraph, one of them an orange "Not set"
+ * firing before she had done anything wrong. What survives is the plan
+ * name and the trial, because the trial is true and is otherwise
+ * discovered only after clicking Upgrade. The recording county left this
+ * card entirely: it is a step in the checklist and a line in the header
+ * above, and a third statement of it was the restatement problem in
+ * miniature.
  */
 'use client';
 
@@ -39,88 +55,59 @@ export default function DayOneRail({ companyName, businessAddress, county, plan,
   plan?: string | null;
   onSeePlans?: () => void;
 }) {
-  const company = (companyName || '').trim();
-  const address = (businessAddress || '').trim();
   const planName = (plan || '').trim();
   const isFree = !planName || planName.toLowerCase() === 'free';
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <h3 className="text-sm font-bold text-gray-900">Where your company lands</h3>
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 md:p-6">
+        <h2 className="text-sm font-bold text-gray-900">Your deed header</h2>
 
-        {/* A deed face, not a picture of one: these are the two lines
-            that print at the top of every recorded instrument, in the
-            order they print. */}
-        <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3 text-[11px] leading-relaxed">
-          <div className="font-semibold tracking-wide text-gray-500">
-            RECORDING REQUESTED BY:
-          </div>
-          {company ? (
-            <div className="font-medium text-gray-900">{company}</div>
-          ) : (
-            /* Same treatment: a marker for a gap, not an input. It
-               keeps its tint because it is the box the step beside it
-               fills, and loses the border that made it look editable. */
-            <div className="italic text-emerald-700">your company name</div>
-          )}
-          <div className="mt-2 font-semibold tracking-wide text-gray-500">
-            AND WHEN RECORDED MAIL TO:
-          </div>
-          {address ? (
-            <div className="text-gray-900">{address}</div>
-          ) : (
-            /* A MARKER, NOT A CONTROL. This was styled as a dashed input
-               box and was not clickable — an affordance promising a
-               field, on a preview. It reads as text now, and the way to
-               fill it is the checklist step beside it, which is a real
-               button that goes to a real form. */
-            <div className="italic text-gray-400">not set yet</div>
-          )}
-          {/* THE INSTRUMENT TITLE IS GONE. It was hardcoded to GRANT
-              DEED regardless of what she files — an audit found it
-              beside a catalog offering twenty-one instruments. This card
-              is about WHERE A NAME LANDS, and on day one there is no
-              document to name: showing one instrument would be picking
-              hers for her, and the honest version of a fact we do not
-              have is not a smaller fact, it is no line. */}
-        </div>
-
-        <p className="mt-3 text-xs text-gray-500">
-          {company
-            ? 'This is where it prints, on every deed you make.'
-            : 'The dashed box is what the setup step fills in. It is the whole reason we ask.'}
-        </p>
-      </div>
-
-      <div className="rounded-2xl border border-gray-200 bg-white p-5">
-        <h3 className="text-sm font-bold text-gray-900">Your plan</h3>
-        <dl className="mt-3 space-y-2 text-sm">
-          <div className="flex items-center justify-between gap-3">
-            <dt className="text-gray-500">Plan</dt>
-            <dd className="font-semibold text-gray-900">
-              {planName ? planName[0].toUpperCase() + planName.slice(1) : 'Free'}
-            </dd>
-          </div>
-          <div className="flex items-center justify-between gap-3">
-            <dt className="text-gray-500">Recording county</dt>
-            {/* "Not set" is the word doing the work. The colour is a
-                second signal, never the only one. */}
-            <dd className={`font-semibold ${(county || '').trim() ? 'text-gray-900' : 'text-amber-700'}`}>
-              {(county || '').trim() || 'Not set'}
-            </dd>
-          </div>
+        <dl className="mt-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3.5
+                       text-[12.5px] leading-relaxed">
+          <Line label="RECORDING REQUESTED BY" value={companyName}
+                fallback="fills in at step 1" />
+          <Line label="AND WHEN RECORDED MAIL TO" value={businessAddress}
+                fallback="fills in at step 2" />
+          <Line label="COUNTY" value={county} fallback="fills in at step 3" />
         </dl>
+
+        <p className="mt-3 text-xs leading-relaxed text-gray-500">
+          This block prints at the top of every deed you make.
+        </p>
+      </section>
+
+      <section className="rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="flex items-center gap-3">
+          <h2 className="text-sm font-bold text-gray-900">Your plan</h2>
+          <span className="ml-auto text-sm font-semibold text-gray-900">
+            {planName ? planName[0].toUpperCase() + planName.slice(1) : 'Free'}
+          </span>
+        </div>
         {isFree && (
-          <p className="mt-3 text-xs text-gray-500">
+          <p className="mt-2 text-xs leading-relaxed text-gray-500">
             Professional includes a {TRIAL_DAYS}-day free trial — no charge today.{' '}
             <button type="button" onClick={onSeePlans}
-                    className="font-semibold text-emerald-700 underline underline-offset-2">
+                    className="font-semibold text-[var(--color-brand)] underline underline-offset-2">
               See what&apos;s included
             </button>
           </p>
         )}
-      </div>
+      </section>
+    </div>
+  );
+}
+
+function Line({ label, value, fallback }: {
+  label: string; value?: string | null; fallback: string;
+}) {
+  const filled = (value || '').trim();
+  return (
+    <div className="mt-2 first:mt-0">
+      <dt className="text-[9.5px] font-bold tracking-[0.09em] text-gray-400">{label}:</dt>
+      <dd className={filled ? 'font-semibold text-gray-900' : 'italic text-gray-400'}>
+        {filled || fallback}
+      </dd>
     </div>
   );
 }
