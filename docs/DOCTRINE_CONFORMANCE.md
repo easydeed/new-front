@@ -1151,6 +1151,89 @@ the comment describing it is the least reliable place to learn it.
 
 ---
 
+### §14.4 — A monotonic invariant is satisfied by breaking the thing it measures (2026-08-18)
+
+**Statement.** Any gate of the form *"this number may only go down"*
+has a failure mode its author did not intend: **destroy the measurement
+and the number improves.** Such a gate needs a floor as well as a
+ceiling — or, better, an assertion that the measurement was possible at
+all.
+
+**The instance.** A stray `{/* comment */}` in a ternary branch made
+`app/dashboard/page.tsx` unparseable. TypeScript stops type-checking
+what it cannot parse, so every error inside that file and everything
+depending on it left the total.
+
+**The count fell from 88 to 6.**
+
+The tsc gate compares the count against a baseline and fails when it
+RISES. It was delighted. Read as a number, 88 → 6 is the best result the
+project has ever posted, and the notice it prints in that case invites
+you to lock the improvement in.
+
+**And the other suite could not help.** Jest stayed green at 1084 the
+entire time, because **no test imports the dashboard page.** The
+frontend suite is fully compatible with the dashboard being
+unparseable — a fact worth knowing on its own, separately from this
+gate.
+
+So the two instruments that could see it were `tsc` and `next build`,
+which are precisely the two a shape-based gate-selection rule would have
+let a frontend-only change skip. **This is the third argument in one day
+for running everything, and the strongest**, because the other two were
+about coverage and this one is about a gate actively reporting success.
+
+**The fix, and its shape.** The floor is not a smaller number — a
+number cannot express "the measurement happened". It is a separate
+assertion that nothing failed to PARSE: `tsc`'s TS1xxx family is
+syntactic (`TS1005 ')' expected`, `TS1128 declaration or statement
+expected`, `TS1382 unexpected token`), and a parse error means a file is
+not code rather than that a file has debt.
+
+**The general test, usable on any threshold gate:** *what would happen
+to this number if the thing it measures stopped existing?* If the answer
+is "it improves", the gate is measuring the wrong thing in one
+direction, and no amount of tuning the threshold fixes it.
+
+---
+
+### §14.5 — Checking that a change is right is not checking what it exposes (2026-08-18)
+
+**Statement.** A review that establishes a change is CORRECT has not yet
+established that it is SAFE. Those are different questions, and the
+second one is about the paths the change newly makes reachable.
+
+**The instance, and it shipped.** DASH-FIX #1 pointed the day-one
+checklist's "Set county" button at `/account-settings`, because the
+county field belongs on the settings form and the endpoint had accepted
+`default_county` since SETTINGS1. That reasoning was checked carefully
+and is still right.
+
+What was not checked: `/onboarding` wrapped its save in a two-attempt
+retry, added because this API sleeps and the first request after a quiet
+period can fail to arrive. `/account-settings` had a bare `fetch`. The
+routing decision moved a **first-run action onto a page without
+first-run tolerance** — and a brand-new account is precisely the one
+nobody has warmed up.
+
+The owner hit it on their first new user: *"I tried to set county and it
+said failed to fetch."*
+
+**Why this is its own shape rather than "the change was wrong".** The
+change was not wrong. Every premise in it held. The defect is entirely
+in the difference between the OLD population of that page (a returning
+officer, editing her profile, on a warm server) and the NEW one the
+routing created. Nothing in the diff shows that difference; it is
+visible only by asking who arrives now who did not before.
+
+**The question this earns, for any change that adds a route, a link, a
+redirect or a CTA:** *who reaches this page now who did not before, and
+what does that page assume about them?* Tolerance, guards, empty states
+and error copy are all written against an assumed visitor, and a new
+entry point is a new visitor.
+
+---
+
 ### §15.1 — A rule about how a surface must be ENTERED is invisible where it is written on the surface (2026-08-18)
 
 **Statement.** §15 says a rule enforced only by a screen is a rule the
@@ -1481,6 +1564,7 @@ on.
 
 | Date | Change |
 |---|---|
+| 2026-08-18 | §14.4 and §14.5 added, from one bug report. §14.4: a monotonic invariant is satisfied by breaking the thing it measures. A stray `{/* comment */}` in a ternary branch made `dashboard/page.tsx` unparseable, tsc stopped type-checking it and everything depending on it, and the error count fell from 88 to SIX — a gate that fails when the number RISES was delighted, and prints a notice inviting you to lock the improvement in. Jest stayed green at 1084 throughout because no test imports that page, so the frontend suite is fully compatible with the dashboard being unparseable; the only two instruments that could see it were tsc and next build, which is exactly what a shape-based gate rule would have permitted skipping. The fix is a FLOOR that is not a number — an assertion that nothing failed to parse (tsc's TS1xxx family is syntactic) — because no count can express "the measurement happened". General test for any threshold gate: what would happen to this number if the thing it measures stopped existing? §14.5: checking that a change is right is not checking what it exposes. DASH-FIX #1's routing of "Set county" to account-settings was correct on every premise and moved a first-run action onto a page whose save had no retry, while the page it came from had one for exactly this sleeping API — the owner hit it on their first new user. The defect lives entirely in the difference between the page's old population and the one the routing created, which no diff displays. The question it earns for any new route, link, redirect or CTA: who reaches this page now who did not before, and what does that page assume about them? |
 | 2026-08-18 | §14.1.1 gains its second and more dangerous symptom, and §15.1 added. THE SILENT HALF: `StartSomethingNew`'s own test asserted `getByText('grant-deed')`, so the test for a component rendering raw storage slugs was checking that it rendered raw storage slugs — which is why it survived UX2 item 3's sweep across three other surfaces. A pin written against the storage key rather than the product's language does not merely fail to catch the defect, it CERTIFIES it: the sweep had no reason to open a file whose test was green, and the test was green because it asserted the defect. One root, two symptoms — quote an implementation that is later fixed and the pin goes red while the rule is intact (noise); quote an implementation that IS the defect and it stays green forever (a defect with a certificate). The second cannot be found by watching CI, which is why the tell is a review question. §15.1: a rule about how a surface must be ENTERED is invisible where it is written on the surface. Past Deeds' own docstring names the dead-button-defect-wearing-a-URL and the dashboard's "Last 30 days" tile committed it, linking to that page unfiltered — the rule was written in the one place its violators never look. Any invariant of the form "callers must X" is mis-filed if it lives only with the callee: the callee is where the rule is understood, the callers are where it is broken, and documentation follows understanding while defects follow construction. |
 | 2026-08-18 | §14.1.1 added — a pin asserts the PROPERTY it guards, never the line that currently expresses it. A jest test held UX2 item 4 (the badge counts presence, the attention number counts silence, and they must not become one number) by quoting `officer_queue.py`'s literal `"needs_attention": len([r for r in awaiting if r["stale"]])`. When a later ruling made that number count lapsed requests too, the pin went red while the ruling it guarded was intact — reporting that a line had changed and saying nothing about whether the two counts were still two. A pin that cannot tell "the rule is broken" from "the code was rewritten" gets edited to match whatever the code now says, which makes it a transcript of the code rather than a constraint on it. This is §14.1 arriving in a pin that already knew which ruling it protected and named it in the docstring — knowing the property is not the same as asserting it. The tell, usable in review: ask what a correct unrelated rewrite would do to the pin; if the answer is "it goes red and somebody updates it", it is a transcript. Also: EXECUTION_POLICY's gate-selection table REPLACED rather than amended. Its premise — that a change's shape bounds which gates can fail — is false in this repo by design, because suites read the other language's source so that one decision is not made twice; a backend-only change is policed by the frontend suite on purpose. The rule is now to run both suites and the harnesses, four minutes together, which is cheaper than the reasoning required to skip one correctly — and that reasoning is not available anyway, since what bounds the blast radius is which files the suites READ, which the diff cannot tell you. Recorded with the meta-lesson: the first gate-selection error produced the table, the second happened with the table available and consulted, and the response to a judgement failure was a finer judgement aid when the correct response was removing the judgement. |
 | 2026-08-14 | §16 added — when a ruling's literal reading would remove something previously ruled, build the unambiguous half and flag the rest. Fired twice on its first day, both times where a new owner ruling brushed an earlier owner ruling: the empty-queue card (ruled "goes"; DASH1 had ruled it in for the returning officer as a RESULT rather than an absence) and the greeting (ruled "one line"; U3 had ruled the sentence under it in so the greeting states what the page IS). Both splits confirmed by the owner, both prior rulings kept. Recorded with the owner's reading of the frequency: accumulated doctrine gets dense enough that new rulings collide with old ones, so expect more of these rather than fewer. §14.3 added — one DECLARATION, not one screen. `TRIAL_DAYS` was a const in `app/page.tsx` commented "one number, stated once per side", true while the landing page was the only surface mentioning a trial and false the moment the day-one rail became a second; retyping 14 there would have made two claims on the frontend side while TRIAL1's mirror read one, and the mirror would have stayed green through exactly the divergence it exists to catch. Moved to `lib/trial.ts`, both surfaces import it, the mirror follows the declaration, and the gate now also refuses the length written as prose anywhere — narrowing a control to what it can currently read is how it becomes decorative. Same shape as `code_only()` and the DTT rate mirror: the error is not the duplication but a rule whose scope was stated in terms of the world at the time it was written. |

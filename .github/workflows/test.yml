@@ -169,6 +169,28 @@ jobs:
           grep "error TS" tsc.out | tail -20
           exit 1
         fi
+        # ═══ A SYNTAX ERROR MAKES THIS NUMBER GO DOWN ═══
+        #
+        # A monotonic-down invariant is trivially satisfied by breaking
+        # the thing being measured. A stray `{/* comment */}` in a
+        # ternary branch made `dashboard/page.tsx` unparseable and this
+        # count fell from 88 to SIX — tsc stops type-checking what it
+        # cannot parse, so every error inside that file and everything
+        # depending on it simply vanished from the total.
+        #
+        # Read as a count, 88 -> 6 is a triumph. The ceiling above was
+        # delighted. So the gate needs a FLOOR as well, and the floor is
+        # not a number: it is that nothing failed to PARSE.
+        #
+        # TS1xxx codes are the syntactic family (TS1005 ')' expected,
+        # TS1128 declaration or statement expected, TS1382 unexpected
+        # token). A type error is a debt this baseline exists to hold; a
+        # parse error is a file that is not code.
+        if grep -qE "error TS1[0-9]{3}:" tsc.out; then
+          echo "::error::a file failed to PARSE — the error count below is meaningless"
+          grep -E "error TS1[0-9]{3}:" tsc.out | head -20
+          exit 1
+        fi
         if [ "$COUNT" -lt "$TSC_BASELINE" ]; then
           echo "::notice::tsc improved to $COUNT — lower TSC_BASELINE in this file to lock the gain in."
         fi
