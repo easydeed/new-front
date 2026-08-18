@@ -1151,6 +1151,44 @@ the comment describing it is the least reliable place to learn it.
 
 ---
 
+### §15.1 — A rule about how a surface must be ENTERED is invisible where it is written on the surface (2026-08-18)
+
+**Statement.** §15 says a rule enforced only by a screen is a rule the
+next screen does not have. This is its documentation twin: **a rule
+written at a destination is invisible to the code that constructs
+entries to it.** Nobody adding a link reads the docstring of the page
+they are linking to.
+
+**The instance.** `app/past-deeds/page.tsx` opens with, in its own words:
+
+> *Stat tiles are drill-downs now ("4 Drafts" → those drafts)… A link
+> that arrives and shows an unfiltered list is the dead-button defect
+> wearing a URL: the affordance promises a filtered view and the outcome
+> is not one.*
+
+The dashboard's "Last 30 days" tile linked to `/past-deeds` with no
+filter. The tile counting ten recent deeds and the tile counting all ten
+deeds were one click with one outcome — **the exact defect, named
+precisely, on the page being linked to.** The rule was written in the one
+place its violators would never look.
+
+**Where such a rule belongs.** One of two places, and preferably both:
+
+1. **Where entries are constructed** — beside the links, in the
+   component that builds them.
+2. **In a pin that sees BOTH sides** — one that reads the link and the
+   destination's filter vocabulary together, and fails when a link
+   carries no filter the destination understands. That is the only form
+   that survives somebody adding a fifth tile.
+
+**The general shape.** Any invariant of the form "callers must X" is
+mis-filed if it lives only with the callee. The callee is where the rule
+is UNDERSTOOD; the callers are where it is BROKEN. Documentation follows
+understanding and defects follow construction, and those are different
+files.
+
+---
+
 ## §16 — When a ruling's literal reading would remove something previously ruled, build the unambiguous half and flag the rest (2026-08-14, owner-ruled)
 
 **Statement.** Rulings are executed by their intent where letter and
@@ -1347,6 +1385,37 @@ ruling they were protecting, wrote it down in the docstring, and then
 asserted the current code instead of the rule. **Knowing the property is
 not the same as asserting it.**
 
+**═══ AND THE OTHER SYMPTOM, WHICH IS THE DANGEROUS ONE ═══**
+
+The instance above is the loud half: the pin breaks on a correct change,
+somebody notices, somebody updates it. Annoying, self-announcing,
+survivable.
+
+The same root produces a silent half. `StartSomethingNew`'s own test
+asserted `screen.getByText('grant-deed')` — so **the test for a component
+rendering raw storage slugs was checking that it rendered raw storage
+slugs.** UX2 item 3 had already replaced that vocabulary on three
+surfaces with `deedTypeLabel`, because a slug is our storage key and the
+officer never chose it. This was the fourth surface, and it stayed the
+fourth for months.
+
+**The mechanism is worth naming, because it explains the survival.** A
+sweep looking for the defect had no reason to open this file: its test
+was green, and its test was green *because it asserted the defect*. A
+pin written against the storage key rather than against the product's
+language does not merely fail to catch the bug — it **certifies** it, and
+tells every later audit that this file is done.
+
+So the two symptoms of one root:
+
+| the pin quotes | what happens on a change | what you get |
+|---|---|---|
+| an implementation, and the code is later fixed correctly | goes red while the rule is intact | noise, and a transcript that gets "updated" |
+| an implementation, and the implementation is the defect | stays green forever | a defect with a certificate |
+
+The second cannot be found by watching CI, which is why the tell below
+is a REVIEW question rather than a build one.
+
 **The tell, usable during review:** ask what a correct, unrelated rewrite
 of the code under the pin would do to it. If the answer is "the pin goes
 red and somebody updates it to match", the pin is a transcript. A real
@@ -1412,6 +1481,7 @@ on.
 
 | Date | Change |
 |---|---|
+| 2026-08-18 | §14.1.1 gains its second and more dangerous symptom, and §15.1 added. THE SILENT HALF: `StartSomethingNew`'s own test asserted `getByText('grant-deed')`, so the test for a component rendering raw storage slugs was checking that it rendered raw storage slugs — which is why it survived UX2 item 3's sweep across three other surfaces. A pin written against the storage key rather than the product's language does not merely fail to catch the defect, it CERTIFIES it: the sweep had no reason to open a file whose test was green, and the test was green because it asserted the defect. One root, two symptoms — quote an implementation that is later fixed and the pin goes red while the rule is intact (noise); quote an implementation that IS the defect and it stays green forever (a defect with a certificate). The second cannot be found by watching CI, which is why the tell is a review question. §15.1: a rule about how a surface must be ENTERED is invisible where it is written on the surface. Past Deeds' own docstring names the dead-button-defect-wearing-a-URL and the dashboard's "Last 30 days" tile committed it, linking to that page unfiltered — the rule was written in the one place its violators never look. Any invariant of the form "callers must X" is mis-filed if it lives only with the callee: the callee is where the rule is understood, the callers are where it is broken, and documentation follows understanding while defects follow construction. |
 | 2026-08-18 | §14.1.1 added — a pin asserts the PROPERTY it guards, never the line that currently expresses it. A jest test held UX2 item 4 (the badge counts presence, the attention number counts silence, and they must not become one number) by quoting `officer_queue.py`'s literal `"needs_attention": len([r for r in awaiting if r["stale"]])`. When a later ruling made that number count lapsed requests too, the pin went red while the ruling it guarded was intact — reporting that a line had changed and saying nothing about whether the two counts were still two. A pin that cannot tell "the rule is broken" from "the code was rewritten" gets edited to match whatever the code now says, which makes it a transcript of the code rather than a constraint on it. This is §14.1 arriving in a pin that already knew which ruling it protected and named it in the docstring — knowing the property is not the same as asserting it. The tell, usable in review: ask what a correct unrelated rewrite would do to the pin; if the answer is "it goes red and somebody updates it", it is a transcript. Also: EXECUTION_POLICY's gate-selection table REPLACED rather than amended. Its premise — that a change's shape bounds which gates can fail — is false in this repo by design, because suites read the other language's source so that one decision is not made twice; a backend-only change is policed by the frontend suite on purpose. The rule is now to run both suites and the harnesses, four minutes together, which is cheaper than the reasoning required to skip one correctly — and that reasoning is not available anyway, since what bounds the blast radius is which files the suites READ, which the diff cannot tell you. Recorded with the meta-lesson: the first gate-selection error produced the table, the second happened with the table available and consulted, and the response to a judgement failure was a finer judgement aid when the correct response was removing the judgement. |
 | 2026-08-14 | §16 added — when a ruling's literal reading would remove something previously ruled, build the unambiguous half and flag the rest. Fired twice on its first day, both times where a new owner ruling brushed an earlier owner ruling: the empty-queue card (ruled "goes"; DASH1 had ruled it in for the returning officer as a RESULT rather than an absence) and the greeting (ruled "one line"; U3 had ruled the sentence under it in so the greeting states what the page IS). Both splits confirmed by the owner, both prior rulings kept. Recorded with the owner's reading of the frequency: accumulated doctrine gets dense enough that new rulings collide with old ones, so expect more of these rather than fewer. §14.3 added — one DECLARATION, not one screen. `TRIAL_DAYS` was a const in `app/page.tsx` commented "one number, stated once per side", true while the landing page was the only surface mentioning a trial and false the moment the day-one rail became a second; retyping 14 there would have made two claims on the frontend side while TRIAL1's mirror read one, and the mirror would have stayed green through exactly the divergence it exists to catch. Moved to `lib/trial.ts`, both surfaces import it, the mirror follows the declaration, and the gate now also refuses the length written as prose anywhere — narrowing a control to what it can currently read is how it becomes decorative. Same shape as `code_only()` and the DTT rate mirror: the error is not the duplication but a rule whose scope was stated in terms of the world at the time it was written. |
 | 2026-08-13 | §15 added (REQUIRED1) — the enforcement point is the endpoint that PRINTS, not the builder. Three definitions of "required" were live and the loosest was `POST /deeds`, which renders and stores the PDF: grantor, grantee and legal description, with no vesting statement and no transfer-tax declaration, while the browser gate demanded both and the partner API demanded both. The wizard's protection was a property of the CLIENT, not of the product — anything reaching that endpoint another way stored an instrument having skipped both legal decisions on an ordinary user token. Recorded with the corrected premise, since the ruling was made on the inverted one: the partner API is the strictest surface, not the loosest, so there was no versioning question and no integration to break. Also records the line the Thursday walkthrough drew: a legal decision is required before the product PRINTS, and requiring one before it SAVES would hurry a choice §1 forbids it to make — so `POST /deeds/draft` stays permissive and the walkthrough moved to it, which made the harness more faithful rather than more permissive. §14.2 added — a control is checked before its result is believed, from four instruments in one week that failed in ways indistinguishable from success: a probe that broke its fixture (the suite errored on malformed JSON while `grep -c FAILED` counted zero), a `git stash` no-op that made the "does main break too?" run test the branch under suspicion, a regex that counted nested keys as top-level and produced a 33-name exemption list that looked exactly like a considered decision, and a sweep asserting a mechanism is CALLED while three of its callers had never worked. |
