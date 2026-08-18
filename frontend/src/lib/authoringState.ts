@@ -71,17 +71,23 @@ export function authoringStateLabel(status: AuthoringStatus | null | undefined):
   }
 }
 
-/**
- * The one-line gloss, for surfaces with room for it.
+/*
+ * ═══ THE GLOSS THAT WAS HERE, CUT ═══
  *
- * Its job is to stop "Prepared" being read as a smaller "Completed". The
- * document exists; nothing here claims anybody has acted on it.
+ * `authoringStateHint` returned "Document generated — this says nothing
+ * about signing or recording", and the badge carried it as a `title`.
+ *
+ * Owner-ruled out, on the argument that removed it: a tooltip is
+ * invisible on touch and to anybody not hovering, so the qualification
+ * that was supposed to make "Prepared" safe reached only some readers.
+ * A caveat only some readers get is worse than a word that does not
+ * need one.
+ *
+ * And "Prepared" does not need one. It is an ADJECTIVE ABOUT THE
+ * DOCUMENT rather than a claim about the transaction, which was the
+ * whole purpose of renaming it — the gloss was propping up a word that
+ * already stood on its own.
  */
-export function authoringStateHint(status: AuthoringStatus | null | undefined): string | null {
-  return (status || '').toLowerCase().trim() === 'completed'
-    ? 'Document generated — this says nothing about signing or recording'
-    : null;
-}
 
 /**
  * The column a surface displays a date FROM, named.

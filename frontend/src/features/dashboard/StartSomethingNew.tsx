@@ -21,6 +21,8 @@
  */
 'use client';
 
+import { deedTypeLabel } from '@/lib/deedTypes';
+
 export interface InstrumentUse {
   deed_type: string;
   count: number;
@@ -54,7 +56,11 @@ export default function StartSomethingNew({ instruments, onStart, onBrowse }: {
               onClick={() => onStart?.(row.deed_type)}
               className="flex w-full items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-left text-sm"
             >
-              <span className="text-slate-800">{row.deed_type}</span>
+              {/* UX2 item 3's vocabulary, on the surface it had not reached.
+                  This rendered `grant-deed` and `affidavit-death-jt` —
+                  our storage keys, which she never chose — two clicks
+                  from a screen that says "Grant Deed". */}
+              <span className="text-slate-800">{deedTypeLabel(row.deed_type)}</span>
               <span className="text-xs text-slate-500">
                 {/* "most used" only where it is TRUE — the top row of a
                     list she has actually filed from. On day one there is

@@ -22,7 +22,7 @@ import { join } from 'path';
 
 import { codeOnly } from '../test-support/sourceText';
 import {
-  authoringStateLabel, authoringStateHint, LAST_WORKED_ON,
+  authoringStateLabel, LAST_WORKED_ON,
 } from '../lib/authoringState';
 
 const SRC = join(__dirname, '..');
@@ -51,9 +51,40 @@ describe('authoring state is labelled as authoring state', () => {
     expect(authoringStateLabel('quarantined')).toBe('quarantined');
   });
 
-  it('offers a gloss that refuses the larger claim', () => {
-    expect(authoringStateHint('completed')).toMatch(/says nothing about signing or recording/);
-    expect(authoringStateHint('draft')).toBeNull();
+  it('needs no tooltip to be safe, and carries none', () => {
+    /**
+     * OWNER-RULED, cutting something added one PR earlier. The badge
+     * carried a `title` gloss saying the word meant nothing about
+     * signing or recording — invisible on touch and to anybody not
+     * hovering, so the qualification reached only some readers.
+     *
+     * A caveat only some readers get is worse than a word that does not
+     * need one. And "Prepared" does not need one: it is an ADJECTIVE
+     * ABOUT THE DOCUMENT rather than a claim about the transaction,
+     * which was the rename's whole purpose.
+     */
+    const src = codeOnly(readFileSync(join(SRC, 'lib', 'authoringState.ts'), 'utf8'));
+    expect(src).not.toMatch(/export function authoringStateHint/);
+    // The gloss is gone from everywhere rather than from one call site.
+    // NOT asserted as "no `title=` on the dashboard": three QueueList
+    // headings legitimately carry one, and a pin that forbids an
+    // attribute rather than a claim would have made those a violation.
+    const files: string[] = [];
+    const walk = (dir: string) => {
+      for (const e of readdirSync(dir)) {
+        const full = join(dir, e);
+        if (statSync(full).isDirectory()) {
+          // __tests__ excluded, and the reason is this very assertion:
+          // codeOnly strips comments but NOT string contents, so the
+          // pin searching for the name would find its own search term.
+          if (e !== 'node_modules' && e !== '__tests__') walk(full);
+        } else if (/\.tsx?$/.test(e)) files.push(full);
+      }
+    };
+    walk(SRC);
+    for (const f of files) {
+      expect(codeOnly(readFileSync(f, 'utf8'))).not.toContain('authoringStateHint');
+    }
   });
 
   it('is the only place either surface turns the column into English', () => {

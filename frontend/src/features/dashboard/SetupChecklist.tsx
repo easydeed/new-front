@@ -61,10 +61,12 @@ export interface SetupState {
   companyName?: string | null;
   /** Every deed she has, deleted ones excluded. */
   deedCount: number;
+  /** `user_profiles.business_address` — see the fourth step. */
+  businessAddress?: string | null;
 }
 
 export interface SetupStep {
-  id: 'county' | 'company' | 'first-deed';
+  id: 'county' | 'company' | 'address' | 'first-deed';
   title: string;
   detail: string;
   action: string;
@@ -96,6 +98,26 @@ export function setupSteps(state: SetupState): SetupStep[] {
             + 'by hand each time.',
       action: 'Add company',
       done: !blank(state.companyName),
+    },
+    {
+      // ═══ THE FOURTH STEP, ADDED AFTER AN AUDIT ═══
+      //
+      // The checklist counted itself complete at 2 of 3 while
+      // `business_address` was empty — and the rail beside it was
+      // rendering a dashed placeholder in AND WHEN RECORDED MAIL TO,
+      // which is a box that PRINTS on the instrument. The screen was
+      // showing her a gap and not counting it.
+      //
+      // It qualifies on this list's own stated test: every step is
+      // something the deed itself needs. The return address is on the
+      // face of the document, which is a stronger claim to a place here
+      // than the county default has.
+      id: 'address',
+      title: 'Add your business address',
+      detail: 'This prints under AND WHEN RECORDED MAIL TO, directly below your '
+            + 'company name. It is where the recorder sends the document back.',
+      action: 'Add address',
+      done: !blank(state.businessAddress),
     },
     {
       id: 'first-deed',

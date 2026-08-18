@@ -15,18 +15,24 @@ import '@testing-library/jest-dom';
 import SetupChecklist, { setupSteps } from '../features/dashboard/SetupChecklist';
 import DayOneRail from '../features/dashboard/DayOneRail';
 
-const NOTHING_SET = { county: null, companyName: null, deedCount: 0 };
+const NOTHING_SET = { county: null, companyName: null, businessAddress: null, deedCount: 0 };
 
 describe('what the checklist derives', () => {
-  it('reads three steps off state the product already holds', () => {
+  it('reads four steps off state the product already holds', () => {
+    /** The fourth arrived from an audit: the list counted itself
+     *  complete at 2 of 3 while `business_address` was empty, and the
+     *  rail beside it was drawing a gap in AND WHEN RECORDED MAIL TO —
+     *  a box that PRINTS. It qualifies on this list's own test: every
+     *  step is something the deed itself needs. */
     const steps = setupSteps(NOTHING_SET);
-    expect(steps.map((s) => s.id)).toEqual(['county', 'company', 'first-deed']);
+    expect(steps.map((s) => s.id)).toEqual(['county', 'company', 'address', 'first-deed']);
     expect(steps.every((s) => !s.done)).toBe(true);
   });
 
   it('counts a step done from the field that backs it', () => {
     const steps = setupSteps({
-      county: 'Los Angeles', companyName: 'All Good Escrow', deedCount: 2,
+      county: 'Los Angeles', companyName: 'All Good Escrow',
+      businessAddress: '1200 Wilshire Blvd, Ste 400', deedCount: 2,
     });
     expect(steps.every((s) => s.done)).toBe(true);
   });
@@ -39,14 +45,15 @@ describe('what the checklist derives', () => {
     /** A checklist with every box ticked is the same guaranteed-empty
      *  module its predecessor removed three of. */
     const { container } = render(<SetupChecklist state={{
-      county: 'Los Angeles', companyName: 'All Good Escrow', deedCount: 1,
+      county: 'Los Angeles', companyName: 'All Good Escrow',
+      businessAddress: '1200 Wilshire Blvd', deedCount: 1,
     }} />);
     expect(container).toBeEmptyDOMElement();
   });
 
   it('says how many are done, in words', () => {
     render(<SetupChecklist state={{ ...NOTHING_SET, county: 'Orange' }} />);
-    expect(screen.getByTestId('setup-progress')).toHaveTextContent('1 of 3 done');
+    expect(screen.getByTestId('setup-progress')).toHaveTextContent('1 of 4 done');
   });
 
   it('routes each step to the thing that fixes it', () => {
@@ -124,7 +131,25 @@ describe('the rail', () => {
   it('shows where the company name lands, and marks the gap when it is blank', () => {
     render(<DayOneRail companyName={null} county={null} plan="free" />);
     expect(screen.getByText('RECORDING REQUESTED BY:')).toBeInTheDocument();
-    expect(screen.getByText('Your company name')).toBeInTheDocument();
+    expect(screen.getByText('your company name')).toBeInTheDocument();
+  });
+
+  it('marks the gaps as text rather than as inputs that do nothing', () => {
+    /** Both placeholders were styled as dashed boxes — an affordance
+     *  promising a field, inside a preview. The way to fill them is the
+     *  checklist step beside them, which is a real button. */
+    const { container } = render(<DayOneRail companyName={null} county={null} plan="free" />);
+    expect(container.querySelectorAll('input, textarea, [contenteditable]'))
+      .toHaveLength(0);
+    expect(container.innerHTML).not.toContain('border-dashed');
+  });
+
+  it('names no instrument, because on day one there is no document', () => {
+    /** It was hardcoded to GRANT DEED beside a catalog offering
+     *  twenty-one. This card is about where a NAME lands; picking an
+     *  instrument would be choosing her document for her. */
+    const { container } = render(<DayOneRail companyName="X" county="LA" plan="free" />);
+    expect(container.textContent).not.toMatch(/GRANT DEED/i);
   });
 
   it('shows the real name once she has one', () => {

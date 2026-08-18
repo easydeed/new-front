@@ -59,9 +59,10 @@ export default function DayOneRail({ companyName, businessAddress, county, plan,
           {company ? (
             <div className="font-medium text-gray-900">{company}</div>
           ) : (
-            <div className="rounded border border-dashed border-emerald-400 bg-emerald-50 px-1.5 py-0.5 text-emerald-800">
-              Your company name
-            </div>
+            /* Same treatment: a marker for a gap, not an input. It
+               keeps its tint because it is the box the step beside it
+               fills, and loses the border that made it look editable. */
+            <div className="italic text-emerald-700">your company name</div>
           )}
           <div className="mt-2 font-semibold tracking-wide text-gray-500">
             AND WHEN RECORDED MAIL TO:
@@ -69,14 +70,20 @@ export default function DayOneRail({ companyName, businessAddress, county, plan,
           {address ? (
             <div className="text-gray-900">{address}</div>
           ) : (
-            <div className="rounded border border-dashed border-gray-300 px-1.5 py-0.5 text-gray-500">
-              Your business address
-            </div>
+            /* A MARKER, NOT A CONTROL. This was styled as a dashed input
+               box and was not clickable — an affordance promising a
+               field, on a preview. It reads as text now, and the way to
+               fill it is the checklist step beside it, which is a real
+               button that goes to a real form. */
+            <div className="italic text-gray-400">not set yet</div>
           )}
-          <hr className="my-2 border-gray-200" />
-          <div className="text-center font-bold tracking-widest text-gray-700">
-            GRANT DEED
-          </div>
+          {/* THE INSTRUMENT TITLE IS GONE. It was hardcoded to GRANT
+              DEED regardless of what she files — an audit found it
+              beside a catalog offering twenty-one instruments. This card
+              is about WHERE A NAME LANDS, and on day one there is no
+              document to name: showing one instrument would be picking
+              hers for her, and the honest version of a fact we do not
+              have is not a smaller fact, it is no line. */}
         </div>
 
         <p className="mt-3 text-xs text-gray-500">

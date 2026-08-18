@@ -210,7 +210,14 @@ describe('start something new', () => {
      * and must not become the only way in.
      */
     render(<StartSomethingNew instruments={[]} />);
-    expect(screen.getByText('grant-deed')).toBeInTheDocument();
+    /* Asserted on the LABEL, not the slug. This read `getByText
+       ('grant-deed')` — the pin was holding our storage key as though
+       it were the product's vocabulary, so it passed while the screen
+       showed her a string she never chose. UX2 item 3 fixed that
+       vocabulary on three surfaces; this was the fourth, and its own
+       test was pinning the defect in place. */
+    expect(screen.getByText('Grant Deed')).toBeInTheDocument();
+    expect(screen.queryByText('grant-deed')).not.toBeInTheDocument();
     expect(screen.queryByText('most used')).not.toBeInTheDocument();
   });
 });
