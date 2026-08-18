@@ -1131,6 +1131,70 @@ we reach it.
   The lesson transferring is rarer than it should be. Four sightings this
   week of a lesson NOT transferring; this is the one that did.
 
+## Findings that changed how we work
+
+- **CORS1 — A REQUIRED VARIABLE THAT NOTHING READ, SET CORRECTLY, AND
+  IRRELEVANT TO THE FAILURE IT WAS BELIEVED TO CAUSE** (2026-08-18).
+  **DECIDED** 2026-08-18 — the middleware reads `ALLOWED_ORIGINS`; the
+  wildcard and the dead glob go; the method list is pinned against the
+  route table.
+  **BUILT** — yes, CORS1.
+
+  **The defect, in one word.** `allow_methods` omitted `PATCH`.
+  `profileSave.ts` saves by PATCH, so every settings and onboarding save
+  died at the CORS preflight — OPTIONS advertising GET returned 200, the
+  same request advertising PATCH returned 400. The owner could not set
+  his own recording county. The browser's report, "failed to fetch", is
+  what it says when a preflight is refused and is indistinguishable from
+  the API being down, which is how it was read for two rounds.
+
+  **THE PART WORTH KEEPING IS NOT THE BUG.** `ALLOWED_ORIGINS` was:
+  declared in `render.yaml`, classified **REQUIRED** in the environment
+  manifest, named as missing by the boot check on a production deploy,
+  set by hand by the owner on the strength of that report, and then
+  reported healthy — while being **read by nothing at all**. `main.py`
+  hardcoded its own origin list.
+
+  **A boot check verifies PRESENCE, not CONSUMPTION.** It answers "is
+  this variable set", and it cannot answer "does anything use it". Every
+  signal in the loop was green and the loop was closed around nothing.
+  §14's family — a record that states more than it checks — this time in
+  the instrument built to catch exactly that class.
+
+  **AND THE CORRECTION WAS ALREADY WRITTEN.** The manifest entry had
+  been fixed weeks earlier to say "Read by NOTHING today… its absence
+  changes no behaviour and setting it changes none either." That
+  sentence was written before the incident and read after it. A record
+  being correct is not the same as a record being consulted, and this is
+  the second time in two weeks that an accurate entry failed to reach
+  the person who needed it — the first being W0 §3, which is why
+  DECIDED/BUILT became fields.
+
+  **The wildcard is why none of it was falsifiable.** `"*"` sat in the
+  origin list, so every origin was already accepted and no CORS
+  experiment could fail on origin grounds. It also made
+  `allow_credentials=True` invalid per spec — browsers reject that pair
+  on credentialed requests — which happened not to bite only because the
+  app authenticates with an `Authorization` header rather than cookies.
+  A permissive setting that hides the setting that matters is worse than
+  a strict one that breaks loudly.
+
+  **Two more live defects found in the same read:**
+  `"https://deedpro-frontend-new-*.vercel.app"` was a literal string in
+  `allow_origins`, where Starlette compares exactly and never globs — it
+  has never matched a preview deployment, and previews worked only
+  because of the wildcard. And every preflight OPTIONS opens a database
+  connection before CORS answers it, because CORS is the innermost of
+  three middlewares (measured: one connection per preflight, pool of
+  40). The first is fixed via `allow_origin_regex`; the second is
+  reported and held.
+
+  **What now catches it:** `test_cors_contract.py` compares the route
+  table against `allow_methods` — the two declarations that nothing was
+  comparing — and sends real preflights through the middleware stack for
+  every method. Removing PATCH again turns five tests red, including the
+  live preflight.
+
 ## Parked tickets (scoped, not scheduled)
 
 - **W0 §3 — A RULING DECIDED, PARKED, AND NEVER BUILT** (surfaced by

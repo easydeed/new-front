@@ -99,8 +99,23 @@ services:
   - key: DATABASE_URL
     fromDatabase:
       name: deedpro-db
+  # CORS1: this variable is READ now. Until CORS1 it was declared here,
+  # classified in the manifest, set by hand in the dashboard on a boot
+  # report — and consumed by nothing, while `main.py` hardcoded its own
+  # list. Two rounds of a live outage were spent on it.
+  #
+  # It ADDS to the origin list in services/cors_policy.py and cannot
+  # remove from it. The value below is therefore a supplement, not the
+  # policy: `deedpro.io`, `www.deedpro.io`, the Vercel production alias
+  # and localhost are in the code, and preview deployments match a regex
+  # there. Nothing here needs to be set for the site to work.
+  #
+  # ⚠️ AND THE DASHBOARD VALUE GOVERNS, not this line — see the header.
+  # The API prints its effective CORS policy at boot; that log is how the
+  # real value becomes known, and knowing it is the precondition for
+  # switching the code from add-semantics to replace-semantics.
   - key: ALLOWED_ORIGINS
-    value: https://deedpro-frontend-new.vercel.app
+    value: https://deedpro-frontend-new.vercel.app,https://deedpro.io,https://www.deedpro.io
   # ── DECLARED BECAUSE ITS ABSENCE IS SILENT ────────────────────────
   #
   # `sync: false` means: this key is REQUIRED and its value is set in the
