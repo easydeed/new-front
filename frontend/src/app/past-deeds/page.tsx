@@ -111,6 +111,18 @@ function PastDeedsList() {
      product choosing her document), so it carries the notary here and
      the deed is chosen where the deeds are. */
   const notaryFromPartner = params?.get("notary") || null
+  /* DASH-FIX friction — "Last 30 days" linked HERE and arrived at the
+     full list, so the tile counting 10 and the tile counting all 10 were
+     the same click with the same outcome. This page's own docstring
+     already names that: "a link that arrives and shows an unfiltered
+     list is the dead-button defect wearing a URL".
+     `?since=<days>` seeds a window, and the banner below says the list
+     is windowed and offers the way out — a filter nobody can see is a
+     list that looks broken. */
+  const [sinceDays, setSinceDays] = useState<number | null>(() => {
+    const raw = Number(params?.get("since"))
+    return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : null
+  })
   /* UX2 items 8/9 — the nudge. The rule is lib/staleDrafts.ts so it can
      be asked a question; this screen only renders the answer. */
   const [archiving, setArchiving] = useState(false)
@@ -310,6 +322,13 @@ function PastDeedsList() {
     if (deed.archived_at) return false
     if (statusFilter === "completed" && deed.status !== "completed") return false
     if (statusFilter === "draft" && deed.status === "completed") return false
+    if (sinceDays !== null) {
+      // A row we cannot date stays IN. Dropping it would let a missing
+      // timestamp hide a deed she made, which is the more expensive
+      // mistake of the two (§4, and `days_since`'s reasoning).
+      const made = deed.created_at ? new Date(deed.created_at).getTime() : null
+      if (made !== null && made < Date.now() - sinceDays * 86400_000) return false
+    }
     const q = searchQuery.trim().toLowerCase()
     if (!q) return true
     return [
@@ -356,6 +375,22 @@ function PastDeedsList() {
                     className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#7C4DFF] focus:border-[#7C4DFF]"
                   />
                 </div>
+                {sinceDays !== null && (
+                  /* The window, said out loud. A list silently showing a
+                     subset is a list she reads as "where did my deeds
+                     go" — and the way out is beside the statement rather
+                     than in a URL she would have to know about. */
+                  <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+                    <span>Last {sinceDays} days</span>
+                    <button
+                      type="button"
+                      onClick={() => setSinceDays(null)}
+                      className="font-semibold underline underline-offset-2"
+                    >
+                      Show all
+                    </button>
+                  </div>
+                )}
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(

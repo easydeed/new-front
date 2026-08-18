@@ -13,7 +13,8 @@ import StartSomethingNew from "@/features/dashboard/StartSomethingNew"
 import SetupChecklist, { setupSteps } from "@/features/dashboard/SetupChecklist"
 import DayOneRail from "@/features/dashboard/DayOneRail"
 import { pickInProgressDeed } from "@/lib/latestDraft"
-import { authoringStateLabel, authoringStateHint, LAST_WORKED_ON } from "@/lib/authoringState"
+import { authoringStateLabel, LAST_WORKED_ON } from "@/lib/authoringState"
+import { deedTypeLabel } from "@/lib/deedTypes"
 import { SessionExpiredError, apiFetch } from "@/lib/apiClient"
 import { 
   FileText, Clock, CheckCircle, Send, 
@@ -430,7 +431,12 @@ export default function Dashboard() {
                 value={summary?.lastThirtyDays ?? 0}
                 icon={<TrendingUp className="w-5 h-5" />}
                 color="blue"
-                href="/past-deeds"
+                /* This pointed at the unfiltered list, so the tile
+                   counting 10 recent deeds and the tile counting all 10
+                   deeds were the same click with the same result — and
+                   Past Deeds' own docstring calls that "the dead-button
+                   defect wearing a URL". */
+                href="/past-deeds?since=30"
               />
               <StatCard
                 label="Completed"
@@ -652,7 +658,14 @@ function ActionQueue({ queue, error, hasDeeds }: {
             rows={queue.idle_drafts.map((r) => ({
               key: `id-${r.id}`,
               title: r.property || `Deed #${r.id}`,
-              detail: 'Draft — nobody is waiting on this but you.',
+              /* FOUR IDENTICAL CARDS. An audit found four of these at
+                 one address, byte-for-byte the same — same title, same
+                 sentence, same "16 days" — opening four different
+                 drafts. She had to click one to learn which it was.
+                 The row now carries what actually DIFFERS between them:
+                 the instrument and the document number. */
+              detail: `${deedTypeLabel(r.deed_type)} · Doc #${r.id} — `
+                    + 'nobody is waiting on this but you.',
               meta: r.days_idle === null ? 'untouched' : `${r.days_idle} days`,
               urgent: false,
               // Deliberately NOT the deed page. A draft has exactly one
@@ -661,6 +674,15 @@ function ActionQueue({ queue, error, hasDeeds }: {
               onOpen: () => router.push(
                 `/deed-builder/${r.deed_type || 'grant-deed'}?resume=${r.id}`),
             }))}
+            /* THE REMEDY LIVES ON THE OTHER PAGE. Past Deeds already
+               offers "Archive the N older" over exactly these drafts
+               (`lib/staleDrafts.ts`), and this screen flagged them stale
+               while offering nothing. Linked rather than reimplemented:
+               a second implementation of an archive action is a second
+               opinion about which drafts are superseded. */
+            footer={queue.idle_drafts.length
+              ? { label: 'Archive older drafts', onClick: () => router.push('/past-deeds?status=draft') }
+              : null}
           />
         </div>
       )}
@@ -677,10 +699,12 @@ type QueueRow = {
   onOpen: () => void
 }
 
-function QueueList({ title, rows, emptyNote }: {
+function QueueList({ title, rows, emptyNote, footer = null }: {
   title: string
   rows: QueueRow[]
   emptyNote: string
+  /** An action that belongs to the whole column rather than a row. */
+  footer?: { label: string; onClick: () => void } | null
 }) {
   return (
     <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
@@ -711,6 +735,16 @@ function QueueList({ title, rows, emptyNote }: {
             </li>
           ))}
         </ul>
+      )}
+      {footer && rows.length > 0 && (
+        <button
+          type="button"
+          onClick={footer.onClick}
+          className="w-full border-t border-gray-100 px-4 py-2.5 text-left text-sm
+                     font-semibold text-[#7C4DFF] hover:bg-gray-50"
+        >
+          {footer.label}
+        </button>
       )}
     </div>
   )
@@ -878,8 +912,7 @@ function DeedRow({ deed }: { deed: any }) {
             "completed" while its signing sat unanswered in the queue
             below. `deeds.status` is AUTHORING state; one place turns it
             into English now. */}
-        <span title={authoringStateHint(deed.status) ?? undefined}
-              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusStyle(deed.status)}`}>
+        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusStyle(deed.status)}`}>
           {getStatusIcon(deed.status)}
           {authoringStateLabel(deed.status)}
         </span>
