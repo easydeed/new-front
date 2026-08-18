@@ -205,3 +205,44 @@ describe('what the copy does not claim', () => {
     }
   });
 });
+
+describe('the link the pre-charge email sends her to', () => {
+  /**
+   * PILOT2. The notice's only call to action is "cancel before you are
+   * charged", and the control is one click INSIDE this page. Landing on
+   * Profile and asking her to find Billing is where a promise turns
+   * into a hunt.
+   *
+   * Pinned by rendering with the query parameter rather than by
+   * grepping for it: what matters is that the Billing tab is what she
+   * sees, not that a string appears in the source.
+   */
+  it('opens the Billing tab directly on ?tab=billing', async () => {
+    fetchMock.mockImplementation((url: unknown) => {
+      if (String(url).includes('/users/profile')) {
+        return answer(200, { email: 'officer@example.com', plan: 'professional' });
+      }
+      return answer(404, { detail: 'No billing information found' });
+    });
+    // The suite mocks `next/navigation` globally (jest.setup.js), so the
+    // parameter is supplied by spying on that mock rather than by
+    // re-mocking the module — a `resetModules` here would hand the page
+    // a second copy of React and fail with an invalid-hook error rather
+    // than with anything about tabs.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const nav = require('next/navigation');
+    const spy = jest.spyOn(nav, 'useSearchParams')
+      .mockReturnValue(new URLSearchParams('tab=billing') as any);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const Page = require('../app/account-settings/page').default;
+      render(<Page />);
+      // No click on the Billing tab anywhere in this test: the control
+      // is on screen because the URL said so.
+      expect(await screen.findByRole('button', { name: /cancel subscription/i }))
+        .toBeInTheDocument();
+    } finally {
+      spy.mockRestore();
+    }
+  });
+});

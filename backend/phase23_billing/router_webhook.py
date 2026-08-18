@@ -39,6 +39,57 @@ def _resolve_user_id(db: Session, customer_id):
     return row[0] if row else None
 
 
+def _run_renewal_notice_for(subscription_id) -> dict:
+    """Evaluate the pre-charge notices for ONE subscription, right now.
+
+    PILOT2 item 3. Called from the `trial_will_end` branch so that a
+    trial ending is heard about even if the daily cron missed a day; it
+    runs the SAME decision against the SAME idempotency table, so it
+    cannot produce a second copy of a notice already sent.
+
+    ═══ IT NEVER FAILS THE WEBHOOK ═══
+
+    Stripe retries a non-2xx, and the subscription upsert has already
+    committed by the time this runs — so an exception here would replay
+    an event whose real work is done, for a notice that is a courtesy.
+    The reason is returned in the response body instead, which is visible
+    in Stripe's own event log.
+    """
+    if not subscription_id:
+        return {"sent": None, "reason": "the event carried no subscription id"}
+    try:
+        import stripe as _stripe
+
+        import db as _dbmod
+        from services import renewal_notice
+
+        conn = getattr(_dbmod, "conn", None)
+        if conn is None:
+            return {"sent": None, "reason": "no database connection on this request"}
+
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT s.stripe_subscription_id, s.user_id, s.status,
+                       u.email, u.full_name
+                FROM subscriptions s JOIN users u ON u.id = s.user_id
+                WHERE s.stripe_subscription_id = %s
+                """,
+                (subscription_id,),
+            )
+            row = cur.fetchone()
+        if not row:
+            return {"sent": None, "reason": "no local subscription row"}
+
+        from datetime import timezone as _tz
+        outcome = renewal_notice.process_subscription(
+            conn, _stripe, dict(row), datetime.now(_tz.utc).date())
+        conn.commit()
+        return outcome
+    except Exception as exc:
+        return {"sent": None, "reason": f"renewal notice not evaluated: {exc}"}
+
+
 def upsert_subscription(db: Session, sub: dict):
     """BILL1 — the write that never existed.
 
@@ -80,11 +131,13 @@ def upsert_subscription(db: Session, sub: dict):
             user_id, stripe_subscription_id, status, plan_name,
             current_period_start, current_period_end,
             current_plan_price_cents, mrr_cents, cancel_at_period_end,
+            trial_end,
             created_at, updated_at
         ) VALUES (
             :uid, :sid, :status, :plan,
             :period_start, :period_end,
             :price_cents, :mrr, :cancel_at_period_end,
+            :trial_end,
             now(), now()
         )
         ON CONFLICT (stripe_subscription_id) DO UPDATE SET
@@ -98,6 +151,12 @@ def upsert_subscription(db: Session, sub: dict):
             current_plan_price_cents = COALESCE(EXCLUDED.current_plan_price_cents, subscriptions.current_plan_price_cents),
             mrr_cents = COALESCE(EXCLUDED.mrr_cents, subscriptions.mrr_cents),
             cancel_at_period_end = COALESCE(EXCLUDED.cancel_at_period_end, subscriptions.cancel_at_period_end),
+            -- PILOT2. NOT COALESCEd, unlike its neighbours: when a trial
+            -- converts, Stripe sends `trial_end: null` and that null is
+            -- the FACT — "there is no longer a trial". COALESCE would
+            -- preserve the old date forever and leave the record saying a
+            -- trial ends on a day that has passed.
+            trial_end = EXCLUDED.trial_end,
             updated_at = now()
         RETURNING id
     """), {
@@ -114,6 +173,11 @@ def upsert_subscription(db: Session, sub: dict):
         "mrr": 0 if sub.get("status") in ("canceled", "incomplete_expired")
                else price.get("unit_amount"),
         "cancel_at_period_end": sub.get("cancel_at_period_end"),
+        # PILOT2 — present on created/updated while the status is
+        # `trialing`, and persisted nowhere until now. It is a RECORD, not
+        # an input: the notification job asks Stripe for the upcoming
+        # invoice rather than reading this column.
+        "trial_end": _ts(sub.get("trial_end")),
     })
     return 1 if result.fetchone() else 0
 
@@ -256,6 +320,30 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             ), {"cust": sub.get("customer")})
         db.commit()
         return {"ok": True}
+
+    # --- The trial is ending, and Stripe said so first ---
+    #
+    # PILOT2 item 3. This event used to fall through every branch below
+    # and return a bare 200 — indistinguishable, from Stripe's side, from
+    # being handled.
+    #
+    # THE PILOT PATH DOES NOT EMIT IT. A 100%-off coupon on the standard
+    # price leaves the subscription `active` with a discount, so there is
+    # no trial and no `trial_will_end`. The 14-day path DOES emit it, and
+    # it arrives three days out — inside the 5-day window — which makes it
+    # a free SECOND signal for a job whose first signal is a cron that can
+    # miss a day.
+    #
+    # It is not a second SENDER: it runs the same decision as the daily
+    # job, against the same idempotency table, so a notice already sent
+    # is not sent again. What it adds is that a trial ending is heard
+    # about even if the scheduler is down.
+    if etype == "customer.subscription.trial_will_end":
+        sub = obj
+        upsert_subscription(db, sub)
+        db.commit()
+        outcome = _run_renewal_notice_for(sub.get("id"))
+        return {"ok": True, "renewal_notice": outcome}
 
     # --- Invoice created ---
     #

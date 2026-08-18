@@ -1195,6 +1195,39 @@ we reach it.
   every method. Removing PATCH again turns five tests red, including the
   live preflight.
 
+- **PILOT2 — the pre-charge notices exist; THE CRON DOES NOT**
+  (2026-08-18).
+  **DECIDED** 2026-08-18 — two notices, 15 and 5 days before the charge,
+  off the date and amount Stripe computes, via the E1 transport.
+  **BUILT** — the job, the templates, the schema and the webhook signal.
+  **The Render cron service is NOT created: that is deploy topology and
+  therefore the owner's.**
+
+  **Until that service exists, the coupon path sends nothing.** Unlike
+  the purge, there is no in-request fallback carrying this work. The
+  `customer.subscription.trial_will_end` handler covers the 14-day trial
+  three days out, and the pilot's 100%-off coupon emits no trial event at
+  all. Stated loudly because a job nobody scheduled produces exactly the
+  customer experience of the gap it was written to close.
+
+  **The service, when it is created:**
+  `python backend/scripts/send_renewal_notices.py`, daily at 15:00 UTC,
+  with `DATABASE_URL`, `STRIPE_SECRET_KEY`, `FRONTEND_URL`,
+  `SENDGRID_API_KEY` and `EXPECTED_DATABASE=deedpro`. Exit 1 on any
+  failed send, so the cron's own alerting sees it.
+
+  **The date question, ruled.** `current_period_end` and `discount.end`
+  were both wrong; the upcoming invoice is authoritative because Stripe
+  computes it with the discount applied. The design persists nothing that
+  decides anything — `trial_end`, `renewal_at` and `renewal_amount_cents`
+  are a record for the admin view and for reconstructing what we
+  believed, never an input.
+
+  **A gap this closed that was never pilot-only:** the existing 14-day
+  trial charged with no warning. `trial_end` was present on every
+  subscription event and persisted nowhere, `trial_will_end` returned a
+  bare 200, and no template existed.
+
 ## Parked tickets (scoped, not scheduled)
 
 - **W0 §3 — A RULING DECIDED, PARKED, AND NEVER BUILT** (surfaced by

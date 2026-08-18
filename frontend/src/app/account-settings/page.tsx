@@ -64,7 +64,28 @@ export default function AccountSettingsPageV0() {
 function AccountSettingsPage() {
   const router = useRouter()
   const params = useSearchParams()
-  const [activeTab, setActiveTab] = useState<Tab>("profile")
+  /**
+   * PILOT2 — `?tab=billing` opens the Billing tab directly.
+   *
+   * The pre-charge email's only call to action is "cancel before you are
+   * charged", and PILOT1's cancel control lives one click inside this
+   * page. Landing on Profile and asking the reader to find Billing is
+   * where a promise turns into a hunt.
+   *
+   * The link is NOT a Stripe portal session URL, which is what a
+   * one-click cancel would ideally be: those expire, and a 15-day notice
+   * is by definition read late. This lands on the control, which mints a
+   * fresh session when she presses it.
+   *
+   * An unknown value falls back to Profile rather than rendering
+   * nothing — a URL somebody edited is not a reason to show an empty
+   * page.
+   */
+  const requestedTab = params?.get("tab")
+  const [activeTab, setActiveTab] = useState<Tab>(
+    (["profile", "billing", "notifications", "security"] as const)
+      .includes(requestedTab as Tab) ? (requestedTab as Tab) : "profile"
+  )
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)

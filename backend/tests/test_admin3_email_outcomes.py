@@ -87,7 +87,13 @@ def test_every_template_routes_through_send():
     from utils.notifications import TEMPLATES
 
     src = code_only(NOTIFICATIONS)
-    named = set(re.findall(r'_send\(\s*"([a-z_]+)"', src))
+    # `[a-z0-9_]+`, widened in PILOT2. The class was letters-only, so
+    # `renewal_15day` and `renewal_5day` were invisible to this scan and
+    # the pin reported them as declared-but-unused — a false accusation
+    # produced by the pin's SPELLING rather than by the property it
+    # guards (§14.1). A template name with a digit in it is ordinary;
+    # the rule is that every declared name appears at a `_send` call.
+    named = set(re.findall(r'_send\(\s*"([a-z0-9_]+)"', src))
     assert named == set(TEMPLATES), (
         f"declared TEMPLATES and actual _send labels disagree: "
         f"only-declared={set(TEMPLATES) - named}, only-used={named - set(TEMPLATES)}"
@@ -96,7 +102,13 @@ def test_every_template_routes_through_send():
     # NOTARY1's `signing_time_recorded` lost the only handler that sent
     # it, and back UP to 19 with CANCEL1's `signing_cancelled`. The value
     # of the number is that neither direction is silent.
-    assert len(TEMPLATES) == 19
+    #
+    # 21 with PILOT2's two pre-charge notices — `renewal_15day` and
+    # `renewal_5day`. TWO NAMES for one rendering, deliberately: the
+    # question "did the 15-day notice go out" is asked of `email_log` by
+    # a person, and it must be answerable by the template column rather
+    # than by decoding a context blob.
+    assert len(TEMPLATES) == 21
 
 
 # ── The recorder's two constraints ───────────────────────────────────

@@ -939,6 +939,50 @@ def create_tables():
             "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS mrr_cents INT",
             "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR(255)",
             "CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe ON subscriptions(stripe_subscription_id)",
+            # ── PILOT2: what Stripe said, RECORDED ────────────────────
+            #
+            # None of these three decide anything. The notification job
+            # asks Stripe for the upcoming invoice at send time and acts
+            # on THAT; these columns are the record of what it saw, for
+            # the admin view and for a human answering "what did we think
+            # was happening on the 4th".
+            #
+            # That distinction is the whole design (MONEY1's lesson): a
+            # notice that fires off a date we computed can disagree with
+            # the date the card is actually charged on, and the customer
+            # is the one who finds out.
+            "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS trial_end TIMESTAMP",
+            "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS renewal_at TIMESTAMP",
+            "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS renewal_amount_cents INT",
+            "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS renewal_seen_at TIMESTAMP",
+            # ── PILOT2: which notices went out, and which did not ─────
+            #
+            # The idempotency record. `charge_date` is part of the
+            # identity on purpose: if the charge date MOVES — a plan
+            # change, a coupon extended — the notices for the new date are
+            # a different set, and the customer should hear about the date
+            # she will actually be charged on rather than be told nothing
+            # because we already wrote to her about a date that no longer
+            # exists.
+            #
+            # A row exists whether or not the mail left the building. `ok`
+            # false with a `reason` is the honest record of a send that
+            # failed, and it is not retried blindly — see the job.
+            """CREATE TABLE IF NOT EXISTS billing_notices (
+                id SERIAL PRIMARY KEY,
+                stripe_subscription_id VARCHAR(255) NOT NULL,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                notice_kind VARCHAR(32) NOT NULL,
+                charge_date DATE NOT NULL,
+                amount_cents INT,
+                currency VARCHAR(8),
+                sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                ok BOOLEAN NOT NULL DEFAULT FALSE,
+                reason TEXT,
+                UNIQUE (stripe_subscription_id, notice_kind, charge_date)
+            )""",
+            "CREATE INDEX IF NOT EXISTS idx_billing_notices_sub "
+            "ON billing_notices(stripe_subscription_id)",
             # Same-invariant gap, declared (not silently absorbed — named
             # in the A1 report): the LIVE verification system and the E1
             # in-app notification writes also depended on hand-run
