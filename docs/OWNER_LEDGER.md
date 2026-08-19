@@ -1763,6 +1763,38 @@ we reach it.
 
 ## Ledgered triggers (machine-side, fire on condition)
 
+- **THE LEDGER SWEEP RECURS — every wave boundary, or every 10 merged
+  tickets, whichever comes first.**
+  **DECIDED** 2026-08-19, owner-ruled.
+  **BUILT** — the trigger is this entry; the sweep itself is a person
+  reading code, deliberately, and that is the whole point.
+
+  **Why it is a scheduled item and not a habit.** The first sweep found
+  six stale rows in a table whose own header calls itself the authority,
+  "re-ruled, not re-derived". Nobody neglected it; there was simply no
+  moment at which re-ruling was anybody's job. **"Someone will remember"
+  is the mechanism that produced six stale rows**, and §14.7 rejects that
+  trade wherever a mechanism can replace it.
+
+  **What the pin does NOT cover, which is why this exists.**
+  `backend/tests/test_ledger_built_paths.py` catches ROT and
+  OVER-CLAIMING — a `BUILT — yes` citing a module that has since moved.
+  It cannot catch UNDER-claiming, which is what the sweep actually found:
+  nothing mechanical separates "queued, correctly" from "queued, but
+  shipped three weeks ago", because the second requires reading code the
+  row never mentions. The pin holds one direction; this trigger is the
+  only thing holding the other.
+
+  **How to run it, in one line:** for every row and parked entry claiming
+  NOT built, go and look for the module, endpoint or script that would
+  exist if it were — and answer from what you find, never from the
+  entry's own sentence.
+
+  **Last run:** 2026-08-19 (six rows corrected, all under-claiming).
+  **Next due:** at the next wave boundary, or after ten merged tickets.
+
+
+
 - **Verification-at-registration** — ~~stays resend-only for now~~
   **DECIDED** (original) — stay resend-only.
   **BUILT** — resend: **yes** (VERIFY-CHECK). Gating on `verified`:

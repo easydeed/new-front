@@ -1369,6 +1369,42 @@ direction, and no amount of tuning the threshold fixes it.
 
 ### §14.5 — Checking that a change is right is not checking what it exposes (2026-08-18)
 
+**THIRD HABITAT, SAME DAY: VERSION CONTROL (2026-08-19).** The rule is
+not about routing, or about removals, or about frontend code. It is about
+the difference between verifying THE CHANGE and verifying WHAT TRAVELS
+WITH IT, and it has now been found in three unrelated places:
+
+  1. **Routing** — DASH-FIX pointed the day-one checklist at a page that
+     was correct in itself and lacked the first-run tolerance the action
+     needed. The destination was right; what depended on the move was not
+     checked.
+  2. **Removal** — HOME2 deleted a script tag, justified against the
+     source of the hook meant to replace it, never against the consumers
+     that were supposed to call it. None did.
+  3. **A commit** — the hotfix for (2) was merged carrying two files its
+     PR body never mentioned. `git add -A` after a branch checkout stages
+     whatever followed across it, and untracked files always do. The diff
+     I was reading was the conflict; the file list was the thing I did
+     not read.
+
+**The operative sentence for all three:** *I verified the change I was
+making and not the set of things going with it.*
+
+**What makes the third worth recording separately** rather than as
+another instance: it is the first where the unchecked set was not part of
+the product at all. The blast radius of a wrong routing or a wrong
+removal is a user; the blast radius here was a RECORD — a merged PR whose
+description understated its own contents. That is the cheapest of the
+three to fix and the easiest to leave, which is precisely why it needs
+naming: nothing breaks, so nothing prompts you.
+
+**The mechanical form, for anyone reviewing:** before committing, read
+the FILE LIST, not the diff of the file you were working on. `git status`
+before `git add -A`, and treat any file you did not open this session as
+a question rather than as noise.
+
+---
+
 **SECOND INSTANCE, AND IT REACHED PRODUCTION (2026-08-19).** Recorded at
 the top of this section because it is the sharper version of the same
 rule, and because it cost the officer her most-used input.
