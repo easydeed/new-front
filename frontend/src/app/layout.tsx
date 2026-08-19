@@ -100,18 +100,34 @@ export default function RootLayout({
         {/* HOME2 — THE GOOGLE MAPS SCRIPT WAS LOADED HERE, IN THE ROOT
             LAYOUT, on every page including the logged-out homepage.
 
-            It is REDUNDANT, not merely misplaced: `useGoogleMaps` creates
-            and appends its own script tag when `window.google` is absent,
-            so every consumer — the builder's property section and the
-            property search — already loads it on demand. Removing it here
-            changes nothing about whether autocomplete works.
+            ⚠️ THE RATIONALE FOR REMOVING IT WAS FALSE, AND PROPERTY
+            AUTOFILL DIED IN PRODUCTION FOR IT. This comment used to say
+            the tag was "REDUNDANT, not merely misplaced: `useGoogleMaps`
+            creates and appends its own script tag… so every consumer
+            already loads it on demand." True of the HOOK. False of every
+            CONSUMER: `useGoogleMaps` was imported nowhere in the
+            repository, and `PropertySection` polled for `window.google`
+            without ever loading it. This tag was the builder's only
+            loader, and the officer's address field went silently dead.
 
-            What it does change is that a marketing page visited by someone
-            who has not signed in stops making a third-party request and
-            stops carrying the browser key in its HTML. The key is a
-            `NEXT_PUBLIC_*` value and is therefore public by design — this
-            is not a secret leaking — but a logged-out visitor should not
-            be announced to Google to read a page about deeds. */}
+            Left visible rather than quietly deleted, because the shape is
+            the lesson (§14.5): the removal was checked against the hook's
+            SOURCE and never against the consumer's RENDER PATH. "Every
+            consumer already loads it on demand" is a claim about callers,
+            and nobody counted the callers.
+
+            THE REMOVAL ITSELF STANDS — for the reason below, which was
+            always the real one, and is now safe because `PropertySection`
+            calls the loader from its own render path and
+            `propertyAutofill.test.tsx` mounts it and asserts a script
+            appears:
+
+            a marketing page visited by someone who has not signed in
+            stops making a third-party request and stops carrying the
+            browser key in its HTML. The key is a `NEXT_PUBLIC_*` value
+            and is therefore public by design — this is not a secret
+            leaking — but a logged-out visitor should not be announced to
+            Google to read a page about deeds. */}
         {/* U2.2: every toast is dismissable (closeButton) and none survives
             a route change (ToastRouteDismiss) — the immortal-toast fix. */}
         <ToastRouteDismiss />

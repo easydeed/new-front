@@ -1315,6 +1315,44 @@ we reach it.
   subscription event and persisted nowhere, `trial_will_end` returned a
   bare 200, and no template existed.
 
+- **HOTFIX — property autofill was dead in production, and HOME2 did it**
+  (2026-08-19).
+  **DECIDED** 2026-08-19 — the builder loads Places from its own render
+  path; the loader resolves rather than polls; an unavailable lookup says
+  so in the field.
+  **BUILT** — yes, this hotfix.
+
+  **What broke.** HOME2 (#223) removed the Google Maps script from
+  `layout.tsx`. The written rationale — mine — was that `useGoogleMaps`
+  appends its own tag "so every consumer already loads it on demand".
+  **`useGoogleMaps` was imported nowhere in the repository.**
+  `PropertySection` checked `window.google` at mount and once at 1s and
+  loaded nothing itself. The layout tag was the builder's only loader, so
+  the address field stopped doing anything at all — no error, because
+  `if (!isGoogleLoaded) return` is a bail and a bail is silent.
+
+  **The review failure, plainly.** The removal was approved on a claim
+  about CONSUMERS, verified against the SOURCE OF THE THING CONSUMED.
+  §14.5's second instance and the first to reach production. A
+  justification containing "every" or "already" is a claim about a
+  population; the population is what needs counting.
+
+  **Three fixes, because the trace surfaced three defects:**
+  (1) the loader is called from `PropertySection` itself, so a tag
+  removed anywhere else cannot silence it again; (2) it resolves on the
+  script's `load` event instead of polling twice — a script arriving at
+  1.2s used to be missed permanently, a race the deleted tag happened to
+  win; (3) an unavailable lookup now says so in the field, with the way
+  forward. The old fallback copy was the most confident sentence on the
+  screen — "we'll pull the APN, owner, and legal description
+  automatically" — and it appeared ONLY in the state where none of it was
+  true.
+
+  **The pin mounts the component**, not the file: removing the loader
+  from the section's render path turns it red, and moving the loader
+  elsewhere reachable does not. Probed by reinstating the production
+  defect.
+
 ## Parked tickets (scoped, not scheduled)
 
 - **W0 §3 — A RULING DECIDED, PARKED, AND NEVER BUILT** (surfaced by

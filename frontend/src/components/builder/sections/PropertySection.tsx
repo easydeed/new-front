@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
+import { useGoogleMaps } from "@/components/hooks/useGoogleMaps"
 import { MapPin, Search, Loader2, AlertCircle, Building2, ChevronRight } from "lucide-react"
 import type { ParcelSelection, PropertyData, PropertyProvenance, Sourced } from "@/types/builder"
 import { useAIAssist } from "@/contexts/AIAssistContext"
@@ -243,7 +244,6 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
   const [alternatives, setAlternatives] = useState<PropertyMatchCandidate[]>([])
   const [showAlternatives, setShowAlternatives] = useState(false)
   const [selectedBuildingAddress, setSelectedBuildingAddress] = useState("")
-  const [isGoogleLoaded, setIsGoogleLoaded] = useState(false)
   
   // Track if user has selected an address (prevents re-triggering autocomplete)
   const [addressSelected, setAddressSelected] = useState(false)
@@ -281,23 +281,31 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
     return () => window.removeEventListener('scroll', handleScroll, true)
   }, [showSuggestions])
 
-  // Check if Google Maps is loaded
+  /**
+   * THE LOADER IS CALLED FROM HERE, and that is the fix.
+   *
+   * This section used to look for `window.google` at mount and once more
+   * at 1s, having never loaded anything itself — it depended on a script
+   * tag in `layout.tsx`, three files away, which HOME2 deleted on the
+   * rationale that "every consumer already loads it on demand". No
+   * consumer on this route did: `useGoogleMaps` was imported nowhere.
+   *
+   * So the loader now lives on this component's own render path. A tag
+   * removed anywhere else cannot silence this field again, and
+   * `propertyAutofill.test.tsx` asserts the property rather than the tag:
+   * mounting this section must cause a Places script to load.
+   *
+   * And it RESOLVES rather than polls. The old check missed a script
+   * that arrived at 1.2s, permanently — a race the deleted tag happened
+   * to win.
+   */
+  const places = useGoogleMaps()
+  const isGoogleLoaded = places.isGoogleLoaded
+
   useEffect(() => {
-    const checkGoogle = () => {
-      if (typeof window !== 'undefined' && window.google?.maps?.places) {
-        autocompleteService.current = new google.maps.places.AutocompleteService()
-        placesService.current = new google.maps.places.PlacesService(document.createElement("div"))
-        setIsGoogleLoaded(true)
-      }
-    }
-    
-    // Check immediately
-    checkGoogle()
-    
-    // Also check after a short delay (in case script is still loading)
-    const timer = setTimeout(checkGoogle, 1000)
-    return () => clearTimeout(timer)
-  }, [])
+    autocompleteService.current = places.autocompleteService
+    placesService.current = places.placesService
+  }, [places.autocompleteService, places.placesService])
 
   // Fetch suggestions as user types
   const fetchSuggestions = useCallback((input: string) => {
@@ -877,14 +885,34 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
         />
       )}
 
-      <p className="text-sm text-gray-500">
-        {addressSelected 
-          ? "Click Search to pull property details from county records."
-          : isGoogleLoaded 
-            ? "Start typing and select an address, then click Search."
-            : "Start typing an address and we'll pull the APN, owner, and legal description automatically."
-        }
-      </p>
+      {/* §4 IN THE PRODUCT'S MOST-USED INPUT.
+          The old fallback — shown in exactly the broken state — read
+          "Start typing an address and we'll pull the APN, owner, and
+          legal description automatically." It was the most CONFIDENT
+          sentence on the screen and it appeared only when the product
+          could not do any of it. An officer typed, nothing happened, and
+          the copy told her it was working.
+
+          A bail is not a failure to the code and is indistinguishable
+          from one to her, so the state now has a voice: while the loader
+          is still in flight the copy promises nothing, and when it has
+          failed it says so and names the way forward. */}
+      {places.status === "unavailable" ? (
+        <p role="status" data-testid="places-unavailable"
+           className="text-sm text-amber-700 bg-amber-50 border border-amber-200
+                      rounded-lg px-3 py-2">
+          {places.reason}
+        </p>
+      ) : (
+        <p className="text-sm text-gray-500">
+          {addressSelected
+            ? "Click Search to pull property details from county records."
+            : isGoogleLoaded
+              ? "Start typing and select an address, then click Search."
+              : "Loading address lookup\u2026"
+          }
+        </p>
+      )}
     </div>
   )
 }
