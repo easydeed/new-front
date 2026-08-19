@@ -10,7 +10,7 @@
 import { describe, expect, it } from '@jest/globals';
 import * as fs from 'fs';
 import * as path from 'path';
-import { FORM_REGISTRY, SITUATION_GROUP_ORDER, formConfig, formFamily, hasVestingInput } from '../lib/formRegistry';
+import { FORM_REGISTRY, INSTRUMENT_COUNT, SITUATION_GROUP_ORDER, formConfig, formFamily, hasVestingInput } from '../lib/formRegistry';
 import { DEED_LABELS, deedTypeLabel } from '../lib/deedTypes';
 import { isAffidavitType } from '../lib/deedValidation';
 import { codeOnly } from '../test-support/sourceText';
@@ -205,5 +205,95 @@ describe('FORMS flag-4 ruling — the companion notice is passive guidance', () 
 
   it('deed types carry no companion notice', () => {
     expect(formConfig('grant-deed')?.companionNotice).toBeUndefined();
+  });
+});
+
+/**
+ * ═══ THE MARKETING NUMBER IS THE REGISTRY'S NUMBER ═══
+ *
+ * HOME2 corrected the homepage from "5 CA instruments" to 21 and the
+ * report flagged the result as the least-sure item: 21 was right on the
+ * day and pinned to nothing, so the day a 22nd instrument shipped the
+ * copy would quietly be wrong again — the same defect, one number later.
+ * The owner ruled it a real gap and placed the fix here, with the
+ * registry, "so a 22nd instrument either updates the copy or fails".
+ *
+ * THE MECHANISM IS `INSTRUMENT_COUNT`, not this file. The surfaces derive
+ * the number, so nobody has to remember (§14.7 — a note is a thing to
+ * remember, and remembering is the faculty that just failed). What is
+ * pinned below is that the derivation is still what is happening: the
+ * sweep goes red the moment a literal count reappears next to the word
+ * "instrument", which is exactly what re-hardcoding looks like.
+ *
+ * IT FAILS CLOSED. A number near that word must equal the registry's
+ * count; anything else — a stale 21, a rounded 20, a hopeful 25 — fails.
+ */
+describe('the instrument count nobody has to remember', () => {
+  it('is derived from the registry rather than asserted beside it', () => {
+    expect(INSTRUMENT_COUNT).toBe(Object.keys(FORM_REGISTRY).length);
+  });
+
+  const SURFACES = ['app', 'components'];
+  const files: string[] = [];
+  const walk = (dir: string) => {
+    for (const entry of fs.readdirSync(dir)) {
+      const full = path.join(dir, entry);
+      if (fs.statSync(full).isDirectory()) {
+        if (entry !== '__tests__' && entry !== 'node_modules') walk(full);
+      } else if (/\.tsx?$/.test(entry)) files.push(full);
+    }
+  };
+  for (const s of SURFACES) walk(path.join(__dirname, '..', s));
+
+  it('the homepage prints the derived value, not a number of its own', () => {
+    expect(readSource('app', 'page.tsx')).toContain('INSTRUMENT_COUNT');
+  });
+
+  it('no surface states a count of its own', () => {
+    // A number RENDERED as text — a quoted numeric string or a bare JSX
+    // text node. Class names ("mb-2") and array indexes are not counts
+    // and do not match, because the whole quoted value must be digits.
+    const RENDERED = /"(\d{1,3})"|'(\d{1,3})'|>\s*(\d{1,3})\s*</g;
+    const offenders: string[] = [];
+    for (const file of files) {
+      const src = codeOnly(fs.readFileSync(file, 'utf8'));
+      for (const hit of src.matchAll(/instruments?\b/gi)) {
+        const at = hit.index ?? 0;
+        const window = src.slice(Math.max(0, at - 180), at + 180);
+        for (const m of window.matchAll(RENDERED)) {
+          const value = Number(m[1] ?? m[2] ?? m[3]);
+          if (value !== INSTRUMENT_COUNT) continue;
+          offenders.push(`${file.replace(path.join(__dirname, '..'), '')}: ${m[0]}`);
+        }
+      }
+    }
+    // Written as "a literal equal to today's count is a hard-coded
+    // count" — the stale case (registry 22, copy 21) is caught by the
+    // same sweep from the other side, because 21 near "instruments" is
+    // then a number that is not the registry's and the copy is wrong
+    // whichever number it is. Both readings point at the same line.
+    expect(offenders).toEqual([]);
+  });
+
+  it('catches a stale number as well as a re-hardcoded one', () => {
+    /**
+     * THE PIN'S OWN MUTATION PROBE, kept in the suite rather than run
+     * once by hand — the two failure modes §14.1.1 asks for. A pin that
+     * only fires on today's value would go quiet on the exact day the
+     * count changes, which is the day it is needed.
+     */
+    const near = (n: number) => `<div>${n}</div><div>CA instruments</div>`;
+    const stale = (src: string) => {
+      const out: number[] = [];
+      for (const hit of src.matchAll(/instruments?\b/gi)) {
+        const at = hit.index ?? 0;
+        const window = src.slice(Math.max(0, at - 180), at + 180);
+        for (const m of window.matchAll(/>\s*(\d{1,3})\s*</g)) out.push(Number(m[1]));
+      }
+      return out;
+    };
+    expect(stale(near(INSTRUMENT_COUNT))).toContain(INSTRUMENT_COUNT);
+    expect(stale(near(INSTRUMENT_COUNT + 1))).toContain(INSTRUMENT_COUNT + 1);
+    expect(stale('<div>CA instruments</div>')).toEqual([]);
   });
 });
