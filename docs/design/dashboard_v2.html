@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DeedPro — Dashboard v2</title>
+<style>
+  :root{
+    --violet:#6D3BF5; --violet-dk:#5A2FD6; --violet-soft:#F1ECFF; --violet-soft2:#EDE7FF;
+    --amber:#B45309; --amber-soft:#FEF6E7; --amber-line:#E9A23B; --amber-bd:#F5DFB4;
+    --ink:#12131A; --ink-2:#3F4356; --ink-3:#6B7085; --ink-4:#9AA0B4;
+    --line:#E7E8EF; --line-2:#F1F2F7; --bg:#F7F7FB; --card:#fff; --stale:#B9BDCC;
+    --red:#C4322B;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font);background:#EDEEF3;color:var(--ink);-webkit-font-smoothing:antialiased;padding:22px 18px 60px}
+  svg{display:block}
+
+  /* mockup chrome */
+  .chrome{max-width:1240px;margin:0 auto 14px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .chrome h1{font-size:13px;font-weight:600;letter-spacing:.02em;color:var(--ink-3);text-transform:uppercase}
+  .chrome .sp{flex:1}
+  .seg{display:flex;background:#DFE1E9;border-radius:10px;padding:3px;gap:2px}
+  .seg button{font:inherit;font-size:12.5px;font-weight:550;border:0;background:transparent;color:var(--ink-3);
+    padding:6px 13px;border-radius:7px;cursor:pointer;white-space:nowrap}
+  .seg button[aria-pressed="true"]{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(16,18,30,.14)}
+
+  .app{max-width:1240px;margin:0 auto;background:var(--bg);border:1px solid #D9DBE4;border-radius:18px;
+    overflow:hidden;display:grid;grid-template-columns:246px 1fr;min-height:660px;
+    box-shadow:0 18px 44px -20px rgba(16,18,40,.34)}
+
+  /* ---------- SIDEBAR (unchanged from production) ---------- */
+  .side{background:#fff;border-right:1px solid var(--line);padding:16px 12px 12px;display:flex;flex-direction:column}
+  .brand{display:flex;align-items:center;gap:10px;padding:4px 8px 22px;font-weight:750;font-size:19px;letter-spacing:-.025em}
+  .brand i{width:30px;height:30px;border-radius:8px;background:linear-gradient(140deg,#7C4DFF,#A47BFF);flex:none;
+    display:grid;place-items:center}
+  .brand i::after{content:"";width:11px;height:11px;border:2px solid #fff;border-radius:50%}
+  .brand em{font-style:normal;color:var(--violet)}
+  .brand .cl{margin-left:auto;width:22px;height:22px;border:1px solid var(--line);border-radius:50%;
+    display:grid;place-items:center;color:var(--ink-4);font-size:11px}
+  .nav{display:flex;flex-direction:column;gap:1px}
+  .nav .lbl{font-size:10.5px;font-weight:700;letter-spacing:.1em;color:var(--ink-4);padding:16px 10px 6px}
+  .nav a{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:9px;text-decoration:none;
+    color:var(--ink-2);font-size:14px;font-weight:500;position:relative}
+  .nav a svg{width:17px;height:17px;stroke:currentColor;stroke-width:1.9;fill:none;flex:none;opacity:.75}
+  .nav a.on{background:var(--violet-soft);color:var(--violet-dk);font-weight:650}
+  .nav a.on svg{opacity:1}
+  .nav a.on::before{content:"";position:absolute;left:-12px;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--violet)}
+  .nav a:hover:not(.on){background:var(--line-2)}
+  .nav .badge{margin-left:auto;background:var(--violet-soft2);color:var(--violet-dk);font-size:11.5px;font-weight:700;
+    border-radius:20px;padding:1px 8px;min-width:22px;text-align:center}
+  .side .out{margin-top:auto;padding-top:14px}
+  .side .out a{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:9px;text-decoration:none;
+    color:var(--red);font-size:14px;font-weight:550}
+  .side .out a svg{width:17px;height:17px;stroke:currentColor;stroke-width:1.9;fill:none}
+  .side .out a:hover{background:#FDF1F0}
+
+  /* ---------- main ---------- */
+  .col{display:flex;flex-direction:column;min-width:0}
+  .notice{display:flex;align-items:center;gap:10px;background:var(--amber-soft);border-bottom:1px solid var(--amber-bd);
+    padding:9px 24px;font-size:12.5px;color:#8A5B12}
+  .notice a{color:#8A5B12;font-weight:650}
+  .notice .x{margin-left:auto;color:#B08245;font-size:15px;line-height:1;cursor:pointer}
+
+  .top{display:flex;align-items:center;gap:12px;padding:12px 24px;background:#fff;border-bottom:1px solid var(--line)}
+  .search{flex:1;max-width:440px;display:flex;align-items:center;gap:9px;background:var(--bg);border:1px solid var(--line);
+    border-radius:10px;padding:8px 11px;color:var(--ink-4);font-size:13px}
+  .search svg{width:15px;height:15px;stroke:currentColor;stroke-width:2;fill:none;opacity:.8}
+  .search kbd{margin-left:auto}
+  kbd{font-family:var(--font);font-size:10.5px;font-weight:650;color:var(--ink-4);background:#fff;border:1px solid var(--line);
+    border-bottom-width:2px;border-radius:5px;padding:1px 5px}
+  .who{margin-left:auto;display:flex;align-items:center;gap:9px;font-size:13px;color:var(--ink-3)}
+  .av{width:28px;height:28px;border-radius:50%;background:#DDD6FE;color:var(--violet-dk);display:grid;place-items:center;
+    font-size:11px;font-weight:700}
+
+  main{padding:24px 24px 34px;overflow:auto;flex:1}
+  .head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+  .head h2{font-size:26px;font-weight:700;letter-spacing:-.032em}
+  .head .date{font-size:13px;color:var(--ink-4);margin-left:auto}
+
+  /* quick-start chip strip (was "Start something new") */
+  .jump{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:20px;
+    padding-bottom:18px;border-bottom:1px solid var(--line)}
+  .jump .cap{font-size:12px;font-weight:700;letter-spacing:.075em;text-transform:uppercase;color:var(--ink-4);margin-right:3px}
+  .chip{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:999px;
+    padding:7px 14px 7px 11px;font-size:13.5px;font-weight:600;color:var(--ink-2);cursor:pointer;font-family:inherit;
+    box-shadow:0 1px 1.5px rgba(16,18,30,.05);white-space:nowrap}
+  .chip:hover{border-color:#C9BCFB;background:#FCFBFF;color:var(--violet-dk)}
+  .chip svg{width:15px;height:15px;stroke:currentColor;stroke-width:1.8;fill:none;opacity:.55}
+  .chip:hover svg{opacity:.9}
+  .chip .note{font-size:11px;font-weight:600;color:var(--ink-4);background:var(--line-2);border-radius:20px;padding:1px 7px}
+  .chip.more{background:transparent;border-style:dashed;box-shadow:none;color:var(--ink-3);font-weight:550}
+  .chip.more:hover{background:#fff}
+
+  /* order group */
+  .order{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:14px;overflow:hidden}
+  .order > header{display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:1px solid var(--line-2);
+    background:linear-gradient(#FCFCFE,#F9F9FC)}
+  .order h3{font-size:14.5px;font-weight:700;letter-spacing:-.01em}
+  .cty{font-size:12px;color:var(--ink-4);font-weight:500}
+  .order .meta{font-size:12.5px;color:var(--ink-4);margin-left:auto;display:flex;align-items:center;gap:9px}
+  .order .meta a{color:var(--ink-3);text-decoration:none;border-bottom:1px solid var(--line)}
+  .order .meta a:hover{color:var(--violet-dk);border-color:var(--violet)}
+
+  .item{display:flex;gap:14px;padding:15px 18px 15px 0;border-top:1px solid var(--line-2)}
+  .item:first-of-type{border-top:0}
+  .spine{width:4px;flex:none;border-radius:0 3px 3px 0;background:var(--stale)}
+  .item[data-kind="chase"] .spine{background:var(--amber-line)}
+  .item[data-kind="you"]   .spine{background:var(--violet)}
+  .body{flex:1;min-width:0}
+  .status{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+  .tag{font-size:10.5px;font-weight:750;letter-spacing:.075em;text-transform:uppercase;padding:2.5px 7px;border-radius:6px}
+  .item[data-kind="chase"] .tag{background:var(--amber-soft);color:var(--amber)}
+  .item[data-kind="you"]   .tag{background:var(--violet-soft);color:var(--violet-dk)}
+  .item[data-kind="stale"] .tag{background:#F1F2F7;color:var(--ink-3)}
+  .age{font-size:12px;color:var(--ink-4);font-weight:500}
+  .title{font-size:15px;font-weight:650;letter-spacing:-.012em;margin-bottom:3px}
+  .title .doc{font-weight:500;color:var(--ink-4);font-size:13px;margin-left:6px}
+  .say{font-size:13.5px;color:var(--ink-2);line-height:1.5}
+  .sub{font-size:12.5px;color:var(--ink-4);margin-top:4px;line-height:1.5;overflow-wrap:anywhere}
+  .acts{display:flex;align-items:center;gap:8px;flex:none;padding-left:10px}
+  .btn{font:inherit;font-size:13.5px;font-weight:600;border:0;border-radius:10px;padding:9px 15px;cursor:pointer;
+    display:inline-flex;align-items:center;gap:7px;white-space:nowrap;line-height:1.2}
+  .btn-primary{background:var(--violet);color:#fff}
+  .btn-primary:hover{background:var(--violet-dk)}
+  .btn-ghost{background:#fff;color:var(--ink-2);border:1px solid var(--line);box-shadow:0 1px 1px rgba(16,18,30,.04)}
+  .btn-ghost:hover{background:var(--line-2)}
+  .btn-sm{font-size:12.5px;padding:7px 12px;border-radius:9px}
+
+  .closer{display:flex;align-items:center;gap:10px;padding:14px 18px;font-size:13px;color:var(--ink-3);
+    background:#fff;border:1px dashed var(--line);border-radius:14px}
+  .closer b{font-weight:650;color:var(--ink-2)}
+  .closer .sp{flex:1}
+  .closer a{color:var(--violet-dk);text-decoration:none;font-weight:600}
+  .closer a:hover{text-decoration:underline}
+
+  .clear{background:#fff;border:1px solid var(--line);border-radius:14px;padding:44px 26px;text-align:center}
+  .clear .mk{width:44px;height:44px;border-radius:50%;background:var(--violet-soft);color:var(--violet-dk);
+    display:grid;place-items:center;margin:0 auto 14px;font-size:20px}
+  .clear h3{font-size:18px;font-weight:700;letter-spacing:-.02em;margin-bottom:5px}
+  .clear p{font-size:13.5px;color:var(--ink-3)}
+
+  .hint{max-width:1240px;margin:12px auto 0;font-size:12px;color:#8A8FA3;text-align:center}
+  .notes{max-width:1240px;margin:28px auto 0;background:#fff;border:1px solid #D9DBE4;border-radius:16px;padding:22px 26px}
+  .notes h4{font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-4);margin-bottom:14px}
+  .notes ul{list-style:none;display:grid;gap:11px}
+  .notes li{font-size:13.5px;color:var(--ink-2);line-height:1.55;padding-left:19px;position:relative}
+  .notes li::before{content:"";position:absolute;left:0;top:8px;width:7px;height:7px;border-radius:2px;background:var(--violet)}
+  .notes li b{color:var(--ink);font-weight:650}
+  .notes .cut li::before{background:#D0D3DE}
+
+  @media (max-width:560px){
+    body{padding:14px 10px 40px}
+    .notice{padding:8px 14px}
+    .top{padding:10px 14px;gap:9px}
+    .who span:not(.av){display:none}
+    .search kbd{display:none}
+    main{padding:18px 14px 26px}
+    .head h2{font-size:21px}
+    .head .date{width:100%;margin-left:0}
+    .jump{gap:7px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:16px;
+      scrollbar-width:none;-ms-overflow-style:none}
+    .jump::-webkit-scrollbar{display:none}
+    .jump .cap{display:none}
+    .chip{font-size:12.5px;padding:6px 12px 6px 10px;flex:none}
+    .chip .note{display:none}
+    .order > header{padding:11px 14px;flex-wrap:wrap;gap:6px}
+    .item{flex-wrap:wrap;padding:13px 14px 13px 0}
+    .acts{width:100%;padding-left:14px;padding-top:6px}
+    .acts .btn{flex:1;justify-content:center}
+    .notes{padding:18px 16px}
+  }
+  @media (max-width:900px){
+    .app{grid-template-columns:1fr}
+    .side{display:none}
+  }
+</style>
+</head>
+<body>
+
+<div class="chrome">
+  <h1>DeedPro · dashboard v2 — merged</h1>
+  <div class="sp"></div>
+  <div class="seg" role="group" aria-label="State">
+    <button data-state="today" aria-pressed="true">Today</button>
+    <button data-state="busy" aria-pressed="false">A busy day</button>
+    <button data-state="clear" aria-pressed="false">All clear</button>
+  </div>
+</div>
+
+<div class="app">
+  <!-- SIDEBAR: unchanged -->
+  <aside class="side">
+    <div class="brand"><i></i>Deed<em>Pro</em><span class="cl">‹</span></div>
+    <nav class="nav">
+      <div class="lbl">WORK</div>
+      <a href="#" class="on"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 12v5M9.5 14.5h5"/></svg>Create Deed</a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M9 3h7l4 4v10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M4 7v12a2 2 0 0 0 2 2h9"/></svg>Past Deeds</a>
+      <div class="lbl">TRACKING</div>
+      <a href="#"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18M12 14v3l2 1"/></svg>Signings <span class="badge">1</span></a>
+      <a href="#"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.6 10.8l6.8-4M8.6 13.2l6.8 4"/></svg>Requests</a>
+      <div class="lbl">SETUP</div>
+      <a href="#"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M17 11a3 3 0 0 0 0-6M18.5 20a6.2 6.2 0 0 0-3-5.3"/></svg>Partners</a>
+      <a href="#"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.2 5.2l2.1 2.1M16.7 16.7l2.1 2.1M18.8 5.2l-2.1 2.1M7.3 16.7l-2.1 2.1"/></svg>Settings</a>
+      <div class="lbl">ADMIN</div>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.4-3.2 8.3-8 9.5C7.2 20.3 4 16.4 4 12V6z"/><path d="M9.5 12l1.8 1.8 3.4-3.6"/></svg>Admin</a>
+    </nav>
+    <div class="out">
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 16l-4-4 4-4M6 12h9"/></svg>Logout</a>
+    </div>
+  </aside>
+
+  <div class="col">
+    <div class="notice">
+      <span>Your email isn't confirmed yet — we sent a link to <b>realty.reports@gmail.com</b>. <a href="#">Send it again</a></span>
+      <span class="x">×</span>
+    </div>
+
+    <div class="top">
+      <div class="search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+        Search address, grantee, or doc #<kbd>/</kbd>
+      </div>
+      <div class="who"><span class="av">JD</span><span>John Doe</span></div>
+    </div>
+
+    <main>
+      <div class="head">
+        <h2 id="headline">3 things need you</h2>
+        <div class="date">Good evening, John · Tuesday, August 18</div>
+      </div>
+
+      <div class="jump">
+        <span class="cap">Jump into</span>
+        <button class="chip"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>Grant Deed<span class="note">most used</span></button>
+        <button class="chip"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>Affidavit — Death of Joint Tenant<span class="note">1 this year</span></button>
+        <button class="chip more">All 21 California instruments →</button>
+      </div>
+
+      <div id="queue"></div>
+    </main>
+  </div>
+</div>
+
+<p class="hint">Sidebar, nav badges and the email notice are unchanged. Toggle the states above to see the queue scale.</p>
+
+<div class="notes">
+  <h4>How the two got merged</h4>
+  <ul>
+    <li><b>Sidebar untouched.</b> Same sections, same order, same Signings badge, same Logout.</li>
+    <li><b>"Start something new" became a chip strip.</b> Same two shortcuts and the browse-all link, but one 40px row instead of a 200px card — and it sits above the divider, so it reads as "jump in or clear your queue," not as a competing panel.</li>
+    <li><b>The queue is the whole body.</b> Grouped by property, ranked cheapest-to-clear first, one sentence and one obvious action per row, duplicates collapsed.</li>
+    <li><b>Greeting kept, demoted.</b> It rides on the right of the headline instead of taking its own two lines.</li>
+  </ul>
+  <h4 style="margin-top:22px">Removed, per your call</h4>
+  <ul class="cut">
+    <li><b>The four stat tiles.</b> Counts that matter now live in each order header ("6 open · 4 recorded") and the closing line.</li>
+    <li><b>The green Create New Deed bar.</b> The chip strip and the sidebar's Create Deed cover it.</li>
+    <li><b>"Recently worked on."</b> Every row read <i>Prepared</i>. It's the Past Deeds link now.</li>
+    <li><b>The green all-clear banner and the three-column "What's waiting" split.</b> Folded into the queue.</li>
+  </ul>
+</div>
+
+<script>
+const DATA = {
+  today: { orders: [
+    { addr:"1358 5TH ST", county:"Los Angeles County", docs:6, recorded:4, items:[
+      { kind:"chase", tag:"Gone quiet", age:"8 days", title:"Affidavit — Death of Joint Tenant", doc:"#90",
+        say:"ERWER still hasn't opened their signing link.",
+        sub:"Jerry Henrandez (notary) opened his 8 days ago. The time you offered has passed.",
+        primary:"Resend to ERWER", secondary:"Open signing" },
+      { kind:"you", tag:"Unfinished", age:"worked on today", title:"Grant Deed", doc:"#93",
+        say:"Every field is confirmed. It needs you to finish and record it.",
+        sub:"HERNANDEZ GERARDO J; MENDOZA YESSICA S → TEST GRANTEE ONE",
+        primary:"Finish it", secondary:"Preview" },
+      { kind:"stale", tag:"Sitting", age:"21 days", title:"4 old Grant Deed drafts", doc:"#78 #79 #80 #81",
+        say:"Nobody is waiting on these but you.",
+        sub:"All four are on this property. Archiving keeps them — you can bring them back.",
+        primary:"Archive all 4", secondary:"Review them" }
+    ]}
+  ], closer:"4 recorded deeds on this property" },
+
+  busy: { orders: [
+    { addr:"8815 SEPULVEDA BLVD", county:"Los Angeles County", docs:1, recorded:0, items:[
+      { kind:"chase", tag:"Gone quiet", age:"11 days", title:"Grant Deed", doc:"#96",
+        say:"Sunview Title hasn't returned the vesting confirmation.",
+        sub:"Requested Aug 7. Two reminders sent.",
+        primary:"Nudge Sunview", secondary:"Open request" }
+    ]},
+    { addr:"1358 5TH ST", county:"Los Angeles County", docs:6, recorded:4, items:[
+      { kind:"chase", tag:"Gone quiet", age:"8 days", title:"Affidavit — Death of Joint Tenant", doc:"#90",
+        say:"ERWER still hasn't opened their signing link.",
+        sub:"Jerry Henrandez (notary) opened his 8 days ago. The time you offered has passed.",
+        primary:"Resend to ERWER", secondary:"Open signing" },
+      { kind:"you", tag:"Unfinished", age:"worked on today", title:"Grant Deed", doc:"#93",
+        say:"Every field is confirmed. It needs you to finish and record it.",
+        sub:"HERNANDEZ GERARDO J; MENDOZA YESSICA S → TEST GRANTEE ONE",
+        primary:"Finish it", secondary:"Preview" },
+      { kind:"stale", tag:"Sitting", age:"21 days", title:"4 old Grant Deed drafts", doc:"#78 #79 #80 #81",
+        say:"Nobody is waiting on these but you.",
+        sub:"All four are on this property. Archiving keeps them — you can bring them back.",
+        primary:"Archive all 4", secondary:"Review them" }
+    ]},
+    { addr:"219 PALM CANYON DR", county:"Riverside County", docs:1, recorded:1, items:[
+      { kind:"you", tag:"Signing Thursday", age:"in 2 days", title:"Interspousal Transfer Deed", doc:"#97",
+        say:"Notary confirmed for Thursday 10:00 AM. The deed isn't prepared yet.",
+        sub:"REYES MARISOL → REYES MARISOL; REYES DANIEL",
+        primary:"Prepare it", secondary:"View signing" }
+    ]},
+    { addr:"4420 CRENSHAW BLVD", county:"Los Angeles County", docs:1, recorded:0, items:[
+      { kind:"you", tag:"Needs a decision", age:"—", title:"Quitclaim Deed", doc:"#95",
+        say:"Transfer tax exemption is unconfirmed — you have to pick one before this can record.",
+        sub:"OKAFOR CHINWE → OKAFOR FAMILY TRUST",
+        primary:"Choose exemption", secondary:"Open deed" }
+    ]}
+  ], closer:"5 recorded deeds across 4 orders" },
+
+  clear: { orders: [], closer:"" }
+};
+
+const q = document.getElementById('queue');
+const headline = document.getElementById('headline');
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+const itemHTML = it => `<div class="item" data-kind="${it.kind}">
+  <div class="spine"></div>
+  <div class="body">
+    <div class="status"><span class="tag">${esc(it.tag)}</span><span class="age">${esc(it.age)}</span></div>
+    <div class="title">${esc(it.title)}<span class="doc">${esc(it.doc)}</span></div>
+    <div class="say">${esc(it.say)}</div>
+    <div class="sub">${esc(it.sub)}</div>
+  </div>
+  <div class="acts">
+    <button class="btn btn-ghost btn-sm">${esc(it.secondary)}</button>
+    <button class="btn btn-primary btn-sm">${esc(it.primary)}</button>
+  </div>
+</div>`;
+
+const orderHTML = o => `<section class="order">
+  <header>
+    <h3>${esc(o.addr)}</h3><span class="cty">${esc(o.county)}</span>
+    <div class="meta"><span>${o.docs} open</span>${o.recorded?`<span>·</span><a href="#">${o.recorded} recorded</a>`:``}</div>
+  </header>
+  ${o.items.map(itemHTML).join('')}
+</section>`;
+
+function render(state){
+  const d = DATA[state];
+  const count = d.orders.reduce((a,o)=> a + o.items.length, 0);
+
+  if(!d.orders.length){
+    headline.textContent = "You're clear";
+    q.innerHTML = `<div class="clear"><div class="mk">✓</div>
+      <h3>Nothing needs you.</h3>
+      <p>No deed is waiting on you, and nobody is waiting on a reply.</p></div>`;
+    return;
+  }
+  headline.textContent = count === 1 ? "1 thing needs you" : `${count} things need you`;
+  q.innerHTML = d.orders.map(orderHTML).join('') +
+    `<div class="closer"><b>That's everything.</b><span>${esc(d.closer)}</span>
+      <span class="sp"></span><a href="#">Past deeds →</a></div>`;
+}
+
+document.querySelectorAll('.seg button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('.seg button').forEach(x=> x.setAttribute('aria-pressed','false'));
+    b.setAttribute('aria-pressed','true');
+    render(b.dataset.state);
+  });
+});
+render('today');
+</script>
+</body>
+</html>
