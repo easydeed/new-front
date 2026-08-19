@@ -1195,6 +1195,93 @@ we reach it.
   every method. Removing PATCH again turns five tests red, including the
   live preflight.
 
+- **The `ALLOWED_ORIGINS` floor comes out of the code — WITH A NAMED
+  TRIGGER** (CORS1/CORS2, 2026-08-18).
+  **DECIDED** 2026-08-18 — the deploy config should own the origin list.
+  **BUILT** — half, deliberately: the env variable is read and ADDS to
+  the list in code. It cannot remove from it.
+
+  **Why the half.** Replacement is one line (`return accepted or
+  list(DEFAULT_ORIGINS)`), and taking it in CORS1 would have handed the
+  middleware whatever the dashboard value happens to be — a variable
+  nobody has ever had a reason to keep correct, because nothing read it.
+  If that value is the single origin `render.yaml` declared, replacement
+  drops `deedpro.io` and takes the real domain offline: a total outage
+  shipped by the ticket that fixed CORS. Owner-ruled: keep additive.
+
+  **THE TRIGGER, so this is not a permanent accommodation.** The API now
+  prints its effective CORS policy at boot, tagging each origin `[env +
+  code]` or `[code]`. **When that log shows the env value alone covering
+  both production origins, the floor is removed and the env replaces the
+  list.** That is a one-line change plus the pin flip, and it is a real
+  ticket rather than a someday: a floor in code plus a list in config is
+  two declarations again, which is the disease this whole finding is
+  about.
+
+- **CORS is the OUTERMOST middleware, and that is a position nothing can
+  see in a diff** (CORS2, 2026-08-18).
+  **DECIDED** 2026-08-18 — register CORS last so preflights short-circuit
+  before the metrics and connection middlewares.
+  **BUILT** — yes, CORS2.
+
+  The alternative was an OPTIONS early-return inside
+  `db_connection_middleware`, rejected on the owner's rule: it is safe
+  only because no route registers OPTIONS *today*, and that becomes false
+  silently. **"Safe today but becomes false silently is the exact
+  condition we stopped accepting."**
+
+  **The cost, named:** `metrics_middleware` no longer sees preflights, so
+  they stop being counted. Accepted — a preflight is not a request whose
+  latency anyone cares about.
+
+  **Why it needed a pin anyway.** `add_middleware` prepends, so the
+  behaviour is decided by WHERE IN THE FILE the block sits. Moving it
+  back up to the natural place — where it lived for the project's whole
+  life — silently puts a database connection in front of every preflight
+  again, and nothing about that edit would look wrong. Two pins: the
+  position, and a measured preflight that must open zero connections.
+- **A TEST THAT STATED ITS ASSUMPTION IN A COMMENT AND DID NOTHING TO
+  MAKE IT TRUE** (CORS2's CI failure, 2026-08-18).
+  **DECIDED** 2026-08-18 — the suite waits for schema convergence once,
+  before anything runs, and fails loudly rather than hanging.
+  **BUILT** — yes, in `backend/tests/conftest.py` (CORS2).
+
+  **The failure.** Five tests red at once — `relation "users" does not
+  exist`, `relation "user_profiles" does not exist`, and the four billing
+  tables missing — in a run where nothing was wrong with the code. All
+  five were the earliest tests alphabetically.
+
+  **The diagnosis.** `database.py` converges the schema in a DAEMON
+  THREAD started at import. That is right for the service and the reason
+  is on the record: converging on the import path once blocked uvicorn's
+  port binding, exceeded Render's port-detection window, and timed out a
+  deploy with the old instance still serving.
+
+  For the SUITE it is an undeclared race — and
+  `test_the_four_tables_exist_after_convergence` **states the assumption
+  in its own comment**: *"Schema is already converged when tests run."*
+  A belief about TIMING, held by a test that does nothing to make the
+  belief true. That is §14's family inside the suite's own setup: an
+  instrument measuring something other than what it claims, and the
+  claim written down beside it in prose.
+
+  **Why the fix does not call `create_tables()` mid-suite** — and this is
+  the part a future reader will otherwise "simplify". Calling it
+  mid-suite issues `ALTER TABLE users`, which queues behind any open
+  transaction and then blocks every later reader. That is the same
+  hazard the daemon thread exists to avoid. So the fixture WATCHES for
+  the convergence the service already performs; it does not perform one.
+
+  **And it fails loudly at 90 seconds** rather than waiting forever: a
+  schema that will not converge is a real failure, and an unbounded wait
+  converts it into a hung job with no message.
+
+  **Proved, not retried.** Against an empty database the failure
+  reproduces exactly as CI reported it; with the fixture the same empty
+  database passes. Scope added inside a CORS ticket, flagged rather than
+  buried, and owner-ruled to stay: *"the alternative was pushing empty
+  commits until the race went our way."*
+
 - **PILOT2 — the pre-charge notices exist; THE CRON DOES NOT**
   (2026-08-18).
   **DECIDED** 2026-08-18 — two notices, 15 and 5 days before the charge,
