@@ -44,6 +44,12 @@ TEMPLATES = (
     # hold a link, the link is dead, and discovering that by clicking it
     # is worse than being told.
     "signing_cancelled",
+    # PILOT2 — the pre-charge notices, at 15 and 5 days. TWO NAMES rather
+    # than one template with a parameter, because `email_log.template` is
+    # the record somebody counts: "did the 15-day notice go out" must be
+    # answerable without joining to whatever context column happened to
+    # carry the number.
+    "renewal_15day", "renewal_5day",
 )
 
 
@@ -207,6 +213,39 @@ def send_payment_failed_with_reason(user_email: str, full_name: str,
     return _send("payment_failed", user_email,
                  email_templates.payment_failed(full_name, amount_text, billing_url),
                  user_id=user_id)
+
+
+def send_renewal_notice_with_reason(user_email: str, full_name: str,
+                                    notice_kind: str, charge_text: str,
+                                    amount_text: str, billing_url: str,
+                                    days_text: str,
+                                    user_id: Optional[int] = None) -> SendResult:
+    """PILOT2 — she is told before she is charged, not after.
+
+    `notice_kind` IS the template name (`renewal_15day` / `renewal_5day`),
+    so `email_log` can be counted per notice without decoding a context
+    blob. The rendering is identical for both — the difference is which
+    window fired, and that is a fact about the schedule rather than about
+    the message.
+    """
+    rendered = email_templates.renewal_notice(full_name, charge_text,
+                                              amount_text, billing_url,
+                                              days_text)
+    # DISPATCHED ON LITERALS rather than passing `notice_kind` straight
+    # through, and the reason is the meta-pin in
+    # `test_admin3_email_outcomes.py`: it reads this file and matches
+    # every declared template name against the `_send` calls it can SEE.
+    # A variable label satisfies the runtime and defeats the check —
+    # which is how a template would end up in `email_log` under a name
+    # nothing declared. It caught this on the first run.
+    if notice_kind == "renewal_15day":
+        return _send("renewal_15day", user_email, rendered, user_id=user_id)
+    if notice_kind == "renewal_5day":
+        return _send("renewal_5day", user_email, rendered, user_id=user_id)
+    # Refused rather than coerced: an unknown kind would write a template
+    # name into `email_log` that the TEMPLATES tuple does not know, which
+    # is the vocabulary drift that tuple exists to stop.
+    return False, f"unknown renewal notice kind: {notice_kind}"
 
 
 def send_notary_invited(recipient_email: str, notary_name: str, officer_name: str,

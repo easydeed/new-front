@@ -307,6 +307,53 @@ def payment_failed(full_name, amount_text, attempt_url) -> Rendered:
     return subject, _base("Payment failed — your account is unaffected", content, False), text
 
 
+def renewal_notice(full_name, charge_text, amount_text_value, billing_url,
+                   days_text) -> Rendered:
+    """PILOT2 — she is about to be charged, and she knows before it happens.
+
+    ═══ WHAT THIS SAYS AND WHY EACH PART IS THERE ═══
+
+    THE DATE, NOT A DURATION. "Your trial ends in 15 days" makes the
+    reader count from a day she has to remember; the date is checkable
+    against her calendar and against her statement.
+
+    THE AMOUNT, from Stripe's own preview of the invoice — not from our
+    price table, and not rounded. A notice quoting $249 for a $249.37
+    charge is a small lie that arrives on a bank statement.
+
+    THE WAY OUT, first-class rather than a footnote. The homepage
+    promises "cancel anytime"; a pre-charge notice that does not link to
+    the cancel control is that promise being made and then withheld at
+    the one moment it is worth something.
+
+    AND NO PERSUASION. This is not a retention email. It carries no offer,
+    no "we would hate to see you go", and no reason to stay — a message
+    whose whole purpose is that nobody is surprised must not also be
+    trying to change the answer.
+    """
+    subject = f"Your DeedPro subscription renews on {charge_text}"
+    content = (
+        _p(f"Hi {_esc(full_name) or 'there'},")
+        + _p(f"This is a reminder that your DeedPro subscription will be "
+             f"charged <strong>{_esc(amount_text_value)}</strong> on "
+             f"<strong>{_esc(charge_text)}</strong> — {_esc(days_text)}.")
+        + _p("No action is needed if you would like to continue. If you would "
+             "rather not be charged, you can cancel before that date.")
+        + _button(billing_url, "Manage or cancel your subscription")
+        + _p('<span style="font-size:13px;color:#8a94a0;">The amount and date '
+             "above come from your Stripe invoice, so they are what will "
+             "actually be charged.</span>")
+    )
+    text = (
+        f"Your DeedPro subscription will be charged {amount_text_value} on "
+        f"{charge_text} ({days_text}).\n\n"
+        "No action is needed to continue. To cancel before then, open your "
+        f"billing settings: {billing_url}"
+    )
+    return subject, _base(f"Your subscription renews on {charge_text}",
+                          content, False), text
+
+
 def welcome(full_name) -> Rendered:
     subject = "Welcome to DeedPro"
     url = _frontend_url()

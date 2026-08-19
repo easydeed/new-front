@@ -1240,6 +1240,80 @@ we reach it.
   life — silently puts a database connection in front of every preflight
   again, and nothing about that edit would look wrong. Two pins: the
   position, and a measured preflight that must open zero connections.
+- **A TEST THAT STATED ITS ASSUMPTION IN A COMMENT AND DID NOTHING TO
+  MAKE IT TRUE** (CORS2's CI failure, 2026-08-18).
+  **DECIDED** 2026-08-18 — the suite waits for schema convergence once,
+  before anything runs, and fails loudly rather than hanging.
+  **BUILT** — yes, in `backend/tests/conftest.py` (CORS2).
+
+  **The failure.** Five tests red at once — `relation "users" does not
+  exist`, `relation "user_profiles" does not exist`, and the four billing
+  tables missing — in a run where nothing was wrong with the code. All
+  five were the earliest tests alphabetically.
+
+  **The diagnosis.** `database.py` converges the schema in a DAEMON
+  THREAD started at import. That is right for the service and the reason
+  is on the record: converging on the import path once blocked uvicorn's
+  port binding, exceeded Render's port-detection window, and timed out a
+  deploy with the old instance still serving.
+
+  For the SUITE it is an undeclared race — and
+  `test_the_four_tables_exist_after_convergence` **states the assumption
+  in its own comment**: *"Schema is already converged when tests run."*
+  A belief about TIMING, held by a test that does nothing to make the
+  belief true. That is §14's family inside the suite's own setup: an
+  instrument measuring something other than what it claims, and the
+  claim written down beside it in prose.
+
+  **Why the fix does not call `create_tables()` mid-suite** — and this is
+  the part a future reader will otherwise "simplify". Calling it
+  mid-suite issues `ALTER TABLE users`, which queues behind any open
+  transaction and then blocks every later reader. That is the same
+  hazard the daemon thread exists to avoid. So the fixture WATCHES for
+  the convergence the service already performs; it does not perform one.
+
+  **And it fails loudly at 90 seconds** rather than waiting forever: a
+  schema that will not converge is a real failure, and an unbounded wait
+  converts it into a hung job with no message.
+
+  **Proved, not retried.** Against an empty database the failure
+  reproduces exactly as CI reported it; with the fixture the same empty
+  database passes. Scope added inside a CORS ticket, flagged rather than
+  buried, and owner-ruled to stay: *"the alternative was pushing empty
+  commits until the race went our way."*
+
+- **PILOT2 — the pre-charge notices exist; THE CRON DOES NOT**
+  (2026-08-18).
+  **DECIDED** 2026-08-18 — two notices, 15 and 5 days before the charge,
+  off the date and amount Stripe computes, via the E1 transport.
+  **BUILT** — the job, the templates, the schema and the webhook signal.
+  **The Render cron service is NOT created: that is deploy topology and
+  therefore the owner's.**
+
+  **Until that service exists, the coupon path sends nothing.** Unlike
+  the purge, there is no in-request fallback carrying this work. The
+  `customer.subscription.trial_will_end` handler covers the 14-day trial
+  three days out, and the pilot's 100%-off coupon emits no trial event at
+  all. Stated loudly because a job nobody scheduled produces exactly the
+  customer experience of the gap it was written to close.
+
+  **The service, when it is created:**
+  `python backend/scripts/send_renewal_notices.py`, daily at 15:00 UTC,
+  with `DATABASE_URL`, `STRIPE_SECRET_KEY`, `FRONTEND_URL`,
+  `SENDGRID_API_KEY` and `EXPECTED_DATABASE=deedpro`. Exit 1 on any
+  failed send, so the cron's own alerting sees it.
+
+  **The date question, ruled.** `current_period_end` and `discount.end`
+  were both wrong; the upcoming invoice is authoritative because Stripe
+  computes it with the discount applied. The design persists nothing that
+  decides anything — `trial_end`, `renewal_at` and `renewal_amount_cents`
+  are a record for the admin view and for reconstructing what we
+  believed, never an input.
+
+  **A gap this closed that was never pilot-only:** the existing 14-day
+  trial charged with no warning. `trial_end` was present on every
+  subscription event and persisted nowhere, `trial_will_end` returned a
+  bare 200, and no template existed.
 
 ## Parked tickets (scoped, not scheduled)
 
