@@ -113,6 +113,16 @@ export function useGoogleMaps(onError?: (error: string) => void): PlacesLoad {
 
     // A tag already in the document — adopt it rather than adding a
     // second one for the same API.
+    //
+    // KNOWN RESIDUAL, owner-accepted and deliberately not chased: this
+    // waits on the tag's `load` event, and a tag that ALREADY FINISHED
+    // fires nothing. The `window.google?.maps?.places` check above covers
+    // the normal version of that — a finished script has defined the
+    // global. What is left uncovered is a script that finished AND failed
+    // to define the library, which sits at `loading` rather than saying
+    // `unavailable`. Honest either way; just quieter than intended, in a
+    // case nobody has seen. Named here rather than in a ticket, because
+    // the next person to read this code is who needs to know.
     const existing = document.querySelector<HTMLScriptElement>(
       `script[src*="${SRC_MATCH}"]`)
     if (existing) {
