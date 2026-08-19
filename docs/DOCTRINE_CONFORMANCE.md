@@ -1191,6 +1191,65 @@ domain should be narrowed until it is.
 
 ---
 
+### §14.8 — "Absence is neutral" governs DATA; absent CONFIGURATION is a broken deploy (2026-08-18, owner-ruled)
+
+**Statement.** The rule that an empty value is reported as empty rather
+than as a warning is a rule about **things the world may or may not have
+told us**. It does not extend to **things we were supposed to have set**.
+A county nobody chose is a real state an officer can be in; a company
+with no legal name is not a state, it is a deploy that did not finish.
+
+**The instance.** HOME2 added a footer contact block reading three
+`NEXT_PUBLIC_` variables and rendered **nothing** when they were unset,
+reasoning from BRAND.md's "Absence is neutral gray, not amber: that is a
+fact about our instrumentation, not a warning about data." The choice was
+flagged in the report rather than buried, and the owner overturned it:
+
+> "'Absence is neutral' is right for DATA — an unmeasured value, an empty
+> list, a county nobody set. A missing contact address isn't absent data,
+> it's a **broken deploy**, and the page is about to be forwarded by a
+> title rep whose escrows will look for a way to reach you. **This is
+> `ALLOWED_ORIGINS` in a footer.**"
+
+**Why the misreading was available.** Both rules are about not
+manufacturing information, and the footer genuinely must not invent a
+legal entity — a guessed one is worse than an absent one, because an
+absent one is obviously missing and a wrong one looks answered. That half
+was right and survives. What did not follow is that the READER should be
+left with the absence: inventing nothing and reporting nothing are
+different acts, and only the first was required.
+
+**The test that separates the two cases.** Ask **who was supposed to
+supply this value.** If the answer is the world, the officer, or a county
+— absent is a fact, and it is reported neutrally. If the answer is US, at
+deploy time — absent is a defect, and it is surfaced the way defects are:
+named, loudly, at boot, with a strict mode that refuses.
+
+**The mechanism, per §14.7.** `frontend/src/lib/publicEnvironment.ts` is
+deliberately the same instrument as `backend/services/environment.py` —
+a manifest, a REQUIRED/OPTIONAL classification with a consequence
+sentence apiece, an unmissable block at boot, and a strict flag that
+converts the warning into a refusal. A second design for the same problem
+is a second thing to learn.
+
+**One asymmetry, and it runs the other way.** The API defaults to
+warn-not-refuse because a process that will not start turns a wrong
+redirect into a total outage — "the refusal is then the incident". **That
+reasoning does not transfer to the site:** a build or boot that refuses
+leaves the previous deploy serving. Strict is therefore cheaper here, and
+it is off today only because the values do not exist yet — turning it on
+before the owner supplies them would block every deploy, starting with
+the one carrying the fix.
+
+**Corollary — a surface is chosen for its reader, not its loudness.**
+Outside production the reader can fix it, so the gap renders on the page
+naming the exact variables. In production the reader is a stranger, and a
+box reading MISSING CONTACT DETAILS tells them the deploy is broken while
+still giving them no address. Loud is not a synonym for visible-to-all;
+it means *reaches the person who can act*.
+
+---
+
 ### §14.7 — Knowing a failure mode does not confer immunity from it (2026-08-18)
 
 **Statement.** A shape recognised, named, documented and reasoned about

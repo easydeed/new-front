@@ -4,27 +4,86 @@
 (not only in chat) so the list survives context windows. No credential
 values ever appear in this file — item names and status only.
 
-_Last corrected: 2026-08-04 (RED-H1 wave closed; the RED0 remediation
-queue re-sequenced by owner ruling; NOTARY1 and RED-S5 recorded as
+_Last corrected: 2026-08-18 (the DECIDED/BUILT convention adopted
+repo-wide; W0 §3 converted as the first entry; HOME2-FOLLOWUP recorded).
+Previously 2026-08-04 (RED-H1 wave closed; the RED0 remediation queue
+re-sequenced by owner ruling; NOTARY1 and RED-S5 recorded as
 deferred-by-decision with named triggers)._
+
+## THE CONVENTION: `DECIDED` and `BUILT` are FIELDS, not prose
+
+**Adopted 2026-08-18, owner-ruled, repo-wide.** Every entry that records
+a decision carries both markers on their own line:
+
+    **DECIDED** 2026-07-30 — Model 2: confirmation stays in our UI.
+    **BUILT** — no. `POST /api/v1/deeds` still inserts `status='active'`
+    and returns a PDF URL. Parked in the W1 lane.
+
+`BUILT` takes a PR number, a date, or the word **no**. It is never
+omitted, and "no" is never expressed by leaving it out — an absent field
+reads as an oversight, and the whole point is that an unbuilt ruling
+should be impossible to skim past.
+
+**Why a convention, and why it earned one.** Twice now, an accurate
+ledger entry was read as describing a shipped thing:
+
+1. **`EMAIL_VERIFICATION_REQUIRED`** — recorded as evidence that required
+   verification was ready to switch on, while the flag was defined in one
+   file and read in none, and the same entry called verification
+   "resend-only" when the resend endpoint had no caller.
+2. **W0 §3** — *"DECIDED: Model 2 = confirmation in our UI… PR #79 closed
+   as decided; the W1 draft stays parked pending the owner's lane call."*
+   Every word true. The owner made the ruling and read it as built. The
+   qualification that mattered was a subordinate clause in a sentence
+   about something else. Found four days before pilot traffic.
+
+Both cost real time, and neither was a lie — they were **prose that
+required close reading to distinguish a decision from an implementation**.
+Two fields make that distinction scannable, and make the gap countable:
+`grep -c 'BUILT — no'` is now a number about the product.
+
+**The first sweep ran on 2026-08-19** and is recorded below with its
+coverage — including what it did NOT reach, because a sweep claiming
+completeness it lacked would be this convention's own defect.
+
+**`BUILT` IS ANSWERED FROM THE CODE, NEVER TRANSCRIBED FROM THE
+ENTRY'S OWN PROSE.** That is the discipline, and it is the whole
+reason the first sweep found anything: reading the queue table's own
+sentences would have confirmed the queue table.
 
 ## The queue — RED0 remediation, as ruled
 
 Owner-ruled order. Nothing here is "next" by inference; this list is the
 authority and it is re-ruled, not re-derived.
 
-| # | ticket | state |
-|---|---|---|
-| 1 | ~~**RED-S1**~~ — per-request pool, per-request transactions, induced-failure concurrency test, 20 RPS + burst run, healing ladder RETIRED | **SHIPPED** |
-| 2 | **RED-S2** — object storage for `deed_pdfs`, `ON DELETE CASCADE` removed, backup runbook, EXECUTED restore drill with hash verification | **next** |
-| 3 | **RED-S3** — sessions: refresh + revocation (jti), login lockout, edge rate limiting, and frontend expiry as pause → preserve → re-auth → resume, never data loss | queued |
-| 4 | **RED-S4** — recording fields (`recorded_at`, `instrument_number`) as officer-recorded statements, + the rate-registry version stamped into deed metadata at generation | queued |
-| 5 | **Doctrine ticket A** — vested-owner extraction SPLIT: names flow as fact-candidates; the vesting characterisation routes to the vesting section as a violet proposal, never a carried fact | queued (ruled) |
-| 6 | **Doctrine ticket B** — the AI boundary: explain-yes / select-no, refusal behaviour pinned, ruled against the transcript evidence H1.3 is now logging | queued (ruled) |
-| 7 | **DX0** — investigation only, no build. Scoped to **partner #1 = TitleSense** | queued |
-| 8 | **TP0** — TitlePoint investigation, no build | queued |
-| — | **NOTARY1** | **deferred by decision** — see below |
-| — | **RED-S5** (org model) | **deferred by decision** — see below |
+| # | ticket | DECIDED | BUILT |
+|---|---|---|---|
+| 1 | ~~**RED-S1**~~ — per-request pool, per-request transactions, induced-failure concurrency test, 20 RPS + burst run, healing ladder RETIRED | ruled | **yes** — `scripts/s1_concurrency_proof.py`, green in CI |
+| 2 | **RED-S2** — object storage for `deed_pdfs`, `ON DELETE CASCADE` removed, backup runbook, EXECUTED restore drill with hash verification | ruled | **yes** — `services/artifact_store.py`, `docs/BACKUP_AND_RESTORE.md`, `scripts/s2_restore_drill.py` (its step [F] proves the cascade is gone: deleting a deed with a stored artifact is REFUSED) |
+| 3 | **RED-S3** — sessions: refresh + revocation (jti), login lockout, edge rate limiting, and frontend expiry as pause → preserve → re-auth → resume, never data loss | ruled | **yes** — `auth.py` (jti), `services/login_guard.py`, `lib/apiClient.ts`'s `SessionExpiredError`, `scripts/s3_thursday_walkthrough.py` |
+| 4 | **RED-S4** — recording fields (`recorded_at`, `instrument_number`) as officer-recorded statements, + the rate-registry version stamped into deed metadata at generation | ruled | **yes, both halves** — `POST /deeds/{id}/recording` (RED0 R3-8) and `services/deed_pdf.py`'s `rate_registry_version` stamp |
+| 5 | **Doctrine ticket A** — vested-owner extraction SPLIT: names flow as fact-candidates; the vesting characterisation routes to the vesting section as a violet proposal, never a carried fact | ruled | **yes** — `services/vesting_split.py` + `lib/vestingSplit.ts` against the shared `vesting_cases.json` corpus |
+| 6 | **Doctrine ticket B** — the AI boundary: explain-yes / select-no, refusal behaviour pinned, ruled against the transcript evidence H1.3 is now logging | ruled | **yes** — `services/ai_boundary.py`, pinned by `test_doctrine_b_ai_boundary.py` and `test_doctrine_b_flag_roundtrip.py` |
+| 7 | **DX0** — investigation only, no build. Scoped to **partner #1 = TitleSense** | ruled | **no** — not started |
+| 8 | **TP0** — TitlePoint investigation, no build | ruled | **no** — not started, and gated on DX0 |
+| — | **NOTARY1** | ruled | **no** — deferred by decision, trigger below |
+| — | **RED-S5** (org model) | ruled | **no** — deferred by decision, trigger below |
+
+⚠️ **THIS TABLE WAS WRONG ABOUT SIX OF ITS EIGHT ROWS, AND ALL SIX ERRED
+THE SAME WAY.** Before the 2026-08-19 sweep it read: RED-S2 "next",
+RED-S3 "queued", RED-S4 "queued", doctrine A and B "queued (ruled)" —
+five shipped tickets described as work still to do, plus RED-S1 correctly
+marked. Nothing here was a lie; the states were simply never re-ruled
+after the tickets landed, and the header's own instruction — "this list
+is the authority and it is re-ruled, not re-derived" — is what let a
+stale authority stand.
+
+**The direction matters.** These read as UNDER-claiming, which is the
+harmless-looking half of the same defect: DASH3 began by writing a live
+capability up as an unbackable claim, on the strength of RED-S4 being
+listed queued. A record that understates gets believed exactly as
+readily as one that overstates, and it costs a different kind of
+mistake — building something twice, or refusing to say something true.
 
 **DX0 scope (ruled):** SDK shape, webhook events, API-key lifecycle for a
 KNOWN first consumer, the deep-link pattern (external finding → DeedPro
@@ -435,10 +494,15 @@ gate stops the next one without pretending to have fixed these.
   referenced by no code.
 - **SendGrid** — RESOLVED 2026-07-30: `info@deedpro.io` verified, key
   refreshed, production share test green with delivery confirmed.
-- **W0 §3** — DECIDED: **Model 2 = confirmation in our UI** (corrected
-  2026-07-30; an earlier ledger entry inverted this as "asserted
-  confirmations" — the owner's definition governs). PR #79 closed as
-  decided; the W1 draft stays parked pending the owner's lane call.
+- **W0 §3** — **Model 2 = confirmation in our UI.**
+  **DECIDED** 2026-07-30 (corrected that day; an earlier ledger entry
+  inverted this as "asserted confirmations" — the owner's definition
+  governs). PR #79 closed as decided.
+  **BUILT** — **no.** `POST /api/v1/deeds` inserts `status='active'` and
+  returns a PDF URL immediately: no draft state, no confirmation URL, no
+  officer step. The W1 draft stays parked pending the owner's lane call.
+  *First entry converted to the two-field form — and the entry the
+  convention exists because of. See the parked section below.*
 - ~~Demo-card Vercel env vars~~ — the 2026-07-30 closure ("owner has
   not requested the demo card back") was superseded the same day by the
   owner's request; see the reopened item on the open card above.
@@ -1315,6 +1379,77 @@ we reach it.
   subscription event and persisted nowhere, `trial_will_end` returned a
   bare 200, and no template existed.
 
+- **LEDGER SWEEP — WHAT IT COVERED, AND WHAT IT DID NOT** (2026-08-19).
+  **DECIDED** 2026-08-18 — convert existing entries to DECIDED/BUILT,
+  promoted ahead of DASH3's build after the third instance.
+  **BUILT** — the queue table (all ten rows, each answered from named
+  code), the convention header, and both founding cases. **NOT the whole
+  document**, and saying so is the point: a sweep that claimed
+  completeness it did not have would be this convention's own defect,
+  committed by the ticket that exists to fix it.
+
+  **Swept:** the RED0 queue table; `EMAIL_VERIFICATION_REQUIRED`
+  (Ledgered triggers); W0 §3 (already converted by HOME2-FOLLOWUP); the
+  CORS1/CORS2/PILOT2 entries, which were written in the convention.
+
+  **Not swept, and left honest rather than half-marked:** "Closed by the
+  owner", "Closed — do not re-report", the ADMIN/UX waves, and the
+  findings section. Those record things that HAPPENED rather than things
+  DECIDED, so the two fields would mostly read "BUILT — yes, that is what
+  the entry is". A second pass should convert any of them that record a
+  ruling rather than an event.
+
+  **The yield, against the prediction.** HOME2-FOLLOWUP predicted "two
+  known cases and an unknown number of others" and said finding nothing
+  more would itself be a result. It found **six more, all in the queue
+  table, and all under-claiming** — five shipped tickets listed as work
+  still to do. The prediction was wrong in the direction that matters:
+  the convention pays for itself on entries that overstate, and it turned
+  out the bigger population was entries that understate.
+
+- **DASH3 — the dashboard becomes a worklist. FIVE RULINGS, then build.**
+  **DECIDED** 2026-08-19.
+  **BUILT** — **no.** The design input is committed
+  (`docs/design/dashboard_v2.html`); nothing is built from it.
+
+  1. **Consequence-first, confirmed.** The mockup's annotation says
+     "ranked cheapest-to-clear first"; its own rows do not — "Archive all
+     4" is the cheapest action and sorts LAST, "Prepare it" is expensive
+     and outranks "Choose exemption". The rows run
+     someone-else-is-blocked → your-turn → nobody-waiting, which the
+     stale row states in its own copy: *"Nobody is waiting on these but
+     you."* **The annotation is SUPERSEDED** and recorded as such so
+     nobody re-derives cheapest-first from a file we committed.
+  2. **Rows become the hero's unit.** A worklist's count must equal what
+     is on screen or it is a metric again. The two-population rule (
+     unconfirmed candidates + required-and-empty) survives as **what
+     makes a row appear and what the row says**, never as the headline
+     number — row #93, with every field confirmed, is correctly a row.
+     **The group header counts rows too, or names its unit explicitly:**
+     "6 open" meaning documents beside a hero counting rows is two units
+     on one screen, which is what DASH-FIX spent itself killing.
+  3. **The §16 list.** The day-one variant STAYS (collapsing empty into
+     clean reverses #206, and `open_documents` exists to tell them
+     apart). The resume target REHOMES to the first row of the your-turn
+     group — #203 ruled the accuracy list as its source because that list
+     existed, and the intent outlives the source. The lineage banner
+     needs a home before ship: a disqualifying stop with nowhere to
+     render does not fire. "Archive all 4" inherits the per-row refusals
+     and reports what it did. **Colour is FIXED, not adopted:** queue
+     state takes NEUTRAL spines, because amber-for-waiting and
+     violet-for-your-turn repurposes the doctrinal palette exactly as
+     ADMIN-BRAND was corrected for — and the one row where violet lands
+     correctly (an unconfirmed transfer-tax exemption) is coincidence,
+     not compliance.
+  4. **The recording counts read `recorded_at IS NOT NULL`, never
+     `status = 'completed'`.** Otherwise "4 recorded" silently means "we
+     rendered a PDF" — the `deeds.status` disease reappearing inside a
+     count. Recording is real and is the officer's own statement
+     (`POST /deeds/{id}/recording`, RED0 R3-8); the count is honest only
+     while it reads the statement rather than the artifact.
+  5. **The chip annotations go** — "most used", "1 this year". They are
+     the only statistics left in a design whose purpose is removing
+     statistics.
 - **HOTFIX — property autofill was dead in production, and HOME2 did it**
   (2026-08-19).
   **DECIDED** 2026-08-19 — the builder loads Places from its own render
@@ -1389,21 +1524,65 @@ we reach it.
   A record that overstates is found before a launch or during an
   incident. This one was found four days before pilot traffic.
 
-  **PROPOSAL, for the owner's ruling: DECIDED and BUILT should be
-  separate FIELDS rather than prose.** Every entry in this document that
-  records a decision carries its implementation status somewhere in a
-  sentence, and a reader scanning for "what is true of the product"
-  cannot distinguish the two without reading each entry closely enough
-  to notice a subordinate clause. Two markers — `DECIDED 2026-07-30 /
-  BUILT —` — make an unbuilt ruling visible at a glance and make the
-  gap countable. The cost is a convention; the benefit is that this
-  class of miss becomes a `grep`.
+  **ADOPTED 2026-08-18 — DECIDED and BUILT are now FIELDS.** The
+  proposal this entry carried was ruled on the same day: "adopt as
+  fields, repo-wide… two fields make 'decided, not built' scannable
+  rather than reconstructed." The convention is written at the top of
+  this file, W0 §3's own line in the closed section is the first entry
+  converted, and the sweep of existing entries is HOME2-FOLLOWUP —
+  ruled a separate ticket rather than folded into the one that proposed
+  it.
 
   **NOT built as part of HOME2.** Model 2 is a partner-API change with a
   versioning question and belongs to the parked W1 lane. Building it as a
   side-effect of a homepage ticket would be the largest scope creep in
   the engagement (owner-ruled).
 
+
+- **HOME2-FOLLOWUP — convert existing ledger entries to DECIDED/BUILT.**
+  **DECIDED** 2026-08-18 — the two-field convention is adopted repo-wide
+  (see the top of this file).
+  **BUILT** — partially: the convention is written and W0 §3 is
+  converted, as the entry that motivated it. **The sweep of every other
+  entry is not done, by ruling** — "sweep existing entries as a follow-up
+  ticket, not now."
+
+  **Scope when it fires.** Every entry recording a decision gets both
+  fields. The work is not mechanical: for each one, `BUILT` has to be
+  ANSWERED rather than transcribed, and the answer comes from the code,
+  not from the entry's own prose — which is the entire failure this
+  convention exists to prevent. An entry converted by re-reading its own
+  sentence reproduces the defect in a new format.
+
+  **Expected yield, stated in advance so it can be checked:** two known
+  cases (W0 §3, `EMAIL_VERIFICATION_REQUIRED`) and an unknown number of
+  others. If the sweep finds nothing beyond the two, that is a real
+  result and worth recording as one — the convention still pays for
+  itself on entries written from here on.
+
+- **`STRICT_PUBLIC_ENV` is off, deliberately.**
+  **DECIDED** 2026-08-18 — the site's public environment is checked at
+  boot, with a strict flag that refuses to start when a REQUIRED variable
+  is missing (§14.8).
+  **BUILT** — yes, this PR. The FLAG is off.
+
+  **What is exposed while it is off:** in production, with the three
+  contact variables unset and nobody reading the deploy log, a visitor
+  sees a footer with no way to reach us. That is the residual, named
+  rather than described as handled.
+
+  **Why it is off anyway:** the values do not exist yet — the entity name
+  is the owner's to supply — so turning it on today would block every
+  deploy including the one carrying the check. **The trigger is
+  explicit:** the ticket that sets `NEXT_PUBLIC_LEGAL_ENTITY`,
+  `NEXT_PUBLIC_CONTACT_EMAIL` and `NEXT_PUBLIC_CONTACT_ADDRESS` sets
+  `STRICT_PUBLIC_ENV=1` in the same change. Same sequencing as
+  `STRICT_ENV` on the API, and the same reason: the ticket that flips it
+  is the ticket that verified the environment.
+
+  **Note on the values themselves:** they are configuration, not
+  credentials — no value appears in this file either way, per the rule at
+  the top.
 
 - **A plan card for the RETURNING officer** (day-one diff, owner-ruled a
   candidate 2026-08-14 — ledgered rather than built). `DayOneRail`
@@ -1585,6 +1764,13 @@ we reach it.
 ## Ledgered triggers (machine-side, fire on condition)
 
 - **Verification-at-registration** — ~~stays resend-only for now~~
+  **DECIDED** (original) — stay resend-only.
+  **BUILT** — resend: **yes** (VERIFY-CHECK). Gating on `verified`:
+  **no**, by owner ruling, and `test_verify_check.py` holds the product
+  to no-gate until that is re-ruled.
+  *One of the two founding cases for this convention — the entry cited
+  `EMAIL_VERIFICATION_REQUIRED` as existing plumbing while it was read
+  nowhere.*
   **PARTLY FIRED (VERIFY-CHECK, 2026-08-13). This entry was wrong in two
   ways and both are worth keeping visible.**
 

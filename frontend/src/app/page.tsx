@@ -8,6 +8,9 @@ import dynamic from "next/dynamic"
 import Link from "next/link"
 import StickyNav from "@/components/landing-v2/StickyNav"
 import { TIERS, priceLabel } from "@/lib/pricing"
+import { INSTRUMENT_COUNT } from "@/lib/formRegistry"
+import ContactBlock from "@/components/landing-v2/ContactBlock"
+import { publicEnvValue } from "@/lib/publicEnvironment"
 import { LogoLockupDark } from "@/components/brand/Logo"
 
 const AnimatedDeed = dynamic(() => import("@/components/landing-v2/AnimatedDeed"), {
@@ -137,10 +140,12 @@ export default function LandingPage() {
                 { icon: Clock, label: "Recorder-ready deed", value: "~9 clicks", color: "text-[#7C4DFF]" },
                 { icon: Check, label: "Fields confirmed by your officer", value: "Every one", color: "text-[#4F76F6]" },
                 { icon: Shield, label: "Hash-stamped, immutable PDFs", value: "SHA-256", color: "text-[#7C4DFF]" },
-                /* HOME2 — was 5, while the catalog section three screens down says
-                   21 recordable instruments. The 21 is the true one: it comes
-                   from the form registry, which is what the builder offers. */
-                { icon: FileDigit, label: "CA instruments supported", value: "21", color: "text-[#4F76F6]" },
+                /* HOME2 — was 5, while the catalog section three screens down
+                   disagreed. Neither number is written here now: both read
+                   `INSTRUMENT_COUNT`, which counts the registry the builder
+                   offers from, so a new instrument updates the copy instead of
+                   silently outdating it. */
+                { icon: FileDigit, label: "CA instruments supported", value: String(INSTRUMENT_COUNT), color: "text-[#4F76F6]" },
               ].map((stat) => (
                 <div key={stat.label} className="text-center">
                   <div className="text-5xl sm:text-6xl font-bold text-[#1F2B37] mb-3">{stat.value}</div>
@@ -751,7 +756,7 @@ export default function LandingPage() {
                     <div className="text-sm text-gray-400">JSON in, PDF out</div>
                   </div>
                   <div>
-                    <div className="text-3xl font-bold text-[#4F76F6] mb-2">21</div>
+                    <div className="text-3xl font-bold text-[#4F76F6] mb-2">{INSTRUMENT_COUNT}</div>
                     <div className="text-sm text-gray-400">CA instruments</div>
                   </div>
                 </div>
@@ -1087,33 +1092,28 @@ Content-Type: application/json
                 The entity name and the contact address are the owner's to
                 supply — a legal entity guessed at is worse than one
                 absent, because an absent one is obviously missing and a
-                wrong one looks answered. When the vars are unset this
-                block renders nothing rather than a placeholder, and the
-                gap stays visible instead of being papered over.
+                wrong one looks answered.
+
+                WHAT HOME2 GOT WRONG, AND THE OWNER OVERTURNED: the block
+                rendered NOTHING when unset, on an "absence is neutral"
+                reading. That rule governs data; a missing contact address
+                is a broken deploy. `ContactBlock` now shows the gap
+                outside production and the boot check reports it inside —
+                see its header.
 
                 `homepageTruth.test.ts` pins that no entity string is
                 hard-coded here. */}
-            {(process.env.NEXT_PUBLIC_LEGAL_ENTITY || process.env.NEXT_PUBLIC_CONTACT_EMAIL) && (
-              <div className="mt-12 pt-8 border-t border-gray-800 text-sm">
-                <h3 className="font-bold text-white mb-3">Contact</h3>
-                {process.env.NEXT_PUBLIC_LEGAL_ENTITY && (
-                  <div className="mb-1">{process.env.NEXT_PUBLIC_LEGAL_ENTITY}</div>
-                )}
-                {process.env.NEXT_PUBLIC_CONTACT_ADDRESS && (
-                  <div className="mb-1 whitespace-pre-line">{process.env.NEXT_PUBLIC_CONTACT_ADDRESS}</div>
-                )}
-                {process.env.NEXT_PUBLIC_CONTACT_EMAIL && (
-                  <a href={`mailto:${process.env.NEXT_PUBLIC_CONTACT_EMAIL}`}
-                     className="hover:text-[#7C4DFF] transition-colors">
-                    {process.env.NEXT_PUBLIC_CONTACT_EMAIL}
-                  </a>
-                )}
-              </div>
-            )}
+            <ContactBlock />
 
             <div className="mt-12 pt-8 border-t border-gray-800 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm">
               <div>
-                &copy; 2026 {process.env.NEXT_PUBLIC_LEGAL_ENTITY || 'DeedPro'}. All rights reserved.
+                {/* Reads through the manifest, not `process.env` directly:
+                    the literal reads live in one place because Next only
+                    substitutes literal member accesses (see
+                    `lib/publicEnvironment.ts`). The 'DeedPro' fallback is
+                    a BRAND standing in for an ENTITY — which is why the
+                    variable is REQUIRED and its absence is reported. */}
+                &copy; 2026 {publicEnvValue('NEXT_PUBLIC_LEGAL_ENTITY') || 'DeedPro'}. All rights reserved.
               </div>
               <div className="flex gap-6">
                 <a href="/privacy" className="hover:text-[#7C4DFF] transition-colors">
