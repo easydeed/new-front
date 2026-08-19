@@ -4,9 +4,47 @@
 (not only in chat) so the list survives context windows. No credential
 values ever appear in this file — item names and status only.
 
-_Last corrected: 2026-08-04 (RED-H1 wave closed; the RED0 remediation
-queue re-sequenced by owner ruling; NOTARY1 and RED-S5 recorded as
+_Last corrected: 2026-08-18 (the DECIDED/BUILT convention adopted
+repo-wide; W0 §3 converted as the first entry; HOME2-FOLLOWUP recorded).
+Previously 2026-08-04 (RED-H1 wave closed; the RED0 remediation queue
+re-sequenced by owner ruling; NOTARY1 and RED-S5 recorded as
 deferred-by-decision with named triggers)._
+
+## THE CONVENTION: `DECIDED` and `BUILT` are FIELDS, not prose
+
+**Adopted 2026-08-18, owner-ruled, repo-wide.** Every entry that records
+a decision carries both markers on their own line:
+
+    **DECIDED** 2026-07-30 — Model 2: confirmation stays in our UI.
+    **BUILT** — no. `POST /api/v1/deeds` still inserts `status='active'`
+    and returns a PDF URL. Parked in the W1 lane.
+
+`BUILT` takes a PR number, a date, or the word **no**. It is never
+omitted, and "no" is never expressed by leaving it out — an absent field
+reads as an oversight, and the whole point is that an unbuilt ruling
+should be impossible to skim past.
+
+**Why a convention, and why it earned one.** Twice now, an accurate
+ledger entry was read as describing a shipped thing:
+
+1. **`EMAIL_VERIFICATION_REQUIRED`** — recorded as evidence that required
+   verification was ready to switch on, while the flag was defined in one
+   file and read in none, and the same entry called verification
+   "resend-only" when the resend endpoint had no caller.
+2. **W0 §3** — *"DECIDED: Model 2 = confirmation in our UI… PR #79 closed
+   as decided; the W1 draft stays parked pending the owner's lane call."*
+   Every word true. The owner made the ruling and read it as built. The
+   qualification that mattered was a subordinate clause in a sentence
+   about something else. Found four days before pilot traffic.
+
+Both cost real time, and neither was a lie — they were **prose that
+required close reading to distinguish a decision from an implementation**.
+Two fields make that distinction scannable, and make the gap countable:
+`grep -c 'BUILT — no'` is now a number about the product.
+
+**Existing entries are not yet converted.** See HOME2-FOLLOWUP below —
+ruled as a follow-up ticket rather than a sweep folded into the ticket
+that proposed the convention.
 
 ## The queue — RED0 remediation, as ruled
 
@@ -435,10 +473,15 @@ gate stops the next one without pretending to have fixed these.
   referenced by no code.
 - **SendGrid** — RESOLVED 2026-07-30: `info@deedpro.io` verified, key
   refreshed, production share test green with delivery confirmed.
-- **W0 §3** — DECIDED: **Model 2 = confirmation in our UI** (corrected
-  2026-07-30; an earlier ledger entry inverted this as "asserted
-  confirmations" — the owner's definition governs). PR #79 closed as
-  decided; the W1 draft stays parked pending the owner's lane call.
+- **W0 §3** — **Model 2 = confirmation in our UI.**
+  **DECIDED** 2026-07-30 (corrected that day; an earlier ledger entry
+  inverted this as "asserted confirmations" — the owner's definition
+  governs). PR #79 closed as decided.
+  **BUILT** — **no.** `POST /api/v1/deeds` inserts `status='active'` and
+  returns a PDF URL immediately: no draft state, no confirmation URL, no
+  officer step. The W1 draft stays parked pending the owner's lane call.
+  *First entry converted to the two-field form — and the entry the
+  convention exists because of. See the parked section below.*
 - ~~Demo-card Vercel env vars~~ — the 2026-07-30 closure ("owner has
   not requested the demo card back") was superseded the same day by the
   owner's request; see the reopened item on the open card above.
@@ -1351,21 +1394,65 @@ we reach it.
   A record that overstates is found before a launch or during an
   incident. This one was found four days before pilot traffic.
 
-  **PROPOSAL, for the owner's ruling: DECIDED and BUILT should be
-  separate FIELDS rather than prose.** Every entry in this document that
-  records a decision carries its implementation status somewhere in a
-  sentence, and a reader scanning for "what is true of the product"
-  cannot distinguish the two without reading each entry closely enough
-  to notice a subordinate clause. Two markers — `DECIDED 2026-07-30 /
-  BUILT —` — make an unbuilt ruling visible at a glance and make the
-  gap countable. The cost is a convention; the benefit is that this
-  class of miss becomes a `grep`.
+  **ADOPTED 2026-08-18 — DECIDED and BUILT are now FIELDS.** The
+  proposal this entry carried was ruled on the same day: "adopt as
+  fields, repo-wide… two fields make 'decided, not built' scannable
+  rather than reconstructed." The convention is written at the top of
+  this file, W0 §3's own line in the closed section is the first entry
+  converted, and the sweep of existing entries is HOME2-FOLLOWUP —
+  ruled a separate ticket rather than folded into the one that proposed
+  it.
 
   **NOT built as part of HOME2.** Model 2 is a partner-API change with a
   versioning question and belongs to the parked W1 lane. Building it as a
   side-effect of a homepage ticket would be the largest scope creep in
   the engagement (owner-ruled).
 
+
+- **HOME2-FOLLOWUP — convert existing ledger entries to DECIDED/BUILT.**
+  **DECIDED** 2026-08-18 — the two-field convention is adopted repo-wide
+  (see the top of this file).
+  **BUILT** — partially: the convention is written and W0 §3 is
+  converted, as the entry that motivated it. **The sweep of every other
+  entry is not done, by ruling** — "sweep existing entries as a follow-up
+  ticket, not now."
+
+  **Scope when it fires.** Every entry recording a decision gets both
+  fields. The work is not mechanical: for each one, `BUILT` has to be
+  ANSWERED rather than transcribed, and the answer comes from the code,
+  not from the entry's own prose — which is the entire failure this
+  convention exists to prevent. An entry converted by re-reading its own
+  sentence reproduces the defect in a new format.
+
+  **Expected yield, stated in advance so it can be checked:** two known
+  cases (W0 §3, `EMAIL_VERIFICATION_REQUIRED`) and an unknown number of
+  others. If the sweep finds nothing beyond the two, that is a real
+  result and worth recording as one — the convention still pays for
+  itself on entries written from here on.
+
+- **`STRICT_PUBLIC_ENV` is off, deliberately.**
+  **DECIDED** 2026-08-18 — the site's public environment is checked at
+  boot, with a strict flag that refuses to start when a REQUIRED variable
+  is missing (§14.8).
+  **BUILT** — yes, this PR. The FLAG is off.
+
+  **What is exposed while it is off:** in production, with the three
+  contact variables unset and nobody reading the deploy log, a visitor
+  sees a footer with no way to reach us. That is the residual, named
+  rather than described as handled.
+
+  **Why it is off anyway:** the values do not exist yet — the entity name
+  is the owner's to supply — so turning it on today would block every
+  deploy including the one carrying the check. **The trigger is
+  explicit:** the ticket that sets `NEXT_PUBLIC_LEGAL_ENTITY`,
+  `NEXT_PUBLIC_CONTACT_EMAIL` and `NEXT_PUBLIC_CONTACT_ADDRESS` sets
+  `STRICT_PUBLIC_ENV=1` in the same change. Same sequencing as
+  `STRICT_ENV` on the API, and the same reason: the ticket that flips it
+  is the ticket that verified the environment.
+
+  **Note on the values themselves:** they are configuration, not
+  credentials — no value appears in this file either way, per the rule at
+  the top.
 
 - **A plan card for the RETURNING officer** (day-one diff, owner-ruled a
   candidate 2026-08-14 — ledgered rather than built). `DayOneRail`
