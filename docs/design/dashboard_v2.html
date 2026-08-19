@@ -1,4 +1,32 @@
 <!DOCTYPE html>
+<!--
+  ═══ READ THIS BEFORE BUILDING FROM THIS FILE ═══
+
+  Committed as the OWNER'S DESIGN INPUT for DASH3, ahead of any build.
+  Five rulings sit on top of it (docs/OWNER_LEDGER.md, "DASH3"), and one
+  of them contradicts this file's own annotation:
+
+  ⚠️ "ranked cheapest-to-clear first" (in the notes below) is SUPERSEDED.
+     Ordering is by CONSEQUENCE — someone-else-is-blocked, then
+     your-turn, then nobody-waiting. THE ROWS IN THIS FILE ALREADY DO
+     THAT: "Archive all 4" is the cheapest action here and sorts last,
+     and the stale row says why in its own copy — "Nobody is waiting on
+     these but you." The annotation describes how the layout FEELS, not
+     how its data is ordered.
+
+  ⚠️ The amber and violet SPINES are NOT adopted. Queue state takes
+     neutral spines. Amber means unconfirmed external data and violet
+     means a proposed legal choice (docs/BRAND.md); using them for
+     "waiting" and "your turn" is the correction ADMIN-BRAND already
+     made once.
+
+  ⚠️ The "most used" / "1 this year" chip annotations are cut — they are
+     the only statistics in a design whose purpose is removing them.
+
+  ⚠️ "N recorded" is honest ONLY while it reads `recorded_at IS NOT NULL`
+     (the officer's own recording statement). Reading `status =
+     'completed'` would make it mean "we rendered a PDF".
+-->
 <html lang="en">
 <head>
 <meta charset="utf-8">

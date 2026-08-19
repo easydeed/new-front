@@ -8,23 +8,56 @@ _Last corrected: 2026-08-04 (RED-H1 wave closed; the RED0 remediation
 queue re-sequenced by owner ruling; NOTARY1 and RED-S5 recorded as
 deferred-by-decision with named triggers)._
 
+## THE CONVENTION: `DECIDED` and `BUILT` are FIELDS
+
+**Adopted 2026-08-18, owner-ruled, repo-wide.** Every entry recording a
+decision carries both markers. `BUILT` takes a PR number, a date, code
+evidence, or the word **no** — and is never omitted, because an absent
+field reads as an oversight and the whole point is that the gap should be
+impossible to skim past.
+
+**`BUILT` IS ANSWERED FROM THE CODE, NEVER TRANSCRIBED FROM THE ENTRY'S
+OWN PROSE.** That is the entire discipline. An entry converted by
+re-reading its own sentence reproduces the defect in a new format, and
+the sweep below found six rows where the prose and the repository
+disagreed.
+
+*(HOME2-FOLLOWUP, PR #224, carries a longer version of this section with
+the two founding cases. Whichever lands second, keep one copy.)*
+
 ## The queue — RED0 remediation, as ruled
 
 Owner-ruled order. Nothing here is "next" by inference; this list is the
 authority and it is re-ruled, not re-derived.
 
-| # | ticket | state |
-|---|---|---|
-| 1 | ~~**RED-S1**~~ — per-request pool, per-request transactions, induced-failure concurrency test, 20 RPS + burst run, healing ladder RETIRED | **SHIPPED** |
-| 2 | **RED-S2** — object storage for `deed_pdfs`, `ON DELETE CASCADE` removed, backup runbook, EXECUTED restore drill with hash verification | **next** |
-| 3 | **RED-S3** — sessions: refresh + revocation (jti), login lockout, edge rate limiting, and frontend expiry as pause → preserve → re-auth → resume, never data loss | queued |
-| 4 | **RED-S4** — recording fields (`recorded_at`, `instrument_number`) as officer-recorded statements, + the rate-registry version stamped into deed metadata at generation | queued |
-| 5 | **Doctrine ticket A** — vested-owner extraction SPLIT: names flow as fact-candidates; the vesting characterisation routes to the vesting section as a violet proposal, never a carried fact | queued (ruled) |
-| 6 | **Doctrine ticket B** — the AI boundary: explain-yes / select-no, refusal behaviour pinned, ruled against the transcript evidence H1.3 is now logging | queued (ruled) |
-| 7 | **DX0** — investigation only, no build. Scoped to **partner #1 = TitleSense** | queued |
-| 8 | **TP0** — TitlePoint investigation, no build | queued |
-| — | **NOTARY1** | **deferred by decision** — see below |
-| — | **RED-S5** (org model) | **deferred by decision** — see below |
+| # | ticket | DECIDED | BUILT |
+|---|---|---|---|
+| 1 | ~~**RED-S1**~~ — per-request pool, per-request transactions, induced-failure concurrency test, 20 RPS + burst run, healing ladder RETIRED | ruled | **yes** — `scripts/s1_concurrency_proof.py`, green in CI |
+| 2 | **RED-S2** — object storage for `deed_pdfs`, `ON DELETE CASCADE` removed, backup runbook, EXECUTED restore drill with hash verification | ruled | **yes** — `services/artifact_store.py`, `docs/BACKUP_AND_RESTORE.md`, `scripts/s2_restore_drill.py` (its step [F] proves the cascade is gone: deleting a deed with a stored artifact is REFUSED) |
+| 3 | **RED-S3** — sessions: refresh + revocation (jti), login lockout, edge rate limiting, and frontend expiry as pause → preserve → re-auth → resume, never data loss | ruled | **yes** — `auth.py` (jti), `services/login_guard.py`, `lib/apiClient.ts`'s `SessionExpiredError`, `scripts/s3_thursday_walkthrough.py` |
+| 4 | **RED-S4** — recording fields (`recorded_at`, `instrument_number`) as officer-recorded statements, + the rate-registry version stamped into deed metadata at generation | ruled | **yes, both halves** — `POST /deeds/{id}/recording` (RED0 R3-8) and `services/deed_pdf.py`'s `rate_registry_version` stamp |
+| 5 | **Doctrine ticket A** — vested-owner extraction SPLIT: names flow as fact-candidates; the vesting characterisation routes to the vesting section as a violet proposal, never a carried fact | ruled | **yes** — `services/vesting_split.py` + `lib/vestingSplit.ts` against the shared `vesting_cases.json` corpus |
+| 6 | **Doctrine ticket B** — the AI boundary: explain-yes / select-no, refusal behaviour pinned, ruled against the transcript evidence H1.3 is now logging | ruled | **yes** — `services/ai_boundary.py`, pinned by `test_doctrine_b_ai_boundary.py` and `test_doctrine_b_flag_roundtrip.py` |
+| 7 | **DX0** — investigation only, no build. Scoped to **partner #1 = TitleSense** | ruled | **no** — not started |
+| 8 | **TP0** — TitlePoint investigation, no build | ruled | **no** — not started, and gated on DX0 |
+| — | **NOTARY1** | ruled | **no** — deferred by decision, trigger below |
+| — | **RED-S5** (org model) | ruled | **no** — deferred by decision, trigger below |
+
+⚠️ **THIS TABLE WAS WRONG ABOUT SIX OF ITS EIGHT ROWS, AND ALL SIX ERRED
+THE SAME WAY.** Before the 2026-08-19 sweep it read: RED-S2 "next",
+RED-S3 "queued", RED-S4 "queued", doctrine A and B "queued (ruled)" —
+five shipped tickets described as work still to do, plus RED-S1 correctly
+marked. Nothing here was a lie; the states were simply never re-ruled
+after the tickets landed, and the header's own instruction — "this list
+is the authority and it is re-ruled, not re-derived" — is what let a
+stale authority stand.
+
+**The direction matters.** These read as UNDER-claiming, which is the
+harmless-looking half of the same defect: DASH3 began by writing a live
+capability up as an unbackable claim, on the strength of RED-S4 being
+listed queued. A record that understates gets believed exactly as
+readily as one that overstates, and it costs a different kind of
+mistake — building something twice, or refusing to say something true.
 
 **DX0 scope (ruled):** SDK shape, webhook events, API-key lifecycle for a
 KNOWN first consumer, the deep-link pattern (external finding → DeedPro
@@ -1315,6 +1348,78 @@ we reach it.
   subscription event and persisted nowhere, `trial_will_end` returned a
   bare 200, and no template existed.
 
+- **LEDGER SWEEP — WHAT IT COVERED, AND WHAT IT DID NOT** (2026-08-19).
+  **DECIDED** 2026-08-18 — convert existing entries to DECIDED/BUILT,
+  promoted ahead of DASH3's build after the third instance.
+  **BUILT** — the queue table (all ten rows, each answered from named
+  code), the convention header, and both founding cases. **NOT the whole
+  document**, and saying so is the point: a sweep that claimed
+  completeness it did not have would be this convention's own defect,
+  committed by the ticket that exists to fix it.
+
+  **Swept:** the RED0 queue table; `EMAIL_VERIFICATION_REQUIRED`
+  (Ledgered triggers); W0 §3 (already converted by HOME2-FOLLOWUP); the
+  CORS1/CORS2/PILOT2 entries, which were written in the convention.
+
+  **Not swept, and left honest rather than half-marked:** "Closed by the
+  owner", "Closed — do not re-report", the ADMIN/UX waves, and the
+  findings section. Those record things that HAPPENED rather than things
+  DECIDED, so the two fields would mostly read "BUILT — yes, that is what
+  the entry is". A second pass should convert any of them that record a
+  ruling rather than an event.
+
+  **The yield, against the prediction.** HOME2-FOLLOWUP predicted "two
+  known cases and an unknown number of others" and said finding nothing
+  more would itself be a result. It found **six more, all in the queue
+  table, and all under-claiming** — five shipped tickets listed as work
+  still to do. The prediction was wrong in the direction that matters:
+  the convention pays for itself on entries that overstate, and it turned
+  out the bigger population was entries that understate.
+
+- **DASH3 — the dashboard becomes a worklist. FIVE RULINGS, then build.**
+  **DECIDED** 2026-08-19.
+  **BUILT** — **no.** The design input is committed
+  (`docs/design/dashboard_v2.html`); nothing is built from it.
+
+  1. **Consequence-first, confirmed.** The mockup's annotation says
+     "ranked cheapest-to-clear first"; its own rows do not — "Archive all
+     4" is the cheapest action and sorts LAST, "Prepare it" is expensive
+     and outranks "Choose exemption". The rows run
+     someone-else-is-blocked → your-turn → nobody-waiting, which the
+     stale row states in its own copy: *"Nobody is waiting on these but
+     you."* **The annotation is SUPERSEDED** and recorded as such so
+     nobody re-derives cheapest-first from a file we committed.
+  2. **Rows become the hero's unit.** A worklist's count must equal what
+     is on screen or it is a metric again. The two-population rule (
+     unconfirmed candidates + required-and-empty) survives as **what
+     makes a row appear and what the row says**, never as the headline
+     number — row #93, with every field confirmed, is correctly a row.
+     **The group header counts rows too, or names its unit explicitly:**
+     "6 open" meaning documents beside a hero counting rows is two units
+     on one screen, which is what DASH-FIX spent itself killing.
+  3. **The §16 list.** The day-one variant STAYS (collapsing empty into
+     clean reverses #206, and `open_documents` exists to tell them
+     apart). The resume target REHOMES to the first row of the your-turn
+     group — #203 ruled the accuracy list as its source because that list
+     existed, and the intent outlives the source. The lineage banner
+     needs a home before ship: a disqualifying stop with nowhere to
+     render does not fire. "Archive all 4" inherits the per-row refusals
+     and reports what it did. **Colour is FIXED, not adopted:** queue
+     state takes NEUTRAL spines, because amber-for-waiting and
+     violet-for-your-turn repurposes the doctrinal palette exactly as
+     ADMIN-BRAND was corrected for — and the one row where violet lands
+     correctly (an unconfirmed transfer-tax exemption) is coincidence,
+     not compliance.
+  4. **The recording counts read `recorded_at IS NOT NULL`, never
+     `status = 'completed'`.** Otherwise "4 recorded" silently means "we
+     rendered a PDF" — the `deeds.status` disease reappearing inside a
+     count. Recording is real and is the officer's own statement
+     (`POST /deeds/{id}/recording`, RED0 R3-8); the count is honest only
+     while it reads the statement rather than the artifact.
+  5. **The chip annotations go** — "most used", "1 this year". They are
+     the only statistics left in a design whose purpose is removing
+     statistics.
+
 ## Parked tickets (scoped, not scheduled)
 
 - **W0 §3 — A RULING DECIDED, PARKED, AND NEVER BUILT** (surfaced by
@@ -1547,6 +1652,13 @@ we reach it.
 ## Ledgered triggers (machine-side, fire on condition)
 
 - **Verification-at-registration** — ~~stays resend-only for now~~
+  **DECIDED** (original) — stay resend-only.
+  **BUILT** — resend: **yes** (VERIFY-CHECK). Gating on `verified`:
+  **no**, by owner ruling, and `test_verify_check.py` holds the product
+  to no-gate until that is re-ruled.
+  *One of the two founding cases for this convention — the entry cited
+  `EMAIL_VERIFICATION_REQUIRED` as existing plumbing while it was read
+  nowhere.*
   **PARTLY FIRED (VERIFY-CHECK, 2026-08-13). This entry was wrong in two
   ways and both are worth keeping visible.**
 
