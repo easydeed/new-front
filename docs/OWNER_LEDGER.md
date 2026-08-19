@@ -1195,6 +1195,52 @@ we reach it.
   every method. Removing PATCH again turns five tests red, including the
   live preflight.
 
+- **The `ALLOWED_ORIGINS` floor comes out of the code — WITH A NAMED
+  TRIGGER** (CORS1/CORS2, 2026-08-18).
+  **DECIDED** 2026-08-18 — the deploy config should own the origin list.
+  **BUILT** — half, deliberately: the env variable is read and ADDS to
+  the list in code. It cannot remove from it.
+
+  **Why the half.** Replacement is one line (`return accepted or
+  list(DEFAULT_ORIGINS)`), and taking it in CORS1 would have handed the
+  middleware whatever the dashboard value happens to be — a variable
+  nobody has ever had a reason to keep correct, because nothing read it.
+  If that value is the single origin `render.yaml` declared, replacement
+  drops `deedpro.io` and takes the real domain offline: a total outage
+  shipped by the ticket that fixed CORS. Owner-ruled: keep additive.
+
+  **THE TRIGGER, so this is not a permanent accommodation.** The API now
+  prints its effective CORS policy at boot, tagging each origin `[env +
+  code]` or `[code]`. **When that log shows the env value alone covering
+  both production origins, the floor is removed and the env replaces the
+  list.** That is a one-line change plus the pin flip, and it is a real
+  ticket rather than a someday: a floor in code plus a list in config is
+  two declarations again, which is the disease this whole finding is
+  about.
+
+- **CORS is the OUTERMOST middleware, and that is a position nothing can
+  see in a diff** (CORS2, 2026-08-18).
+  **DECIDED** 2026-08-18 — register CORS last so preflights short-circuit
+  before the metrics and connection middlewares.
+  **BUILT** — yes, CORS2.
+
+  The alternative was an OPTIONS early-return inside
+  `db_connection_middleware`, rejected on the owner's rule: it is safe
+  only because no route registers OPTIONS *today*, and that becomes false
+  silently. **"Safe today but becomes false silently is the exact
+  condition we stopped accepting."**
+
+  **The cost, named:** `metrics_middleware` no longer sees preflights, so
+  they stop being counted. Accepted — a preflight is not a request whose
+  latency anyone cares about.
+
+  **Why it needed a pin anyway.** `add_middleware` prepends, so the
+  behaviour is decided by WHERE IN THE FILE the block sits. Moving it
+  back up to the natural place — where it lived for the project's whole
+  life — silently puts a database connection in front of every preflight
+  again, and nothing about that edit would look wrong. Two pins: the
+  position, and a measured preflight that must open zero connections.
+
 ## Parked tickets (scoped, not scheduled)
 
 - **W0 §3 — A RULING DECIDED, PARKED, AND NEVER BUILT** (surfaced by

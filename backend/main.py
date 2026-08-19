@@ -61,65 +61,23 @@ if os.getenv("ENVIRONMENT") == "staging":
         enable_detailed_logging=True
     )
 
-# ── CORS: who may call this API from a browser, and how ──────────────
-#
-# CORS1. The old list here omitted PATCH, which is the method the entire
-# settings and onboarding save path uses — so every profile save died at
-# the preflight, and the browser reported "failed to fetch", which is
-# what it says when a preflight is refused and is indistinguishable from
-# the API being down. The owner could not set his own recording county.
-#
-# It stayed invisible because `"*"` was in the origin list: every origin
-# was already accepted, so no origin experiment could ever fail and the
-# method list was never the suspect. Two rounds went into ALLOWED_ORIGINS,
-# a variable nothing read.
-#
-# The policy — origins, preview regex, methods, and the reasoning for
-# each — now lives in services/cors_policy.py, where a pin can assert
-# properties about it. The one that matters:
-# `test_cors_contract.py::every method the app serves is allowed`.
-from services.cors_policy import (
-    ALLOWED_METHODS as _CORS_METHODS,
-    PREVIEW_ORIGIN_REGEX as _CORS_PREVIEW_REGEX,
-    effective_origins as _cors_origins,
-    policy_report as _cors_report,
-)
-
-print(_cors_report(), flush=True)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=_cors_origins(),
-    # Preview deployments. The old list carried this as a literal glob
-    # string in `allow_origins`, where Starlette compares exactly and
-    # never globs — so it matched nothing, and previews worked only
-    # because of the wildcard that is now gone.
-    allow_origin_regex=_CORS_PREVIEW_REGEX,
-    allow_credentials=True,
-    allow_methods=list(_CORS_METHODS),
-    allow_headers=["*"],
-)
-
 # RED-S1: one connection per request, checked out here and returned here.
 #
 # ⚠️ THE ORDERING SENTENCE HERE WAS WRONG, corrected during CORS1 and
 # left visible rather than quietly replaced. It read: "Registered AFTER
 # the metrics middleware below, which means Starlette runs it FIRST."
 # This decorator runs BEFORE metrics' at import, and `add_middleware`
-# prepends — so the real order, outermost first, is metrics → this →
-# CORS → routes. Verified by reading `app.user_middleware` rather than by
-# reasoning about it a second time.
+# PREPENDS — so metrics is outermost, not this.
 #
 # The claim that MATTERED is unaffected: this middleware still wraps every
 # route, so the connection is bound before any handler touches `db.conn`
 # and returned after the response is produced.
 #
-# ⚠️ AND CORS IS INNERMOST, which has a cost worth naming: a preflight
-# OPTIONS passes through both middlewares and OPENS A DATABASE CONNECTION
-# before CORS answers it — measured, one connection per preflight, for a
-# request that never reaches a route. Reported rather than changed in
-# CORS1 (owner-scoped); the fix is either an OPTIONS early-return here or
-# registering CORS last so it becomes outermost.
+# CORS2: the order is now CORS → metrics → this → routes, because the
+# CORS block moved to the BOTTOM of this module. A preflight is therefore
+# answered before this middleware runs, and no longer spends a database
+# connection on a request that never reaches a route. Read off
+# `app.user_middleware` and pinned there — see the block at the end.
 #
 # Before this, every request shared one connection and therefore one
 # TRANSACTION: request B's commit() could commit request A's uncommitted
@@ -466,6 +424,71 @@ def check_plan_limits(user_id: int, action: str = "deed_creation") -> dict:
     except Exception as e:
         print(f"Limit check error: {str(e)}")
         return {"allowed": True, "message": "Limit check failed, allowing action"}
+
+
+# ── CORS: who may call this API from a browser, and how ──────────────
+#
+# CORS1. The old list here omitted PATCH, which is the method the entire
+# settings and onboarding save path uses — so every profile save died at
+# the preflight, and the browser reported "failed to fetch", which is
+# what it says when a preflight is refused and is indistinguishable from
+# the API being down. The owner could not set his own recording county.
+#
+# It stayed invisible because `"*"` was in the origin list: every origin
+# was already accepted, so no origin experiment could ever fail and the
+# method list was never the suspect. Two rounds went into ALLOWED_ORIGINS,
+# a variable nothing read.
+#
+# The policy — origins, preview regex, methods, and the reasoning for
+# each — now lives in services/cors_policy.py, where a pin can assert
+# properties about it. The one that matters:
+# `test_cors_contract.py::every method the app serves is allowed`.
+#
+# ═══ REGISTERED LAST, ON PURPOSE — CORS2 ═══════════════════════════
+#
+# `add_middleware` PREPENDS, so the last one registered is the OUTERMOST
+# one. This block sits at the bottom of the module for that reason, and
+# moving it back up the file silently changes behaviour — which is why
+# `test_cors_contract.py` asserts the position rather than trusting it.
+#
+# CORS1 measured the cost of the old arrangement: CORS was innermost, so
+# every preflight OPTIONS passed through the metrics and connection
+# middlewares and OPENED A DATABASE CONNECTION before CORS answered it —
+# one connection per preflight, against a pool of 40, for a request that
+# never reaches a route. Outermost, the preflight is answered and
+# returned before either of them runs.
+#
+# THE ALTERNATIVE WAS AN OPTIONS EARLY-RETURN in the connection
+# middleware, and it was rejected for a stated reason: it is safe only
+# because no route in this app registers OPTIONS today, and that becomes
+# false SILENTLY the day one does. Owner-ruled — "safe today but becomes
+# false silently is the exact condition we stopped accepting."
+#
+# WHAT IT COSTS, NAMED: preflights are no longer counted by
+# `metrics_middleware`, because it no longer sees them. Accepted — a
+# preflight is not a request anyone cares about the latency of, and the
+# metrics it was polluting are about requests that do work.
+from services.cors_policy import (
+    ALLOWED_METHODS as _CORS_METHODS,
+    PREVIEW_ORIGIN_REGEX as _CORS_PREVIEW_REGEX,
+    effective_origins as _cors_origins,
+    policy_report as _cors_report,
+)
+
+print(_cors_report(), flush=True)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins(),
+    # Preview deployments. The old list carried this as a literal glob
+    # string in `allow_origins`, where Starlette compares exactly and
+    # never globs — so it matched nothing, and previews worked only
+    # because of the wildcard that is now gone.
+    allow_origin_regex=_CORS_PREVIEW_REGEX,
+    allow_credentials=True,
+    allow_methods=list(_CORS_METHODS),
+    allow_headers=["*"],
+)
 
 if __name__ == "__main__":
     import uvicorn
