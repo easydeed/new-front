@@ -79,6 +79,24 @@ NOTICE_WINDOWS: Tuple[Tuple[str, int], ...] = (
 NOTICE_KINDS = tuple(kind for kind, _ in NOTICE_WINDOWS)
 
 
+class StripeUnavailable(RuntimeError):
+    """Stripe would not answer — distinct from "there is no invoice".
+
+    ═══ WHY THIS IS A TYPE AND NOT A REASON STRING ═══
+
+    Both were reported the same way at first, and the dry-run showed what
+    that costs: with a wrong API key, every subscription was skipped with
+    an honest reason and the job exited **0**. A cron with a bad key
+    would have reported success every day while sending nothing, which is
+    precisely the silence this ticket exists to remove.
+
+    "Stripe has no upcoming invoice for this customer" is an ANSWER.
+    "Stripe would not talk to us" is a FAILURE. They must not exit the
+    same way, and telling them apart by matching on the reason text would
+    be asserting the spelling rather than the property (§14.1).
+    """
+
+
 @dataclass(frozen=True)
 class UpcomingCharge:
     """What Stripe says the next real charge is. Never assembled by us."""
@@ -169,7 +187,8 @@ def upcoming_charge(stripe_module, subscription_id: str) -> Tuple[Optional[Upcom
     try:
         preview = preview_fn(subscription=subscription_id)
     except Exception as exc:  # stripe.error.* and transport failures alike
-        return None, f"Stripe would not preview the next invoice: {exc}"
+        raise StripeUnavailable(
+            f"Stripe would not preview the next invoice: {exc}") from exc
 
     amount = _as_int(_get(preview, "amount_due"))
     if amount is None:
@@ -222,8 +241,17 @@ def billing_url() -> str:
     subscription" control opens a FRESH portal session on click. One
     extra click, and it works every time instead of most of the time.
     """
-    base = (os.getenv("FRONTEND_URL") or "").rstrip("/")
-    return f"{base}/account-settings?tab=billing"
+    # REQUIRED, not defaulted. Unset, this returned
+    # `/account-settings?tab=billing` — a RELATIVE path, which in an
+    # email client resolves against nothing and is simply a dead link.
+    # The notice would still be sent, still say the right date and
+    # amount, and fail at the one action it exists to enable.
+    #
+    # `require()` raises with the manifest's own consequence sentence
+    # (services/environment.py), so a misconfigured cron says which
+    # variable and why rather than mailing a broken link.
+    from services.environment import require
+    return f"{require('FRONTEND_URL').rstrip('/')}/account-settings?tab=billing"
 
 
 def _get(obj: Any, key: str):
@@ -272,12 +300,16 @@ class RunReport:
     sent: int = 0
     superseded: int = 0
     failed: int = 0
+    #: Subscriptions Stripe would not answer about. Counted apart from
+    #: `skipped` because a skip is a decision and this is an absence of
+    #: one.
+    unreachable: int = 0
     skipped: list = field(default_factory=list)
 
     def as_dict(self) -> Dict[str, Any]:
         return {"considered": self.considered, "sent": self.sent,
                 "superseded": self.superseded, "failed": self.failed,
-                "skipped": self.skipped}
+                "unreachable": self.unreachable, "skipped": self.skipped}
 
 
 #: Statuses worth asking Stripe about. A cancelled or unpaid subscription
@@ -365,7 +397,13 @@ def process_subscription(conn, stripe_module, row: Dict[str, Any],
     send = sender or send_renewal_notice_with_reason
     sid = row["stripe_subscription_id"]
 
-    charge, why = upcoming_charge(stripe_module, sid)
+    try:
+        charge, why = upcoming_charge(stripe_module, sid)
+    except StripeUnavailable as unavailable:
+        # NOT a skip. Nothing was learned about this customer, so the run
+        # must not read as healthy — see StripeUnavailable.
+        return {"subscription": sid, "sent": None, "unreachable": True,
+                "reason": str(unavailable)}
     _record_what_stripe_said(conn, sid, charge)
 
     decision = decide(charge, today,
@@ -426,6 +464,10 @@ def run(conn, stripe_module, today: Optional[date] = None,
                 # failure even though the row exists (§4).
                 report.failed += 1
             report.superseded += len(outcome.get("superseded") or ())
+        elif outcome.get("unreachable"):
+            report.unreachable += 1
+            report.skipped.append({"subscription": outcome["subscription"],
+                                   "reason": outcome["reason"]})
         else:
             report.skipped.append({"subscription": outcome["subscription"],
                                    "reason": outcome["reason"]})

@@ -35,6 +35,24 @@ import pytest
 needs_db = pytest.mark.skipif(not os.getenv("DATABASE_URL"),
                               reason="live test DB required")
 
+
+@pytest.fixture(autouse=True)
+def _frontend_url():
+    """Every notice carries a cancel link, and the link must be absolute.
+
+    Supplied here rather than per-test because it is a property of the
+    PRODUCT (a relative link is a dead link in an email), not of any one
+    case — and because a test that forgot it would fail with a refusal
+    about configuration rather than about what it was testing.
+    """
+    kept = os.environ.get("FRONTEND_URL")
+    os.environ["FRONTEND_URL"] = "https://deedpro.io"
+    yield
+    if kept is None:
+        os.environ.pop("FRONTEND_URL", None)
+    else:
+        os.environ["FRONTEND_URL"] = kept
+
 from services import renewal_notice as rn
 
 
@@ -157,10 +175,17 @@ def test_the_amount_and_date_come_from_the_invoice_preview():
 
 
 def test_a_stripe_failure_never_becomes_a_date():
+    """And it RAISES rather than returning "no invoice".
+
+    Both were reported identically at first, and a dry-run with a wrong
+    API key exposed the cost: every subscription skipped with an honest
+    reason, and the job exiting 0. A cron with a bad key would have
+    reported success every day while sending nothing.
+    """
     stripe = FakeStripe(raises=RuntimeError("connection reset"))
-    found, why = rn.upcoming_charge(stripe, "sub_123")
-    assert found is None
-    assert "connection reset" in why
+    with pytest.raises(rn.StripeUnavailable) as raised:
+        rn.upcoming_charge(stripe, "sub_123")
+    assert "connection reset" in str(raised.value)
 
 
 def test_the_sdk_operation_is_the_one_this_sdk_actually_has():
@@ -301,7 +326,7 @@ def test_a_failed_send_is_a_failed_run():
     from pathlib import Path
     src = code_only(Path(__file__).resolve().parents[1]
                     .joinpath("scripts/send_renewal_notices.py").read_text())
-    assert "return 1 if report.failed else 0" in src
+    assert "return 1 if (report.failed or report.unreachable) else 0" in src
 
 
 # ── The run, against a real database ─────────────────────────────────
@@ -501,3 +526,104 @@ def _one(conn, stripe, sid, today, sender):
     outcome = rn.process_subscription(conn, stripe, row, today, sender)
     conn.commit()
     return outcome
+
+
+# ── The cron's own configuration ─────────────────────────────────────
+#
+# The purge cron took four failed builds to get right, and every one was
+# a config detail that could have been asked for up front. These pin the
+# details, so the list handed to the owner is checked rather than
+# remembered.
+
+def test_the_cancel_link_is_absolute_or_the_job_refuses():
+    """THE DEFECT THIS PIN EXISTS FOR.
+
+    `billing_url()` used to fall back to an empty base, producing
+    `/account-settings?tab=billing` — a RELATIVE path. In an email client
+    that resolves against nothing: the notice arrives correct in every
+    detail, names the right date and the right amount, and its one
+    call to action is a dead link.
+
+    A missing FRONTEND_URL is now a refusal carrying the manifest's own
+    consequence sentence, not a silently degraded link.
+    """
+    import os
+
+    from services.environment import EnvironmentError_
+
+    kept = os.environ.pop("FRONTEND_URL", None)
+    try:
+        with pytest.raises(EnvironmentError_) as raised:
+            rn.billing_url()
+        assert "FRONTEND_URL" in str(raised.value)
+    finally:
+        if kept is not None:
+            os.environ["FRONTEND_URL"] = kept
+
+
+def test_verify_needs_only_a_database():
+    """`--verify` answers "am I pointed at the right database".
+
+    It used to demand STRIPE_SECRET_KEY as well, which made the FIRST
+    check an owner runs — before any secrets are in place — the hardest
+    one to run.
+    """
+    from tests.source_text import code_only
+    from pathlib import Path
+    src = code_only(Path(__file__).resolve().parents[1]
+                    .joinpath("scripts/send_renewal_notices.py").read_text())
+    guarded = src.index("if not verify_only:")
+    assert guarded < src.index("STRIPE_SECRET_KEY is not set")
+    assert guarded < src.index("FRONTEND_URL is not set")
+
+
+def test_the_script_runs_from_the_repository_root():
+    """Render's working directory, and the shape that broke role_census.
+
+    That script assumed it ran from `backend/` and died on
+    `ModuleNotFoundError` in production. The fix — and the pattern every
+    script here follows — is to put the package root on `sys.path` from
+    the script's OWN location, so the working directory stops mattering.
+    """
+    from pathlib import Path
+    src = Path(__file__).resolve().parents[1].joinpath(
+        "scripts/send_renewal_notices.py").read_text()
+    assert "sys.path.insert(0, str(Path(__file__).resolve().parent.parent))" in src
+
+
+def test_the_job_does_not_converge_the_schema():
+    """A cron that imported `database` would start the convergence
+    thread and issue ALTER TABLE statements from a scheduled job nobody
+    is watching. It asserts the tables instead, and refuses when they are
+    absent — see `assert_tables` in the script."""
+    from tests.source_text import code_only
+    from pathlib import Path
+    src = code_only(Path(__file__).resolve().parents[1]
+                    .joinpath("scripts/send_renewal_notices.py").read_text())
+    assert "import database" not in src
+    assert "create_tables" not in src
+    assert 'assert_tables(conn, "subscriptions", "billing_notices", "users"' in src
+
+
+@needs_db
+def test_a_stripe_that_will_not_answer_fails_the_run():
+    """THE HOLE THE DRY-RUN FOUND.
+
+    With a wrong API key every subscription was skipped with an honest
+    reason and the job exited 0 — a cron reporting success every day
+    while sending nothing, which is the exact silence this ticket exists
+    to remove. An unanswering Stripe is now counted apart from a skip,
+    and it fails the run.
+    """
+    conn = _db()
+    try:
+        _make_subscriber(conn, "pilot2.silent@example.com", "sub_pilot2_silent")
+        silent = FakeStripe(raises=RuntimeError("Invalid API Key provided"))
+        report = renewal_run(conn, silent, date(2026, 9, 1), Recorder())
+        assert report.unreachable >= 1
+        assert report.sent == 0
+        # And the reason survives into the report a human reads.
+        assert any("Invalid API Key" in (s.get("reason") or "")
+                   for s in report.skipped)
+    finally:
+        conn.close()
