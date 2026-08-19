@@ -139,6 +139,13 @@ RAW_TEXT_ALLOWED = {
         "the pin sees one file. The YAML's `#` lines are its reasoning, "
         "and one commented block (STRICT_ENV) is deliberately invisible "
         "to the parser — a stripper would make that pin untestable."),
+    "test_ledger_built_paths.py": (
+        "reads docs/OWNER_LEDGER.md, which is Markdown rather than "
+        "Python — code_only parses Python and would refuse it. It trips "
+        "this pin for the same reason test_prelim_field_map.py does: the "
+        "Markdown it checks NAMES .py modules, because the whole point is "
+        "that a BUILT row cites the module proving it, so the string "
+        "'.py' appears in a file that never reads Python source."),
     "test_prelim_field_map.py": (
         "reads Markdown, not Python. It trips this pin because the "
         "Markdown it checks NAMES a .py file — the field map has to cite "

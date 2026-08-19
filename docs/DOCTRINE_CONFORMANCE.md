@@ -1369,6 +1369,40 @@ direction, and no amount of tuning the threshold fixes it.
 
 ### §14.5 — Checking that a change is right is not checking what it exposes (2026-08-18)
 
+**SECOND INSTANCE, AND IT REACHED PRODUCTION (2026-08-19).** Recorded at
+the top of this section because it is the sharper version of the same
+rule, and because it cost the officer her most-used input.
+
+HOME2 removed the Google Maps script from the root layout with a written
+rationale: *"REDUNDANT, not merely misplaced: `useGoogleMaps` creates and
+appends its own script tag… so every consumer already loads it on
+demand."*
+
+**The first half was verified. The second half was assumed.** The hook
+does create a tag — that was read in the hook's source. Whether any
+consumer CALLS the hook was never checked, and none did: it was defined
+in the repository and imported nowhere. `PropertySection` polled for
+`window.google` twice and loaded nothing, so the deleted tag was the
+builder's only loader. Property autofill went dead, silently, because
+`if (!isGoogleLoaded) return` is a bail rather than a failure.
+
+**The tell, and it generalises.** The rationale was a claim about
+CALLERS — "every consumer already loads it" — supported by evidence about
+a CALLEE. A sentence quantified over things you did not enumerate is a
+guess wearing a citation. When a removal's justification contains "every"
+or "already", the thing to check is the population, not the function.
+
+**Why a review could not have caught it either.** Nothing about the diff
+looked wrong; the removed tag and the hook that replaces it were both
+correct in isolation. The mechanism that catches it is a test that MOUNTS
+the consumer and asserts the dependency loads —
+`propertyAutofill.test.tsx` — because that is the only artifact that
+knows the two facts at once.
+
+---
+
+### §14.5 — Checking that a change is right is not checking what it exposes (2026-08-18)
+
 **Statement.** A review that establishes a change is CORRECT has not yet
 established that it is SAFE. Those are different questions, and the
 second one is about the paths the change newly makes reachable.
