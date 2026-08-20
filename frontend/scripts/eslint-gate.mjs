@@ -77,8 +77,11 @@ const CEILING = { errors: 134, warnings: 56 };
  *  GUIDE2 raised it back to 294 by adding three files. The floor moves in
  *  BOTH directions on purpose — raising it locks in the coverage the way
  *  lowering the ceiling locks in the cleanup, and a floor left behind the
- *  real count silently tolerates that many files going dark. */
-const FILES_FLOOR = 294;
+ *  real count silently tolerates that many files going dark.
+ *
+ *  DARK1 lowered it to 293: `/team` was deleted. Third deliberate move,
+ *  and the gate has now refused a run for every one of them. */
+const FILES_FLOOR = 293;
 
 /**
  * These catch DEFECTS rather than style, and every one is at zero today —
