@@ -9,6 +9,7 @@ import { AuthManager } from "@/utils/auth"
 import EmailVerificationNotice from "@/features/account/EmailVerificationNotice"
 import StartSomethingNew from "@/features/dashboard/StartSomethingNew"
 import Worklist from "@/features/dashboard/Worklist"
+import RecentlyResolved from "@/features/dashboard/RecentlyResolved"
 import SetupChecklist, { activeStep } from "@/features/dashboard/SetupChecklist"
 import DayOneRail from "@/features/dashboard/DayOneRail"
 import { SessionExpiredError, apiFetch } from "@/lib/apiClient"
@@ -38,6 +39,10 @@ type Queue = {
      Both come from the server so the headline cannot disagree with the
      body it sits above. */
   worklist?: import('@/features/dashboard/Worklist').Worklist;
+  /* NOTIF1 — resolved events. On the SAME response as the worklist, per
+     DASH1: a second request would let the page render a partial truth
+     when one of the two failed. */
+  news?: import('@/features/dashboard/RecentlyResolved').News;
   instruments?: Array<{ deed_type: string; count: number; period: string }>;
   upcoming: Array<{ kind: string; id: number; deed_id: number; property: string | null;
                     when: string; who: string | null; summary: string }>;
@@ -262,6 +267,31 @@ export default function Dashboard() {
      Read rather than derived: `worklist.count` is `hero_count(groups)`
      over the groups rendered below, so the headline and the body are
      the same arithmetic rather than two arithmetics that agree. */
+  /* NOTIF1's one write from this screen, and it goes to the
+     notifications router rather than `/dashboard/queue` — that endpoint
+     declares itself READ-ONLY in its own docstring, and an endpoint that
+     writes would make the statement false for every future reader.
+
+     The strip is cleared locally on success rather than re-fetching the
+     queue: a dismissal she pressed is not a fact the server needs to
+     re-tell her, and a full re-fetch would flash the worklist for a
+     change that does not touch it. On failure the strip STAYS — §4, the
+     error is not swallowed into a UI that looks like it worked. */
+  const dismissNews = async (ids: number[]) => {
+    if (!ids.length) return
+    try {
+      const res = await apiFetch(`/notifications/mark-read`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      }, { label: "Dismissing" })
+      if (!res.ok) return
+      setQueue((prev) => prev ? { ...prev, news: { items: [], more: 0 } } : prev)
+    } catch (e) {
+      if (e instanceof SessionExpiredError) return
+    }
+  }
+
   const worklist = queue?.worklist
   const worklistCount = worklist?.count ?? 0
 
@@ -364,6 +394,15 @@ export default function Dashboard() {
               first morning are different things and say so — collapsing
               the last two would reverse #206, which is why
               `open_documents` exists. */}
+          {/* NOTIF1 — what happened, above what needs her. Quieter than
+              the queue and contributing nothing to the headline count:
+              an approval is news, not a task. */}
+          <RecentlyResolved
+            news={queue?.news}
+            onOpen={(href) => router.push(href)}
+            onDismiss={dismissNews}
+          />
+
           {queueError ? (
             <div role="alert"
                  className="rounded-2xl border border-red-200 bg-white p-6 text-center">

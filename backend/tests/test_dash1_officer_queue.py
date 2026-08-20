@@ -105,6 +105,11 @@ def _awaiting(stale: bool, days=9, lapsed=False):
 #: none of them is about. DASH3's own behaviour is pinned in
 #: `test_dash3_worklist.py`.
 NO_WORK = {"groups": [], "count": 0}
+#: NOTIF1 — nothing resolved since she last looked. Its own constant
+#: rather than an inline literal, for the same reason NO_WORK is: the
+#: queue's shape is asserted by equality, so a new key has to be supplied
+#: deliberately by every caller rather than defaulted into existence.
+NO_NEWS = {"items": [], "more": 0}
 
 
 def test_the_attention_count_is_gone_quiet_and_nothing_else():
@@ -119,7 +124,7 @@ def test_the_attention_count_is_gone_quiet_and_nothing_else():
         idle_drafts=[{"kind": "draft", "id": 5, "deed_type": "grant_deed",
                       "property": "z", "days_idle": 30}],
         accuracy=NOTHING_OUTSTANDING,
-        instruments=FILES_NOTHING, worklist=NO_WORK,
+        instruments=FILES_NOTHING, worklist=NO_WORK, news=NO_NEWS,
     )
     assert payload["needs_attention"] == 1
 
@@ -140,7 +145,7 @@ def test_a_badge_counts_presence_and_the_attention_number_counts_silence():
         ],
         idle_drafts=[],
         accuracy=NOTHING_OUTSTANDING,
-        instruments=FILES_NOTHING, worklist=NO_WORK,
+        instruments=FILES_NOTHING, worklist=NO_WORK, news=NO_NEWS,
     )
     assert payload["badges"] == {"signings": 1, "shared_deeds": 2}
     assert payload["needs_attention"] == 1
@@ -150,7 +155,7 @@ def test_the_payload_shape_is_asserted_by_equality():
     from services.officer_queue import QUEUE_KEYS
 
     payload = q.queue(upcoming=[], awaiting=[], idle_drafts=[], accuracy=NOTHING_OUTSTANDING,
-        instruments=FILES_NOTHING, worklist=NO_WORK)
+        instruments=FILES_NOTHING, worklist=NO_WORK, news=NO_NEWS)
     assert set(payload) == QUEUE_KEYS
     assert payload["needs_attention"] == 0
     # And the thresholds travel WITH it, so no screen retypes them.
@@ -164,7 +169,7 @@ def test_a_row_that_grew_a_field_is_refused():
     bad["extra"] = 1
     with pytest.raises(AssertionError):
         q.queue(upcoming=[], awaiting=[bad], idle_drafts=[], accuracy=NOTHING_OUTSTANDING,
-        instruments=FILES_NOTHING, worklist=NO_WORK)
+        instruments=FILES_NOTHING, worklist=NO_WORK, news=NO_NEWS)
 
 
 def test_only_one_place_decides_what_stale_means():
@@ -509,7 +514,7 @@ def test_the_accuracy_block_says_how_many_documents_there_were_to_look_at():
     the population.
     """
     payload = q.queue(upcoming=[], awaiting=[], idle_drafts=[],
-                      accuracy=NOTHING_OUTSTANDING, instruments=FILES_NOTHING, worklist=NO_WORK)
+                      accuracy=NOTHING_OUTSTANDING, instruments=FILES_NOTHING, worklist=NO_WORK, news=NO_NEWS)
     assert payload["accuracy"]["open_documents"] == 3
 
 
@@ -521,7 +526,7 @@ def test_an_accuracy_block_without_the_population_is_refused():
     with pytest.raises(AssertionError):
         q.queue(upcoming=[], awaiting=[], idle_drafts=[],
                 accuracy={"fields": 0, "documents": 0, "items": []},
-                instruments=FILES_NOTHING, worklist=NO_WORK)
+                instruments=FILES_NOTHING, worklist=NO_WORK, news=NO_NEWS)
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -542,7 +547,7 @@ def test_a_lapsed_request_needs_her_attention_however_young_it_is():
     """
     fresh_but_lapsed = _awaiting(False, days=0, lapsed=True)
     payload = q.queue(upcoming=[], awaiting=[fresh_but_lapsed], idle_drafts=[],
-                      accuracy=NOTHING_OUTSTANDING, instruments=FILES_NOTHING, worklist=NO_WORK)
+                      accuracy=NOTHING_OUTSTANDING, instruments=FILES_NOTHING, worklist=NO_WORK, news=NO_NEWS)
     assert payload["needs_attention"] == 1
 
 
@@ -560,5 +565,5 @@ def test_one_request_that_is_both_is_counted_once():
     problem, not two — the number counts requests, not reasons."""
     both = _awaiting(True, days=30, lapsed=True)
     payload = q.queue(upcoming=[], awaiting=[both], idle_drafts=[],
-                      accuracy=NOTHING_OUTSTANDING, instruments=FILES_NOTHING, worklist=NO_WORK)
+                      accuracy=NOTHING_OUTSTANDING, instruments=FILES_NOTHING, worklist=NO_WORK, news=NO_NEWS)
     assert payload["needs_attention"] == 1

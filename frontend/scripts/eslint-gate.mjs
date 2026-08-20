@@ -99,15 +99,20 @@ const CEILING = { errors: 126, warnings: 54 };
  *  deleted — the rickroll a green pin had been certifying the absence of),
  *  then 285 (the DARKSWEEP cleanup: seven unruled, unimported, unpinned
  *  components), then 281 (the four notification/partner scaffold
- *  components, owner-ruled). Six deliberate moves now, and the gate has
- *  refused a run for every one of them — which is the only evidence that
- *  it is doing anything at all (§14.9).
+ *  components, owner-ruled). NOTIF1 raised it to 283 by adding two — the
+ *  strip and its pins. Seven deliberate moves now, and the gate has
+ *  refused a run for every DOWNWARD one — which is the only evidence
+ *  that it is doing anything at all (§14.9).
+ *
+ *  Raising it after an addition is the same discipline as lowering it
+ *  after a deletion (§14.14): a floor left below the real count silently
+ *  tolerates that many files going dark later.
  *
  *  The last move lowered the CEILING too: deleting dead files took 8
  *  errors and 2 warnings with them, and a ceiling left at the old number
  *  would quietly re-authorise that much new debt. Cleanup that does not
  *  move the ceiling is cleanup the gate forgets. */
-const FILES_FLOOR = 281;
+const FILES_FLOOR = 283;
 
 /**
  * These catch DEFECTS rather than style, and every one is at zero today —
