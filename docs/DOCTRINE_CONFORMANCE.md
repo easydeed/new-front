@@ -1291,6 +1291,19 @@ violates, or is not running. Those look identical from the outside and are
 distinguished only by making it fail on purpose — which is the same
 instrument as the mutation probe, applied to the gate rather than the pin.
 
+**The pinning window, and it closes.** Eight defect rules were pinned at
+zero because they were already at zero — the pin cost nothing and nobody
+had to be persuaded of anything. **That is the only moment a rule is
+free.** Once the first violation exists, pinning it means fixing it or
+arguing with whoever wrote it, usually against a deadline, usually about
+whether the rule is pedantic. The window is open exactly once, at the
+moment you first measure.
+
+The general form, for any gate anyone builds after this: **pin every rule
+that is currently clean when you take the first measurement — not the
+ones you predict will matter.** Prediction is not the scarce resource
+here; the uncontested moment is.
+
 **Why the fix is a ceiling and not the flag.** Flipping
 `ignoreDuringBuilds` alone fails every build on 136 pre-existing
 violations, 104 of them `no-explicit-any` — style debt, not a defect
