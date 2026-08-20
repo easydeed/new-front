@@ -59,11 +59,11 @@ import { fileURLToPath } from 'url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..');
 
-/** Frozen 2026-08-20 at 136/58; lowered to 134/56 by GUIDE1, which
+/** Frozen 2026-08-20 at 136/58; 134/56 (GUIDE1), 126/54 (DARK1). Which
  *  deleted three orphaned components. LOWER these when the count drops;
  *  never raise them. Raising one is a decision to keep a defect, and it
  *  should read like one in the diff. */
-const CEILING = { errors: 134, warnings: 56 };
+const CEILING = { errors: 126, warnings: 54 };
 
 /** A file that stops being linted stops being measured, and unmeasured
  *  reads as clean. This floor is the count of files eslint actually
@@ -82,10 +82,16 @@ const CEILING = { errors: 134, warnings: 56 };
  *  DARK1 lowered it to 293 (`/team` deleted), then 292 (`VideoPlayer.tsx`
  *  deleted — the rickroll a green pin had been certifying the absence of),
  *  then 285 (the DARKSWEEP cleanup: seven unruled, unimported, unpinned
- *  components). Five deliberate moves now, and the gate has refused a run
- *  for every one of them — which is the only evidence that it is doing
- *  anything at all (§14.9). */
-const FILES_FLOOR = 285;
+ *  components), then 281 (the four notification/partner scaffold
+ *  components, owner-ruled). Six deliberate moves now, and the gate has
+ *  refused a run for every one of them — which is the only evidence that
+ *  it is doing anything at all (§14.9).
+ *
+ *  The last move lowered the CEILING too: deleting dead files took 8
+ *  errors and 2 warnings with them, and a ceiling left at the old number
+ *  would quietly re-authorise that much new debt. Cleanup that does not
+ *  move the ceiling is cleanup the gate forgets. */
+const FILES_FLOOR = 281;
 
 /**
  * These catch DEFECTS rather than style, and every one is at zero today —

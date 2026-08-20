@@ -1832,21 +1832,42 @@ we reach it.
   deleting a design-system primitive because nothing imports it YET is
   how a system gets rebuilt piecemeal later.
 
-  *Reported, still owner's (4)* — and the finding reframes them.
+  *Deleted after the carve-out check (4)* — owner-ruled 2026-08-20:
   `NotificationsBell`, `ToastCenter`, `PartnersManager`,
-  `PropertyMatchPicker` were flagged as possibly mid-build. **All four
-  entered on the SAME 2026-01-15 commit** — the bulk scaffold that also
-  created `next.config.js` carrying `eslint.ignoreDuringBuilds: true`.
-  No ruling stands behind any of them, in docs or in tests.
+  `PropertyMatchPicker`. **A scaffold, not a decision.** If in-app
+  notifications become wanted they get designed against the product as it
+  is now — a worklist and a queue that already surface what needs her —
+  rather than resumed from a January scaffold predating all of it.
+  Keeping them carried the same maintenance as the seven, plus the risk
+  that *"there's already a bell"* shapes a future design badly.
 
-  **`NotificationsBell` specifically, since it looked like unfinished
-  wiring:** the notifications ROUTER entered on that same commit, not
-  later. The bell's calls (`/unread-count`, `/`, `/mark-read`) match the
-  router's endpoints, a proxy route exists, and both halves are gated by
-  flags defaulting to OFF. So it is not wiring abandoned midway — **it is
-  wiring never started**, on both sides, from the beginning. Whether
-  notifications ship is a product decision and stays with the owner;
-  nothing here was deleted or wired.
+  **THE CARVE-OUT, CHECKED BEFORE DELETING, AND THE ANSWER WAS NEITHER
+  YES NOR NO.** The condition was: if `routers/notifications.py` writes
+  the in-app record CANCEL1/E1 depends on — the approval that must
+  survive an email failure — the backend half stays.
+
+  It does not. **A DIFFERENT MODULE DOES.**
+  `utils/notifications.create_notification` writes that record, is NOT
+  flag-gated, and is called live from `sharing.py`, `signing.py`,
+  `users_auth.py` and `api_key_requests.py`. Its call site in
+  `sharing.py` states the rule: *"the in-app record comes FIRST — an
+  approval must be unlosable regardless of email transport."* Nothing in
+  this ticket touches it, and nothing should.
+
+  `routers/notifications.py` is the flag-gated READ side — `GET /`,
+  `GET /unread-count`, `POST /mark-read`, plus an admin broadcast INSERT
+  that is its own feature. **Two modules, near-identical names, opposite
+  answers to the carve-out.** Had the check stopped at the filename, the
+  wrong half would have been protected and the right half deleted.
+
+  **THE BACKEND IS UNTOUCHED, AND ONE QUESTION IS LEFT OPEN FOR THE
+  OWNER.** The live writes now have no reader at all: records accumulate
+  in `notifications` / `user_notifications` on every approval, and the
+  only API that could read them is flag-gated off with its UI deleted.
+  That is not a defect — the record's purpose is to be unlosable, and it
+  still is — but it is a growing table nobody can see. Whether the router
+  is retired, or wired to something the current product actually renders,
+  is a product decision and is NOT decided here.
 
   **A CAVEAT ON THE SWEEP'S METHOD, recorded before it is used again.**
   DARKSWEEP matched importers by BASENAME across the tree. Two files
