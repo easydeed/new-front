@@ -192,7 +192,28 @@ RULES = [
     Rule("custom branding / white-label", r"\b(?:custom branding|white[\s\-]label(?:ed|ing)?)\b",
          "Nothing in the product themes a deed, an email or a portal per "
          "customer. Listed on the Professional tier until TRIAL1."),
-    Rule("team management / seats", r"\b(?:team management|multi[\s\-]user seats?|user seats?)\b",
+    # DARK1 WIDENED THIS, and the reason is the recurring shape rather
+    # than this one miss. The `why` below states the subject plainly —
+    # THERE IS NO TEAM MODEL — and the pattern guarded three spellings of
+    # it: "team management", "multi-user seats", "user seats". The live
+    # comparison table said **"Multi-user collaboration"** with a
+    # checkmark beside it and walked straight past, because the pattern
+    # required the word "seats" to follow "multi-user".
+    #
+    # §14.1: a sweep matches the PROPERTY, not the spelling. A rule whose
+    # stated subject is broader than its regex is a gate narrower than it
+    # reads, and every reader of the `why` will believe the wider thing is
+    # covered. This is the fourth instance of that shape in the ledger.
+    #
+    # So the property is now the claim itself: any assertion of multiple
+    # people sharing this account's work. "Collaboration" is deliberately
+    # required to sit next to a multi-user/team/shared word rather than
+    # being banned alone — the bare noun has honest uses (a signing is a
+    # collaboration between an officer and a notary) and banning it would
+    # trade this narrowness for the opposite error.
+    Rule("team management / seats",
+         r"\b(?:team management|(?:multi[\s\-]?user|team|shared)[\s\-]"
+         r"(?:seats?|collaboration|workspace|access|accounts?)|user seats?)\b",
          "`deeds` carries one user_id and every query is scoped to it. "
          "There is no team model to manage (RED-S5, deferred by decision)."),
 ]

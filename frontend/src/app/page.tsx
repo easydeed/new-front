@@ -661,7 +661,19 @@ export default function LandingPage() {
                        nothing behind either number. Deleted rather than
                        hedged: there is no measurement to soften. */
                     { feature: "Recorder formatting checks", deedpro: "Built-in", manual: "Manual tracking" },
-                    { feature: "Multi-user collaboration", deedpro: true, manual: false },
+                    /* DARK1 — this was a CHECKMARK. `deeds` carries one
+                       user_id, every query is scoped to it, and partners are
+                       `user-{id}` scoped, so a second officer in the same
+                       office sees none of her colleague's rolodex. RED-S5
+                       (the org model) is deferred BY DECISION, so this is not
+                       "not yet" either — a soft promise is the same claim
+                       with a delay attached.
+
+                       A checkmark on a comparison table is a capability claim
+                       aimed at somebody choosing between products, which is
+                       the most consequential place to be wrong: a two-person
+                       shop discovers it in week one. */
+                    { feature: "Multi-user collaboration", deedpro: false, manual: false },  // banned-claims: allow the row LABEL names the capability in order to DENY it — the cell renders an X for both columns
                     { feature: "API access", deedpro: true, manual: false },
                     { feature: "SmartReview validation", deedpro: true, manual: false },
                   ].map((row, i) => (
@@ -670,6 +682,13 @@ export default function LandingPage() {
                       <td className="py-5 px-6">
                         {row.deedpro === true ? (
                           <Check className="h-6 w-6 text-[#7C4DFF]" />
+                        ) : row.deedpro === false ? (
+                          /* An honest NO, rendered as legibly as a yes.
+                             `false` used to fall through to `{row.deedpro}`,
+                             which React renders as NOTHING — an empty cell
+                             reads as a layout bug, and a claim we removed
+                             should read as an answer. */
+                          <X className="h-6 w-6 text-gray-400" />
                         ) : (
                           <span className="text-base font-semibold text-[#1F2B37]">{row.deedpro}</span>
                         )}
