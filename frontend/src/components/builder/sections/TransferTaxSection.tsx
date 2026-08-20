@@ -2,8 +2,8 @@
 
 import { useMemo, useEffect } from "react"
 import { Calculator, Scale, ShieldCheck, X } from "lucide-react"
-import { useAIAssist } from "@/contexts/AIAssistContext"
-import { AISuggestion } from "../AISuggestion"
+import { useGuidance } from "@/contexts/GuidanceContext"
+import { FieldGuidance } from "../FieldGuidance"
 import { detectDttSuggestion } from "@/lib/dttSuggestions"
 import { computeDttBreakdown } from "@/lib/dttCalc"
 import type { DTTData, LegalChoiceRecord } from "@/types/builder"
@@ -49,7 +49,7 @@ export function TransferTaxSection({
   suggestionDismissed,
   onDismissSuggestion,
 }: TransferTaxSectionProps) {
-  const { enabled: aiEnabled } = useAIAssist()
+  const { enabled: aiEnabled } = useGuidance()
 
   // Deterministic detection. Proposes only — never writes state.
   const suggestion = useMemo(
@@ -185,7 +185,7 @@ export function TransferTaxSection({
 
       {/* General AI guidance when there is no confident suggestion */}
       {aiEnabled && !suggestion && !value.isExempt && !suggestionDismissed && (
-        <AISuggestion
+        <FieldGuidance
           message={`For a ${deedType.replace(/-/g, " ")}, documentary transfer tax is typically calculated on the full transfer value.`}
           details="California DTT is $1.10 per $1,000 of transfer value. Some cities add their own tax (e.g., LA adds $4.50/1,000). Common exemptions: R&T 11911 (gift), R&T 11927 (interspousal), R&T 11930 (trust transfer). If the transfer involves no cash exchange (like adding a spouse), it may be exempt."
           onDismiss={onDismissSuggestion}

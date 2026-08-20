@@ -1250,6 +1250,42 @@ it means *reaches the person who can act*.
 
 ---
 
+### §14.10 — A component's NAME is a product claim, and nobody reviews it for truth (2026-08-20, owner-ruled)
+
+**Statement.** Banned-claims scanning reads product-facing prose. It does
+not read component names, file names, context names, or toggle labels —
+and those are read by users and by every engineer who touches the code.
+
+**The instance.** What shipped under a toggle labelled **"AI Assist"**,
+rendered by `AISuggestion`, gated by `AIAssistContext`, fed by
+`ai-helpers.ts`, is **hand-written static copy**. No request, no model,
+nothing that can drift. Five artifacts named for an inference that does
+not happen.
+
+**The good half, and it is the larger half.** GUIDE0 found that copy is
+already doctrine-compliant: it hedges (*"may be exempt"*, *"typically
+calculated on"*), cites statutes rather than outcomes, and never asserts
+what a recorder will accept. **The EXPLAIN half of Doctrine B — explain
+yes, select no — was built and shipped months ago, unmodelled and
+undrifting, while the endpoint meant to provide it sat unreachable.**
+The product mostly had what it needed and had mislabelled it.
+
+**Why a name is the harder place to catch a claim.** Marketing prose gets
+reviewed as prose. A component name gets reviewed as an identifier — for
+clarity, for convention, for collision — and never for whether it is
+TRUE. `AISuggestion` reads as a fine name right up until you ask what it
+suggests and with what.
+
+**The rule.** A name that asserts a capability is a claim, and holds to
+the same standard as a sentence on the marketing site: it is dropped when
+the capability is not there, and it returns when it is. Owner-ruled: call
+it what it is; the label comes back honestly if a model ever backs it.
+
+**Pinned** in `flowSmalls.test.ts`, because a rename is the single
+easiest change to undo silently.
+
+---
+
 ### §14.9 — A disabled gate is worse than a missing one (2026-08-20, owner-ruled)
 
 **Statement.** A control that exists, is correctly configured, and is
@@ -1443,6 +1479,43 @@ direction, and no amount of tuning the threshold fixes it.
 
 ---
 
+
+**FIFTH HABITAT: AN EVIDENCE SOURCE (2026-08-20).** The rule reached its
+sharpest form in GUIDE0, and this one cost four months.
+
+`/api/ai/chat` lost its last reachable caller on **2026-04-28**, when the
+legacy-wizard removal deleted the render sites of `AIHelpButton` and
+`VestingInput` — the only two components that call it. **RED-H1.3
+hardened that endpoint on 2026-08-04. Doctrine B rewrote its prompts on
+2026-08-10.** Three and four months after it went dark, two careful
+tickets secured and re-ruled a surface no user could reach, and neither
+noticed.
+
+**And it explains the empty log.** Doctrine B recorded *"two days of an
+empty table"* and deferred the usage evidence pending accumulation. Two
+days was true, and irrelevant: **nothing could write to that table, so
+waiting would have produced the same zero forever.**
+
+**The operative asymmetry:** a query returning zero cannot distinguish
+*"nobody asked"* from *"nobody could ask."* Absence of data is evidence
+of nothing until the mechanism producing it is known to be connected —
+which is §14.8's "absence is neutral" rule meeting §14.5, and finding
+that a disconnected pipe is not neutral at all. It reads exactly like a
+finding.
+
+**The general form:** *before waiting on evidence to accumulate, verify
+that the mechanism producing it is connected.* One call-site census
+answers it, and it is cheaper than the wait it replaces.
+
+**What made this survive review, and it is the transferable part.** The
+deferral's stated reason was TRUE. The table really was two days old.
+Nobody had to be careless: a true, checkable, sufficient-sounding reason
+was offered and accepted, and the question it displaced — *can anything
+write to this?* — was never asked because the first answer satisfied.
+**A reason that is true and irrelevant is more durable than one that is
+false**, because nothing about it invites a second look.
+
+---
 
 **FOUR HABITATS (2026-08-19, 2026-08-20).** The rule is not about
 routing, or about removals, or about frontend code. It is about the
@@ -1960,6 +2033,7 @@ on.
 |---|---|
 | 2026-08-18 | §14.7 added — knowing a failure mode does not confer immunity from it. Three instances of one shape in a day: a pin quoting an implementation that broke on a correct change; a pin quoting an implementation that WAS the defect and stayed green through it; and the same defect inside the remedy for the first two, where the route-guard sweep — being rewritten because it matched a marker string — was about to match a hook's NAME instead. `useRequireAuth` navigates from an effect, so a page ignoring its `checked` flag still paints content for a frame, and a name-matching sweep would have certified that half-adoption exactly as the old one certified a send-only token read. Caught by reading how `/team` actually used the hook rather than treating the import as the whole pattern. The third instance settles the question the first two raise: it was written the same day the rule was written down, in the remedy for it, by its author. The rate is stated in the entry as evidence the shape is COMMON IN THIS KIND OF WORK rather than accelerating — three in a day reflects a day of unusually dense pin-writing, and a week of building features rather than instruments would show none while the shape stayed exactly as available. Operative consequence — when a shape is identified, ask what MECHANISM can hold it and prefer that to a paragraph, since a note is a thing to remember and remembering is the faculty that just failed. Corollary: a mechanism adopted partially fails in the gap between its halves, and only a sweep can enforce that both arrived. Also recorded in `routeGuards.test.ts` beside its bounded window: it fails CLOSED — an unreadable guard reports an unguarded page — where §14.4's tsc window failed open, so the two must not be made symmetric. And a prediction that missed: three of fourteen pages were passing incidentally, so at least one of the four unverified was expected to fail; none did. A base rate is not evidence about a particular case. |
 | 2026-08-18 | §14.6 added and §15.1 widened, from DASH-SOFTEN. §14.6: when a rule IS the design, the pin covers the domain rather than a point. The setup checklist expands exactly one step and that is not a feature of the card, it is the card — so the pin renders all sixteen arrangements of its four booleans rather than one. A sample would have passed against the obvious wrong implementation: rendering every incomplete step as open is indistinguishable from rendering the first when only the first is incomplete. Probed by making exactly that substitution — four assertions fail. A pin checking an invariant in one arrangement records an observation where a constraint was wanted. §15.1 widened past code: the same shape appeared in a document. DASH-SOFTEN needed to know whether violet — doctrinal, reserved for "proposed legal choice" — could be an ordinary accent on a card with no legal choices in it. BRAND.md answers it in the ADMIN-CONSOLE section, which is not where anyone with a dashboard question would look; the reasoning was never about admin and neither is its scope. General form: an answer filed under the surface it was first needed for is invisible to the next surface that needs it — so when a ruling resolves a question about a doctrinal rule, the instance goes with the surface and the principle goes with the doctrine. Also recorded: "All Good Escow" is absent from the repository, so it is a real row rather than fixture data, and `requestedByDefault.ts` makes `users.company_name` the RECORDING REQUESTED BY default — a typo in a profile field reaches the face of a recorded instrument with no confirmation step between. Correctly not fixed by a gate, since the officer typing her own company name is the authority on it, but it is the shortest path from a keystroke to a recorded document in this product. |
+| 2026-08-20 | GUIDE0's investigation. §14.5 gains a FIFTH habitat — an EVIDENCE SOURCE: `/api/ai/chat` lost its last reachable caller on 2026-04-28 when the legacy-wizard removal deleted the render sites of its only two callers, and RED-H1.3 (2026-08-04) then Doctrine B (2026-08-10) hardened and re-ruled it three and four months after it went dark. That also explains Doctrine B's empty log: it recorded 'two days of an empty table' and deferred the usage evidence pending accumulation, but nothing could write to that table, so waiting would have produced the same zero forever. The asymmetry: a query returning zero cannot distinguish 'nobody asked' from 'nobody could ask' — §14.8's absence-is-neutral rule meeting §14.5 and finding that a disconnected pipe is not neutral, it reads as a finding. General form: before waiting on evidence to accumulate, verify the mechanism producing it is connected; one call-site census is cheaper than the wait it replaces. The transferable part is WHY it survived review — the deferral's stated reason was TRUE. The table really was two days old. A true, checkable, sufficient-sounding reason was offered and accepted, and the question it displaced (can anything write to this?) was never asked because the first answer satisfied. A reason that is true and irrelevant is more durable than one that is false, because nothing about it invites a second look. §14.10 added (owner-ruled) — a component's NAME is a product claim and nobody reviews it for truth: banned-claims scanning reads product-facing prose, not component names, file names, context names or toggle labels, and what shipped under 'AI Assist' via `AISuggestion`/`AIAssistContext`/`ai-helpers.ts` is hand-written static copy with no model behind it. The larger half of that finding is good news: the copy is already doctrine-compliant — hedged, statute-citing, never asserting recorder behaviour — so the EXPLAIN half of Doctrine B was built and shipped months ago, unmodelled and undrifting, while the endpoint meant to provide it sat unreachable. A name that asserts a capability holds to the same standard as a sentence on the marketing site. |
 | 2026-08-20 | §14.9 added (owner-ruled) — a disabled gate is worse than a missing one, because the repository looks equipped. DASH3's hooks-after-early-return defect would have crashed the dashboard for every user, and the tool that catches that class was configured, at error severity, in a linter `next build` runs by default, with `eslint.ignoreDuringBuilds: true` set beside it. The history says the flag was born with `next.config.js` alongside `typescript.ignoreBuildErrors` and a rewrite marked 'temporarily disabled to fix build issue' — a deploy unblock, never a decision about linting, and a flag with no argument behind it is a different object from one set on principle. The general test for any control: has this ever FIRED? A gate with no failure in its history is either guarding something nothing violates or is not running, and those are indistinguishable from outside — the mutation probe, pointed at the gate instead of the pin, is what tells them apart. Fixed as `tsc-baseline`'s shape rather than by flipping the flag: flipping alone fails every build on 136 pre-existing violations, 104 of them `no-explicit-any`, and a build that fails on old style debt is a gate everyone re-disables — which is how the flag got written. Eight defect-catching rules verified at zero and pinned there independently of the ceiling, so they never share a budget with an unescaped apostrophe. Per §14.4 the ceiling got its own floor, and eslint's way of satisfying a ratchet by breaking the measurement is cheaper than tsc's: a blanket `eslint-disable` is one line and silences a file, so blanket disables are refused, the linted-FILE count has a floor, and a parse error fails outright. |
 | 2026-08-20 | DASH3's build. §14.5 gains a FOURTH habitat — a FILE: the redesign removed four modules' render sites and left the modules, so `dashboard/page.tsx` held two dashboards for one build, one unreachable. Nothing failed; tsc does not flag an unreferenced function and the suites assert what renders. `eslint`'s `no-unused-vars` does see it, and `next.config.js` sets `eslint.ignoreDuringBuilds: true`, so it reports into a void. The general shape under all four habitats: what goes unchecked is never the SUBJECT of the change, it is the change's neighbourhood — who arrives at the page now, who called the function you deleted, what was staged alongside your edit, what existed only to serve what you removed. A diff shows the subject and nothing shows the neighbourhood, so it has to be asked for by name. §14.1.1 gains a THIRD symptom: a pin can assert the right property, in the right words, with the ruling named in its docstring, and still pass against a fixture incapable of distinguishing it — the unknown-age ordering pin used `None` against `2` and passed with the rule DELETED, because `-(None or 0)` and `-(2)` differ anyway; only `None` against `0` can separate the rule from the accident. Unlike the first two symptoms this one is invisible to reading — the test means what it says — and is found only by running the code with the rule removed, which is the argument for the mutation probe being a gate. Also found in the build and fixed: the greeting's hooks placed after an early return (a render crash on the one screen everybody lands on, invisible to tsc and to source-reading suites, caught by rules-of-hooks in a linter CI ignores), and F4's ruling one deletion from reversal — the redesign removed the renderer of `deedsError` while the error was still being set, so a failed deed load would have shown the first-run welcome. An error that renders nothing is indistinguishable from having nothing. |
 | 2026-08-18 | §14.4 and §14.5 added, from one bug report. §14.4: a monotonic invariant is satisfied by breaking the thing it measures. A stray `{/* comment */}` in a ternary branch made `dashboard/page.tsx` unparseable, tsc stopped type-checking it and everything depending on it, and the error count fell from 88 to SIX — a gate that fails when the number RISES was delighted, and prints a notice inviting you to lock the improvement in. Jest stayed green at 1084 throughout because no test imports that page, so the frontend suite is fully compatible with the dashboard being unparseable; the only two instruments that could see it were tsc and next build, which is exactly what a shape-based gate rule would have permitted skipping. The fix is a FLOOR that is not a number — an assertion that nothing failed to parse (tsc's TS1xxx family is syntactic) — because no count can express "the measurement happened". General test for any threshold gate: what would happen to this number if the thing it measures stopped existing? §14.5: checking that a change is right is not checking what it exposes. DASH-FIX #1's routing of "Set county" to account-settings was correct on every premise and moved a first-run action onto a page whose save had no retry, while the page it came from had one for exactly this sleeping API — the owner hit it on their first new user. The defect lives entirely in the difference between the page's old population and the one the routing created, which no diff displays. The question it earns for any new route, link, redirect or CTA: who reaches this page now who did not before, and what does that page assume about them? |

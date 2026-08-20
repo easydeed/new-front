@@ -1,4 +1,30 @@
 /**
+ * ═══ GUIDE1 — THIS FILE NOW HAS NO CALLERS, AND THAT IS ON PURPOSE ═══
+ *
+ * Its two callers — `AIHelpButton` and `VestingInput` — were deleted by
+ * GUIDE1 because they had no render sites. They lost those on 2026-04-28
+ * in the legacy-wizard removal, which means **`/api/ai/chat` has had no
+ * reachable caller since April**. RED-H1.3 hardened that endpoint on
+ * 2026-08-04 and Doctrine B rewrote its prompts on 2026-08-10 — three and
+ * four months after it went dark — and neither noticed.
+ *
+ * That also explains Doctrine B's empty log. It recorded "two days of an
+ * empty table" and deferred the usage evidence pending accumulation. Two
+ * days was true and irrelevant: nothing could write to that table, so
+ * waiting would have produced the same zero forever. **A query returning
+ * zero cannot distinguish "nobody asked" from "nobody could ask."**
+ *
+ * THIS FILE IS KEPT DELIBERATELY. GUIDE3 rules whether the assistant is
+ * WIRED to a real surface or RETIRED, and deleting the client now would
+ * make "wire" mean "rebuild". It is held, not overlooked — which is the
+ * distinction §14.5 exists to force, and the reason this paragraph is
+ * here rather than in a ticket nobody will open.
+ *
+ * Until GUIDE3 rules, nothing in the product reaches this. Do not add a
+ * caller without reading Doctrine B first: this is the surface where an
+ * officer can type the one question the boundary forbids answering.
+ */
+/**
  * AI Assistant Service
  * 
  * Provides AI-powered guidance for deed creation.

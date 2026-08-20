@@ -133,8 +133,50 @@ describe('U3 — the builder names its way home; no dead affordances', () => {
     expect(src).not.toContain('HelpCircle');
   });
 
-  it('the dashboard greeting makes no chat promise', () => {
-    const src = codeOnly(readSource('components', 'ui', 'AIGreeting.tsx'));
-    expect(src).not.toContain('How can I help');
+  it('no surface promises a chat that does not exist', () => {
+    /**
+     * §16 — U3's RULING, WIDENED RATHER THAN RETIRED.
+     *
+     * It was pinned on `AIGreeting.tsx`, which GUIDE1 deleted: the
+     * component had no render site and only its `getTimeGreeting` helper
+     * was live (now `lib/greeting.ts`). Deleting the file satisfies the
+     * old assertion trivially, which is the shape §16 exists to catch.
+     *
+     * The ruling matters MORE now, not less. GUIDE0 established that
+     * `/api/ai/chat` has had no reachable caller since 2026-04-28, so a
+     * surface offering to answer questions would be a dead affordance
+     * pointing at a dark endpoint — U3's defect with a longer drop.
+     *
+     * So the pin moves from one file to the two surfaces an officer
+     * actually uses.
+     */
+    for (const src of [
+      codeOnly(readSource('app', 'dashboard', 'page.tsx')),
+      codeOnly(readSource('features', 'builder', 'DeedBuilder.tsx')),
+      codeOnly(readSource('components', 'builder', 'BuilderHeader.tsx')),
+    ]) {
+      expect(src).not.toContain('How can I help');
+      expect(src).not.toMatch(/Ask (me|the assistant)/i);
+    }
+  });
+
+  it('nothing user-visible claims to be AI (GUIDE1)', () => {
+    /**
+     * The banned-claims family, arriving in a UI LABEL rather than in
+     * marketing prose — which is the harder place to see it, because
+     * nobody reviews a component name for truth.
+     *
+     * What shipped as "AI Assist" is hand-written static copy: no
+     * request, no model, nothing that can drift. Owner-ruled 2026-08-20:
+     * call it what it is. The label returns honestly if a model ever
+     * backs the surface.
+     */
+    const toggle = codeOnly(readSource('components', 'builder', 'GuidanceToggle.tsx'));
+    expect(toggle).toContain('Field help');
+    expect(toggle).not.toMatch(/\bAI\b/);
+    // And the copy it gates is still copy — no call, no inference.
+    const guidance = codeOnly(readSource('components', 'builder', 'FieldGuidance.tsx'));
+    expect(guidance).not.toContain('fetch(');
+    expect(guidance).not.toContain('aiAssistant');
   });
 });

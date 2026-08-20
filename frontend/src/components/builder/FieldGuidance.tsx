@@ -1,10 +1,40 @@
+/**
+ * FIELD GUIDANCE — static explanatory copy, and NOT a model.
+ *
+ * ═══ WHY THIS IS NO LONGER CALLED `AISuggestion` (GUIDE1) ═══
+ *
+ * Nothing here infers anything. Every `message` and `details` string this
+ * renders is hand-written, in the section file that renders it. There is
+ * no request, no model, and nothing that can drift.
+ *
+ * It was named `AISuggestion`, sat behind a toggle labelled "AI Assist",
+ * and lived among components called `AI*`. **That is a claim the code
+ * does not support** — the banned-claims family arriving in a UI label
+ * rather than in marketing prose, which is the harder place to see it
+ * because nobody reviews a component name for truth.
+ *
+ * Owner-ruled 2026-08-20: call it what it is. If a model ever backs this
+ * surface, the label can come back honestly.
+ *
+ * ═══ WHAT IT IS INSTEAD, AND WHY THAT IS THE GOOD NEWS ═══
+ *
+ * GUIDE0 found that the copy here is ALREADY doctrine-compliant: it
+ * hedges ("may be exempt", "typically calculated on"), cites statutes
+ * rather than outcomes, and never asserts what a recorder will accept.
+ * The EXPLAIN half of Doctrine B — explain yes, select no — was built and
+ * shipped here months ago, unmodelled and undrifting, while the endpoint
+ * that was supposed to provide it sat unreachable.
+ *
+ * Keep it that way. Copy is cheaper, faster, pinnable, reviewable by
+ * someone who knows recording practice, and cannot invent a citation.
+ */
 "use client"
 
 import { useState } from "react"
 import { Sparkles, X, ChevronRight, HelpCircle } from "lucide-react"
-import { useAIAssist } from "@/contexts/AIAssistContext"
+import { useGuidance } from "@/contexts/GuidanceContext"
 
-interface AISuggestionProps {
+interface FieldGuidanceProps {
   message: string
   details?: string // Expandable "learn more" content
   action?: string
@@ -13,19 +43,19 @@ interface AISuggestionProps {
   variant?: "default" | "success" | "info" // All now use green, kept for compatibility
 }
 
-export function AISuggestion({ 
+export function FieldGuidance({ 
   message, 
   details,
   action, 
   onApply, 
   onDismiss,
   variant = "default" 
-}: AISuggestionProps) {
-  const { enabled } = useAIAssist()
+}: FieldGuidanceProps) {
+  const { enabled } = useGuidance()
   const [dismissed, setDismissed] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
 
-  // Don't show if AI is disabled or dismissed
+  // Don't show if guidance is switched off, or already dismissed
   if (!enabled || dismissed) return null
 
   const handleDismiss = () => {
@@ -33,7 +63,7 @@ export function AISuggestion({
     onDismiss?.()
   }
 
-  // Consistent green styling for all AI guidance
+  // Consistent green styling for all field guidance
   const styles = {
     bg: "bg-emerald-50",
     border: "border-emerald-200",
@@ -111,22 +141,8 @@ export function AISuggestion({
 }
 
 // Auto-applied suggestion (just shows explanation, no action button)
-export function AIApplied({ message }: { message: string }) {
-  const { enabled } = useAIAssist()
-
-  if (!enabled) return null
-
-  return (
-    <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg mb-3">
-      <Sparkles className="w-4 h-4 flex-shrink-0 animate-pulse" />
-      <span>{message}</span>
-    </div>
-  )
-}
-
-// Inline hint (very subtle, no dismiss)
-export function AIHint({ message }: { message: string }) {
-  const { enabled } = useAIAssist()
+export function FieldNote({ message }: { message: string }) {
+  const { enabled } = useGuidance()
 
   if (!enabled) return null
 

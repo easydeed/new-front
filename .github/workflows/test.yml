@@ -180,7 +180,7 @@ jobs:
     # the comparison exits 1.
     runs-on: ubuntu-latest
     env:
-      TSC_BASELINE: 88
+      TSC_BASELINE: 83
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4

@@ -4,7 +4,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Sidebar from "../../components/Sidebar"
-import { getTimeGreeting } from "@/components/ui/AIGreeting"
+import { getTimeGreeting } from "@/lib/greeting"
 import { AuthManager } from "@/utils/auth"
 import EmailVerificationNotice from "@/features/account/EmailVerificationNotice"
 import StartSomethingNew from "@/features/dashboard/StartSomethingNew"
@@ -83,7 +83,7 @@ export default function Dashboard() {
      should say what it IS — but it no longer takes two lines above the
      work.
 
-     Set in an effect, like `AIGreeting` does, because the hour is a
+     Set in an effect, because the hour is a
      CLIENT fact: computing it during render makes the server and the
      browser disagree whenever a deploy straddles noon.
 

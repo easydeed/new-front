@@ -18,7 +18,7 @@ import { describe, expect, it } from '@jest/globals';
 import * as fs from 'fs';
 import * as path from 'path';
 import { computeDttBreakdown } from '../lib/dttCalc';
-import { getVestingSuggestion } from '../lib/ai-helpers';
+import { getVestingSuggestion } from '../lib/vestingSuggestion';
 import { VESTING_OPTIONS } from '../components/builder/sections/VestingSection';
 import type { DTTData } from '../types/builder';
 
