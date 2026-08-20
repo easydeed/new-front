@@ -1448,6 +1448,33 @@ we reach it.
   hooks defect reinstated, a blanket `eslint-disable`, a file that fails
   to parse, and new violations above the ceiling.
 
+  **Owner ruling, 2026-08-20, on what made this work.** *The distribution
+  made the decision* — 136 sounds like a wall until 104 of it is
+  `no-explicit-any`. **Separating the defect rules from the ceiling is the
+  load-bearing choice:** one shared number lets 104 stylistic errors buy
+  room for a single hook bug, and the budget gets spent on the wrong
+  violation. Leaving `ignoreDuringBuilds` in place is correct and
+  correctly stated — flipping it fails every build on pre-existing debt,
+  which is the outcome the ticket exists to avoid, and *repeating the
+  original mistake with better intentions is still repeating it*.
+
+  **And the pinning window is real, so it is written down here rather
+  than left as a nice observation.** Eight defect rules pinned at zero
+  cost nothing because they were already at zero. **A month from now the
+  first violation arrives and the pin becomes a negotiation** — someone
+  with a deadline, one violation, and an argument that the rule is
+  pedantic. The moment a rule is free is the only moment it is
+  uncontested, and it does not come back. General form, for any future
+  gate: **pin every rule that is currently clean, at the moment you first
+  measure, not the ones you expect to matter.**
+
+  **§14.9 applied to itself on day one.** The new gate went green on its
+  first CI run, which is the state §14.9 says is indistinguishable
+  between enforcing and doing nothing. Confirmed by READING THE LOG — it
+  printed the same eight-rule distribution measured locally — rather than
+  by trusting the tick, on the one ticket whose entire subject is
+  controls that look equipped.
+
 - **DASH3 — the dashboard becomes a worklist. FIVE RULINGS, then build.**
   **DECIDED** 2026-08-19.
   **BUILT** — yes, 2026-08-20. `backend/services/worklist.py` assembles
@@ -1880,6 +1907,48 @@ we reach it.
   with its own verification.
 
 ## Ledgered triggers (machine-side, fire on condition)
+
+- **THE ESLINT CEILING DRAWDOWN — `ignoreDuringBuilds` comes out when
+  the error count reaches ZERO.**
+  **DECIDED** 2026-08-20, owner-ruled. **BUILT** — no; this is the
+  trigger, and the flag is still in `frontend/next.config.js`.
+
+  **The condition is machine-reported, not remembered.**
+  `frontend/scripts/eslint-gate.mjs` prints
+  `::notice::eslint improved to N/M — lower CEILING…` on every run where
+  the count drops. When the error half of that notice reads **0**, the
+  remaining work is three lines: delete the `eslint` block from
+  `next.config.js`, delete the explanation above it, and keep the CI job
+  as the warning ratchet.
+
+  **Why it is a trigger and not a ticket.** The 136 come down as a side
+  effect of other work — 104 are `no-explicit-any`, which get typed
+  properly when their files are touched for other reasons. Scheduling a
+  ticket to fix 136 style violations would be make-work; scheduling a
+  ticket to *notice* they are gone is exactly what a trigger is for.
+
+  **The failure mode this guards.** A ceiling with no drawdown condition
+  is a debt ledger nobody reads — the count stops being a target and
+  becomes furniture, which is how the flag itself survived eight months.
+
+- **CI ACTION VERSIONS — `actions/checkout@v4` and `actions/setup-node@v4`
+  are being force-run on Node 24.**
+  **DECIDED** — not yet; parked with its trigger. **BUILT** — no.
+
+  Surfaced by #234's own CI logs 2026-08-20: *"Node.js 20 is deprecated.
+  The following actions target Node.js 20 but are being forced to run on
+  Node.js 24."* A **warning today, on every job, not a failure** — which
+  is precisely the profile of a thing that becomes a failure on a
+  Wednesday with no diff to blame.
+
+  **Deliberately NOT bundled into ESLINT1.** Bumping the actions is a
+  change to CI topology, and riding it in on a lint ticket is how a
+  green-CI change becomes an unexplained red one later. Its own ticket,
+  small, whenever it is scheduled.
+
+  **The trigger:** the first CI run where this warning becomes an error,
+  or any ticket that touches `.github/workflows/` for another reason —
+  whichever comes first.
 
 - **THE LEDGER SWEEP RECURS — every wave boundary, or every 10 merged
   tickets, whichever comes first.**
