@@ -131,6 +131,41 @@ jobs:
       working-directory: frontend
       run: npx jest --ci
 
+  eslint-gate:
+    # ESLINT1 — the gate that was turned OFF, not the gate we lacked.
+    #
+    # DASH3's build produced a hooks-after-early-return defect: a render
+    # crash on the one screen every user lands on. Nothing we run caught
+    # it. `tsc` does not model hook ordering, and the frontend suites read
+    # SOURCE TEXT rather than mounting through the state transition — which
+    # is most of our frontend coverage, by design.
+    #
+    # `react-hooks/rules-of-hooks` catches it exactly. It was enabled, at
+    # error severity, in a linter `next build` runs by default, and
+    # `next.config.js` said `eslint.ignoreDuringBuilds: true`.
+    #
+    # A DISABLED GATE IS WORSE THAN A MISSING ONE: the repository looked
+    # equipped. Every part of that control was real except its firing.
+    #
+    # The gate is a ceiling rather than a hard zero because 136 of the
+    # violations pre-date it and 104 are `no-explicit-any` — style debt,
+    # not a defect class. A build that suddenly fails on old style debt is
+    # a gate everyone re-disables, which is how the flag got set. The rules
+    # that catch DEFECTS are pinned at zero separately, so they never
+    # compete with an unescaped apostrophe for the same budget.
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    - working-directory: frontend
+      run: npm ci
+    - name: eslint ceiling, defect rules at zero, and the floor
+      working-directory: frontend
+      # No `|| true`. The script owns the comparison and exits 1 itself.
+      run: node scripts/eslint-gate.mjs
+
   tsc-baseline:
     # RED-H1.1: was `tsc-report`, `continue-on-error: true`, with a comment
     # claiming "116 known pre-existing errors" against a baseline that has

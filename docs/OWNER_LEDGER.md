@@ -1407,6 +1407,47 @@ we reach it.
   the convention pays for itself on entries that overstate, and it turned
   out the bigger population was entries that understate.
 
+- **ESLINT1 — turn the disabled gate back on.**
+  **DECIDED** 2026-08-20, owner-ruled: report the count before flipping;
+  if large, a baseline-with-a-ceiling like tsc rather than a hard zero,
+  and `rules-of-hooks` promoted to error regardless of the rest.
+  **BUILT** — yes, 2026-08-20 (`frontend/scripts/eslint-gate.mjs`, and
+  the `eslint-gate` job in `.github/workflows/test.yml`).
+
+  **The count, reported before anything was flipped:** 136 errors and 58
+  warnings across 294 files. **104 of the 136 errors are
+  `no-explicit-any`** — style debt, not a defect class. The remaining 32
+  are 18 `no-require-imports` (test files), 10 `no-unescaped-entities`,
+  3 `no-html-link-for-pages`, 1 `prefer-const`.
+
+  **The decisive number is a zero, not the 136.**
+  `react-hooks/rules-of-hooks` — the rule this whole ticket came from —
+  has **zero violations across the tree**, and so do seven other
+  defect-catching rules, each checked individually rather than assumed.
+  So they are pinned at zero *independently of the ceiling*, at no cost.
+  That is the only moment pinning a rule is free, and it does not recur.
+
+  **Why the flag was off.** `git log -S` puts it in the commit that
+  CREATED `next.config.js`, beside `typescript.ignoreBuildErrors: true`
+  and a commented-out rewrite marked *"temporarily disabled to fix build
+  issue"*. **A deploy unblock, not a decision about linting** — and a flag
+  with no argument behind it is a different object from one set on
+  principle, because there is nothing to overcome, only something to
+  notice.
+
+  **The flag itself STAYS for now, and this is the honest half of the
+  report.** Flipping `ignoreDuringBuilds` alone fails every build on the
+  136 pre-existing violations, and a build that suddenly fails on old
+  style debt is a gate everyone re-disables — which is how the flag came
+  to be written. The enforcement moved to a blocking CI job instead, and
+  `next.config.js` now carries the whole story at the site so the file
+  stops reading as "we do not lint". Remove the flag when the ceiling
+  reaches zero errors; the gate makes that a matter of time.
+
+  Probed by committing all four failures the gate exists to catch: the
+  hooks defect reinstated, a blanket `eslint-disable`, a file that fails
+  to parse, and new violations above the ceiling.
+
 - **DASH3 — the dashboard becomes a worklist. FIVE RULINGS, then build.**
   **DECIDED** 2026-08-19.
   **BUILT** — yes, 2026-08-20. `backend/services/worklist.py` assembles
@@ -1499,6 +1540,24 @@ we reach it.
      dashboard. Nothing failed: tsc does not flag an unreferenced
      function and the suites assert what renders. §14.5's fourth
      instance, in a single file.
+
+  **Both self-review items ruled by the owner 2026-08-20.** The
+  `N recorded` button DOES carry DASH1's every-count ruling adequately — a
+  count with a destination is what that ruling asked for, and the four
+  tiles were four counts *without* destinations until they were made
+  clickable. And `That's everything.` STAYS: the empty state as a result
+  rather than an absence is a ruled behaviour, and that sentence is what
+  makes it one. (I had named it as the thing I would cut first; that was
+  the wrong instinct about which part was load-bearing.)
+
+  **The F4 near-reversal, marked.** The redesign removed the renderer of
+  `deedsError` while the error was still being set, so a failed deed load
+  would have shown the first-run welcome to an officer whose documents
+  merely failed to load. **That is the empty-vs-error collapse this
+  product has ruled twice, one deletion from returning** — and it was
+  found only because I went looking for dead state, not because anything
+  flagged it. Nothing could have: an error that renders nothing is
+  byte-identical, on screen, to having nothing.
 
   Fourteen pins across six suites broke on the removal, each carrying a
   previously-ruled behaviour. **None was deleted.** Each is recorded in
