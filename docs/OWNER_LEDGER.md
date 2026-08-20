@@ -1730,6 +1730,48 @@ we reach it.
 
 ## Parked tickets (scoped, not scheduled)
 
+- **GUIDE2 — in-product explanation, as static copy.**
+  **DECIDED** 2026-08-20, owner-ruled (GUIDE0 ranks 1 and 2).
+  **BUILT** — yes, 2026-08-20. `frontend/src/lib/provenanceLabels.ts`,
+  `frontend/src/lib/exemptionScope.ts`, pinned by
+  `frontend/src/__tests__/guidanceCopy.test.ts`.
+
+  **What the build FOUND, which was not what the ticket expected.** The
+  amber surface was scoped as "add an explanation". It needed a
+  correction first: `ConfirmableField` showed one hardcoded sentence —
+  **"From county records — confirm"** — on every unconfirmed field, and
+  `FieldSource` has six members. It is false for `google` (a mapping
+  service), false for `prelim` (a title company's work product), and
+  worst for **`ai_suggested`: a value this software proposed, wearing a
+  badge that credited the county.** The amber rule exists to say where a
+  value came from, and the label was saying something we did not know.
+
+  **The violet surface had a gap on the path that matters most.** The
+  proposal block already carried a code section, a title and a
+  fact-grounded explanation. **The MANUAL dropdown carried none of it** —
+  an officer selecting "R&T 11923 — Court Order / Decree" was told
+  nothing about what 11923 covers, and she is the officer deciding
+  *unaided*, with no suggestion guiding her. Help concentrated where the
+  software is already confident is help pointed away from the person who
+  needs it. Both paths now carry scope.
+
+  **The doctrine split, kept sharp.** `dttSuggestions.explanation` says
+  why we propose this FROM HER FACTS. `exemptionScope` says what the
+  SECTION reaches. Scope is a fact about California law, not about her
+  transfer — **the basis made legible, not an inference stacked on one.**
+
+  **Pinned as prohibitions, because that is the shape of the risk.** Copy
+  cannot fail loudly: a sentence that quietly recommends an instrument,
+  or asserts what a recorder will accept, renders exactly as neatly as one
+  that does not. Seven mutation probes, each biting — including one that
+  first reported `Tests: 0` because my probe was invalid syntax and the
+  suite never ran. §14.2: that is not a bite, it is the control not
+  running, and it was re-probed with valid code.
+
+  **Cost: zero.** No endpoint, no model, no quota. A pin refuses a
+  `fetch` in either module, because turning fixed reviewable copy into an
+  inference with a bill would look like an improvement in review.
+
 - **DARKSWEEP — enumerate every unreachable route and page component, and
   report what each one CLAIMS.**
   **DECIDED** 2026-08-20, owner-ruled. **BUILT** — no.

@@ -72,8 +72,13 @@ const CEILING = { errors: 134, warnings: 56 };
  *
  *  It did exactly that on its first real encounter: GUIDE1 deleted three
  *  orphaned components and the gate refused the run until this number
- *  was lowered on purpose. 294 -> 291, three deletions, checked. */
-const FILES_FLOOR = 291;
+ *  was lowered on purpose. 294 -> 291, three deletions, checked.
+ *
+ *  GUIDE2 raised it back to 294 by adding three files. The floor moves in
+ *  BOTH directions on purpose — raising it locks in the coverage the way
+ *  lowering the ceiling locks in the cleanup, and a floor left behind the
+ *  real count silently tolerates that many files going dark. */
+const FILES_FLOOR = 294;
 
 /**
  * These catch DEFECTS rather than style, and every one is at zero today —
