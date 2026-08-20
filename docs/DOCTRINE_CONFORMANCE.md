@@ -1286,6 +1286,77 @@ easiest change to undo silently.
 
 ---
 
+### §14.12 — A removed claim must read as a NO, as legibly as a yes (2026-08-20)
+
+**Statement.** When a capability claim is withdrawn, the surface that
+carried it has to say *no* — not say nothing. An absent answer and a
+broken renderer are indistinguishable to a reader, so silence returns the
+question rather than answering it.
+
+**The instance.** DARK1 removed a `✓` from the comparison table's
+"Multi-user collaboration" row by setting `deedpro: false`. The renderer
+read `row.deedpro === true ? <Check/> : <span>{row.deedpro}</span>` —
+and **React renders `false` as nothing**. The honest answer would have
+shipped as an empty cell in a table where every other cell is filled,
+which reads as a layout bug, not as an answer. A reader who notices an
+empty cell concludes the page is broken; a reader who doesn't concludes
+nothing at all. Neither learns that we do not have the feature.
+
+**This is the empty-vs-error distinction arriving in a table cell.** §4
+says an error is never swallowed; #206 says an empty state is a RESULT
+rather than an absence; F4 says a failed load must not render as a
+first-run welcome. Same rule, fourth surface: **the difference between
+"no" and "nothing" is the whole information content of the answer.**
+
+**The mechanical form.** Whenever a boolean or nullable value drives a
+rendering, ask what the FALSE branch draws. If the answer is "nothing",
+the value is not being rendered — it is being dropped, and the reader is
+left to supply the meaning. `false` needs its own arm as deliberately as
+`true` does.
+
+---
+
+### §14.13 — A rule's `why` and a rule's pattern are two declarations, and only one of them runs (2026-08-20)
+
+**Statement.** A gate carries two statements of its subject: the prose
+that says what it guards, and the matcher that decides. Readers trust the
+prose. Only the matcher fires. When they disagree, the gate is narrower
+than every person who reads it believes, **and the prose is what makes
+the gap invisible** — it answers the question that would otherwise be
+asked of the pattern.
+
+**The instance.** `check_banned_claims.py`'s team rule said, in its own
+`why`: *"There is no team model to manage (RED-S5, deferred by
+decision)."* Correct, and exactly the subject. Its pattern was
+`team management|multi[\s\-]user seats?|user seats?` — three spellings.
+
+The live comparison table said **"Multi-user collaboration"** with a
+checkmark, and passed, because the pattern required the word "seats" to
+follow "multi-user".
+
+**Why this is §14.1 and worse than §14.1.** §14.1 says a sweep matches
+the property, not the spelling. Here the property was written down, in
+the same object, ten lines from the regex that failed to implement it.
+The rule KNEW what it was for. Enumerating three spellings of a subject
+you have already stated in general terms is the enumerate-vs-property
+error committed against your own documentation.
+
+**And the restraint matters as much as the widening.** The fix widened
+`collaboration` only where it sits beside a multi-user / team / shared
+word — bare "collaboration" is NOT banned. A signing is a collaboration
+between an officer and a notary; banning the noun would trade this error
+for its mirror and start flagging honest prose. **A gate that over-fires
+is disabled by the next person who hits it**, which returns us to §14.9.
+Widening is a move toward the property in both directions, not a move
+toward strictness.
+
+**The mechanical form:** read a rule's `why` as a specification and ask
+whether the pattern implements it. Write the sentence the `why` forbids,
+in the plainest wording you would actually use, and check the matcher
+sees it. Ten cases took a minute here and found four missed spellings.
+
+---
+
 ### §14.11 — A move is not a rename: it is a rewrite unless the bytes are compared (2026-08-20)
 
 **Statement.** Moving a function to a new file feels like a rename and is
@@ -1407,7 +1478,31 @@ outright on a parse error. All three probed by committing them.
 
 **Statement.** A shape recognised, named, documented and reasoned about
 in the morning is fully available to recur in the afternoon, in the code
-written to prevent it, by the person who wrote it down. **This is why
+written to prevent it, by the person who wrote it down.
+
+**THE SHARPEST INSTANCE, 2026-08-20 — one hour, not one morning.** DARK1
+found that a jest pin asserted `components/landing-v2/VideoPlayer.tsx`
+does not exist, while the rickroll it was written to prevent sat at
+`components/VideoPlayer.tsx` — the pin green *because* it named one path
+instead of the property. I widened it to the property, probed it both
+ways, and wrote the lesson into the file.
+
+**In the same session, I then declared the landing page free of AI claims
+after grepping `app/page.tsx` and not the components that page renders.**
+`AnimatedDeed.tsx` was rendering a badge reading "AI Generated" in the
+hero, above the fold — the authorship claim in its strongest form, and
+the exact string HOME2 had corrected on the static twin.
+
+One path instead of the property. Twice, in one session, the second time
+while fixing the first, by someone who had just written the rule down and
+could have recited it. **The interval between naming a shape and
+repeating it is not measured in weeks.**
+
+What actually caught the second one was not vigilance: it was going to
+look for something else entirely (a claim that turned out not to exist)
+with a grep wide enough to cross file boundaries. **A wider instrument
+found what a sharper memory did not**, which is the whole argument of
+this section restated by accident. **This is why
 every entry in this document that can carry a mechanism does — a note is
 a thing you have to remember, and remembering is the faculty that just
 failed.**

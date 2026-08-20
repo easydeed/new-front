@@ -80,10 +80,12 @@ const CEILING = { errors: 134, warnings: 56 };
  *  real count silently tolerates that many files going dark.
  *
  *  DARK1 lowered it to 293 (`/team` deleted), then 292 (`VideoPlayer.tsx`
- *  deleted — the rickroll a green pin had been certifying the absence of).
- *  Four deliberate moves now, and the gate has refused a run for every
- *  one of them. */
-const FILES_FLOOR = 292;
+ *  deleted — the rickroll a green pin had been certifying the absence of),
+ *  then 285 (the DARKSWEEP cleanup: seven unruled, unimported, unpinned
+ *  components). Five deliberate moves now, and the gate has refused a run
+ *  for every one of them — which is the only evidence that it is doing
+ *  anything at all (§14.9). */
+const FILES_FLOOR = 285;
 
 /**
  * These catch DEFECTS rather than style, and every one is at zero today —
