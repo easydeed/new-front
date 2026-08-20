@@ -175,7 +175,9 @@ export default function LandingPage() {
             </div>
 
             <div className="grid md:grid-cols-3 gap-12">
-              {/* Feature 1: AI-Powered Wizard */}
+              {/* Feature 1: the wizard. DARK1 — was "AI-Powered Wizard".
+                  Its own body, unchanged below, describes forms and inline
+                  validation, which is what the wizard actually is. */}
               <div className="group text-center">
                 <div className="bg-gray-50 rounded-xl p-6 shadow-lg border border-gray-200 mb-6 group-hover:border-[#7C4DFF] transition-all">
                   <div className="bg-white rounded-lg p-4 border border-[#7C4DFF]/20">
@@ -197,7 +199,7 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                <h3 className="text-2xl font-bold text-[#1F2B37] mb-4">AI-Powered Wizard</h3>
+                <h3 className="text-2xl font-bold text-[#1F2B37] mb-4">Guided Wizard</h3>
                 <p className="text-lg text-gray-600 leading-loose">
                   Clean, accessible forms with inline validation. Less friction, fewer do-overs.
                 </p>
@@ -428,7 +430,7 @@ export default function LandingPage() {
                   </CardContent>
                 </Card>
 
-                {/* Step 2: AI Generation */}
+                {/* Step 2: prefill and explain. */}
                 <Card className="relative overflow-hidden border border-gray-200 hover:border-[#4F76F6] hover:shadow-2xl transition-all group bg-white">
                   <CardContent className="p-0">
                     {/* Visual Graphic Area */}
@@ -492,14 +494,24 @@ export default function LandingPage() {
                         <div className="flex items-center justify-center h-14 w-14 rounded-full border border-dashed border-[#4F76F6] bg-[#4F76F6]/10 text-[#4F76F6] text-xl font-bold">
                           2
                         </div>
-                        {/* HOME2 — was "AI Generates". Same correction: the step's own
-                            sentence beneath it already says the officer confirms
-                            every field, so the heading contradicted its body. */}
-                        <h3 className="text-2xl font-bold text-[#1F2B37]">AI Suggests</h3>
+                        {/* HOME2 — was "AI Generates", corrected to "AI Suggests"
+                            because the step's own sentence beneath it already said
+                            the officer confirms every field, so the heading
+                            contradicted its body.
+
+                            DARK1 — the rest of that correction. HOME2 fixed WHO
+                            DECIDES and kept the capability word. The word is the
+                            part that is false: the values on this step come from
+                            county records via `dttSuggestions.ts` and
+                            `vestingSuggestion.ts`, both deterministic pattern
+                            matches — "No LLM involved", as the former has said in
+                            its own header since ticket TT. After GUIDE1 there is
+                            no model anywhere a user can reach. */}
+                        <h3 className="text-2xl font-bold text-[#1F2B37]">Prefill &amp; Explain</h3>
                       </div>
 
                       <p className="text-base text-gray-600 leading-relaxed mb-6">
-                        AI proposes values from county records; your officer confirms every one before anything prints.
+                        Values arrive from county records with their source named, and the exemptions explain what they cover; your officer confirms every one before anything prints.
                       </p>
 
                       <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -1030,7 +1042,7 @@ Content-Type: application/json
                   <LogoLockupDark size={36} />
                 </div>
                 <p className="text-base leading-relaxed">
-                  Create California deeds in minutes with an AI&#8209;assisted wizard and SmartReview.
+                  Create California deeds in minutes with a guided wizard and SmartReview.
                 </p>
                 {/* HM3: company identity block — owner supplies entity details. */}
                 <p className="mt-4 text-sm text-gray-500">

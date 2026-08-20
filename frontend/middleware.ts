@@ -30,7 +30,15 @@ const protectedRoutes = [
   '/shared-deeds',
   '/account-settings',
   '/admin',
-  '/team',
+  // DARK1: '/team' is gone, on the same reasoning as '/security' below.
+  // HX0 fixed its AUTH after the audit found it leaking; DARK1 asked
+  // whether the page should exist and the answer was no — it advertised a
+  // collaborative workspace and a Team tier that were never built. A guard
+  // restricts an invention to signed-in users; deletion removes it.
+  //
+  // It stayed in THIS list after the page was deleted, which the pin in
+  // `routeGuards.test.ts` caught: a protected-route table naming a route
+  // that does not exist is a small lie about what the middleware guards.
   // RED-H1.1: '/security' is gone — the route was DELETED, not gutted.
   // It rendered entirely fabricated telemetry: invented login events with
   // invented IPs, an invented "Multiple rapid login attempts detected /

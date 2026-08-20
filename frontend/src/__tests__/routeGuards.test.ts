@@ -280,12 +280,33 @@ describe('HX0 — route-level auth guards', () => {
     }
   });
 
-  it('the audited leak specifically: /team mounts the guard', () => {
-    // /security was the other half of this pin. RED-H1.1 DELETED that
-    // route rather than guarding it — see the next test.
-    const src = fs.readFileSync(path.join(APP_DIR, 'team', 'page.tsx'), 'utf8');
-    expect(src).toContain('useRequireAuth');
-    expect(src).toContain('if (!checked) return null;');
+  it('DARK1 — /team is GONE, not guarded', () => {
+    /**
+     * §16 — THIS PIN'S SUBJECT WAS DELETED, AND THE RULING SURVIVES IN
+     * THE STRONGER FORM.
+     *
+     * The audit found `/team` leaking the internal app, and HX0 fixed it
+     * by mounting `useRequireAuth`. This pin held that guard. DARK1 asked
+     * the question HX0 did not — should the page exist at all — and the
+     * answer was the same as `/security`'s: what it rendered was a
+     * collaborative workspace and a Team tier that do not exist, in
+     * capability language the product's own doctrine forbids.
+     *
+     * A guard restricts an invention to signed-in users. Deletion is the
+     * strongest form of "this page cannot leak", and it is the form both
+     * audited leaks ended in.
+     *
+     * Asserted on the FILESYSTEM, deliberately, exactly as the
+     * `/security` pin below is. An HTTP 404 assertion would pass whether
+     * the route were deleted or merely broken — a pin that passes both
+     * ways is not a pin. This one fails the moment the directory returns.
+     */
+    expect(fs.existsSync(path.join(APP_DIR, 'team'))).toBe(false);
+
+    // And nothing links to it, so a deletion cannot leave a dead button.
+    const middleware = fs.readFileSync(
+      path.join(__dirname, '..', '..', 'middleware.ts'), 'utf8');
+    expect(codeOnly(middleware)).not.toMatch(/['"]\/team['"]/);
   });
 
   it('RED-H1.1 — /security is GONE, not guarded', () => {
