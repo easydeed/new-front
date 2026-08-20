@@ -1730,6 +1730,64 @@ we reach it.
 
 ## Parked tickets (scoped, not scheduled)
 
+- **NOTIF1 — the approval record has no reader, and the worklist
+  structurally cannot be one.**
+  **DECIDED** — investigation reported 2026-08-20; the build is NOT ruled.
+  **BUILT** — no.
+
+  **The question asked:** does the worklist already surface approvals
+  through share status? If so the in-app records are redundant and
+  retiring the writer is the honest answer.
+
+  **The answer is no, and the reason is structural rather than
+  incidental.** `routers/dashboard.py`'s awaiting query selects
+  `ds.status IN ('sent', 'viewed')` — the two UNDECIDED statuses — with
+  the comment: *"A share that was approved, rejected, revoked or expired
+  is not waiting on anybody."* That is correct for a worklist. A worklist
+  shows outstanding work, and **an approval is the end of outstanding
+  work**, so the row does not change: it DISAPPEARS.
+
+  **A disappearance is not a notification.** The officer sees a row for a
+  share she is waiting on; when the reviewer approves, the row is simply
+  gone next time she looks. Nothing on any screen says it was approved —
+  swept `features/` and `app/`, and the only approval-aware surfaces are
+  the reviewer's own `/approve/[token]` confirmation, an admin email-log
+  filter, and an account-settings toggle describing the email.
+
+  **So the email is the only channel that tells her**, which is exactly
+  the failure mode E1's comment names: *"Before this, the approval
+  existed only as an email; a transport failure erased the event from the
+  owner's world entirely."* The in-app record was written to survive that
+  failure and currently survives it into a table nobody reads.
+
+  **The records are therefore NOT redundant — they carry the one event
+  this product cannot otherwise show.** Retiring the writer would restore
+  the exact defect E1 was built to fix.
+
+  **What wiring would cost, honestly.** The destination is not a bell.
+  The worklist's unit is a ROW representing outstanding work, and an
+  approval is finished work — so it does not fit the existing bands
+  (chase / you / stale) without changing what a row means. Three shapes,
+  none of them free:
+
+    1. **A fourth band ("resolved since you last looked")** — fits the
+       screen, but the hero counts rows and the hero's promise is "things
+       that need you". An approval needs nothing. It would inflate the
+       count with work that is done, which is the metric-vs-worklist
+       error DASH3 spent itself removing.
+    2. **A separate strip above or below the worklist** — does not touch
+       the count, needs a read endpoint (the router, un-gated), a
+       last-seen marker, and a dismissal rule. Smallest honest version.
+    3. **On the deed's own row/page** — an approval is a fact about a
+       document, and `/deeds/{id}` already tells that story. Cheapest,
+       but only reaches her if she goes looking, which is the thing the
+       record exists to avoid.
+
+  **Recommendation: (2), and it is a real ticket, not a flag flip.** The
+  flag is off, the UI is deleted, and the read API has never served a
+  request. **Not started — this is the report, and the ruling is the
+  owner's.**
+
 - **GUIDE2 — in-product explanation, as static copy.**
   **DECIDED** 2026-08-20, owner-ruled (GUIDE0 ranks 1 and 2).
   **BUILT** — yes, 2026-08-20. `frontend/src/lib/provenanceLabels.ts`,
