@@ -79,9 +79,11 @@ const CEILING = { errors: 134, warnings: 56 };
  *  lowering the ceiling locks in the cleanup, and a floor left behind the
  *  real count silently tolerates that many files going dark.
  *
- *  DARK1 lowered it to 293: `/team` was deleted. Third deliberate move,
- *  and the gate has now refused a run for every one of them. */
-const FILES_FLOOR = 293;
+ *  DARK1 lowered it to 293 (`/team` deleted), then 292 (`VideoPlayer.tsx`
+ *  deleted — the rickroll a green pin had been certifying the absence of).
+ *  Four deliberate moves now, and the gate has refused a run for every
+ *  one of them. */
+const FILES_FLOOR = 292;
 
 /**
  * These catch DEFECTS rather than style, and every one is at zero today —

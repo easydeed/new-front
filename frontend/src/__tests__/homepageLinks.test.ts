@@ -84,10 +84,34 @@ describe('HM1 — dead promises stay dead', () => {
     expect(ALL).not.toContain('Watch 2‑min Demo');
     expect(PAGE).not.toContain('VideoPlayer');
     expect(PAGE).not.toContain('id="video"');
-    // The placeholder "demo" iframe (a rickroll) can never return.
-    expect(
-      fs.existsSync(path.join(__dirname, '..', 'components', 'landing-v2', 'VideoPlayer.tsx'))
-    ).toBe(false);
+
+    /* THE PLACEHOLDER "DEMO" IFRAME — A RICKROLL — CAN NEVER RETURN.
+     *
+     * DARK1 found that it never left. This assertion named ONE PATH,
+     * `components/landing-v2/VideoPlayer.tsx`, which HM1 did delete. A
+     * SECOND COPY at `components/VideoPlayer.tsx` survived that ticket
+     * untouched, embedding `dQw4w9WgXcQ` under
+     * `title="DeedPro Product Demo"`, and this pin was green the whole
+     * time — green *because* it was pointed somewhere else.
+     *
+     * §14.1.1's silent half, and the most exact instance we have: the pin
+     * did not merely fail to catch the thing it names, it CERTIFIED its
+     * absence. Nobody re-opens a file whose guard is passing.
+     *
+     * So the assertion is now the PROPERTY, in the two forms it can take:
+     * no component by that name anywhere under `src`, and no occurrence
+     * of that video id anywhere. A third copy at a fourth path fails
+     * both. */
+    const walk = (dir: string): string[] =>
+      fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+        const full = path.join(dir, e.name);
+        if (e.isDirectory()) return e.name === 'node_modules' ? [] : walk(full);
+        return /\.tsx?$/.test(e.name) ? [full] : [];
+      });
+    const SRC = path.join(__dirname, '..');
+    const files = walk(SRC).filter((f) => !f.includes('__tests__'));
+    expect(files.filter((f) => path.basename(f).startsWith('VideoPlayer'))).toEqual([]);
+    expect(files.filter((f) => fs.readFileSync(f, 'utf8').includes('dQw4w9WgXcQ'))).toEqual([]);
   });
 
   it('the audited 404 links are gone', () => {
