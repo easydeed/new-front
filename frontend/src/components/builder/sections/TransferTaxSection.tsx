@@ -4,6 +4,7 @@ import { useMemo, useEffect } from "react"
 import { Calculator, Scale, ShieldCheck, X } from "lucide-react"
 import { useGuidance } from "@/contexts/GuidanceContext"
 import { FieldGuidance } from "../FieldGuidance"
+import { exemptionScope } from '@/lib/exemptionScope'
 import { detectDttSuggestion } from "@/lib/dttSuggestions"
 import { computeDttBreakdown } from "@/lib/dttCalc"
 import type { DTTData, LegalChoiceRecord } from "@/types/builder"
@@ -149,6 +150,24 @@ export function TransferTaxSection({
           </div>
           <p className="text-sm font-semibold text-gray-900">{suggestion.title}</p>
           <p className="text-sm text-gray-700 mt-1">{suggestion.explanation}</p>
+          {/* GUIDE2 — THE OTHER HALF OF THE BASIS. `explanation` says why
+              we are proposing this FROM HER FACTS; this says what the
+              SECTION reaches, so she can judge whether her facts fall
+              inside it. Scope is a fact about California law, not about
+              her transfer — the basis made legible, not an inference
+              stacked on one. */}
+          {exemptionScope(suggestion.codeSection) && (
+            <div className="mt-2 rounded-md bg-white/70 px-2.5 py-2 text-xs leading-relaxed text-gray-700">
+              <p><span className="font-semibold">What {suggestion.codeSection} covers: </span>
+                {exemptionScope(suggestion.codeSection)!.covers}</p>
+              {exemptionScope(suggestion.codeSection)!.limit && (
+                <p className="mt-1 text-gray-600">
+                  <span className="font-semibold">Worth checking: </span>
+                  {exemptionScope(suggestion.codeSection)!.limit}
+                </p>
+              )}
+            </div>
+          )}
           <p className="text-xs text-gray-500 mt-2">
             The exemption is not part of this deed unless you accept it. You remain
             responsible for the tax treatment.
@@ -232,6 +251,32 @@ export function TransferTaxSection({
               </option>
             ))}
           </select>
+          {/* GUIDE2 — THE PATH THAT HAD NOTHING.
+              The violet proposal block carries a code section, a title
+              and an explanation. This dropdown carried none of it, and
+              the officer using it is the one who most needs it: no
+              suggestion is guiding her, and she has chosen to decide
+              unaided. Help concentrated where the software is already
+              confident is help pointed away from the person needing it.
+
+              Scope only. Nothing here says the exemption applies to her
+              transfer or that a recorder will accept it. */}
+          {exemptionScope(value.exemptReason) && (
+            <div className="mt-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2.5
+                            text-xs leading-relaxed text-gray-700">
+              <p><span className="font-semibold">What {value.exemptReason} covers: </span>
+                {exemptionScope(value.exemptReason)!.covers}</p>
+              {exemptionScope(value.exemptReason)!.limit && (
+                <p className="mt-1 text-gray-600">
+                  <span className="font-semibold">Worth checking: </span>
+                  {exemptionScope(value.exemptReason)!.limit}
+                </p>
+              )}
+              <p className="mt-1.5 text-gray-500">
+                The section recorded is the one you select, and the basis is yours.
+              </p>
+            </div>
+          )}
         </div>
       ) : (
         /* Tax Calculation */

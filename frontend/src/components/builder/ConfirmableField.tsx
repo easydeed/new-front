@@ -8,6 +8,7 @@
 import { useState } from 'react'
 import { AlertCircle, Check, Pencil, ShieldCheck } from 'lucide-react'
 import type { Sourced } from '@/types/builder'
+import { provenanceLabel } from '@/lib/provenanceLabels'
 
 export interface ConfirmableFieldProps {
   label: string
@@ -19,7 +20,16 @@ export interface ConfirmableFieldProps {
 
 export function ConfirmableField({ label, field, multiline, onConfirm, onEdit }: ConfirmableFieldProps) {
   const [isEditing, setIsEditing] = useState(false)
+  const [showSource, setShowSource] = useState(false)
   const [draft, setDraft] = useState(field.value)
+
+  /* GUIDE2 — the badge now says which source, and can say what that
+     source IS. It used to read "From county records" for every value,
+     which is false for `google` (a mapping service), false for `prelim`
+     (a title company's work product), and worst for `ai_suggested` —
+     a value this software proposed, wearing a badge that credited the
+     county. See `lib/provenanceLabels.ts`. */
+  const provenance = provenanceLabel(field.source)
 
   const isConfirmed = field.status === 'confirmed'
   const isUserSourced = field.source === 'user'
@@ -48,12 +58,27 @@ export function ConfirmableField({ label, field, multiline, onConfirm, onEdit }:
             {isUserSourced ? 'Edited & confirmed' : 'Confirmed'}
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700">
+          <button
+            type="button"
+            onClick={() => setShowSource((v) => !v)}
+            aria-expanded={showSource}
+            className="inline-flex items-center gap-1 text-xs font-medium text-amber-700
+                       underline decoration-amber-300 underline-offset-2 hover:text-amber-900"
+          >
             <AlertCircle className="w-3.5 h-3.5" />
-            From county records — confirm
-          </span>
+            {provenance.badge}
+          </button>
         )}
       </div>
+
+      {/* WHAT THAT SOURCE IS — opened on request, never in her way.
+          Provenance, not advice: it describes where the value came from
+          and says nothing about her transaction. */}
+      {showSource && !isConfirmed && (
+        <p className="mb-2 rounded-md bg-amber-100/60 px-2.5 py-2 text-xs leading-relaxed text-amber-900">
+          {provenance.detail}
+        </p>
+      )}
 
       {isEditing ? (
         <div className="space-y-2">

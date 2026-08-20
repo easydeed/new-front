@@ -1730,6 +1730,97 @@ we reach it.
 
 ## Parked tickets (scoped, not scheduled)
 
+- **GUIDE2 — in-product explanation, as static copy.**
+  **DECIDED** 2026-08-20, owner-ruled (GUIDE0 ranks 1 and 2).
+  **BUILT** — yes, 2026-08-20. `frontend/src/lib/provenanceLabels.ts`,
+  `frontend/src/lib/exemptionScope.ts`, pinned by
+  `frontend/src/__tests__/guidanceCopy.test.ts`.
+
+  **What the build FOUND, which was not what the ticket expected.** The
+  amber surface was scoped as "add an explanation". It needed a
+  correction first: `ConfirmableField` showed one hardcoded sentence —
+  **"From county records — confirm"** — on every unconfirmed field, and
+  `FieldSource` has six members. It is false for `google` (a mapping
+  service), false for `prelim` (a title company's work product), and
+  worst for **`ai_suggested`: a value this software proposed, wearing a
+  badge that credited the county.** The amber rule exists to say where a
+  value came from, and the label was saying something we did not know.
+
+  **The violet surface had a gap on the path that matters most.** The
+  proposal block already carried a code section, a title and a
+  fact-grounded explanation. **The MANUAL dropdown carried none of it** —
+  an officer selecting "R&T 11923 — Court Order / Decree" was told
+  nothing about what 11923 covers, and she is the officer deciding
+  *unaided*, with no suggestion guiding her. Help concentrated where the
+  software is already confident is help pointed away from the person who
+  needs it. Both paths now carry scope.
+
+  **The doctrine split, kept sharp.** `dttSuggestions.explanation` says
+  why we propose this FROM HER FACTS. `exemptionScope` says what the
+  SECTION reaches. Scope is a fact about California law, not about her
+  transfer — **the basis made legible, not an inference stacked on one.**
+
+  **Pinned as prohibitions, because that is the shape of the risk.** Copy
+  cannot fail loudly: a sentence that quietly recommends an instrument,
+  or asserts what a recorder will accept, renders exactly as neatly as one
+  that does not. Seven mutation probes, each biting — including one that
+  first reported `Tests: 0` because my probe was invalid syntax and the
+  suite never ran. §14.2: that is not a bite, it is the control not
+  running, and it was re-probed with valid code.
+
+  **Cost: zero.** No endpoint, no model, no quota. A pin refuses a
+  `fetch` in either module, because turning fixed reviewable copy into an
+  inference with a bill would look like an improvement in review.
+
+- **DARKSWEEP — enumerate every unreachable route and page component, and
+  report what each one CLAIMS.**
+  **DECIDED** 2026-08-20, owner-ruled. **BUILT** — no.
+  **Investigation only. Report before deleting anything: a page is a
+  product decision, not cleanup.**
+  **DO NOT START until GUIDE2 lands.**
+
+  **Why it exists: three dark surfaces, found three different ways, none
+  of them by looking.**
+
+  1. `/api/ai/chat` — no reachable caller since 2026-04-28. Found by a
+     call-site census during GUIDE0, four months later, after two tickets
+     had hardened and re-ruled it.
+  2. `ActionQueue`/`QueueList`/`StatCard`/`DeedRow` — renderers outliving
+     their render sites, found in DASH3 while auditing dead state.
+  3. `/team` — no inbound link from anywhere, found incidentally while
+     grepping for AI labels in GUIDE1.
+
+  **Finding the fourth by accident is the wrong way to find it.** Each of
+  these was invisible for the same reason: nothing fails when code is
+  unreachable, so nothing prompts anybody. That is §14.5's whole family,
+  and the answer to a family of defects is a sweep rather than a habit.
+
+  **What the sweep produces:** every route and page component with no
+  inbound link and no importer; what each one claims in its user-visible
+  text; and whether it renders anything a stranger could reach — because
+  an unreachable-by-navigation route may still be served by URL, which is
+  a different risk from dead code.
+
+  **`/team` is IN this sweep rather than decided now** (owner-ruled), and
+  it is flagged: it claims *"Collaborative AI-powered deed creation
+  workspace"* and *"✨ AI Assisted"* — **the exact claim GUIDE1 removed
+  everywhere reachable.**
+
+  **The banned-claims question, answered.** The gate ALREADY covers
+  `/team` regardless of reachability: `files_to_check()` rglobs
+  `frontend/src` and never consults routing, which is the right design
+  and needed no change. It does not fire because **there is no RULE for a
+  capability claim** — all fourteen are certifications, security grades,
+  or unbuilt features (SSO, white-label, seats). So this is a rule gap,
+  not a scope gap, and the distinction matters: no plumbing to build,
+  only a rule to write.
+
+  **The rule is deliberately NOT added yet.** Adding an AI-capability
+  rule today fails the gate on `/team`, which forces the page to be fixed
+  or allowlisted — pre-empting the decision this sweep exists to make.
+  It goes in when DARKSWEEP resolves `/team`, and that sequencing is the
+  point rather than a delay.
+
 - **W0 §3 — A RULING DECIDED, PARKED, AND NEVER BUILT** (surfaced by
   HOME2, 2026-08-18). Recorded loudly because it was invisible for weeks
   and because of HOW it stayed invisible.
