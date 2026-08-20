@@ -20,6 +20,7 @@ from auth import get_current_user_id
 from services import deed_accuracy as accuracy
 from services import officer_queue as q
 from services import signing_loop as loop
+from services import worklist as wl
 
 router = APIRouter()
 
@@ -163,8 +164,9 @@ def officer_queue(user_id: int = Depends(get_current_user_id)) -> Dict[str, Any]
         # `required_fields.json` and a stored provenance block — neither
         # of which the screen holds.
         cur.execute("""
-            SELECT id, deed_type, property_address, grantor_name, grantee_name,
-                   legal_description, apn, vesting, parties, metadata
+            SELECT id, deed_type, property_address, county, grantor_name,
+                   grantee_name, legal_description, apn, vesting, parties,
+                   metadata, superseded_by
               FROM deeds
              WHERE user_id = %s
                AND COALESCE(status, 'draft') NOT IN ('completed', 'deleted')
@@ -172,6 +174,8 @@ def officer_queue(user_id: int = Depends(get_current_user_id)) -> Dict[str, Any]
              ORDER BY COALESCE(updated_at, created_at) DESC
         """, (user_id,))
         accuracy_items: List[Dict[str, Any]] = []
+        ready_items: List[Dict[str, Any]] = []
+        counties: Dict[str, str] = {}
         total_fields = 0
         # ── AND HOW MANY DOCUMENTS THERE WERE TO LOOK AT ──────────────
         #
@@ -191,12 +195,32 @@ def officer_queue(user_id: int = Depends(get_current_user_id)) -> Dict[str, Any]
         for row in _rows(cur):
             open_documents += 1
             meta = row.get("metadata") or {}
+            if row.get("county") and row.get("property_address"):
+                counties.setdefault(
+                    (row["property_address"] or "").strip().upper(), row["county"])
+            # A SUPERSEDED DEED IS NOT HER WORK. The deed page stops her
+            # on arrival (§9); putting it in the worklist would be
+            # inviting the work the stop exists to prevent. Chase rows
+            # survive supersession — somebody outside is still waiting,
+            # and telling her that is not inviting her to work on it.
+            if row.get("superseded_by") is not None:
+                continue
             checks = accuracy.outstanding(
                 {**row,
                  "dtt": meta.get("dtt"),
                  "current_owner": meta.get("current_owner")},
                 provenance=meta.get("provenance"))
             if not checks:
+                # DASH3: every field confirmed, nothing printed yet. It
+                # contributes ZERO to the accuracy figure — which is why
+                # the old dashboard could not show it — and it is the
+                # readiest work she has. A row of its own now.
+                ready_items.append({
+                    "deed_id": row["id"],
+                    "deed_type": row.get("deed_type"),
+                    "property": row.get("property_address"),
+                    "escrow_no": meta.get("escrow_no"),
+                })
                 continue
             total_fields += len(checks)
             accuracy_items.append({
@@ -256,15 +280,72 @@ def officer_queue(user_id: int = Depends(get_current_user_id)) -> Dict[str, Any]
                 "days_idle": q.days_since(row.get("updated_at") or row.get("created_at")),
             })
 
+        # ── How many documents on each property have RECORDED ────────
+        #
+        # `recorded_at IS NOT NULL`, and NEVER `status = 'completed'`.
+        # The distinction is the whole pin: `completed` means a PDF was
+        # rendered, and recording is the officer's own statement that the
+        # county took it (RED0 R3-8). Counting status would silently turn
+        # "4 recorded" into "we rendered four PDFs" — the `deeds.status`
+        # disease reappearing inside a count, on the surface a pilot user
+        # reads first.
+        cur.execute("""
+            SELECT property_address, COUNT(*) AS n
+              FROM deeds
+             WHERE user_id = %s
+               AND recorded_at IS NOT NULL
+               AND COALESCE(status, '') <> 'deleted'
+             GROUP BY property_address
+        """, (user_id,))
+        recorded_counts = {
+            (r["property_address"] or "").strip().upper(): r["n"]
+            for r in _rows(cur)
+        }
+
     upcoming.sort(key=lambda r: r["when"])
     # Longest-waiting first: the oldest silence is the one worth chasing.
     # `days_waiting` may be None for a row we cannot date, and those sort
     # last rather than first — an unknown age is not evidence of urgency.
     awaiting.sort(key=lambda r: (r["days_waiting"] is None,
                                  -(r["days_waiting"] or 0)))
+    # ── DASH3: the same facts, as one worklist ───────────────────────
+    #
+    # Assembled from the populations above rather than re-queried: two
+    # queries answering one question is how the accuracy figure and the
+    # queue came to disagree in the first place. The screen renders
+    # `worklist`; `accuracy`, `awaiting`, `upcoming` and `idle_drafts`
+    # stay in the payload because other things read them and because a
+    # shape asserted by equality is not something to break in passing.
+    rows: List[Dict[str, Any]] = []
+    for item in awaiting:
+        rows.append(wl.chase_row(item).as_dict())
+    for item in upcoming:
+        rows.append(wl.upcoming_row(item).as_dict())
+    for item in accuracy_items:
+        rows.append(wl.accuracy_row(item).as_dict())
+    for item in ready_items:
+        rows.append(wl.ready_row(item).as_dict())
+
+    # Idle drafts COLLAPSE per property — four drafts on one parcel are
+    # one line with one action, not four lines competing with work that
+    # is actually blocked.
+    by_property: Dict[str, List[Dict[str, Any]]] = {}
+    chased = {r["deed_id"] for r in rows if r.get("deed_id")}
+    for item in idle:
+        # A draft that already has a row of its own is not also sitting.
+        if item.get("id") in chased:
+            continue
+        by_property.setdefault((item.get("property") or "").strip().upper(),
+                               []).append(item)
+    for items in by_property.values():
+        rows.append(wl.stale_group_row(items).as_dict())
+
+    groups = wl.group_rows(rows, recorded=recorded_counts, counties=counties)
+
     return q.queue(upcoming=upcoming, awaiting=awaiting, idle_drafts=idle,
                    instruments=instruments,
                    accuracy={"fields": total_fields,
                              "documents": len(accuracy_items),
                              "open_documents": open_documents,
-                             "items": accuracy_items})
+                             "items": accuracy_items},
+                   worklist={"groups": groups, "count": wl.hero_count(groups)})

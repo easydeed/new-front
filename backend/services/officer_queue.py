@@ -111,6 +111,11 @@ QUEUE_KEYS = frozenset({
     "needs_attention", # ONE number, and it is the stale ones
     "thresholds",      # the numbers above, so no screen retypes them
     "badges",          # per-page waiting counts for the sidebar
+    # DASH3 — the same facts as ONE worklist: rows grouped by property,
+    # ordered by consequence, with a count that equals the rows it
+    # describes. Added deliberately: this assertion made the extension
+    # a decision rather than a diff nobody read.
+    "worklist",
     "accuracy",        # what stands between her documents and being ready
     "instruments",     # what THIS officer files, most-used first
 })
@@ -150,7 +155,8 @@ def queue(*, upcoming: Sequence[Dict[str, Any]],
           awaiting: Sequence[Dict[str, Any]],
           idle_drafts: Sequence[Dict[str, Any]],
           accuracy: Dict[str, Any],
-          instruments: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+          instruments: Sequence[Dict[str, Any]],
+          worklist: Dict[str, Any]) -> Dict[str, Any]:
     """Assemble the payload and assert its shape.
 
     `needs_attention` is computed HERE rather than by the screen, and it
@@ -198,6 +204,11 @@ def queue(*, upcoming: Sequence[Dict[str, Any]],
         "upcoming": list(upcoming),
         "awaiting": list(awaiting),
         "idle_drafts": list(idle_drafts),
+        # DASH3 — the worklist the screen renders. Its `count` is the
+        # hero, and it EQUALS the rows below it by construction
+        # (`worklist.hero_count`): a worklist whose headline disagrees
+        # with its own body is a metric again.
+        "worklist": dict(worklist),
         "needs_attention": len([r for r in awaiting
                                 if r["stale"] or r["lapsed"]]),
         # DASH1 item 6 — THE AMBIENT SIGNAL.

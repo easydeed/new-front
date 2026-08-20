@@ -96,7 +96,13 @@ describe('authoring state is labelled as authoring state', () => {
      */
     const dash = read('app', 'dashboard', 'page.tsx');
     const past = read('app', 'past-deeds', 'page.tsx');
-    expect(dash).toContain('authoringStateLabel(deed.status)');
+    /* §16 — SATISFIED BY SUBTRACTION. The dashboard used the shared
+       label because it rendered a deed feed. DASH3 removed the feed, so
+       the dashboard now turns the column into English NOWHERE, which is
+       a stronger form of "not a second vocabulary" than citing the
+       first one. The prohibition is what carries the ruling here, and
+       it is the half that could regress. */
+    expect(dash).not.toContain('deed.status');
     expect(dash).not.toContain('{deed.status || ');
     expect(past).toContain('authoringStateLabel(status)');
     expect(past).not.toMatch(/completed:\s*"Completed"/);
@@ -133,8 +139,16 @@ describe('a date carries the name of the column it came from', () => {
      * date invites a reader to compare it with a creation date elsewhere
      * and conclude one of them is broken.
      */
+    /* §16 — THE SUBJECT IS GONE AND IS REPORTED, NOT RE-HOMED.
+       DASH-FIX #5 ruled that "Recently worked on" must name the date it
+       shows. DASH3 removed that module, so there is no bare date on the
+       dashboard to mislabel — the worklist shows an AGE ("8 days",
+       "age unknown"), which is a different thing said in its own words.
+       The constant and the rule stay for Past Deeds and for whatever
+       shows a raw date next; what does not happen is quietly declaring
+       the worklist's age to be the same ruling satisfied. */
     const dash = read('app', 'dashboard', 'page.tsx');
-    expect(dash).toContain('{LAST_WORKED_ON} {formatDate(deed.updated_at || deed.created_at)}');
+    expect(dash).not.toMatch(/formatDate\(deed\.(updated_at|created_at)/);
     expect(LAST_WORKED_ON).toBe('Last worked on');
   });
 

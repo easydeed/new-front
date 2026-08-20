@@ -7,7 +7,10 @@ interface AIGreetingProps {
   className?: string
 }
 
-function getTimeGreeting(): string {
+/** Exported for DASH3: the dashboard headline carries the greeting now,
+ *  and a second copy of "before noon it is morning" is a second opinion
+ *  about what time it is (§14.3). */
+export function getTimeGreeting(): string {
   const hour = new Date().getHours()
   if (hour < 12) return "Good morning"
   if (hour < 17) return "Good afternoon"

@@ -35,6 +35,8 @@ const PAGE = codeOnly(read('app', 'deeds', '[id]', 'page.tsx'));
 const AGENDA = codeOnly(read('features', 'signing', 'SigningAgenda.tsx'));
 const PAST_DEEDS = codeOnly(read('app', 'past-deeds', 'page.tsx'));
 const DASHBOARD = codeOnly(read('app', 'dashboard', 'page.tsx'));
+const WORKLIST_PY = fs.readFileSync(
+  path.join(__dirname, '..', '..', '..', 'backend', 'services', 'worklist.py'), 'utf8');
 
 const PY = fs.readFileSync(
   path.join(SRC, '..', '..', 'backend', 'services', 'deed_page.py'), 'utf8');
@@ -266,13 +268,42 @@ describe('the orphan is resolved', () => {
   });
 
   it('the dashboard queue lands on the deed, not the tracker', () => {
-    expect(DASHBOARD).toContain('router.push(`/deeds/${r.deed_id}`)');
+    /**
+     * §16 — SAME RULING, ENFORCED ONE LANGUAGE OVER.
+     *
+     * DASH3 made every row's destination server-side, so the page now
+     * pushes whatever `href` it was handed and the decision lives where
+     * the rows are built. The dashboard is still the surface this ruling
+     * is about; `worklist.py` is the file that can break it.
+     *
+     * It broke twice inside DASH3 before this pin: once by copying
+     * `/signings?focus=` out of the module being replaced (a RETIRED
+     * alias, caught by `test_link_contract.py`), and once by correcting
+     * that to the canonical tracker route — which satisfied the link
+     * contract and landed her on a list, which is this defect exactly.
+     * Two pins, each blind to the other's subject, and the fix for one
+     * was the reintroduction of the other.
+     */
+    expect(DASHBOARD).toContain('onOpen={(href) => router.push(href)}');
+    expect(WORKLIST_PY).toContain('return f"/deeds/{deed_id}"');
+    /* The "never a retired alias" half is NOT asserted here. It lives in
+       `backend/tests/test_link_contract.py`, which strips Python comments
+       before looking — and this file cannot, because `codeOnly` reads
+       TypeScript. My first version asserted it anyway and tripped on the
+       COMMENT in `worklist.py` that explains the rule (§14.1: a pin that
+       reads raw text asserts the prose as well as the code). Duplicating
+       a pin into a language whose comments it cannot see is how a pin
+       starts failing for reasons unrelated to its subject. */
   });
 
   it('idle drafts still go straight to the builder', () => {
     // Deliberate: a draft has exactly one action, and the deed page
     // would offer that same action one navigation later.
-    expect(DASHBOARD).toContain('?resume=${r.id}`)');
+    //
+    // A COLLAPSED row of several drafts is the boundary — there is no
+    // single resume target, so it goes to the list where all of them are
+    // visible. Named rather than quietly widened.
+    expect(WORKLIST_PY).toContain('f"/deed-builder?resume={first.get(\'id\')}" if n == 1');
   });
 
   it("#178's Share fix is reachable — the dialog opens in place", () => {

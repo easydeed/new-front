@@ -1367,12 +1367,11 @@ direction, and no amount of tuning the threshold fixes it.
 
 ---
 
-### §14.5 — Checking that a change is right is not checking what it exposes (2026-08-18)
 
-**THIRD HABITAT, SAME DAY: VERSION CONTROL (2026-08-19).** The rule is
-not about routing, or about removals, or about frontend code. It is about
-the difference between verifying THE CHANGE and verifying WHAT TRAVELS
-WITH IT, and it has now been found in three unrelated places:
+**FOUR HABITATS (2026-08-19, 2026-08-20).** The rule is not about
+routing, or about removals, or about frontend code. It is about the
+difference between verifying THE CHANGE and verifying WHAT TRAVELS WITH
+IT, and it has now been found in four unrelated places:
 
   1. **Routing** — DASH-FIX pointed the day-one checklist at a page that
      was correct in itself and lacked the first-run tolerance the action
@@ -1386,6 +1385,12 @@ WITH IT, and it has now been found in three unrelated places:
      whatever followed across it, and untracked files always do. The diff
      I was reading was the conflict; the file list was the thing I did
      not read.
+  4. **A file** — DASH3 removed the render sites of four dashboard
+     modules and left the modules. `page.tsx` held two dashboards for one
+     build, one of them unreachable. Nothing failed: tsc does not flag an
+     unreferenced function, and the suites assert what renders. The
+     change was right; the things that existed only to serve it were not
+     checked.
 
 **The operative sentence for all three:** *I verified the change I was
 making and not the set of things going with it.*
@@ -1402,6 +1407,20 @@ naming: nothing breaks, so nothing prompts you.
 the FILE LIST, not the diff of the file you were working on. `git status`
 before `git add -A`, and treat any file you did not open this session as
 a question rather than as noise.
+
+**And for the fourth:** after removing a render site, ask what existed
+only to be rendered there. The mechanical form is cheap — list the
+declarations in the file and count references to each — and the reason it
+is needed is that no gate we run reports an unreachable one. `eslint`
+does (`no-unused-vars`), and `next.config.js` sets
+`eslint.ignoreDuringBuilds: true`, so it reports into a void.
+
+**The general shape underneath all four:** the thing that goes unchecked
+is never the subject of the change. It is the change's *neighbourhood* —
+who arrives at the page now, who called the function you deleted, what
+was staged alongside your edit, what existed only to serve the thing you
+removed. A diff shows the subject. Nothing shows the neighbourhood, which
+is why it has to be asked for by name.
 
 ---
 
@@ -1696,6 +1715,38 @@ the problem.
 
 ### §14.1.1 — A pin asserts the PROPERTY it guards, never the line that currently expresses it (2026-08-18)
 
+**THIRD SYMPTOM (2026-08-20): the pin asserts the right property against
+inputs that cannot distinguish it.** This one is not about quoting an
+implementation — the assertion is on the property, in the right words,
+with a docstring naming the ruling. It is about the FIXTURE.
+
+DASH3's ordering rule is "an unknown age sorts last, because an unknown
+age is not evidence of urgency". The pin fed it two rows, ages `None` and
+`2`, and asserted the order `[2, None]`. It passed. It also passed with
+the rule **deleted**, because the sort key degrades to `-(sort_age or 0)`
+and `-(2) < 0` orders those two rows correctly by accident. Only `None`
+against `0` can separate "the None-rule ran" from "the age term did it
+anyway" — and `0` is a real state, a row touched today.
+
+**Why this is the hardest of the three to see.** The first symptom goes
+red on a correct change and announces itself. The second certifies a
+defect but at least has a wrong assertion in it, visible to anyone who
+reads the words. This one has entirely correct words. Nothing about
+reading the test reveals it; the test says what it means and means what
+it says. The only instrument that finds it is **running the code with
+the rule removed** — which is the mutation probe, and which is why the
+probe is a gate rather than a flourish.
+
+**The tell, usable while writing:** for each rule the fixture is meant to
+exercise, ask which two inputs differ ONLY in that rule's outcome. If
+every input in the fixture also differs in some other dimension the code
+consults, the fixture cannot attribute the result. Boundary values —
+zero, empty, absent, equal — are where rules stop overlapping, which is
+why they belong in the fixture rather than at the edge of it.
+
+---
+
+
 **Statement.** A pin that quotes an implementation verbatim breaks on
 every correct change to that implementation, and breaks **without saying
 whether the rule it was protecting still holds.** A pin that cannot
@@ -1833,6 +1884,7 @@ on.
 |---|---|
 | 2026-08-18 | §14.7 added — knowing a failure mode does not confer immunity from it. Three instances of one shape in a day: a pin quoting an implementation that broke on a correct change; a pin quoting an implementation that WAS the defect and stayed green through it; and the same defect inside the remedy for the first two, where the route-guard sweep — being rewritten because it matched a marker string — was about to match a hook's NAME instead. `useRequireAuth` navigates from an effect, so a page ignoring its `checked` flag still paints content for a frame, and a name-matching sweep would have certified that half-adoption exactly as the old one certified a send-only token read. Caught by reading how `/team` actually used the hook rather than treating the import as the whole pattern. The third instance settles the question the first two raise: it was written the same day the rule was written down, in the remedy for it, by its author. The rate is stated in the entry as evidence the shape is COMMON IN THIS KIND OF WORK rather than accelerating — three in a day reflects a day of unusually dense pin-writing, and a week of building features rather than instruments would show none while the shape stayed exactly as available. Operative consequence — when a shape is identified, ask what MECHANISM can hold it and prefer that to a paragraph, since a note is a thing to remember and remembering is the faculty that just failed. Corollary: a mechanism adopted partially fails in the gap between its halves, and only a sweep can enforce that both arrived. Also recorded in `routeGuards.test.ts` beside its bounded window: it fails CLOSED — an unreadable guard reports an unguarded page — where §14.4's tsc window failed open, so the two must not be made symmetric. And a prediction that missed: three of fourteen pages were passing incidentally, so at least one of the four unverified was expected to fail; none did. A base rate is not evidence about a particular case. |
 | 2026-08-18 | §14.6 added and §15.1 widened, from DASH-SOFTEN. §14.6: when a rule IS the design, the pin covers the domain rather than a point. The setup checklist expands exactly one step and that is not a feature of the card, it is the card — so the pin renders all sixteen arrangements of its four booleans rather than one. A sample would have passed against the obvious wrong implementation: rendering every incomplete step as open is indistinguishable from rendering the first when only the first is incomplete. Probed by making exactly that substitution — four assertions fail. A pin checking an invariant in one arrangement records an observation where a constraint was wanted. §15.1 widened past code: the same shape appeared in a document. DASH-SOFTEN needed to know whether violet — doctrinal, reserved for "proposed legal choice" — could be an ordinary accent on a card with no legal choices in it. BRAND.md answers it in the ADMIN-CONSOLE section, which is not where anyone with a dashboard question would look; the reasoning was never about admin and neither is its scope. General form: an answer filed under the surface it was first needed for is invisible to the next surface that needs it — so when a ruling resolves a question about a doctrinal rule, the instance goes with the surface and the principle goes with the doctrine. Also recorded: "All Good Escow" is absent from the repository, so it is a real row rather than fixture data, and `requestedByDefault.ts` makes `users.company_name` the RECORDING REQUESTED BY default — a typo in a profile field reaches the face of a recorded instrument with no confirmation step between. Correctly not fixed by a gate, since the officer typing her own company name is the authority on it, but it is the shortest path from a keystroke to a recorded document in this product. |
+| 2026-08-20 | DASH3's build. §14.5 gains a FOURTH habitat — a FILE: the redesign removed four modules' render sites and left the modules, so `dashboard/page.tsx` held two dashboards for one build, one unreachable. Nothing failed; tsc does not flag an unreferenced function and the suites assert what renders. `eslint`'s `no-unused-vars` does see it, and `next.config.js` sets `eslint.ignoreDuringBuilds: true`, so it reports into a void. The general shape under all four habitats: what goes unchecked is never the SUBJECT of the change, it is the change's neighbourhood — who arrives at the page now, who called the function you deleted, what was staged alongside your edit, what existed only to serve what you removed. A diff shows the subject and nothing shows the neighbourhood, so it has to be asked for by name. §14.1.1 gains a THIRD symptom: a pin can assert the right property, in the right words, with the ruling named in its docstring, and still pass against a fixture incapable of distinguishing it — the unknown-age ordering pin used `None` against `2` and passed with the rule DELETED, because `-(None or 0)` and `-(2)` differ anyway; only `None` against `0` can separate the rule from the accident. Unlike the first two symptoms this one is invisible to reading — the test means what it says — and is found only by running the code with the rule removed, which is the argument for the mutation probe being a gate. Also found in the build and fixed: the greeting's hooks placed after an early return (a render crash on the one screen everybody lands on, invisible to tsc and to source-reading suites, caught by rules-of-hooks in a linter CI ignores), and F4's ruling one deletion from reversal — the redesign removed the renderer of `deedsError` while the error was still being set, so a failed deed load would have shown the first-run welcome. An error that renders nothing is indistinguishable from having nothing. |
 | 2026-08-18 | §14.4 and §14.5 added, from one bug report. §14.4: a monotonic invariant is satisfied by breaking the thing it measures. A stray `{/* comment */}` in a ternary branch made `dashboard/page.tsx` unparseable, tsc stopped type-checking it and everything depending on it, and the error count fell from 88 to SIX — a gate that fails when the number RISES was delighted, and prints a notice inviting you to lock the improvement in. Jest stayed green at 1084 throughout because no test imports that page, so the frontend suite is fully compatible with the dashboard being unparseable; the only two instruments that could see it were tsc and next build, which is exactly what a shape-based gate rule would have permitted skipping. The fix is a FLOOR that is not a number — an assertion that nothing failed to parse (tsc's TS1xxx family is syntactic) — because no count can express "the measurement happened". General test for any threshold gate: what would happen to this number if the thing it measures stopped existing? §14.5: checking that a change is right is not checking what it exposes. DASH-FIX #1's routing of "Set county" to account-settings was correct on every premise and moved a first-run action onto a page whose save had no retry, while the page it came from had one for exactly this sleeping API — the owner hit it on their first new user. The defect lives entirely in the difference between the page's old population and the one the routing created, which no diff displays. The question it earns for any new route, link, redirect or CTA: who reaches this page now who did not before, and what does that page assume about them? |
 | 2026-08-18 | §14.1.1 gains its second and more dangerous symptom, and §15.1 added. THE SILENT HALF: `StartSomethingNew`'s own test asserted `getByText('grant-deed')`, so the test for a component rendering raw storage slugs was checking that it rendered raw storage slugs — which is why it survived UX2 item 3's sweep across three other surfaces. A pin written against the storage key rather than the product's language does not merely fail to catch the defect, it CERTIFIES it: the sweep had no reason to open a file whose test was green, and the test was green because it asserted the defect. One root, two symptoms — quote an implementation that is later fixed and the pin goes red while the rule is intact (noise); quote an implementation that IS the defect and it stays green forever (a defect with a certificate). The second cannot be found by watching CI, which is why the tell is a review question. §15.1: a rule about how a surface must be ENTERED is invisible where it is written on the surface. Past Deeds' own docstring names the dead-button-defect-wearing-a-URL and the dashboard's "Last 30 days" tile committed it, linking to that page unfiltered — the rule was written in the one place its violators never look. Any invariant of the form "callers must X" is mis-filed if it lives only with the callee: the callee is where the rule is understood, the callers are where it is broken, and documentation follows understanding while defects follow construction. |
 | 2026-08-18 | §14.1.1 added — a pin asserts the PROPERTY it guards, never the line that currently expresses it. A jest test held UX2 item 4 (the badge counts presence, the attention number counts silence, and they must not become one number) by quoting `officer_queue.py`'s literal `"needs_attention": len([r for r in awaiting if r["stale"]])`. When a later ruling made that number count lapsed requests too, the pin went red while the ruling it guarded was intact — reporting that a line had changed and saying nothing about whether the two counts were still two. A pin that cannot tell "the rule is broken" from "the code was rewritten" gets edited to match whatever the code now says, which makes it a transcript of the code rather than a constraint on it. This is §14.1 arriving in a pin that already knew which ruling it protected and named it in the docstring — knowing the property is not the same as asserting it. The tell, usable in review: ask what a correct unrelated rewrite would do to the pin; if the answer is "it goes red and somebody updates it", it is a transcript. Also: EXECUTION_POLICY's gate-selection table REPLACED rather than amended. Its premise — that a change's shape bounds which gates can fail — is false in this repo by design, because suites read the other language's source so that one decision is not made twice; a backend-only change is policed by the frontend suite on purpose. The rule is now to run both suites and the harnesses, four minutes together, which is cheaper than the reasoning required to skip one correctly — and that reasoning is not available anyway, since what bounds the blast radius is which files the suites READ, which the diff cannot tell you. Recorded with the meta-lesson: the first gate-selection error produced the table, the second happened with the table available and consulted, and the response to a judgement failure was a finer judgement aid when the correct response was removing the judgement. |

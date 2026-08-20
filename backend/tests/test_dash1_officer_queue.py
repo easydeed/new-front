@@ -99,6 +99,14 @@ def _awaiting(stale: bool, days=9, lapsed=False):
             "summary": "Sent, not opened yet"}
 
 
+#: An empty worklist. These tests exercise the OTHER halves of the
+#: payload — the attention count, the badges, the thresholds — and each
+#: restating an empty groups/count pair would be eight copies of a fact
+#: none of them is about. DASH3's own behaviour is pinned in
+#: `test_dash3_worklist.py`.
+NO_WORK = {"groups": [], "count": 0}
+
+
 def test_the_attention_count_is_gone_quiet_and_nothing_else():
     """Not "everything in the queue". A signing booked for Thursday needs
     nothing from her, and counting it would make the number mean "there
@@ -111,7 +119,7 @@ def test_the_attention_count_is_gone_quiet_and_nothing_else():
         idle_drafts=[{"kind": "draft", "id": 5, "deed_type": "grant_deed",
                       "property": "z", "days_idle": 30}],
         accuracy=NOTHING_OUTSTANDING,
-        instruments=FILES_NOTHING,
+        instruments=FILES_NOTHING, worklist=NO_WORK,
     )
     assert payload["needs_attention"] == 1
 
@@ -132,7 +140,7 @@ def test_a_badge_counts_presence_and_the_attention_number_counts_silence():
         ],
         idle_drafts=[],
         accuracy=NOTHING_OUTSTANDING,
-        instruments=FILES_NOTHING,
+        instruments=FILES_NOTHING, worklist=NO_WORK,
     )
     assert payload["badges"] == {"signings": 1, "shared_deeds": 2}
     assert payload["needs_attention"] == 1
@@ -142,7 +150,7 @@ def test_the_payload_shape_is_asserted_by_equality():
     from services.officer_queue import QUEUE_KEYS
 
     payload = q.queue(upcoming=[], awaiting=[], idle_drafts=[], accuracy=NOTHING_OUTSTANDING,
-        instruments=FILES_NOTHING)
+        instruments=FILES_NOTHING, worklist=NO_WORK)
     assert set(payload) == QUEUE_KEYS
     assert payload["needs_attention"] == 0
     # And the thresholds travel WITH it, so no screen retypes them.
@@ -156,7 +164,7 @@ def test_a_row_that_grew_a_field_is_refused():
     bad["extra"] = 1
     with pytest.raises(AssertionError):
         q.queue(upcoming=[], awaiting=[bad], idle_drafts=[], accuracy=NOTHING_OUTSTANDING,
-        instruments=FILES_NOTHING)
+        instruments=FILES_NOTHING, worklist=NO_WORK)
 
 
 def test_only_one_place_decides_what_stale_means():
@@ -501,7 +509,7 @@ def test_the_accuracy_block_says_how_many_documents_there_were_to_look_at():
     the population.
     """
     payload = q.queue(upcoming=[], awaiting=[], idle_drafts=[],
-                      accuracy=NOTHING_OUTSTANDING, instruments=FILES_NOTHING)
+                      accuracy=NOTHING_OUTSTANDING, instruments=FILES_NOTHING, worklist=NO_WORK)
     assert payload["accuracy"]["open_documents"] == 3
 
 
@@ -513,7 +521,7 @@ def test_an_accuracy_block_without_the_population_is_refused():
     with pytest.raises(AssertionError):
         q.queue(upcoming=[], awaiting=[], idle_drafts=[],
                 accuracy={"fields": 0, "documents": 0, "items": []},
-                instruments=FILES_NOTHING)
+                instruments=FILES_NOTHING, worklist=NO_WORK)
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -534,7 +542,7 @@ def test_a_lapsed_request_needs_her_attention_however_young_it_is():
     """
     fresh_but_lapsed = _awaiting(False, days=0, lapsed=True)
     payload = q.queue(upcoming=[], awaiting=[fresh_but_lapsed], idle_drafts=[],
-                      accuracy=NOTHING_OUTSTANDING, instruments=FILES_NOTHING)
+                      accuracy=NOTHING_OUTSTANDING, instruments=FILES_NOTHING, worklist=NO_WORK)
     assert payload["needs_attention"] == 1
 
 
@@ -552,5 +560,5 @@ def test_one_request_that_is_both_is_counted_once():
     problem, not two — the number counts requests, not reasons."""
     both = _awaiting(True, days=30, lapsed=True)
     payload = q.queue(upcoming=[], awaiting=[both], idle_drafts=[],
-                      accuracy=NOTHING_OUTSTANDING, instruments=FILES_NOTHING)
+                      accuracy=NOTHING_OUTSTANDING, instruments=FILES_NOTHING, worklist=NO_WORK)
     assert payload["needs_attention"] == 1

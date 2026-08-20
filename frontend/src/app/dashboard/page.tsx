@@ -4,23 +4,16 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Sidebar from "../../components/Sidebar"
-import { AIGreeting } from "@/components/ui/AIGreeting"
+import { getTimeGreeting } from "@/components/ui/AIGreeting"
 import { AuthManager } from "@/utils/auth"
 import EmailVerificationNotice from "@/features/account/EmailVerificationNotice"
-import AccuracySection from "@/features/dashboard/AccuracySection"
-import ResumeCard from "@/features/dashboard/ResumeCard"
 import StartSomethingNew from "@/features/dashboard/StartSomethingNew"
+import Worklist from "@/features/dashboard/Worklist"
 import SetupChecklist, { activeStep } from "@/features/dashboard/SetupChecklist"
 import DayOneRail from "@/features/dashboard/DayOneRail"
-import { pickInProgressDeed } from "@/lib/latestDraft"
-import { authoringStateLabel, LAST_WORKED_ON } from "@/lib/authoringState"
-import { deedTypeLabel } from "@/lib/deedTypes"
 import { SessionExpiredError, apiFetch } from "@/lib/apiClient"
-import { 
-  FileText, Clock, CheckCircle, Send, 
-  TrendingUp, Activity, Download, Share2, 
-  ArrowRight, Sparkles, Eye
-} from "lucide-react"
+// The tile/feed icons went with the tiles and the feed.
+import { Sparkles } from "lucide-react"
 
 /**
  * DASH1 — WHAT IS WAITING ON SOMEBODY.
@@ -41,6 +34,10 @@ type Queue = {
      and a stored provenance block, and the instrument order comes from
      her own filing history. Neither is derivable here. */
   accuracy?: import('@/features/dashboard/AccuracySection').Accuracy;
+  /* DASH3 — the rows the screen renders, and the count it prints.
+     Both come from the server so the headline cannot disagree with the
+     body it sits above. */
+  worklist?: import('@/features/dashboard/Worklist').Worklist;
   instruments?: Array<{ deed_type: string; count: number; period: string }>;
   upcoming: Array<{ kind: string; id: number; deed_id: number; property: string | null;
                     when: string; who: string | null; summary: string }>;
@@ -74,19 +71,38 @@ export default function Dashboard() {
     businessAddress?: string | null; plan?: string | null; deedCount: number;
   } | null>(null)
   const [recentDeeds, setRecentDeeds] = useState<any[]>([])
+  /* F4's ruling, and it needed rescuing during DASH3 rather than after:
+     a failed `/deeds` load leaves `recentDeeds` empty, which makes
+     `hasDeeds` false, which lands on "Nothing here yet." — a first-run
+     welcome shown to an officer whose documents merely failed to load.
+     That is the exact bug F4 fixed, and removing the renderer would have
+     reintroduced it silently, because an error that renders nothing looks
+     identical to a user who has nothing. §4: never swallowed. */
   const [deedsError, setDeedsError] = useState<string | null>(null)
-  const [summary, setSummary] = useState<{
-    total: number
-    completed: number
-    drafts: number
-    lastThirtyDays: number
-  } | null>(null)
+  /* The greeting, demoted onto the headline. Kept — U3 ruled the page
+     should say what it IS — but it no longer takes two lines above the
+     work.
+
+     Set in an effect, like `AIGreeting` does, because the hour is a
+     CLIENT fact: computing it during render makes the server and the
+     browser disagree whenever a deploy straddles noon.
+
+     DECLARED WITH THE OTHER HOOKS, not beside the markup that uses it.
+     I first wrote these two next to the headline they feed, which put
+     them after `if (loading) return …` — so the first paint ran two
+     fewer hooks than the second and React tears the component down the
+     moment the profile answers. tsc is blind to it and the suites read
+     source text rather than mounting through the transition; `eslint`'s
+     rules-of-hooks is the control that sees it, which is the argument
+     for running the linter as a gate and not as tidying. */
+  const [greetingLine, setGreetingLine] = useState('')
   const router = useRouter()
 
-  /* THE DOCUMENT SHE WAS LAST IN, and it is the accuracy list's first
-     row rather than a second query: the server already ordered those by
-     most-recently-touched, so asking again would be a second opinion
-     about which document is hers to resume. */
+  useEffect(() => {
+    const when = new Date().toLocaleDateString(undefined,
+      { weekday: 'long', month: 'long', day: 'numeric' })
+    setGreetingLine(`${getTimeGreeting()}, ${userName} · ${when}`)
+  }, [userName])
 
   // Authentication check and load user data
   useEffect(() => {
@@ -156,47 +172,13 @@ export default function Dashboard() {
     checkAuth()
   }, [router])
 
-  // Fetch dashboard summary stats
-  useEffect(() => {
-    if (!isAuthenticated) return
-
-    ;(async () => {
-      try {
-        // X1: loud failures — apiFetch toasts non-2xx and handles 401.
-        const res = await apiFetch(`/deeds/summary`, {}, { label: "Loading dashboard summary" })
-
-        if (res.ok) {
-          const data = await res.json()
-          setSummary({
-            total: data.total || 0,
-            completed: data.completed || 0,
-            drafts: data.drafts || 0,
-            lastThirtyDays: data.last_30_days ?? data.month ?? 0,
-          })
-        } else {
-          // Fallback: calculate from deeds list
-          const list = await apiFetch(`/deeds`, {}, { label: "Loading deeds", silent: true })
-          if (list.ok) {
-            const data = await list.json()
-            const deeds = Array.isArray(data.deeds) ? data.deeds : []
-            const thirtyDaysAgo = new Date(Date.now() - 30 * 86400_000)
-            setSummary({
-              total: deeds.length,
-              completed: deeds.filter((d: any) => d.status === "completed").length,
-              drafts: deeds.filter((d: any) => d.status !== "completed").length,
-              // Fallback path: 30 days back, matching the endpoint it is
-              // standing in for rather than the calendar it used to use.
-              lastThirtyDays: deeds.filter((d: any) => d.created_at
-                && new Date(d.created_at) >= thirtyDaysAgo).length,
-            })
-          }
-        }
-      } catch (e) {
-        if (e instanceof SessionExpiredError) return
-        console.error("Failed to load dashboard summary:", e)
-      }
-    })()
-  }, [isAuthenticated])
+  /* The `/deeds/summary` fetch lived here and went with the tiles it
+     fed — including its fallback, which re-requested the whole deed list
+     to recompute four counters client-side. Nothing renders those
+     counters now, so keeping the request would be two calls per load in
+     support of a number nobody sees. DASH1's rolling-30-day ruling
+     survives it only as a prohibition (no calendar-month counter comes
+     back), which is pinned in `dashboardQueue.test.ts`. */
 
   // The queue. Its own state and its own error, because a failed queue
   // must not blank a page of real deeds and a failed deed list must not
@@ -262,38 +244,12 @@ export default function Dashboard() {
   }
 
   const hasDeeds = recentDeeds.length > 0
-  // U1.2: the LAST-TOUCHED draft (updated_at desc), not the first draft in
-  // a created_at-ordered list — that offered users their oldest work back.
-  const inProgressDeed = pickInProgressDeed(recentDeeds)
+  /* U1.2's last-touched draft was the resume card's subject. The card
+     is gone and the worklist decides what is next by consequence, so
+     `pickInProgressDeed` has no caller HERE — it keeps its own tests and
+     its other callers, and this is a removed call site, not a removed
+     rule. */
 
-  /* ═══ ONE POPULATION, AND THE CHECKS ARE AN ATTRIBUTE OF IT ═══
-
-     #203 ruled the resume target is the accuracy list's first row, and
-     that stands wherever the list has one. What it could not rule on —
-     because the pre-#203 card was quietly covering the case — is the
-     document she was last in that has NOTHING outstanding. It is absent
-     from the accuracy list by construction, so the ruled card went dark
-     and the unruled one spoke.
-
-     So the fallback is the last-touched open draft with an empty check
-     list, which is additive rather than a re-ruling: the accuracy row
-     still wins whenever it exists. */
-  const resumeTarget = queue?.accuracy?.items?.length
-    ? queue.accuracy.items[0]
-    : inProgressDeed
-      ? {
-          deed_id: inProgressDeed.id,
-          deed_type: inProgressDeed.deed_type ?? null,
-          property: inProgressDeed.property_address ?? null,
-          escrow_no: null,
-          checks: [],
-        }
-      : null
-  // DASH1: by when something last happened to it, drafts included —
-  // which is what "recent activity" claimed and creation order is not.
-  const recentlyTouched = [...recentDeeds].sort((a: any, b: any) =>
-    String(b.updated_at || b.created_at || '').localeCompare(
-      String(a.updated_at || a.created_at || '')))
 
   /* The rail exists to explain the steps, so it goes when they do —
      §13 rule 3: the page does not recompute "is setup finished", it
@@ -301,6 +257,13 @@ export default function Dashboard() {
      returning null IS "setup is done", and there is no second way to
      ask. */
   const setupIncomplete = !!setup && activeStep(setup) !== null
+
+  /* DASH3 — the hero's unit is ROWS, and the server counts them.
+     Read rather than derived: `worklist.count` is `hero_count(groups)`
+     over the groups rendered below, so the headline and the body are
+     the same arithmetic rather than two arithmetics that agree. */
+  const worklist = queue?.worklist
+  const worklistCount = worklist?.count ?? 0
 
   return (
     <div className="flex bg-gray-50 min-h-screen">
@@ -312,23 +275,36 @@ export default function Dashboard() {
               product is gated on the answer. */}
           <EmailVerificationNotice verified={account.verified} email={account.email} />
 
-          {/* ═══ THE GREETING MOVED UP, AND IS NOT A HERO ═══
+          {/* ═══ THE HEADLINE IS THE COUNT, AND THE GREETING RIDES ON IT ═══
 
-              The day-one mockup puts it first and small. It was sitting
-              below three cards, which is neither.
+              DASH3. The greeting took two lines of its own above a page
+              of cards; it now sits to the right of the number, which is
+              the thing she came for.
 
-              WHAT DID NOT CHANGE, AND IS FLAGGED: the line under it.
-              "Keep as drawn: the one-line greeting" read literally
-              deletes "Here's where your deeds stand" — and that sentence
-              is U3's ruling, added deliberately so the greeting states
-              what the page IS rather than making a chat-style promise
-              with no chat behind it. The mockup's complaint is that the
-              greeting was a HERO, which is about weight and position,
-              and both of those are fixed here. Deleting a ruled sentence
-              on the strength of a phrase about size is the half I am not
-              deciding. */}
-          <div className="mb-6">
-            <AIGreeting userName={userName} />
+              THE NUMBER IS NOT COMPUTED HERE. `worklist.count` comes
+              from the server, where `hero_count()` sums the same groups
+              rendered below — so "3 things need you" and three rows
+              cannot disagree. A hero that recounts client-side agrees by
+              diligence; this one agrees by construction.
+
+              AND IT NEVER RENDERS A FIGURE IT DID NOT RECEIVE: until the
+              queue lands, the headline says what it is doing rather than
+              showing a zero that would read as "you're clear". */}
+          <div className="mb-5 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+            <h1 className="text-[26px] font-bold tracking-tight text-gray-900">
+              {queueError
+                ? "Your queue didn't load"
+                : !queue
+                  ? 'Loading your queue…'
+                  : worklistCount === 0
+                    ? "You're clear"
+                    : worklistCount === 1
+                      ? '1 thing needs you'
+                      : `${worklistCount} things need you`}
+            </h1>
+            <p className="ml-auto text-[13px] text-gray-400">
+              {greetingLine}
+            </p>
           </div>
 
           {/* ═══ FINISH SETTING UP ═══
@@ -358,640 +334,142 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* THE MOCKUP'S ORDER, AND IT IS AN ARGUMENT: resume is the
-              highest-frequency action in a preparation tool, so it sits
-              above everything, with the remaining checks NAMED. */}
-          {/* ROUGH — `items-start`. Without it these two stretch to the
-              taller of them, so a short resume card is padded out to
-              match the catalog beside it. The audit reported this as a
-              "dead band under 2 of 3 done" and located it one row up, at
-              the checklist grid — which already carries `items-start`
-              and whose ~68px is ordinary card padding. An auditor sees a
-              symptom and places it approximately; this is where it is. */}
-          <div className="mb-6 grid gap-4 lg:grid-cols-[2fr,1fr] items-start">
-            <ResumeCard
-              target={resumeTarget}
-              onResume={(id) => router.push(`/deed-builder/grant-deed?resume=${id}`)}
-            />
-            <StartSomethingNew
-              instruments={queue?.instruments}
-              muted={setupIncomplete}
-              onStart={(t) => router.push(`/deed-builder/${t}`)}
-              onBrowse={() => router.push('/create-deed')}
-            />
-          </div>
+          {/* ═══ START SOMETHING NEW, AS A CHIP STRIP ═══
+              Above the divider, so it reads as "jump in, or clear your
+              queue" rather than as a panel competing with the work. */}
+          <StartSomethingNew
+            instruments={queue?.instruments}
+            onStart={(t) => router.push(`/deed-builder/${t}`)}
+            onBrowse={() => router.push('/create-deed')}
+          />
 
-          {/* The promise, made countable. */}
-          <div className="mb-8">
-            <AccuracySection
-              accuracy={queue?.accuracy}
-              onOpen={(id) => router.push(`/deeds/${id}`)}
-            />
-          </div>
+          {/* ═══ THE QUEUE IS THE WHOLE BODY ═══
 
-          {/* ═══ THE PRE-#203 RESUME CARD, DELETED ═══
+              WHAT WAS REMOVED HERE, and each was ruled: the four stat
+              tiles (counts now live in each group header, in the same
+              unit as the hero); the green Create New Deed bar (the chip
+              strip and the sidebar carry it); "Recently worked on" (every
+              row read *Prepared* — it is the Past Deeds link now); the
+              green all-clear banner and the three-column "What's waiting"
+              split, both folded into the queue.
 
-              "You have a deed in progress. Continue where you left off?"
-              — a sparkle, no property named, no checks, drawing from a
-              THIRD population (`pickInProgressDeed(recentDeeds)`).
+              THE RESUME CARD WENT WITH THEM, and that is #203's ruling
+              surviving its source rather than being dropped: it ruled
+              the resume target is the accuracy list's FIRST ROW, because
+              that list was what existed. With rows as the unit, the
+              first your-turn row IS the resume — same intent, new home,
+              and it is now one press instead of a card above the work.
 
-              #203 replaced it with ResumeCard, which names the document
-              and the remaining checks and draws a thumbnail from that
-              same list. Both shipped. An audit saw only this one,
-              because ResumeCard returns null when the accuracy list is
-              empty and that account's was — so the ruled card was
-              absent and the pre-ruling card filled the space.
-
-              A pre-ruling component still rendering under a post-ruling
-              one is the AIEmptyState shape exactly, and it goes the same
-              way. The capability it carried — resuming a draft with
-              nothing outstanding — did not go with it; ResumeCard now
-              takes that case (see `resumeTarget` above). */}
-
-          {/* DASH1 — THE QUEUE LEADS. What is waiting on somebody comes
-              before what has been made, because that is the order she
-              works in. */}
-          <ActionQueue queue={queue} error={queueError} hasDeeds={hasDeeds} />
-
-          {/* Stats Grid — DASH1: every tile is a LINK now. A count with
-              no drill-down is trivia: "4 Drafts" that cannot be pressed
-              tells her a number and makes her go and find the four. */}
-          {hasDeeds && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <StatCard
-                label="Total Deeds"
-                value={summary?.total ?? 0}
-                icon={<FileText className="w-5 h-5" />}
-                color="purple"
-                href="/past-deeds"
-              />
-              <StatCard
-                label="Drafts"
-                value={summary?.drafts ?? 0}
-                icon={<Clock className="w-5 h-5" />}
-                color="yellow"
-                href="/past-deeds?status=draft"
-              />
-              {/* DASH1: "This Month" is gone. It rendered a big zero on
-                  the first of every month for a user whose work had not
-                  stopped — the counter told her she had done nothing when
-                  what happened is that a calendar page turned. The admin
-                  surface already carries a paragraph apologising for the
-                  same framing; this is the honest version it settled on. */}
-              <StatCard
-                label="Last 30 days"
-                value={summary?.lastThirtyDays ?? 0}
-                icon={<TrendingUp className="w-5 h-5" />}
-                color="blue"
-                /* This pointed at the unfiltered list, so the tile
-                   counting 10 recent deeds and the tile counting all 10
-                   deeds were the same click with the same result — and
-                   Past Deeds' own docstring calls that "the dead-button
-                   defect wearing a URL". */
-                href="/past-deeds?since=30"
-              />
-              <StatCard
-                label="Completed"
-                value={summary?.completed ?? 0}
-                icon={<CheckCircle className="w-5 h-5" />}
-                color="green"
-                href="/past-deeds?status=completed"
-              />
+              THREE RESULTS, NOT TWO. A failed load, an empty board and a
+              first morning are different things and say so — collapsing
+              the last two would reverse #206, which is why
+              `open_documents` exists. */}
+          {queueError ? (
+            <div role="alert"
+                 className="rounded-2xl border border-red-200 bg-white p-6 text-center">
+              <p className="font-medium text-red-700">Couldn&apos;t load your queue</p>
+              <p className="mt-1 text-sm text-gray-500">{queueError}</p>
             </div>
-          )}
-
-          {/* Create New Deed Button (Always visible) */}
-          {hasDeeds && (
-            <button
-              onClick={() => router.push('/deed-builder')}
-              className="w-full mb-8 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl p-4 font-semibold transition-all flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/20"
-            >
-              <Sparkles className="w-5 h-5" />
-              Create New Deed
-            </button>
-          )}
-
-          {/* Recent Activity, load error, or Empty State */}
-          {deedsError ? (
-            <div className="bg-white rounded-2xl shadow-sm border border-red-200 p-8 text-center">
-              <p className="text-red-700 font-medium mb-1">Couldn&apos;t load your deeds</p>
-              <p className="text-sm text-gray-500 mb-4">{deedsError}</p>
-              <button
-                onClick={() => fetchRecentDeeds()}
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg transition-colors"
-              >
-                Retry
+          ) : !queue ? (
+            /* NOT an empty state. The queue has not answered yet, and
+               rendering "you're clear" here would be a claim we do not
+               have — §4 in the one place a reader would never question
+               it. */
+            <p className="px-1 py-8 text-sm text-gray-400">Loading what needs you…</p>
+          ) : worklistCount > 0 ? (
+            <>
+              <Worklist worklist={worklist} onOpen={(href) => router.push(href)} />
+              <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border
+                              border-dashed border-gray-200 bg-white px-4 py-3.5 text-[13px]
+                              text-gray-500">
+                <b className="font-semibold text-gray-700">That&apos;s everything.</b>
+                <button type="button" onClick={() => router.push('/past-deeds')}
+                        className="ml-auto font-semibold text-[var(--color-brand)]
+                                   underline-offset-2 hover:underline">
+                  Past deeds →
+                </button>
+              </div>
+            </>
+          ) : deedsError ? (
+            /* A FAILED LIST IS NOT AN EMPTY ONE (F4). Ordered above both
+               empty results deliberately: "clear" and "day one" are
+               claims about her documents, and we do not know what her
+               documents are. */
+            <div role="alert"
+                 className="rounded-2xl border border-red-200 bg-white p-6 text-center">
+              <p className="font-medium text-red-700">Couldn&apos;t load your deeds</p>
+              <p className="mt-1 text-sm text-gray-500">{deedsError}</p>
+              <button type="button" onClick={() => fetchRecentDeeds()}
+                      className="mt-4 text-[13px] font-semibold text-[var(--color-brand)]
+                                 underline-offset-2 hover:underline">
+                Try again
               </button>
             </div>
           ) : hasDeeds ? (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-              {/* DASH1 — "RECENT ACTIVITY" WAS SORTED BY CREATION.
-                  `GET /deeds` orders by `created_at DESC`, so a draft
-                  edited this morning sat below five deeds made last week
-                  and never touched since. The feed was "recently made",
-                  labelled "recently happened" — and because completed
-                  deeds cluster at the top of a creation-ordered list, it
-                  read as a completed-deeds feed while the Drafts counter
-                  said otherwise.
-                  Two fixes, not one: it sorts by when something last
-                  HAPPENED to the deed, and every row now links to it. */}
-              <div className="p-4 md:p-6 border-b border-gray-100">
-                <div className="flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-emerald-600" />
-                  <h3 className="text-lg font-bold text-gray-900">Recently worked on</h3>
-                </div>
-              </div>
-              <div className="divide-y divide-gray-100">
-                {recentlyTouched.slice(0, 5).map((deed: any) => (
-                  <DeedRow key={deed.id} deed={deed} />
-                ))}
-              </div>
+            /* CLEAR — a RESULT. She has documents and none of them needs
+               her, which is a good morning and is said out loud rather
+               than left as a blank page she has to interpret. */
+            <div className="rounded-2xl border border-gray-200 bg-white px-6 py-12 text-center">
+              <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center
+                              rounded-full bg-[var(--color-brand-light)]
+                              text-[var(--color-brand)]">✓</div>
+              <h3 className="text-lg font-bold tracking-tight text-gray-900">
+                Nothing needs you.
+              </h3>
+              <p className="mt-1 text-[13.5px] text-gray-500">
+                No document is waiting on you, and nobody is waiting on a reply.
+              </p>
+              <button type="button" onClick={() => router.push('/past-deeds')}
+                      className="mt-4 text-[13px] font-semibold text-[var(--color-brand)]
+                                 underline-offset-2 hover:underline">
+                Past deeds →
+              </button>
             </div>
-          ) : null /* ═══ THE WELCOME CARD AND ITS FOUR BULLETS, DELETED
-              ═══
+          ) : (
+            /* DAY ONE — a DIFFERENT result, and the distinction is #206's.
+               She has made nothing, so there is nothing to be clear of;
+               the checklist is the work. */
+            <div className="rounded-2xl border border-gray-200 bg-white px-6 py-12 text-center">
+              <h3 className="text-lg font-bold tracking-tight text-gray-900">
+                Nothing here yet.
+              </h3>
+              <p className="mt-1 text-[13.5px] text-gray-500">
+                Your first document will appear here, with whatever it still needs.
+              </p>
+            </div>
+          )}
 
-              OWNER-RULED, from `docs/design/dashboard_day_one.html`,
-              whose annotation makes the argument better than a comment
-              can: "a welcome banner can't notice anything", and four
-              bullets describing what the product does are landing-page
-              copy shown to somebody who has already signed up.
-
-              What she is left with on day one is the thing that acts:
-              `StartSomethingNew` offers the catalog, and the greeting
-              says where she is. Nothing here now claims a state.
-
-              Note for whoever builds the setup checklist: THIS is where
-              it goes. The gap is deliberate and it is the right shape —
-              a list derived from state, not a banner. */}
         </div>
       </main>
     </div>
   )
 }
 
-/**
- * DASH1 — the action queue.
+/* ═══ §16 — WHAT WAS REMOVED WITH THE LAYOUT, AND WHAT SURVIVED ═══
  *
- * THREE LISTS, NOT ONE PILE. "Chase somebody", "be somewhere" and
- * "finish something" are different actions, and merging them makes her
- * sort them by hand every morning.
+ * `ActionQueue`, `QueueList`, `StatCard` and `DeedRow` lived here. Their
+ * render sites went when the worklist became the body; the renderers did
+ * not, and for one build this file held two dashboards — one reachable,
+ * one not. Nothing failed: tsc does not flag an unreferenced function and
+ * the suites only assert what renders. §14.5 again, in its own file:
+ * checking that a change is right is not checking what depended on it.
  *
- * THE EMPTY STATE IS A RESULT, NOT AN ABSENCE. An honest empty queue is
- * a good morning — the screen says so rather than rendering nothing and
- * letting her wonder whether it loaded.
+ * The rulings those modules carried did not go with them:
+ *   · THE QUEUE LEADS — satisfied maximally; there is nothing left for it
+ *     to lead. Pinned now as "the worklist IS the body".
+ *   · EVERY COUNT GOES SOMEWHERE — moved to the group header's
+ *     `N recorded` button, which is a real drill-down.
+ *   · THE EMPTY STATE IS A RESULT — kept, as three explicit branches
+ *     below rather than one collapsed absence.
+ *   · ABSENCES NAMED BY KIND, "Prepared" not "Completed", stuck-marking,
+ *     the hero never rendering a figure it did not receive — all kept,
+ *     server-side in `services/worklist.py`.
+ *
+ * One did NOT survive, and is reported rather than dropped quietly:
+ *   · THE FEED'S LAST-TOUCHED ORDERING (DASH1). "Recently worked on" is
+ *     gone, so an ordering rule for it has no subject. It is not
+ *     re-homed onto the worklist — the worklist orders by consequence,
+ *     which is a different rule that would swallow it while looking like
+ *     compliance. Recorded here so the removal is a decision on the
+ *     record and not an omission.
  */
-function ActionQueue({ queue, error, hasDeeds }: {
-  queue: Queue | null; error: string | null; hasDeeds: boolean;
-}) {
-  const router = useRouter()
-
-  if (error) {
-    // §4: a queue we could not load says so. Rendering the empty state
-    // would tell her nothing is waiting, which is a claim about her work
-    // rather than about our request.
-    return (
-      <div className="mb-8 rounded-2xl border border-red-200 bg-red-50 p-4">
-        <p className="font-semibold text-red-800">Couldn&apos;t load what&apos;s waiting</p>
-        <p className="mt-1 text-sm text-red-700">{error}</p>
-      </div>
-    )
-  }
-  if (!queue) return null
-
-  const empty =
-    queue.upcoming.length === 0 &&
-    queue.awaiting.length === 0 &&
-    queue.idle_drafts.length === 0
-
-  // ═══ A GUARANTEED-EMPTY QUEUE IS NOT AN EMPTY QUEUE ═══
-  //
-  // Same ruling as AccuracySection's, and the same reasoning: an officer
-  // who has never made a deed cannot have a signing, an unanswered
-  // request or an idle draft, so "nothing is waiting on anyone" tells
-  // her nothing about her work and reads as a result she earned.
-  //
-  // ── AND HERE IS THE HALF I AM NOT DECIDING ──
-  //
-  // The ruling said this module "goes". Read literally that deletes the
-  // empty card for EVERYONE, including the returning officer whose
-  // queue is genuinely clear — and for her the sentence is the DASH1
-  // ruling working as intended: "the empty state is a RESULT, not an
-  // absence", the screen saying so rather than rendering nothing and
-  // leaving her to wonder whether it loaded.
-  //
-  // Both readings deliver the stated intent, which was about the new
-  // officer. Only the literal one also removes ruled behaviour from a
-  // case the mockup does not cover — its own returning-state section
-  // draws a POPULATED queue, so the drawing does not settle it either.
-  //
-  // So the day-one half is built and the returning half is HELD. If the
-  // card should go outright, it is this condition and nothing else.
-  if (empty && !hasDeeds) return null
-
-  return (
-    <section className="mb-8" aria-label="What's waiting">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-bold text-gray-900">What&apos;s waiting</h2>
-        {/* ONE NUMBER, and it means something. Not "there are rows
-            below" — a signing booked for Thursday needs nothing from
-            her. It is the requests that have gone quiet. */}
-        {queue.needs_attention > 0 && (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-900">
-            {/* UX2 item 4 — THIS NUMBER SAYS SOMETHING NARROWER THAN THE
-                SIDEBAR BADGES, and now says so.
-
-                "Needs your attention" is true of everything on this
-                page, so it named nothing. This count is the STALE
-                unanswered requests — the ones that have gone quiet —
-                which is the number that means "nobody is waiting on me
-                and nobody has gone silent" when it is zero.
-
-                The threshold rides on the payload so no screen retypes
-                it (DASH1). */}
-            {queue.needs_attention} {queue.needs_attention === 1 ? 'has' : 'have'} gone
-            quiet — no answer in {queue.thresholds.stale_after_days}+ days
-          </span>
-        )}
-      </div>
-
-      {empty ? (
-        <div className="rounded-2xl border border-gray-200 bg-white p-6">
-          <p className="font-medium text-gray-900">Nothing is waiting on anyone.</p>
-          <p className="mt-1 text-sm text-gray-500">
-            No signings in the next {queue.thresholds.upcoming_days} days, no unanswered
-            requests, and no drafts left sitting.
-          </p>
-        </div>
-      ) : (
-        /* ROUGH — `items-start`, and it is one class for ~300px of
-           white. All three columns stretched to the tallest, so an empty
-           "Signing in the next 7 days" holding one sentence was padded
-           out to match a column holding five rows.
-
-           NOT hidden: DASH1 ruled the empty state is a RESULT, not an
-           absence, and the card still says its sentence. It just stops
-           taking a third of the row to say it. */
-        <div className="grid gap-4 lg:grid-cols-3 items-start">
-          <QueueList
-            title={`Signing in the next ${queue.thresholds.upcoming_days} days`}
-            emptyNote="Nothing booked this week."
-            rows={queue.upcoming.map((r) => ({
-              key: `up-${r.id}`,
-              title: r.property || `Deed #${r.deed_id}`,
-              // The server's sentence, verbatim (§13 rule 3).
-              detail: r.summary,
-              meta: `${new Date(r.when).toLocaleString('en-US', {
-                weekday: 'short', month: 'short', day: 'numeric',
-                hour: 'numeric', minute: '2-digit',
-              })}${r.who ? ` · ${r.who}` : ''}`,
-              urgent: false,
-              // DEEDDETAIL: the deed, not the tracker. The queue's job is
-              // "what needs me"; the answer to "and then what" is the
-              // deed page's state-and-next-action, which the tracker
-              // cannot show because it is a cross-deed list.
-              onOpen: () => router.push(`/deeds/${r.deed_id}`),
-            }))}
-          />
-          <QueueList
-            title="Waiting on a reply"
-            emptyNote="Everyone has answered."
-            rows={queue.awaiting.map((r) => ({
-              key: `aw-${r.kind}-${r.id}`,
-              title: r.property || `Deed #${r.deed_id}`,
-              detail: r.summary,
-              meta: `${r.who || 'Unnamed'} · ${
-                r.days_waiting === null ? 'waiting'
-                  : r.days_waiting === 0 ? 'sent today'
-                  : `${r.days_waiting} day${r.days_waiting === 1 ? '' : 's'}`
-              }`,
-              urgent: r.stale,
-              // Both kinds land on the same page, because from here the
-              // question is the same one: what is happening on this deed
-              // and what do I do about it. Which table the delay lives in
-              // is our problem, not hers.
-              onOpen: () => router.push(`/deeds/${r.deed_id}`),
-            }))}
-          />
-          <QueueList
-            title={`Untouched for ${queue.thresholds.idle_draft_days}+ days`}
-            emptyNote="No forgotten drafts."
-            rows={queue.idle_drafts.map((r) => ({
-              key: `id-${r.id}`,
-              title: r.property || `Deed #${r.id}`,
-              /* FOUR IDENTICAL CARDS. An audit found four of these at
-                 one address, byte-for-byte the same — same title, same
-                 sentence, same "16 days" — opening four different
-                 drafts. She had to click one to learn which it was.
-                 The row now carries what actually DIFFERS between them:
-                 the instrument and the document number. */
-              detail: `${deedTypeLabel(r.deed_type)} · Doc #${r.id} — `
-                    + 'nobody is waiting on this but you.',
-              meta: r.days_idle === null ? 'untouched' : `${r.days_idle} days`,
-              urgent: false,
-              // Deliberately NOT the deed page. A draft has exactly one
-              // action and the deed page would only offer that same
-              // action one navigation later — a hop that buys nothing.
-              onOpen: () => router.push(
-                `/deed-builder/${r.deed_type || 'grant-deed'}?resume=${r.id}`),
-            }))}
-            /* THE REMEDY LIVES ON THE OTHER PAGE. Past Deeds already
-               offers "Archive the N older" over exactly these drafts
-               (`lib/staleDrafts.ts`), and this screen flagged them stale
-               while offering nothing. Linked rather than reimplemented:
-               a second implementation of an archive action is a second
-               opinion about which drafts are superseded. */
-            footer={queue.idle_drafts.length
-              ? { label: 'Archive older drafts', onClick: () => router.push('/past-deeds?status=draft') }
-              : null}
-          />
-        </div>
-      )}
-    </section>
-  )
-}
-
-type QueueRow = {
-  key: string
-  title: string
-  detail: string
-  meta: string
-  urgent: boolean
-  onOpen: () => void
-}
-
-function QueueList({ title, rows, emptyNote, footer = null }: {
-  title: string
-  rows: QueueRow[]
-  emptyNote: string
-  /** An action that belongs to the whole column rather than a row. */
-  footer?: { label: string; onClick: () => void } | null
-}) {
-  return (
-    <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
-      <div className="border-b border-gray-100 px-4 py-3">
-        <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
-      </div>
-      {rows.length === 0 ? (
-        <p className="px-4 py-4 text-sm text-gray-500">{emptyNote}</p>
-      ) : (
-        <ul className="divide-y divide-gray-100">
-          {rows.slice(0, 5).map((r) => (
-            <li key={r.key}>
-              {/* EVERY ROW LINKS TO THE THING ITSELF. A queue that tells
-                  her something is stuck and then makes her go and find it
-                  is a list of chores, not a queue. */}
-              <button
-                onClick={r.onOpen}
-                className={`w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors ${
-                  r.urgent ? 'border-l-4 border-amber-400' : ''
-                }`}
-              >
-                <p className="font-medium text-gray-900 truncate">{r.title}</p>
-                <p className="text-sm text-gray-600 truncate">{r.detail}</p>
-                <p className={`text-xs mt-0.5 ${r.urgent ? 'text-amber-700 font-medium' : 'text-gray-400'}`}>
-                  {r.meta}
-                </p>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      {footer && rows.length > 0 && (
-        <button
-          type="button"
-          onClick={footer.onClick}
-          className="w-full border-t border-gray-100 px-4 py-2.5 text-left text-sm
-                     font-semibold text-[#7C4DFF] hover:bg-gray-50"
-        >
-          {footer.label}
-        </button>
-      )}
-    </div>
-  )
-}
-
-// Stat Card Component
-function StatCard({
-  label,
-  value,
-  icon,
-  color,
-  href,
-}: {
-  label: string
-  value: number | string
-  icon: React.ReactNode
-  color: "blue" | "yellow" | "green" | "purple"
-  /** DASH1: a count with no drill-down is trivia. Required rather than
-   * optional — a tile added later without one would silently be the
-   * thing this ticket removed. */
-  href: string
-}) {
-  const router = useRouter()
-  const colorClasses = {
-    blue: "bg-blue-50 text-blue-600",
-    yellow: "bg-amber-50 text-amber-600",
-    green: "bg-emerald-50 text-emerald-600",
-    purple: "bg-violet-50 text-violet-600",
-  }
-
-  return (
-    <button
-      onClick={() => router.push(href)}
-      className="w-full text-left bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md hover:border-gray-300 transition-all"
-    >
-      <div className="flex items-center gap-3 mb-3">
-        <div className={`p-2 rounded-lg ${colorClasses[color]}`}>{icon}</div>
-        <span className="text-sm text-gray-500">{label}</span>
-      </div>
-      <div className="flex items-baseline gap-2">
-        <span className="text-2xl font-bold text-gray-900">{value}</span>
-        <ArrowRight className="w-4 h-4 text-gray-300" />
-      </div>
-    </button>
-  )
-}
-
-// Deed Row Component
-function DeedRow({ deed }: { deed: any }) {
-  const router = useRouter()
-
-  // pdf_url is a backend-relative authenticated path — window.open can't
-  // reach it; fetch the stored PDF as a blob like Past Deeds does.
-  const handleDownload = async () => {
-    try {
-      // X1: loud failures — apiFetch toasts non-2xx and handles 401.
-      const response = await apiFetch(`/deeds/${deed.id}/download`, {}, { label: `Downloading deed #${deed.id}` })
-      if (!response.ok) throw new Error("Download failed")
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `${deed.deed_type || "Deed"}_${deed.id}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-    } catch (err) {
-      if (err instanceof SessionExpiredError) return
-      console.error("Download error:", err)
-    }
-  }
-
-  const getStatusStyle = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'completed':
-        return 'bg-emerald-100 text-emerald-700'
-      case 'draft':
-      case 'in_progress':
-        return 'bg-amber-100 text-amber-700'
-      case 'shared':
-      case 'pending':
-        return 'bg-blue-100 text-blue-700'
-      default:
-        return 'bg-gray-100 text-gray-700'
-    }
-  }
-
-  const getStatusIcon = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'completed':
-        return <CheckCircle className="w-3 h-3" />
-      case 'draft':
-      case 'in_progress':
-        return <Clock className="w-3 h-3" />
-      case 'shared':
-      case 'pending':
-        return <Send className="w-3 h-3" />
-      default:
-        return <FileText className="w-3 h-3" />
-    }
-  }
-
-  const formatDeedType = (type: string) => {
-    return type
-      ?.replace(/_/g, ' ')
-      ?.replace(/-/g, ' ')
-      ?.split(' ')
-      ?.map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      ?.join(' ') || 'Deed'
-  }
-
-  const formatDate = (date: string) => {
-    if (!date) return ''
-    const d = new Date(date)
-    const now = new Date()
-    const diffMs = now.getTime() - d.getTime()
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-    
-    if (diffHours < 1) return 'Just now'
-    if (diffHours < 24) return `${diffHours}h ago`
-    if (diffDays === 1) return 'Yesterday'
-    if (diffDays < 7) return `${diffDays} days ago`
-    return d.toLocaleDateString()
-  }
-
-  const needsAction = deed.status === 'draft' || deed.status === 'in_progress'
-
-  return (
-    // X2.7: drafts read as "needs action" at a glance — amber edge + a
-    // labeled Continue button, not an unexplained arrow.
-    /* ROUGH — THE ROW STACKS BELOW `sm`, and stacking is the only
-       remedy that exists. The right-hand cluster is `flex-shrink-0` and
-       every item in it is already at its minimum, so there is nothing
-       to shrink: at 390px the title and parties line was left roughly
-       60px of the ~240px it needs, which truncates "Grant Deed - 1358
-       5th St" to about four characters.
-
-       NOTARYPHONE1's principle decides the priority. The officer is at a
-       desk most of the time and on a phone at a client's table or
-       between appointments — and the surfaces nobody complains about are
-       the ones that break. A row truncated to four characters is not
-       degraded, it is unusable. */
-    <div className={`p-4 hover:bg-gray-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 ${
-      needsAction ? 'border-l-4 border-amber-400' : ''
-    }`}>
-      {/* DASH1: THE ROW LINKS TO THE DEED. A feed of things she has
-          worked on, where pressing one does nothing, is a list of
-          reminders that she owns some deeds. A draft opens where the
-          work is; a finished one opens focused in Past Deeds — there is
-          still no deed detail route (ledgered as DEEDDETAIL), so this
-          uses the same `?focus=` pattern the Signings agenda does. */}
-      <button
-        onClick={() => router.push(
-          needsAction
-            ? `/deed-builder/${deed.deed_type || 'grant-deed'}?resume=${deed.id}`
-            : `/past-deeds?focus=${deed.id}`)}
-        className="flex items-center gap-4 min-w-0 flex-1 text-left"
-      >
-        <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-          <FileText className="w-5 h-5 text-gray-500" />
-        </div>
-        <div className="min-w-0">
-          <p className="font-medium text-gray-900 truncate">
-            {formatDeedType(deed.deed_type)} {deed.property_address ? `- ${deed.property_address}` : ''}
-          </p>
-          <p className="text-sm text-gray-500 truncate">
-            Doc #{deed.id} • {deed.grantor_name || 'Draft'} → {deed.grantee_name || '...'}
-          </p>
-        </div>
-      </button>
-
-      <div className="flex items-center gap-3 flex-shrink-0 pl-14 sm:pl-0">
-        {/* DASH-FIX #3 — this rendered `{deed.status}` RAW, so the badge
-            showed the database's own token and a generated document read
-            "completed" while its signing sat unanswered in the queue
-            below. `deeds.status` is AUTHORING state; one place turns it
-            into English now. */}
-        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusStyle(deed.status)}`}>
-          {getStatusIcon(deed.status)}
-          {authoringStateLabel(deed.status)}
-        </span>
-        {/* DASH-FIX #5 — the date is `updated_at`, which is correct for a
-            module called "Recently worked on" and is NOT what Past Deeds
-            shows. A bare date invites a reader to compare two different
-            facts, so it carries its name. */}
-        <span className="text-sm text-gray-400 hidden sm:block">
-          {LAST_WORKED_ON} {formatDate(deed.updated_at || deed.created_at)}
-        </span>
-        
-        {/* Actions */}
-        <div className="flex items-center gap-1">
-          {deed.status === 'completed' && deed.pdf_url && (
-            <button
-              onClick={handleDownload}
-              aria-label="Download deed PDF"
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
-              title="Download PDF"
-            >
-              <Download className="w-4 h-4" />
-            </button>
-          )}
-          {/* FLOW1 item 2: the share icon that used to sit here is
-              DELETED. It carried a Share2 glyph and the hover title
-              "Share from Past Deeds", and it did not share — it routed
-              to /past-deeds and left her to find the row again and press
-              a different button. An icon that means "share" attached to
-              an act that means "navigate" is the twins problem in
-              miniature: the affordance and the outcome disagree.
-
-              Deleted rather than wired up, per the ruling's "prefer
-              deleting". Wiring it would mean mounting both share modals
-              and a PartnersProvider on the dashboard — a third surface
-              for two flows, on a page whose job is a glance. */}
-          {needsAction && (
-            <button
-              onClick={() => router.push(`/deed-builder/${deed.deed_type || 'grant-deed'}?resume=${deed.id}`)}
-              className="flex items-center gap-1 px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg transition-colors text-sm font-medium"
-              title="Continue this draft"
-            >
-              Continue
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}

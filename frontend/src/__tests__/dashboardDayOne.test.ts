@@ -60,50 +60,57 @@ describe('the day-one dashboard', () => {
       .toThrow();
   });
 
-  it('withholds the empty queue card from someone who has made nothing', () => {
+  it('day one and all-clear are DIFFERENT results, still', () => {
     /**
-     * A textual pin on a rendering condition, and said so: what must be
-     * true is that "Nothing is waiting on anyone" never reaches an
-     * officer with no deeds. The condition that holds it is one line,
-     * so the pin checks that the line is there and the render path
-     * still depends on `hasDeeds`.
+     * #206's ruling, and DASH3 had to carry it deliberately because the
+     * v2 design collapses them: its "All clear" state renders the same
+     * screen for an officer who cleared her board and one who has never
+     * made a deed. Collapsing them would congratulate somebody on her
+     * first morning for finishing nothing.
+     *
+     * The IMPLEMENTATION changed — it was a suppression
+     * (`if (empty && !hasDeeds) return null`), and it is now three
+     * explicit branches, because a worklist has to say something in all
+     * three cases rather than render nothing in one of them.
+     *
+     * Pinned as the property: the clear sentence is reachable only with
+     * deeds, and the day-one branch says something else.
      */
     const src = dashboard();
-    expect(src).toContain('if (empty && !hasDeeds) return null');
-    expect(src).toContain('hasDeeds={hasDeeds}');
-    // And the sentence itself is still present — this ticket suppressed
-    // it for one population, it did not delete it. The returning half is
-    // held for a ruling, and if this assertion ever fails it should be
-    // because that ruling arrived.
-    expect(src).toContain('Nothing is waiting on anyone');
+    expect(src).toContain('Nothing needs you.');
+    expect(src).toContain('Nothing here yet.');
+    // ORDER, not distance. The first version of this line measured 600
+    // characters between the gate and the sentence and failed at 640 —
+    // §14.1.1's fixed-window mistake, written by the author of the entry
+    // that records it, two days later. A comment explaining the branch
+    // is enough to move a character count; nothing about a comment can
+    // move the ORDER of the branches.
+    const gate = src.indexOf(') : hasDeeds ? (');
+    const clearAt = src.indexOf('Nothing needs you.');
+    const dayOneAt = src.indexOf('Nothing here yet.');
+    expect(gate).toBeGreaterThan(-1);
+    expect(gate).toBeLessThan(clearAt);
+    expect(clearAt).toBeLessThan(dayOneAt);
   });
 
-  it('puts the setup checklist where the welcome card was', () => {
-    const src = dashboard();
-    expect(src).toContain('<SetupChecklist');
-    // And it is derived state, not a banner: the page reads the profile
-    // it already fetches rather than adding a request.
-    expect(src).toContain('default_county');
-    expect(src).toContain('company_name');
-  });
-
-  it('renders no checklist until the profile has answered', () => {
+  it('§16 — the greeting rides on the headline instead of leading', () => {
     /**
-     * Same rule as the accuracy figure, and the same reason: defaulting
-     * to "nothing is set up" would tell a fully configured officer she
-     * has three things to do, for as long as the request takes.
+     * The ruling was that the greeting should not be BURIED under three
+     * cards. It was pinned as "AIGreeting renders above ResumeCard",
+     * which asserted an order between two components DASH3 removes —
+     * the resume card rehomed into the first your-turn row, and the
+     * greeting demoted onto the headline.
+     *
+     * The intent survives and is stronger: the greeting is now on the
+     * first line of the page, beside the number she came for, rather
+     * than above the work in a block of its own.
      */
     const src = dashboard();
-    expect(src).toContain('useState<{');
-    expect(src).toMatch(/\{setup && \(/);
-  });
-
-  it('leads with the greeting rather than burying it under three cards', () => {
-    const src = dashboard();
-    const greeting = src.indexOf('<AIGreeting');
-    const resume = src.indexOf('<ResumeCard');
-    expect(greeting).toBeGreaterThan(-1);
-    expect(greeting).toBeLessThan(resume);
+    expect(src).toContain('greetingLine');
+    expect(src).not.toContain('<AIGreeting');
+    // And it is still HER greeting — the shared one, not a second
+    // opinion about what hour it is (§14.3).
+    expect(src).toContain('getTimeGreeting()');
   });
 
   it('still says plainly when the queue could not load', () => {

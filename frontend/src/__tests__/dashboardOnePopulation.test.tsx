@@ -119,19 +119,42 @@ describe('the pre-#203 card is gone', () => {
   });
 
   it('kept the capability it carried', () => {
-    /** Deleting the card must not delete resuming a clean draft — that
-     *  was Ticket R's, and it moved into ResumeCard rather than out of
-     *  the product. */
-    expect(dashboard()).toContain('inProgressDeed');
-    expect(dashboard()).toContain('checks: [],');
+    /**
+     * §16 — THE CAPABILITY MOVED SERVER-SIDE AND GOT BIGGER.
+     *
+     * Ticket R's capability was: a draft with NOTHING outstanding is
+     * still resumable. It was a client-side fallback — `resumeTarget`
+     * synthesising `checks: []` when the accuracy list had no row —
+     * because the old hero counted FIELDS, so a document with zero
+     * outstanding fields contributed zero and was invisible.
+     *
+     * DASH3 changed the unit to rows, which dissolves the problem the
+     * fallback existed for: `ready_row` makes that document a row of its
+     * own, visible and counted, instead of a hidden card the screen had
+     * to reconstruct. The capability is not deleted; it stopped needing
+     * a workaround.
+     */
+    const py = readFileSync(join(SRC, '..', '..', 'backend', 'services',
+                                 'worklist.py'), 'utf8');
+    expect(py).toContain('def ready_row');
+    expect(py).toContain('Every field is confirmed');
+    // And the screen does not rebuild it a second time.
+    expect(dashboard()).not.toContain('checks: [],');
   });
 
   it('prefers the accuracy row when there is one', () => {
-    /** #203's ruling stands wherever it applies: the fallback is a
-     *  fallback, not a replacement. */
-    const src = dashboard();
-    const target = src.slice(src.indexOf('const resumeTarget'));
-    expect(target.indexOf('queue?.accuracy?.items[0]') >= 0
-        || target.indexOf('queue.accuracy.items[0]') >= 0).toBe(true);
+    /**
+     * #203's ordering, now expressed as ORDER OF ROWS rather than choice
+     * of a single target. A document with outstanding checks and one
+     * with none are both rows; the one that needs confirming is an
+     * `accuracy_row` and the finished one is a `ready_row`, and neither
+     * hides the other. "The fallback is a fallback, not a replacement"
+     * becomes "both are visible", which is the same ruling with nothing
+     * left to arbitrate.
+     */
+    const py = readFileSync(join(SRC, '..', '..', 'backend', 'services',
+                                 'worklist.py'), 'utf8');
+    expect(py).toContain('def accuracy_row');
+    expect(py).toContain('def ready_row');
   });
 });

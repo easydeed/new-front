@@ -1409,8 +1409,12 @@ we reach it.
 
 - **DASH3 — the dashboard becomes a worklist. FIVE RULINGS, then build.**
   **DECIDED** 2026-08-19.
-  **BUILT** — **no.** The design input is committed
-  (`docs/design/dashboard_v2.html`); nothing is built from it.
+  **BUILT** — yes, 2026-08-20. `backend/services/worklist.py` assembles
+  the rows; `frontend/src/features/dashboard/Worklist.tsx` renders them;
+  the dashboard page is the three-branch result it now holds. All five
+  rulings pinned in `backend/tests/test_dash3_worklist.py` and
+  `frontend/src/__tests__/dashboardWorklist.test.ts`, every pin probed by
+  mutation.
 
   1. **Consequence-first, confirmed.** The mockup's annotation says
      "ranked cheapest-to-clear first"; its own rows do not — "Archive all
@@ -1450,6 +1454,61 @@ we reach it.
   5. **The chip annotations go** — "most used", "1 this year". They are
      the only statistics left in a design whose purpose is removing
      statistics.
+
+  **What the build found, and none of it was in the design.**
+
+  a. **A crash on the one screen everybody lands on.** The greeting's
+     `useState`/`useEffect` went in beside the markup that uses them,
+     which is after `if (loading) return …`. First paint runs two fewer
+     hooks than the second, and React tears the component down the moment
+     the profile answers. **tsc is blind to it; jest is blind to it here,
+     because these suites read source text rather than mounting through
+     the transition.** `eslint`'s `react-hooks/rules-of-hooks` sees it —
+     and `next.config.js` sets `eslint.ignoreDuringBuilds: true`, so
+     **nothing we run in CI would have stopped it.** Pinned as "no hook
+     is declared after the first early return".
+
+  b. **F4's ruling was one deletion from being reversed.** The redesign
+     removed the renderer of `deedsError` while the error was still being
+     set. A failed `/deeds` load then leaves the list empty → `hasDeeds`
+     false → "Nothing here yet.", the first-run welcome, shown to an
+     officer whose documents merely failed to load. That is the exact bug
+     F4 fixed. I found it while deleting the state as dead — **an error
+     that renders nothing is indistinguishable from having nothing, which
+     is what makes this class of regression invisible.**
+
+  c. **Two pins whose fixes were each other's defect.** The row hrefs,
+     copied from the module being replaced, used `/signings?focus=` — a
+     RETIRED alias kept for mail already sent, caught by
+     `test_link_contract.py`. Correcting them to the canonical tracker
+     route satisfied that contract and broke the orphan ruling, because
+     the canonical tracker is still a tracker. The deed page answers
+     both. **Neither pin could see the other's subject.**
+
+  d. **A pin that passed for a reason other than its property.** The
+     unknown-age test used `None` against `2`, which orders correctly
+     with the None-rule DELETED — `-(None or 0)` and `-(2)` differ
+     anyway. Only `None` against `0` can tell them apart. **The mutation
+     probe found it; the test read correctly to me before and after.**
+     Recorded as §14.1.1's sibling: a pin can assert the right property
+     against inputs incapable of distinguishing it.
+
+  e. **The renderers outlived their render sites.** `ActionQueue`,
+     `QueueList`, `StatCard` and `DeedRow` stayed in `page.tsx`,
+     unreferenced, for one build — 450 lines of a second, unreachable
+     dashboard. Nothing failed: tsc does not flag an unreferenced
+     function and the suites assert what renders. §14.5's fourth
+     instance, in a single file.
+
+  Fourteen pins across six suites broke on the removal, each carrying a
+  previously-ruled behaviour. **None was deleted.** Each is recorded in
+  place with where its ruling went: superseded by owner design (the
+  three-column split), satisfied more strongly by subtraction (one status
+  vocabulary — the dashboard now speaks none), moved server-side (the
+  wording, the threshold, the destinations), or **reported as not
+  surviving** (the feed's last-touched ordering, which has no subject and
+  is deliberately NOT re-homed onto the worklist's consequence order —
+  that would be a different rule wearing compliance).
 - **HOTFIX — property autofill was dead in production, and HOME2 did it**
   (2026-08-19).
   **DECIDED** 2026-08-19 — the builder loads Places from its own render
