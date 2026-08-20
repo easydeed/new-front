@@ -59,10 +59,26 @@ import { fileURLToPath } from 'url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..');
 
-/** Frozen 2026-08-20 at 136/58; 134/56 (GUIDE1), 126/54 (DARK1). Which
- *  deleted three orphaned components. LOWER these when the count drops;
- *  never raise them. Raising one is a decision to keep a defect, and it
- *  should read like one in the diff. */
+/** Frozen 2026-08-20 at 136/58. Lowered to 134/56 by GUIDE1 (three
+ *  orphaned components deleted) and to 126/54 by DARK1 (eleven more).
+ *
+ *  LOWER these when the count drops; never raise them. Raising one is a
+ *  decision to keep a defect and should read like one in the diff.
+ *
+ *  ═══ AND LOWER THEM WHEN A DELETION LOWERS THEM FOR YOU ═══
+ *
+ *  A ceiling left at its old number after files are deleted silently
+ *  re-authorises exactly the debt those files were carrying — DARK1's
+ *  deletions took 8 errors and 2 warnings with them, and leaving 134
+ *  would have granted the next author 8 free errors, invisibly, with no
+ *  diff anywhere recording the grant.
+ *
+ *  The drawdown trigger in OWNER_LEDGER.md watches this number falling
+ *  toward zero. It does not watch the SUBJECT shrinking underneath it.
+ *  A ratchet that tightens only when somebody remembers to tighten it is
+ *  not a ratchet, and this property belongs to every threshold in the
+ *  repo, not just this one: re-measure whenever a deletion lowers what
+ *  the threshold measures. */
 const CEILING = { errors: 126, warnings: 54 };
 
 /** A file that stops being linted stops being measured, and unmeasured

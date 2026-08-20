@@ -1286,6 +1286,77 @@ easiest change to undo silently.
 
 ---
 
+### §14.14 — A threshold must be re-measured when a deletion lowers its subject (2026-08-20)
+
+**Statement.** A ceiling that only moves when somebody decides to move it
+is not a ratchet. When code is deleted, the debt it carried leaves with
+it — and a ceiling left at the old number **silently re-authorises
+exactly that much fresh debt**, with no diff anywhere recording the
+grant.
+
+**The instance.** DARK1's deletions took the eslint count from 134 errors
+to 126 and from 56 warnings to 54. The gate refused the run — but only
+because the FILE FLOOR had its own check. Nothing checked the ceiling,
+because a count going DOWN is what the ceiling exists to reward. Leaving
+it at 134 would have handed the next author eight free errors.
+
+**Why this direction is the invisible one.** Every mechanism we built
+watches the number rising: the ceiling fails on regression, the drawdown
+trigger fires when it reaches zero. **Both watch the number. Neither
+watches the SUBJECT shrinking underneath it.** A threshold is a ratio
+between a count and a corpus, and we had been treating it as a count.
+
+**This generalises to every threshold in the repository**, not just this
+gate: `TSC_BASELINE`, the eslint ceiling, the file floor, any future
+count-based invariant. The question to ask after any deletion is not "did
+this break the gate" but **"did this lower what the gate measures, and is
+the gate still measuring the same thing?"**
+
+**The mechanical form.** Deletions and thresholds are checked together:
+after removing files, re-run every count-based gate and lower each number
+that dropped, in the same commit as the deletion. The improvement notice
+the gate already prints is the prompt — it was printing all along, and
+the ratchet only tightened because somebody read it.
+
+---
+
+### §14.15 — Two modules with near-identical names are one filename check away from the wrong verdict (2026-08-20)
+
+**Statement.** When a check asks "is this module load-bearing?", a name
+is not evidence. Two files can share almost the same path, differ in one
+segment, and sit on opposite sides of the answer — and the reasoning that
+identifies one will read as if it identified the other.
+
+**The instance, and it was a deletion decision.** The owner's carve-out
+before deleting the notifications scaffold: *if the notifications router
+writes the in-app record CANCEL1 depends on, the backend half stays.*
+
+  · `routers/notifications.py` — the flag-gated READ side, off since
+    January. The scaffold.
+  · `utils/notifications.py` — writes the record, NOT flag-gated, called
+    live from `sharing.py`, `signing.py`, `users_auth.py` and
+    `api_key_requests.py`. Its call site carries CANCEL1's rule verbatim:
+    *"the in-app record comes FIRST — an approval must be unlosable
+    regardless of email transport."*
+
+**A check that stopped at the filename would have protected the scaffold
+and deleted the load-bearing module.** Both are `notifications.py`. The
+one named in the carve-out was the wrong one, and only looking at what
+each module DOES separated them.
+
+**This is the DARKSWEEP same-name caveat arriving in the one place it
+mattered.** That caveat was recorded as inert — no basename among the 16
+components was duplicated — and it was inert *for components*. The hazard
+was live one directory over, in Python, in the safety check itself.
+**A limitation recorded as "does not apply here" applies somewhere.**
+
+**The mechanical form.** Any check that decides a module's fate resolves
+it by BEHAVIOUR — what it writes, who calls it, whether a flag gates it —
+never by name, and never by the name a ticket used. When a ticket names a
+file, confirm the file it names is the file it means.
+
+---
+
 ### §14.12 — A removed claim must read as a NO, as legibly as a yes (2026-08-20)
 
 **Statement.** When a capability claim is withdrawn, the surface that
