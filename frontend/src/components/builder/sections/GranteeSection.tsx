@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { User, AlertTriangle } from 'lucide-react';
-import { useAIAssist } from '@/contexts/AIAssistContext';
-import { AISuggestion } from '../AISuggestion';
+import { useGuidance } from '@/contexts/GuidanceContext';
+import { FieldGuidance } from '../FieldGuidance';
 
 interface GranteeSectionProps {
   value: string;
@@ -12,7 +12,7 @@ interface GranteeSectionProps {
 }
 
 export function GranteeSection({ value, onChange, grantorName }: GranteeSectionProps) {
-  const { enabled: aiEnabled } = useAIAssist();
+  const { enabled: aiEnabled } = useGuidance();
   const [guidanceDismissed, setGuidanceDismissed] = useState(false);
 
   const isSameAsGrantor = value && grantorName && 
@@ -22,7 +22,7 @@ export function GranteeSection({ value, onChange, grantorName }: GranteeSectionP
     <div className="space-y-4">
       {/* AI Guidance */}
       {aiEnabled && !guidanceDismissed && !value && (
-        <AISuggestion
+        <FieldGuidance
           message="The GRANTEE is the person or entity receiving the property. Enter their full legal name in ALL CAPS."
           details="For multiple grantees, use 'AND' between names (e.g., 'JOHN DOE AND JANE DOE'). For LLCs or corporations, use the exact legal entity name. For trusts, include the trust name, date, and trustee name (e.g., 'JOHN SMITH, TRUSTEE OF THE SMITH FAMILY TRUST DATED 01/01/2020')."
           onDismiss={() => setGuidanceDismissed(true)}

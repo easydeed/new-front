@@ -2,9 +2,9 @@
 
 import { useState, useMemo } from "react"
 import { HelpCircle } from "lucide-react"
-import { useAIAssist } from "@/contexts/AIAssistContext"
-import { AISuggestion, AIHint } from "../AISuggestion"
-import { getVestingSuggestion, type VestingSuggestion } from "@/lib/ai-helpers"
+import { useGuidance } from "@/contexts/GuidanceContext"
+import { FieldGuidance, FieldNote } from "../FieldGuidance"
+import { getVestingSuggestion, type VestingSuggestion } from "@/lib/vestingSuggestion"
 import { Scale, ShieldCheck, X } from "lucide-react"
 import type { LegalChoiceRecord, VestingProposal } from "@/types/builder"
 
@@ -60,7 +60,7 @@ const VESTING_EXPLANATIONS: Record<string, string> = {
 }
 
 export function VestingSection({ value, onChange, granteeCount, deedType, grantee, decision, recordProposal }: VestingSectionProps) {
-  const { enabled: aiEnabled } = useAIAssist()
+  const { enabled: aiEnabled } = useGuidance()
   const [showCustom, setShowCustom] = useState(false)
   const [customValue, setCustomValue] = useState("")
   const [suggestionApplied, setSuggestionApplied] = useState(false)
@@ -236,7 +236,7 @@ export function VestingSection({ value, onChange, granteeCount, deedType, grante
 
       {/* General AI Guidance when no specific suggestion */}
       {showGeneralGuidance && (
-        <AISuggestion
+        <FieldGuidance
           message={granteeCount === 1 
             ? "For a single grantee, select their marital status. Use 'sole and separate' if married but taking title individually."
             : granteeCount === 2
@@ -321,7 +321,7 @@ export function VestingSection({ value, onChange, granteeCount, deedType, grante
 
       {/* AI Explanation for current selection */}
       {currentExplanation && (
-        <AIHint message={currentExplanation} />
+        <FieldNote message={currentExplanation} />
       )}
 
       {/* Warning: Joint tenancy with 1 grantee */}

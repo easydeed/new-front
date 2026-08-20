@@ -1,10 +1,10 @@
 "use client"
 
 import { Sparkles } from "lucide-react"
-import { useAIAssist } from "@/contexts/AIAssistContext"
+import { useGuidance } from "@/contexts/GuidanceContext"
 
-export function AIToggle() {
-  const { enabled, toggle } = useAIAssist()
+export function GuidanceToggle() {
+  const { enabled, toggle } = useGuidance()
 
   return (
     <button
@@ -17,10 +17,10 @@ export function AIToggle() {
           : "bg-gray-100 text-gray-500 hover:bg-gray-200"
         }
       `}
-      title={enabled ? "AI Assist is on" : "AI Assist is off"}
+      title={enabled ? "Field help is on" : "Field help is off"}
     >
       <Sparkles className={`w-4 h-4 ${enabled ? "text-violet-500" : "text-gray-400"}`} />
-      <span>AI Assist</span>
+      <span>Field help</span>
       <div 
         className={`
           w-8 h-5 rounded-full relative transition-colors duration-200
@@ -40,8 +40,8 @@ export function AIToggle() {
 }
 
 // Compact version for tight spaces
-export function AIToggleCompact() {
-  const { enabled, toggle } = useAIAssist()
+export function GuidanceToggleCompact() {
+  const { enabled, toggle } = useGuidance()
 
   return (
     <button
@@ -54,10 +54,10 @@ export function AIToggleCompact() {
           : "bg-gray-100 text-gray-500 hover:bg-gray-200"
         }
       `}
-      title={enabled ? "AI Assist is on — click to turn off" : "AI Assist is off — click to turn on"}
+      title={enabled ? "Field help is on — click to turn off" : "Field help is off — click to turn on"}
     >
       <Sparkles className={`w-3 h-3 ${enabled ? "text-violet-500" : "text-gray-400"}`} />
-      <span>{enabled ? "AI On" : "AI Off"}</span>
+      <span>{enabled ? "Help on" : "Help off"}</span>
     </button>
   )
 }

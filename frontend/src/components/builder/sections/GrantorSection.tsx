@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { User } from 'lucide-react';
-import { useAIAssist } from '@/contexts/AIAssistContext';
-import { AISuggestion } from '../AISuggestion';
+import { useGuidance } from '@/contexts/GuidanceContext';
+import { FieldGuidance } from '../FieldGuidance';
 import { ConfirmableField } from '../ConfirmableField';
 import type { Sourced } from '@/types/builder';
 
@@ -17,7 +17,7 @@ interface GrantorSectionProps {
 }
 
 export function GrantorSection({ value, onChange, suggestedName, provenance, onComplete }: GrantorSectionProps) {
-  const { enabled: aiEnabled } = useAIAssist();
+  const { enabled: aiEnabled } = useGuidance();
   const [guidanceDismissed, setGuidanceDismissed] = useState(false);
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export function GrantorSection({ value, onChange, suggestedName, provenance, onC
     <div className="space-y-4">
       {/* AI Guidance */}
       {aiEnabled && !guidanceDismissed && !value && (
-        <AISuggestion
+        <FieldGuidance
           message="The GRANTOR is the current owner transferring the property. This should match the name on the existing deed exactly."
           details="Enter the grantor's full legal name in ALL CAPS as it appears on the current deed. For married couples, use 'JOHN SMITH AND JANE SMITH, HUSBAND AND WIFE'. For trusts, include the full trust name and trustee. If the name has changed since the original deed, a name affidavit may be required."
           onDismiss={() => setGuidanceDismissed(true)}

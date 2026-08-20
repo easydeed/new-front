@@ -1407,6 +1407,101 @@ we reach it.
   the convention pays for itself on entries that overstate, and it turned
   out the bigger population was entries that understate.
 
+- **GUIDE0 — in-product assistance. INVESTIGATION, and it found the
+  feature was dark.**
+  **DECIDED** 2026-08-20, owner-ruled: three tickets, GUIDE1 → GUIDE2 →
+  GUIDE3. **BUILT** — GUIDE1 yes (this ticket); GUIDE2 next; GUIDE3 held.
+
+  **THE HEADLINE. `/api/ai/chat` has had no reachable caller since
+  2026-04-28.** The legacy-wizard removal (`0f16a1a`) deleted the render
+  sites of `AIHelpButton` and `VestingInput`, its only two callers.
+  **RED-H1.3 hardened the endpoint 2026-08-04; Doctrine B rewrote its
+  prompts 2026-08-10** — three and four months later. Neither noticed.
+  `deed_type_advisor`, the prompt Doctrine B most carefully rewrote, has
+  never been delivered to anyone.
+
+  **Which explains Doctrine B's empty log**, and retires the deferral it
+  rests on. That ticket recorded "two days of an empty table" and
+  deferred the usage evidence pending accumulation. Two days was true and
+  irrelevant: nothing could write to that table, so waiting produces the
+  same zero forever. A query returning zero cannot distinguish "nobody
+  asked" from "nobody could ask" — recorded as §14.5's fifth habitat, an
+  EVIDENCE SOURCE.
+
+  Production could not be queried from the build session (Render
+  credentials are Tier 3 and were not requested). **The call-site census
+  is the stronger evidence anyway** and is what the finding rests on.
+
+  **THE SECOND FINDING, and it is good news.** What ships under a toggle
+  labelled "AI Assist" is hand-written static copy — no request, no
+  model, nothing that can drift — and **it is already doctrine-compliant**:
+  hedged, citing statutes rather than outcomes, never asserting what a
+  recorder will accept. The EXPLAIN half of Doctrine B was built and
+  shipped months ago while the endpoint meant to provide it sat dark.
+  **What Jerry asked for mostly exists; it was mislabelled.**
+
+- **GUIDE1 — delete the dead stack, and stop claiming AI.**
+  **DECIDED** 2026-08-20. **BUILT** — yes, 2026-08-20.
+
+  Deleted (no render sites): `AIHelpButton`, `VestingInput`, `AIGuidance`,
+  the `AIGreeting` component, the `AIApplied` export.
+
+  Renamed to what they are: `AISuggestion` → `FieldGuidance`, `AIHint` →
+  `FieldNote`, `AIToggle` → `GuidanceToggle`, `AIAssistContext` →
+  `GuidanceContext`, `ai-helpers.ts` → `vestingSuggestion.ts`; the
+  toggle's visible label "AI Assist" → **"Field help"**. Owner-ruled: the
+  label is a claim the code does not support — **the banned-claims family
+  arriving in a UI label rather than marketing prose**, which is harder to
+  catch because nobody reviews a component name for truth (§14.10). It
+  returns honestly if a model ever backs the surface.
+
+  **The storage key was NOT renamed**, deliberately:
+  `deedpro_ai_assist_enabled` is where a user's saved preference lives,
+  and renaming it would silently turn guidance back on for everyone who
+  had turned it off, because the default is `true` and a missing key is
+  indistinguishable from a fresh browser. A persisted key is a data
+  migration wearing a rename.
+
+  **`services/aiAssistant.ts` is KEPT and now has no callers**, with the
+  reason written at the site: GUIDE3 rules wire-or-retire, and deleting
+  the client now would make "wire" mean "rebuild". Held, not overlooked —
+  the distinction §14.5 exists to force.
+
+  **Two gates fired on their own first real encounters**, which is the
+  §14.9 test answered rather than assumed. The eslint gate refused the run
+  at 291 files against a floor of 294 and demanded the deletions be
+  acknowledged deliberately. And `tsc` fell 88 → **83**; the baseline was
+  lowered to lock it in.
+
+  U3's "no dead chat promise" ruling was WIDENED rather than retired: it
+  was pinned on a file this ticket deleted, which would have satisfied it
+  trivially. It now covers the dashboard, the builder and the header —
+  and matters more than when written, since the endpoint behind any such
+  promise is dark.
+
+- **GUIDE2 — the two static-copy surfaces.**
+  **DECIDED** 2026-08-20, approved. **BUILT** — no; next ticket.
+  Violet-proposal explanation (what an exemption covers — the proposal
+  already stores `basis`, so explaining it makes the recorded basis
+  legible rather than inferring anything) and amber-field provenance
+  (what a value is and where it came from — a fact about our data, not
+  about her transaction). Static copy: zero cost, pinnable, reviewable by
+  someone who knows recording practice, cannot drift.
+
+- **GUIDE3 — wire the assistant or retire it. HELD, with a decision
+  date.**
+  **DECIDED** 2026-08-20: hold. **BUILT** — no.
+  **TRIGGER, owner-ruled:** when a design partner has used the product
+  for a month, **or** when a real question arrives that the static copy
+  cannot answer — whichever comes first. **A decision date, not a
+  someday:** what must not continue is the current state, an endpoint
+  hardened, metered and boundary-ruled that nothing calls, accruing
+  doctrine while dark.
+
+  The reasoning for holding: the questions officers ask AFTER the static
+  explanations exist are different from the ones they would ask now, and
+  those are the evidence Doctrine B actually wanted.
+
 - **ESLINT1 — turn the disabled gate back on.**
   **DECIDED** 2026-08-20, owner-ruled: report the count before flipping;
   if large, a baseline-with-a-ceiling like tsc rather than a hard zero,

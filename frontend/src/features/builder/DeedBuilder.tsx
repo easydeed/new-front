@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { AIAssistProvider } from '@/contexts/AIAssistContext';
+import { GuidanceProvider } from '@/contexts/GuidanceContext';
 import { BuilderHeader } from '@/components/builder/BuilderHeader';
 import { InputPanel } from '@/components/builder/InputPanel';
 import { PreviewPanel } from '@/components/builder/PreviewPanel';
@@ -585,11 +585,11 @@ const SOURCE_LABELS: Record<string, string> = {
   user: 'Entered by you',
 };
 
-// Wrap with AIAssistProvider
+// Wrap with GuidanceProvider
 export function DeedBuilder(props: DeedBuilderProps) {
   return (
-    <AIAssistProvider>
+    <GuidanceProvider>
       <DeedBuilderInner {...props} />
-    </AIAssistProvider>
+    </GuidanceProvider>
   );
 }

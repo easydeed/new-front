@@ -4,8 +4,8 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { useGoogleMaps } from "@/components/hooks/useGoogleMaps"
 import { MapPin, Search, Loader2, AlertCircle, Building2, ChevronRight } from "lucide-react"
 import type { ParcelSelection, PropertyData, PropertyProvenance, Sourced } from "@/types/builder"
-import { useAIAssist } from "@/contexts/AIAssistContext"
-import { AISuggestion } from "../AISuggestion"
+import { useGuidance } from "@/contexts/GuidanceContext"
+import { FieldGuidance } from "../FieldGuidance"
 import { ConfirmableField } from "../ConfirmableField"
 import { propertyCandidatesRemaining } from "@/lib/provenance"
 import { mapSiteXResponse, readSelection } from "@/lib/sitexProperty"
@@ -228,7 +228,7 @@ function parseGoogleAddress(fullAddress: string): ParsedAddress {
 // shared with GrantorSection.
 
 export function PropertySection({ value, onChange, onComplete }: PropertySectionProps) {
-  const { enabled: aiEnabled } = useAIAssist()
+  const { enabled: aiEnabled } = useGuidance()
   const [guidanceDismissed, setGuidanceDismissed] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoadingProperty, setIsLoadingProperty] = useState(false)
@@ -781,7 +781,7 @@ export function PropertySection({ value, onChange, onComplete }: PropertySection
     <div className="space-y-4">
       {/* AI Guidance */}
       {aiEnabled && !guidanceDismissed && !value?.address && (
-        <AISuggestion
+        <FieldGuidance
           message="Start by searching for the property address. We'll automatically pull the APN, legal description, and current owner from county records."
           details="Type at least 3 characters to see address suggestions. Select an address from the dropdown, then click 'Search' to fetch property data. For condos or multi-unit buildings, you'll be prompted to select the specific unit."
           onDismiss={() => setGuidanceDismissed(true)}

@@ -59,16 +59,21 @@ import { fileURLToPath } from 'url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..');
 
-/** Frozen 2026-08-20. LOWER these when the count drops; never raise them.
- *  Raising one is a decision to keep a defect, and it should read like
- *  one in the diff. */
-const CEILING = { errors: 136, warnings: 58 };
+/** Frozen 2026-08-20 at 136/58; lowered to 134/56 by GUIDE1, which
+ *  deleted three orphaned components. LOWER these when the count drops;
+ *  never raise them. Raising one is a decision to keep a defect, and it
+ *  should read like one in the diff. */
+const CEILING = { errors: 134, warnings: 56 };
 
 /** A file that stops being linted stops being measured, and unmeasured
  *  reads as clean. This floor is the count of files eslint actually
  *  reported on — deleting a file legitimately lowers it, so this fails
- *  loudly and expects a human to lower it deliberately. */
-const FILES_FLOOR = 294;
+ *  loudly and expects a human to lower it deliberately.
+ *
+ *  It did exactly that on its first real encounter: GUIDE1 deleted three
+ *  orphaned components and the gate refused the run until this number
+ *  was lowered on purpose. 294 -> 291, three deletions, checked. */
+const FILES_FLOOR = 291;
 
 /**
  * These catch DEFECTS rather than style, and every one is at zero today —

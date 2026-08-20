@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Building2, Plus } from 'lucide-react';
 import { usePartners } from '@/features/partners/PartnersContext';
-import { useAIAssist } from '@/contexts/AIAssistContext';
+import { useGuidance } from '@/contexts/GuidanceContext';
 import { useOwnCompany } from '@/hooks/useOwnCompany';
 import { defaultRequestedBy, requestedByChoices } from '@/lib/requestedByDefault';
-import { AISuggestion } from '../AISuggestion';
+import { FieldGuidance } from '../FieldGuidance';
 import { AddPartnerModal, PartnerFormData } from '@/components/modals/AddPartnerModal';
 
 interface RecordingSectionProps {
@@ -22,7 +22,7 @@ interface RecordingSectionProps {
 }
 
 export function RecordingSection({ requestedBy, requestedByAddress, requestedByPrefilled, returnTo, titleOrderNo, escrowNo, onChange }: RecordingSectionProps) {
-  const { enabled: aiEnabled } = useAIAssist();
+  const { enabled: aiEnabled } = useGuidance();
   const [guidanceDismissed, setGuidanceDismissed] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const { partners, create: createPartner, error: partnersError, refresh: refreshPartners } = usePartners();
@@ -123,7 +123,7 @@ export function RecordingSection({ requestedBy, requestedByAddress, requestedByP
           not a decision, and the officer who most needs this explanation
           is the one who has not chosen anything yet. */}
       {aiEnabled && !guidanceDismissed && (!requestedBy || requestedByPrefilled) && (
-        <AISuggestion
+        <FieldGuidance
           message="Select who is submitting this deed for recording. This appears in the top-left corner of the deed."
           details="The 'Recording Requested By' is typically the title company, escrow officer, or attorney handling the transaction. 'Return To' specifies where the county recorder should mail the deed after recording — usually the same party, or directly to the new owner (grantee)."
           onDismiss={() => setGuidanceDismissed(true)}

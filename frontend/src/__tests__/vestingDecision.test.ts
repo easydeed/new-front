@@ -2,7 +2,7 @@
  * Vesting legal-choice recording (vesting sibling of Ticket TT).
  */
 import { describe, expect, it } from '@jest/globals';
-import { getVestingSuggestion } from '@/lib/ai-helpers';
+import { getVestingSuggestion } from '@/lib/vestingSuggestion';
 import { buildProvenancePayload } from '@/lib/provenance';
 import type { DeedBuilderState } from '@/types/builder';
 

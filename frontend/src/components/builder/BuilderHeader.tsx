@@ -2,7 +2,7 @@
 
 import { ArrowLeft, FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { AIToggle } from './AIToggle';
+import { GuidanceToggle } from './GuidanceToggle';
 
 interface BuilderHeaderProps {
   deedType: string;
@@ -37,7 +37,7 @@ export function BuilderHeader({ deedType }: BuilderHeaderProps) {
       </div>
 
       <div className="flex items-center gap-4">
-        <AIToggle />
+        <GuidanceToggle />
         {/* The dead "Help" button (no handler) is removed — same fake-
             affordance class as the chat banner this ticket kills. */}
       </div>
