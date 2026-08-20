@@ -95,7 +95,15 @@ export default function AnimatedDeed() {
             className={`bg-[#CCFF90] text-[#479B00] font-semibold shadow-lg text-sm px-3.5 py-1.5 transition-all duration-500 ${showSparkles ? "scale-100 opacity-100" : "scale-75 opacity-0"}`}
           >
             <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-            AI Generated
+            {/* DARK1 — was "AI Generated". HOME2 corrected that exact
+                string on the STATIC deed badge in `app/page.tsx`, calling
+                it the most authorship-shaped place on the page to claim
+                the software wrote the instrument. It survived here, in
+                the animated twin, and DARK1's own survey missed it by
+                grepping `app/page.tsx` rather than the components that
+                page renders — the same one-path-not-the-property mistake
+                the VideoPlayer pin made. */}
+            Officer confirmed
           </Badge>
         </div>
 
