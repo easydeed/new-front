@@ -195,13 +195,31 @@ describe('the resume card', () => {
 });
 
 describe('start something new', () => {
-  it('orders by what she files and shows the count with its period', () => {
+  it('orders by what she files, and no longer LABELS the frequency', () => {
+    /**
+     * §16 — HALF THIS RULING SURVIVES AND HALF WAS CUT, owner-ruled.
+     *
+     * SURVIVES: the ORDER. Her most-filed instrument is first, which is
+     * the useful half of what the annotation said, and it is carried by
+     * position rather than by a word.
+     *
+     * CUT: "most used" and "14 this year". They were the only statistics
+     * left in a design whose entire purpose is removing statistics, and
+     * a frequency label on a two-chip strip is decoration rather than
+     * orientation.
+     */
     render(<StartSomethingNew instruments={[
       { deed_type: 'grant-deed', count: 31, period: 'this year' },
       { deed_type: 'interspousal-transfer', count: 14, period: 'this year' },
     ]} />);
-    expect(screen.getByText('most used')).toBeInTheDocument();
-    expect(screen.getByText('14 this year')).toBeInTheDocument();
+    expect(screen.queryByText('most used')).toBeNull();
+    expect(screen.queryByText('14 this year')).toBeNull();
+
+    // The order is the ruling, and it is asserted on the rendered chips
+    // rather than on the props that produced them.
+    const chips = screen.getAllByRole('button').map((b) => b.textContent || '');
+    expect(chips[0]).toContain('Grant Deed');
+    expect(chips[1]).toContain('Interspousal');
   });
 
   it('offers the catalog on day one instead of an empty list', () => {

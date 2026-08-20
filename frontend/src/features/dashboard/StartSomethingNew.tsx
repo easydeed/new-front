@@ -3,6 +3,19 @@
  *
  * ═══ WHY NOT ALPHABETICALLY ═══
  *
+ * DASH3 — A 40px CHIP STRIP, NOT A 200px CARD. It sits above the
+ * divider so it reads as "jump in, or clear your queue" rather than as a
+ * panel competing with the work. The card form made starting something
+ * new look equal in weight to the queue, on a screen whose whole purpose
+ * is the queue.
+ *
+ * AND THE USE ANNOTATIONS ARE CUT (owner-ruled). "most used" and
+ * "1 this year" were the only statistics left in a design whose purpose
+ * is removing statistics — and a frequency label on a two-item strip is
+ * decoration, not orientation. The ORDER still carries the same fact:
+ * her most-filed instrument is first, which is the useful half of what
+ * the label said.
+ *
  * The catalog is 21 California instruments and an officer files three of
  * them. Alphabetical order puts an affidavit she has never filed above
  * the grant deed she files weekly; her own frequency puts her next
@@ -22,6 +35,7 @@
 'use client';
 
 import { deedTypeLabel } from '@/lib/deedTypes';
+import { INSTRUMENT_COUNT } from '@/lib/formRegistry';
 
 export interface InstrumentUse {
   deed_type: string;
@@ -32,64 +46,44 @@ export interface InstrumentUse {
 /** The types offered when she has filed nothing yet. */
 export const STARTERS = ['grant-deed', 'interspousal-transfer', 'quitclaim-deed'];
 
-export default function StartSomethingNew({ instruments, onStart, onBrowse, muted = false }: {
+export default function StartSomethingNew({ instruments, onStart, onBrowse }: {
   instruments?: InstrumentUse[] | null;
   onStart?: (deedType: string) => void;
   onBrowse?: () => void;
-  /**
-   * ONE VIOLET CALL TO ACTION PER SCREEN.
-   *
-   * While the setup checklist is on the page it owns the accent, because
-   * it holds the thing to do next. This card stays grey and becomes
-   * primary the moment the checklist unmounts — which is not a taste
-   * decision but the budget: a second violet control means neither is
-   * "the one thing", and the officer has to choose which prominent
-   * button to believe.
-   */
-  muted?: boolean;
 }) {
   const used = instruments ?? [];
-  const rows = used.length
+  const rows = (used.length
     ? used
-    : STARTERS.map((deed_type) => ({ deed_type, count: 0, period: '' }));
+    : STARTERS.map((deed_type) => ({ deed_type, count: 0, period: '' }))
+  ).slice(0, 2);
 
   return (
     <section aria-labelledby="start-heading"
-             data-muted={muted ? 'true' : undefined}
-             className={`rounded-xl border bg-white p-5 ${
-               muted ? 'border-slate-200' : 'border-[#E4DDFF] ring-1 ring-[var(--color-brand-light)]'}`}>
-      <h3 id="start-heading" className="font-semibold text-slate-900">
-        Start something new
+             className="mb-6 flex flex-wrap items-center gap-2 border-b border-gray-200 pb-5">
+      <h3 id="start-heading"
+          className="mr-1 text-[11.5px] font-bold uppercase tracking-[0.075em] text-gray-400">
+        Jump into
       </h3>
-      <ul className="mt-3 space-y-2">
-        {rows.map((row, i) => (
-          <li key={row.deed_type}>
-            <button
-              type="button"
-              onClick={() => onStart?.(row.deed_type)}
-              className="flex w-full items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-left text-sm"
-            >
-              {/* UX2 item 3's vocabulary, on the surface it had not reached.
-                  This rendered `grant-deed` and `affidavit-death-jt` —
-                  our storage keys, which she never chose — two clicks
-                  from a screen that says "Grant Deed". */}
-              <span className="text-slate-800">{deedTypeLabel(row.deed_type)}</span>
-              <span className="text-xs text-slate-500">
-                {/* "most used" only where it is TRUE — the top row of a
-                    list she has actually filed from. On day one there is
-                    no most-used and claiming one would be a fact
-                    invented out of an empty table. */}
-                {row.count > 0
-                  ? (i === 0 ? 'most used' : `${row.count} ${row.period}`)
-                  : ''}
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
+      {rows.map((row) => (
+        <button
+          key={row.deed_type}
+          type="button"
+          onClick={() => onStart?.(row.deed_type)}
+          className="inline-flex items-center rounded-full border border-gray-200 bg-white
+                     px-3.5 py-1.5 text-[13.5px] font-semibold text-gray-700 shadow-sm
+                     transition hover:border-[#C9BCFB] hover:text-[var(--color-brand-hover)]"
+        >
+          {/* UX2 item 3's vocabulary, on the surface it had not reached.
+              This rendered `grant-deed` and `affidavit-death-jt` — our
+              storage keys, which she never chose. */}
+          {deedTypeLabel(row.deed_type)}
+        </button>
+      ))}
       <button type="button" onClick={onBrowse}
-              className="mt-3 text-sm text-[#7C4DFF] underline underline-offset-2">
-        Browse all 21 California instruments
+              className="inline-flex items-center rounded-full border border-dashed
+                         border-gray-300 px-3.5 py-1.5 text-[13.5px] font-medium text-gray-500
+                         transition hover:bg-white">
+        All {INSTRUMENT_COUNT} California instruments →
       </button>
     </section>
   );

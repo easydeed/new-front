@@ -39,6 +39,8 @@ const DASHBOARD = read('app', 'dashboard', 'page.tsx');
 const PARTNERS = read('app', 'partners', 'page.tsx');
 const PY_QUEUE = fs.readFileSync(
   path.join(SRC, '..', '..', 'backend', 'services', 'officer_queue.py'), 'utf8');
+const WORKLIST_PY = fs.readFileSync(
+  path.join(SRC, '..', '..', 'backend', 'services', 'worklist.py'), 'utf8');
 
 // ── item 3 ───────────────────────────────────────────────────────────
 
@@ -77,15 +79,41 @@ describe('two numbers, two claims, each named', () => {
   });
 
   it('the dashboard headline says something narrower', () => {
-    expect(DASHBOARD).toContain('gone');
-    expect(DASHBOARD).toContain('quiet');
-    // And it stops using the phrase that named nothing — everything on
-    // that page could be said to need her attention.
+    /**
+     * §16 — WHERE THIS RULING WENT.
+     *
+     * "Gone quiet" was the dashboard's own wording. DASH3 moved every
+     * sentence on this screen to the server (§13 rule 3), so the words
+     * are now `worklist.chase_row`'s tag and the screen renders them. The
+     * ruling is unchanged and the file that has to satisfy it moved.
+     *
+     * The prohibition stays where it always was: the screen must never
+     * go back to naming a population it cannot define.
+     */
+    expect(WORKLIST_PY).toContain('Gone quiet');
     expect(DASHBOARD).not.toContain('your attention');
   });
 
   it('the threshold comes from the payload, not from the screen', () => {
-    expect(DASHBOARD).toContain('queue.thresholds.stale_after_days');
+    /**
+     * SATISFIED MORE STRONGLY THAN IT WAS PINNED. The screen used to
+     * read `queue.thresholds.stale_after_days` in order to phrase the
+     * headline itself. It no longer phrases anything: staleness is
+     * decided and worded server-side, and the page cannot consult a
+     * threshold because it never sees one.
+     *
+     * So the pin becomes the property rather than the reading: no
+     * threshold arithmetic happens on this screen at all.
+     *
+     * Pinned as the READING, not the word. `stale_after_days` still
+     * appears on this screen — inside the `Queue` TYPE, because the
+     * payload still carries it for other readers — and a pin that
+     * forbade the noun would fail on a declaration that describes the
+     * server's shape rather than on any use of it (§14.1: the property,
+     * not the spelling). What must not exist is the screen READING it.
+     */
+    expect(DASHBOARD).not.toMatch(/queue\??\.thresholds/);
+    expect(DASHBOARD).not.toMatch(/thresholds\.\w/);
   });
 });
 

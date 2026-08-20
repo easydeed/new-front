@@ -149,13 +149,31 @@ describe('X2.7 — findable rows', () => {
     expect(src).toContain('visibleDeeds.map');
   });
 
-  it('dashboard drafts read as needs-action with a labeled Continue', () => {
-    const src = readSource('app', 'dashboard', 'page.tsx');
-    expect(src).toContain('needsAction');
-    expect(src).toContain('border-amber-400');
-    expect(src).toMatch(/Continue\s*<ArrowRight/);
-    // Last-touched time, not created time.
-    expect(src).toContain('formatDate(deed.updated_at || deed.created_at)');
+  it('dashboard drafts read as needs-action with a labeled action', () => {
+    /**
+     * §16 — THE PROPERTY SURVIVES; THE MECHANISM IS SUPERSEDED.
+     *
+     * X2.7 ruled that a draft must not sit in a list looking like an
+     * archive entry: it needs a visible mark and a button that says what
+     * pressing it does. That was pinned as `border-amber-400` plus
+     * `Continue <ArrowRight`, which are the FORM the ruling took in a
+     * feed that no longer exists.
+     *
+     * Amber cannot come back on this surface: DASH3's colour ruling is
+     * that amber means unconfirmed external data and violet a proposed
+     * legal choice, and spending them on queue state is the correction
+     * ADMIN-BRAND already made once. So the mark is the row's TAG, in
+     * words, and the button carries a verb — which satisfies the ruling
+     * without the colour, and satisfies the reader who cannot separate
+     * two shades of amber either.
+     */
+    const worklist = readSource('features', 'dashboard', 'Worklist.tsx');
+    expect(worklist).toContain('{row.tag}');
+    expect(worklist).toContain('{row.primary}');
+    // The verbs themselves are the server's, and they are verbs.
+    const py = fs.readFileSync(path.join(__dirname, '..', '..', '..', 'backend',
+                                         'services', 'worklist.py'), 'utf8');
+    expect(py).toMatch(/primary="(Open|Finish|Archive)/);
   });
 });
 
