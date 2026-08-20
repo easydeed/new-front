@@ -1730,6 +1730,55 @@ we reach it.
 
 ## Parked tickets (scoped, not scheduled)
 
+- **DARKSWEEP — enumerate every unreachable route and page component, and
+  report what each one CLAIMS.**
+  **DECIDED** 2026-08-20, owner-ruled. **BUILT** — no.
+  **Investigation only. Report before deleting anything: a page is a
+  product decision, not cleanup.**
+  **DO NOT START until GUIDE2 lands.**
+
+  **Why it exists: three dark surfaces, found three different ways, none
+  of them by looking.**
+
+  1. `/api/ai/chat` — no reachable caller since 2026-04-28. Found by a
+     call-site census during GUIDE0, four months later, after two tickets
+     had hardened and re-ruled it.
+  2. `ActionQueue`/`QueueList`/`StatCard`/`DeedRow` — renderers outliving
+     their render sites, found in DASH3 while auditing dead state.
+  3. `/team` — no inbound link from anywhere, found incidentally while
+     grepping for AI labels in GUIDE1.
+
+  **Finding the fourth by accident is the wrong way to find it.** Each of
+  these was invisible for the same reason: nothing fails when code is
+  unreachable, so nothing prompts anybody. That is §14.5's whole family,
+  and the answer to a family of defects is a sweep rather than a habit.
+
+  **What the sweep produces:** every route and page component with no
+  inbound link and no importer; what each one claims in its user-visible
+  text; and whether it renders anything a stranger could reach — because
+  an unreachable-by-navigation route may still be served by URL, which is
+  a different risk from dead code.
+
+  **`/team` is IN this sweep rather than decided now** (owner-ruled), and
+  it is flagged: it claims *"Collaborative AI-powered deed creation
+  workspace"* and *"✨ AI Assisted"* — **the exact claim GUIDE1 removed
+  everywhere reachable.**
+
+  **The banned-claims question, answered.** The gate ALREADY covers
+  `/team` regardless of reachability: `files_to_check()` rglobs
+  `frontend/src` and never consults routing, which is the right design
+  and needed no change. It does not fire because **there is no RULE for a
+  capability claim** — all fourteen are certifications, security grades,
+  or unbuilt features (SSO, white-label, seats). So this is a rule gap,
+  not a scope gap, and the distinction matters: no plumbing to build,
+  only a rule to write.
+
+  **The rule is deliberately NOT added yet.** Adding an AI-capability
+  rule today fails the gate on `/team`, which forces the page to be fixed
+  or allowlisted — pre-empting the decision this sweep exists to make.
+  It goes in when DARKSWEEP resolves `/team`, and that sequencing is the
+  point rather than a delay.
+
 - **W0 §3 — A RULING DECIDED, PARKED, AND NEVER BUILT** (surfaced by
   HOME2, 2026-08-18). Recorded loudly because it was invisible for weeks
   and because of HOW it stayed invisible.
