@@ -1772,6 +1772,92 @@ we reach it.
   `fetch` in either module, because turning fixed reviewable copy into an
   inference with a bill would look like an improvement in review.
 
+- **DARK1 — the dark page, the landing-page claims, and three things
+  found by checking rather than reading.**
+  **DECIDED** 2026-08-20, owner-ruled. **BUILT** — yes, #238, #239, #240.
+
+  **What shipped.** `/team` deleted (a dark page claiming an unbuilt
+  workspace and a Team tier). Every AI claim removed from the landing
+  page and the components it renders. `VideoPlayer.tsx` deleted. The
+  comparison table's `Multi-user collaboration ✓` replaced with an X.
+  The banned-claims team rule widened from three spellings to its
+  property.
+
+  **THE RICKROLL A GREEN PIN WAS CERTIFYING.** `homepageLinks.test.ts`
+  asserted `components/landing-v2/VideoPlayer.tsx` does not exist, with a
+  comment reading *"The placeholder 'demo' iframe (a rickroll) can never
+  return."* It never left: a second copy at `components/VideoPlayer.tsx`
+  embedded `dQw4w9WgXcQ` under `title="DeedPro Product Demo"`, and the
+  pin was green **because** it named one path rather than the property.
+  §14.1.1's silent half in its most exact form — the pin did not merely
+  fail to catch it, it certified its absence, and nobody re-opens a file
+  whose guard is passing. Now asserted as the property, probed both ways.
+
+  **THE AUTHORSHIP CLAIM ABOVE THE FOLD, AND DARK1 MISSED IT ONCE.**
+  `AnimatedDeed.tsx` rendered a hero badge reading "AI Generated" — the
+  strongest form of the claim, since it says the software authored the
+  instrument, and the exact string HOME2 corrected on the static twin. It
+  survived because DARK1 surveyed `app/page.tsx` and not the components
+  that page renders: **one path instead of the property, in the same
+  session, while fixing the VideoPlayer pin for that same reason.**
+  Recorded at §14.7 — the interval between naming a shape and repeating
+  it is not measured in weeks.
+
+  **THE GATE NARROWER THAN ITS OWN `why`.** Recorded at §14.13. The rule
+  stated its subject correctly and matched three spellings of it;
+  "Multi-user collaboration" needed the word "seats" to be seen.
+
+  **Two rulings on the copy.** The `Multi-user collaboration` row KEEPS
+  its label with the gate's allow-comment — owner-ruled: a table that
+  silently omits a capability the reader is shopping for reads as an
+  oversight, while a row that names it and answers X is a straight
+  answer, and the allow mechanism exists for exactly a denial that must
+  name what it denies. **SmartReview stays as written** — the copy is
+  careful: "Formatting checks passed — County recorder formatting rules"
+  says our checks ran, not that a recorder will accept; "Ready to
+  generate" is the word that could have overclaimed and does not; "Legal
+  description confirmed — by your officer" attributes correctly.
+
+  **THE 16 COMPONENTS, resolved per-component as ruled.**
+
+  *Deleted (7)* — unruled, unpinned, unimported, and nothing referenced
+  them after removal: `Particles`, `Navbar`, `ProgressOverlay`,
+  `RecentPropertiesDropdown`, `DeedPreviewPanel`, `FeedbackModal`,
+  `DeedPreview`. (`VideoPlayer` was the eighth and went in #239, because
+  a ruling REQUIRED its deletion — HM1's, which the pin had been
+  guarding at the wrong path.)
+
+  *Kept, no decision needed (4)* — UI primitives: `Skeleton`,
+  `MoneyInput`, `TextareaUnderline`, `RadioGroupRow`. Owner-ruled:
+  deleting a design-system primitive because nothing imports it YET is
+  how a system gets rebuilt piecemeal later.
+
+  *Reported, still owner's (4)* — and the finding reframes them.
+  `NotificationsBell`, `ToastCenter`, `PartnersManager`,
+  `PropertyMatchPicker` were flagged as possibly mid-build. **All four
+  entered on the SAME 2026-01-15 commit** — the bulk scaffold that also
+  created `next.config.js` carrying `eslint.ignoreDuringBuilds: true`.
+  No ruling stands behind any of them, in docs or in tests.
+
+  **`NotificationsBell` specifically, since it looked like unfinished
+  wiring:** the notifications ROUTER entered on that same commit, not
+  later. The bell's calls (`/unread-count`, `/`, `/mark-read`) match the
+  router's endpoints, a proxy route exists, and both halves are gated by
+  flags defaulting to OFF. So it is not wiring abandoned midway — **it is
+  wiring never started**, on both sides, from the beginning. Whether
+  notifications ship is a product decision and stays with the owner;
+  nothing here was deleted or wired.
+
+  **A CAVEAT ON THE SWEEP'S METHOD, recorded before it is used again.**
+  DARKSWEEP matched importers by BASENAME across the tree. Two files
+  sharing a basename in different directories would credit one with the
+  other's references, in either direction. **Checked, and inert here:**
+  no basename among the 16 appears more than once anywhere in `src` (the
+  only duplicates are `index`, `page`, `layout`, `route`, `finalizeDeed`
+  — framework files, none of them components). The verdicts stand. The
+  caveat is recorded so a future sweep on a tree with duplicated
+  basenames does not inherit a confidence this one earned by luck.
+
 - **DARKSWEEP — enumerate every unreachable route and page component, and
   report what each one CLAIMS.**
   **DECIDED** 2026-08-20, owner-ruled. **BUILT** — no.
