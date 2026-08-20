@@ -1250,6 +1250,69 @@ it means *reaches the person who can act*.
 
 ---
 
+### §14.9 — A disabled gate is worse than a missing one (2026-08-20, owner-ruled)
+
+**Statement.** A control that exists, is correctly configured, and is
+switched off is more dangerous than one that was never built. A missing
+control is visible as an absence — someone eventually asks why we do not
+lint. A disabled one answers that question wrongly: the rule is in the
+config, at the right severity, in a tool the build runs. **The repository
+looks equipped.**
+
+**The instance.** DASH3 declared two hooks after an early return, so the
+first paint ran fewer hooks than the second and React tears the component
+down when the profile answers — a render crash on the dashboard, the one
+screen every user lands on. Every gate we run missed it:
+
+  · `tsc` does not model hook ordering. Nothing about the types is wrong.
+  · The frontend suites read SOURCE TEXT rather than mounting through the
+    state transition. That is deliberate and mostly right — it is how one
+    decision avoids being made twice across two languages — and it means
+    the majority of our frontend coverage cannot see a runtime ordering
+    bug at all.
+  · `next build` runs eslint by default, and
+    `react-hooks/rules-of-hooks` was enabled at error severity by
+    `next/core-web-vitals` the whole time.
+
+`next.config.js` said `eslint.ignoreDuringBuilds: true`.
+
+**What the history said, and it matters.** The flag was not set on
+principle after weighing linting. It was born with the file, in a commit
+that also carried `typescript.ignoreBuildErrors: true` and a commented-out
+rewrite labelled *"temporarily disabled to fix build issue"*. **A flag set
+to unblock a deploy and a flag set on principle are different objects, and
+only one of them was ever revisited.** Neither was — but the first has no
+argument behind it to overcome, which is why the history is worth reading
+before the argument is had.
+
+**The general shape.** Ask of any control: *has this ever fired?* A gate
+with no failure in its history is either protecting something nothing
+violates, or is not running. Those look identical from the outside and are
+distinguished only by making it fail on purpose — which is the same
+instrument as the mutation probe, applied to the gate rather than the pin.
+
+**Why the fix is a ceiling and not the flag.** Flipping
+`ignoreDuringBuilds` alone fails every build on 136 pre-existing
+violations, 104 of them `no-explicit-any` — style debt, not a defect
+class. **A build that suddenly fails on old style debt is a gate everyone
+re-disables**, which is precisely how the flag came to be written. So the
+enforcement is `tsc-baseline`'s shape (frozen at N, only goes down) with
+one addition tsc did not need: the rules that catch DEFECTS are pinned at
+ZERO *independently of the ceiling*, because a shared budget between "an
+unescaped apostrophe" and "hooks called conditionally" gets spent on the
+wrong one. Eight such rules were verified at zero before being pinned
+there — the only moment pinning a rule is free.
+
+**And the ceiling needed its own floor**, per §14.4. tsc's version of
+"satisfy the ratchet by breaking the measurement" was a file that failed
+to parse. eslint's is easier: a blanket `/* eslint-disable */` is one
+line, silences a whole file, and the count drops. So the gate refuses
+blanket disables (a disable that NAMES its rules is a scoped decision and
+is allowed), holds a floor on the number of files linted, and fails
+outright on a parse error. All three probed by committing them.
+
+---
+
 ### §14.7 — Knowing a failure mode does not confer immunity from it (2026-08-18)
 
 **Statement.** A shape recognised, named, documented and reasoned about
@@ -1884,6 +1947,7 @@ on.
 |---|---|
 | 2026-08-18 | §14.7 added — knowing a failure mode does not confer immunity from it. Three instances of one shape in a day: a pin quoting an implementation that broke on a correct change; a pin quoting an implementation that WAS the defect and stayed green through it; and the same defect inside the remedy for the first two, where the route-guard sweep — being rewritten because it matched a marker string — was about to match a hook's NAME instead. `useRequireAuth` navigates from an effect, so a page ignoring its `checked` flag still paints content for a frame, and a name-matching sweep would have certified that half-adoption exactly as the old one certified a send-only token read. Caught by reading how `/team` actually used the hook rather than treating the import as the whole pattern. The third instance settles the question the first two raise: it was written the same day the rule was written down, in the remedy for it, by its author. The rate is stated in the entry as evidence the shape is COMMON IN THIS KIND OF WORK rather than accelerating — three in a day reflects a day of unusually dense pin-writing, and a week of building features rather than instruments would show none while the shape stayed exactly as available. Operative consequence — when a shape is identified, ask what MECHANISM can hold it and prefer that to a paragraph, since a note is a thing to remember and remembering is the faculty that just failed. Corollary: a mechanism adopted partially fails in the gap between its halves, and only a sweep can enforce that both arrived. Also recorded in `routeGuards.test.ts` beside its bounded window: it fails CLOSED — an unreadable guard reports an unguarded page — where §14.4's tsc window failed open, so the two must not be made symmetric. And a prediction that missed: three of fourteen pages were passing incidentally, so at least one of the four unverified was expected to fail; none did. A base rate is not evidence about a particular case. |
 | 2026-08-18 | §14.6 added and §15.1 widened, from DASH-SOFTEN. §14.6: when a rule IS the design, the pin covers the domain rather than a point. The setup checklist expands exactly one step and that is not a feature of the card, it is the card — so the pin renders all sixteen arrangements of its four booleans rather than one. A sample would have passed against the obvious wrong implementation: rendering every incomplete step as open is indistinguishable from rendering the first when only the first is incomplete. Probed by making exactly that substitution — four assertions fail. A pin checking an invariant in one arrangement records an observation where a constraint was wanted. §15.1 widened past code: the same shape appeared in a document. DASH-SOFTEN needed to know whether violet — doctrinal, reserved for "proposed legal choice" — could be an ordinary accent on a card with no legal choices in it. BRAND.md answers it in the ADMIN-CONSOLE section, which is not where anyone with a dashboard question would look; the reasoning was never about admin and neither is its scope. General form: an answer filed under the surface it was first needed for is invisible to the next surface that needs it — so when a ruling resolves a question about a doctrinal rule, the instance goes with the surface and the principle goes with the doctrine. Also recorded: "All Good Escow" is absent from the repository, so it is a real row rather than fixture data, and `requestedByDefault.ts` makes `users.company_name` the RECORDING REQUESTED BY default — a typo in a profile field reaches the face of a recorded instrument with no confirmation step between. Correctly not fixed by a gate, since the officer typing her own company name is the authority on it, but it is the shortest path from a keystroke to a recorded document in this product. |
+| 2026-08-20 | §14.9 added (owner-ruled) — a disabled gate is worse than a missing one, because the repository looks equipped. DASH3's hooks-after-early-return defect would have crashed the dashboard for every user, and the tool that catches that class was configured, at error severity, in a linter `next build` runs by default, with `eslint.ignoreDuringBuilds: true` set beside it. The history says the flag was born with `next.config.js` alongside `typescript.ignoreBuildErrors` and a rewrite marked 'temporarily disabled to fix build issue' — a deploy unblock, never a decision about linting, and a flag with no argument behind it is a different object from one set on principle. The general test for any control: has this ever FIRED? A gate with no failure in its history is either guarding something nothing violates or is not running, and those are indistinguishable from outside — the mutation probe, pointed at the gate instead of the pin, is what tells them apart. Fixed as `tsc-baseline`'s shape rather than by flipping the flag: flipping alone fails every build on 136 pre-existing violations, 104 of them `no-explicit-any`, and a build that fails on old style debt is a gate everyone re-disables — which is how the flag got written. Eight defect-catching rules verified at zero and pinned there independently of the ceiling, so they never share a budget with an unescaped apostrophe. Per §14.4 the ceiling got its own floor, and eslint's way of satisfying a ratchet by breaking the measurement is cheaper than tsc's: a blanket `eslint-disable` is one line and silences a file, so blanket disables are refused, the linted-FILE count has a floor, and a parse error fails outright. |
 | 2026-08-20 | DASH3's build. §14.5 gains a FOURTH habitat — a FILE: the redesign removed four modules' render sites and left the modules, so `dashboard/page.tsx` held two dashboards for one build, one unreachable. Nothing failed; tsc does not flag an unreferenced function and the suites assert what renders. `eslint`'s `no-unused-vars` does see it, and `next.config.js` sets `eslint.ignoreDuringBuilds: true`, so it reports into a void. The general shape under all four habitats: what goes unchecked is never the SUBJECT of the change, it is the change's neighbourhood — who arrives at the page now, who called the function you deleted, what was staged alongside your edit, what existed only to serve what you removed. A diff shows the subject and nothing shows the neighbourhood, so it has to be asked for by name. §14.1.1 gains a THIRD symptom: a pin can assert the right property, in the right words, with the ruling named in its docstring, and still pass against a fixture incapable of distinguishing it — the unknown-age ordering pin used `None` against `2` and passed with the rule DELETED, because `-(None or 0)` and `-(2)` differ anyway; only `None` against `0` can separate the rule from the accident. Unlike the first two symptoms this one is invisible to reading — the test means what it says — and is found only by running the code with the rule removed, which is the argument for the mutation probe being a gate. Also found in the build and fixed: the greeting's hooks placed after an early return (a render crash on the one screen everybody lands on, invisible to tsc and to source-reading suites, caught by rules-of-hooks in a linter CI ignores), and F4's ruling one deletion from reversal — the redesign removed the renderer of `deedsError` while the error was still being set, so a failed deed load would have shown the first-run welcome. An error that renders nothing is indistinguishable from having nothing. |
 | 2026-08-18 | §14.4 and §14.5 added, from one bug report. §14.4: a monotonic invariant is satisfied by breaking the thing it measures. A stray `{/* comment */}` in a ternary branch made `dashboard/page.tsx` unparseable, tsc stopped type-checking it and everything depending on it, and the error count fell from 88 to SIX — a gate that fails when the number RISES was delighted, and prints a notice inviting you to lock the improvement in. Jest stayed green at 1084 throughout because no test imports that page, so the frontend suite is fully compatible with the dashboard being unparseable; the only two instruments that could see it were tsc and next build, which is exactly what a shape-based gate rule would have permitted skipping. The fix is a FLOOR that is not a number — an assertion that nothing failed to parse (tsc's TS1xxx family is syntactic) — because no count can express "the measurement happened". General test for any threshold gate: what would happen to this number if the thing it measures stopped existing? §14.5: checking that a change is right is not checking what it exposes. DASH-FIX #1's routing of "Set county" to account-settings was correct on every premise and moved a first-run action onto a page whose save had no retry, while the page it came from had one for exactly this sleeping API — the owner hit it on their first new user. The defect lives entirely in the difference between the page's old population and the one the routing created, which no diff displays. The question it earns for any new route, link, redirect or CTA: who reaches this page now who did not before, and what does that page assume about them? |
 | 2026-08-18 | §14.1.1 gains its second and more dangerous symptom, and §15.1 added. THE SILENT HALF: `StartSomethingNew`'s own test asserted `getByText('grant-deed')`, so the test for a component rendering raw storage slugs was checking that it rendered raw storage slugs — which is why it survived UX2 item 3's sweep across three other surfaces. A pin written against the storage key rather than the product's language does not merely fail to catch the defect, it CERTIFIES it: the sweep had no reason to open a file whose test was green, and the test was green because it asserted the defect. One root, two symptoms — quote an implementation that is later fixed and the pin goes red while the rule is intact (noise); quote an implementation that IS the defect and it stays green forever (a defect with a certificate). The second cannot be found by watching CI, which is why the tell is a review question. §15.1: a rule about how a surface must be ENTERED is invisible where it is written on the surface. Past Deeds' own docstring names the dead-button-defect-wearing-a-URL and the dashboard's "Last 30 days" tile committed it, linking to that page unfiltered — the rule was written in the one place its violators never look. Any invariant of the form "callers must X" is mis-filed if it lives only with the callee: the callee is where the rule is understood, the callers are where it is broken, and documentation follows understanding while defects follow construction. |
