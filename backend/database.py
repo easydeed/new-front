@@ -1039,6 +1039,10 @@ def create_tables():
             "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS severity VARCHAR(20) DEFAULT 'info'",
             "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS payload JSONB",
             "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS link TEXT",
+            # NOTIF1 — which DOCUMENT the event is about. Without it the
+            # strip could name no property and had to land on a tracker,
+            # recovering nothing from a `link` that identifies a SHARE.
+            "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS deed_id INTEGER",
             """CREATE TABLE IF NOT EXISTS user_notifications (
                 id SERIAL PRIMARY KEY,
                 user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

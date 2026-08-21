@@ -939,6 +939,14 @@ def _tell_everyone(request_id: int) -> None:
             message=loop.state_label(world["request"], world["windows"],
                                      world["responses"], world["participants"]),
             link=f"/requests?kind=signings&focus={request_id}",
+            # NOTIF1 deliberately did NOT add `deed_id` here. These two
+            # notifiers take only `request_id` and never load the deed, so
+            # passing one would have been a NameError at runtime — caught
+            # by a static scope check before it shipped, not by a test,
+            # because nothing exercises these paths without a live signing.
+            # The strip renders only share_approved/share_rejected, so it
+            # needs nothing from here; when a signing event earns a strip
+            # row, THAT ticket loads the deed rather than this one guessing.
         )
     except Exception as e:
         try:
@@ -1058,6 +1066,14 @@ def _tell_officer_dispatch_declined(request_id: int) -> None:
                      f"{world['deed'].get('property_address') or 'your deed'}. "
                      "They can post the times they are free instead."),
             link=f"/requests?kind=signings&focus={request_id}",
+            # NOTIF1 deliberately did NOT add `deed_id` here. These two
+            # notifiers take only `request_id` and never load the deed, so
+            # passing one would have been a NameError at runtime — caught
+            # by a static scope check before it shipped, not by a test,
+            # because nothing exercises these paths without a live signing.
+            # The strip renders only share_approved/share_rejected, so it
+            # needs nothing from here; when a signing event earns a strip
+            # row, THAT ticket loads the deed rather than this one guessing.
         )
     except Exception as e:
         try:

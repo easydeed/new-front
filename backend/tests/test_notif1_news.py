@@ -116,9 +116,33 @@ def test_a_news_row_lands_on_the_document():
     assert nw.news_row(_item(deed_id=41, link=None)).as_dict()["href"] == "/deeds/41"
 
 
-def test_a_stored_link_wins_because_the_writer_knew_where_it_pointed():
-    row = nw.news_row(_item(link="/requests?kind=reviews&focus=9")).as_dict()
-    assert row["href"] == "/requests?kind=reviews&focus=9"
+def test_the_deed_beats_a_stored_link_that_points_at_a_tracker():
+    """CORRECTED. NOTIF1 shipped preferring the stored `link`, and every
+    production row's link is `/requests?kind=reviews&focus={share_id}` —
+    a TRACKER. So every strip row landed on a list, which is the orphan
+    ruling broken by the same preference for a stored destination over a
+    known document that the worklist already corrected once.
+
+    The deed wins whenever we have one. The link is the fallback for a
+    record that has no deed behind it."""
+    row = nw.news_row(_item(deed_id=41, link="/requests?kind=reviews&focus=9")).as_dict()
+    assert row["href"] == "/deeds/41"
+    orphan = nw.news_row(_item(deed_id=None, link="/requests?kind=reviews&focus=9")).as_dict()
+    assert orphan["href"] == "/requests?kind=reviews&focus=9"
+
+
+def test_the_row_carries_the_property_so_the_strip_can_name_it():
+    """Owner-ruled: the strip stays TASK-FREE, and the gap it left — she
+    learns her reviewer approved and must go find the deed — is closed by
+    NAVIGATION rather than an action. The property is a link, not a
+    button."""
+    row = nw.news_row(_item(property="1358 5TH ST")).as_dict()
+    assert row["property"] == "1358 5TH ST"
+
+
+def test_a_record_with_no_deed_names_no_property_rather_than_guessing():
+    row = nw.news_row(_item(property=None, deed_id=None)).as_dict()
+    assert row["property"] == ""
 
 
 def test_a_row_that_drifts_is_refused():
@@ -147,3 +171,43 @@ def test_the_strip_reads_unread_events_and_never_the_undecided_query():
     assert "COALESCE(un.read, false) = false" in query
     # The undecided-status filter belongs to the worklist, not here.
     assert "'sent', 'viewed'" not in query
+
+
+def test_the_query_reads_a_COLUMN_and_never_a_payload_that_is_never_written():
+    """THE PIN THAT WOULD HAVE CAUGHT NOTIF1'S OWN DEFECT.
+
+    NOTIF1 shipped selecting `(n.payload->>'deed_id')::int`.
+    `create_notification` has no `payload` parameter — it never has — so
+    that expression was NULL for every row in production, while the unit
+    tests passed on a fixture that supplied `deed_id` directly.
+
+    **The rule was right and the corpus could not exercise it.** The row
+    builder was correct; the thing feeding it was not, and no fixture in
+    a module test can see that. So the pin is at the SOURCE, where the
+    two halves meet.
+
+    Asserted as: the query reads the column, and `create_notification`
+    accepts the parameter that fills it. Either one alone passes while
+    the other is broken.
+    """
+    from pathlib import Path
+
+    from tests.source_text import code_only
+    backend = Path(__file__).resolve().parents[1]
+    src = code_only(backend.joinpath("routers/dashboard.py").read_text())
+    assign = src.index("news_items = ")
+    query = src[src.rindex("cur.execute(", 0, assign):assign]
+    # SQL COMMENTS ARE STRIPPED TOO, and they had to be. `code_only`
+    # removes PYTHON comments; this query is a string literal, so its
+    # `--` lines survive — and the one explaining this very fix quotes
+    # the forbidden expression verbatim, so the pin tripped on the prose
+    # describing the rule. §14.1's comment-trip, third time this session
+    # and the first where I wrote the banned string INTO the explanation
+    # of why it is banned.
+    sql = "\n".join(ln.split("--")[0] for ln in query.splitlines())
+    assert "n.deed_id" in sql
+    assert "payload->>" not in sql
+
+    writer = code_only(backend.joinpath("utils/notifications.py").read_text())
+    assert "deed_id: Optional[int] = None" in writer
+    assert "INSERT INTO notifications (type, title, message, link, deed_id)" in writer
