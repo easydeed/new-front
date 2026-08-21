@@ -175,9 +175,17 @@ def values_from_affidavit(row: Dict[str, Any]) -> Tuple[Dict[str, str], list]:
         values["affiant_name_address"] = str(aff["affiantName"])
 
     if not dod:
+        # PCOR3 — REWRITTEN. This read "the affidavit variant on file did
+        # not record one", which ASSERTS an affidavit exists. It was
+        # rendered on a grant deed that had neither affidavit nor
+        # decedent, and it read as a real finding about a real document.
+        #
+        # A sentence written to be unconditionally true is true in the
+        # wrong context too — that is exactly how it survived one. This
+        # version claims only what we checked: we do not hold the date.
         asks.append(
-            "Date of death — the affidavit variant on file did not record "
-            "one. The Assessor requires it."
+            "Date of death — we do not hold one for this document. "
+            "The Assessor requires it."
         )
     asks.extend([
         "How title passed (succession, decree of distribution, trustee "

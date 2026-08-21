@@ -1067,8 +1067,21 @@ def death_statement_status_endpoint(deed_id: int, user_id: int = Depends(get_cur
     changes meaning depending on what it is pointed at.
     """
     row = _pcor_deed_row(deed_id, user_id)
-    from services.county_forms import lookup_form
+    from services.county_forms import companion_form_code, lookup_form
     from services.boe_form_fill import values_from_affidavit
+
+    # PCOR3 — THE FAMILY GATE, and before this there was none. The
+    # docstring above has always said "this attaches to the
+    # death-affidavit family"; nothing checked. A grant deed in Los
+    # Angeles returned `available: True` because the county has a 502-D on
+    # file, which is a fact about the COUNTY and not about the deed.
+    if companion_form_code(row.get("deed_type") or "") != "BOE-502-D":
+        return {
+            "available": False,
+            "county": row.get("county"),
+            "reason": "The BOE-502-D belongs to the affidavit-of-death "
+                      "family. This document is not one.",
+        }
 
     form = lookup_form(row.get("county") or "", "BOE-502-D")
     if form is None:
