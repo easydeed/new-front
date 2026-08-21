@@ -125,12 +125,34 @@ def _send(template: str, recipient: str, rendered, *,
     return ok, reason
 
 
-def create_notification(conn, user_id: int, ntype: str, title: str, message: str, link: Optional[str] = None) -> int:
-    """Create a notification and user_notification row (in-app)."""
+def create_notification(conn, user_id: int, ntype: str, title: str, message: str,
+                        link: Optional[str] = None,
+                        deed_id: Optional[int] = None) -> int:
+    """Create a notification and user_notification row (in-app).
+
+    ═══ WHY `deed_id` IS A COLUMN AND NOT PARSED OUT OF `link` ═══
+
+    NOTIF1's strip needs to know which DOCUMENT an event is about: to name
+    the property, and to land her on the deed rather than on a tracker
+    (the orphan ruling). The only thing this record carried was `link` —
+    `/requests?kind=reviews&focus={share_id}` — which identifies a SHARE,
+    on a list, in a URL.
+
+    **A link is a destination, not a schema.** Recovering a deed id by
+    parsing a query string would make every future change to that route a
+    silent data migration, and `focus` is not even the deed: it is the
+    share row's id.
+
+    The irony is worth keeping. This module's stated job is that an
+    approval survives a transport failure — and the record it wrote could
+    not say which property had been approved, so the durable copy was
+    less informative than the email it was insuring against.
+    """
     with conn.cursor() as cur:
         cur.execute(
-            "INSERT INTO notifications (type, title, message, link) VALUES (%s, %s, %s, %s) RETURNING id",
-            (ntype, title, message, link)
+            "INSERT INTO notifications (type, title, message, link, deed_id) "
+            "VALUES (%s, %s, %s, %s, %s) RETURNING id",
+            (ntype, title, message, link, deed_id)
         )
         nid = cur.fetchone()[0]
         cur.execute(

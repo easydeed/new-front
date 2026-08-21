@@ -74,6 +74,34 @@ describe('NOTIF1 — quieter than the queue, and it does not become wallpaper', 
   });
 });
 
+describe('NOTIF1 — the property is navigation, never a task', () => {
+  it('renders the property as a link and offers no action button', () => {
+    /**
+     * OWNER-RULED, and the gap it closes was real: she learns her
+     * reviewer approved and would otherwise have to go find the deed.
+     *
+     * The fix is NOT a "Review it" button. That would turn news into a
+     * task — the exact collapse the separate-strip ruling exists to
+     * prevent. She presses the property because she wants to see it, not
+     * because the strip told her to do something.
+     */
+    expect(STRIP).toContain('{row.property}');
+    expect(STRIP).toMatch(/<a\s/);
+    /* No verb-bearing action LABEL. Pinned at the rendered strings
+       rather than the word: my first version forbade /Resolve/ anywhere
+       and tripped on the component's own name, `RecentlyResolved` —
+       §14.1, matching the spelling instead of the property. */
+    expect(STRIP).not.toMatch(/>\s*(Review|Open|Finish|Resolve) it\s*</);
+    // The sentence REPORTS; it is not a control.
+    expect(STRIP).toContain('<span className="text-[13px] text-gray-600">{row.say}</span>');
+  });
+
+  it('the only button is the dismiss', () => {
+    const buttons = STRIP.match(/<button/g) ?? [];
+    expect(buttons.length).toBe(1);
+  });
+});
+
 describe('NOTIF1 — the sentence and the write', () => {
   it('renders the server sentence verbatim', () => {
     // §13 rule 3 — one place turns state into English, and it is the one

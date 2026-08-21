@@ -52,7 +52,8 @@ NEWS_LIMIT = 4
 #: Asserted on the way out, same instinct as `officer_queue` and
 #: `worklist`: a payload whose keys drift silently is a screen rendering
 #: blanks nobody notices.
-NEWS_KEYS = frozenset({"id", "kind", "say", "when", "href", "deed_id"})
+NEWS_KEYS = frozenset({"id", "kind", "say", "when", "href", "deed_id",
+                       "property"})
 
 #: The notification types this strip understands. A type NOT in here is
 #: deliberately NOT rendered — the strip says what it can say, and an
@@ -72,11 +73,18 @@ class NewsRow:
     when: str
     href: str
     deed_id: Optional[int] = None
+    #: The document this is about. Owner-ruled: the strip stays TASK-FREE,
+    #: so the property is a LINK rather than a button — she presses it
+    #: because she wants to see the deed, not because the strip told her
+    #: to do something. Adding "Review it" would turn news into work,
+    #: which is the collapse the separate-strip ruling exists to prevent.
+    property: str = ""
 
     def as_dict(self) -> Dict[str, Any]:
         out = {
             "id": self.id, "kind": self.kind, "say": self.say,
             "when": self.when, "href": self.href, "deed_id": self.deed_id,
+            "property": self.property,
         }
         assert set(out) == NEWS_KEYS, f"news row drifted: {sorted(out)}"
         return out
@@ -121,8 +129,14 @@ def news_row(item: Dict[str, Any]) -> Optional[NewsRow]:
         # LANDS ON THE DEED, not a list — the orphan ruling, which the
         # worklist rows already follow. The stored `link` is used when it
         # exists because whoever wrote the event knew where it pointed.
-        href=(item.get("link") or (f"/deeds/{deed_id}" if deed_id else "/past-deeds")),
+        # THE DEED FIRST, the stored link only as a fallback. NOTIF1
+        # shipped with these reversed, which sent every row to the tracker
+        # — the orphan ruling, broken by the same preference for a stored
+        # destination over a known document that the worklist already
+        # corrected once.
+        href=(f"/deeds/{deed_id}" if deed_id else (item.get("link") or "/past-deeds")),
         deed_id=deed_id,
+        property=(item.get("property") or "").strip(),
     )
 
 

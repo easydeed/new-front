@@ -793,7 +793,10 @@ def submit_approval_response(approval_token: str, response: ApprovalResponse):
                         ntype="share_approved",
                         title="Deed approved",
                         message=f"{recipient_email or 'A reviewer'} approved {property_address or 'your deed'}",
-                        link=f"/requests?kind=reviews&focus={share_id}"
+                        link=f"/requests?kind=reviews&focus={share_id}",
+                        # NOTIF1 — the DOCUMENT the event is about, so the
+                        # strip can name the property and land on the deed.
+                        deed_id=deed_id,
                     )
                     print(f"[Sharing] ✅ Approval notification created: ID {notification_id}")
                 except Exception as notif_error:
@@ -881,7 +884,8 @@ def submit_approval_response(approval_token: str, response: ApprovalResponse):
                     ntype="share_rejected",
                     title="📝 Changes Requested",
                     message=f"{recipient_email or 'A reviewer'} requested changes for {property_address or 'your deed'}",
-                    link=f"/requests?kind=reviews&focus={share_id}"
+                    link=f"/requests?kind=reviews&focus={share_id}",
+                    deed_id=deed_id,
                 )
                 print(f"[REJECTION BUNDLE] ✅ Notification created: ID {notification_id}")
             except Exception as notif_error:

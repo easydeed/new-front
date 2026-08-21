@@ -39,6 +39,8 @@ export interface NewsRow {
   when: string;
   href: string;
   deed_id: number | null;
+  /** The document this is about. Rendered as a LINK, never a button. */
+  property: string;
 }
 
 export interface News {
@@ -68,14 +70,30 @@ export default function RecentlyResolved({ news, onOpen, onDismiss }: {
       <ul className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
         {news.items.map((row) => (
           <li key={row.id} className="flex items-center gap-1.5">
-            <button type="button"
-                    onClick={() => onOpen?.(row.href)}
-                    className="text-[13px] text-gray-600 underline decoration-gray-300
-                               underline-offset-2 transition hover:text-[var(--color-brand)]">
-              {/* THE SERVER'S SENTENCE, verbatim (§13 rule 3). This screen
-                  does not get a second opinion about what happened. */}
-              {row.say}
-            </button>
+            {/* THE SENTENCE IS TEXT, NOT A CONTROL. It reports; the
+                property beside it is the way in. Making the sentence
+                pressable too gave the strip two affordances for one
+                destination and made a statement look like a prompt —
+                task-free means the news reads as news. Server-composed
+                verbatim (§13 rule 3). */}
+            <span className="text-[13px] text-gray-600">{row.say}</span>
+            {row.property && (
+              /* THE PROPERTY IS NAVIGATION, NOT AN ACTION (owner-ruled).
+                 The gap this closes is real: she learns her reviewer
+                 approved and would otherwise have to go find the deed.
+                 The fix is NOT a "Review it" button — that would turn
+                 news into a task, which is the exact collapse the
+                 separate-strip ruling exists to prevent. She presses the
+                 property because she wants to see it, not because the
+                 strip told her to do something. */
+              <a href={row.href}
+                 onClick={(e) => { e.preventDefault(); onOpen?.(row.href) }}
+                 className="text-[12.5px] font-medium text-gray-500 underline
+                            decoration-gray-300 underline-offset-2
+                            transition hover:text-[var(--color-brand)]">
+                {row.property}
+              </a>
+            )}
             <span className="text-[11.5px] text-gray-400">{row.when}</span>
           </li>
         ))}

@@ -315,9 +315,19 @@ def officer_queue(user_id: int = Depends(get_current_user_id)) -> Dict[str, Any]
         # document rather than a list.
         cur.execute("""
             SELECT n.id, n.type, n.message, n.link, n.created_at,
-                   (n.payload->>'deed_id')::int AS deed_id
+                   -- THE COLUMN, not the payload. NOTIF1 shipped reading
+                   -- `payload->>'deed_id'`, and `create_notification` has
+                   -- no `payload` parameter at all — so this was NULL for
+                   -- every row in production while the tests passed on a
+                   -- fixture that supplied it. §14.1.1's third symptom:
+                   -- the rule was right and the corpus could not exercise
+                   -- it. The property name and the deed link both depend
+                   -- on this, so both were silently degraded.
+                   n.deed_id,
+                   d.property_address
               FROM user_notifications un
               JOIN notifications n ON n.id = un.notification_id
+              LEFT JOIN deeds d ON d.id = n.deed_id
              WHERE un.user_id = %s
                AND COALESCE(un.read, false) = false
              ORDER BY n.created_at DESC
@@ -326,6 +336,7 @@ def officer_queue(user_id: int = Depends(get_current_user_id)) -> Dict[str, Any]
         news_items = [{
             "id": r["id"], "type": r["type"], "message": r["message"],
             "link": r.get("link"), "deed_id": r.get("deed_id"),
+            "property": r.get("property_address"),
             "days_ago": q.days_since(r.get("created_at")),
         } for r in _rows(cur)]
 
