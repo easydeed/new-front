@@ -20,6 +20,7 @@ from auth import get_current_user_id
 from services import deed_accuracy as accuracy
 from services import officer_queue as q
 from services import signing_loop as loop
+from services import news as nw
 from services import worklist as wl
 
 router = APIRouter()
@@ -302,6 +303,32 @@ def officer_queue(user_id: int = Depends(get_current_user_id)) -> Dict[str, Any]
             for r in _rows(cur)
         }
 
+        # ── NOTIF1: what HAPPENED, which the queries above cannot show ──
+        #
+        # Everything above selects work that is OUTSTANDING. A resolved
+        # share leaves those results by disappearing, so the one event an
+        # officer most needs told — her reviewer answered — is the one
+        # event this screen could not report. The in-app record has been
+        # written since E1 and read by nobody.
+        #
+        # UNREAD only, and joined to the deed so the row can land on the
+        # document rather than a list.
+        cur.execute("""
+            SELECT n.id, n.type, n.message, n.link, n.created_at,
+                   (n.payload->>'deed_id')::int AS deed_id
+              FROM user_notifications un
+              JOIN notifications n ON n.id = un.notification_id
+             WHERE un.user_id = %s
+               AND COALESCE(un.read, false) = false
+             ORDER BY n.created_at DESC
+             LIMIT 25
+        """, (user_id,))
+        news_items = [{
+            "id": r["id"], "type": r["type"], "message": r["message"],
+            "link": r.get("link"), "deed_id": r.get("deed_id"),
+            "days_ago": q.days_since(r.get("created_at")),
+        } for r in _rows(cur)]
+
     upcoming.sort(key=lambda r: r["when"])
     # Longest-waiting first: the oldest silence is the one worth chasing.
     # `days_waiting` may be None for a row we cannot date, and those sort
@@ -348,4 +375,5 @@ def officer_queue(user_id: int = Depends(get_current_user_id)) -> Dict[str, Any]
                              "documents": len(accuracy_items),
                              "open_documents": open_documents,
                              "items": accuracy_items},
-                   worklist={"groups": groups, "count": wl.hero_count(groups)})
+                   worklist={"groups": groups, "count": wl.hero_count(groups)},
+                   news=nw.build(news_items))

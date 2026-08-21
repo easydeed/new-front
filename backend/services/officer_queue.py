@@ -116,6 +116,12 @@ QUEUE_KEYS = frozenset({
     # describes. Added deliberately: this assertion made the extension
     # a decision rather than a diff nobody read.
     "worklist",
+    # NOTIF1 — what HAPPENED, which the worklist structurally cannot show:
+    # it selects the undecided statuses, so a resolved share leaves the
+    # queue by DISAPPEARING. News is a separate key because it is a
+    # separate kind of thing — an approval needs nothing done, and folding
+    # it into `worklist` would inflate a hero that counts work.
+    "news",
     "accuracy",        # what stands between her documents and being ready
     "instruments",     # what THIS officer files, most-used first
 })
@@ -156,7 +162,8 @@ def queue(*, upcoming: Sequence[Dict[str, Any]],
           idle_drafts: Sequence[Dict[str, Any]],
           accuracy: Dict[str, Any],
           instruments: Sequence[Dict[str, Any]],
-          worklist: Dict[str, Any]) -> Dict[str, Any]:
+          worklist: Dict[str, Any],
+          news: Dict[str, Any]) -> Dict[str, Any]:
     """Assemble the payload and assert its shape.
 
     `needs_attention` is computed HERE rather than by the screen, and it
@@ -209,6 +216,10 @@ def queue(*, upcoming: Sequence[Dict[str, Any]],
         # (`worklist.hero_count`): a worklist whose headline disagrees
         # with its own body is a metric again.
         "worklist": dict(worklist),
+        # NOTIF1 — the resolved events. Carried on the SAME response as
+        # the worklist, per DASH1's ruling: a second request would let the
+        # page render a partial truth when one of the two failed.
+        "news": dict(news),
         "needs_attention": len([r for r in awaiting
                                 if r["stale"] or r["lapsed"]]),
         # DASH1 item 6 — THE AMBIENT SIGNAL.

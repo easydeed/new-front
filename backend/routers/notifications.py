@@ -61,8 +61,24 @@ class MarkReadIn(BaseModel):
 
 @router.post("/mark-read")
 def mark_read(body: MarkReadIn, user_id: int = Depends(get_current_user_id)):
-    if not feature_enabled():
-        return {"success": False, "message": "Notifications disabled"}
+    """Dismissal. NOT gated, and that is NOTIF1's one deliberate change here.
+
+    `NOTIFICATIONS_ENABLED` gated a scaffold that never shipped — the bell
+    and its list, deleted by DARK1 after four months unreachable. NOTIF1
+    ships a different, smaller thing: the dashboard's resolved-events
+    strip, whose rows come from `/dashboard/queue` and whose only write is
+    this one.
+
+    So the strip's dismiss cannot sit behind a flag governing a UI that no
+    longer exists. `list_notifications` and the admin broadcast below KEEP
+    the flag, because neither is part of NOTIF1 and turning them on is a
+    decision nobody has made.
+
+    The narrower reason this could not live in `routers/dashboard.py`:
+    that module's docstring declares it READ-ONLY, and an endpoint that
+    writes would make the statement false for every future reader who
+    trusts it.
+    """
     if not body.ids:
         return {"success": True}
     with db_connection() as conn, conn.cursor() as cur:
