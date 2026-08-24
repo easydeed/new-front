@@ -1526,6 +1526,137 @@ rather than copying, you have left the move and entered a rewrite.
 
 ---
 
+### §14.18 — A gate whose NON-APPEARANCE is the entire warning, on a surface built to display presence (2026-08-24, owner-ruled)
+
+**Statement.** §14.9 inside out. That section is about a control that
+exists and is switched off, so the repository *looks* equipped. This one
+is about a control that is neither present nor absent on purpose: it did
+not run, nothing recorded that it did not run, and **the only evidence
+was a hole in a list of successes.** Six greens and a hole reads as six
+greens. A checks page is built to render what happened; it has no
+vocabulary for what was never asked.
+
+**The instance.** PR #249 showed six checks, all green, and merged
+nowhere. `build-and-test` was simply not there. Two hypotheses were spent
+on the workflow — a dropped dispatch, then a disabled workflow — and both
+were wrong, because the workflow was fine. `pull_request_read` answered
+it in one field: `"mergeable_state": "dirty"`.
+
+**The mechanism, and it is why the shape cannot be otherwise.** A
+`pull_request`-triggered run is computed against the PR's merge commit,
+`refs/pull/N/merge`. **A conflicted PR has no merge ref, so GitHub creates
+no run at all** — not queued, not skipped, not failed, not neutral. There
+is no object, so there is nothing to render, so nothing renders. Recorded
+here because the shape is only actionable if the reason is known:
+"sometimes a check is missing" invites waiting for it, and waiting is
+exactly wrong — it was never coming.
+
+What made the page *look* complete is a trigger asymmetry:
+
+  · `ci.yml` — 1 job, fires on `pull_request` (its `push` filter is
+    `main, develop, feat/**`, which does not match `claude/**`). **Silent.**
+  · `test.yml` — 5 jobs, fires on bare `[push]`, so it ran on the branch
+    push and reported normally, conflict or no conflict.
+  · Vercel comments independently of both.
+
+Five plus Vercel is six rows of success on a pull request that could not
+merge.
+
+**AND THE TRAP IN THE OBVIOUS FIX.** Adding `claude/**` to `ci.yml`'s push
+filter would make `build-and-test` run on the branch regardless of
+mergeability — and would destroy the only signal this failure had. Seven
+greens on a conflicted PR is strictly worse than six and a hole. The
+asymmetry that made this visible was an accident, and "correcting" it
+would spend the accident for tidiness.
+
+**The visible tell, read past twice.** The PR header said 6 files,
++339/−27. The ticket was 3 files, +136/−2. **A pull request's own file and
+line counts are a claim about its scope, and a number that does not match
+the work is the cheapest available signal that something else came
+along** — visible from the moment the PR was opened, and twice more while
+the workflow config was being searched. Same family as the `git add -A`
+finding one layer up: there, a staging command silently took more than the
+ticket; here, a branch silently carried more than the ticket. Both announce
+themselves in a count nobody reads because the count is not where the work
+is.
+
+**The cause was upstream of all of it, and it was mine.** #249 was cut
+from #248's head instead of from `origin/main` — a stacked PR, which the
+standing rule forbids. When #248 squash-merged, its content existed in
+main under a new SHA and on the branch under the old ones, both editing
+`OWNER_LEDGER.md`. `git merge-base` was `57bdae1c`: main *before* #248.
+The conflict was manufactured by the stacking; the absent check was its
+only symptom.
+
+**AND THE SAFETY WAS NOT OURS, which is worth stating without softening.**
+Nothing we built and nothing I noticed stood between me and merging a
+conflicted PR. GitHub's merge endpoint refusing an unmergeable request is
+what stood there — a system we do not control, did not build, and do not
+test. *(Documented behaviour, NOT verified here — §14.17: I never issued
+that call against a dirty PR.)* The decision not to merge on 6 of 7 was
+made for the right reason on an entirely wrong theory, and a near-miss
+caught by somebody else's guardrail **is not a caught near-miss**. It is
+an uncaught one that happened to land somewhere soft.
+
+**What was adopted, what was declined, and where the mechanism actually
+lives** — see §14.18.1 below.
+
+---
+
+### §14.18.1 — Detecting the absent check, decided rather than accumulated (2026-08-24)
+
+The owner's constraint was explicit: report which of the candidates is a
+mechanism and which is a third resolution to be careful — **do not build
+another careful habit.** Three candidates, checked rather than assumed.
+
+**1. `mergeable_state == "clean"` as a merge precondition — CHEAP, and
+adopted with a named condition.** The field ships in the `get` response
+already read before merging; no extra call, no new API. **But it is
+computed lazily.** Immediately after the force-push it read `"unknown"`
+(observed once, 19:49:28Z), and only settled afterwards. **A precondition
+that frequently answers "unknown" is a precondition you learn to wave
+through**, which is §14.9's own family — so the `"unknown"` branch must
+BLOCK and re-read, never pass. Adopted on that condition and worth
+exactly what it is: earlier, legible detection of something GitHub already
+refuses. It buys a reason, not safety.
+
+**2. Expected-check-count vs the workflows that should have fired —
+DECLINED.** It would have caught this one: 6 expected, 5 observed. But
+deriving "6" means evaluating GitHub's trigger semantics — branch globs
+(`feat/**` not matching `claude/**` is exactly the subtlety at issue),
+path filters, `if:` conditions, matrix expansion — and maintaining that
+evaluator forever. **Its failure mode is the disqualifier: an evaluator
+that under-expects renders as "all present."** That is a gate whose
+failure looks like completeness, built to catch a gate whose failure looks
+like completeness. It is §14.1.1 wearing a mechanism's clothes.
+
+**3. The one that removes the failure instead of detecting it — ADOPTED,
+and it is upstream of both.** The absent check was a symptom; the stacking
+was the cause. The fix is not a check at merge time but a **command at
+ticket-start time**:
+
+```
+git fetch origin main && git checkout -B <branch> origin/main
+```
+
+Cut that way, a branch **cannot** be stacked — the property is produced by
+the command rather than verified after it, so there is no moment at which
+to forget to look. This is the distinction that decides all three: 1 and 2
+are things to remember at a moment that already exists; 3 removes the
+moment. That is why it goes in `CLAUDE.md` beside `git -C`, on the same
+honest terms: **it is a prompt, not a gate.** The command still has to be
+typed. Strictly better than "remember not to stack" — there is no window
+between two commits in which to forget — and strictly weaker than
+something that fails loudly.
+
+**A verification worth keeping**, because it is free and it is not a
+habit: `git merge-base HEAD origin/main` equalling `git rev-parse
+origin/main` is the whole property, local, deterministic, no API, no
+"unknown" state. It is one line in the same breath as the checkout, not a
+separate discipline to sustain.
+
+---
+
 ### §14.9 — A disabled gate is worse than a missing one (2026-08-20, owner-ruled)
 
 **Statement.** A control that exists, is correctly configured, and is
@@ -2355,6 +2486,7 @@ on.
 
 | Date | Change |
 |---|---|
+| 2026-08-24 | §14.18 added (owner-ruled) — a gate whose NON-APPEARANCE is the entire warning, on a surface built to display presence. §14.9 inside out: not a control switched off, but one that was never asked to run, with nothing recording that it was not asked. PR #249 showed six green checks and no `build-and-test`; two hypotheses were spent on the workflow and both were wrong, because the workflow was fine. `mergeable_state` was `"dirty"`. THE MECHANISM, recorded because the shape is only actionable if the reason is known: a `pull_request` run is computed against `refs/pull/N/merge`, a conflicted PR has no merge ref, so GitHub creates NO RUN — not queued, not skipped, not failed. Nothing to render, so nothing renders, and a hole in a list of successes reads as a list of successes. What made the page look complete is a trigger asymmetry: `ci.yml` (1 job) fires on `pull_request` and went silent, while `test.yml` (5 jobs) fires on bare `[push]` and reported normally — five plus Vercel is six rows of success on a PR that could not merge. AND THE OBVIOUS FIX IS A TRAP: adding `claude/**` to `ci.yml`'s push filter would make it run regardless of mergeability and would destroy the only signal this failure had — seven greens on a conflicted PR is strictly worse than six and a hole. The visible tell, read past twice: the PR header said 6 files / +339 against a ticket of 3 files / +136 — a PR's own file and line counts are a CLAIM ABOUT ITS SCOPE, and a number that does not match the work is the cheapest available signal that something else came along; same family as the `git add -A` finding one layer up, both announcing themselves in a count nobody reads. The cause was upstream and was mine: #249 was cut from #248's head rather than `origin/main`, so #248's squash-merge put the same content in main under a new SHA and on the branch under the old ones, and `git merge-base` was main-before-#248. And the safety was not ours — GitHub's merge endpoint refusing an unmergeable request is what stood between me and merging it; a near-miss caught by somebody else's guardrail is not a caught near-miss (that refusal is documented behaviour, NOT verified here, per §14.17). §14.18.1 decides the remedy rather than accumulating one, under the owner's explicit constraint not to add a third resolution to be careful: `mergeable_state` as a merge precondition is ADOPTED but conditioned, since it is free in a call already made and yet computes lazily — observed reading `"unknown"` right after a force-push, and a precondition that often answers "unknown" is one you learn to wave through — so the unknown branch must block and re-read; expected-check-count is DECLINED despite catching this instance (6 expected, 5 observed), because deriving the expected number means maintaining an evaluator for branch globs, path filters and `if:` conditions whose failure mode is UNDER-EXPECTING, which renders as "all present" — a gate whose failure looks like completeness, built to catch a gate whose failure looks like completeness; and the actual mechanism is upstream of both — `git fetch origin main && git checkout -B <branch> origin/main` at ticket start, which PRODUCES the un-stacked property rather than verifying it, leaving no moment at which to forget to look. Recorded in CLAUDE.md beside `git -C` on the same honest terms: a prompt, not a gate. |
 | 2026-08-18 | §14.7 added — knowing a failure mode does not confer immunity from it. Three instances of one shape in a day: a pin quoting an implementation that broke on a correct change; a pin quoting an implementation that WAS the defect and stayed green through it; and the same defect inside the remedy for the first two, where the route-guard sweep — being rewritten because it matched a marker string — was about to match a hook's NAME instead. `useRequireAuth` navigates from an effect, so a page ignoring its `checked` flag still paints content for a frame, and a name-matching sweep would have certified that half-adoption exactly as the old one certified a send-only token read. Caught by reading how `/team` actually used the hook rather than treating the import as the whole pattern. The third instance settles the question the first two raise: it was written the same day the rule was written down, in the remedy for it, by its author. The rate is stated in the entry as evidence the shape is COMMON IN THIS KIND OF WORK rather than accelerating — three in a day reflects a day of unusually dense pin-writing, and a week of building features rather than instruments would show none while the shape stayed exactly as available. Operative consequence — when a shape is identified, ask what MECHANISM can hold it and prefer that to a paragraph, since a note is a thing to remember and remembering is the faculty that just failed. Corollary: a mechanism adopted partially fails in the gap between its halves, and only a sweep can enforce that both arrived. Also recorded in `routeGuards.test.ts` beside its bounded window: it fails CLOSED — an unreadable guard reports an unguarded page — where §14.4's tsc window failed open, so the two must not be made symmetric. And a prediction that missed: three of fourteen pages were passing incidentally, so at least one of the four unverified was expected to fail; none did. A base rate is not evidence about a particular case. |
 | 2026-08-18 | §14.6 added and §15.1 widened, from DASH-SOFTEN. §14.6: when a rule IS the design, the pin covers the domain rather than a point. The setup checklist expands exactly one step and that is not a feature of the card, it is the card — so the pin renders all sixteen arrangements of its four booleans rather than one. A sample would have passed against the obvious wrong implementation: rendering every incomplete step as open is indistinguishable from rendering the first when only the first is incomplete. Probed by making exactly that substitution — four assertions fail. A pin checking an invariant in one arrangement records an observation where a constraint was wanted. §15.1 widened past code: the same shape appeared in a document. DASH-SOFTEN needed to know whether violet — doctrinal, reserved for "proposed legal choice" — could be an ordinary accent on a card with no legal choices in it. BRAND.md answers it in the ADMIN-CONSOLE section, which is not where anyone with a dashboard question would look; the reasoning was never about admin and neither is its scope. General form: an answer filed under the surface it was first needed for is invisible to the next surface that needs it — so when a ruling resolves a question about a doctrinal rule, the instance goes with the surface and the principle goes with the doctrine. Also recorded: "All Good Escow" is absent from the repository, so it is a real row rather than fixture data, and `requestedByDefault.ts` makes `users.company_name` the RECORDING REQUESTED BY default — a typo in a profile field reaches the face of a recorded instrument with no confirmation step between. Correctly not fixed by a gate, since the officer typing her own company name is the authority on it, but it is the shortest path from a keystroke to a recorded document in this product. |
 | 2026-08-24 | PCOR3. §14.16 added — before costing a field, check whether the document asks for the fact. The date-of-death question was argued as a cost trade (a field across five instruments against one prefilled box) and both parties leaned no, correctly and for the wrong reason: the affidavit of death does not ask for a date of death at all, in any of five county versions, because Probate Code §210 requires the death certificate as an attachment and the instrument references the document rather than restating it. Reading the instrument DISSOLVED the question instead of answering it; the trade was never live. General form: when a proposal is framed as a trade, find the premise the trade assumes and test that first. §14.17 added — evidence is recorded with its PROVENANCE, and search-sourced findings must not be written in the same voice as measured ones. The county-form findings are the owner's research with sources named, NOT repository-verified, and FORMS_TRIAGE says so; the FORMS discipline is that references are fetched and measured before building (it caught two wrong wave-1 certificate predictions that way), and a ledger that collapses the two standings abandons that discipline while appearing to keep it. §14.7 gains its mechanism at last: `git add` from a subdirectory errored twice in one session, leaving an empty commit and a push that reported 'Everything up-to-date' — a success message for pushing nothing, self-caught by reading output both times and prevented neither. Checked rather than assumed: a git hook is NOT available (`.git/hooks` is untracked and does not survive a container recycle, of which this engagement has had two), a pre-commit framework is not present and is not worth adding for one agent-side habit, and `git -C <absolute root>` IS available and removes the working directory as a variable. It lives in CLAUDE.md, the only enforcement surface that outlives the machine — and is recorded as a PROMPT rather than a gate, because `-C` still has to be typed, and a mechanism described as stronger than it is becomes the next §14.9. Also: a ledger cross-reference went stale in under an hour, same author, same session, which is a stronger argument for the sweep trigger than the original six-stale-rows-of-eight was — that says the ledger drifts; this says an entry describing another entry's state decays immediately, and no sweep interval catches it. |
