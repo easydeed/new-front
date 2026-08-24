@@ -188,3 +188,75 @@ def test_the_date_of_death_ask_still_fires_when_we_hold_none():
     dod = [a for a in asks if a.startswith("Date of death")]
     assert dod, "the date-of-death ask must still fire when we hold none"
     assert "on file" not in dod[0]
+
+
+# ═══ PCOR3b — THE ADDRESS WE DO NOT HOLD ═════════════════════════════
+
+def test_the_buyer_box_carries_the_name_and_never_an_invented_address():
+    """OWNER-RULED. "Name and mailing address of buyer/transferee" is ONE
+    AcroForm field carrying TWO facts. We hold the name. No grantee
+    mailing address exists in builder state, in the generate payload, or
+    on the deed row — so the address lines stay empty for the buyer.
+    """
+    pytest.importorskip("pypdf")
+    from services.boe_form_fill import values_from_deed
+
+    values, asks = values_from_deed({
+        "grantee_name": "JANE BUYER",
+        "metadata": {"return_to": {"name": "Equity Title Company",
+                                   "address1": "700 N Brand Blvd",
+                                   "city": "Glendale", "state": "CA",
+                                   "zip": "91203"}},
+    })
+    # The name is placed, alone.
+    assert values["buyer_name_address"] == "JANE BUYER"
+
+    # AND THE TITLE COMPANY'S ADDRESS IS NOWHERE NEAR IT. This is the
+    # assertion the ruling turns on: the mail-to block is a DIFFERENT
+    # fact — where tax statements go, frequently the title company — and
+    # sourcing the buyer's address from it would put the wrong address on
+    # a form signed under penalty of perjury, looking filled rather than
+    # wrong.
+    assert "Equity Title" not in values["buyer_name_address"]
+    assert "Glendale" not in values["buyer_name_address"]
+    assert "700 N Brand" not in values["buyer_name_address"]
+
+    # The mail-to block still fills its OWN fields — it is the right
+    # answer to its own question.
+    assert values["mail_to_name"] == "Equity Title Company"
+    assert values["mail_to_city"] == "Glendale"
+
+    # And the officer is told, rather than left to notice a half-filled box.
+    buyer_ask = [a for a in asks if a.startswith("Buyer's mailing address")]
+    assert buyer_ask, "an unfilled half of a field must be named in `asks`"
+    assert "tax information" in buyer_ask[0]
+
+
+def test_the_affiant_box_is_the_same_ruling_on_the_other_form():
+    pytest.importorskip("pypdf")
+    from services.boe_form_fill import values_from_affidavit
+
+    values, asks = values_from_affidavit(
+        {"metadata": {"affidavit": {"affiantName": "SAM AFFIANT"}}})
+    assert values["affiant_name_address"] == "SAM AFFIANT"
+    assert [a for a in asks if a.startswith("Your mailing address")]
+
+
+def test_no_buyer_address_is_sourced_from_the_mail_to_block_in_source():
+    """Pinned at the SOURCE as well as the behaviour, because the
+    behavioural pin above only proves that ONE mail-to shape does not
+    leak. A future edit could read `return_to` into the buyer box for a
+    different shape and pass it.
+
+    AND THIS PIN HAS A HOLE, NAMED RATHER THAN PAPERED OVER: it reads the
+    assignment LINE, so routing the address through an intermediate
+    variable defeats it. The probe that proved it — appending
+    `_mt.get("address1")` — was caught by the BEHAVIOURAL test above and
+    not by this one. Two pins covering each other's gaps is the honest
+    description; "the source is pinned" would not be."""
+    src = code_only(BACKEND.joinpath("services/boe_form_fill.py").read_text())
+    line = [ln for ln in src.splitlines()
+            if 'values["buyer_name_address"]' in ln]
+    assert line, "the buyer box must still be filled"
+    assert all("return_to" not in ln and "mail_to" not in ln for ln in line), (
+        "the buyer's address must never be sourced from the mail-to block")

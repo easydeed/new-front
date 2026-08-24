@@ -1730,33 +1730,78 @@ we reach it.
 
 ## Parked tickets (scoped, not scheduled)
 
-- **PCOR3-DOD — should the affidavit family collect a DATE OF DEATH at
-  all?**
-  **DECIDED** — no. **BUILT** — no. **This is Jerry's call and the
-  deciding input is escrow practice, not code.**
+- **PCOR3-ADDR — should the builder capture the GRANTEE'S MAILING
+  ADDRESS?**
+  **DECIDED** — no. **BUILT** — no. **OPEN, and deliberately so: the pilot
+  answers it faster than reasoning does.**
 
-  **The question.** The BOE-502-D has a date-of-death box. We fill it
-  from `metadata.affidavit.deathDate`, and **no affidavit instrument
-  collects that field** — the builder has never had one. So the box is
-  always blank on a real affidavit, and PCOR3 rewrote the instruction to
-  say so honestly.
+  **Owner-reframed 2026-08-24: this is a WORKFLOW question, not a form
+  question.** Whether an officer holds the buyer's mailing address at
+  drafting time depends on where in the file the deed is prepared — and
+  that varies by shop, not by statute. Reading more forms cannot settle
+  it, which is what separates it from PCOR3-DOD: that one looked like a
+  cost trade and turned out to be answerable by reading the instrument.
+  This one is not.
 
-  **The advisor's lean, recorded as a lean: NO.** Date of death appears
-  on the death certificate the county requires as an attachment anyway;
-  the affidavit is valid without it; and adding a field across FIVE
-  instruments to prefill one box on a companion form is a lot of surface
-  for a small fill.
+  **The cross-reference in this entry was stale within an hour of being
+  written** — it said PCOR3-DOD "is also still open" while that question
+  was being closed. Fixed here, and noted because it is the ledger
+  sweep's exact subject: an entry that describes another entry's state
+  starts decaying the moment it is written.
 
-  **What would flip it, and only Jerry knows:** whether officers type the
-  date of death into affidavits as a matter of course. If they do,
-  collecting it costs nothing they are not already doing and the fill is
-  genuine. If they do not, we would be adding a field to five forms to
-  serve one box on a sixth.
+  **The question.** The PCOR's buyer box and the 502-D's affiant box each
+  read *"Name and mailing address"* — one AcroForm field, two facts. We
+  hold the name and place it; **no mailing address for either party
+  exists in builder state, in the generate payload, or on the deed row.**
+  PCOR3b leaves those lines empty and says so in the instructions.
 
-  **Not a defect either way.** The form asks the buyer for it, the buyer
-  can answer it, and the instruction now tells her plainly where it goes
-  and where to find it. This is a convenience question, and it is
-  ledgered rather than guessed.
+  **Why it is worth asking.** A grantee mailing address would serve two
+  places, not one: the PCOR's buyer block, and the deed's own mail-to,
+  which today defaults to the PROPERTY when the officer picks "grantee".
+
+  **Why it is not obviously worth building.** It is new product surface on
+  every conveyance, and **the officer may simply not hold it at drafting
+  time** — a buyer's forwarding address is often unsettled while the deed
+  is being prepared. A required field she cannot answer is worse than an
+  empty box the buyer completes.
+
+  **What must never happen, and is now pinned:** the address must NOT come
+  from the mail-to block. That is a different fact — where tax statements
+  go — and it is frequently the title company. Sourcing it there would put
+  a title company's address on a form the buyer signs under penalty of
+  perjury, and it would look filled rather than wrong.
+
+- **PCOR3-DOD — should the affidavit family collect a DATE OF DEATH?**
+  **DECIDED 2026-08-24 — NO. RESOLVED BY RESEARCH, and the research
+  answered a better question than the one asked.** **BUILT** — nothing to
+  build; the closure is the decision.
+
+  **The question was framed as a convenience trade** — is prefilling one
+  box on the 502-D worth a field across five instruments? The advisor
+  leaned no on cost. **The owner's review of the actual forms made the
+  cost argument unnecessary:**
+
+  **THE AFFIDAVIT OF DEATH DOES NOT ASK FOR A DATE OF DEATH.** LA,
+  Ventura, San Bernardino, Santa Clara and Sacramento all name the
+  decedent, reference *"the attached certified copy of Certificate of
+  Death"*, cite the prior deed and legal description — and never ask for
+  the date. **Probate Code §210 requires the certificate as an
+  attachment, so the instrument references the document rather than
+  restating its contents.**
+
+  So collecting it would add a field to five instruments **for a fact the
+  instruments themselves do not ask for**, to prefill one box on a
+  companion form, where the county already requires the source document.
+  Product surface without gain.
+
+  **The 502-D instruction PCOR3a wrote is the correct and sufficient
+  answer** — it names the death certificate as where the buyer finds the
+  date, which is exactly where the affidavit points too.
+
+  **The generalisable half:** the convenience question ("is the fill worth
+  the field?") was the wrong question, and reading the instrument
+  answered it by dissolving it. **Before costing a field, check whether
+  the document asks for the fact.**
 
 - **NOTIF1 — BUILT, and then corrected the same day.**
   **DECIDED** 2026-08-20 (investigate), 2026-08-21 (build as a separate
