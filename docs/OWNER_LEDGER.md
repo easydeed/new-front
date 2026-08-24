@@ -1730,6 +1730,34 @@ we reach it.
 
 ## Parked tickets (scoped, not scheduled)
 
+- **PCOR3-ADDR — should the builder capture the GRANTEE'S MAILING
+  ADDRESS?**
+  **DECIDED** — no. **BUILT** — no. **Jerry's call, and the deciding input
+  is escrow practice — the same shape as PCOR3-DOD, which is also still
+  open.**
+
+  **The question.** The PCOR's buyer box and the 502-D's affiant box each
+  read *"Name and mailing address"* — one AcroForm field, two facts. We
+  hold the name and place it; **no mailing address for either party
+  exists in builder state, in the generate payload, or on the deed row.**
+  PCOR3b leaves those lines empty and says so in the instructions.
+
+  **Why it is worth asking.** A grantee mailing address would serve two
+  places, not one: the PCOR's buyer block, and the deed's own mail-to,
+  which today defaults to the PROPERTY when the officer picks "grantee".
+
+  **Why it is not obviously worth building.** It is new product surface on
+  every conveyance, and **the officer may simply not hold it at drafting
+  time** — a buyer's forwarding address is often unsettled while the deed
+  is being prepared. A required field she cannot answer is worse than an
+  empty box the buyer completes.
+
+  **What must never happen, and is now pinned:** the address must NOT come
+  from the mail-to block. That is a different fact — where tax statements
+  go — and it is frequently the title company. Sourcing it there would put
+  a title company's address on a form the buyer signs under penalty of
+  perjury, and it would look filled rather than wrong.
+
 - **PCOR3-DOD — should the affidavit family collect a DATE OF DEATH at
   all?**
   **DECIDED** — no. **BUILT** — no. **This is Jerry's call and the

@@ -82,7 +82,30 @@ def values_from_deed(row: Dict[str, Any]) -> Tuple[Dict[str, str], list]:
     asks: list = []
 
     if row.get("grantee_name"):
+        # ── NAME ONLY, AND THE ADDRESS LINES STAY EMPTY (owner-ruled) ──
+        #
+        # The AcroForm field is "Name and mailing address of
+        # buyer/transferee" — one box carrying two facts. We hold the
+        # first and not the second: no grantee mailing address exists in
+        # builder state, in the generate payload, or on the deed row.
+        #
+        # **It must NOT come from the mail-to block.** That is a different
+        # fact — where TAX STATEMENTS go — and it is frequently the title
+        # company rather than the buyer. Sourcing it there would put a
+        # title company's address on a form the buyer signs under penalty
+        # of perjury, and it would look filled rather than wrong.
+        #
+        # So the honest output is the name on its own line with the
+        # address lines left for the buyer, and `asks` says so below.
         values["buyer_name_address"] = str(row["grantee_name"])
+        asks.append(
+            "Buyer's mailing address — the box above the name is one "
+            "field for two facts, and we hold only the name. We do not "
+            "collect a mailing address for the grantee anywhere, and the "
+            "'mail property tax information to' block is a different "
+            "address (often the title company), so it is deliberately not "
+            "copied here. Add the buyer's address beneath the name."
+        )
     if row.get("grantor_name"):
         values["seller"] = str(row["grantor_name"])
     if row.get("apn"):
@@ -172,7 +195,14 @@ def values_from_affidavit(row: Dict[str, Any]) -> Tuple[Dict[str, str], list]:
     if meta.get("property_zip"):
         values["property_zip"] = str(meta["property_zip"])
     if aff.get("affiantName"):
+        # Same shape as the PCOR's buyer box, same ruling: one field, two
+        # facts, and we hold only the name. No affiant mailing address is
+        # collected anywhere.
         values["affiant_name_address"] = str(aff["affiantName"])
+        asks.append(
+            "Your mailing address — the name-and-address box holds both "
+            "and we have only the name. Add your address beneath it."
+        )
 
     if not dod:
         # PCOR3 — REWRITTEN. This read "the affidavit variant on file did
