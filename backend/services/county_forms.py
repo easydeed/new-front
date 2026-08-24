@@ -232,13 +232,29 @@ REGISTRY: Dict[str, CountyForm] = {
 # instrument IS; a new instrument inherits its companion by construction,
 # and adding one to that registry cannot leave this table stale.
 #
-# `declaration` (homestead, trust certification, TOD revocation, …)
-# appears here DELIBERATELY WITH NO COMPANION. It is neither a conveyance
-# nor a death statement, so it gets neither form — an absence recorded on
-# purpose rather than a family somebody forgot.
+# ── AND `None` IS A DECISION, WRITTEN AS ONE (owner-ruled 2026-08-21) ──
+#
+# **An unmapped family and a family mapped to nothing are identical in
+# code and opposite in meaning.** `COMPANION_BY_FAMILY.get(family)`
+# returns None for "we decided this family takes no BOE form" and for
+# "nobody has thought about this family yet", and a future instrument
+# would inherit the second while looking like the first.
+#
+# So every family carries an entry and a reason, and
+# `test_pcor3_family_gate` fails when a new family appears in
+# `FAMILY_BY_DEED_TYPE` without one here. A declaration-family instrument
+# added next year inherits a RULING rather than an absence.
 COMPANION_BY_FAMILY: Dict[str, Optional[str]] = {
+    # The conveyance. R&T §480.3 — a deed presented without a PCOR may be
+    # charged an extra $20 at recording.
     "deed": "BOE-502-A",
+    # Change in Ownership — Death of Real Property Owner.
     "affidavit": "BOE-502-D",
+    # NO COMPANION, and the reason is the statute rather than the filing.
+    # **The PCOR's trigger is a CHANGE IN OWNERSHIP, not a recording.** A
+    # homestead declaration and a trust certification are recorded
+    # instruments that do not convey and do not change ownership, so
+    # neither the 502-A nor the 502-D applies to them. Owner-ruled.
     "declaration": None,
 }
 

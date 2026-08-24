@@ -1730,6 +1730,34 @@ we reach it.
 
 ## Parked tickets (scoped, not scheduled)
 
+- **PCOR3-DOD — should the affidavit family collect a DATE OF DEATH at
+  all?**
+  **DECIDED** — no. **BUILT** — no. **This is Jerry's call and the
+  deciding input is escrow practice, not code.**
+
+  **The question.** The BOE-502-D has a date-of-death box. We fill it
+  from `metadata.affidavit.deathDate`, and **no affidavit instrument
+  collects that field** — the builder has never had one. So the box is
+  always blank on a real affidavit, and PCOR3 rewrote the instruction to
+  say so honestly.
+
+  **The advisor's lean, recorded as a lean: NO.** Date of death appears
+  on the death certificate the county requires as an attachment anyway;
+  the affidavit is valid without it; and adding a field across FIVE
+  instruments to prefill one box on a companion form is a lot of surface
+  for a small fill.
+
+  **What would flip it, and only Jerry knows:** whether officers type the
+  date of death into affidavits as a matter of course. If they do,
+  collecting it costs nothing they are not already doing and the fill is
+  genuine. If they do not, we would be adding a field to five forms to
+  serve one box on a sixth.
+
+  **Not a defect either way.** The form asks the buyer for it, the buyer
+  can answer it, and the instruction now tells her plainly where it goes
+  and where to find it. This is a convenience question, and it is
+  ledgered rather than guessed.
+
 - **NOTIF1 — BUILT, and then corrected the same day.**
   **DECIDED** 2026-08-20 (investigate), 2026-08-21 (build as a separate
   strip). **BUILT** — yes, #244 and #245.
