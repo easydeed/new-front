@@ -184,8 +184,11 @@ def values_from_affidavit(row: Dict[str, Any]) -> Tuple[Dict[str, str], list]:
         # wrong context too — that is exactly how it survived one. This
         # version claims only what we checked: we do not hold the date.
         asks.append(
-            "Date of death — we do not hold one for this document. "
-            "The Assessor requires it."
+            "Date of death — the form asks for it, and we do not collect "
+            "it anywhere in the builder, so there is no record of ours to "
+            "check. Enter it in the box beside the decedent's name; it "
+            "appears on the death certificate the county asks you to "
+            "attach."
         )
     asks.extend([
         "How title passed (succession, decree of distribution, trustee "
