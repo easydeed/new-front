@@ -73,3 +73,34 @@ and affidavit (jurat, no DTT); the coherence pins enforce all three
 structurally. The single-party shape also fired the owner-ledgered
 parties-JSONB migration (both triggers at once: catalog >10 types AND
 parties unmappable onto grantor/grantee).
+
+---
+
+## County variation note — the affidavit of death's recitals (2026-08-24, owner research)
+
+**Recorded so the variation is known rather than discovered**, and it is
+NOT a defect: county variation is expected, and our chassis is
+PCT-derived by design.
+
+**Two findings, from the owner's review of the LA, Ventura, San
+Bernardino, Santa Clara and Sacramento affidavit-of-death forms. I have
+not read those forms; this is recorded as the owner's research, with its
+source named, rather than as something the repository verified.**
+
+1. **NO DATE OF DEATH.** None of the five asks for one. Each names the
+   decedent, references *"the attached certified copy of Certificate of
+   Death"*, cites the prior deed and the legal description — and stops.
+   **Probate Code §210 requires the certificate as an attachment, so the
+   affidavit references the document rather than restating its
+   contents.** This closed PCOR3-DOD; see OWNER_LEDGER.
+
+2. **A VALUE-OF-ESTATE RECITAL that our chassis may not carry.** Several
+   county versions include *"the value of all real and personal property
+   owned by the decedent at date of death did not then exceed $___"*.
+   Our PCT-derived reference may omit it.
+
+   **Not scheduled and not a defect.** It is recorded here because the
+   cost of discovering a missing recital during a recording attempt is
+   paid by an officer, and the cost of knowing about it now is one
+   paragraph. If an affidavit is ever rejected for a missing recital,
+   this note is where the explanation already is.
