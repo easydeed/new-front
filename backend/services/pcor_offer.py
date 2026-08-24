@@ -52,7 +52,20 @@ def status(deed: Dict[str, Any], download_url: str) -> Dict[str, Any]:
     other's URL.
     """
     from services.boe_form_fill import values_from_deed
-    from services.county_forms import lookup_form
+    from services.county_forms import companion_form_code, lookup_form
+
+    # PCOR3 — THE FAMILY GATE, the other direction. The 502-D was being
+    # offered on conveyances; the PCOR was being offered on affidavits of
+    # death, with the same absence of any check. This surface's copy made
+    # it worse by asserting the family it never tested — "Required with
+    # this conveyance", rendered on a document that conveys nothing.
+    if companion_form_code(deed.get("deed_type") or "") != "BOE-502-A":
+        return {
+            "available": False,
+            "county": deed.get("county"),
+            "reason": "The PCOR accompanies a conveyance. This document "
+                      "is not one.",
+        }
 
     county = deed.get("county") or ""
     form = lookup_form(county)

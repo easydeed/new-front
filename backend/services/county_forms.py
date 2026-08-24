@@ -211,6 +211,66 @@ REGISTRY: Dict[str, CountyForm] = {
 }
 
 
+# ══ WHICH BOE FORM BELONGS TO WHICH FAMILY ═══════════════════════════
+#
+# PCOR3's finding: the offer was never gated by family AT ALL. Both
+# companion endpoints tested only `lookup_form(county, code)` — a county ×
+# form registry — so in Los Angeles every instrument returned
+# `available: True` for both forms. A grant deed was offered a death
+# statement and an affidavit of death was offered a PCOR, with the same
+# unconditionality, in both directions, since T-3b.
+#
+# Each surface's COPY made the mismatch worse by asserting the family it
+# never checked: the PCOR block says "Required with this conveyance" (on
+# an affidavit, which conveys nothing) and the 502-D's ask says "the
+# affidavit variant on file did not record one" (on a deed that has no
+# affidavit). **A sentence written to be unconditionally true will be true
+# in the wrong context too**, which is how both survived.
+#
+# So the mapping is DERIVED from the family registry rather than written
+# twice. `form_families.FAMILY_BY_DEED_TYPE` already decides what an
+# instrument IS; a new instrument inherits its companion by construction,
+# and adding one to that registry cannot leave this table stale.
+#
+# `declaration` (homestead, trust certification, TOD revocation, …)
+# appears here DELIBERATELY WITH NO COMPANION. It is neither a conveyance
+# nor a death statement, so it gets neither form — an absence recorded on
+# purpose rather than a family somebody forgot.
+COMPANION_BY_FAMILY: Dict[str, Optional[str]] = {
+    "deed": "BOE-502-A",
+    "affidavit": "BOE-502-D",
+    "declaration": None,
+}
+
+
+def companion_form_code(deed_type: str) -> Optional[str]:
+    """The one BOE form this instrument's family takes, or None.
+
+    The single authority. Every surface that offers a companion asks
+    HERE — a second opinion about which form fits which instrument is
+    how the two directions went wrong independently.
+    """
+    from services.form_families import FAMILY_BY_DEED_TYPE
+
+    # MEMBERSHIP, not `family_of`. That helper defaults an unknown type to
+    # "deed" and its docstring calls that "the strictest validation path"
+    # — true for VALIDATION, where deed demands the most required fields.
+    #
+    # It is the LOOSEST possible default here. The same fallback that
+    # tightens a form's validation hands an unregistered instrument a
+    # legal companion form. **A default's safety is a property of its
+    # CONSUMER, not of the default**, and this one is consumed in both
+    # directions from a single docstring asserting it is strict.
+    #
+    # So this gate fails CLOSED: an instrument nobody registered gets no
+    # companion. Offering the wrong form is worse than offering none, and
+    # a missing offer is visible to the officer while a wrong one is not.
+    family = FAMILY_BY_DEED_TYPE.get((deed_type or "").strip())
+    if family is None:
+        return None
+    return COMPANION_BY_FAMILY.get(family)
+
+
 def lookup_form(county: str, form_code: str = "BOE-502-A") -> Optional[CountyForm]:
     """Exact lookup on a normalized county name — the same discipline
     T-2's jurisdictions registry uses, and for the same reason."""

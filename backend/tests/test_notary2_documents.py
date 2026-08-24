@@ -133,7 +133,13 @@ def test_the_pcor_is_never_stored_or_hashed():
 def test_a_county_with_no_form_says_so_rather_than_returning_a_blank():
     from services import pcor_offer
 
-    body = pcor_offer.status({"county": "Nowhere"}, "/x")
+    # PCOR3 — the fixture now carries a `deed_type`, because a deed row
+    # always does and this test's subject is the COUNTY answer. The
+    # family gate is checked first and deliberately: "the PCOR does not
+    # accompany this document" is prior to "we hold no copy for your
+    # county", and answering the second on a homestead declaration would
+    # imply the form applies and we merely lack it.
+    body = pcor_offer.status({"county": "Nowhere", "deed_type": "grant-deed"}, "/x")
     assert body["available"] is False
     assert "Nowhere" in body["reason"]
     # Invariant #4: the reader learns WHICH of "we cannot" and "there is

@@ -1730,6 +1730,71 @@ we reach it.
 
 ## Parked tickets (scoped, not scheduled)
 
+- **NOTIF1 — BUILT, and then corrected the same day.**
+  **DECIDED** 2026-08-20 (investigate), 2026-08-21 (build as a separate
+  strip). **BUILT** — yes, #244 and #245.
+
+  **What it fixes.** The worklist selects `ds.status IN ('sent','viewed')`
+  — the two UNDECIDED statuses — because a worklist shows outstanding work
+  and an approval is the END of outstanding work. So a resolved share does
+  not change its row. **It removes it.** A vanished row is
+  indistinguishable from one she handled, one that expired, one that was
+  revoked, and from nothing at all. **A disappearance is not a
+  notification.** Until this strip, the email was the only thing telling
+  her — E1's own named failure.
+
+  **NOT a fourth worklist band** (owner-ruled): the hero counts rows and
+  promises "things that need you"; an approval needs nothing, and counting
+  it inflates the number with finished work. An approval is news, not a
+  task, and the two do not share a container.
+
+  **TASK-FREE, with the gap closed by NAVIGATION** (owner-ruled). She
+  learns her reviewer approved and would otherwise have to go find the
+  deed. The property is a LINK — not a "Review it" button, which would
+  turn news into work. Pinning that surfaced a second affordance nobody
+  had noticed: the sentence was also a button, giving one destination two
+  pressable surfaces and making a statement read as a prompt. The sentence
+  is text now; the dismiss is the only button.
+
+  **THE DEFECT #244 SHIPPED, FOUND BY THE OWNER AND FIXED IN #245.** The
+  strip read `(n.payload->>'deed_id')::int`, and
+  `utils/notifications.create_notification` has no `payload` parameter —
+  it never has. **NULL for every production row, while the unit tests
+  passed on a fixture that supplied `deed_id` directly.**
+
+  *The rule was right and the corpus could not exercise it* — the same
+  shape recorded in #243 hours earlier, repeated by the person who
+  recorded it (§14.7). Both consequences were silent: the strip could name
+  no property, and its href fell through to the stored `link`, which is a
+  TRACKER — **the orphan ruling broken a second time by the same
+  preference for a stored destination over a known document** the worklist
+  had already corrected once.
+
+  `deed_id` is now a COLUMN. **A link is a destination, not a schema:**
+  parsing a deed id out of a query string would make every future route
+  change a silent data migration, and `focus` is the share row's id
+  anyway.
+
+  **Two of four call sites were REVERTED rather than patched**, and a
+  static scope check is what found it — `_tell_everyone` and
+  `_tell_officer_dispatch_declined` take only `request_id` and never load
+  the deed, so passing one would have been a runtime `NameError` on paths
+  nothing exercises without a live signing. No test could have caught
+  that; reading the signatures did.
+
+  **The status-collision report was checked and did not hold.** The
+  `status = 'viewed'` write lives on the VIEW endpoint and is guarded
+  twice (`if status == 'sent' and not viewed_at`, plus `WHERE id = %s AND
+  status = 'sent'`). Approve writes `'approved'`, reject writes
+  `'rejected'`; they cannot collide.
+
+  **Three pins were corrected while being written**, each for a different
+  reason, and all three are the same family: one asserted the OLD href
+  precedence (the defect); one forbade the noun `payload` and tripped on
+  the SQL comment explaining the fix, so the pin now strips SQL comments
+  as `code_only` strips Python ones; one forbade `/Resolve/` anywhere and
+  tripped on the component's own name `RecentlyResolved`.
+
 - **NOTIF1 — the approval record has no reader, and the worklist
   structurally cannot be one.**
   **DECIDED** — investigation reported 2026-08-20; the build is NOT ruled.
