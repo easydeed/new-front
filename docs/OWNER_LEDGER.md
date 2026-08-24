@@ -1743,8 +1743,8 @@ we reach it.
   cost trade and turned out to be answerable by reading the instrument.
   This one is not.
 
-  **The cross-reference in this entry was stale within an hour of being
-  written** — it said PCOR3-DOD "is also still open" while that question
+  **THE CROSS-REFERENCE IN THIS ENTRY WAS STALE WITHIN AN HOUR OF BEING
+  WRITTEN** — it said PCOR3-DOD "is also still open" while that question
   was being closed. Fixed here, and noted because it is the ledger
   sweep's exact subject: an entry that describes another entry's state
   starts decaying the moment it is written.
@@ -2441,6 +2441,20 @@ we reach it.
 
 - **THE LEDGER SWEEP RECURS — every wave boundary, or every 10 merged
   tickets, whichever comes first.**
+
+  **THE DECAY RATE, MEASURED (2026-08-24), and it is a stronger argument
+  than the original finding.** The sweep was justified by six stale rows
+  out of eight — a snapshot of accumulated drift, which invites the reply
+  "then sweep occasionally". PCOR3-ADDR's entry said PCOR3-DOD "is also
+  still open" **while that question was being closed in the same
+  session** — stale in under an hour, by the same author, in the same
+  ticket.
+
+  Six-of-eight says the ledger drifts. Under-an-hour says **an entry that
+  describes another entry's state begins decaying the moment it is
+  written**, and no plausible sweep interval catches that. What the
+  trigger buys is not freshness; it is a scheduled moment at which
+  cross-references are re-read as claims rather than as context.
   **DECIDED** 2026-08-19, owner-ruled.
   **BUILT** — the trigger is this entry; the sweep itself is a person
   reading code, deliberately, and that is the whole point.

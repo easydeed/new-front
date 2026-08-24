@@ -14,3 +14,23 @@ canonical policy; this is only the digest.**
   never silently decided in either direction.
 - Invariants: blocking CI (no `|| true`), OpenAPI + six-flow baselines stay
   green, tsc baseline only goes down. Legal choices are never auto-applied.
+
+## Git commands take an absolute `-C`, always
+
+`git -C /home/user/new-front add …` (and `commit`, `push`). **Never a bare
+`git add <path>` from a subdirectory.**
+
+Twice in one session a `git add docs/…` was run from `backend/`. It
+errors, the commit is then empty, and `git push` reports *"Everything
+up-to-date"* — **a success message for having pushed nothing.** Both were
+caught by reading the output; neither was prevented.
+
+`-C <absolute root>` removes the working directory as a variable rather
+than asking anyone to track it. This lives here because `.git/hooks` is
+not version-controlled and does not survive a container recycle, which
+this project has seen twice — **the digest is the only enforcement
+surface that outlives the machine.**
+
+**And read what a git command printed, never its exit code alone.** A
+failed `add` followed by a "successful" push is the shape: every
+individual command did what it said.

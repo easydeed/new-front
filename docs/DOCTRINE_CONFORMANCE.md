@@ -1428,6 +1428,63 @@ sees it. Ten cases took a minute here and found four missed spellings.
 
 ---
 
+### §14.16 — Before costing a field, check whether the document asks for the fact (2026-08-24)
+
+**Statement.** A "is this worth building?" question assumes the thing is
+buildable-and-wanted and argues about price. **Check the premise first**,
+because a cost argument about something that should not exist is
+reasoning that cannot reach the right answer however carefully it is
+done.
+
+**The instance.** PCOR3 asked whether the builder should collect a date of
+death, to prefill one box on the BOE-502-D. The advisor and I both
+reasoned about COST — a field across five instruments against one filled
+box — and both leaned no, correctly, for the wrong reason.
+
+**The affidavit of death does not ask for a date of death.** LA, Ventura,
+San Bernardino, Santa Clara and Sacramento all name the decedent,
+reference the attached certified copy of the Certificate of Death, cite
+the prior deed and legal description — and never ask for the date.
+Probate Code §210 requires the certificate as an attachment, so the
+instrument references the document rather than restating its contents.
+
+**Reading the instrument dissolved the question instead of answering it.**
+The trade was never live.
+
+**The general form**, past forms entirely: when a proposal is framed as a
+trade, find the premise the trade assumes and test it. A field's cost is
+worth arguing only after establishing that something asks for the fact.
+
+---
+
+### §14.17 — Evidence is recorded with its PROVENANCE, and two kinds must not collapse (2026-08-24)
+
+**Statement.** A ledger's value is that future readers trust it without
+re-checking. That trust is only safe if a claim carries **how it was
+established**. A finding from a web search and a finding from a measured
+reference artifact are different evidence, and writing them the same way
+makes the weaker one inherit the stronger one's standing.
+
+**The instance.** PCOR3's date-of-death closure rests on the owner's
+review of five county affidavit forms. **I have not read those forms.**
+The ledger records it as the owner's research with its source named,
+rather than as something the repository verified — and FORMS_TRIAGE does
+the same for the value-of-estate recital variation.
+
+**Why this matters more here than elsewhere.** The FORMS work's whole
+discipline is that references are FETCHED AND MEASURED before building —
+that is how two wave-1 certificate predictions were caught and corrected
+(see FORMS_TRIAGE's correction note). A repository that records
+search-sourced claims in the same voice as measured ones has quietly
+abandoned that discipline while appearing to keep it.
+
+**The mechanical form:** every recorded finding names how it was
+established. "Measured against the reference PDF", "read from the source",
+"owner's research, sources named", "reported and not verified" are four
+different standings and should read as four different things.
+
+---
+
 ### §14.11 — A move is not a rename: it is a rewrite unless the bytes are compared (2026-08-20)
 
 **Statement.** Moving a function to a new file feels like a rename and is
@@ -1550,6 +1607,48 @@ outright on a parse error. All three probed by committing them.
 **Statement.** A shape recognised, named, documented and reasoned about
 in the morning is fully available to recur in the afternoon, in the code
 written to prevent it, by the person who wrote it down.
+
+**THE MECHANISM, FINALLY BUILT (2026-08-24) — and its limits stated.**
+Twice in one session `git add docs/…` was run from `backend/`. It errors,
+the commit is empty, and `git push` reports *"Everything up-to-date"* —
+**a success message for having pushed nothing.** Both were caught by
+reading the output; **neither was prevented**, which is this section's
+subject exactly: the second happened after the first was written down.
+
+The owner's demand was right — a shape identified twice wants a mechanism
+rather than a third resolution to be careful. What was actually
+available, checked rather than assumed:
+
+  · **A git hook: NOT available.** `.git/hooks` is not version-controlled
+    and does not survive a container recycle. This project has seen two
+    recycles in one engagement, one of which also took the entire Python
+    dependency set and the Postgres data directory. A hook installed
+    today is gone tomorrow, and a mechanism that silently stops existing
+    is worse than none (§14.9).
+  · **A pre-commit framework: NOT present**, and adding one to enforce a
+    single agent-side habit is a repo-wide dependency bought for a
+    personal failure.
+  · **`git -C <absolute root>`: AVAILABLE, and adopted.** It removes the
+    working directory as a variable rather than asking anyone to track
+    it. Verified: run from `backend/`, it resolves against the root.
+
+The rule lives in **`CLAUDE.md`** — the digest injected into every
+session — because that is the only enforcement surface that outlives the
+machine.
+
+**AND THE HONEST LIMIT: this is a prompt, not a gate.** `-C` still has to
+be typed. It is strictly better than "remember to cd" (no window between
+two commands in which to forget) and strictly weaker than something that
+fails loudly. **Recorded as what it is**, because a mechanism described as
+stronger than it is becomes the next §14.9 — a control that makes the
+repository look equipped.
+
+The real reason this stays low-severity: both instances were caught by
+**reading what the command printed rather than trusting its exit code**,
+which is already practice and worked both times. The paired rule is in
+the digest beside the first.
+
+---
 
 **THE SHARPEST INSTANCE, 2026-08-20 — one hour, not one morning.** DARK1
 found that a jest pin asserted `components/landing-v2/VideoPlayer.tsx`
@@ -2258,6 +2357,7 @@ on.
 |---|---|
 | 2026-08-18 | §14.7 added — knowing a failure mode does not confer immunity from it. Three instances of one shape in a day: a pin quoting an implementation that broke on a correct change; a pin quoting an implementation that WAS the defect and stayed green through it; and the same defect inside the remedy for the first two, where the route-guard sweep — being rewritten because it matched a marker string — was about to match a hook's NAME instead. `useRequireAuth` navigates from an effect, so a page ignoring its `checked` flag still paints content for a frame, and a name-matching sweep would have certified that half-adoption exactly as the old one certified a send-only token read. Caught by reading how `/team` actually used the hook rather than treating the import as the whole pattern. The third instance settles the question the first two raise: it was written the same day the rule was written down, in the remedy for it, by its author. The rate is stated in the entry as evidence the shape is COMMON IN THIS KIND OF WORK rather than accelerating — three in a day reflects a day of unusually dense pin-writing, and a week of building features rather than instruments would show none while the shape stayed exactly as available. Operative consequence — when a shape is identified, ask what MECHANISM can hold it and prefer that to a paragraph, since a note is a thing to remember and remembering is the faculty that just failed. Corollary: a mechanism adopted partially fails in the gap between its halves, and only a sweep can enforce that both arrived. Also recorded in `routeGuards.test.ts` beside its bounded window: it fails CLOSED — an unreadable guard reports an unguarded page — where §14.4's tsc window failed open, so the two must not be made symmetric. And a prediction that missed: three of fourteen pages were passing incidentally, so at least one of the four unverified was expected to fail; none did. A base rate is not evidence about a particular case. |
 | 2026-08-18 | §14.6 added and §15.1 widened, from DASH-SOFTEN. §14.6: when a rule IS the design, the pin covers the domain rather than a point. The setup checklist expands exactly one step and that is not a feature of the card, it is the card — so the pin renders all sixteen arrangements of its four booleans rather than one. A sample would have passed against the obvious wrong implementation: rendering every incomplete step as open is indistinguishable from rendering the first when only the first is incomplete. Probed by making exactly that substitution — four assertions fail. A pin checking an invariant in one arrangement records an observation where a constraint was wanted. §15.1 widened past code: the same shape appeared in a document. DASH-SOFTEN needed to know whether violet — doctrinal, reserved for "proposed legal choice" — could be an ordinary accent on a card with no legal choices in it. BRAND.md answers it in the ADMIN-CONSOLE section, which is not where anyone with a dashboard question would look; the reasoning was never about admin and neither is its scope. General form: an answer filed under the surface it was first needed for is invisible to the next surface that needs it — so when a ruling resolves a question about a doctrinal rule, the instance goes with the surface and the principle goes with the doctrine. Also recorded: "All Good Escow" is absent from the repository, so it is a real row rather than fixture data, and `requestedByDefault.ts` makes `users.company_name` the RECORDING REQUESTED BY default — a typo in a profile field reaches the face of a recorded instrument with no confirmation step between. Correctly not fixed by a gate, since the officer typing her own company name is the authority on it, but it is the shortest path from a keystroke to a recorded document in this product. |
+| 2026-08-24 | PCOR3. §14.16 added — before costing a field, check whether the document asks for the fact. The date-of-death question was argued as a cost trade (a field across five instruments against one prefilled box) and both parties leaned no, correctly and for the wrong reason: the affidavit of death does not ask for a date of death at all, in any of five county versions, because Probate Code §210 requires the death certificate as an attachment and the instrument references the document rather than restating it. Reading the instrument DISSOLVED the question instead of answering it; the trade was never live. General form: when a proposal is framed as a trade, find the premise the trade assumes and test that first. §14.17 added — evidence is recorded with its PROVENANCE, and search-sourced findings must not be written in the same voice as measured ones. The county-form findings are the owner's research with sources named, NOT repository-verified, and FORMS_TRIAGE says so; the FORMS discipline is that references are fetched and measured before building (it caught two wrong wave-1 certificate predictions that way), and a ledger that collapses the two standings abandons that discipline while appearing to keep it. §14.7 gains its mechanism at last: `git add` from a subdirectory errored twice in one session, leaving an empty commit and a push that reported 'Everything up-to-date' — a success message for pushing nothing, self-caught by reading output both times and prevented neither. Checked rather than assumed: a git hook is NOT available (`.git/hooks` is untracked and does not survive a container recycle, of which this engagement has had two), a pre-commit framework is not present and is not worth adding for one agent-side habit, and `git -C <absolute root>` IS available and removes the working directory as a variable. It lives in CLAUDE.md, the only enforcement surface that outlives the machine — and is recorded as a PROMPT rather than a gate, because `-C` still has to be typed, and a mechanism described as stronger than it is becomes the next §14.9. Also: a ledger cross-reference went stale in under an hour, same author, same session, which is a stronger argument for the sweep trigger than the original six-stale-rows-of-eight was — that says the ledger drifts; this says an entry describing another entry's state decays immediately, and no sweep interval catches it. |
 | 2026-08-21 | NOTIF1, built and corrected the same day. §14.5 gains a SECOND version-control instance: `git checkout <path>` used to revert a mutation probe also discarded uncommitted work in that file, because the command restores from HEAD and does not distinguish a probe from the thing being probed. The pair is the point — `git add -A` sweeps IN what you did not choose, `git checkout <path>` sweeps OUT what you did; same root, a command scoped to 'everything here' run by somebody thinking about one file, and neither prints what it touched. Caught only because the probe sat on a module whose tests run in a second; a revert of an untested file would have been silent. Mechanical form: stash a probe or copy the file aside, never revert a path edited this session. Also recorded: NOTIF1 shipped reading `payload->>'deed_id'` from a writer with no `payload` parameter, so it was NULL for every production row while unit tests passed on a fixture that supplied it — 'the rule was right and the corpus could not exercise it', the same shape recorded hours earlier and repeated by its recorder (§14.7). Both consequences were silent, and the fallback broke the orphan ruling a second time by preferring a stored destination over a known document. Two of four call sites were reverted after a STATIC SCOPE CHECK found the change would be a runtime NameError on paths no test exercises — an instrument reading signatures found what no fixture could. And a pin written for the task-free ruling surfaced a defect it was not written to catch: a sentence that is also a button gives one destination two pressable surfaces, making a statement read as a prompt. |
 | 2026-08-20 | §14.11 added — a move is not a rename; it is a rewrite unless the bytes are compared. GUIDE1 moved `getTimeGreeting` out of a file named for a deleted component and I retyped the afternoon boundary as `hour < 18` where the original reads `hour < 17` — 'Good evening' an hour late for every user, every day, invisible to tsc, eslint and every test, and not obviously wrong to anyone reading the result. A rename is performed by a tool and cannot alter behaviour; a move is performed by a person and can alter anything, and the two are indistinguishable in a diff review because both show as one deletion and one addition. What caught it was diffing the new file against the old one before deleting the old one — NOT re-reading the new file, which is how the error got written and which only re-confirms the author's intent rather than the source's content. Mechanical form: any move of logic between files gets a byte comparison against its source, in the same session, before the source is deleted. The inverse of §14.1: when you are moving code the spelling IS the property, and the moment you are typing rather than copying you have left the move and entered a rewrite. |
 | 2026-08-20 | GUIDE0's investigation. §14.5 gains a FIFTH habitat — an EVIDENCE SOURCE: `/api/ai/chat` lost its last reachable caller on 2026-04-28 when the legacy-wizard removal deleted the render sites of its only two callers, and RED-H1.3 (2026-08-04) then Doctrine B (2026-08-10) hardened and re-ruled it three and four months after it went dark. That also explains Doctrine B's empty log: it recorded 'two days of an empty table' and deferred the usage evidence pending accumulation, but nothing could write to that table, so waiting would have produced the same zero forever. The asymmetry: a query returning zero cannot distinguish 'nobody asked' from 'nobody could ask' — §14.8's absence-is-neutral rule meeting §14.5 and finding that a disconnected pipe is not neutral, it reads as a finding. General form: before waiting on evidence to accumulate, verify the mechanism producing it is connected; one call-site census is cheaper than the wait it replaces. The transferable part is WHY it survived review — the deferral's stated reason was TRUE. The table really was two days old. A true, checkable, sufficient-sounding reason was offered and accepted, and the question it displaced (can anything write to this?) was never asked because the first answer satisfied. A reason that is true and irrelevant is more durable than one that is false, because nothing about it invites a second look. §14.10 added (owner-ruled) — a component's NAME is a product claim and nobody reviews it for truth: banned-claims scanning reads product-facing prose, not component names, file names, context names or toggle labels, and what shipped under 'AI Assist' via `AISuggestion`/`AIAssistContext`/`ai-helpers.ts` is hand-written static copy with no model behind it. The larger half of that finding is good news: the copy is already doctrine-compliant — hedged, statute-citing, never asserting recorder behaviour — so the EXPLAIN half of Doctrine B was built and shipped months ago, unmodelled and undrifting, while the endpoint meant to provide it sat unreachable. A name that asserts a capability holds to the same standard as a sentence on the marketing site. |
