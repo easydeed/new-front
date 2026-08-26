@@ -1228,6 +1228,77 @@ we reach it.
   The lesson transferring is rarer than it should be. Four sightings this
   week of a lesson NOT transferring; this is the one that did.
 
+## Standing product positions — DECIDED and BUILT, and they govern future work
+
+Not "closed": these are live constraints on what may be built next. Filed
+separately from the closed list because an entry read as history is an
+entry nobody checks a new feature against.
+
+- **FEES — we never quote, process, split, or suggest one.**
+  **DECIDED** — NOTARY0b: no fee handling in v1. **Refined by EMAIL2:**
+  displaying a figure the officer typed is *passing information between
+  two people, not brokering between them* — and the difference is
+  entirely that **no code has an opinion about the number.** A default
+  would be a suggestion. Arithmetic would be a quote.
+  **BUILT** — yes, and enforced by TWO pins doing different jobs:
+
+  1. `test_the_availability_path_carries_no_fee_at_all` — asserts `fee`
+     is not in `inspect.signature()` of either `notary_invited` or
+     `send_notary_invited`. **Pinned at the signature, not the output:**
+     *a `fee` parameter that exists is a fee somebody wires up later.*
+  2. `test_nothing_anywhere_computes_defaults_or_suggests_a_fee` — sweeps
+     every `fee`-mentioning line in `email_templates.py` and
+     `notifications.py`. This is the one that keeps the ruling intact;
+     the signature pin covers one path.
+
+  **And the two paths differ for a reason, which is the substance.** On
+  DISPATCH a fee attaches to a specific job at a specific time, so a
+  figure is a term of that job. On the AVAILABILITY path she is posting
+  windows before anything is agreed, so a figure shown then **reads as an
+  offer surviving whatever time gets picked** — the product implying a
+  term nobody agreed to. `notary_dispatched` takes `fee`; `notary_invited`
+  cannot.
+
+  **WHY THIS ENTRY EXISTS AT ALL, and it is the finding (2026-08-26).**
+  This position was ruled, refined, implemented and double-pinned — and
+  had **no ledger entry** for weeks. It surfaced only because it was
+  cited from memory as an example in a doctrine section, could not be
+  verified against either document, and was omitted for that reason
+  (§14.22's provenance note).
+
+  **That is the inverse of this ledger's usual failure.** The convention
+  at the head of this file exists because entries were read as describing
+  shipped things that were not built — prose outrunning code. This is
+  code outrunning prose: **a rule with a mechanism and no entry.** It is
+  the less dangerous direction and it is not harmless, because the
+  question *"may we show a fee here?"* has a real answer that nobody
+  could look up, and the answer is neither yes nor no but *depends which
+  path*. Anyone who reasoned about it from the code alone would have had
+  to find both pins to learn that.
+
+  **What a reader who believes this entry should still ask** (per the
+  second convention — naming the question this entry would otherwise
+  close):
+
+  · **The sweep names its two modules.** It covers
+    `email_templates.py` and `notifications.py` *by filename*, and
+    **nothing asserts those are the only two places a notary fee could
+    appear.** A third module would be unswept and green.
+
+  · **No frontend pin covers this at all.** Checked, and the result needs
+    stating precisely rather than reassuringly: a word-boundary search
+    finds `fee` in five frontend files, and **all five are a DIFFERENT
+    fee** — Stripe processing fees in the admin revenue tab, our own plan
+    fees in `/terms` and the pricing page, a document-prep comparison in
+    `pricing.ts`. **None is the officer↔notary fee this ruling governs.**
+    So the position is not currently violated on the frontend; it is
+    simply not *defended* there, and those are different claims.
+
+  · One frontend file carries the doctrine without being asked to:
+    `partnerRegistry.ts` records *"deliberately no field here for a
+    default, an auto-apply, a fee"* — §1's reasoning arriving in a
+    registry. Evidence the rule spread, not evidence it is enforced.
+
 ## Findings that changed how we work
 
 - **CORS1 — A REQUIRED VARIABLE THAT NOTHING READ, SET CORRECTLY, AND
