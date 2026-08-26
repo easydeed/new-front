@@ -1234,6 +1234,133 @@ Not "closed": these are live constraints on what may be built next. Filed
 separately from the closed list because an entry read as history is an
 entry nobody checks a new feature against.
 
+- **PCOR-WIZ — buyer-assisted PCOR completion.**
+  **DECIDED** 2026-08-26, owner-ruled — investigation reported, all
+  rulings made, **the allowlist has no undecided members.**
+  **BUILT** — no. Step 1 unblocked and not started.
+
+  **THE BOUNDARY, which does not reopen.** The buyer answers facts about
+  their own transaction. Part 1's seventeen reassessment exclusions route
+  to the officer. Those boxes are legal characterizations sworn under
+  penalty of perjury — *"solely between spouses"* covers a divorce
+  settlement mid-decree, a spouse added who is not on the loan, a
+  domestic partnership never registered with the Secretary of State — and
+  a consumer with no counsel must not be asked them by us. **The
+  protection is structural first and disclosed second: a disclaimer over
+  an interface that asks the question anyway has not protected anyone.**
+
+  **THE SPLIT, measured against `boe502a_rev18.pdf` (hash-pinned in
+  `services/county_forms.py`), not recalled.** 228 AcroForm entries; 177
+  actual input widgets (65 text, 112 button); the rest are parent nodes.
+
+  | bucket | widgets |
+  |---|---|
+  | already filled from the deed | 9 |
+  | buyer-answerable | 111 |
+  | officer-only | 55 |
+
+  Officer-only = Part 1's 44 lettered widgets + **4 unlettered ones** + 7
+  moved by §14.23.
+
+  **THE HAZARD THAT SHAPES THE BUILD.** Part 1 cannot be identified by
+  letter prefix in either direction. The form reuses letters across parts
+  (`A.` is both the spouses exclusion and Part 2's property type), and
+  **item L1's three sub-checkboxes carry no letter at all** — named
+  `This is a transfer of property 1. to/from a revocable trust…`, plus
+  item Q's free text. A prefix classifier routes trust characterizations
+  to a consumer and looks like a working implementation. **The officer-only
+  set is an enumerated allowlist of exact field names pinned by set
+  equality, never a pattern.**
+
+  **THE RULINGS.**
+
+  1. **§14.23 created** — a fact whose only use is a legal determination
+     goes to the officer regardless of who holds it. Moved both lease
+     terms (item M's 35-year threshold), the improvement bond and its
+     balance, and the bare `DATE OF DEATH` (item D). The special-terms
+     paragraph moved on a separate ground: **a paragraph cannot be
+     allowlisted.**
+
+  2. **`A. Date of transfer, if other than recording date` — OFFICER-ONLY.**
+     Measured at page 2 top: its `A.` is **Part 2's**, not Part 1's. The
+     buyer cannot decline it, because **both states are answers** —
+     filling it claims the transfer date differs from recording, leaving
+     it blank claims they match — and one of them moves a tax year.
+     Compare the deed-side `transfer_date`, ruled blank because we cannot
+     know when an unsigned deed was executed; **this is worse, because
+     there blank was an omission and here blank is an assertion.**
+
+  3. **The personal-property pair — BUYER-ANSWERABLE, ruled together,
+     two conditions.** It is their furniture and they are the only ones
+     who know; removing the question does not remove the incentive, it
+     removes the disclosure, and the form's own instructions already
+     answer the worry by requiring an itemized list before any
+     adjustment. **Condition one:** guidance is explanation-only and must
+     not invite allocation — no examples of what counts, no mention of
+     the tax effect in either direction. **Condition two:** both answers
+     are flagged explicitly in the officer's review, because a
+     personal-property allocation is the field an assessor questions and
+     she should look at it deliberately rather than scan past it.
+
+  4. **Token surface — street segment only**, and on a NEW argument.
+     NOTARY2's reasoning does not transfer: a PCOR buyer owns the
+     property and knows its address. What survives is about the token
+     rather than the addressee — **a token in an inbox is not proof of
+     identity**, so a page showing legal description and APN to whoever
+     holds the link is a leak regardless of whether the addressee would
+     have been entitled. Never: APN, legal description, county, deed
+     type, grantor, full address, the deed itself, **or any Part 1 field
+     in any form — including greyed out or captioned "your officer will
+     complete this,"** which has still shown a consumer the question.
+
+  5. **Retention — three lifetimes, not one.** Buyer contact purges at
+     `CONTACT_RETENTION_DAYS` (imported, not re-declared). The answers are
+     **deleted at the moment the officer accepts them** rather than aged
+     out, so the sensitive data lives afterwards only on the deed record
+     she already controls. Abandoned wizards purge on **the token's own
+     expiry**, with an immediate officer cancel available but not relied
+     on: waiting for her to cancel holds purchase price and financing
+     terms indefinitely on the strength of someone noticing that nothing
+     happened, and **a retention promise that depends on noticing an
+     absence is not a promise** (§14.18).
+
+  6. **No model.** Every explanation the wizard needs is a definition or
+     a "look on line X of your closing statement" — static, pinnable,
+     no drift, no latency, per GUIDE0. A free-text channel becomes a
+     ticket only if the pilot shows buyers asking what the copy does not
+     answer — an observation, not a prediction (§14.20).
+
+  7. **Every question has three responses**, not two: an answer, *"I
+     don't know"*, and *"ask my escrow officer"*. They mean different
+     things and do not collapse into one control. Both exits leave the
+     field **empty** — never a sentinel that could reach a form.
+     Consequence: **no required fields and no validation that blocks
+     submission.** A buyer may submit having answered nothing, and that
+     is information the officer did not have before.
+
+  8. **The invitation email names HER, not us**, and says what to do if
+     they were not expecting it. **An unexpected email asking for a
+     purchase price is what a phishing attempt looks like** — so the
+     sender must be the person the recipient already knows, and the
+     message must offer a route back to her that does not go through the
+     link. A page whose only proof of legitimacy is its own link is
+     indistinguishable from what it is trying not to be.
+
+  **BUILD ORDER — allowlist first, and the ordering is the point.** (1)
+  the split as data, 55 names, pinned by set equality, no UI; (2) the
+  token package and its frozen key set; (3) the request + worklist chase
+  row; (4) the wizard, static guidance, three exits, no progress
+  indicator; (5) the review screen — **its own ticket**, because
+  confirming a consumer's assertion is a different thing to get wrong
+  than confirming a machine's proposal; (6) retention. If the data path
+  completes before the filter exists, **the only thing closing that
+  window is somebody remembering.**
+
+  **What a reader who believes this entry should still ask:** none of it
+  is built. The counts above are measurements of the FORM, not of any
+  implementation — there is no allowlist in the tree yet, and nothing in
+  CI asserts any of these boundaries today.
+
 - **FEES — we never quote, process, split, or suggest one.**
   **DECIDED** — NOTARY0b: no fee handling in v1. **Refined by EMAIL2:**
   displaying a figure the officer typed is *passing information between

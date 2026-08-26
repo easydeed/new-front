@@ -1355,6 +1355,42 @@ it by BEHAVIOUR — what it writes, who calls it, whether a flag gates it —
 never by name, and never by the name a ticket used. When a ticket names a
 file, confirm the file it names is the file it means.
 
+**WIDENED PAST MODULES, 2026-08-26 (PCOR-WIZ).** The same shape arrived
+at FIELD level, inside a single document, and the stakes were a
+consumer's guess on a sworn form.
+
+The PCOR's AcroForm carries two boxes on **one row** of Part 3 — measured
+at page 2, both at `y ≈ 247–259`, at `x = 330` and `x = 485`:
+
+  · `B. if yes, enter the value of the personal/business property`
+  · `B. if yes, enter the value of the personal business property incentives_1`
+
+Value, and incentives. Adjacent, part of one question. **A classifier
+sorted them into opposite buckets on the strength of a slash** — one to
+the buyer, one to the unplaced pile — and the split read as a working
+implementation in both directions.
+
+Two things generalise from it:
+
+  1. **Coordinates settled it; names could not.** Reading the two names
+     produces an argument either way. Reading their rectangles produces a
+     fact: same row, 155 points apart, one question. When a name is
+     ambiguous, the artifact usually carries a non-name property that is
+     not — position, caller, output, type. Find that one.
+
+  2. **The remedy is that membership is a DECISION, not a derivation.**
+     The officer-only set is an enumerated allowlist of exact field
+     names, pinned by set equality. A pattern-based classifier that
+     splits adjacent widgets on one character will do it again — the
+     allowlist does not prevent that, it makes it *survivable*, because
+     every member had to be put there by someone.
+
+**And the same document produced the prefix version of the hazard**: the
+form reuses letters across parts (`A.` is a Part 1 exclusion *and* a Part 2
+property type), while item L1's three sub-checkboxes carry no letter at
+all. Any prefix rule routes trust characterizations to a consumer and
+looks correct doing it.
+
 ---
 
 ### §14.12 — A removed claim must read as a NO, as legibly as a yes (2026-08-20)
@@ -1654,6 +1690,54 @@ habit: `git merge-base HEAD origin/main` equalling `git rev-parse
 origin/main` is the whole property, local, deterministic, no API, no
 "unknown" state. It is one line in the same breath as the checkout, not a
 separate discipline to sustain.
+
+---
+
+### §14.23 — A fact whose only use is a legal determination is that determination, one indirection out (2026-08-26, owner-ruled)
+
+**Statement.** Moving a question from *"which box applies?"* to *"what
+number goes here?"* does not move the decision. If the only thing the
+number does is settle a legal characterization, **the person who supplies
+the number has made the characterization** — the form has merely routed
+it through a different control.
+
+**Where it was ruled.** PCOR-WIZ's boundary is that a buyer answers facts
+about their own transaction and Part 1's seventeen reassessment exclusions
+route to the escrow officer. Several fields sat between the two: a lease's
+remaining term, an improvement bond's outstanding balance, a bare date of
+death. Each is plainly a fact, and each exists on the form so that a Part 1
+item can be decided from it — item M turns on whether a lease runs 35 years
+or more.
+
+**A buyer who misremembers a lease term has decided item M.** No box was
+put in front of them; the consequence is identical.
+
+**The rule, as ruled:** a fact whose only use is a legal determination goes
+to the professional, **regardless of who holds it.** Collecting it from the
+consumer and deciding from it afterwards is asking the question in two
+steps, with their guess still load-bearing one indirection later.
+
+**AND THE DERIVE-IT-OURSELVES ALTERNATIVE IS WORSE, WHICH IS THE PART
+WORTH RECORDING.** The tempting escape is to ask the innocent underlying
+fact and compute the consequence — *"what date did you close?"*, and we
+compare it to the recording date ourselves. That converts the consumer's
+fact into **our claim to an Assessor**, on a form they sign. It relocates
+the exposure rather than reducing it, and it relocates it onto the party
+with no signature on the document. A smaller-looking problem is not a
+smaller problem.
+
+**A corollary the PCOR forced, on a different ground.** Free text takes
+the same route, for a reason that is not about determination at all:
+*"Explain any special terms, seller concessions…"* feeds the Assessor's
+valuation, and **a paragraph cannot be allowlisted.** Every other field's
+protection is an enumerated set of permitted values; a sentence has none.
+Where the safety mechanism cannot reach, the question does not go to the
+consumer.
+
+**The test.** For any field a consumer might answer: *if they get this
+wrong, what becomes wrong?* If the answer is a legal characterization
+rather than a fact about their own life, it is not their question — no
+matter how factual the wording is.
 
 ---
 
