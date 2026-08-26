@@ -1753,6 +1753,24 @@ we reach it.
   visible. That is worth stating because it is not a property either gate
   has on its own, and it is not one we designed.
 
+  **RECORDED AS LUCK, DELIBERATELY (§14.19's family).** Nobody chose to
+  give the two frontend gates opposing failure modes; it fell out of what
+  eslint and tsc each do with an unparseable file. **An accident that
+  carries weight, written down as a control we built, teaches the next
+  reader that the coverage is deliberate — and so stops them asking
+  whether it holds anywhere else.** It does not: no other pair of gates in
+  this repository is known to have this property, and none has been
+  checked. That is the sentence this entry exists to prevent someone
+  assuming away.
+
+  **AND THE INSTINCT FOR THE HARD HALF (owner, 2026-08-26): the answer is
+  probably not a number.** A suspicious-drop threshold forbids legitimate
+  improvement, which is §14.4 running in reverse — the ratchet defended by
+  refusing the thing it exists to encourage. The parse floor works because
+  it is CATEGORICAL: *did the measurement happen at all?* Look for the
+  categorical form of "the measurement happened" — every file the compiler
+  was asked about was actually read — before reaching for a delta.
+
   **Scope when it runs:** a floor on the tsc side — fail if any file
   fails to parse, and fail if the count drops by more than some margin
   without a corresponding file-count explanation. The second half is the

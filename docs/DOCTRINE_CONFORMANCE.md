@@ -1701,6 +1701,18 @@ pinned on the payload side, where the edit that would break it happens.
 distinguishes the branches — not what breaks. Nothing breaks; that is the
 whole problem.
 
+**AND THE PLACEMENT RULE, which generalises past this instance.** A
+cross-file constraint with no import between the files gets its pin
+**where the breaking edit happens, not where the breakage is felt.** Here
+that means `deedPayload.ts`, not `deedResume.ts` — the author who would
+add a `city` key is editing the payload, has no reason to open the resume
+path, and will never see a comment written there. A pin placed where the
+damage surfaces is a pin that fires *after* the decision it was meant to
+inform; a pin placed at the edit site is an argument arriving in time.
+
+The rule holds for any invariant spanning files that do not reference each
+other, which is exactly the set of invariants nothing else declares.
+
 ---
 
 ### §14.20 — A gate that knows where to look cannot measure findability (2026-08-26, owner-ruled)
@@ -1747,6 +1759,23 @@ rather than the first (a summary naming one of five is a claim that the
 section is done), and a container that clips must not clip the fields the
 summary exists to surface. Both were fixed here. Neither generalises into
 a gate, and saying so is the point of the section.
+
+**AND THE SECTION APPLIES TO ITSELF, which is where it either means
+something or does not.** The survey that found the Recording Info instance
+found two more of the same shape — the typed-facts summary and the
+property summary, each reporting one field of several. The pattern is
+plain and the fix is cheap. **They were not fixed** (owner-ruled), and the
+reason is this section:
+
+> **A pattern is evidence of a shape, not evidence of a problem.**
+
+Neither has a *reported* miss behind it. Fixing them on the strength of
+the pattern would be predicting, from inside, which surfaces are hard to
+use — the precise judgement this section says we cannot make, and the one
+the Recording Info instance proves we get wrong, since 2616 assertions
+made it confidently and were all mistaken. **They wait on a pilot
+observation, not on a spare afternoon.** A doctrine section that is
+suspended the moment it recommends inaction is a paragraph, not a rule.
 
 ---
 
