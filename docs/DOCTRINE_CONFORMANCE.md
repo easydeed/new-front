@@ -1657,6 +1657,55 @@ separate discipline to sustain.
 
 ---
 
+### §14.22 — A principle is free while it agrees with what you wanted to do anyway (2026-08-26, owner-ruled)
+
+**Statement.** A section becomes a RULE at the moment it forbids something
+shippable. Before that it is a preference with a number on it. **The cost
+is the evidence** — not the argument, not the prose quality, not how many
+places cite it.
+
+**Filed here rather than in §14.20, which occasioned it (§15.1).** This is
+a test for reading EVERY section, so leaving it inside the one that
+happened to produce it is precisely the filing error §15.1 names: an
+answer stored under the surface it was first needed for is invisible to
+the next surface that needs it.
+
+**The paired test, already written and belonging here too:** *a doctrine
+section suspended the moment it recommends inaction is a paragraph, not a
+rule.* Inaction is where the pressure lands, because doing the cheap
+obvious thing always has an argument for it.
+
+**The instances, and each one could have gone the other way at low cost.**
+
+  · **§1 — legal choices are never auto-applied.** The system holds a
+    proposed vesting and a computed transfer tax and declines to place
+    either. Filling them in is a few lines and would look like a better
+    product on every demo. The rule is what the product gives up.
+
+  · **PCOR3b — the buyer's mailing address stays empty.** A mail-to block
+    was sitting right there with an address in it. Using it would have
+    filled a box on a form signed under penalty of perjury with the WRONG
+    fact — *where tax statements go* is a different question from *where
+    the buyer lives* — and a filled box reads as answered. Declined, and
+    the emptiness is named in `asks` so the officer sees it.
+
+  · **§14.20's two unfixed section summaries.** Surveyed, shape confirmed,
+    fix cheap, neither has a reported miss behind it. Fixing them on the
+    pattern's strength would be guessing at findability, which §14.20
+    exists to say we cannot do from inside. **This is the section's own
+    first cost, paid in the same ticket that wrote it.**
+
+**A NOTE ON THIS LIST'S PROVENANCE (§14.17), because the section is about
+not accepting things that merely sound right.** Two further instances were
+offered — "the trial ruling" and "the fee ruling". `TRIAL1` exists but is
+a MIRROR ruling (one number stated once per side), which is a different
+shape from declining something buildable. **No fee ruling was found in
+either document.** They are omitted rather than reproduced: a section
+whose subject is paying a cost for a rule cannot be the place where
+unverified instances are cited because they support the point.
+
+---
+
 ### §14.21 — A discriminator is sound against the shapes that exist when it is written (2026-08-26)
 
 **Statement.** An inference that reads one shape to mean one thing is a
