@@ -100,9 +100,18 @@ const CEILING = { errors: 126, warnings: 54 };
  *  then 285 (the DARKSWEEP cleanup: seven unruled, unimported, unpinned
  *  components), then 281 (the four notification/partner scaffold
  *  components, owner-ruled). NOTIF1 raised it to 283 by adding two — the
- *  strip and its pins. Seven deliberate moves now, and the gate has
- *  refused a run for every DOWNWARD one — which is the only evidence
- *  that it is doing anything at all (§14.9).
+ *  strip and its pins. DEED-POLISH raised it to 285, also by adding two:
+ *  `lib/sectionSummary.ts` and its pins. Eight deliberate moves now, and
+ *  the gate has refused a run for every DOWNWARD one — which is the only
+ *  evidence that it is doing anything at all (§14.9).
+ *
+ *  AND THE PARSE-ERROR FLOOR EARNED ITSELF THIS TICKET. A JSX comment
+ *  placed in an expression position broke `InputSection.tsx`, and the
+ *  tsc count FELL from 83 to 9 — a file that cannot be parsed stops
+ *  reporting its errors, so the monotonic-down invariant was satisfied
+ *  by breaking the thing it measures (§14.4), in the direction that
+ *  looks like an improvement. eslint's count moved the other way (127,
+ *  over ceiling) and is what made it visible.
  *
  *  Raising it after an addition is the same discipline as lowering it
  *  after a deletion (§14.14): a floor left below the real count silently
@@ -112,7 +121,7 @@ const CEILING = { errors: 126, warnings: 54 };
  *  errors and 2 warnings with them, and a ceiling left at the old number
  *  would quietly re-authorise that much new debt. Cleanup that does not
  *  move the ceiling is cleanup the gate forgets. */
-const FILES_FLOOR = 283;
+const FILES_FLOOR = 285;
 
 /**
  * These catch DEFECTS rather than style, and every one is at zero today —

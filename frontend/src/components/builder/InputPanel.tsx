@@ -13,6 +13,7 @@ import { RecordingSection } from './sections/RecordingSection';
 import { AffidavitSection } from './sections/AffidavitSection';
 import { formFamily, hasPropertySection, hasVestingInput, usesFactsSection } from '@/lib/formRegistry';
 import { DeedBuilderState } from '@/types/builder';
+import { recordingSummary } from '@/lib/sectionSummary';
 
 interface InputPanelProps {
   state: DeedBuilderState;
@@ -265,7 +266,19 @@ export function InputPanel({
           id="recording"
           title="Recording Info"
           status={statuses.recording}
-          preview={state.requestedBy || 'Who is requesting recording'}
+          /* DEED-POLISH #3: every populated field, not the first one. This
+             line read `state.requestedBy` alone while the section held
+             five fields — so filling in the requester made the section
+             report a value and read as ANSWERED, and the escrow number
+             below the divider was never found by the person who asked
+             for it. */
+          preview={recordingSummary({
+            requestedBy: state.requestedBy,
+            requestedByAddress: state.requestedByAddress,
+            returnTo: state.returnTo,
+            titleOrderNo: state.titleOrderNo,
+            escrowNo: state.escrowNo,
+          })}
           isExpanded={expandedSection === 'recording'}
           onToggle={() => toggleSection('recording')}
         >

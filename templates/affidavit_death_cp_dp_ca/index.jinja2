@@ -168,6 +168,17 @@
                     {% if return_to %}
                         {% if return_to.get('name') %}{{ return_to.get('name') }}<br>{% endif %}
                         {% if return_to.get('company') %}{{ return_to.get('company') }}<br>{% endif %}
+                        {# DEED-POLISH #1 — AN EMPTY LINE IS A PROMPT, A MISSING ONE IS
+                           INVISIBLE (owner-ruled). A return-to with a name and no address
+                           used to collapse to a single line, which reads as complete. A
+                           partner with no address on file now leaves a visible rule, the
+                           same convention the reference numbers and the no-return-to
+                           branch below already use. #}
+                        {% set _ret_addr = return_to.get('address1') or return_to.get('address2')
+                                           or return_to.get('city') or return_to.get('state')
+                                           or return_to.get('zip') %}
+                        {% if not _ret_addr %}_________________________________<br>
+                        _________________________________{% endif %}
                         {% if return_to.get('address1') %}{{ return_to.get('address1') }}<br>{% endif %}
                         {% if return_to.get('address2') %}{{ return_to.get('address2') }}<br>{% endif %}
                         {% set city = return_to.get('city', '') %}
