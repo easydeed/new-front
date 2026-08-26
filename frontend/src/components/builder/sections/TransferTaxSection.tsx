@@ -342,7 +342,16 @@ export function TransferTaxSection({
               <input
                 type="radio"
                 checked={value.areaType === "unincorporated"}
-                onChange={() => manual({ ...value, areaType: "unincorporated" })}
+                /* DEED-POLISH: cityName is CLEARED, not carried.
+                   Selecting "unincorporated" is a statement that there is
+                   no city — spreading the auto-populated name forward left
+                   the state saying both things at once, and the deed
+                   template printed the name beside an unchecked box while
+                   the preview (which gates the value on areaType) showed
+                   nothing. The officer verified a blank city on screen and
+                   recorded a city name. Fixed at the write so no reader of
+                   this state has to know which of its two fields wins. */
+                onChange={() => manual({ ...value, areaType: "unincorporated", cityName: "" })}
                 className="w-4 h-4 text-brand-500"
               />
               <span className="text-sm text-gray-700">Unincorporated</span>

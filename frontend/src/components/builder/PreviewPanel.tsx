@@ -59,6 +59,11 @@ export function PreviewPanel({ state, activeSection, onRegionClick }: PreviewPan
       : state.returnTo || state.requestedBy || '[Return To]',
     // D1: the PDF stacks the mail-to block (name / street / city, ST zip) —
     // the preview shows the same lines, not a squashed comma-string.
+    //
+    // DEED-POLISH #1: the requester branch gets its line here too. The
+    // preview and the template must agree about the mail-to block, and
+    // showing a name with no address while the PDF prints both is the
+    // same divergence that let an unincorporated parcel record a city.
     returnToLines: state.returnTo === 'grantee' && state.property
       ? [
           state.property.address,
@@ -67,7 +72,9 @@ export function PreviewPanel({ state, activeSection, onRegionClick }: PreviewPan
             [state.property.state, state.property.zip].filter(Boolean).join(' '),
           ].filter(Boolean).join(', '),
         ].filter(Boolean)
-      : [],
+      : state.returnTo !== 'grantee' && state.requestedByAddress
+        ? [state.requestedByAddress]
+        : [],
     apn: state.property?.apn || '',
     titleOrderNo: state.titleOrderNo || '',
     escrowNo: state.escrowNo || '',

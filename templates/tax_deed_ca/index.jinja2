@@ -90,6 +90,17 @@
                     {% if return_to %}
                         {% if return_to.get('name') %}{{ return_to.get('name') }}<br>{% endif %}
                         {% if return_to.get('company') %}{{ return_to.get('company') }}<br>{% endif %}
+                        {# DEED-POLISH #1 — AN EMPTY LINE IS A PROMPT, A MISSING ONE IS
+                           INVISIBLE (owner-ruled). A return-to with a name and no address
+                           used to collapse to a single line, which reads as complete. A
+                           partner with no address on file now leaves a visible rule, the
+                           same convention the reference numbers and the no-return-to
+                           branch below already use. #}
+                        {% set _ret_addr = return_to.get('address1') or return_to.get('address2')
+                                           or return_to.get('city') or return_to.get('state')
+                                           or return_to.get('zip') %}
+                        {% if not _ret_addr %}_________________________________<br>
+                        _________________________________{% endif %}
                         {% if return_to.get('address1') %}{{ return_to.get('address1') }}<br>{% endif %}
                         {% if return_to.get('address2') %}{{ return_to.get('address2') }}<br>{% endif %}
                         {% set city = return_to.get('city', '') %}
@@ -106,6 +117,16 @@
                 </div>
 
                 <div class="ref-line">Order No.: {{ title_order_no or '____________________' }}</div>
+                {# DEED-POLISH #3 — the escrow number, which every other
+                   chassis carried and this one did not. A tax deed is a
+                   recorded instrument like any other and hangs on the same
+                   file; T-4 groups matters by `escrow_no`, so an
+                   instrument that cannot show one is invisible to the
+                   grouping its own matter uses. Placed after Order No. to
+                   match the sibling templates, and falling back to a
+                   visible rule rather than collapsing — an empty line the
+                   officer can see is a prompt, a missing one is not. #}
+                <div class="ref-line">Escrow No.: {{ escrow_no or '____________________' }}</div>
                 <div class="ref-line">Tax Sale No.: {{ tax_sale_ref or '____________________' }}</div>
             </div>
 

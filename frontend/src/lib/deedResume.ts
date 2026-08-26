@@ -131,9 +131,34 @@ export function hydrateStateFromDeedRow(row: Record<string, any>): ResumeResult 
     };
   }
 
-  // ── Mail-to: dict means the grantee-at-property block ──────────
+  // ── Mail-to: which of the two choices this draft recorded ──────
+  //
+  // THIS DISCRIMINATOR CHANGED, and the old one would now be WRONG.
+  // It read `typeof meta.return_to === 'object'`, which was sound while
+  // the requester branch sent a bare STRING. DEED-POLISH #1 gives the
+  // requester branch its address, so it sends an object too — and the
+  // old test would have flipped every requester-return draft to
+  // "Grantee" on resume, silently changing where the deed mails.
+  //
+  // The reliable difference is not the TYPE but the structured address
+  // block: only the grantee branch carries city/state/zip, and it always
+  // carries the KEYS even when the property has no city — so presence,
+  // not truthiness, is what to test. That reads correctly for all four
+  // cases, including rows written before this change:
+  //
+  //   old requester  bare string          → not an object   → requester
+  //   old grantee    {name,address1,city,state,zip}         → grantee
+  //   new requester  {name,address1}      → no 'city' key   → requester
+  //   new grantee    {name,address1,city,state,zip}         → grantee
+  //
+  // The requester branch must therefore never grow a `city` key — its
+  // address stays one unparsed line by ruling, and `deedPayload.test.ts`
+  // pins that so this inference cannot rot silently.
   const returnTo =
-    meta.return_to && typeof meta.return_to === 'object' ? 'grantee' : '';
+    meta.return_to && typeof meta.return_to === 'object' &&
+    'city' in (meta.return_to as Record<string, unknown>)
+      ? 'grantee'
+      : '';
 
   const state: DeedBuilderState = {
     deedType: row.deed_type || 'grant-deed',

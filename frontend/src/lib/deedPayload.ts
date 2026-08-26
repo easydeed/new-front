@@ -110,8 +110,23 @@ export function buildDeedPayload(genState: DeedBuilderState) {
     // Mail-to: when the deed returns to the grantee, it mails to the
     // grantee AT THE PROPERTY (the standard default) — send the full
     // address block so the recorded deed shows where to mail it.
-    // Requester-return stays name-only (partner mailing addresses live
-    // in the partner record; not yet collected in the builder).
+    //
+    // DEED-POLISH #1 — the requester branch now carries its address too.
+    // It sent a BARE STRING, which the backend widened to {name} and no
+    // more, so "When Recorded, Return To" printed a name with nowhere to
+    // send it. The comment that used to sit here said partner addresses
+    // were "not yet collected in the builder" — true when written, and
+    // PARTNER1 made it false. The address has been in `requestedByAddress`
+    // ever since, captured manually or auto-filled from the partner
+    // record, and reaching the backend as `requested_by_address`. It was
+    // one composition away from the block that needed it.
+    //
+    // UNPARSED, owner-ruled: `requestedByAddress` is ONE officer-typed
+    // line and it goes out as one line, in `address1`. Splitting it into
+    // city/state/zip means guessing at a string a human typed, and a
+    // WRONG city on a mail-to block is worse than an absent one — it
+    // looks filled rather than incomplete, which is the same argument
+    // that kept the PCOR buyer address empty.
     return_to: genState.returnTo === 'grantee'
       ? {
           name: genState.grantee,
@@ -120,7 +135,10 @@ export function buildDeedPayload(genState: DeedBuilderState) {
           state: genState.property?.state || '',
           zip: genState.property?.zip || '',
         }
-      : genState.requestedBy,
+      : {
+          name: genState.requestedBy,
+          address1: genState.requestedByAddress || '',
+        },
     title_order_no: genState.titleOrderNo || '',
     escrow_no: genState.escrowNo || '',
     // The typed-facts bucket now serves all three families (deed-family

@@ -88,8 +88,15 @@ export function InputSection({
                 </span>
               )}
             </div>
+            {/* DEED-POLISH #3: two lines, clamped — not one truncated line.
+                A summary that reports every populated field is useless
+                behind `truncate`, which clips the LAST items: exactly the
+                reference numbers the officer could not find. Fixing the
+                summary's content without fixing its container would have
+                reproduced the same invisibility one layer out. Still
+                bounded, so no section can grow without limit. */}
             {!isExpanded && preview && (
-              <p className="text-sm text-gray-500 truncate max-w-[280px] mt-0.5">
+              <p className="text-sm text-gray-500 line-clamp-2 max-w-[280px] mt-0.5">
                 {preview}
               </p>
             )}

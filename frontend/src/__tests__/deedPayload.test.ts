@@ -89,9 +89,49 @@ describe('buildDeedPayload completeness (the resume round-trip contract)', () =>
     });
   });
 
-  it('requester mail-to stays name-only', () => {
+  it('requester mail-to now carries its address, unparsed', () => {
+    /**
+     * SUPERSEDED, DELIBERATELY — this pin used to read "requester mail-to
+     * stays name-only" and asserted a bare string. That was accurate and
+     * it was the DEFECT: "When Recorded, Return To" printed a name with
+     * nowhere to send it, because the backend widens a bare string to
+     * `{name}` and no more.
+     *
+     * The address was never missing. PARTNER1 put it in
+     * `requestedByAddress` — typed by the officer or auto-filled from the
+     * partner record — and it has been reaching the backend as
+     * `requested_by_address` ever since. It was one composition away from
+     * the block that needed it, behind a comment reading "not yet
+     * collected in the builder" that had been false for months.
+     *
+     * Rewritten rather than deleted (§14.12): a reversed ruling should
+     * read as a reversal, not as a test that quietly disappeared.
+     *
+     * UNPARSED, owner-ruled: one officer-typed line in, one line out.
+     * Splitting it into city/state/zip means guessing at a human-typed
+     * string, and a WRONG city on a mail-to block is worse than an absent
+     * one — it looks filled rather than incomplete.
+     */
+    const p = buildDeedPayload(baseState({
+      returnTo: '',
+      requestedByAddress: '456 Escrow Way, Los Angeles, CA 90012',
+    }));
+    expect(p.return_to).toEqual({
+      name: 'Pacific Coast Escrow',
+      address1: '456 Escrow Way, Los Angeles, CA 90012',
+    });
+    // And it carries NO city key — `deedResume` distinguishes the two
+    // mail-to choices by that key's presence, so adding one here would
+    // silently flip resumed requester drafts to "Grantee".
+    expect(p.return_to).not.toHaveProperty('city');
+  });
+
+  it('a requester with no address on file still sends the name', () => {
+    // The partner record may genuinely hold no address. The block must not
+    // break — the TEMPLATE draws a visible rule for the missing lines, so
+    // the officer sees a gap rather than a finished-looking block.
     const p = buildDeedPayload(baseState({ returnTo: '' }));
-    expect(p.return_to).toBe('Pacific Coast Escrow');
+    expect(p.return_to).toEqual({ name: 'Pacific Coast Escrow', address1: '' });
   });
 
   it('an incomplete draft still serializes without throwing (autosave saves partial work)', () => {
