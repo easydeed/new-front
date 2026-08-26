@@ -51,6 +51,39 @@ ENTRY'S OWN PROSE.** That is the discipline, and it is the whole
 reason the first sweep found anything: reading the queue table's own
 sentences would have confirmed the queue table.
 
+## THE SECOND CONVENTION: a caveat names a worry, a mechanism names the QUESTION
+
+**Adopted 2026-08-26, owner-ruled.** Filed here, where entries get
+written, rather than in the entry that produced it — the same §15.1
+argument that moved §14.22 out of §14.20.
+
+**A caveat says *"be careful about X."* A mechanism made of prose names
+the specific question a future reader would otherwise stop asking.** The
+difference is whether the sentence does work at the moment someone would
+have skipped it.
+
+**The instance is on this page.** `TSC-PARSE` records that two frontend
+gates happened to have opposite failure modes on an unparseable file, so
+one fell silent while the other got louder, and the drop was visible only
+because of that.
+
+  · **Caveat:** *"recorded as luck rather than design."* True, agreeable,
+    and easy to nod past. It changes nothing a reader does.
+  · **Mechanism:** *"we do not know whether any other pair of gates in
+    this repository has opposing failure modes, and none has been
+    checked."* That sentence names a question the reader was about to
+    stop asking — and stopping is the actual damage, because a property
+    obtained by accident and filed as a control teaches the next person
+    that the coverage is deliberate everywhere.
+
+**The test when writing an entry:** what would a reader who believes this
+entry stop investigating? Write THAT down. An entry that only expresses
+appropriate humility has expressed a mood.
+
+**This applies to every entry, not to the one that occasioned it.** Any
+caveat already in this file is a candidate for conversion, and new
+entries carry the mechanism form.
+
 ## The queue — RED0 remediation, as ruled
 
 Owner-ruled order. Nothing here is "next" by inference; this list is the
