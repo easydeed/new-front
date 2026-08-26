@@ -741,7 +741,12 @@ export function PreviewPanel({ state, activeSection, onRegionClick }: PreviewPan
                   <span>{DTT_LEAD}</span>
                   <span>
                     {DTT_AMOUNT_LABEL}{' '}
-                    <span onClick={go('transferTax', 'dtt-value')} className={`inline-block min-w-[1.2in] border-b border-black text-center ${CLICKABLE} ${dataHighlight(dttAmount)}`}>
+                    {/* DEED-POLISH: the amount is one of the two
+                        officer-entered facts on this line, and it is what a
+                        reader checks first. Bold matches the PDF's
+                        `.dtt-amount`, so the preview and the instrument
+                        weight the same word. */}
+                    <span onClick={go('transferTax', 'dtt-value')} className={`inline-block min-w-[1.2in] border-b border-black text-center font-bold ${CLICKABLE} ${dataHighlight(dttAmount)}`}>
                       ${dttAmount}
                     </span>
                   </span>
@@ -759,7 +764,12 @@ export function PreviewPanel({ state, activeSection, onRegionClick }: PreviewPan
                   {DTT_AREA_UNINCORPORATED}{'   '}
                   <Checkline marked={!!dtt && dtt.areaType === 'city'} />
                   City of{' '}
-                  <span onClick={go('transferTax', 'dtt-city')} className={`inline-block min-w-[1.2in] border-b border-black text-center ${CLICKABLE} ${dataHighlight(dtt?.areaType === 'city' ? dtt.cityName : '')}`}>
+                  {/* DEED-POLISH: the taxing jurisdiction, bolded to match
+                      the PDF's `.city-field`. Note the value stays gated on
+                      areaType === 'city' — bolding changes weight, never
+                      what renders, so an unincorporated parcel still shows
+                      an empty rule rather than a bold city name. */}
+                  <span onClick={go('transferTax', 'dtt-city')} className={`inline-block min-w-[1.2in] border-b border-black text-center font-bold ${CLICKABLE} ${dataHighlight(dtt?.areaType === 'city' ? dtt.cityName : '')}`}>
                     {dtt?.areaType === 'city' ? dtt.cityName || '' : ''}
                   </span>
                 </div>
