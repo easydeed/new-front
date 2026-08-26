@@ -1257,10 +1257,19 @@ entry nobody checks a new feature against.
   |---|---|
   | already filled from the deed | 9 |
   | buyer-answerable | 111 |
-  | officer-only | 55 |
+  | officer-only | **57** |
 
-  Officer-only = Part 1's 44 lettered widgets + **4 unlettered ones** + 7
-  moved by §14.23.
+  Officer-only = Part 1's 44 lettered widgets + **5 unlettered ones** + 7
+  moved by §14.23 + the transfer date.
+
+  **CORRECTED 2026-08-26 BY BUILDING IT.** This table first read
+  `111 / 55` with two fields still unplaced, and 9 + 111 + 55 = 175 rather
+  than 177 — the two residue fields were outside the table without the
+  table saying so. Their rulings took one each way, and **step 1's
+  tripwire then found a 57th** (below). The counts are now generated from
+  the module and asserted against the reference in
+  `test_pcor_field_split.py`, so they cannot drift from prose again:
+  9 + 111 + 57 = 177.
 
   **THE HAZARD THAT SHAPES THE BUILD.** Part 1 cannot be identified by
   letter prefix in either direction. The form reuses letters across parts
@@ -1356,10 +1365,43 @@ entry nobody checks a new feature against.
   completes before the filter exists, **the only thing closing that
   window is somebody remembering.**
 
-  **What a reader who believes this entry should still ask:** none of it
-  is built. The counts above are measurements of the FORM, not of any
-  implementation — there is no allowlist in the tree yet, and nothing in
-  CI asserts any of these boundaries today.
+  **STEP 1 IS BUILT (2026-08-26).** `services/pcor_field_split.py` +
+  `tests/test_pcor_field_split.py`. The 57-name allowlist, the 9 filled
+  names, `buyer_answerable()` by SUBTRACTION so an unclassified field
+  defaults to nobody rather than to the consumer, and an extraction floor
+  asserting the reference still yields 228 / 177 / 65 / 112.
+
+  **Two findings from building it, both about transcription rather than
+  logic:**
+
+  1. **Two of the 57 names contain characters invisible in an editor** —
+     item A's `yes` box carries U+00AD SOFT HYPHEN, item J's `no` box
+     carries U+2011 NON-BREAKING HYPHEN. Both render as ordinary hyphens.
+     **A hand-typed allowlist would carry two entries matching nothing,
+     and a name that matches nothing protects nothing** — silently, with
+     the file still reading as complete. The literals were generated from
+     the PDF rather than typed, and a pin asserts every name exists in the
+     reference. Probed by replacing the soft hyphen with an ordinary one:
+     four pins fail.
+
+  2. **The 57th field was found by the tripwire, not by the decision.**
+     A deliberately untrusted pattern — kept as an ALARM precisely because
+     the ruling forbids using a pattern to classify — flagged item J's
+     *"if yes, please explain"* free text sitting in the buyer's set. It
+     carries no letter AND a county typo (*"recorded only a requirement"*),
+     so it survived a careful manual pass over all 177 widgets. **The
+     enumeration is the mechanism and the pattern is the smoke detector;
+     this is the evidence for keeping both**, and it fired on its first
+     run.
+
+  **What a reader who believes this entry should still ask:** steps 2–6
+  are not built and are not scheduled. There is no token surface, no
+  request, no wizard, no review screen and no purge — **the allowlist
+  protects a path that does not exist yet.** Its value today is that it
+  cannot be skipped later, not that anything is currently filtered by it.
+  And the timing question is open and is the owner's: whether PCOR-WIZ
+  ships with the pilot so buyers exercise it, or after, so the pilot
+  validates a product that already works.
 
 - **FEES — we never quote, process, split, or suggest one.**
   **DECIDED** — NOTARY0b: no fee handling in v1. **Refined by EMAIL2:**
