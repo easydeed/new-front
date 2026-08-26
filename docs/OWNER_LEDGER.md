@@ -1730,6 +1730,80 @@ we reach it.
 
 ## Parked tickets (scoped, not scheduled)
 
+- **TSC-PARSE — the tsc baseline has no parse-error floor, and eslint's
+  is what caught it.**
+  **DECIDED** 2026-08-26, owner-ruled — this gets its own ticket.
+  **BUILT** — no.
+
+  **Measured, not predicted.** During DEED-POLISH a JSX comment placed in
+  an expression position broke `InputSection.tsx`. The tsc count went
+  **83 → 9**: a file that cannot be parsed stops reporting its errors, so
+  the only-goes-down invariant was satisfied by *breaking the thing it
+  measures* — **in the direction that reads as an improvement.**
+
+  §14.4 predicted exactly this and gave the eslint gate a parse-error
+  floor, a blanket-disable refusal, and a linted-file floor. `tsc-baseline`
+  received none of the three. The asymmetry was never argued; eslint's
+  gate was written later and its author had §14.4 in hand.
+
+  **What actually caught it was gate diversity, not a gate.** eslint moved
+  the OTHER way — 127 errors against a ceiling of 126 — because a parse
+  failure makes eslint report a fatal message rather than fall silent. Two
+  gates over the same tree with opposite failure modes is why the drop was
+  visible. That is worth stating because it is not a property either gate
+  has on its own, and it is not one we designed.
+
+  **Scope when it runs:** a floor on the tsc side — fail if any file
+  fails to parse, and fail if the count drops by more than some margin
+  without a corresponding file-count explanation. The second half is the
+  harder one and is NOT scoped here: a legitimate large drop (a real fix,
+  a deletion) must remain possible, so the floor cannot simply forbid
+  improvement. Investigation before building.
+
+- **SUMMARY-CLASS — the other single-field section summaries.**
+  **DECIDED** 2026-08-26, owner-ruled — ledgered as the class, not a
+  ticket. **BUILT** — `recording` only.
+
+  §14.20's instance was Recording Info: five fields, a summary reading
+  one, and the officer who commissioned the escrow field concluding it did
+  not exist. Fixed. **The shape is a class and the survey found two more:**
+
+  · **The typed-facts section** — `state.affidavit?.declarantName ||
+    state.affidavit?.decedentName`, reporting one of two named parties
+    while the section holds the instrument's whole typed-facts block.
+  · **Property** — reports `address` while `PropertyData` carries city,
+    state, zip, APN, county and legal description.
+
+  `transferTax` is the one that already did it right (a computed
+  multi-part summary) and is the model `recording` now follows.
+
+  **Not built, and the reason is not effort.** Neither remaining case has
+  a *reported* miss behind it, and §14.20's whole point is that we cannot
+  tell from inside which sections are actually hard to use. Fixing them on
+  the strength of the pattern would be guessing at findability — the thing
+  the section says a gate cannot measure. **These wait for a pilot
+  observation, not for a spare afternoon.**
+
+- **DARK-ORPHAN-PARTIAL — `templates/grant_deed_ca/header_return_block.jinja2`
+  is included by nothing.**
+  **DECIDED** — no. **BUILT** — no. **DARKSWEEP family.**
+
+  Found during DEED-POLISH #1 while sweeping every template that renders
+  the mail-to block: this partial renders one (with its own markup —
+  `<div>` per line rather than `<br>`, plus escrow/title-order lines the
+  index templates place elsewhere) and **no template `include`s it and no
+  Python references it.**
+
+  It therefore did NOT receive DEED-POLISH #1's empty-address prompt,
+  which is correct — nothing renders it — but it now differs from the 21
+  templates that did, so **a future author who wires it in inherits the
+  old behaviour** without any diff recording the choice. That is the
+  DARKSWEEP shape in a template rather than a component: dead code that
+  reads as a maintained alternative.
+
+  Retire or wire, same as the other DARKSWEEP items — a product decision,
+  not cleanup, and NOT decided here.
+
 - **PCOR3-ADDR — should the builder capture the GRANTEE'S MAILING
   ADDRESS?**
   **DECIDED** — no. **BUILT** — no. **OPEN, and deliberately so: the pilot

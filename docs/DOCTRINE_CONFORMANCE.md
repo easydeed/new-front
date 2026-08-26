@@ -1657,6 +1657,99 @@ separate discipline to sustain.
 
 ---
 
+### §14.21 — A discriminator is sound against the shapes that exist when it is written (2026-08-26)
+
+**Statement.** An inference that reads one shape to mean one thing is a
+claim about the **whole set of shapes that can arrive**, not about the
+branch in front of it. Adding a shape somewhere else silently invalidates
+it, and nothing declares the dependency, because the inference lives in a
+file the change does not touch.
+
+**The instance, caught before it shipped.** `deedResume` decided which
+mail-to choice a draft had recorded with:
+
+```
+typeof meta.return_to === 'object' ? 'grantee' : ''
+```
+
+Entirely sound — while the requester branch sent a bare **string** and the
+grantee branch sent an object. DEED-POLISH #1 gave the requester branch its
+address, which makes it an object too. **Every resumed requester draft
+would have flipped to "Grantee", changing where a recorded deed is mailed,
+with no error and no visible difference.**
+
+The failure mode is what makes it worth a section: a resumed draft looks
+correct, generates cleanly, passes every gate, and mails to the wrong
+party. There is no moment at which anything reports a problem.
+
+**The replacement, and why it is not just a different guess.** The reliable
+difference is not the TYPE but the structured address block: only the
+grantee branch carries `city`/`state`/`zip`, and it carries the **keys**
+even when the property has no city — so **presence, not truthiness**. That
+reads correctly for all four shapes, *including rows written before the
+change*, which matters because those rows already exist and cannot be
+migrated by a frontend edit.
+
+**And the dependency is now declared, because that is the actual lesson.**
+The inference depends on the requester branch never growing a `city` key —
+a constraint on `deedPayload.ts` enforced from `deedResume.ts`, with the
+two files having no import between them. **A cross-file invariant that
+nothing states is a trap laid for whoever edits the other file**, so it is
+pinned on the payload side, where the edit that would break it happens.
+
+**The general form.** When a branch gains a field, ask what elsewhere
+distinguishes the branches — not what breaks. Nothing breaks; that is the
+whole problem.
+
+---
+
+### §14.20 — A gate that knows where to look cannot measure findability (2026-08-26, owner-ruled)
+
+**Statement.** **"Built" is not a claim about the user's experience.** Every
+check we own is told what to inspect, so every check can confirm a feature
+exists while the person it was built for concludes it does not. Those two
+statements are not in tension; they are about different things, and only
+one of them is what the product is.
+
+**The instance, and it is unanswerable.** The owner reported that escrow
+and title-order numbers had no way onto a deed. They had every way. The
+path was complete and had been for some time: inputs in
+`RecordingSection`, builder state, `deedPayload`, the generate proxy,
+`DeedCreate`, the `extras` bucket, `metadata` JSONB,
+`build_context_from_row`, **twenty-four templates**, and the preview.
+Built, wired, and pinned end to end.
+
+**1444 backend assertions and 1172 frontend assertions all disagreed with
+the officer. The officer was right.** *"It isn't there"* was a correct
+description of the product. The fields sat last in a collapsed accordion
+section, below a `border-t` divider, and the section's summary line read
+one field of the five it held — so filling in the requester made the
+section report a value and **read as answered.**
+
+**Why no audit of ours could have caught it.** Ask what each control
+knows: the render pin knows the template name. The payload pin knows the
+key. The route pin knows the endpoint. **Every one of them is handed the
+location of the thing it verifies** — that is what makes it a pin rather
+than a search. Findability is the property that the location is *not*
+known in advance, so it is precisely the property a pin cannot hold. This
+is not a coverage gap to be closed by more pins of the same kind.
+
+**What the failure actually costs, and it is not the feature.** A real
+officer does what the owner did: concludes the feature is absent, works
+around it, and never reports it — because there is nothing to report about
+something that does not exist. So the defect is silent by construction,
+and the only reason this one surfaced is that the person who could not
+find it also owned the backlog.
+
+**The nearest thing to a control.** Not a test. The usable substitutes are
+structural: a section summary reports **every** populated field it holds
+rather than the first (a summary naming one of five is a claim that the
+section is done), and a container that clips must not clip the fields the
+summary exists to surface. Both were fixed here. Neither generalises into
+a gate, and saying so is the point of the section.
+
+---
+
 ### §14.19 — An inconsistency that happens to be load-bearing is not tidy-able (2026-08-24, owner-ruled)
 
 **Statement.** Some of what looks like untidiness is doing work nobody
@@ -2531,6 +2624,7 @@ on.
 
 | Date | Change |
 |---|---|
+| 2026-08-26 | DEED-POLISH. §14.20 added (owner-ruled) — a gate that knows where to look cannot measure findability, and "BUILT" is not a claim about the user's experience. The owner reported that escrow and title-order numbers had no way onto a deed; they had every way — inputs, builder state, `deedPayload`, the generate proxy, `DeedCreate`, the `extras` bucket, `metadata` JSONB, `build_context_from_row`, TWENTY-FOUR templates, and the preview. 1444 backend assertions and 1172 frontend assertions all disagreed with the officer AND THE OFFICER WAS RIGHT: "it isn't there" was a correct description of the product. The fields sat last in a collapsed accordion section below a `border-t` divider, and the section's summary line read one field of the five it held, so filling the requester made the section read as ANSWERED. Why no audit of ours could catch it: every control is handed the location of the thing it verifies — that is what makes it a pin rather than a search — and findability is precisely the property whose location is not known in advance. Not a coverage gap closable by more pins of the same kind. The cost is silent by construction: a real officer concludes the feature is absent, works around it, and never reports it, because there is nothing to report about something that does not exist; this one surfaced only because the person who could not find it also owned the backlog. The usable substitutes are structural rather than gates — a section summary reports EVERY populated field it holds rather than the first, and a container that clips must not clip the fields the summary exists to surface. §14.21 added — a discriminator is sound against the shapes that exist when it is written. `deedResume` read `typeof meta.return_to === 'object'` to mean "grantee", sound only while the requester branch sent a bare string; DEED-POLISH #1 gave that branch an address, so every resumed requester draft would have flipped to "Grantee" — changing where a recorded deed is MAILED, with no error and no visible difference, passing every gate. Replaced by testing for the `city` KEY, which only the grantee branch carries and carries even when empty (presence, not truthiness), correct for all four shapes including rows already stored that a frontend edit cannot migrate. And the cross-file dependency is now DECLARED: the inference requires the requester branch never to grow a `city` key — a constraint on `deedPayload.ts` enforced from `deedResume.ts` with no import between them, pinned on the payload side where the breaking edit would happen, because a cross-file invariant nothing states is a trap laid for whoever edits the other file. General form: when a branch gains a field, ask what elsewhere distinguishes the branches — not what breaks, because nothing breaks. Also recorded: §14.4's parse-error gap is REAL and asymmetric between our two frontend gates — a JSX comment in an expression position broke `InputSection.tsx` and the tsc count FELL FROM 83 TO 9, since a file that cannot be parsed stops reporting its errors, satisfying the monotonic-down invariant by breaking the thing it measures in the direction that reads as an improvement; eslint has a parse floor and tsc's baseline does not, and eslint moving the OTHER way (127, over ceiling) is the only reason it was seen — gate diversity did the work, not any single gate. Ticketed. And the DTT city defect was found by a pin written for something else: "bolding changes weight, not content" failed, and what it caught had nothing to do with bolding — the checkbox was gated on `area_type == 'city'` while the city NAME printed unconditionally, and the PREVIEW gated the value while the template did not, so the officer verified a blank city on screen and recorded a city name. Fixed at the state write AND at the template, the latter being the load-bearing half: rows already stored with the contradictory metadata are the ones at risk, created by officers who already made the mistake. |
 | 2026-08-24 | §14.19 added (owner-ruled) — an inconsistency that happens to be LOAD-BEARING is not tidy-able. Promoted out of §14.18, where it was a paragraph, because it generalises past CI entirely: some of what looks like untidiness is doing work nobody assigned it, and the impulse to normalise arrives with no obligation to find out what. The instance was one sentence from being recommended — §14.18's diagnosis ends at an obvious repair (add `claude/**` to `ci.yml`'s push filter so both workflows fire the same way), and that repair would have made `build-and-test` run regardless of mergeability, so a conflicted PR would show SEVEN greens instead of six-and-a-hole. The hole is the entire warning, so seven greens is strictly worse than six; the asymmetry that made the failure visible was an accident, and tidying it would have SPENT the accident, for symmetry. Not an argument for leaving things alone: the inconsistency is still an accident and still nobody's decision, but it is now recorded as load-bearing, which converts an untidiness into a constraint with a reason attached — the available move was never normalise-or-don't, it was write down what it carries so the next person reaching for the tidy fix meets an argument rather than an oddity. The general test, cheap enough to always run: what is currently true ONLY because of this asymmetry? "Nothing" means normalise it; an answer that takes more than a moment to find IS the finding. The danger is that the impulse to normalise feels like diligence and so never presents itself as a decision requiring evidence. Family: §14.9 is a control switched off, §14.18 is a control never asked to run, §14.19 is a control nobody built, running anyway, about to be switched off by tidiness — all three leave the repository looking better afterwards. Also recorded from #250: the PR body published `git checkout -B <branch> origin/main` with the placeholder stripped, angle brackets parsed as an HTML tag in transit, so the record of a mechanism rendered the mechanism as a broken command; the tracked files carried the exact bytes and only the description was damaged, which is §14.11's family (text that moved is not text that was copied until the bytes are compared) and a reminder that the canonical artifact is the file in the repo, not the description wrapped around it. And the §14.18.1 precondition had its first real use on #250: `mergeable_state` read `"unstable"` while two checks were still running — correctly BLOCKING — and `"clean"` once all seven reported. |
 | 2026-08-24 | §14.18 added (owner-ruled) — a gate whose NON-APPEARANCE is the entire warning, on a surface built to display presence. §14.9 inside out: not a control switched off, but one that was never asked to run, with nothing recording that it was not asked. PR #249 showed six green checks and no `build-and-test`; two hypotheses were spent on the workflow and both were wrong, because the workflow was fine. `mergeable_state` was `"dirty"`. THE MECHANISM, recorded because the shape is only actionable if the reason is known: a `pull_request` run is computed against `refs/pull/N/merge`, a conflicted PR has no merge ref, so GitHub creates NO RUN — not queued, not skipped, not failed. Nothing to render, so nothing renders, and a hole in a list of successes reads as a list of successes. What made the page look complete is a trigger asymmetry: `ci.yml` (1 job) fires on `pull_request` and went silent, while `test.yml` (5 jobs) fires on bare `[push]` and reported normally — five plus Vercel is six rows of success on a PR that could not merge. AND THE OBVIOUS FIX IS A TRAP: adding `claude/**` to `ci.yml`'s push filter would make it run regardless of mergeability and would destroy the only signal this failure had — seven greens on a conflicted PR is strictly worse than six and a hole. The visible tell, read past twice: the PR header said 6 files / +339 against a ticket of 3 files / +136 — a PR's own file and line counts are a CLAIM ABOUT ITS SCOPE, and a number that does not match the work is the cheapest available signal that something else came along; same family as the `git add -A` finding one layer up, both announcing themselves in a count nobody reads. The cause was upstream and was mine: #249 was cut from #248's head rather than `origin/main`, so #248's squash-merge put the same content in main under a new SHA and on the branch under the old ones, and `git merge-base` was main-before-#248. And the safety was not ours — GitHub's merge endpoint refusing an unmergeable request is what stood between me and merging it; a near-miss caught by somebody else's guardrail is not a caught near-miss (that refusal is documented behaviour, NOT verified here, per §14.17). §14.18.1 decides the remedy rather than accumulating one, under the owner's explicit constraint not to add a third resolution to be careful: `mergeable_state` as a merge precondition is ADOPTED but conditioned, since it is free in a call already made and yet computes lazily — observed reading `"unknown"` right after a force-push, and a precondition that often answers "unknown" is one you learn to wave through — so the unknown branch must block and re-read; expected-check-count is DECLINED despite catching this instance (6 expected, 5 observed), because deriving the expected number means maintaining an evaluator for branch globs, path filters and `if:` conditions whose failure mode is UNDER-EXPECTING, which renders as "all present" — a gate whose failure looks like completeness, built to catch a gate whose failure looks like completeness; and the actual mechanism is upstream of both — `git fetch origin main && git checkout -B <branch> origin/main` at ticket start, which PRODUCES the un-stacked property rather than verifying it, leaving no moment at which to forget to look. Recorded in CLAUDE.md beside `git -C` on the same honest terms: a prompt, not a gate. |
 | 2026-08-18 | §14.7 added — knowing a failure mode does not confer immunity from it. Three instances of one shape in a day: a pin quoting an implementation that broke on a correct change; a pin quoting an implementation that WAS the defect and stayed green through it; and the same defect inside the remedy for the first two, where the route-guard sweep — being rewritten because it matched a marker string — was about to match a hook's NAME instead. `useRequireAuth` navigates from an effect, so a page ignoring its `checked` flag still paints content for a frame, and a name-matching sweep would have certified that half-adoption exactly as the old one certified a send-only token read. Caught by reading how `/team` actually used the hook rather than treating the import as the whole pattern. The third instance settles the question the first two raise: it was written the same day the rule was written down, in the remedy for it, by its author. The rate is stated in the entry as evidence the shape is COMMON IN THIS KIND OF WORK rather than accelerating — three in a day reflects a day of unusually dense pin-writing, and a week of building features rather than instruments would show none while the shape stayed exactly as available. Operative consequence — when a shape is identified, ask what MECHANISM can hold it and prefer that to a paragraph, since a note is a thing to remember and remembering is the faculty that just failed. Corollary: a mechanism adopted partially fails in the gap between its halves, and only a sweep can enforce that both arrived. Also recorded in `routeGuards.test.ts` beside its bounded window: it fails CLOSED — an unreadable guard reports an unguarded page — where §14.4's tsc window failed open, so the two must not be made symmetric. And a prediction that missed: three of fourteen pages were passing incidentally, so at least one of the four unverified was expected to fail; none did. A base rate is not evidence about a particular case. |
