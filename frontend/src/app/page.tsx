@@ -747,7 +747,7 @@ export default function LandingPage() {
                   rendered document, sees it as it will print, and approves or sends
                   it back. Incomplete facts are refused at submission. Keys are issued
                   after a conversation.
-                </p
+                </p>
 
                 <div className="flex flex-col sm:flex-row gap-4">
                   {/* The "View API Docs" button was removed here per the
