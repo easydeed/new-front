@@ -2728,10 +2728,10 @@ entry nobody checks a new feature against.
   retired in the same diff that made its promise true. The admin
   deed-edit capability it blocked is unblocked.
 - **VERIFY1 — wizard-deed public verification** (ADMIN0 finding, queued
-  AFTER the admin wave; roadmap, not admin). `create_document_authenticity`
-  (`routers/verification.py:227`) has zero callers — the only live writer
-  of `document_authenticity` is the partner-API lane
-  (`routers/api_v1/router.py:438`). So wizard deeds carry a stored
+  AFTER the admin wave; roadmap, not admin). The uncalled
+  `create_document_authenticity` helper was deleted during DX-BRUTAL;
+  the only live writer of `document_authenticity` remains the partner-API
+  lane (`routers/api_v1/router.py`). So wizard deeds carry a stored
   `deed_pdfs.sha256` but no verifiable short code, and the admin
   Verification tab shows API-lane documents only. Whether public
   verifiability was ever intended for wizard deeds is a product

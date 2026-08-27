@@ -107,7 +107,6 @@ def test_other_endpoints():
     
     other_endpoints = [
         ('/users/profile', 'GET'),
-        ('/pricing', 'GET'),
         ('/generate-deed-preview', 'POST'),
         ('/check-widget-access', 'GET'),
     ]

@@ -230,19 +230,14 @@ def test_an_unknown_plan_is_refused_before_stripe_is_touched():
 # ── 4. The instrument count is checked against the registry ──────────
 
 def test_the_advertised_instrument_count_matches_the_catalog():
-    """"21 recordable instruments" is a claim on a purchase surface. It
-    is counted from the registry rather than by hand, because a number
-    that drifts on a pricing page is discovered by a customer."""
-    from services.form_families import FAMILY_BY_DEED_TYPE
+    """The purchase surface reads the app registry's derived count.
 
-    # Legacy slug aliases are the same instrument under an older name.
-    aliases = {"grant_deed", "quitclaim"}
-    actual = len([k for k in FAMILY_BY_DEED_TYPE if k not in aliases])
-
-    claimed = int(re.search(r"INSTRUMENT_COUNT\s*=\s*(\d+)", _config()).group(1))
-    assert claimed == actual, (
-        f"the pricing surfaces advertise {claimed} instruments; the "
-        f"registry has {actual}")
+    PRICING1 originally kept a literal 21 here and compared it with a
+    backend mirror. That caught drift only after creating a second count.
+    """
+    src = _config()
+    assert "import { INSTRUMENT_COUNT } from './formRegistry'" in src
+    assert not re.search(r"INSTRUMENT_COUNT\s*=\s*\d+", src)
 
 
 # ── 5. Copy states what is true ──────────────────────────────────────
@@ -285,7 +280,26 @@ def test_the_real_gate_passes_over_the_whole_product():
     assert result.returncode == 0, result.stdout + result.stderr
 
 
-# ── 6. The founding-rate path: Stripe Payment Links ──────────────────
+# ── 6. No second public pricing model ────────────────────────────────
+
+def test_the_legacy_pricing_table_is_not_a_public_product_surface():
+    """PRICING1 unified rendered pages but left two public GET aliases
+    serving a different model from the legacy ``pricing`` table.
+
+    The banned-claims gate is intentionally static: it can inspect response
+    literals, but it cannot prove what mutable production rows say. The
+    durable fix is that no public route serialises that table at all.
+    """
+    from tests.source_text import code_only
+
+    src = code_only(BACKEND / "routers" / "pricing.py")
+    assert '@router.get("/pricing")' not in src
+    assert '@router.get("/pricing/plans")' not in src
+    probes = code_only(BACKEND / "find_auth_endpoints.py")
+    assert "('/pricing', 'GET')" not in probes
+
+
+# ── 7. The founding-rate path: Stripe Payment Links ──────────────────
 #
 # Item 4 of the ticket assumed no code was needed — "BILL1's webhook
 # already handles checkout.session.completed correctly" with
@@ -379,7 +393,7 @@ def test_a_payment_link_without_metadata_does_not_silently_upgrade(capfd):
     assert "metadata" in out, "the log must name the fix, not just the symptom"
 
 
-# ── 7. The proxy answers introspection without raising HTTP ──────────
+# ── 8. The proxy answers introspection without raising HTTP ──────────
 
 def test_the_connection_proxy_reports_absent_attributes_as_absent():
     """`db.conn` used to raise HTTPException for EVERY attribute name, so
@@ -445,7 +459,7 @@ def test_patch_object_works_on_the_proxy_both_ways():
         assert db_module.conn
 
 
-# ── 8. The gate asserts the property, not the spellings ──────────────
+# ── 9. The gate asserts the property, not the spellings ──────────────
 
 def _gate():
     sys.path.insert(0, str(REPO / "scripts"))

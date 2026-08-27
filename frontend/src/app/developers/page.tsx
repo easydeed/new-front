@@ -33,6 +33,7 @@ const SECTIONS = [
   { id: 'boundary', label: 'What the API will not do' },
   { id: 'idempotency', label: 'Idempotency & retries' },
   { id: 'errors', label: 'Errors' },
+  { id: 'verification', label: 'Public verification' },
   { id: 'transfer-tax', label: 'Transfer tax' },
   { id: 'changelog', label: 'Versioning & changelog' },
 ];
@@ -293,7 +294,7 @@ export default function DevelopersPage() {
           <section className="mb-16">
             <H2 id="deed-types">Deed types</H2>
             <p className="mt-4 max-w-2xl leading-relaxed text-gray-600">
-              Nine instruments, each rendered from its own template. The vesting column is
+              {API_DEED_TYPES.length} instruments, each rendered from its own template. The vesting column is
               worth reading closely: two instruments state their vesting on their own face,
               and for those the API rejects a supplied value rather than ignoring it.
             </p>
@@ -405,6 +406,16 @@ export default function DevelopersPage() {
                   must be <code className="rounded bg-gray-100 px-1 text-[13px]">CA</code>.
                 </p>
               </div>
+
+              <div>
+                <h3 className="font-bold text-[#1F2B37]">Recorded pages carry no verification chrome</h3>
+                <p className="mt-2 leading-relaxed">
+                  Every API deed includes a blank California acknowledgment page for the
+                  notary to complete. That page is part of the deed chassis, not an option.
+                  The PDF does not print a QR code, verification URL, or DeedPro document ID;
+                  verification stays in the API response.
+                </p>
+              </div>
             </div>
           </section>
 
@@ -463,7 +474,7 @@ export default function DevelopersPage() {
                   </tr>
                   <tr className="border-b border-gray-100">
                     <td className="py-3 pr-4">422</td>
-                    <td className="py-3 pr-4">validation</td>
+                    <td className="py-3 pr-4"><code className="text-[13px]">VALIDATION_ERROR</code></td>
                     <td className="py-3">
                       A required fact is missing, or an input conflicts with the instrument
                       — a vesting clause sent to a fixed-vesting deed, or an entity deed
@@ -488,6 +499,24 @@ export default function DevelopersPage() {
                 </tbody>
               </table>
             </div>
+          </section>
+
+          {/* Public verification */}
+          <section className="mb-16">
+            <H2 id="verification">Public verification</H2>
+            <p className="mt-4 max-w-2xl leading-relaxed text-gray-600">
+              <code className="rounded bg-gray-100 px-1 text-[13px]">
+                GET /verify/{'{document_id}'}
+              </code>{' '}
+              needs no API key so a person holding the ID can check it. A valid response
+              contains only the document ID, deed type, status, and creation time. It does
+              not publish the property address, APN, or party names.
+            </p>
+            <p className="mt-3 max-w-2xl leading-relaxed text-gray-600">
+              Public verification is limited to 60 attempts per client address per hour.
+              A 429 response includes <code className="rounded bg-gray-100 px-1 text-[13px]">Retry-After</code>{' '}
+              and rate-limit headers.
+            </p>
           </section>
 
           {/* Transfer tax */}
@@ -515,6 +544,26 @@ export default function DevelopersPage() {
                 this caveat alongside the number.
               </li>
             </ul>
+
+            <h3 className="mt-8 font-bold text-[#1F2B37]">Declaration fields</h3>
+            <div className="mt-3 space-y-3 text-gray-600">
+              <p>
+                <code className="rounded bg-gray-100 px-1 text-[13px]">transfer_tax.basis</code>{' '}
+                is the basis you direct the deed to print:{' '}
+                <code className="rounded bg-gray-100 px-1 text-[13px]">full_value</code> or{' '}
+                <code className="rounded bg-gray-100 px-1 text-[13px]">less_liens</code>.
+                DeedPro does not infer or verify that legal choice. When using the calculator,
+                send the lien amount in its numeric{' '}
+                <code className="rounded bg-gray-100 px-1 text-[13px]">less_liens</code>{' '}
+                field and send the resulting amount in your deed request.
+              </p>
+              <p>
+                <code className="rounded bg-gray-100 px-1 text-[13px]">transfer_tax.exempt_code</code>{' '}
+                is a free-form string. The API does not maintain or validate against a
+                statutory exemption-code list. Send a code only after your professional has
+                determined the applicable wording.
+              </p>
+            </div>
           </section>
 
           {/* Changelog */}
@@ -530,7 +579,7 @@ export default function DevelopersPage() {
             </p>
             <div className="mt-6 space-y-3 text-sm text-gray-600">
               <div>
-                <span className="font-semibold text-[#1F2B37]">2026-08 · v1</span> — Nine
+                <span className="font-semibold text-[#1F2B37]">2026-08 · v1</span> — {API_DEED_TYPES.length}
                 deed types (grant, quitclaim, interspousal, warranty, tax, joint tenancy,
                 community property with right of survivorship, corporate and partnership
                 grantors). Idempotency keys. Per-key rate limits and usage reporting.

@@ -11,9 +11,10 @@ def test_health_check_endpoint():
     assert r.status_code == 200
 
 
-def test_api_documentation_availability():
-    assert client.get("/docs").status_code == 200
-    assert client.get("/openapi.json").status_code == 200
+def test_only_the_scoped_public_api_documentation_is_available():
+    assert client.get("/api/v1/openapi.json").status_code == 200
+    assert client.get("/docs").status_code == 404
+    assert client.get("/openapi.json").status_code == 404
 
 
 def test_protected_endpoints_reject_missing_token():

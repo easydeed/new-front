@@ -56,3 +56,14 @@ def test_route_surface_matches_snapshot():
         f"Route surface changed. added={added} removed={removed} — "
         "if intentional, re-record with RECORD_OPENAPI=1 and justify in the PR."
     )
+
+
+def test_only_the_partner_contract_is_published():
+    """Admin routes stay callable behind auth, but are not advertised as
+    part of the external integration product."""
+    paths = {r.path for r in app.routes}
+    assert "/api/v1/openapi.json" in paths
+    assert "/api/v1/verify/{document_id}" in paths
+    assert "/api/verify/{short_code}" not in paths
+    for internal_spec in ["/openapi.json", "/docs", "/docs/oauth2-redirect", "/redoc"]:
+        assert internal_spec not in paths

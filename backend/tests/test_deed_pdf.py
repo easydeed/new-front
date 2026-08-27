@@ -137,7 +137,7 @@ def test_grant_deed_statutory_furniture_present():
 def test_grant_deed_recorded_pages_carry_no_chrome():
     """Gov. Code §27361.7 reproducibility: no branding, color, or drawn
     recorder box on the instrument. Verification stays data-only
-    (deed_pdfs.sha256 + metadata + /api/verify) — never on recorded pages."""
+    (deed_pdfs.sha256 + metadata + /api/v1/verify) — never on recorded pages."""
     from services.deed_pdf import render_deed_html
     html = render_deed_html(minimal_row())
     assert "7C4DFF" not in html          # brand purple

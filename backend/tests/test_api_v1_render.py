@@ -84,6 +84,15 @@ def test_api_render_carries_chassis_furniture_and_no_chrome():
     assert "7C4DFF" not in html
 
 
+def test_notary_page_is_chassis_furniture_not_a_noop_option():
+    schema = CreateDeedRequest.model_json_schema()
+    assert "options" not in schema["properties"]
+    html = _normalized(render_deed_html(build_render_row(_request())))
+    assert "personally appeared" in html
+    assert "Document Verification" not in html
+    assert "[QR]" not in html
+
+
 def test_api_render_maps_values_onto_the_deed():
     html = _normalized(render_deed_html(build_render_row(_request())))
     assert "JOHN A. DOE" in html

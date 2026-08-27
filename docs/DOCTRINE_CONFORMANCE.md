@@ -125,7 +125,8 @@ Removed; the shared partial is now the only certificate.
 **Statement.** Pages a county recorder touches carry no branding, no
 color, no QR codes, no gray fills, no drawn recorder box (Gov. Code
 §27361.7 reproducibility; §27361.6 recorder's space). Verification
-survives as data (`deed_pdfs.sha256`, metadata, `/api/verify/{code}`).
+survives as data (`deed_pdfs.sha256`, metadata,
+`/api/v1/verify/{document_id}`).
 
 **Habitats checked.** Every PDF-rendering code path in the backend:
 - `services/deed_pdf.py` (stored-PDF pipeline) → five chassis templates ✔
