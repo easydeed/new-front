@@ -676,7 +676,7 @@ export default function LandingPage() {
                        the most consequential place to be wrong: a two-person
                        shop discovers it in week one. */
                     { feature: "Multi-user collaboration", deedpro: false, manual: false },  // banned-claims: allow the row LABEL names the capability in order to DENY it — the cell renders an X for both columns
-                    { feature: "API access", deedpro: true, manual: false },
+                    { feature: "API access — same confirmation step", deedpro: true, manual: false },
                     { feature: "SmartReview validation", deedpro: true, manual: false },
                   ].map((row, i) => (
                     <tr key={row.feature} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
@@ -733,37 +733,21 @@ export default function LandingPage() {
                 </div>
 
                 <h2 className="text-4xl sm:text-5xl font-bold text-white tracking-tight mb-6">
-                  {/* HOME2 item 1, OWNER-RULED (option 1).
-                      Was "One API call. / Instant deed generation."
-
-                      The correction is NOT that the copy contradicted the
-                      product — it did not. `POST /api/v1/deeds` inserts with
-                      status 'active' and returns a PDF URL, and /developers
-                      describes exactly that. What the copy did wrong is
-                      smaller and its own defect: "generation" frames the
-                      software as the author.
-
-                      W0 §3 ruled Model 2 — confirmation in our UI, API
-                      submissions landing as drafts — and that ruling was
-                      DECIDED and then parked. It was never built. Rewriting
-                      this to describe Model 2 would have made the homepage
-                      promise something that does not exist, so the gap is
-                      ledgered instead and this states what is true today. */}
-                  One API call.
+                  {/* API-CONFIRM — Model 2 is built. POST returns a draft
+                      and a confirmation URL. A named human sees the
+                      rendered deed and approves it. The stored PDF exists
+                      only after that. */}
+                  Submit the facts.
                   <br />
-                  A deed your officer signs off.
+                  A human confirms the deed.
                 </h2>
 
                 <p className="text-xl text-gray-300 leading-loose mb-8">
-                  {/* RED-H1.1: was "Works seamlessly with SoftPro, Qualia,
-                      and all major title software platforms." No such
-                      integration exists. What the API does today is what it
-                      says now — deed generation over REST, which is real
-                      and documented at /developers. */}
-                  Submit a California deed from your own system over REST and get back the same recorder-formatted
-                  PDF the app produces. The API asks for MORE than the app does — a transfer-tax declaration and a
-                  vesting statement are required up front, per instrument — because a deed that arrives incomplete is
-                  refused rather than half-made. Keys are issued after a conversation.
+                  POST the transaction from your system. The API returns a draft and a
+                  confirmation URL — not a stored PDF. A person you name opens the
+                  rendered document, sees it as it will print, and approves or sends
+                  it back. Incomplete facts are refused at submission. Keys are issued
+                  after a conversation.
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4">

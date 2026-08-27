@@ -346,8 +346,10 @@ instrument family:
 
 **Deeds — exposed.** The API caller is the officer's system. Escrow and
 title platforms have licensed humans behind them, and W0's Model 2 ruling
-(confirmation happens in our UI) already establishes where human
-decisions live when they must be ours. A deed's variable choices —
+(confirmation happens in our UI — built 2026-08-27 as API-CONFIRM) already
+establishes where human decisions live when they must be ours. A partner
+POST returns a draft; a named human sees the rendered deed and approves
+it. A stored PDF exists only after that. A deed's variable choices —
 consideration, vesting, DTT basis and exemption — arrive as typed facts
 from a system whose operator is accountable for them, the same way the
 wizard receives them from an officer.

@@ -64,6 +64,9 @@ def test_create_accepts_and_replays_idempotency_key():
     assert "WHERE api_key_id = %s AND idempotency_key = %s" in src
     schema = code_only(BACKEND / "database.py")
     assert "uq_api_deeds_idempotency" in schema, "replay needs the unique index"
+    assert "preview_pdf_data" in schema
+    assert "confirmation_token" in schema
+    assert "approver_name" in schema
 
 
 # ── One schema authority (H1) ────────────────────────────────────────

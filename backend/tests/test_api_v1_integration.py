@@ -44,6 +44,8 @@ def _deed_request_body():
                           "city": "Springfield", "state": "CA", "zip": "90210"},
             "title_order_no": "TO-INT-1", "escrow_no": "ESC-INT-2",
         },
+        "approver": {"name": "Jane Roe", "role": "escrow officer",
+                     "email": "jane@integration.test"},
     }
 
 
@@ -88,8 +90,7 @@ def api_key(client, admin_token):
     return key
 
 
-def test_full_lifecycle_mint_create_download_verify(client, api_key):
-    # CREATE — the path that used to 500 on every call
+def test_full_lifecycle_mint_create_confirm_download_verify(client, api_key):
     create = client.post("/api/v1/deeds", json=_deed_request_body(),
                          headers={"Authorization": f"Bearer {api_key}"})
     assert create.status_code == 200, create.text
@@ -97,23 +98,35 @@ def test_full_lifecycle_mint_create_download_verify(client, api_key):
     deed_id, document_id = data["deed_id"], data["document_id"]
     assert deed_id.startswith("deed_")
     assert document_id.startswith("DOC-")
-    # street address only in the response, full address reconstructed for storage
+    assert data["status"] == "pending_confirmation"
+    assert data["urls"]["pdf"] is None
+    assert data["urls"]["confirmation"]
     assert data["property"]["address"] == "742 Evergreen Terrace, Springfield, CA 90210"
 
-    # DOWNLOAD — real PDF bytes
+    too_soon = client.get(f"/api/v1/deeds/{deed_id}/pdf",
+                          headers={"Authorization": f"Bearer {api_key}"})
+    assert too_soon.status_code == 409
+    assert too_soon.json()["detail"]["code"] == "CONFIRMATION_REQUIRED"
+
+    token = data["urls"]["confirmation"].rsplit("/", 1)[-1]
+    preview = client.get(f"/confirm/{token}/preview")
+    assert preview.status_code == 200
+    assert preview.content[:5] == b"%PDF-"
+    approved = client.post(f"/confirm/{token}/approve")
+    assert approved.status_code == 200, approved.text
+
     pdf = client.get(f"/api/v1/deeds/{deed_id}/pdf",
                      headers={"Authorization": f"Bearer {api_key}"})
     assert pdf.status_code == 200
     assert pdf.headers["content-type"] == "application/pdf"
     assert pdf.content[:5] == b"%PDF-"
+    assert pdf.content == preview.content
 
-    # GET metadata
     got = client.get(f"/api/v1/deeds/{deed_id}",
                      headers={"Authorization": f"Bearer {api_key}"})
     assert got.status_code == 200
-    assert got.json()["data"]["deed_id"] == deed_id
+    assert got.json()["data"]["status"] == "completed"
 
-    # VERIFY — public, no auth
     verify = client.get(f"/api/v1/verify/{document_id}")
     assert verify.status_code == 200
     assert verify.json()["valid"] is True

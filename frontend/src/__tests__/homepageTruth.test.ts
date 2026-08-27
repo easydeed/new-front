@@ -96,24 +96,9 @@ describe('HM2 — no legal outcome asserted as a software outcome', () => {
 
   it('never describes the software as the author of a deed', () => {
     /**
-     * HOME2 item 1 and item 7, and the pin is deliberately NARROWER than
-     * the ticket proposed.
-     *
-     * The ask was to pin that no copy describes generation without an
-     * officer in the loop. That cannot be honestly asserted:
-     * `POST /api/v1/deeds` inserts with status 'active' and returns a PDF
-     * URL with no officer step. W0 §3 ruled Model 2 — API submissions
-     * landing as drafts — and that ruling was DECIDED and then parked. It
-     * was never built.
-     *
-     * A pin asserting an officer-in-the-loop API would be true of the
-     * copy and false of the product, which is the §14 shape: a record
-     * stating what exists rather than what was executed. Owner-ruled
-     * option 1 — the copy describes today's API accurately and the gap is
-     * ledgered, loudly, instead.
-     *
-     * So this pins what IS true: no surface calls the software the
-     * author.
+     * API-CONFIRM built Model 2. The homepage may now say the API has a
+     * human in the loop, because it does. The pin still forbids calling
+     * the software the author.
      */
     for (const authorship of [
       'Instant deed generation', 'AI Generated', 'AI Generates',
@@ -121,6 +106,9 @@ describe('HM2 — no legal outcome asserted as a software outcome', () => {
     ]) {
       expect(PAGE).not.toContain(authorship);
     }
+    expect(PAGE).toContain('A human confirms the deed');
+    expect(PAGE).toContain('Every field confirmed before printing');
+    expect(PAGE).toContain('API access — same confirmation step');
   });
 });
 

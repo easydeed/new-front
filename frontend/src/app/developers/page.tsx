@@ -23,11 +23,12 @@ import ApiInquiryForm from './ApiInquiryForm';
 export const metadata: Metadata = {
   title: 'DeedPro API for developers',
   description:
-    'Generate recorder-formatted California deeds from your platform. Authentication, deed types, idempotency, errors, and where DeedPro deliberately keeps a human in the loop.',
+    'Submit California deed facts from your platform. The API returns a draft for a named human to visually approve. Authentication, deed types, confirmation, idempotency, and where DeedPro keeps the human in the loop.',
 };
 
 const SECTIONS = [
   { id: 'quickstart', label: 'Quickstart' },
+  { id: 'confirmation', label: 'Confirmation' },
   { id: 'authentication', label: 'Authentication' },
   { id: 'deed-types', label: 'Deed types' },
   { id: 'boundary', label: 'What the API will not do' },
@@ -97,6 +98,11 @@ const CURL_CREATE = `curl -X POST https://deedpro-main-api.onrender.com/api/v1/d
         "state": "CA",
         "zip": "90001"
       }
+    },
+    "approver": {
+      "name": "Jane Roe",
+      "role": "escrow officer",
+      "email": "jane@escrow.example"
     }
   }'`;
 
@@ -106,15 +112,16 @@ const CREATE_RESPONSE = `{
     "deed_id": "deed_8Kd2mQxR4vLp",
     "document_id": "DOC-2026-H7K3M",
     "deed_type": "grant_deed",
-    "status": "completed",
-    "created_at": "2026-08-03T18:22:41Z",
+    "status": "pending_confirmation",
+    "expires_at": "2026-09-03T18:22:41Z",
     "urls": {
-      "pdf": ".../api/v1/deeds/deed_8Kd2mQxR4vLp/pdf",
-      "verification": ".../verify/DOC-2026-H7K3M"
+      "confirmation": "https://deedpro.io/confirm/…",
+      "pdf": null,
+      "verification": null
     },
+    "approver": { "name": "Jane Roe", "role": "escrow officer" },
     "property": { "address": "1234 Sycamore Lane, Los Angeles, CA 90001", ... },
-    "parties": { "grantor": "JOHN A. DOE AND JANE B. DOE", "grantee": "ROBERT C. ROE" },
-    "transfer_tax": { "amount": "$825.00", "exempt": false }
+    "parties": { "grantor": "JOHN A. DOE AND JANE B. DOE", "grantee": "ROBERT C. ROE" }
   }
 }`;
 
@@ -131,10 +138,8 @@ resp = requests.post(
 )
 resp.raise_for_status()
 deed = resp.json()["data"]
-
-pdf = requests.get(deed["urls"]["pdf"],
-                   headers={"Authorization": f"Bearer {API_KEY}"})
-open(f"{deed['document_id']}.pdf", "wb").write(pdf.content)`;
+# Deliver deed["urls"]["confirmation"] to the named approver.
+# A stored PDF exists only after they approve.`
 
 const NODE_EXAMPLE = `const res = await fetch("https://deedpro-main-api.onrender.com/api/v1/deeds", {
   method: "POST",
@@ -202,10 +207,11 @@ export default function DevelopersPage() {
               DeedPro API
             </h1>
             <p className="mt-4 max-w-2xl text-lg leading-relaxed text-gray-600">
-              Generate recorder-formatted California deeds from your platform. You send
-              the facts of the transaction; the API returns a stored PDF measured to
-              county recorder margins — the same templates and page geometry the
-              DeedPro app itself renders.
+              Submit the facts of a California deed from your platform. The API returns
+              a draft — an id, a status, and a confirmation URL — not a stored PDF.
+              A person you name opens that URL, sees the deed as it will print, and
+              approves or sends it back. DeedPro does not confirm facts and never will.
+              This is the mechanism by which your human does.
             </p>
             <p className="mt-4 max-w-2xl leading-relaxed text-gray-600">
               Base URL{' '}
@@ -219,7 +225,7 @@ export default function DevelopersPage() {
           <section className="mb-16">
             <H2 id="quickstart">Quickstart</H2>
             <p className="mt-4 leading-relaxed text-gray-600">
-              Three steps from a key to a recordable PDF.
+              Four steps from a key to a stored PDF. The third step is a human.
             </p>
             <ol className="mt-6 space-y-3 text-gray-600">
               <li>
@@ -234,15 +240,22 @@ export default function DevelopersPage() {
               <li>
                 <strong className="text-[#1F2B37]">2. POST the transaction.</strong> One
                 request carries the property, the parties, the transfer tax declaration,
-                and the recording block.
+                the recording block, and the named approver. Incomplete facts fail here.
               </li>
               <li>
-                <strong className="text-[#1F2B37]">3. Download the PDF.</strong> The
-                response includes an authenticated PDF URL and a public verification URL.
+                <strong className="text-[#1F2B37]">3. Deliver the confirmation URL.</strong>{' '}
+                You give the link to the person you named. They see the rendered deed —
+                not a summary — and approve or reject it with a reason.
+              </li>
+              <li>
+                <strong className="text-[#1F2B37]">4. Download the PDF after approval.</strong>{' '}
+                Until then,{' '}
+                <code className="rounded bg-gray-100 px-1 text-[13px]">GET /deeds/&#123;id&#125;/pdf</code>{' '}
+                returns <strong>409</strong>.
               </li>
             </ol>
 
-            <Code label="Create a deed">{CURL_CREATE}</Code>
+            <Code label="Create a draft">{CURL_CREATE}</Code>
             <Code label="Response">{CREATE_RESPONSE}</Code>
 
             <h3 className="mt-8 text-lg font-bold text-[#1F2B37]">Python</h3>
@@ -250,6 +263,50 @@ export default function DevelopersPage() {
 
             <h3 className="mt-8 text-lg font-bold text-[#1F2B37]">Node</h3>
             <Code>{NODE_EXAMPLE}</Code>
+          </section>
+
+          <section className="mb-16">
+            <H2 id="confirmation">Confirmation</H2>
+            <p className="mt-4 max-w-2xl leading-relaxed text-gray-600">
+              This is why the API exists in this shape. DeedPro formats and records.
+              It does not confirm facts. The old one-call generate — POST, get a
+              stored PDF, done — is dead. That path let a machine produce a
+              recordable instrument with no human in the loop, which voided the
+              product&rsquo;s central promise.
+            </p>
+            <p className="mt-4 max-w-2xl leading-relaxed text-gray-600">
+              What this preserves: nothing reaches a stored instrument unseen.
+              What it costs: you cannot treat generate as a synchronous one-call
+              download. You hold the source data. If the human says the deed is
+              wrong, you correct it in your system and POST again with a new{' '}
+              <code className="rounded bg-gray-100 px-1 text-[13px]">Idempotency-Key</code>.
+              Replaying a rejected key returns the rejected draft. It does not
+              mint a new one.
+            </p>
+            <ul className="mt-6 space-y-3 text-gray-600">
+              <li>
+                <strong className="text-[#1F2B37]">Named for the record, token for auth.</strong>{' '}
+                Send <code className="rounded bg-gray-100 px-1 text-[13px]">approver.name</code> and{' '}
+                <code className="rounded bg-gray-100 px-1 text-[13px]">approver.role</code>.
+                Optional email is stored, never mailed in v1, and purged after the
+                same contact-retention window as signer contact. You deliver the link.
+              </li>
+              <li>
+                <strong className="text-[#1F2B37]">Seven days.</strong> An unapproved draft
+                expires. Preview bytes are dropped. The token then shows expired.
+              </li>
+              <li>
+                <strong className="text-[#1F2B37]">The bytes they approved are the bytes stored.</strong>{' '}
+                The deed is rendered once at create. Approval promotes those preview
+                bytes and stamps the hash. Re-rendering would store a different
+                document than the one they saw.
+              </li>
+              <li>
+                <strong className="text-[#1F2B37]">Reject, do not edit.</strong> The
+                confirmation page is not a second builder. The human sends a reason.
+                You change the facts where they live.
+              </li>
+            </ul>
           </section>
 
           {/* Authentication */}
@@ -427,7 +484,8 @@ export default function DevelopersPage() {
               one. Send an{' '}
               <code className="rounded bg-gray-100 px-1 text-[13px]">Idempotency-Key</code>{' '}
               header — your order or file number works well — and a repeat with the same key
-              returns the original deed instead of generating a duplicate.
+              returns the original draft. If that draft was rejected or expired, you get
+              that record back. A replay does not resurrect a rejected body as a new draft.
             </p>
             <Code>{`Idempotency-Key: order-48219`}</Code>
             <p className="leading-relaxed text-gray-600">
@@ -470,6 +528,14 @@ export default function DevelopersPage() {
                     <td className="py-3 pr-4"><code className="text-[13px]">NOT_FOUND</code></td>
                     <td className="py-3">
                       No deed with that id belongs to your key. Deeds are scoped per key.
+                    </td>
+                  </tr>
+                  <tr className="border-b border-gray-100">
+                    <td className="py-3 pr-4">409</td>
+                    <td className="py-3 pr-4"><code className="text-[13px]">CONFIRMATION_REQUIRED</code></td>
+                    <td className="py-3">
+                      The PDF was requested before the named approver confirmed the
+                      rendered deed. Deliver the confirmation URL; download after approval.
                     </td>
                   </tr>
                   <tr className="border-b border-gray-100">
@@ -572,14 +638,28 @@ export default function DevelopersPage() {
             <p className="mt-4 max-w-2xl leading-relaxed text-gray-600">
               The current version is <strong>v1</strong>, covering the deed family. Additive
               changes — new deed types, new optional fields, new response keys — ship within
-              v1 without notice. A breaking change would ship under a new path (
-              <code className="rounded bg-gray-100 px-1 text-[13px]">/api/v2</code>), and v1
-              would keep working; we will not repurpose a field or change what an existing
-              one means underneath you.
+              v1 without notice. A later breaking change would ship under a new path (
+              <code className="rounded bg-gray-100 px-1 text-[13px]">/api/v2</code>).
+            </p>
+            <p className="mt-4 max-w-2xl leading-relaxed text-gray-600">
+              <strong className="text-[#1F2B37]">Model 2 cutover, 2026-08-27.</strong> This
+              broke v1 on purpose. There were no live integrators, keys were still
+              manual, and keeping a generate-without-human path would have been a
+              control that looked like a choice and did not enforce the ruling. The
+              old promise — POST and receive a stored PDF — is dead, not deprecated.
             </p>
             <div className="mt-6 space-y-3 text-sm text-gray-600">
               <div>
-                <span className="font-semibold text-[#1F2B37]">2026-08 · v1</span> — {API_DEED_TYPES.length}
+                <span className="font-semibold text-[#1F2B37]">2026-08-27 · v1 Model 2 cutover</span>{' '}
+                — <code className="text-[13px]">POST /api/v1/deeds</code> returns a draft
+                and a confirmation URL. A stored PDF exists only after approval.
+                <code className="text-[13px]">approver.name</code> and{' '}
+                <code className="text-[13px]">approver.role</code> are required.
+                Reject-with-reason; a replayed Idempotency-Key does not resurrect a
+                rejected draft.
+              </div>
+              <div>
+                <span className="font-semibold text-[#1F2B37]">2026-08 · v1</span> — {API_DEED_TYPES.length}{' '}
                 deed types (grant, quitclaim, interspousal, warranty, tax, joint tenancy,
                 community property with right of survivorship, corporate and partnership
                 grantors). Idempotency keys. Per-key rate limits and usage reporting.

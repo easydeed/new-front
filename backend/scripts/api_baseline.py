@@ -8,10 +8,10 @@ defects (tuple-read auth, unassigned full_address) that only an HTTP+DB
 run could catch.
 
   1. admin mints an API key (the real /admin/api-keys path)
-  2. POST /api/v1/deeds — partner-generated deed on the shared chassis
-  3. idempotent replay — same Idempotency-Key returns the SAME deed
-  4. GET /api/v1/deeds/{id}/pdf — stored bytes
-  5. GET /api/v1/verify/{document_id} — public verification
+  2. POST /api/v1/deeds — draft + confirmation URL (Model 2)
+  3. idempotent replay — same Idempotency-Key returns the SAME draft
+  4. GET /api/v1/deeds/{id}/pdf before approve — refused
+  5. approve the token, then PDF + public verification
   6. metering — api_usage_log rows accrue
 
 Usage (standalone — do not run inside the main pytest run):
@@ -88,6 +88,8 @@ def _deed_body():
                           "city": "Los Angeles", "state": "CA", "zip": "90001"},
             "title_order_no": "TO-API-1", "escrow_no": "ESC-API-1",
         },
+        "approver": {"name": "Jane Roe", "role": "escrow officer",
+                     "email": "jane@partner.test"},
     }
 
 
@@ -143,15 +145,16 @@ def run_flows(db_url):
         "status": create.status_code,
         "data_keys": sorted(data.keys()),
         "deed_id_scheme": deed_id.split("_")[0] if deed_id else "",
-        # Scheme only — the year segment would make this baseline fail on
-        # January 1st for no behavioral reason.
         "document_id_scheme": document_id.split("-")[0] if document_id else "",
         "deed_type": data.get("deed_type"),
         "status_value": data.get("status"),
         "property": data.get("property"),
         "parties": data.get("parties"),
         "transfer_tax": data.get("transfer_tax"),
-        "url_keys": sorted((data.get("urls") or {}).keys()),
+        "url_keys": sorted(k for k, v in (data.get("urls") or {}).items() if v),
+        "pdf_url_present": bool((data.get("urls") or {}).get("pdf")),
+        "confirmation_url_present": bool((data.get("urls") or {}).get("confirmation")),
+        "approver_keys": sorted((data.get("approver") or {}).keys()),
     }
 
     # ── Flow 3: idempotent replay ─────────────────────────────────
@@ -167,23 +170,30 @@ def run_flows(db_url):
         "distinct_from_unkeyed": bool(fid) and fid != deed_id,
     }
 
-    # ── Flow 4: PDF download ──────────────────────────────────────
-    dl = client.get(f"/api/v1/deeds/{deed_id}/pdf", headers=auth)
-    results["4_pdf_download"] = {
-        "status": dl.status_code,
-        "content_type": dl.headers.get("content-type"),
-        "is_pdf": dl.content[:5] == b"%PDF-",
-        "over_1kb": len(dl.content) > 1000,
+    # ── Flow 4: PDF is refused until a human approves ─────────────
+    too_soon = client.get(f"/api/v1/deeds/{deed_id}/pdf", headers=auth)
+    results["4_pdf_before_confirm"] = {
+        "status": too_soon.status_code,
+        "code": (too_soon.json().get("detail") or {}).get("code"),
     }
 
-    # ── Flow 5: public verification ───────────────────────────────
+    # ── Flow 5: approve, then stored PDF + public verification ───
+    confirm_url = (data.get("urls") or {}).get("confirmation") or ""
+    token = confirm_url.rsplit("/", 1)[-1]
+    preview = client.get(f"/confirm/{token}/preview")
+    approved = client.post(f"/confirm/{token}/approve")
+    dl = client.get(f"/api/v1/deeds/{deed_id}/pdf", headers=auth)
     ver = client.get(f"/api/v1/verify/{document_id}")
     vj = ver.json() if ver.status_code == 200 else {}
-    results["5_verification"] = {
-        "status": ver.status_code,
+    results["5_confirm_then_instrument"] = {
+        "preview_status": preview.status_code,
+        "preview_is_pdf": preview.content[:5] == b"%PDF-",
+        "approve_status": approved.status_code,
+        "pdf_status": dl.status_code,
+        "pdf_is_same_bytes": preview.content == dl.content,
+        "verify_status": ver.status_code,
         "valid": vj.get("valid"),
         "document_keys": sorted((vj.get("document") or {}).keys()),
-        "no_auth_required": True,
     }
 
     # ── Flow 6: metering + honest auth failure ────────────────────

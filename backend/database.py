@@ -626,6 +626,25 @@ def create_tables():
                ON api_deeds(api_key_id, idempotency_key)
                WHERE idempotency_key IS NOT NULL""",
             "CREATE INDEX IF NOT EXISTS idx_api_deeds_key ON api_deeds(api_key_id)",
+            # API-CONFIRM — Model 2. Preview bytes are held separately
+            # from the stored instrument. pdf_data is written only on
+            # approve, by promoting these bytes, so the dated line
+            # cannot drift between what the human saw and what we keep.
+            "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS confirmation_token TEXT",
+            "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS confirmation_expires_at TIMESTAMPTZ",
+            "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS preview_pdf_data BYTEA",
+            "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS approver_name TEXT",
+            "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS approver_role TEXT",
+            "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS approver_email TEXT",
+            "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ",
+            "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMPTZ",
+            "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS reject_reason TEXT",
+            "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS contact_purged_at TIMESTAMPTZ",
+            """CREATE UNIQUE INDEX IF NOT EXISTS uq_api_deeds_confirmation_token
+               ON api_deeds(confirmation_token)
+               WHERE confirmation_token IS NOT NULL""",
+            "CREATE INDEX IF NOT EXISTS idx_api_deeds_confirm_expiry "
+            "ON api_deeds(confirmation_expires_at) WHERE status = 'pending_confirmation'",
             """CREATE TABLE IF NOT EXISTS api_usage_log (
                 id SERIAL PRIMARY KEY,
                 api_key_id UUID REFERENCES api_keys(id),

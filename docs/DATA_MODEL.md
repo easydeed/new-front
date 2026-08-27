@@ -106,7 +106,7 @@ PostgreSQL via `DATABASE_URL`. Access is raw psycopg2 (`backend/database.py`) ex
 |---|---|
 | `api_keys` | UUID PK, key_prefix + key_hash, scopes TEXT[], per-minute/hour/day rate limits, org linkage |
 | `api_usage`, `api_usage_log`, `api_rate_limits` | usage metering and windowed rate limiting |
-| `api_deeds` | deeds created via `/api/v1` — includes `pdf_data BYTEA` (PDFs stored in-DB) |
+| `api_deeds` | partner drafts and completed instruments. `preview_pdf_data` is held until a named human approves; `pdf_data` is written only then, by promoting those bytes. Confirmation token, expiry, approver name/role/email, reject reason. |
 | `external_deeds` | deeds created via the external partner app (SoftPro/Qualia) |
 | `document_authenticity`, `verification_log` | QR authenticity records (`short_code`, content/pdf hashes) + public verification audit |
 | `partners` | per-user partner directory (`add_partners_table_v2.py`) |

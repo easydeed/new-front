@@ -157,6 +157,14 @@
  ],
  [
   "GET",
+  "/confirm/{token}"
+ ],
+ [
+  "GET",
+  "/confirm/{token}/preview"
+ ],
+ [
+  "GET",
   "/dashboard/queue"
  ],
  [
@@ -394,6 +402,14 @@
  [
   "POST",
   "/approve/{approval_token}"
+ ],
+ [
+  "POST",
+  "/confirm/{token}/approve"
+ ],
+ [
+  "POST",
+  "/confirm/{token}/reject"
  ],
  [
   "POST",

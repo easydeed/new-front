@@ -217,6 +217,7 @@ def test_the_frontend_sweep_is_looking_at_something():
 @pytest.mark.parametrize("known", [
     "/approve/{token}",      # the review and signing link, in two emails
     "/signing/{token}",      # NOTARY2's consumer surface
+    "/confirm/{token}",      # API-CONFIRM — partner draft, human approval
     "/shared-deeds",         # THE ALIAS — see the note below
     "/signings",             # THE OTHER ALIAS — the schedule notice is an email
     "/requests",             # where both focus links point NOW
