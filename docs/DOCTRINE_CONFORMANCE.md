@@ -1693,6 +1693,42 @@ separate discipline to sustain.
 
 ---
 
+### §14.26 — "A gate rejected my change, so I changed the gate" is flagged every time, regardless of how the flag comes out (2026-08-26, owner-ruled)
+
+**Statement.** Widening a control you just failed is a legitimate move and
+a suspicious shape, and both are permanently true. **The flag is not a
+verdict and does not depend on one** — it is what makes the decision get
+looked at, and a look that concludes "yes, correctly" is the flag working
+rather than the flag being unnecessary.
+
+**The test, when the flag is raised:** does the change move the gate
+**toward the property it means, or away from it?**
+
+**The instance.** PCOR-WIZ's allowlist tripped the pronoun sweep on
+`Q. Other. his transfer is to` — a county field name with the `T` dropped
+from `This`. The exemption was legitimate; the exemption list's own
+meta-pin then rejected it for citing neither `§` nor `Civil Code`.
+
+Those two strings are **spellings of the property**, which is *prescribed
+by an authority outside this repository*. A county AcroForm field name
+satisfies that as firmly as a Civil Code citation does. So the check was
+widened to the property rather than special-cased to the file, and the
+clause that does the work — *a reason citing nothing still fails* —
+stayed. **The gate now demands the same thing in more spellings rather
+than fewer things**, which is a narrowing in effect.
+
+**Why the reflex outlives the outcome.** Every instance of this shape will
+have an argument; the ones that are loosenings will have arguments too,
+and they will feel exactly as reasonable from inside. **The day the shape
+stops being flagged is the day one of them is a loosening** — not because
+the flag prevents it, but because the flag is the only moment at which
+anybody asks.
+
+**Filed here rather than in the ticket that occasioned it** (§15.1): this
+governs every future gate edit, not the one that produced it.
+
+---
+
 ### §14.25 — The enumeration is the mechanism; the pattern is the smoke detector (2026-08-26, owner-ruled)
 
 **Statement.** A heuristic too weak to DECIDE can still be strong enough
@@ -1725,6 +1761,14 @@ approaches fail on *different* inputs. The enumeration fails on fields a
 human overlooked; the pattern fails on fields whose wording is unusual.
 A field must evade **both** to reach production, and the ways of evading
 them are uncorrelated.
+
+**AND THAT IS THE WHOLE ARGUMENT — it is not "more checks are better."**
+That belief is how gates accumulate without adding coverage: three checks
+that fail on the same inputs are one check billed three times, and the
+repository looks equipped (§14.9) while a single blind spot stays blind.
+**The justification for a second check is always the set of inputs it
+catches that the first does not.** If that set cannot be named, the check
+is ceremony.
 
 **The rule.** When a heuristic is rejected as a decision procedure,
 consider retaining it as an assertion — and say in the file that it is
@@ -1767,6 +1811,21 @@ flow to a consumer, on a form signed under penalty of perjury.
 
 Probed by replacing the soft hyphen with an ordinary hyphen: four pins
 fail. Without pin 2, none would.
+
+**WHY IT TAKES TWO, AND THIS IS THE PART THAT GENERALISES.** The two
+remedies close **different paths**, not the same path twice:
+
+  · **Generation closes the ENTRY path** — typing is where the error gets
+    in, so removing the typing removes the entry.
+  · **The existence pin closes the DRIFT path** — a later hand-edit, a
+    merge resolution, a paste through an editor that normalises Unicode.
+    Generation happened once; the file lives forever.
+
+**A mechanism that closes the entry path and not the drift path leaves
+the class open one commit later**, and it does so while looking like the
+problem was solved — the literals were generated, after all. Whenever a
+remedy is "generate it rather than write it", ask separately what stops
+the generated thing from being edited afterwards.
 
 **The general form.** Any list whose members must match an external
 artifact byte-for-byte — form field names, API enum values, filenames,
