@@ -1262,14 +1262,20 @@ entry nobody checks a new feature against.
   Officer-only = Part 1's 44 lettered widgets + **5 unlettered ones** + 7
   moved by §14.23 + the transfer date.
 
-  **CORRECTED 2026-08-26 BY BUILDING IT.** This table first read
-  `111 / 55` with two fields still unplaced, and 9 + 111 + 55 = 175 rather
-  than 177 — the two residue fields were outside the table without the
-  table saying so. Their rulings took one each way, and **step 1's
-  tripwire then found a 57th** (below). The counts are now generated from
-  the module and asserted against the reference in
-  `test_pcor_field_split.py`, so they cannot drift from prose again:
-  9 + 111 + 57 = 177.
+  **CORRECTED 2026-08-26 BY BUILDING IT, and the correction is the
+  convention working rather than a slip caught late.** This table first
+  read `111 / 55` with two fields still unplaced, and **9 + 111 + 55 = 175
+  against a measured 177** — the residue sat outside the table without the
+  table saying so, which is the only reason the arithmetic looked wrong
+  rather than the classification. Their rulings took one each way, and
+  **step 1's tripwire then found a 57th** (below).
+
+  The counts are now **generated from the module and asserted against the
+  reference** in `test_pcor_field_split.py`: 9 + 111 + 57 = 177. That is
+  the same fix as TRIAL1's mirror — the advertised number and the acting
+  number must be one number, stated once per side — applied one document
+  over. **Prose that restates a measurement drifts from it; prose that is
+  checked against it cannot.**
 
   **THE HAZARD THAT SHAPES THE BUILD.** Part 1 cannot be identified by
   letter prefix in either direction. The form reuses letters across parts
@@ -1374,25 +1380,29 @@ entry nobody checks a new feature against.
   **Two findings from building it, both about transcription rather than
   logic:**
 
-  1. **Two of the 57 names contain characters invisible in an editor** —
-     item A's `yes` box carries U+00AD SOFT HYPHEN, item J's `no` box
-     carries U+2011 NON-BREAKING HYPHEN. Both render as ordinary hyphens.
-     **A hand-typed allowlist would carry two entries matching nothing,
-     and a name that matches nothing protects nothing** — silently, with
-     the file still reading as complete. The literals were generated from
-     the PDF rather than typed, and a pin asserts every name exists in the
-     reference. Probed by replacing the soft hyphen with an ordinary one:
-     four pins fail.
+  1. **§14.24 — an allowlist of foreign strings cannot be verified by
+     reading.** Two of the 57 names contain characters invisible in an
+     editor: item A's `yes` box carries U+00AD SOFT HYPHEN, item J's `no`
+     box carries U+2011 NON-BREAKING HYPHEN, and both render as ordinary
+     hyphens. A hand-typed list would carry two entries matching nothing
+     while the file still read as complete and still counted 57 — **every
+     check a human can perform on the list passes while it is wrong.**
+     Remedy is two things: generate the literals from the PDF, AND pin
+     that every entry exists in the reference. Probed by replacing the
+     soft hyphen with an ordinary one — four pins fail; without the
+     existence pin, none would.
 
-  2. **The 57th field was found by the tripwire, not by the decision.**
-     A deliberately untrusted pattern — kept as an ALARM precisely because
-     the ruling forbids using a pattern to classify — flagged item J's
-     *"if yes, please explain"* free text sitting in the buyer's set. It
-     carries no letter AND a county typo (*"recorded only a requirement"*),
-     so it survived a careful manual pass over all 177 widgets. **The
-     enumeration is the mechanism and the pattern is the smoke detector;
-     this is the evidence for keeping both**, and it fired on its first
-     run.
+  2. **§14.25 — the enumeration is the mechanism, the pattern is the
+     smoke detector.** The 57th field was found by the tripwire, not by
+     the decision. A deliberately untrusted prefix pattern — kept as an
+     ALARM precisely because the ruling forbids classifying with one —
+     flagged item J's *"if yes, please explain"* free text in the buyer's
+     set. No letter AND a county typo (*"recorded only a requirement"*),
+     so it survived a careful manual pass over all 177 widgets by someone
+     who knew what they were looking for. It fired on its first run.
+     **A heuristic too weak to decide can be strong enough to point, and
+     a pointer's failure mode is a false alarm rather than a silent wrong
+     answer.**
 
   **What a reader who believes this entry should still ask:** steps 2–6
   are not built and are not scheduled. There is no token surface, no

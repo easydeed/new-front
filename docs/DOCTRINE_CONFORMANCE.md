@@ -1693,6 +1693,89 @@ separate discipline to sustain.
 
 ---
 
+### §14.25 — The enumeration is the mechanism; the pattern is the smoke detector (2026-08-26, owner-ruled)
+
+**Statement.** A heuristic too weak to DECIDE can still be strong enough
+to POINT. Keeping a rejected classifier as an alarm is not a hedge or a
+half-measure — **the two have different failure modes, and only one of
+them is silent.**
+
+  · A classifier that is wrong produces a **silent wrong answer**. The
+    field is misfiled, the code runs, every count is right.
+  · A pointer that is wrong produces a **false alarm**. Somebody looks.
+
+So the cost of keeping the weak pattern is bounded by annoyance, and the
+cost of not keeping it is the class of miss no enumeration catches.
+
+**The instance, and it fired on its first run.** PCOR-WIZ's ruling forbids
+classifying the PCOR's fields by letter prefix — the form reuses letters
+across parts and some Part 1 widgets carry no letter at all — so the
+officer-only set is an enumerated allowlist. The rejected prefix pattern
+was kept anyway, as a test asserting **nothing shaped like a Part 1
+exclusion appears in the buyer's set**.
+
+It immediately flagged a 57th field the enumeration had missed: item J's
+*"if yes, please explain"* free text. **No letter, plus a county typo**
+(`This transaction is recorded only a requirement…` — "as" dropped), so
+it had survived a careful manual pass over all 177 widgets, done by
+someone who knew exactly what they were looking for.
+
+**Why it works, stated so it is not mistaken for luck.** The two
+approaches fail on *different* inputs. The enumeration fails on fields a
+human overlooked; the pattern fails on fields whose wording is unusual.
+A field must evade **both** to reach production, and the ways of evading
+them are uncorrelated.
+
+**The rule.** When a heuristic is rejected as a decision procedure,
+consider retaining it as an assertion — and say in the file that it is
+NOT the mechanism, so no later reader promotes it back. A pattern
+documented as a tripwire cannot quietly become the classifier again.
+
+---
+
+### §14.24 — An allowlist of foreign strings cannot be verified by reading (2026-08-26)
+
+**Statement.** When a list's entries must match bytes we do not control,
+**every check a human can perform on the list passes while it is wrong.**
+The file reads as complete, the count is right, the entries look correct,
+and the protection is absent.
+
+**The instance.** PCOR-WIZ's officer-only allowlist holds 57 AcroForm
+field names copied from a county PDF. Two of them contain characters that
+are invisible in an editor:
+
+| item | character | renders as |
+|---|---|---|
+| A's `yes` box | `U+00AD` SOFT HYPHEN | an ordinary hyphen |
+| J's `no` box | `U+2011` NON-BREAKING HYPHEN | an ordinary hyphen |
+
+A hand-typed list would carry two entries **matching no field on the
+form**. Nothing about the file would say so: still 57 entries, still
+correctly spelled to the eye, still passing a careful review. **And a
+name that matches nothing protects nothing** — those two fields would
+flow to a consumer, on a form signed under penalty of perjury.
+
+**The remedy is two things, and one alone is insufficient.**
+
+  1. **Generate the literals from the source artifact**, never type them.
+     Emitted ASCII-escaped (`\xad`, `‑`) so the invisible characters
+     are visible *as escapes* in the source.
+  2. **Pin that every entry EXISTS in the reference.** Generation can
+     still drift — a later hand-edit, a merge, a copy-paste through a
+     normalising editor — and only comparison against the real document
+     distinguishes a name that matches from one that merely looks right.
+
+Probed by replacing the soft hyphen with an ordinary hyphen: four pins
+fail. Without pin 2, none would.
+
+**The general form.** Any list whose members must match an external
+artifact byte-for-byte — form field names, API enum values, filenames,
+protocol constants — is in this class. **Ask of such a list: could I tell
+by looking? If not, it needs an existence assertion against the source,
+not a careful reviewer.**
+
+---
+
 ### §14.23 — A fact whose only use is a legal determination is that determination, one indirection out (2026-08-26, owner-ruled)
 
 **Statement.** Moving a question from *"which box applies?"* to *"what
@@ -2786,6 +2869,7 @@ on.
 
 | Date | Change |
 |---|---|
+| 2026-08-26 | PCOR-WIZ step 1. §14.24 added — an allowlist of FOREIGN STRINGS cannot be verified by reading. The officer-only allowlist holds 57 AcroForm field names copied from a county PDF, and two of them contain characters invisible in an editor: item A's `yes` box carries U+00AD SOFT HYPHEN and item J's `no` box carries U+2011 NON-BREAKING HYPHEN, both rendering as ordinary hyphens. A hand-typed list would carry two entries matching no field on the form, and NOTHING ABOUT THE FILE WOULD SAY SO — still 57 entries, still correctly spelled to the eye, still passing a careful review — while a name that matches nothing protects nothing and those two fields flow to a consumer on a form signed under penalty of perjury. Every check a human can perform passes while the list is wrong. The remedy is TWO things and one alone is insufficient: generate the literals from the source artifact (emitted ASCII-escaped so the invisible characters are visible AS escapes), and pin that every entry EXISTS in the reference, because generation can still drift through a later hand-edit, a merge, or a paste through a normalising editor. Probed by replacing the soft hyphen with an ordinary one: four pins fail, and without the existence pin none would. General form: any list whose members must match an external artifact byte-for-byte — form field names, API enum values, filenames, protocol constants — is in this class, and the test is *could I tell by looking?* If not it needs an existence assertion against the source rather than a careful reviewer. §14.25 added (owner-ruled) — THE ENUMERATION IS THE MECHANISM, THE PATTERN IS THE SMOKE DETECTOR. A heuristic too weak to DECIDE can still be strong enough to POINT, and keeping a rejected classifier as an alarm is not a hedge: the two have different failure modes and only one is silent. A wrong classifier produces a silent wrong answer (field misfiled, code runs, counts right); a wrong pointer produces a false alarm and somebody looks. PCOR-WIZ's ruling forbids classifying the PCOR's fields by letter prefix, so the officer-only set is enumerated — and the rejected prefix pattern was kept anyway as a test asserting nothing shaped like a Part 1 exclusion appears in the buyer's set. It fired on its FIRST RUN, flagging a 57th field the enumeration had missed: item J's "if yes, please explain" free text, which carries no letter AND a county typo ("recorded only a requirement", with "as" dropped) and had therefore survived a careful manual pass over all 177 widgets by someone who knew exactly what they were looking for. Why it works rather than luck: the two approaches fail on DIFFERENT inputs — the enumeration on fields a human overlooked, the pattern on fields whose wording is unusual — so a field must evade both, and the ways of evading them are uncorrelated. The rule: when a heuristic is rejected as a decision procedure, consider retaining it as an assertion, and SAY IN THE FILE that it is not the mechanism so no later reader promotes it back. Also from this ticket: the pronoun sweep caught `Q. Other. his transfer is to` — the COUNTY's typo, with the T dropped from "This" — and the exemption's own meta-pin then failed because it demanded "§" or "Civil Code", which are two SPELLINGS of the property it means (prescribed by an outside authority). A county AcroForm is that as firmly as Civil Code §1189 is, so the check was widened to the property rather than special-cased to the file; "a reason citing nothing still fails" keeps it a NARROWING in effect, demanding the same thing in more spellings rather than fewer things. The shape "a gate rejected my change so I changed the gate" was flagged for scrutiny before it was made, and the test applied was whether the widening moves toward the property or away from it. |
 | 2026-08-26 | DEED-POLISH. §14.20 added (owner-ruled) — a gate that knows where to look cannot measure findability, and "BUILT" is not a claim about the user's experience. The owner reported that escrow and title-order numbers had no way onto a deed; they had every way — inputs, builder state, `deedPayload`, the generate proxy, `DeedCreate`, the `extras` bucket, `metadata` JSONB, `build_context_from_row`, TWENTY-FOUR templates, and the preview. 1444 backend assertions and 1172 frontend assertions all disagreed with the officer AND THE OFFICER WAS RIGHT: "it isn't there" was a correct description of the product. The fields sat last in a collapsed accordion section below a `border-t` divider, and the section's summary line read one field of the five it held, so filling the requester made the section read as ANSWERED. Why no audit of ours could catch it: every control is handed the location of the thing it verifies — that is what makes it a pin rather than a search — and findability is precisely the property whose location is not known in advance. Not a coverage gap closable by more pins of the same kind. The cost is silent by construction: a real officer concludes the feature is absent, works around it, and never reports it, because there is nothing to report about something that does not exist; this one surfaced only because the person who could not find it also owned the backlog. The usable substitutes are structural rather than gates — a section summary reports EVERY populated field it holds rather than the first, and a container that clips must not clip the fields the summary exists to surface. §14.21 added — a discriminator is sound against the shapes that exist when it is written. `deedResume` read `typeof meta.return_to === 'object'` to mean "grantee", sound only while the requester branch sent a bare string; DEED-POLISH #1 gave that branch an address, so every resumed requester draft would have flipped to "Grantee" — changing where a recorded deed is MAILED, with no error and no visible difference, passing every gate. Replaced by testing for the `city` KEY, which only the grantee branch carries and carries even when empty (presence, not truthiness), correct for all four shapes including rows already stored that a frontend edit cannot migrate. And the cross-file dependency is now DECLARED: the inference requires the requester branch never to grow a `city` key — a constraint on `deedPayload.ts` enforced from `deedResume.ts` with no import between them, pinned on the payload side where the breaking edit would happen, because a cross-file invariant nothing states is a trap laid for whoever edits the other file. General form: when a branch gains a field, ask what elsewhere distinguishes the branches — not what breaks, because nothing breaks. Also recorded: §14.4's parse-error gap is REAL and asymmetric between our two frontend gates — a JSX comment in an expression position broke `InputSection.tsx` and the tsc count FELL FROM 83 TO 9, since a file that cannot be parsed stops reporting its errors, satisfying the monotonic-down invariant by breaking the thing it measures in the direction that reads as an improvement; eslint has a parse floor and tsc's baseline does not, and eslint moving the OTHER way (127, over ceiling) is the only reason it was seen — gate diversity did the work, not any single gate. Ticketed. And the DTT city defect was found by a pin written for something else: "bolding changes weight, not content" failed, and what it caught had nothing to do with bolding — the checkbox was gated on `area_type == 'city'` while the city NAME printed unconditionally, and the PREVIEW gated the value while the template did not, so the officer verified a blank city on screen and recorded a city name. Fixed at the state write AND at the template, the latter being the load-bearing half: rows already stored with the contradictory metadata are the ones at risk, created by officers who already made the mistake. |
 | 2026-08-24 | §14.19 added (owner-ruled) — an inconsistency that happens to be LOAD-BEARING is not tidy-able. Promoted out of §14.18, where it was a paragraph, because it generalises past CI entirely: some of what looks like untidiness is doing work nobody assigned it, and the impulse to normalise arrives with no obligation to find out what. The instance was one sentence from being recommended — §14.18's diagnosis ends at an obvious repair (add `claude/**` to `ci.yml`'s push filter so both workflows fire the same way), and that repair would have made `build-and-test` run regardless of mergeability, so a conflicted PR would show SEVEN greens instead of six-and-a-hole. The hole is the entire warning, so seven greens is strictly worse than six; the asymmetry that made the failure visible was an accident, and tidying it would have SPENT the accident, for symmetry. Not an argument for leaving things alone: the inconsistency is still an accident and still nobody's decision, but it is now recorded as load-bearing, which converts an untidiness into a constraint with a reason attached — the available move was never normalise-or-don't, it was write down what it carries so the next person reaching for the tidy fix meets an argument rather than an oddity. The general test, cheap enough to always run: what is currently true ONLY because of this asymmetry? "Nothing" means normalise it; an answer that takes more than a moment to find IS the finding. The danger is that the impulse to normalise feels like diligence and so never presents itself as a decision requiring evidence. Family: §14.9 is a control switched off, §14.18 is a control never asked to run, §14.19 is a control nobody built, running anyway, about to be switched off by tidiness — all three leave the repository looking better afterwards. Also recorded from #250: the PR body published `git checkout -B <branch> origin/main` with the placeholder stripped, angle brackets parsed as an HTML tag in transit, so the record of a mechanism rendered the mechanism as a broken command; the tracked files carried the exact bytes and only the description was damaged, which is §14.11's family (text that moved is not text that was copied until the bytes are compared) and a reminder that the canonical artifact is the file in the repo, not the description wrapped around it. And the §14.18.1 precondition had its first real use on #250: `mergeable_state` read `"unstable"` while two checks were still running — correctly BLOCKING — and `"clean"` once all seven reported. |
 | 2026-08-24 | §14.18 added (owner-ruled) — a gate whose NON-APPEARANCE is the entire warning, on a surface built to display presence. §14.9 inside out: not a control switched off, but one that was never asked to run, with nothing recording that it was not asked. PR #249 showed six green checks and no `build-and-test`; two hypotheses were spent on the workflow and both were wrong, because the workflow was fine. `mergeable_state` was `"dirty"`. THE MECHANISM, recorded because the shape is only actionable if the reason is known: a `pull_request` run is computed against `refs/pull/N/merge`, a conflicted PR has no merge ref, so GitHub creates NO RUN — not queued, not skipped, not failed. Nothing to render, so nothing renders, and a hole in a list of successes reads as a list of successes. What made the page look complete is a trigger asymmetry: `ci.yml` (1 job) fires on `pull_request` and went silent, while `test.yml` (5 jobs) fires on bare `[push]` and reported normally — five plus Vercel is six rows of success on a PR that could not merge. AND THE OBVIOUS FIX IS A TRAP: adding `claude/**` to `ci.yml`'s push filter would make it run regardless of mergeability and would destroy the only signal this failure had — seven greens on a conflicted PR is strictly worse than six and a hole. The visible tell, read past twice: the PR header said 6 files / +339 against a ticket of 3 files / +136 — a PR's own file and line counts are a CLAIM ABOUT ITS SCOPE, and a number that does not match the work is the cheapest available signal that something else came along; same family as the `git add -A` finding one layer up, both announcing themselves in a count nobody reads. The cause was upstream and was mine: #249 was cut from #248's head rather than `origin/main`, so #248's squash-merge put the same content in main under a new SHA and on the branch under the old ones, and `git merge-base` was main-before-#248. And the safety was not ours — GitHub's merge endpoint refusing an unmergeable request is what stood between me and merging it; a near-miss caught by somebody else's guardrail is not a caught near-miss (that refusal is documented behaviour, NOT verified here, per §14.17). §14.18.1 decides the remedy rather than accumulating one, under the owner's explicit constraint not to add a third resolution to be careful: `mergeable_state` as a merge precondition is ADOPTED but conditioned, since it is free in a call already made and yet computes lazily — observed reading `"unknown"` right after a force-push, and a precondition that often answers "unknown" is one you learn to wave through — so the unknown branch must block and re-read; expected-check-count is DECLINED despite catching this instance (6 expected, 5 observed), because deriving the expected number means maintaining an evaluator for branch globs, path filters and `if:` conditions whose failure mode is UNDER-EXPECTING, which renders as "all present" — a gate whose failure looks like completeness, built to catch a gate whose failure looks like completeness; and the actual mechanism is upstream of both — `git fetch origin main && git checkout -B <branch> origin/main` at ticket start, which PRODUCES the un-stacked property rather than verifying it, leaving no moment at which to forget to look. Recorded in CLAUDE.md beside `git -C` on the same honest terms: a prompt, not a gate. |
