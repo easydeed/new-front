@@ -38,12 +38,9 @@
  * therefore CHEAPER here than it is in the API, and the case for making
  * it the default is stronger.
  *
- * It is still off today, for a different and smaller reason: **the values
- * do not exist yet.** The owner supplies the entity name. Turning strict
- * on before it is supplied would block every deploy, starting with the
- * one that carries this file. It flips in the ticket that sets the three
- * variables — one line in the deploy config — and that ticket is the one
- * that has verified them, exactly as `STRICT_ENV` was sequenced.
+ * ENTITY1 supplied the three values and flipped the flag in
+ * `frontend/vercel.json`. A missing contact address is now a broken
+ * deploy, the same way a missing `ALLOWED_ORIGINS` is.
  *
  * ═══ THE NEXT.JS TRAP THAT FORCES THE `VALUES` TABLE BELOW ═══
  *
@@ -148,6 +145,22 @@ export const REQUIRED_PUBLIC_KEYS = PUBLIC_MANIFEST
 /** The build-time value of a declared variable, trimmed, or undefined. */
 export function publicEnvValue(key: string): string | undefined {
   return (VALUES[key] || '').trim() || undefined;
+}
+
+/**
+ * The footer identity line — entity, address, email — or nothing.
+ *
+ * All three or none: a name without an address is the half-answer the
+ * three-variable rule exists to prevent, and a guessed segment is worse
+ * than a missing line. `ContactBlock` still renders whatever subset it
+ * has; this helper is the one-liner the public page prints.
+ */
+export function publicIdentityLine(): string | undefined {
+  const entity = publicEnvValue('NEXT_PUBLIC_LEGAL_ENTITY');
+  const address = publicEnvValue('NEXT_PUBLIC_CONTACT_ADDRESS');
+  const email = publicEnvValue('NEXT_PUBLIC_CONTACT_EMAIL');
+  if (!entity || !address || !email) return undefined;
+  return `${entity} · ${address} · ${email}`;
 }
 
 /**

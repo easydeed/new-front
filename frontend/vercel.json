@@ -7,7 +7,11 @@
     "NEXT_PUBLIC_DYNAMIC_WIZARD": "false",
     "NEXT_PUBLIC_GOOGLE_PLACES_ENABLED": "false",
     "NEXT_PUBLIC_TITLEPOINT_ENABLED": "false",
-    "NEXT_PUBLIC_API_URL": "https://deedpro-main-api.onrender.com"
+    "NEXT_PUBLIC_API_URL": "https://deedpro-main-api.onrender.com",
+    "NEXT_PUBLIC_LEGAL_ENTITY": "DeedPro Corporation",
+    "NEXT_PUBLIC_CONTACT_ADDRESS": "440 Rte 66, Glendora, CA 91750",
+    "NEXT_PUBLIC_CONTACT_EMAIL": "info@deedpro.io",
+    "STRICT_PUBLIC_ENV": "1"
   },
   "functions": {
     "src/app/api/**/*.ts": {
