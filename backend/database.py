@@ -1026,6 +1026,8 @@ def create_tables():
                 country_code VARCHAR(2),
                 error_message TEXT
             )""",
+            "CREATE INDEX IF NOT EXISTS idx_verification_log_ip_time "
+            "ON verification_log(ip_hash, verified_at)",
             """CREATE TABLE IF NOT EXISTS notifications (
                 id SERIAL PRIMARY KEY,
                 type VARCHAR(50),

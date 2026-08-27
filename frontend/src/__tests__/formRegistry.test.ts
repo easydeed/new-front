@@ -249,6 +249,12 @@ describe('the instrument count nobody has to remember', () => {
     expect(readSource('app', 'page.tsx')).toContain('INSTRUMENT_COUNT');
   });
 
+  it('pricing imports the registry count instead of mirroring it', () => {
+    const pricing = codeOnly(readSource('lib', 'pricing.ts'));
+    expect(pricing).toContain("import { INSTRUMENT_COUNT } from './formRegistry'");
+    expect(pricing).not.toMatch(/INSTRUMENT_COUNT\s*=\s*\d+/);
+  });
+
   it('no surface states a count of its own', () => {
     // A number RENDERED as text — a quoted numeric string or a bare JSX
     // text node. Class names ("mb-2") and array indexes are not counts

@@ -9,6 +9,7 @@ import Link from "next/link"
 import StickyNav from "@/components/landing-v2/StickyNav"
 import { TIERS, priceLabel } from "@/lib/pricing"
 import { INSTRUMENT_COUNT } from "@/lib/formRegistry"
+import { API_DEED_TYPES } from "@/lib/apiDocs"
 import ContactBlock from "@/components/landing-v2/ContactBlock"
 import { publicEnvValue } from "@/lib/publicEnvironment"
 import { LogoLockupDark } from "@/components/brand/Logo"
@@ -787,8 +788,8 @@ export default function LandingPage() {
                     <div className="text-sm text-gray-400">JSON in, PDF out</div>
                   </div>
                   <div>
-                    <div className="text-3xl font-bold text-[#4F76F6] mb-2">{INSTRUMENT_COUNT}</div>
-                    <div className="text-sm text-gray-400">CA instruments</div>
+                    <div className="text-3xl font-bold text-[#4F76F6] mb-2">{API_DEED_TYPES.length}</div>
+                    <div className="text-sm text-gray-400">CA deed instruments via API</div>
                   </div>
                 </div>
               </div>
@@ -1013,7 +1014,7 @@ Content-Type: application/json
                 },
                 {
                   q: "What deed types do you support?",
-                  a: "Grant Deed, Quitclaim Deed, Interspousal Transfer, Warranty Deed, and Tax Deed.",
+                  a: `The app offers ${INSTRUMENT_COUNT} California instruments. The partner API exposes ${API_DEED_TYPES.length} deed-family instruments; its developer docs list every accepted deed_type.`,
                 },
                 {
                   q: "How long does generation take?",

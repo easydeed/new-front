@@ -44,7 +44,6 @@ Two FastAPI apps ship from `backend/`:
 | GET | `/property/search` | PUB | placeholder (2785) |
 | POST | `/generate-deed-preview` | U | HTML/PDF preview (2802) |
 | POST | `/generate-deed` | PUB | Jinja2+WeasyPrint generation, no auth (2922) |
-| GET | `/pricing`, `/pricing/plans` | PUB | pricing (2989, 3028) |
 | POST | `/admin/create-plan`, `/admin/sync-pricing`, `/admin/update-price`, `/admin/toggle-addon` | A | pricing admin, real JWT check (3033–3187) |
 | GET | `/check-widget-access` | U | add-on flag (3178) |
 | GET/POST | `/users/profile/enhanced` | U | enhanced profile (3195, 3210) |
@@ -71,7 +70,6 @@ Mounts are wrapped in try/except in `main.py`; a failed import silently drops th
 | `/deed-shares` | `routers/deed_share_feedback.py` | GET `/{share_id}/feedback` | U |
 | `/partners` | `routers/partners.py` | partner CRUD + `/selectlist/` | U |
 | `/admin/partners` | `routers/admin_partners.py` | list/read/toggle-active | admin wrapper |
-| `/api/verify` | `routers/verification.py` | GET `/{short_code}` — public QR authenticity check | PUB |
 | `/admin/verification` | `routers/verification.py` (admin router) | stats & lookups | A |
 | `/api/v1` | `routers/api_v1/router.py` | POST `/deeds`, `/transfer-tax/calculate`; GET `/deeds`, `/deeds/{id}`, `/deeds/{id}/pdf`, `/verify/{document_id}`, `/openapi.json` | KEY |
 | `/payments`, `/admin`, `/usage` | `phase23_billing/` (registered **first**, `main.py:46`) | POST `/payments/webhook`; GET `/admin/revenue`, `/admin/invoices`, `/admin/payments`, `/admin/exports/payments.csv`; usage-metering routes | varies (SQLAlchemy-backed) |

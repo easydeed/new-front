@@ -41,6 +41,8 @@
  * `scripts/check_banned_claims.py`.
  */
 
+import { INSTRUMENT_COUNT } from './formRegistry';
+
 export type TierKey = 'free' | 'professional' | 'business';
 
 export interface Tier {
@@ -55,16 +57,6 @@ export interface Tier {
   blurb: string;
   features: string[];
 }
-
-/**
- * The recordable-instrument count, stated once.
- *
- * MIRRORED against `form_families.FAMILY_BY_DEED_TYPE` and pinned in
- * `backend/tests/test_pricing1_one_price.py` — 21 is a claim on a
- * purchase surface, so it is checked against the registry rather than
- * counted by hand and left to rot.
- */
-export const INSTRUMENT_COUNT = 21;
 
 const TRUE_OF_EVERY_TIER = [
   `${INSTRUMENT_COUNT} recordable California instruments`,

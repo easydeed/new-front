@@ -1,12 +1,18 @@
 """
 DeedPro Public API v1 Router
 """
-from fastapi import APIRouter, Depends, HTTPException, Header, Request, Response
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends, HTTPException, Header, Request, Response, Security
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.routing import APIRoute
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from typing import Optional
 from datetime import datetime
 import json
 import io
+import hashlib
+import hmac
+import logging
 import os
 import time
 
@@ -16,8 +22,7 @@ from schemas.api_v1.deeds import (
     DeedPropertyResponse, DeedPartiesResponse, DeedTransferTaxResponse,
     DeedListResponse, DeedListItem, PaginationModel,
     TransferTaxCalculateRequest, TransferTaxCalculateResponse,
-    VerificationResponse, VerificationDocumentModel, VerificationPropertyModel, VerificationPartiesModel,
-    APIErrorResponse, ErrorResponse
+    VerificationResponse,
 )
 from services.api_catalog import chassis_type
 from services.dtt_rates import compute_dtt
@@ -25,6 +30,21 @@ from utils.api_keys import extract_key_prefix, validate_api_key, generate_deed_i
 from utils.short_code import generate_content_hash
 from pdf_engine import render_pdf_async
 from services.deed_pdf import render_deed_html
+
+
+logger = logging.getLogger(__name__)
+
+
+def _error_response(status_code: int, code: str, message: str, *,
+                    details=None, headers=None) -> JSONResponse:
+    detail = {"code": code, "message": message}
+    if details is not None:
+        detail["details"] = details
+    return JSONResponse(
+        status_code=status_code,
+        content={"detail": detail},
+        headers=headers,
+    )
 
 
 def build_render_row(deed_request) -> dict:
@@ -76,27 +96,103 @@ def build_render_row(deed_request) -> dict:
         },
     }
 
-router = APIRouter(prefix="/api/v1", tags=["Public API v1"])
+class PublicAPIRoute(APIRoute):
+    """Keep validation failures inside the documented public-API envelope.
+
+    FastAPI's default 422 body is a list under ``detail``. Every other v1
+    error uses ``detail.code`` and ``detail.message``, which made the
+    published client fail while trying to report the original failure.
+    """
+
+    def get_route_handler(self):
+        original = super().get_route_handler()
+
+        async def documented_error_handler(request: Request):
+            try:
+                return await original(request)
+            except RequestValidationError as exc:
+                details = []
+                for error in exc.errors():
+                    field = ".".join(str(part) for part in error.get("loc", ()))
+                    details.append({
+                        "field": field or None,
+                        "message": error.get("msg", "Invalid value"),
+                    })
+                message = "; ".join(
+                    f"{item['field']}: {item['message']}"
+                    if item["field"] else item["message"]
+                    for item in details
+                ) or "Request validation failed"
+                return _error_response(
+                    422, "VALIDATION_ERROR", message, details=details,
+                )
+            except HTTPException as exc:
+                if (isinstance(exc.detail, dict)
+                        and exc.detail.get("code")
+                        and exc.detail.get("message")):
+                    code = exc.detail["code"]
+                    message = exc.detail["message"]
+                    details = exc.detail.get("details")
+                else:
+                    code = {
+                        400: "INVALID_REQUEST",
+                        401: "UNAUTHORIZED",
+                        403: "FORBIDDEN",
+                        404: "NOT_FOUND",
+                        422: "VALIDATION_ERROR",
+                        429: "RATE_LIMITED",
+                    }.get(exc.status_code, "INTERNAL_ERROR")
+                    message = (
+                        str(exc.detail)
+                        if exc.status_code < 500
+                        else "Internal server error"
+                    )
+                    details = None
+                return _error_response(
+                    exc.status_code,
+                    code,
+                    message,
+                    details=details,
+                    headers=exc.headers,
+                )
+            except Exception:
+                logger.exception("Unhandled Public API v1 error")
+                return _error_response(
+                    500, "INTERNAL_ERROR", "Internal server error")
+
+        return documented_error_handler
+
+
+router = APIRouter(
+    prefix="/api/v1",
+    tags=["Public API v1"],
+    route_class=PublicAPIRoute,
+)
+api_key_bearer = HTTPBearer(
+    auto_error=False,
+    description="DeedPro API key as a Bearer token",
+)
+PUBLIC_VERIFY_HOURLY_LIMIT = 60
 
 # ============================================================================
 # AUTH DEPENDENCY
 # ============================================================================
 
 async def get_api_key(
-    authorization: str = Header(..., description="Bearer token with API key"),
+    credentials: Optional[HTTPAuthorizationCredentials] = Security(api_key_bearer),
     request: Request = None
 ) -> dict:
     """
     Validate API key from Authorization header.
     Returns the api_key record if valid.
     """
-    if not authorization.startswith("Bearer "):
+    if not credentials or credentials.scheme.lower() != "bearer":
         raise HTTPException(
             status_code=401,
             detail={"code": "UNAUTHORIZED", "message": "Invalid authorization header format"}
         )
     
-    full_key = authorization[7:]  # Remove "Bearer "
+    full_key = credentials.credentials
     key_prefix = extract_key_prefix(full_key)
     
     conn = get_db_connection()
@@ -382,36 +478,6 @@ async def create_deed(
         # assigned — POST /api/v1/deeds NameError'd on every call, ever.
         p = deed_request.property
         full_address = f"{p.address}, {p.city}, {p.state} {p.zip}"
-        
-        # Build deed data for template
-        deed_data = {
-            "deed_type": deed_request.deed_type.value,
-            "property_address": deed_request.property.address,
-            "property_city": deed_request.property.city,
-            "property_state": deed_request.property.state,
-            "property_zip": deed_request.property.zip,
-            "property_county": deed_request.property.county,
-            "property_apn": deed_request.property.apn,
-            "legal_description": deed_request.property.legal_description,
-            "grantor_name": deed_request.grantor.name,
-            "grantee_name": deed_request.grantee.name,
-            "grantee_vesting": deed_request.grantee.vesting,
-            "transfer_tax_exempt": deed_request.transfer_tax.exempt,
-            "transfer_tax_exempt_code": deed_request.transfer_tax.exempt_code,
-            "transfer_tax_value": deed_request.transfer_tax.value,
-            "transfer_tax_amount": deed_request.transfer_tax.computed_amount,
-            "recording_requested_by": deed_request.recording.requested_by,
-            "recording_return_to_name": deed_request.recording.return_to.name,
-            "recording_return_to_company": deed_request.recording.return_to.company,
-            "recording_return_to_address": deed_request.recording.return_to.address,
-            "recording_return_to_city": deed_request.recording.return_to.city,
-            "recording_return_to_state": deed_request.recording.return_to.state,
-            "recording_return_to_zip": deed_request.recording.return_to.zip,
-            "title_order_no": deed_request.recording.title_order_no,
-            "escrow_no": deed_request.recording.escrow_no,
-            "document_id": document_id,
-            "include_qr_code": deed_request.options.include_qr_code if deed_request.options else True,
-        }
         
         # Doctrine sweep: render through the shared recorder-compliant
         # chassis (services/deed_pdf), not the old inline HTML — that
@@ -818,80 +884,164 @@ async def calculate_transfer_tax(
     }
 
 
+def _verification_actor_hash(request: Request) -> str:
+    """Pseudonymous rate-limit key; raw client addresses are never stored.
+
+    Render supplies the original client address in X-Forwarded-For. The
+    direct peer is the fallback for local runs and non-Render deployments.
+    """
+    forwarded = request.headers.get("x-forwarded-for", "")
+    client_address = (
+        forwarded.split(",", 1)[0].strip()
+        or (request.client.host if request.client else "unknown")
+    )
+    secret = os.getenv("JWT_SECRET_KEY")
+    if not secret:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "INTERNAL_ERROR",
+                "message": "Verification is temporarily unavailable",
+            },
+        )
+    return hmac.new(
+        secret.encode("utf-8"),
+        client_address.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+
+
+def _enforce_verification_rate_limit(cursor, actor_hash: str) -> int:
+    # Count + log is one transaction. Serialize requests for the same actor
+    # so a parallel burst cannot have every request observe "59" and pass.
+    cursor.execute(
+        "SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))",
+        (actor_hash,),
+    )
+    cursor.execute("""
+        SELECT COUNT(*) AS count
+        FROM verification_log
+        WHERE ip_hash = %s
+          AND verified_at >= NOW() - INTERVAL '1 hour'
+    """, (actor_hash,))
+    row = cursor.fetchone()
+    count = int(row["count"] if isinstance(row, dict) else row[0])
+    if count >= PUBLIC_VERIFY_HOURLY_LIMIT:
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "code": "RATE_LIMITED",
+                "message": "Public verification rate limit exceeded",
+            },
+            headers={
+                "Retry-After": "3600",
+                "X-RateLimit-Limit": str(PUBLIC_VERIFY_HOURLY_LIMIT),
+                "X-RateLimit-Remaining": "0",
+            },
+        )
+    return PUBLIC_VERIFY_HOURLY_LIMIT - count - 1
+
+
+def _record_public_verification(cursor, authenticity_id, actor_hash: str,
+                                result: str) -> None:
+    cursor.execute("""
+        INSERT INTO verification_log
+            (document_id, verification_method, result, ip_hash)
+        VALUES (%s, 'api', %s, %s)
+    """, (authenticity_id, result, actor_hash))
+
+
 # ============================================================================
 # PUBLIC VERIFICATION (NO AUTH)
 # ============================================================================
 
-@router.get("/verify/{document_id}")
-async def verify_document(document_id: str):
+@router.get("/verify/{document_id}", response_model=VerificationResponse)
+async def verify_document(document_id: str, request: Request, response: Response):
     """
     Public endpoint to verify document authenticity.
     No authentication required.
     """
+    actor_hash = _verification_actor_hash(request)
+    document_id = document_id.upper().strip()
     conn = get_db_connection()
     if not conn:
-        return {"valid": False, "message": "Service temporarily unavailable"}
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "INTERNAL_ERROR",
+                "message": "Verification is temporarily unavailable",
+            },
+        )
     
     try:
         cursor = conn.cursor()
+        remaining = _enforce_verification_rate_limit(cursor, actor_hash)
+        response.headers["X-RateLimit-Limit"] = str(PUBLIC_VERIFY_HOURLY_LIMIT)
+        response.headers["X-RateLimit-Remaining"] = str(remaining)
         
         # Check document_authenticity table first
         cursor.execute("""
-            SELECT short_code, document_type, property_address, county,
-                   grantor_display, grantee_display, generated_at, status
+            SELECT id, short_code, document_type, generated_at, status
             FROM document_authenticity
             WHERE short_code = %s
         """, (document_id,))
         
         row = cursor.fetchone()
         if row:
-            (doc_id, deed_type, address, county, grantor, grantee, created_at, status) = (
-                row['short_code'], row['document_type'], row['property_address'],
-                row['county'], row['grantor_display'], row['grantee_display'],
+            authenticity_id = row['id']
+            (doc_id, deed_type, created_at, status) = (
+                row['short_code'], row['document_type'],
                 row['generated_at'], row['status'])
         else:
             # Also check api_deeds
             cursor.execute("""
-                SELECT document_id, deed_type, property_address, property_county,
-                       grantor_name, grantee_name, created_at, status
+                SELECT authenticity_id, document_id, deed_type, created_at, status
                 FROM api_deeds
                 WHERE document_id = %s
             """, (document_id,))
             row = cursor.fetchone()
             if not row:
+                _record_public_verification(
+                    cursor, None, actor_hash, "not_found")
+                conn.commit()
                 return {"valid": False, "message": "Document not found"}
-            (doc_id, deed_type, address, county, grantor, grantee, created_at, status) = (
-                row['document_id'], row['deed_type'], row['property_address'],
-                row['property_county'], row['grantor_name'], row['grantee_name'],
+            authenticity_id = row['authenticity_id']
+            (doc_id, deed_type, created_at, status) = (
+                row['document_id'], row['deed_type'],
                 row['created_at'], row['status'])
-        
-        # Abbreviate names for privacy
-        grantor_abbrev = grantor.split()[0] + " " + grantor.split()[-1][0] + "." if grantor and len(grantor.split()) > 1 else grantor
-        grantee_abbrev = grantee.split()[0] + " " + grantee.split()[-1][0] + "." if grantee and len(grantee.split()) > 1 else grantee
+
+        valid = status == 'active' or status == 'completed'
+        _record_public_verification(
+            cursor, authenticity_id, actor_hash,
+            "valid" if valid else "inactive")
+        conn.commit()
         
         return {
-            "valid": status == 'active' or status == 'completed',
+            "valid": valid,
             "document": {
                 "document_id": doc_id,
                 "deed_type": deed_type.replace('_', ' ').title(),
                 "status": status,
                 "created_at": created_at.isoformat() if created_at else None,
-                "property": {
-                    "address": address,
-                    "county": county
-                },
-                "parties": {
-                    "grantor": grantor_abbrev,
-                    "grantee": grantee_abbrev
-                }
             }
         }
         
+    except HTTPException:
+        conn.rollback()
+        raise
     except Exception as e:
-        print(f"Verification error: {e}")
-        return {"valid": False, "message": "Verification failed"}
+        conn.rollback()
+        logger.exception("Public verification failed")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "code": "INTERNAL_ERROR",
+                "message": "Verification failed",
+            },
+        ) from e
     finally:
-        cursor.close()
+        if 'cursor' in locals():
+            cursor.close()
         conn.close()
 
 

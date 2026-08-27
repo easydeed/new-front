@@ -4,7 +4,9 @@
 (not only in chat) so the list survives context windows. No credential
 values ever appear in this file — item names and status only.
 
-_Last corrected: 2026-08-18 (the DECIDED/BUILT convention adopted
+_Last corrected: 2026-08-27 (DX-BRUTAL's dead-control finding and the
+open `exempt_code` validation decision recorded).
+Previously 2026-08-18 (the DECIDED/BUILT convention adopted
 repo-wide; W0 §3 converted as the first entry; HOME2-FOLLOWUP recorded).
 Previously 2026-08-04 (RED-H1 wave closed; the RED0 remediation queue
 re-sequenced by owner ruling; NOTARY1 and RED-S5 recorded as
@@ -2728,15 +2730,36 @@ entry nobody checks a new feature against.
   retired in the same diff that made its promise true. The admin
   deed-edit capability it blocked is unblocked.
 - **VERIFY1 — wizard-deed public verification** (ADMIN0 finding, queued
-  AFTER the admin wave; roadmap, not admin). `create_document_authenticity`
-  (`routers/verification.py:227`) has zero callers — the only live writer
-  of `document_authenticity` is the partner-API lane
-  (`routers/api_v1/router.py:438`). So wizard deeds carry a stored
+  AFTER the admin wave; roadmap, not admin). The uncalled
+  `create_document_authenticity` helper was deleted during DX-BRUTAL;
+  the only live writer of `document_authenticity` remains the partner-API
+  lane (`routers/api_v1/router.py`). So wizard deeds carry a stored
   `deed_pdfs.sha256` but no verifiable short code, and the admin
   Verification tab shows API-lane documents only. Whether public
   verifiability was ever intended for wizard deeds is a product
   question — doctrine §3 removed QR codes from recorded pages on the
   reasoning that "verification survives as data."
+
+- **DX-BRUTAL — inert options in the public request contract.**
+  **DECIDED** 2026-08-27 — a documented API field must control the
+  advertised behavior. `include_notary_page` did not: the acknowledgment
+  page was already included unconditionally by the templates, so changing
+  the option changed no PDF bytes. `include_qr_code` was inert too, and
+  recorded pages already carried no QR. This is the dead-control class
+  first found in `EMAIL_VERIFICATION_REQUIRED`, now at an integration
+  boundary where a partner could code against the nonexistent capability.
+  **BUILT** — PR #262 removes both fields and pins that the request schema
+  advertises neither; acknowledgment rendering itself is unchanged.
+
+- **DX-BRUTAL follow-up — should `exempt_code` become a validated
+  vocabulary?**
+  **DECIDED** — no decision. This is a product-contract question, not a
+  documentation correction.
+  **BUILT** — no. The API accepts a free-form string and validates against
+  no code list. PR #262 documents exactly that and removes the proposed
+  curated examples: publishing a list would imply a closed vocabulary the
+  API does not enforce. Any future validation requires its own ruling and
+  one shared corpus for validation and documentation.
 
 - ~~**Connection-helper LIFECYCLE collapse**~~ — **RESOLVED AS RED-S1,
   shipped 2026-08-04.** `db.conn` is now a per-request proxy over a

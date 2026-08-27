@@ -145,10 +145,6 @@
  ],
  [
   "GET",
-  "/api/verify/{short_code}"
- ],
- [
-  "GET",
   "/approve/{approval_token}"
  ],
  [
@@ -221,14 +217,6 @@
  ],
  [
   "GET",
-  "/docs"
- ],
- [
-  "GET",
-  "/docs/oauth2-redirect"
- ],
- [
-  "GET",
   "/health"
  ],
  [
@@ -242,10 +230,6 @@
  [
   "GET",
   "/notifications/unread-count"
- ],
- [
-  "GET",
-  "/openapi.json"
  ],
  [
   "GET",
@@ -265,19 +249,7 @@
  ],
  [
   "GET",
-  "/pricing"
- ],
- [
-  "GET",
-  "/pricing/plans"
- ],
- [
-  "GET",
   "/property/suggestions"
- ],
- [
-  "GET",
-  "/redoc"
  ],
  [
   "GET",

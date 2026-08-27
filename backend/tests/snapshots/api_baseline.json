@@ -67,8 +67,6 @@
       "created_at",
       "deed_type",
       "document_id",
-      "parties",
-      "property",
       "status"
     ],
     "no_auth_required": true,

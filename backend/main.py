@@ -51,7 +51,17 @@ load_dotenv()
 from services.environment import check as _check_environment
 _check_environment()
 
-app = FastAPI(title="DeedPro API", version="2.0.0-dynamic-wizard")
+app = FastAPI(
+    title="DeedPro API",
+    version="2.0.0-dynamic-wizard",
+    # DX-BRUTAL: the root spec described the entire internal application,
+    # including admin operations. Those routes are authenticated, but their
+    # contract is not the partner product. The deliberately scoped public
+    # contract remains at /api/v1/openapi.json.
+    openapi_url=None,
+    docs_url=None,
+    redoc_url=None,
+)
 # Updated for new-front monorepo with pricing management
 
 # Add QA instrumentation middleware for staging environment
@@ -209,11 +219,13 @@ app.include_router(partners_router, prefix="/partners", tags=["Partners"])
 app.include_router(admin_partners_router, prefix="/admin/partners", tags=["Admin Partners"])
 print("✅ Patch 5: Industry Partners API loaded (org-scoped, user CRUD + admin panel)")
 
-# QR Verification System (Public endpoint - no auth required)
-from routers.verification import router as verification_router, admin_router as verification_admin_router
-app.include_router(verification_router, tags=["Document Verification"])
+# QR Verification System. DX-BRUTAL consolidated public lookups onto the
+# minimized, rate-limited /api/v1/verify/{code} contract. The legacy
+# /api/verify route exposed address, APN, parties, hash and scan count from
+# the same code, so leaving it mounted would bypass that privacy boundary.
+from routers.verification import admin_router as verification_admin_router
 app.include_router(verification_admin_router, tags=["Admin Verification"])
-print("✅ QR Verification System loaded (/api/verify/{code} - public, /admin/verification/* - admin)")
+print("✅ Verification system loaded (/api/v1/verify/{code} public, /admin/verification/* admin)")
 
 # Public API v1 (Partner API for deed generation)
 from routers.api_v1.router import router as api_v1_router

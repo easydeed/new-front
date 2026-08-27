@@ -1,4 +1,11 @@
-"""Pricing + admin pricing/addon endpoints (T8 split — moved verbatim from main.py)."""
+"""Admin pricing/addon endpoints.
+
+The public GET endpoints were removed by the DX-BRUTAL remediation. They
+served rows from the legacy ``pricing`` table, while every customer-facing
+surface and Checkout use the PRICING1 product model. Keeping a second,
+database-backed public model made contradictory prices and unbuilt features
+part of the API contract.
+"""
 from typing import List
 
 import stripe
@@ -19,51 +26,6 @@ class NewPlan(BaseModel):
     plan_name: str
     price: float
     features: List[str]
-
-# Pricing Endpoints
-@router.get("/pricing")
-async def get_pricing():
-    """Get all pricing plans for the landing page"""
-    try:
-        with db.conn.cursor() as cur:
-            cur.execute("""
-                SELECT plan_name, price, features, is_active
-                FROM pricing
-                WHERE is_active = TRUE
-                ORDER BY price ASC
-            """)
-            rows = cur.fetchall()
-
-            # Phase 7.5 FIX: Handle both RealDictCursor (dict) and regular cursor (tuple)
-            result = []
-            for row in rows:
-                if isinstance(row, dict):
-                    # RealDictCursor
-                    result.append({
-                        "name": row.get('plan_name'),
-                        "price": float(row.get('price', 0)),
-                        "features": row.get('features') if row.get('features') else [],
-                        "popular": row.get('plan_name') == "professional"
-                    })
-                else:
-                    # Regular cursor (tuple)
-                    result.append({
-                        "name": row[0],
-                        "price": float(row[1]),
-                        "features": row[2] if row[2] else [],
-                        "popular": row[0] == "professional"
-                    })
-
-            return result
-    except Exception as e:
-        db.conn.rollback()  # CRITICAL: Rollback to prevent transaction cascade failures
-        print(f"[PRICING ERROR] {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch pricing: {str(e)}")
-
-@router.get("/pricing/plans")
-async def get_pricing_plans():
-    """Get all pricing plans - alternative endpoint for consistency"""
-    return await get_pricing()
 
 @router.post("/admin/create-plan")
 async def create_plan(plan: NewPlan, admin: str = Depends(get_current_admin)):

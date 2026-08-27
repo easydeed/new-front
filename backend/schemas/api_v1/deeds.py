@@ -2,7 +2,7 @@
 Pydantic models for API v1 Deed endpoints
 """
 from pydantic import BaseModel, Field, validator
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime
 from enum import Enum
 
@@ -100,11 +100,6 @@ class RecordingModel(BaseModel):
     escrow_no: Optional[str] = None
 
 
-class DeedOptionsModel(BaseModel):
-    include_notary_page: bool = Field(True, description="Include notary acknowledgment page")
-    include_qr_code: bool = Field(True, description="Include QR verification code")
-
-
 class CreateDeedRequest(BaseModel):
     deed_type: DeedType
     property: PropertyModel
@@ -112,7 +107,6 @@ class CreateDeedRequest(BaseModel):
     grantee: GranteeModel
     transfer_tax: TransferTaxModel
     recording: RecordingModel
-    options: Optional[DeedOptionsModel] = DeedOptionsModel()
 
     @validator("recording")
     def check_type_rules(cls, v, values):
@@ -250,23 +244,6 @@ class DeedListResponse(BaseModel):
     data: dict  # Contains deeds list and pagination
 
 
-# Error Response
-class ErrorDetail(BaseModel):
-    field: Optional[str] = None
-    message: str
-
-
-class ErrorResponse(BaseModel):
-    code: str
-    message: str
-    details: Optional[List[ErrorDetail]] = None
-
-
-class APIErrorResponse(BaseModel):
-    success: bool = False
-    error: ErrorResponse
-
-
 # Transfer Tax Calculator
 class TransferTaxCalculateRequest(BaseModel):
     value: float = Field(..., gt=0, description="Property value in dollars")
@@ -293,23 +270,11 @@ class TransferTaxCalculateResponse(BaseModel):
 
 
 # Verification
-class VerificationPropertyModel(BaseModel):
-    address: str
-    county: str
-
-
-class VerificationPartiesModel(BaseModel):
-    grantor: str
-    grantee: str
-
-
 class VerificationDocumentModel(BaseModel):
     document_id: str
     deed_type: str
     status: str
     created_at: datetime
-    property: VerificationPropertyModel
-    parties: VerificationPartiesModel
 
 
 class VerificationResponse(BaseModel):

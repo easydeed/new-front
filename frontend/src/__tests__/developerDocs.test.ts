@@ -54,6 +54,12 @@ describe('documented deed types mirror the backend catalog', () => {
     expect([...API_DEED_TYPES.map((t) => t.slug)].sort()).toEqual(backendSlugs.sort());
   });
 
+  it('derives both API counts instead of spelling nine by hand', () => {
+    expect(page).toContain('API_DEED_TYPES.length');
+    expect(homepage).toContain('API_DEED_TYPES.length');
+    expect(withoutComments(page)).not.toMatch(/\bNine instruments\b/);
+  });
+
   it('the fixed-vesting instruments are documented as fixed', () => {
     const fixed = API_DEED_TYPES.filter((t) => t.vesting === 'fixed-by-instrument').map((t) => t.slug);
     expect(fixed.sort()).toEqual(['grant_deed_cp_ros', 'grant_deed_jt']);
@@ -118,6 +124,13 @@ describe('the doctrine boundary is stated, not buried', () => {
     expect(page).toMatch(/422/);
   });
 
+  it('states the fixed notary furniture and absence of recorded-page QR chrome', () => {
+    expect(page).toMatch(/blank California acknowledgment page/i);
+    expect(page).toMatch(/does not print a QR code/i);
+    expect(pySchema).not.toContain('include_notary_page');
+    expect(pySchema).not.toContain('include_qr_code');
+  });
+
   it('makes no legal-outcome or certification claims', () => {
     expect(page).not.toMatch(/SOC\s?2|HIPAA|ISO 27001/i);
     expect(page).not.toMatch(/legally valid|guarantees? (?:validity|acceptance)/i);
@@ -131,6 +144,30 @@ describe('the doctrine boundary is stated, not buried', () => {
         expect(sentence).toMatch(/\b(?:not|never|no response|does not)\b/i);
       }
     }
+  });
+});
+
+describe('transfer-tax vocabulary is disclosed without becoming a legal decision', () => {
+  it('documents less-liens as the caller’s declared basis', () => {
+    expect(pySchema).toContain('LESS_LIENS = "less_liens"');
+    expect(page).toContain('less_liens');
+    expect(page).toMatch(/does not infer or verify that legal choice/i);
+  });
+
+  it('documents exempt_code as the free-form field the API accepts', () => {
+    expect(pySchema).toMatch(/exempt_code:\s*Optional\[str\]/);
+    expect(page).toMatch(/is a free-form/i);
+    expect(page).toMatch(/does not maintain or validate against/i);
+    expect(page).not.toContain('COMMON_EXEMPTIONS');
+    expect(page).not.toContain('EXEMPTION_SCOPE');
+  });
+});
+
+describe('public verification disclosure is bounded', () => {
+  it('names both the minimal fields and the public rate limit', () => {
+    expect(page).toMatch(/document ID, deed type, status, and creation time/i);
+    expect(page).toMatch(/does\s+not publish the property address, APN, or party names/i);
+    expect(page).toMatch(/60 attempts per client address per hour/i);
   });
 });
 
