@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DeedPro — the confirmation step</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap">
+  <style>
+    body { margin: 0; font-family: Inter, "Segoe UI", system-ui, sans-serif; color: #1F2937; background: #FFFFFF; -webkit-font-smoothing: antialiased; }
+    a { color: #7C4DFF; text-decoration: none; }
+    a:hover { color: #5B2EE5; }
+    * { box-sizing: border-box; }
+  </style>
+<style>
+  /* Mockup shell: the artboards are authored at a fixed 1440px desktop width.
+     Responsive behaviour is not implemented — see the handoff notes. */
+  html { background: #F1F2F5; }
+  body > div { margin: 0 auto; }
+</style>
+</head>
+<body>
+<div style="width: 1440px; background: #FFFFFF;">
+
+  <div style="height: 3px; background: linear-gradient(90deg, #7C4DFF 0%, #16A34A 100%);"></div>
+
+  <!-- HEADER -->
+  <div style="padding: 66px 72px 52px 72px; background: #12141A;">
+    <div style="display: flex; align-items: center; gap: 8px; background: rgba(167,139,250,0.14); border: 1px solid rgba(167,139,250,0.3); color: #C4B5FD; font-size: 12.5px; font-weight: 600; padding: 6px 13px; border-radius: 6px; align-self: flex-start; width: fit-content; margin-bottom: 22px;">The confirmation step</div>
+    <h1 style="margin: 0 0 18px 0; font-size: 52px; line-height: 1.06; font-weight: 700; letter-spacing: -2.4px; color: #FFFFFF; max-width: 860px;">The PDF does not exist until someone has put their name on it</h1>
+    <p style="margin: 0; font-size: 19px; line-height: 1.58; color: #9AA3B2; max-width: 800px;">This is not a review queue bolted onto a renderer. It is the state machine. There is no request you can make, no flag you can set, and no plan you can buy that produces a recordable California deed without a named person confirming the rendered instrument first.</p>
+  </div>
+
+  <!-- STATE MACHINE -->
+  <div style="padding: 56px 72px; background: #F8F8FB; border-bottom: 1px solid #EAECF0;">
+    <div style="display: grid; grid-template-columns: 1fr 56px 1fr 56px 1fr; gap: 0; align-items: stretch;">
+
+      <div style="background: #FFFFFF; border: 1px solid #E4E6EB; border-radius: 10px; padding: 24px; display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 9px;">
+          <span style="width: 9px; height: 9px; border-radius: 50%; background: #9CA3AF;"></span>
+          <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12.5px; font-weight: 700; color: #14161A;">awaiting_confirmation</span>
+        </div>
+        <div style="font-size: 16px; font-weight: 700; color: #14161A;">A draft that renders</div>
+        <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #5B6472;">Your POST returns a deed id and a review URL. The draft is laid out on the real template at real page geometry &mdash; margins, statutory furniture, the blank acknowledgment page &mdash; so the reviewer reads the document, not a summary of the JSON you sent.</p>
+        <div style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; line-height: 1.7; color: #6B7280; background: #F8F8FB; border: 1px solid #EAECF0; border-radius: 6px; padding: 11px 13px; margin-top: auto;">urls.review &nbsp;<span style="color: #16A34A;">present</span><br>urls.pdf &nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #DC2626;">absent</span></div>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: center;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5l7 7-7 7"></path></svg>
+      </div>
+
+      <div style="background: #FFFFFF; border: 1.5px solid #16A34A; border-radius: 10px; padding: 24px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 8px 24px rgba(22,163,74,0.16);">
+        <div style="display: flex; align-items: center; gap: 9px;">
+          <span style="width: 9px; height: 9px; border-radius: 50%; background: #16A34A;"></span>
+          <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12.5px; font-weight: 700; color: #14161A;">POST /deeds/:id/confirm</span>
+        </div>
+        <div style="font-size: 16px; font-weight: 700; color: #14161A;">A person, by name</div>
+        <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #5B6472;">The confirm call requires a reviewer identity and the hash of the draft they actually looked at. Confirm a draft that has since changed and it fails. Confirm as a service account and it fails.</p>
+        <div style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; line-height: 1.7; color: #4B5563; background: #F0FDF4; border: 1px solid #A7F3C4; border-radius: 6px; padding: 11px 13px; margin-top: auto;">reviewer.name &nbsp;&nbsp;&nbsp;<span style="color: #14653A;">required</span><br>reviewer.license <span style="color: #14653A;">required</span><br>draft_sha256 &nbsp;&nbsp;&nbsp;<span style="color: #14653A;">required</span></div>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: center;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6EE7A8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5l7 7-7 7"></path></svg>
+      </div>
+
+      <div style="background: #FFFFFF; border: 1px solid #E4E6EB; border-radius: 10px; padding: 24px; display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 9px;">
+          <span style="width: 9px; height: 9px; border-radius: 50%; background: #16A34A;"></span>
+          <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12.5px; font-weight: 700; color: #14161A;">confirmed</span>
+        </div>
+        <div style="font-size: 16px; font-weight: 700; color: #14161A;">A document, and a record of who</div>
+        <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #5B6472;">The PDF is written once, hash-stamped, and stored insert-or-refuse: a differing hash for the same document is rejected rather than overwriting what is there. The confirmation record is retrievable for as long as you keep the file.</p>
+        <div style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; line-height: 1.7; color: #6B7280; background: #F8F8FB; border: 1px solid #EAECF0; border-radius: 6px; padding: 11px 13px; margin-top: auto;">urls.pdf &nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #16A34A;">present</span><br>confirmed_by <span style="color: #16A34A;">present</span></div>
+      </div>
+    </div>
+
+    <div style="margin-top: 20px; text-align: center; font-size: 13.5px; color: #6B7280;">There is no fourth path. A draft that is never confirmed expires and costs you nothing.</div>
+  </div>
+
+  <!-- SPLIT: REQUEST + AUDIT RECORD -->
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; border-bottom: 1px solid #EAECF0;">
+
+    <div style="padding: 56px 44px 56px 72px; border-right: 1px solid #EAECF0;">
+      <h2 style="margin: 0 0 10px 0; font-size: 27px; line-height: 1.2; font-weight: 700; letter-spacing: -1.1px; color: #14161A;">The confirm call</h2>
+      <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #5B6472;">Two required identity fields and the hash of the draft as rendered. The hash is what makes the record mean something: it binds the name to the exact bytes, not to a deed id whose contents could have moved.</p>
+      <div style="background: #12141A; border-radius: 10px; overflow: hidden;">
+        <div style="padding: 11px 18px; border-bottom: 1px solid #262A33; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11.5px; color: #8B93A1;">POST /v1/deeds/deed_8Kd2mQxR4vLp/confirm</div>
+        <pre style="margin: 0; padding: 19px 20px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12.5px; line-height: 1.8; color: #C9D1DE; overflow: hidden;">{
+  "reviewer": {
+    "name": <span style="color: #A78BFA;">"Dana R. Whitfield"</span>,
+    "license": <span style="color: #A78BFA;">"CA-ESC-114982"</span>,
+    "role": <span style="color: #A78BFA;">"escrow_officer"</span>
+  },
+  "draft_sha256": <span style="color: #A78BFA;">"9f2c41a0e7&hellip;"</span>,
+  "attestation": <span style="color: #6EE7A8;">"reviewed_as_rendered"</span>
+}</pre>
+        <div style="padding: 15px 20px; background: #1A1D25; border-top: 1px solid #262A33;">
+          <div style="display: flex; align-items: center; gap: 9px; margin-bottom: 9px;">
+            <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; color: #FCA5A5; background: rgba(239,68,68,0.14); border: 1px solid rgba(239,68,68,0.3); padding: 3px 8px; border-radius: 4px;">409</span>
+            <span style="font-size: 12.5px; color: #9AA3B2;">DRAFT_SUPERSEDED</span>
+          </div>
+          <div style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12.5px; line-height: 1.65; color: #E5E9F0;">The draft changed after it was rendered for<br>review. Re-render, have it read again, and<br>confirm against the new hash.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding: 56px 72px 56px 44px;">
+      <h2 style="margin: 0 0 10px 0; font-size: 27px; line-height: 1.2; font-weight: 700; letter-spacing: -1.1px; color: #14161A;">What your auditors get</h2>
+      <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: #5B6472;">Retrievable per deed, and exportable per key. This is the artifact that turns &ldquo;our platform generates deeds&rdquo; into something your risk function can sign off on.</p>
+      <div style="border: 1px solid #E4E6EB; border-radius: 10px; overflow: hidden;">
+        <div style="display: flex; align-items: center; gap: 10px; padding: 14px 20px; background: #F8F8FB; border-bottom: 1px solid #E4E6EB;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>
+          <span style="font-size: 14px; font-weight: 700; color: #14161A;">DOC-2026-H7K3M</span>
+          <span style="flex-grow: 1;"></span>
+          <span style="font-size: 12px; font-weight: 600; color: #166534; background: #ECFDF3; border: 1px solid #BBF7D0; padding: 3px 9px; border-radius: 4px;">Confirmed</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 150px 1fr; font-size: 13.5px;">
+          <div style="padding: 12px 20px; color: #6B7280; border-bottom: 1px solid #F0F1F4;">Instrument</div>
+          <div style="padding: 12px 16px; color: #14161A; border-bottom: 1px solid #F0F1F4;">Grant Deed &mdash; Joint Tenancy</div>
+          <div style="padding: 12px 20px; color: #6B7280; border-bottom: 1px solid #F0F1F4;">County</div>
+          <div style="padding: 12px 16px; color: #14161A; border-bottom: 1px solid #F0F1F4;">Los Angeles</div>
+          <div style="padding: 12px 20px; color: #6B7280; border-bottom: 1px solid #F0F1F4;">Confirmed by</div>
+          <div style="padding: 12px 16px; color: #14161A; font-weight: 600; border-bottom: 1px solid #F0F1F4;">Dana R. Whitfield &middot; CA-ESC-114982</div>
+          <div style="padding: 12px 20px; color: #6B7280; border-bottom: 1px solid #F0F1F4;">Confirmed at</div>
+          <div style="padding: 12px 16px; color: #14161A; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12.5px; border-bottom: 1px solid #F0F1F4;">2026-08-03T18:24:07Z</div>
+          <div style="padding: 12px 20px; color: #6B7280; border-bottom: 1px solid #F0F1F4;">Draft hash</div>
+          <div style="padding: 12px 16px; color: #14161A; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12.5px; border-bottom: 1px solid #F0F1F4;">9f2c41a0e7b3&hellip;</div>
+          <div style="padding: 12px 20px; color: #6B7280; border-bottom: 1px solid #F0F1F4;">PDF hash</div>
+          <div style="padding: 12px 16px; color: #14161A; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12.5px; border-bottom: 1px solid #F0F1F4;">9f2c41a0e7b3&hellip; <span style="color: #16A34A;">match</span></div>
+          <div style="padding: 12px 20px; color: #6B7280;">Declarations</div>
+          <div style="padding: 12px 16px; color: #14161A;">Transfer tax basis: full value &middot; sent by integrator</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHY IT IS NOT FRICTION -->
+  <div style="padding: 62px 72px; background: #FFFFFF;">
+    <h2 style="margin: 0 0 10px 0; font-size: 32px; line-height: 1.16; font-weight: 700; letter-spacing: -1.4px; color: #14161A;">&ldquo;Isn&#39;t that a step my competitors don&#39;t have?&rdquo;</h2>
+    <p style="margin: 0 0 28px 0; font-size: 16.5px; line-height: 1.6; color: #5B6472; max-width: 860px;">Yes. It is also the step that decides who is answerable when a deed is wrong. Here is the version of that conversation worth having before you choose.</p>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px;">
+      <div style="border: 1px solid #E4E6EB; border-radius: 10px; overflow: hidden;">
+        <div style="padding: 15px 22px; background: #F8F8FB; border-bottom: 1px solid #E4E6EB; font-size: 14px; font-weight: 700; color: #6B7280;">A renderer that takes JSON and returns a PDF</div>
+        <div style="padding: 20px 22px; display: flex; flex-direction: column; gap: 13px; font-size: 14.5px; line-height: 1.6; color: #5B6472;">
+          <div>Ships faster. One call, one document, no review surface to build.</div>
+          <div>When the vesting is wrong, the record shows your system requested it and their system printed it. Nobody read it.</div>
+          <div>Your indemnity conversation with a title insurer starts from there.</div>
+        </div>
+      </div>
+      <div style="border: 1.5px solid #16A34A; border-radius: 10px; overflow: hidden; box-shadow: 0 6px 20px rgba(22,163,74,0.13);">
+        <div style="padding: 15px 22px; background: #F0FDF4; border-bottom: 1px solid #A7F3C4; font-size: 14px; font-weight: 700; color: #14653A;">DeedPro</div>
+        <div style="padding: 20px 22px; display: flex; flex-direction: column; gap: 13px; font-size: 14.5px; line-height: 1.6; color: #4B5563;">
+          <div>Costs you a review surface &mdash; roughly a screen and a webhook. We ship a hosted one you can use as-is.</div>
+          <div>When the vesting is wrong, the record names the professional who read the rendered instrument and approved those exact bytes.</div>
+          <div>That is the answer your counsel, your title partner, and eventually a court are asking for.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 30px; display: flex; align-items: center; gap: 16px; padding: 24px 28px; background: #F8F8FB; border: 1px solid #E4E6EB; border-radius: 10px;">
+      <div style="flex-grow: 1;">
+        <div style="font-size: 17px; font-weight: 700; color: #14161A; margin-bottom: 4px;">You do not have to build the review screen</div>
+        <p style="margin: 0; font-size: 14.5px; line-height: 1.6; color: #5B6472;">Every draft carries a hosted review URL your officer can open directly, and a webhook fires on confirm. Or render the draft in your own product and call confirm yourself &mdash; the requirements are the same either way.</p>
+      </div>
+      <div style="background: #7C4DFF; color: #FFFFFF; font-size: 15px; font-weight: 700; padding: 13px 24px; border-radius: 6px; flex-shrink: 0;">See the review flow</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DeedPro API — developer documentation</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap">
+  <style>
+    body { margin: 0; font-family: Inter, "Segoe UI", system-ui, sans-serif; color: #1F2937; background: #FFFFFF; -webkit-font-smoothing: antialiased; }
+    a { color: #7C4DFF; text-decoration: none; }
+    a:hover { color: #5B2EE5; }
+    * { box-sizing: border-box; }
+  </style>
+<style>
+  /* Mockup shell: the artboards are authored at a fixed 1440px desktop width.
+     Responsive behaviour is not implemented — see the handoff notes. */
+  html { background: #F1F2F5; }
+  body > div { margin: 0 auto; }
+</style>
+</head>
+<body>
+<div style="width: 1440px; background: #FFFFFF;">
+
+  <!-- DOCS NAV -->
+  <div style="display: flex; align-items: center; gap: 40px; padding: 15px 48px; border-bottom: 1px solid #EAECF0; background: #FFFFFF;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="width: 26px; height: 26px; border-radius: 6px; background: #7C4DFF;"></div>
+      <span style="font-size: 17px; font-weight: 700; letter-spacing: -0.4px; color: #14161A;">DeedPro</span>
+      <span style="font-size: 12px; font-weight: 600; color: #6B7280; background: #F3F4F6; padding: 3px 8px; border-radius: 4px; margin-left: 2px;">Docs</span>
+    </div>
+    <div style="flex-grow: 1;"></div>
+    <div style="display: flex; align-items: center; gap: 22px; font-size: 13.5px; font-weight: 500; color: #4B5563;">
+      <span>Guides</span><span>Reference</span><span>Changelog</span>
+      <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="width: 7px; height: 7px; border-radius: 50%; background: #16A34A;"></span>Status</span>
+      <div style="background: #7C4DFF; color: #FFFFFF; font-weight: 700; padding: 8px 16px; border-radius: 6px;">Request access</div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 250px 1fr; gap: 0;">
+
+    <!-- SIDEBAR, REORDERED -->
+    <div style="border-right: 1px solid #EAECF0; padding: 32px 24px; background: #FCFCFD; min-height: 1240px;">
+      <div style="font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #9CA3AF; margin-bottom: 12px;">Before you integrate</div>
+      <div style="display: flex; flex-direction: column; gap: 9px; font-size: 13.5px; color: #4B5563; margin-bottom: 26px;">
+        <span style="color: #7C4DFF; font-weight: 600;">What this API is</span>
+        <span>Instrument doctrine</span>
+        <span>What the API will not do</span>
+        <span>The confirmation step</span>
+        <span>Versioning &amp; stability</span>
+      </div>
+      <div style="font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #9CA3AF; margin-bottom: 12px;">Build</div>
+      <div style="display: flex; flex-direction: column; gap: 9px; font-size: 13.5px; color: #4B5563; margin-bottom: 26px;">
+        <span>Quickstart</span>
+        <span>Authentication</span>
+        <span>Deed types</span>
+        <span>Idempotency &amp; retries</span>
+        <span>Errors</span>
+        <span>Transfer tax</span>
+        <span>Public verification</span>
+      </div>
+      <div style="font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #9CA3AF; margin-bottom: 12px;">Operate</div>
+      <div style="display: flex; flex-direction: column; gap: 9px; font-size: 13.5px; color: #4B5563;">
+        <span>Rate limits &amp; volume</span>
+        <span>Status &amp; incidents</span>
+        <span>Support &amp; escalation</span>
+        <span>DPA &amp; subprocessors</span>
+        <span>Changelog</span>
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <div style="padding: 44px 56px 60px 56px; max-width: 1010px;">
+
+      <h1 style="margin: 0 0 14px 0; font-size: 44px; line-height: 1.08; font-weight: 700; letter-spacing: -2px; color: #14161A;">DeedPro API</h1>
+      <p style="margin: 0 0 26px 0; font-size: 18px; line-height: 1.6; color: #4B5563; max-width: 760px;">Generate recorder-formatted California deeds from your platform. You send the facts of the transaction; a named officer confirms the rendered instrument; the API returns a stored, hash-stamped PDF on the same templates and page geometry the DeedPro app renders.</p>
+
+      <!-- STABILITY BAR -->
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 30px;">
+        <div style="border: 1px solid #E4E6EB; border-radius: 8px; padding: 14px 16px;">
+          <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.9px; text-transform: uppercase; color: #9CA3AF; margin-bottom: 5px;">Version</div>
+          <div style="font-size: 15px; font-weight: 700; color: #14161A;">v1 &middot; stable</div>
+        </div>
+        <div style="border: 1px solid #E4E6EB; border-radius: 8px; padding: 14px 16px;">
+          <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.9px; text-transform: uppercase; color: #9CA3AF; margin-bottom: 5px;">Uptime, 90d</div>
+          <div style="font-size: 15px; font-weight: 700; color: #16A34A;">[99.98%]</div>
+        </div>
+        <div style="border: 1px solid #E4E6EB; border-radius: 8px; padding: 14px 16px;">
+          <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.9px; text-transform: uppercase; color: #9CA3AF; margin-bottom: 5px;">Last change</div>
+          <div style="font-size: 15px; font-weight: 700; color: #14161A;">2026-08 &middot; additive</div>
+        </div>
+        <div style="border: 1px solid #E4E6EB; border-radius: 8px; padding: 14px 16px;">
+          <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.9px; text-transform: uppercase; color: #9CA3AF; margin-bottom: 5px;">Support</div>
+          <div style="font-size: 15px; font-weight: 700; color: #14161A;">[P1 &lt; 1 hour]</div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px; background: #F8F8FB; border: 1px solid #E4E6EB; border-radius: 8px; padding: 13px 18px; margin-bottom: 40px;">
+        <span style="font-size: 12px; font-weight: 700; letter-spacing: 0.9px; text-transform: uppercase; color: #6B7280;">Base URL</span>
+        <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13.5px; color: #14161A;">https://api.deedpro.io/v1</span>
+        <span style="flex-grow: 1;"></span>
+        <span style="font-size: 12.5px; color: #6B7280;">Own domain, own certificate. Not a platform subdomain.</span>
+      </div>
+
+      <!-- READ THIS FIRST -->
+      <div style="font-size: 13px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; color: #7C4DFF; margin-bottom: 6px;">Read this before the quickstart</div>
+      <h2 style="margin: 0 0 8px 0; font-size: 28px; line-height: 1.2; font-weight: 700; letter-spacing: -1.1px; color: #14161A;">Three things that will change how you scope this</h2>
+      <p style="margin: 0 0 22px 0; font-size: 15.5px; line-height: 1.6; color: #5B6472; max-width: 760px;">Most integrators arrive assuming this is JSON in, PDF out. It is not, and the difference is the reason to use it. Worth reading now, and worth handing to your counsel.</p>
+
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 22px;">
+        <div style="border: 1px solid #E4E6EB; border-radius: 10px; padding: 22px; display: flex; flex-direction: column; gap: 10px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>
+          <div style="font-size: 16px; font-weight: 700; color: #14161A;">A PDF requires a named human</div>
+          <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #5B6472;">Creation returns a draft, not a document. <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12.5px; color: #14161A;">urls.pdf</span> appears only after a confirm call carrying a reviewer&#39;s name. Plan a review surface in your product.</p>
+          <span style="font-size: 13.5px; font-weight: 600; color: #14653A; margin-top: auto;">The confirmation step &rarr;</span>
+        </div>
+        <div style="border: 1px solid #E4E6EB; border-radius: 10px; padding: 22px; display: flex; flex-direction: column; gap: 10px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7C4DFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+          <div style="font-size: 16px; font-weight: 700; color: #14161A;">The instrument decides the vesting</div>
+          <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #5B6472;">Two deed types state vesting on their own face. Send <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12.5px; color: #14161A;">grantee.vesting</span> to one and you get a 422 naming the conflict &mdash; never a 200 that ignored you.</p>
+          <span style="font-size: 13.5px; font-weight: 600; color: #7C4DFF; margin-top: auto;">Instrument doctrine &rarr;</span>
+        </div>
+        <div style="border: 1px solid #E4E6EB; border-radius: 10px; padding: 22px; display: flex; flex-direction: column; gap: 10px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7C4DFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M9 9h6v6H9z"></path></svg>
+          <div style="font-size: 16px; font-weight: 700; color: #14161A;">v1 is the deed family only</div>
+          <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #5B6472;">Affidavits, homestead declarations and statutory POAs carry execution-act machinery a machine call has no hand for. They stay in the app. Deliberate boundary, not a roadmap gap.</p>
+          <span style="font-size: 13.5px; font-weight: 600; color: #7C4DFF; margin-top: auto;">Coverage &amp; limits &rarr;</span>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: flex-start; gap: 13px; background: #FFFBF5; border: 1px solid #F5DFC0; border-radius: 8px; padding: 17px 20px; margin-bottom: 44px;">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+        <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #7A4A12;"><strong style="color: #5C3708;">DeedPro formats and records; it does not choose.</strong> Vesting, transfer-tax basis, whether an exemption applies, which instrument fits the transaction &mdash; these arrive as facts you send and are recorded as your declarations. Nothing the API returns is legal advice, and no response asserts a document is valid, effective, or ready to record.</p>
+      </div>
+
+      <!-- QUICKSTART -->
+      <h2 style="margin: 0 0 8px 0; font-size: 28px; line-height: 1.2; font-weight: 700; letter-spacing: -1.1px; color: #14161A;">Quickstart</h2>
+      <p style="margin: 0 0 20px 0; font-size: 15.5px; line-height: 1.6; color: #5B6472;">Four steps from a key to a recordable PDF. The fourth is the one other deed APIs do not have.</p>
+
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 24px;">
+        <div style="border: 1px solid #E4E6EB; border-radius: 8px; padding: 16px 18px;">
+          <div style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; color: #7C4DFF; margin-bottom: 7px;">01</div>
+          <div style="font-size: 14.5px; font-weight: 600; color: #14161A; line-height: 1.45;">Get a test key</div>
+          <div style="font-size: 13px; color: #6B7280; margin-top: 4px; line-height: 1.5;">Three fields, no account. Keys start <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px;">dp_test_</span></div>
+        </div>
+        <div style="border: 1px solid #E4E6EB; border-radius: 8px; padding: 16px 18px;">
+          <div style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; color: #7C4DFF; margin-bottom: 7px;">02</div>
+          <div style="font-size: 14.5px; font-weight: 600; color: #14161A; line-height: 1.45;">POST the transaction</div>
+          <div style="font-size: 13px; color: #6B7280; margin-top: 4px; line-height: 1.5;">Property, parties, transfer tax, recording block</div>
+        </div>
+        <div style="border: 1.5px solid #16A34A; background: rgba(22,163,74,0.05); border-radius: 8px; padding: 16px 18px;">
+          <div style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; color: #16A34A; margin-bottom: 7px;">03</div>
+          <div style="font-size: 14.5px; font-weight: 700; color: #14161A; line-height: 1.45;">Your officer confirms</div>
+          <div style="font-size: 13px; color: #14653A; margin-top: 4px; line-height: 1.5;">Reviewer name required. No PDF exists before this</div>
+        </div>
+        <div style="border: 1px solid #E4E6EB; border-radius: 8px; padding: 16px 18px;">
+          <div style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; color: #7C4DFF; margin-bottom: 7px;">04</div>
+          <div style="font-size: 14.5px; font-weight: 600; color: #14161A; line-height: 1.45;">Download the PDF</div>
+          <div style="font-size: 13px; color: #6B7280; margin-top: 4px; line-height: 1.5;">Authenticated URL plus a public verification URL</div>
+        </div>
+      </div>
+
+      <div style="background: #12141A; border-radius: 10px; overflow: hidden;">
+        <div style="display: flex; align-items: center; gap: 20px; padding: 11px 20px; border-bottom: 1px solid #262A33; font-size: 12.5px; font-weight: 600;">
+          <span style="color: #FFFFFF;">cURL</span>
+          <span style="color: #7C8797;">Python</span>
+          <span style="color: #7C8797;">Node</span>
+          <span style="color: #7C8797;">Go</span>
+          <span style="color: #7C8797;">Ruby</span>
+          <span style="flex-grow: 1;"></span>
+          <span style="color: #A78BFA;">Open in Postman</span>
+          <span style="color: #A78BFA;">OpenAPI spec</span>
+        </div>
+        <pre style="margin: 0; padding: 20px 22px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12.5px; line-height: 1.8; color: #C9D1DE; overflow: hidden;"><span style="color: #7C8797;">curl -X POST https://api.deedpro.io/v1/deeds \
+  -H "Authorization: Bearer dp_test_YOUR_KEY" \
+  -H "Idempotency-Key: order-48219" \
+  -d '{ "deed_type": "grant_deed", "property": ..., "grantor": ... }'</span>
+
+<span style="color: #6B7684;"># 201 &mdash; a draft, not a document</span>
+{
+  "deed_id": <span style="color: #A78BFA;">"deed_8Kd2mQxR4vLp"</span>,
+  "status": <span style="color: #6EE7A8;">"awaiting_confirmation"</span>,
+  "urls": { "review": <span style="color: #A78BFA;">"https://app.deedpro.io/r/8Kd2mQ"</span> }
+}</pre>
+      </div>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>

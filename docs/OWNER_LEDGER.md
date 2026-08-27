@@ -4,7 +4,9 @@
 (not only in chat) so the list survives context windows. No credential
 values ever appear in this file — item names and status only.
 
-_Last corrected: 2026-08-27 (API-CONFIRM #263; approved ≠ merged,
+_Last corrected: 2026-08-27 (ENGINE1 mockups landed as reference;
+claims inventory held — nothing ships).
+Previously 2026-08-27 (API-CONFIRM #263; approved ≠ merged,
 third instance).
 Previously 2026-08-27 (ENTITY1 merged #264; Terms-vs-env entity pin).
 Previously 2026-08-27 (DX-BRUTAL's dead-control finding and the
@@ -2618,6 +2620,62 @@ entry nobody checks a new feature against.
   branch. Same shape as `authoringStateHint` ruled-cut and living in
   `main` for three PRs, and as W0 §3 reading BUILT while parked — three
   directions, one disease. Approval is not a deploy.
+
+- **ENGINE1 mockups — reference implementations, not copy.**
+  **DECIDED** 2026-08-27 — four owner mockups supersede ENGINE1's brief:
+  `docs/design/homepage.html`, `developers.html`, `confirmation.html`,
+  `trust.html`. Adopt the structure (two-door fork, 422 as proof,
+  confirmation as its own page, a trust centre). Do not ship present-tense
+  copy from the homepage, developers, or confirmation pages until the
+  owner rules each untrue claim: build it, or cut it. The trust page
+  brackets its unknowns; the other three write the future tense as
+  present. That is the honesty gradient to fix, not a style note.
+  **BUILT** — the files are committed as reference. No marketing surface
+  has been rewritten. Two product rulings are held, not inherited from
+  the mockup: `draft_sha256` on the confirm call, and `reviewer.license`
+  as required.
+
+  **Claims that must not ship as fact (owner decides build vs cut).**
+  The banned-claims gate already catches SOC 2, `99.9%`/`99.98%` uptime,
+  SoftPro/Qualia/ResWare as a feature, SSO, white-label, and seats. It
+  does **not** yet catch the rest of this list — if any stay, the gate
+  needs a rule before the copy does.
+
+  Present-tense and false, or unverified:
+  `api.deedpro.io` with its own certificate (live API is
+  `deedpro-main-api.onrender.com`); a status page /
+  `status.deedpro.io` / "All systems operational"; measured uptime
+  figures; P1 < 1 hour / P2 1 business day support; a published SLA;
+  DPA signed before the first live key (drafted, unreviewed, unsigned);
+  per-confirmed-deed pricing (API pricing is deferred; keys are free);
+  Delaware C-Corp (the entity is Wyoming); E&O / cyber insurance;
+  `security@deedpro.io`, a published PGP key, a disclosure policy;
+  SOC 2 Type I "available now under NDA"; a maintained CAIQ/SIG Lite
+  answer set; a named engineer on Slack from test-key day; a 2am
+  escalation path; 12-month deprecation notice; "Deed data never leaves
+  the United States" (Google Places is browser→Google; OpenAI can
+  receive property text); outbound webhooks on confirm; partner
+  `POST /deeds/:id/confirm` with `draft_sha256` / `reviewer.license`
+  (API-CONFIRM shipped name+role at create, token approve, no hash);
+  `awaiting_confirmation` / `urls.review` / `reviewer` (shipped:
+  `pending_confirmation` / `urls.confirmation` / `approver`);
+  confirmation-record export per key; Python/Go/Ruby/Postman SDK
+  surfaces; "escrow officers use daily"; Type I / pentest / security
+  pack as existing artifacts.
+
+  True today and fine to keep: 21 / 9 instruments; the 422 on
+  fixed-vesting; Model 2 draft-then-confirm on the API; hosted
+  confirmation URL; SHA-256 insert-or-refuse; idempotency; three-field
+  inquiry; public verify (id / type / status / created_at only);
+  PCOR/BOE from the deed; county + prelim as candidates; $99/user
+  Professional and Business coming-soon; Wyoming entity via ENTITY1;
+  "software, not a law firm"; SoftPro/Qualia/ResWare honestly as not
+  today (needs the existing allow comment — the gate matches the name).
+
+  **`draft_sha256` cost, held.** Adding the hash check to the hosted
+  approve is small; the value is a partner confirm endpoint that does
+  not exist. See the ticket report. **`reviewer.license` as required is
+  a market decision, not a schema tweak.** See the ticket report.
 
 - **A plan card for the RETURNING officer** (day-one diff, owner-ruled a
   candidate 2026-08-14 — ledgered rather than built). `DayOneRail`
