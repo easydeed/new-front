@@ -133,4 +133,16 @@ describe('HM2 — the differentiators are near the fold', () => {
     expect(PAGE).toContain('~9 clicks');
     expect(PAGE).toContain('Fields confirmed by your officer');
   });
+
+  it('does not hard-code a legal entity in the footer', () => {
+    /**
+     * HOME2, then ENTITY1. The footer used to print "DeedPro ·
+     * California, USA" — a brand and a geography, not an entity.
+     * Identity comes from `publicIdentityLine()`, which reads the three
+     * required public env vars. A string here would be a second opinion.
+     */
+    expect(PAGE).not.toContain('California, USA');
+    expect(PAGE).not.toContain('DeedPro Corporation');
+    expect(PAGE).toContain('publicIdentityLine()');
+  });
 });

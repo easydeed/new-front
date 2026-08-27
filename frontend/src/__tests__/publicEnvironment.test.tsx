@@ -164,7 +164,10 @@ describe('the boot report', () => {
 });
 
 describe('strict mode', () => {
-  it('is off by default — a refusal today would block the deploy that fixes it', () => {
+  it('is off in the module until the deploy config sets it', () => {
+    /** The code default stays off so a local `next dev` without the
+     *  three values still starts. `frontend/vercel.json` sets the flag
+     *  for the deploy that bakes the values. */
     const { checkPublicEnv } = load(BLANK);
     expect(() => checkPublicEnv()).not.toThrow();
   });
@@ -196,6 +199,16 @@ describe('production is a question about the reader, not NODE_ENV', () => {
      *  to surface it. */
     expect(load({ ...BLANK, NEXT_PUBLIC_VERCEL_ENV: 'preview' }).isProduction()).toBe(false);
     expect(load({ ...BLANK, NEXT_PUBLIC_VERCEL_ENV: 'production' }).isProduction()).toBe(true);
+  });
+});
+
+describe('the identity line', () => {
+  it('joins all three values and invents nothing when one is missing', () => {
+    expect(load(SET).publicIdentityLine()).toBe(
+      'Example Holdings, LLC · 1 Example Plaza\nLos Angeles, CA 90071 · hello@example.com');
+    expect(load(BLANK).publicIdentityLine()).toBeUndefined();
+    expect(load({ ...BLANK, NEXT_PUBLIC_LEGAL_ENTITY: 'Example Holdings, LLC' })
+      .publicIdentityLine()).toBeUndefined();
   });
 });
 

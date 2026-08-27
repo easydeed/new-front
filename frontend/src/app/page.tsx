@@ -11,7 +11,7 @@ import { TIERS, priceLabel } from "@/lib/pricing"
 import { INSTRUMENT_COUNT } from "@/lib/formRegistry"
 import { API_DEED_TYPES } from "@/lib/apiDocs"
 import ContactBlock from "@/components/landing-v2/ContactBlock"
-import { publicEnvValue } from "@/lib/publicEnvironment"
+import { publicEnvValue, publicIdentityLine } from "@/lib/publicEnvironment"
 import { LogoLockupDark } from "@/components/brand/Logo"
 
 const AnimatedDeed = dynamic(() => import("@/components/landing-v2/AnimatedDeed"), {
@@ -37,6 +37,7 @@ const AnimatedDeed = dynamic(() => import("@/components/landing-v2/AnimatedDeed"
 import { TRIAL_DAYS } from "@/lib/trial"
 
 export default function LandingPage() {
+  const identityLine = publicIdentityLine();
   return (
     <>
       <StickyNav />
@@ -1048,10 +1049,14 @@ Content-Type: application/json
                 <p className="text-base leading-relaxed">
                   Create California deeds in minutes with a guided wizard and SmartReview.
                 </p>
-                {/* HM3: company identity block — owner supplies entity details. */}
-                <p className="mt-4 text-sm text-gray-500">
-                  DeedPro &middot; California, USA
-                </p>
+                {/* ENTITY1: identity from the three public env vars. A
+                    missing contact address is a broken deploy, not a
+                    California placeholder. */}
+                {identityLine && (
+                  <p className="mt-4 text-sm text-gray-500">
+                    {identityLine}
+                  </p>
+                )}
               </div>
 
               <div>

@@ -4,7 +4,9 @@
 (not only in chat) so the list survives context windows. No credential
 values ever appear in this file — item names and status only.
 
-_Last corrected: 2026-08-27 (API-CONFIRM built W0 §3 Model 2).
+_Last corrected: 2026-08-27 (API-CONFIRM #263; approved ≠ merged,
+third instance).
+Previously 2026-08-27 (ENTITY1 merged #264; Terms-vs-env entity pin).
 Previously 2026-08-27 (DX-BRUTAL's dead-control finding and the
 open `exempt_code` validation decision recorded).
 Previously 2026-08-18 (the DECIDED/BUILT convention adopted
@@ -463,8 +465,8 @@ gate stops the next one without pretending to have fixed these.
 - **TitlePoint / SiteX credential rotations.**
 - **DTT city-rates review** (`frontend/src/lib/dttCalc.ts`) — owner's
   escrow review is authoritative.
-- **HM2 inputs**: sales/contact email → `CONTACT_SALES_EMAIL` constant;
-  footer entity details.
+- **HM2 inputs**: sales/contact email → `CONTACT_SALES_EMAIL` constant.
+  Footer entity details — **BUILT** ENTITY1 (env-wired; not restated here).
 - **Counsel review** of the DRAFT `/terms` + `/privacy` pages.
 - **Demo-card Vercel env vars** — REOPENED 2026-07-30 on the owner's
   direct request ("I do not see them"). The code is live (PR #76); the
@@ -2515,11 +2517,11 @@ entry nobody checks a new feature against.
   preview bytes, and returns a confirmation URL. A stored PDF exists
   only after the named approver confirms. See the closed W0 §3 line.
 
-  **What is on the marketing surfaces.** The homepage and `/developers`
-  both describe direct generation, and **both are accurate to the
-  product.** HOME2 opened with an instruction to rewrite the homepage
-  because it "contradicts the product"; it does not. The product
-  contradicts the ruling, and the copy is honestly reporting the product.
+  **What is on the marketing surfaces.** API-CONFIRM rewrote both. The
+  homepage says a human confirms the deed; `/developers` documents
+  draft-and-confirm. Those surfaces were written on the branch. Production
+  kept serving the old one-call contract because **#263 was approved
+  and not merged** — the docs were not wrong; the merge was missing.
 
   **THE LEDGER ENTRY READ AS IMPLEMENTED TO THE PERSON WHO MADE THE
   RULING.** The line says *"DECIDED: Model 2 = confirmation in our UI…
@@ -2572,29 +2574,50 @@ entry nobody checks a new feature against.
   result and worth recording as one — the convention still pays for
   itself on entries written from here on.
 
-- **`STRICT_PUBLIC_ENV` is off, deliberately.**
+- **`STRICT_PUBLIC_ENV` is on.**
   **DECIDED** 2026-08-18 — the site's public environment is checked at
   boot, with a strict flag that refuses to start when a REQUIRED variable
   is missing (§14.8).
-  **BUILT** — yes, this PR. The FLAG is off.
+  **BUILT** — yes, ENTITY1. The FLAG is on (`frontend/vercel.json`).
 
-  **What is exposed while it is off:** in production, with the three
-  contact variables unset and nobody reading the deploy log, a visitor
-  sees a footer with no way to reach us. That is the residual, named
-  rather than described as handled.
+  The three contact variables were supplied in the same change. A
+  missing contact address is a broken deploy. Values are configuration,
+  not credentials — they do not appear in this file.
 
-  **Why it is off anyway:** the values do not exist yet — the entity name
-  is the owner's to supply — so turning it on today would block every
-  deploy including the one carrying the check. **The trigger is
-  explicit:** the ticket that sets `NEXT_PUBLIC_LEGAL_ENTITY`,
-  `NEXT_PUBLIC_CONTACT_EMAIL` and `NEXT_PUBLIC_CONTACT_ADDRESS` sets
-  `STRICT_PUBLIC_ENV=1` in the same change. Same sequencing as
-  `STRICT_ENV` on the API, and the same reason: the ticket that flips it
-  is the ticket that verified the environment.
+- **ENTITY1 — legal counterparty named.**
+  **DECIDED** 2026-08-27 — owner supplied the entity. Footer reads the
+  three public env vars. Terms §11 states the counterparty. Privacy §4
+  names the measured subprocessors. DRAFT banners stay until counsel
+  says otherwise.
+  **BUILT** — yes, #264.
 
-  **Note on the values themselves:** they are configuration, not
-  credentials — no value appears in this file either way, per the rule at
-  the top.
+  **The sweep is the ticket's substance.** Two processors no candidate
+  list would have produced: Google Places (browser → Google, not via
+  our API — every address typed in the builder reaches a third party
+  without touching our servers) and OpenAI (authenticated endpoint
+  live, no UI caller; an endpoint that can receive property text is a
+  processor whether or not anything calls it today). The
+  swept-and-omitted list is what makes the included list trustworthy:
+  TitlePoint, Anthropic, Cloudflare, Redis, Sentry, PostHog, Twilio,
+  PDFShift, Vercel Analytics — checked and not live.
+
+  **Two flags, named and accepted.** (1) Two copies of one fact: footer
+  reads env, legal pages hardcode. Right call — a legal document
+  reading its counterparty from an environment variable would be
+  worse — and still two copies. Pinned: the entity name in Terms
+  equals the env value the footer prints (`entityIdentity.test.ts`).
+  (2) Strict refusal is a Vercel-boot property. `npm run build` does
+  not inject `vercel.json` env, so the loud failure happens where it
+  matters and nowhere CI exercises.
+
+- **Approved and merged are different states, and only one of them is
+  production.** Third instance, 2026-08-27. #263 went green on eight
+  checks and was approved; the conversation moved to ENTITY1 and nobody
+  merged it. Production `/developers` kept serving the one-call
+  contract; the homepage's "a human confirms the deed" claim sat on a
+  branch. Same shape as `authoringStateHint` ruled-cut and living in
+  `main` for three PRs, and as W0 §3 reading BUILT while parked — three
+  directions, one disease. Approval is not a deploy.
 
 - **A plan card for the RETURNING officer** (day-one diff, owner-ruled a
   candidate 2026-08-14 — ledgered rather than built). `DayOneRail`

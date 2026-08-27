@@ -16,7 +16,7 @@ const SECTIONS: Array<[string, string]> = [
   ['8. Limitation of Liability', 'To the maximum extent permitted by law, DeedPro is not liable for indirect, incidental, or consequential damages arising from use of the service.'],
   ['9. Termination', 'You may stop using the service at any time. We may suspend accounts that violate these terms.'],
   ['10. Changes', 'We may update these terms; material changes will be posted here with a revised date.'],
-  ['11. Contact', 'Company identity and contact details pending — see the site footer.'],
+  ['11. Contact', 'These terms are between you and DeedPro Corporation, a Wyoming corporation, with its principal place of business at 440 Rte 66, Glendora, CA 91750. Contact: info@deedpro.io.'],
 ];
 
 export default function TermsPage() {
@@ -27,7 +27,7 @@ export default function TermsPage() {
         legal document.
       </div>
       <h1 className="text-3xl font-bold text-gray-900 mb-2">Terms of Service</h1>
-      <p className="text-sm text-gray-500 mb-10">Last updated: July 2026 (draft)</p>
+      <p className="text-sm text-gray-500 mb-10">Last updated: August 2026 (draft)</p>
       {SECTIONS.map(([heading, body]) => (
         <section key={heading} className="mb-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-2">{heading}</h2>

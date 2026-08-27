@@ -29,11 +29,9 @@
  * variables are declared REQUIRED in `lib/publicEnvironment.ts` with a
  * consequence sentence apiece, and the boot report names them.
  *
- * WHAT REMAINS EXPOSED, SAID PLAINLY: in production with strict off and
- * nobody reading the deploy log, a visitor still sees a footer with no
- * contact. That is the residual the strict flag closes, and it closes
- * on the day the owner supplies the entity name — one flag, already
- * built, deliberately not defaulted on while the values are missing.
+ * ENTITY1 supplied the values and set `STRICT_PUBLIC_ENV=1` in
+ * `frontend/vercel.json`. Production with a missing contact variable
+ * now refuses to start. The residual this block used to name is closed.
  *
  * ═══ WHY IT STILL INVENTS NOTHING ═══
  *
