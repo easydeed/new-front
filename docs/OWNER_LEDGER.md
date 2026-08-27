@@ -4,8 +4,8 @@
 (not only in chat) so the list survives context windows. No credential
 values ever appear in this file — item names and status only.
 
-_Last corrected: 2026-08-27 (ENTITY1 — legal counterparty named;
-`STRICT_PUBLIC_ENV` on).
+_Last corrected: 2026-08-27 (ENTITY1 merged #264; Terms-vs-env
+entity pin; ENGINE1: live /developers is still the old contract).
 Previously 2026-08-27 (DX-BRUTAL's dead-control finding and the
 open `exempt_code` validation decision recorded).
 Previously 2026-08-18 (the DECIDED/BUILT convention adopted
@@ -2588,7 +2588,26 @@ entry nobody checks a new feature against.
   three public env vars. Terms §11 states the counterparty. Privacy §4
   names the measured subprocessors. DRAFT banners stay until counsel
   says otherwise.
-  **BUILT** — yes, this PR.
+  **BUILT** — yes, #264.
+
+  **The sweep is the ticket's substance.** Two processors no candidate
+  list would have produced: Google Places (browser → Google, not via
+  our API — every address typed in the builder reaches a third party
+  without touching our servers) and OpenAI (authenticated endpoint
+  live, no UI caller; an endpoint that can receive property text is a
+  processor whether or not anything calls it today). The
+  swept-and-omitted list is what makes the included list trustworthy:
+  TitlePoint, Anthropic, Cloudflare, Redis, Sentry, PostHog, Twilio,
+  PDFShift, Vercel Analytics — checked and not live.
+
+  **Two flags, named and accepted.** (1) Two copies of one fact: footer
+  reads env, legal pages hardcode. Right call — a legal document
+  reading its counterparty from an environment variable would be
+  worse — and still two copies. Pinned: the entity name in Terms
+  equals the env value the footer prints (`entityIdentity.test.ts`).
+  (2) Strict refusal is a Vercel-boot property. `npm run build` does
+  not inject `vercel.json` env, so the loud failure happens where it
+  matters and nowhere CI exercises.
 
 - **A plan card for the RETURNING officer** (day-one diff, owner-ruled a
   candidate 2026-08-14 — ledgered rather than built). `DayOneRail`

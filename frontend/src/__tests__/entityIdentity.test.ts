@@ -74,4 +74,22 @@ describe('the deploy config wires the same identity the footer reads', () => {
     expect(VERCEL.env.NEXT_PUBLIC_CONTACT_EMAIL).toBe('info@deedpro.io');
     expect(VERCEL.env.STRICT_PUBLIC_ENV).toBe('1');
   });
+
+  it('the entity name in Terms is the same string the footer is wired to print', () => {
+    /**
+     * Two copies of one fact, accepted: the legal page hardcodes the
+     * counterparty (a document that read its party from an environment
+     * variable would be worse) and the footer reads env. This pin is
+     * the comparison, not a third copy — if either side moves, this
+     * fails. Address and email ride along because they are the same
+     * split.
+     */
+    const entity = VERCEL.env.NEXT_PUBLIC_LEGAL_ENTITY;
+    const address = VERCEL.env.NEXT_PUBLIC_CONTACT_ADDRESS;
+    const email = VERCEL.env.NEXT_PUBLIC_CONTACT_EMAIL;
+    expect(entity).toBeTruthy();
+    expect(TERMS).toContain(entity);
+    expect(TERMS).toContain(address);
+    expect(TERMS).toContain(email);
+  });
 });
