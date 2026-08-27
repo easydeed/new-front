@@ -82,6 +82,20 @@ PRONOUN_EXEMPT = {
         "party — it says 'person(s)'. Editing it would be a legal choice "
         "auto-applied (§1) to text §2 says we never pre-fill."
     ),
+    "backend/services/pcor_field_split.py": (
+        "ACROFORM FIELD NAMES, reproduced byte-exactly. The trip is "
+        "'Q. Other. his transfer is to' — the COUNTY'S typo, with the 'T' "
+        "dropped from 'This'. It is not copy about a person; it is the "
+        "identifier of a checkbox on BOE-502-A, and pypdf writes to it by "
+        "exact string. 'Correcting' it would silently stop the field being "
+        "withheld from a consumer, which is the one thing that module "
+        "exists to prevent. Same class as the two entries above: text "
+        "somebody else wrote, matched or addressed rather than authored. "
+        "THE RISK THIS EXEMPTION CREATES, stated: it is file-level, so "
+        "real copy added to that module later would not be swept. The "
+        "module is data and function signatures today and should stay "
+        "that way — any user-facing sentence belongs somewhere else."
+    ),
 }
 
 
@@ -204,9 +218,28 @@ def test_every_pronoun_exemption_still_exists_and_is_explained(rel, reason):
     nobody decided on."""
     assert (REPO / rel).exists(), f"stale exemption for {rel}"
     assert len(reason) > 40, f"exemption for {rel} needs a real reason"
-    assert "§" in reason or "Civil Code" in reason, (
-        f"the exemption for {rel} must cite what makes the wording "
-        "prescribed rather than merely traditional")
+    # WIDENED 2026-08-26, and the widening is itself the §14.1 shape.
+    #
+    # The check demanded "§" or "Civil Code" — two SPELLINGS of the
+    # property it means, which is: the wording is prescribed by an
+    # authority outside this repository, so we may not edit it.
+    #
+    # PCOR-WIZ produced a legitimate third class the spellings miss:
+    # AcroForm field names on a county form, addressed by pypdf as exact
+    # strings. `Q. Other. his transfer is to` trips the pronoun sweep on
+    # the COUNTY'S typo. That wording is prescribed exactly as firmly as
+    # Civil Code §1189's is — by a document we do not control — and
+    # "correcting" it would silently stop a field being withheld from a
+    # consumer.
+    #
+    # Widened to the property rather than special-cased to that file: any
+    # named external authority counts. A reason that cites nothing still
+    # fails, which is the whole point of the assertion.
+    EXTERNAL_AUTHORITY = ("§", "Civil Code", "BOE-", "AcroForm")
+    assert any(tok in reason for tok in EXTERNAL_AUTHORITY), (
+        f"the exemption for {rel} must name the OUTSIDE authority that "
+        "makes the wording prescribed rather than merely traditional — a "
+        "statute, or a form whose bytes we do not control")
 
 
 def test_the_statutory_acknowledgement_is_untouched():
