@@ -100,6 +100,16 @@ class RecordingModel(BaseModel):
     escrow_no: Optional[str] = None
 
 
+class ApproverModel(BaseModel):
+    """Named-for-record. The token authenticates; we do not verify the
+    person. Name and role become the provenance subject. Email is stored
+    for the record and purged after CONTACT_RETENTION_DAYS — it is never
+    mailed in v1. The integrator delivers the confirmation link."""
+    name: str = Field(..., min_length=1, description="Approver's name as it should appear on the record")
+    role: str = Field(..., min_length=1, description="Approver's role (e.g. escrow officer, title officer)")
+    email: Optional[str] = Field(None, description="Optional; stored for the record, not emailed, purged")
+
+
 class CreateDeedRequest(BaseModel):
     deed_type: DeedType
     property: PropertyModel
@@ -107,6 +117,7 @@ class CreateDeedRequest(BaseModel):
     grantee: GranteeModel
     transfer_tax: TransferTaxModel
     recording: RecordingModel
+    approver: ApproverModel
 
     @validator("recording")
     def check_type_rules(cls, v, values):
@@ -179,6 +190,11 @@ class CreateDeedRequest(BaseModel):
                         "state": "CA",
                         "zip": "90003"
                     }
+                },
+                "approver": {
+                    "name": "Jane Roe",
+                    "role": "escrow officer",
+                    "email": "jane@example.com"
                 }
             }
         }
@@ -186,8 +202,14 @@ class CreateDeedRequest(BaseModel):
 
 # Response Models
 class DeedUrlsModel(BaseModel):
-    pdf: str
-    verification: str
+    confirmation: Optional[str] = None
+    pdf: Optional[str] = None
+    verification: Optional[str] = None
+
+
+class DeedApproverResponse(BaseModel):
+    name: Optional[str] = None
+    role: Optional[str] = None
 
 
 class DeedPropertyResponse(BaseModel):
@@ -212,10 +234,14 @@ class DeedDataResponse(BaseModel):
     deed_type: str
     status: str
     created_at: datetime
+    expires_at: Optional[datetime] = None
     urls: DeedUrlsModel
     property: DeedPropertyResponse
     parties: DeedPartiesResponse
     transfer_tax: Optional[DeedTransferTaxResponse] = None
+    approver: Optional[DeedApproverResponse] = None
+    reject_reason: Optional[str] = None
+    approved_at: Optional[datetime] = None
 
 
 class DeedResponse(BaseModel):

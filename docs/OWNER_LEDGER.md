@@ -4,7 +4,8 @@
 (not only in chat) so the list survives context windows. No credential
 values ever appear in this file — item names and status only.
 
-_Last corrected: 2026-08-27 (DX-BRUTAL's dead-control finding and the
+_Last corrected: 2026-08-27 (API-CONFIRM built W0 §3 Model 2).
+Previously 2026-08-27 (DX-BRUTAL's dead-control finding and the
 open `exempt_code` validation decision recorded).
 Previously 2026-08-18 (the DECIDED/BUILT convention adopted
 repo-wide; W0 §3 converted as the first entry; HOME2-FOLLOWUP recorded).
@@ -18,8 +19,8 @@ deferred-by-decision with named triggers)._
 a decision carries both markers on their own line:
 
     **DECIDED** 2026-07-30 — Model 2: confirmation stays in our UI.
-    **BUILT** — no. `POST /api/v1/deeds` still inserts `status='active'`
-    and returns a PDF URL. Parked in the W1 lane.
+    **BUILT** — yes, 2026-08-27, `services/api_confirm.py`,
+    `routers/api_confirm.py`, `frontend/src/app/confirm/[token]/page.tsx`.
 
 `BUILT` takes a PR number, a date, or the word **no**. It is never
 omitted, and "no" is never expressed by leaving it out — an absent field
@@ -533,11 +534,12 @@ gate stops the next one without pretending to have fixed these.
   **DECIDED** 2026-07-30 (corrected that day; an earlier ledger entry
   inverted this as "asserted confirmations" — the owner's definition
   governs). PR #79 closed as decided.
-  **BUILT** — **no.** `POST /api/v1/deeds` inserts `status='active'` and
-  returns a PDF URL immediately: no draft state, no confirmation URL, no
-  officer step. The W1 draft stays parked pending the owner's lane call.
-  *First entry converted to the two-field form — and the entry the
-  convention exists because of. See the parked section below.*
+  **BUILT** — **yes, 2026-08-27.** `POST /api/v1/deeds` returns
+  `pending_confirmation` and a confirmation URL
+  (`services/api_confirm.py`, `routers/api_confirm.py`,
+  `frontend/src/app/confirm/[token]/page.tsx`). Stored PDF exists only
+  after approval. Reject-with-reason; named-for-record; v1 broken as
+  the Model 2 cutover.
 - ~~Demo-card Vercel env vars~~ — the 2026-07-30 closure ("owner has
   not requested the demo card back") was superseded the same day by the
   owner's request; see the reopened item on the open card above.
@@ -2508,11 +2510,10 @@ entry nobody checks a new feature against.
   **The ruling.** Model 2 — confirmation stays in our UI; API submissions
   land as drafts with a confirmation URL. Decided 2026-07-30.
 
-  **What is actually deployed.** `POST /api/v1/deeds` inserts with
-  `status = 'active'` and returns `urls.pdf` immediately. No draft state,
-  no confirmation URL, no officer step. `status = 'active'` is a plain
-  record status and nothing in the code treats it as awaiting
-  confirmation — confirmed with the owner rather than inferred.
+  **What is actually deployed (updated 2026-08-27).** API-CONFIRM built
+  Model 2. `POST /api/v1/deeds` inserts `pending_confirmation`, holds
+  preview bytes, and returns a confirmation URL. A stored PDF exists
+  only after the named approver confirms. See the closed W0 §3 line.
 
   **What is on the marketing surfaces.** The homepage and `/developers`
   both describe direct generation, and **both are accurate to the

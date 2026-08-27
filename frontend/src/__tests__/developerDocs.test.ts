@@ -177,6 +177,14 @@ describe('versioning is promised', () => {
     expect(page).toMatch(/\/api\/v2/);
     expect(page).toMatch(/breaking change/i);
   });
+
+  it('records the Model 2 cutover as a deliberate v1 break', () => {
+    expect(page).toMatch(/old promise/i);
+    expect(page).toMatch(/is dead/i);
+    expect(page).toMatch(/pending_confirmation/);
+    expect(page).toMatch(/CONFIRMATION_REQUIRED/);
+    expect(page).toMatch(/DeedPro does not confirm facts/);
+  });
 });
 
 describe('the access path is public — no login wall', () => {

@@ -37,6 +37,11 @@ const PUBLIC_ROUTES = new Set([
   // see services/signing_surfaces.py. Being on this list is a decision,
   // not an oversight.
   '/signing/[token]',
+  // API-CONFIRM. Third token surface. The token IS the auth. A named
+  // person the integrator named opens a rendered deed and approves or
+  // rejects it. Not /approve/[token] — that reviews an already-completed
+  // officer deed. Payload allowlist in services/api_confirm.py.
+  '/confirm/[token]',
   '/api-key-request', // partner lead form
   // A4: developer documentation. Public and indexable by ruling —
   // linked from the footer only while key issuance is manual, so it is

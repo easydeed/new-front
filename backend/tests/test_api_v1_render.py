@@ -11,8 +11,9 @@ import re
 
 from routers.api_v1.router import build_render_row
 from schemas.api_v1.deeds import (
-    CreateDeedRequest, DeedType, EntityModel, PropertyModel, GrantorModel,
-    GranteeModel, TransferTaxModel, RecordingModel, ReturnToModel, TaxBasis,
+    ApproverModel, CreateDeedRequest, DeedType, EntityModel, PropertyModel,
+    GrantorModel, GranteeModel, TransferTaxModel, RecordingModel, ReturnToModel,
+    TaxBasis,
 )
 from services.deed_pdf import TEMPLATE_BY_DEED_TYPE, render_deed_html
 
@@ -58,6 +59,7 @@ def _request(deed_type=DeedType.GRANT_DEED, **tt_overrides):
                                     city="Los Angeles", state="CA", zip="90001"),
             title_order_no="TO-1", escrow_no="ESC-2",
         ),
+        approver=ApproverModel(name="Jane Roe", role="escrow officer"),
     )
 
 
@@ -67,8 +69,9 @@ def _normalized(html):
 
 def test_every_api_deed_type_maps_to_a_chassis_template():
     for dt in DeedType:
-        row = build_render_row(_request(deed_type=dt))
+        row = build_render_row(_request(deed_type=dt), execution_date="August 27, 2026")
         assert row["deed_type"] in TEMPLATE_BY_DEED_TYPE, dt
+        assert row["execution_date"] == "August 27, 2026"
 
 
 def test_api_render_carries_chassis_furniture_and_no_chrome():

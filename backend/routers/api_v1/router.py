@@ -19,15 +19,20 @@ import time
 from database import get_db_connection
 from schemas.api_v1.deeds import (
     CreateDeedRequest, DeedResponse, DeedDataResponse, DeedUrlsModel,
-    DeedPropertyResponse, DeedPartiesResponse, DeedTransferTaxResponse,
+    DeedApproverResponse, DeedPropertyResponse, DeedPartiesResponse,
+    DeedTransferTaxResponse,
     DeedListResponse, DeedListItem, PaginationModel,
     TransferTaxCalculateRequest, TransferTaxCalculateResponse,
     VerificationResponse,
 )
 from services.api_catalog import chassis_type
+from services.api_confirm import (
+    STATUS_COMPLETED, STATUS_PENDING, mint_token, expires_at as confirm_expires_at,
+    pin_execution_date,
+)
+from services import api_confirm_lifecycle
 from services.dtt_rates import compute_dtt
 from utils.api_keys import extract_key_prefix, validate_api_key, generate_deed_id, generate_document_id
-from utils.short_code import generate_content_hash
 from pdf_engine import render_pdf_async
 from services.deed_pdf import render_deed_html
 
@@ -47,10 +52,14 @@ def _error_response(status_code: int, code: str, message: str, *,
     )
 
 
-def build_render_row(deed_request) -> dict:
+def build_render_row(deed_request, *, execution_date: Optional[str] = None) -> dict:
     """Map a partner-API CreateDeedRequest onto the row shape the shared
     deed chassis renders (services/deed_pdf.build_context_from_row). The
-    API's underscore deed types normalize to the template map's keys."""
+    API's underscore deed types normalize to the template map's keys.
+
+    execution_date is pinned at create so templates cannot print
+    `now()` on a later clock. Approval promotes the stored preview
+    bytes and never re-renders."""
     tt = deed_request.transfer_tax
     dtt = {
         "calculated_amount": tt.computed_amount or "",
@@ -94,6 +103,7 @@ def build_render_row(deed_request) -> dict:
             },
             "dtt": dtt,
         },
+        "execution_date": execution_date,
     }
 
 class PublicAPIRoute(APIRoute):
@@ -386,37 +396,71 @@ def _log_usage(cursor, api_key_id: str, endpoint: str, method: str,
         print(f"[api-v1] usage log failed (non-blocking): {log_err}")
 
 
-def _deed_response_payload(deed_id: str, document_id: str, deed_type: str,
-                           status: str, created_at, property_address: str,
-                           apn: Optional[str], county: Optional[str],
-                           grantor_name: Optional[str], grantee_name: Optional[str],
-                           transfer_tax_amount, transfer_tax_exempt) -> DeedResponse:
-    """One response shape for fresh creates and idempotent replays."""
+_DEED_SELECT = """
+    deed_id, document_id, deed_type, status, created_at,
+    property_address, property_apn, property_county,
+    grantor_name, grantee_name,
+    transfer_tax_amount, transfer_tax_exempt,
+    confirmation_token, confirmation_expires_at,
+    approver_name, approver_role,
+    reject_reason, approved_at
+"""
+
+
+def _confirmation_url(token: Optional[str]) -> Optional[str]:
+    if not token:
+        return None
+    return f"{_verification_base_url()}/confirm/{token}"
+
+
+def _deed_response_from_row(row) -> DeedResponse:
+    """One response shape for create, replay, and GET.
+
+    A stored PDF URL exists only after approval. Pending, rejected, and
+    expired drafts carry a confirmation URL and no instrument URL.
+    """
+    status = row["status"]
+    deed_id = row["deed_id"]
+    document_id = row["document_id"]
+    completed = status == STATUS_COMPLETED
     return DeedResponse(
         success=True,
         data=DeedDataResponse(
             deed_id=deed_id,
             document_id=document_id,
-            deed_type=deed_type,
+            deed_type=row["deed_type"],
             status=status,
-            created_at=created_at,
+            created_at=row["created_at"],
+            expires_at=row.get("confirmation_expires_at"),
             urls=DeedUrlsModel(
-                pdf=f"{_api_base_url()}/api/v1/deeds/{deed_id}/pdf",
-                verification=f"{_verification_base_url()}/verify/{document_id}"
+                confirmation=_confirmation_url(row.get("confirmation_token")),
+                pdf=(f"{_api_base_url()}/api/v1/deeds/{deed_id}/pdf"
+                     if completed else None),
+                verification=(f"{_verification_base_url()}/verify/{document_id}"
+                              if completed else None),
             ),
             property=DeedPropertyResponse(
-                address=property_address,
-                apn=apn,
-                county=county
+                address=row["property_address"],
+                apn=row["property_apn"],
+                county=row["property_county"],
             ),
             parties=DeedPartiesResponse(
-                grantor=grantor_name.split(',')[0].strip() if grantor_name else None,
-                grantee=grantee_name.split(',')[0].strip() if grantee_name else None
+                grantor=(row["grantor_name"].split(",")[0].strip()
+                         if row["grantor_name"] else None),
+                grantee=(row["grantee_name"].split(",")[0].strip()
+                         if row["grantee_name"] else None),
             ),
             transfer_tax=DeedTransferTaxResponse(
-                amount=f"${transfer_tax_amount:.2f}" if transfer_tax_amount else None,
-                exempt=bool(transfer_tax_exempt)
-            )
+                amount=(f"${row['transfer_tax_amount']:.2f}"
+                        if row["transfer_tax_amount"] else None),
+                exempt=bool(row["transfer_tax_exempt"]),
+            ),
+            approver=DeedApproverResponse(
+                name=row.get("approver_name"),
+                role=row.get("approver_role"),
+            ),
+            reject_reason=row.get("reject_reason"),
+            approved_at=row.get("approved_at"),
         )
     )
 
@@ -431,12 +475,13 @@ async def create_deed(
     deed_request: CreateDeedRequest,
     api_key: dict = Depends(get_api_key),
     idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key",
-                                            description="Optional client-chosen key; retries with the same key return the original deed instead of generating a duplicate")
+                                            description="Optional client-chosen key; retries with the same key return the original draft. A rejected key is not resurrected.")
 ):
-    """
-    Generate a new deed document.
+    """Create a draft. Returns an id, a status, and a confirmation URL.
 
-    Returns the deed metadata including PDF download URL and verification URL.
+    A stored PDF exists only after a named human opens that URL, sees the
+    rendered deed, and approves it. Incomplete facts fail here — the
+    confirmation page is not a second builder.
     """
     start_time = time.time()
 
@@ -445,17 +490,17 @@ async def create_deed(
         raise HTTPException(status_code=500, detail={"code": "INTERNAL_ERROR", "message": "Database unavailable"})
 
     try:
+        api_confirm_lifecycle.sweep_if_due(conn)
         cursor = conn.cursor()
 
         # A1: idempotent replay — platforms retry, and a retried create
         # must not mint a second instrument. Same (key, Idempotency-Key)
-        # → the original deed's response, byte-for-byte shape.
+        # → the original row, including a rejected or expired one.
+        # Resurrecting a rejected body as a new draft would mean the
+        # rejection never happened.
         if idempotency_key:
-            cursor.execute("""
-                SELECT deed_id, document_id, deed_type, status, created_at,
-                       property_address, property_apn, property_county,
-                       grantor_name, grantee_name,
-                       transfer_tax_amount, transfer_tax_exempt
+            cursor.execute(f"""
+                SELECT {_DEED_SELECT}
                 FROM api_deeds
                 WHERE api_key_id = %s AND idempotency_key = %s
             """, (api_key["id"], idempotency_key))
@@ -463,83 +508,60 @@ async def create_deed(
             if existing:
                 _log_usage(cursor, api_key["id"], "/api/v1/deeds", "POST", 200, start_time, request)
                 conn.commit()
-                return _deed_response_payload(
-                    existing['deed_id'], existing['document_id'], existing['deed_type'],
-                    existing['status'], existing['created_at'], existing['property_address'],
-                    existing['property_apn'], existing['property_county'],
-                    existing['grantor_name'], existing['grantee_name'],
-                    existing['transfer_tax_amount'], existing['transfer_tax_exempt'])
+                return _deed_response_from_row(existing)
 
-        # Generate unique IDs
         deed_id = generate_deed_id()
         document_id = generate_document_id()
 
-        # A1 fix: full_address was referenced three times below but never
-        # assigned — POST /api/v1/deeds NameError'd on every call, ever.
         p = deed_request.property
         full_address = f"{p.address}, {p.city}, {p.state} {p.zip}"
-        
-        # Doctrine sweep: render through the shared recorder-compliant
-        # chassis (services/deed_pdf), not the old inline HTML — that
-        # ad-hoc template had no recorder's space, no DTT declaration, no
-        # acknowledgment, and printed the Document ID / verify URL on the
-        # instrument itself (chrome on a recorded page). Verification data
-        # stays in the response URLs and the authenticity record.
-        html_content = render_deed_html(build_render_row(deed_request))
 
-        # Generate PDF
+        created_at = datetime.utcnow()
+        execution_date = pin_execution_date(created_at)
+        html_content = render_deed_html(
+            build_render_row(deed_request, execution_date=execution_date))
+
         try:
-            pdf_bytes = await render_pdf_async(html_content)
+            preview_bytes = await render_pdf_async(html_content)
         except Exception as pdf_error:
             print(f"PDF generation error: {pdf_error}")
             raise HTTPException(
                 status_code=500,
                 detail={"code": "INTERNAL_ERROR", "message": "PDF generation failed"}
             )
-        
-        # Create document authenticity record (for QR verification)
-        content_hash = generate_content_hash(json.dumps(deed_request.dict(), default=str))
-        
-        cursor.execute("""
-            INSERT INTO document_authenticity (
-                short_code, document_type, property_address, property_apn, county,
-                grantor_display, grantee_display, content_hash, status
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'active')
-            RETURNING id
-        """, (
-            document_id,
-            deed_request.deed_type.value,
-            full_address,
-            deed_request.property.apn,
-            deed_request.property.county,
-            deed_request.grantor.name[:50],  # Abbreviated
-            deed_request.grantee.name[:50],
-            content_hash
-        ))
-        authenticity_id = cursor.fetchone()['id']
-        
-        # Store API deed record
+
         transfer_tax_amount = None
         if deed_request.transfer_tax.computed_amount:
             try:
-                transfer_tax_amount = float(deed_request.transfer_tax.computed_amount.replace('$', '').replace(',', ''))
-            except:
+                transfer_tax_amount = float(
+                    deed_request.transfer_tax.computed_amount.replace("$", "").replace(",", ""))
+            except Exception:
                 pass
-        
-        created_at = datetime.utcnow()
+
+        token = mint_token()
+        exp = confirm_expires_at(created_at)
+        payload = deed_request.dict()
+        payload["_execution_date"] = execution_date
+
         cursor.execute("""
             INSERT INTO api_deeds (
                 deed_id, document_id, api_key_id, deed_type, status,
                 property_address, property_city, property_county, property_apn,
                 grantor_name, grantee_name,
                 transfer_tax_amount, transfer_tax_exempt,
-                pdf_data, request_data, authenticity_id, idempotency_key
-            ) VALUES (%s, %s, %s, %s, 'completed', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                preview_pdf_data, request_data, idempotency_key,
+                confirmation_token, confirmation_expires_at,
+                approver_name, approver_role, approver_email
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s, %s, %s, %s
+            )
         """, (
             deed_id,
             document_id,
             api_key["id"],
             deed_request.deed_type.value,
+            STATUS_PENDING,
             full_address,
             deed_request.property.city,
             deed_request.property.county,
@@ -548,23 +570,23 @@ async def create_deed(
             deed_request.grantee.name,
             transfer_tax_amount,
             deed_request.transfer_tax.exempt,
-            pdf_bytes,
-            json.dumps(deed_request.dict(), default=str),
-            authenticity_id,
-            idempotency_key
+            preview_bytes,
+            json.dumps(payload, default=str),
+            idempotency_key,
+            token,
+            exp,
+            deed_request.approver.name.strip(),
+            deed_request.approver.role.strip(),
+            (deed_request.approver.email or "").strip() or None,
         ))
 
         _log_usage(cursor, api_key["id"], "/api/v1/deeds", "POST", 200, start_time, request)
-
         conn.commit()
 
-        return _deed_response_payload(
-            deed_id, document_id, deed_request.deed_type.value, "completed",
-            created_at, full_address, deed_request.property.apn,
-            deed_request.property.county, deed_request.grantor.name,
-            deed_request.grantee.name, transfer_tax_amount,
-            deed_request.transfer_tax.exempt)
-        
+        cursor.execute(f"SELECT {_DEED_SELECT} FROM api_deeds WHERE deed_id = %s",
+                       (deed_id,))
+        return _deed_response_from_row(cursor.fetchone())
+
     except HTTPException:
         raise
     except Exception as e:
@@ -595,11 +617,8 @@ async def get_deed(
     try:
         cursor = conn.cursor()
 
-        cursor.execute("""
-            SELECT deed_id, document_id, deed_type, status, created_at,
-                   property_address, property_apn, property_county,
-                   grantor_name, grantee_name,
-                   transfer_tax_amount, transfer_tax_exempt
+        cursor.execute(f"""
+            SELECT {_DEED_SELECT}
             FROM api_deeds
             WHERE deed_id = %s AND api_key_id = %s
         """, (deed_id, api_key["id"]))
@@ -613,30 +632,7 @@ async def get_deed(
 
         _log_usage(cursor, api_key["id"], "/api/v1/deeds/{deed_id}", "GET", 200, start_time, request)
         conn.commit()
-
-        return {
-            "success": True,
-            "data": {
-                "deed_id": row['deed_id'],
-                "document_id": row['document_id'],
-                "deed_type": row['deed_type'],
-                "status": row['status'],
-                "created_at": row['created_at'].isoformat() if row['created_at'] else None,
-                "urls": {
-                    "pdf": f"{_api_base_url()}/api/v1/deeds/{row['deed_id']}/pdf",
-                    "verification": f"{_verification_base_url()}/verify/{row['document_id']}"
-                },
-                "property": {
-                    "address": row['property_address'],
-                    "apn": row['property_apn'],
-                    "county": row['property_county']
-                },
-                "parties": {
-                    "grantor": row['grantor_name'].split(',')[0].strip() if row['grantor_name'] else None,
-                    "grantee": row['grantee_name'].split(',')[0].strip() if row['grantee_name'] else None
-                }
-            }
-        }
+        return _deed_response_from_row(row)
 
     finally:
         cursor.close()
@@ -659,7 +655,7 @@ async def download_deed_pdf(
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT pdf_data, document_id
+            SELECT pdf_data, document_id, status
             FROM api_deeds
             WHERE deed_id = %s AND api_key_id = %s
         """, (deed_id, api_key["id"]))
@@ -671,16 +667,17 @@ async def download_deed_pdf(
                 detail={"code": "NOT_FOUND", "message": "Deed not found"}
             )
 
+        if row["status"] != STATUS_COMPLETED or not row["pdf_data"]:
+            raise HTTPException(
+                status_code=409,
+                detail={"code": "CONFIRMATION_REQUIRED",
+                        "message": "A stored PDF exists only after the named approver confirms the rendered deed"}
+            )
+
         pdf_data, document_id = row['pdf_data'], row['document_id']
 
         _log_usage(cursor, api_key["id"], "/api/v1/deeds/{deed_id}/pdf", "GET", 200, start_time, request)
         conn.commit()
-
-        if not pdf_data:
-            raise HTTPException(
-                status_code=404,
-                detail={"code": "NOT_FOUND", "message": "PDF not available"}
-            )
         
         return StreamingResponse(
             io.BytesIO(bytes(pdf_data)),
@@ -997,7 +994,7 @@ async def verify_document(document_id: str, request: Request, response: Response
             cursor.execute("""
                 SELECT authenticity_id, document_id, deed_type, created_at, status
                 FROM api_deeds
-                WHERE document_id = %s
+                WHERE document_id = %s AND status = 'completed'
             """, (document_id,))
             row = cursor.fetchone()
             if not row:

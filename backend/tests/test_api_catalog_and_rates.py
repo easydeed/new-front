@@ -18,8 +18,9 @@ import pytest
 from tests.source_text import code_only
 
 from schemas.api_v1.deeds import (
-    CreateDeedRequest, DeedType, EntityModel, GranteeModel, GrantorModel,
-    PropertyModel, RecordingModel, ReturnToModel, TaxBasis, TransferTaxModel,
+    ApproverModel, CreateDeedRequest, DeedType, EntityModel, GranteeModel,
+    GrantorModel, PropertyModel, RecordingModel, ReturnToModel, TaxBasis,
+    TransferTaxModel,
 )
 from services.api_catalog import (
     API_DEED_TYPES, TYPE_REQUIREMENTS, chassis_type, rules_for,
@@ -92,6 +93,7 @@ def _payload(deed_type, vesting="a single man", entity=None):
             requested_by="Escrow",
             return_to=ReturnToModel(name="GRANTEE", address="1 Test St",
                                     city="Los Angeles", state="CA", zip="90001")),
+        approver=ApproverModel(name="Jane Roe", role="escrow officer"),
     )
 
 

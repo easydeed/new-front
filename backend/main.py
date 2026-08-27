@@ -231,6 +231,11 @@ print("✅ Verification system loaded (/api/v1/verify/{code} public, /admin/veri
 from routers.api_v1.router import router as api_v1_router
 app.include_router(api_v1_router, tags=["Public API v1"])
 
+# API-CONFIRM — Model 2 token surface. A human opens /confirm/{token},
+# sees the rendered deed, and approves or rejects. Not /approve/{token}.
+from routers.api_confirm import router as api_confirm_router
+app.include_router(api_confirm_router, tags=["API Confirmation"])
+
 # A3: API-access inquiry funnel (the form that used to fake its submit).
 from routers.api_key_requests import router as api_key_requests_router
 app.include_router(api_key_requests_router)

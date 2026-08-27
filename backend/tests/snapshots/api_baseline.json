@@ -16,13 +16,22 @@
     "status": 200
   },
   "2_create_deed": {
+    "approver_keys": [
+      "name",
+      "role"
+    ],
+    "confirmation_url_present": true,
     "data_keys": [
+      "approved_at",
+      "approver",
       "created_at",
       "deed_id",
       "deed_type",
       "document_id",
+      "expires_at",
       "parties",
       "property",
+      "reject_reason",
       "status",
       "transfer_tax",
       "urls"
@@ -34,20 +43,20 @@
       "grantee": "PARTNER BASE GRANTEE",
       "grantor": "PARTNER BASE GRANTOR"
     },
+    "pdf_url_present": false,
     "property": {
       "address": "88 Baseline Partner Way, Los Angeles, CA 90001",
       "apn": "9090-111-222",
       "county": "Los Angeles"
     },
     "status": 200,
-    "status_value": "completed",
+    "status_value": "pending_confirmation",
     "transfer_tax": {
       "amount": "$550.00",
       "exempt": false
     },
     "url_keys": [
-      "pdf",
-      "verification"
+      "confirmation"
     ]
   },
   "3_idempotency": {
@@ -56,22 +65,24 @@
     "same_deed_returned": true,
     "second_status": 200
   },
-  "4_pdf_download": {
-    "content_type": "application/pdf",
-    "is_pdf": true,
-    "over_1kb": true,
-    "status": 200
+  "4_pdf_before_confirm": {
+    "code": "CONFIRMATION_REQUIRED",
+    "status": 409
   },
-  "5_verification": {
+  "5_confirm_then_instrument": {
+    "approve_status": 200,
     "document_keys": [
       "created_at",
       "deed_type",
       "document_id",
       "status"
     ],
-    "no_auth_required": true,
-    "status": 200,
-    "valid": true
+    "pdf_is_same_bytes": true,
+    "pdf_status": 200,
+    "preview_is_pdf": true,
+    "preview_status": 200,
+    "valid": true,
+    "verify_status": 200
   },
   "6_metering_and_auth": {
     "deeds_stored": 2,

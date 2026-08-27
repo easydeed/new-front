@@ -127,7 +127,7 @@ def build_context_from_row(row):
         # (deeds.parties JSONB) — e.g. the homestead declarant.
         "parties": row.get("parties") if isinstance(row.get("parties"), dict) else None,
         "exhibit_threshold": 600,
-        "execution_date": None,
+        "execution_date": row.get("execution_date"),
         "now": datetime.now,
     }
 
