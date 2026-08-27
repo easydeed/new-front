@@ -4,7 +4,9 @@
 (not only in chat) so the list survives context windows. No credential
 values ever appear in this file — item names and status only.
 
-_Last corrected: 2026-08-27 (DX-BRUTAL's dead-control finding and the
+_Last corrected: 2026-08-27 (ENTITY1 — legal counterparty named;
+`STRICT_PUBLIC_ENV` on).
+Previously 2026-08-27 (DX-BRUTAL's dead-control finding and the
 open `exempt_code` validation decision recorded).
 Previously 2026-08-18 (the DECIDED/BUILT convention adopted
 repo-wide; W0 §3 converted as the first entry; HOME2-FOLLOWUP recorded).
@@ -462,8 +464,8 @@ gate stops the next one without pretending to have fixed these.
 - **TitlePoint / SiteX credential rotations.**
 - **DTT city-rates review** (`frontend/src/lib/dttCalc.ts`) — owner's
   escrow review is authoritative.
-- **HM2 inputs**: sales/contact email → `CONTACT_SALES_EMAIL` constant;
-  footer entity details.
+- **HM2 inputs**: sales/contact email → `CONTACT_SALES_EMAIL` constant.
+  Footer entity details — **BUILT** ENTITY1 (env-wired; not restated here).
 - **Counsel review** of the DRAFT `/terms` + `/privacy` pages.
 - **Demo-card Vercel env vars** — REOPENED 2026-07-30 on the owner's
   direct request ("I do not see them"). The code is live (PR #76); the
@@ -2571,29 +2573,22 @@ entry nobody checks a new feature against.
   result and worth recording as one — the convention still pays for
   itself on entries written from here on.
 
-- **`STRICT_PUBLIC_ENV` is off, deliberately.**
+- **`STRICT_PUBLIC_ENV` is on.**
   **DECIDED** 2026-08-18 — the site's public environment is checked at
   boot, with a strict flag that refuses to start when a REQUIRED variable
   is missing (§14.8).
-  **BUILT** — yes, this PR. The FLAG is off.
+  **BUILT** — yes, ENTITY1. The FLAG is on (`frontend/vercel.json`).
 
-  **What is exposed while it is off:** in production, with the three
-  contact variables unset and nobody reading the deploy log, a visitor
-  sees a footer with no way to reach us. That is the residual, named
-  rather than described as handled.
+  The three contact variables were supplied in the same change. A
+  missing contact address is a broken deploy. Values are configuration,
+  not credentials — they do not appear in this file.
 
-  **Why it is off anyway:** the values do not exist yet — the entity name
-  is the owner's to supply — so turning it on today would block every
-  deploy including the one carrying the check. **The trigger is
-  explicit:** the ticket that sets `NEXT_PUBLIC_LEGAL_ENTITY`,
-  `NEXT_PUBLIC_CONTACT_EMAIL` and `NEXT_PUBLIC_CONTACT_ADDRESS` sets
-  `STRICT_PUBLIC_ENV=1` in the same change. Same sequencing as
-  `STRICT_ENV` on the API, and the same reason: the ticket that flips it
-  is the ticket that verified the environment.
-
-  **Note on the values themselves:** they are configuration, not
-  credentials — no value appears in this file either way, per the rule at
-  the top.
+- **ENTITY1 — legal counterparty named.**
+  **DECIDED** 2026-08-27 — owner supplied the entity. Footer reads the
+  three public env vars. Terms §11 states the counterparty. Privacy §4
+  names the measured subprocessors. DRAFT banners stay until counsel
+  says otherwise.
+  **BUILT** — yes, this PR.
 
 - **A plan card for the RETURNING officer** (day-one diff, owner-ruled a
   candidate 2026-08-14 — ledgered rather than built). `DayOneRail`
