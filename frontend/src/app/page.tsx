@@ -1094,6 +1094,15 @@ Content-Type: application/json
                       API Docs
                     </a>
                   </li>
+                  {/* ENGINE1 — the trust centre is written for someone
+                      arriving from a security review, so it has to be
+                      reachable without one. A page nothing links to does
+                      not exist from where the reader stands (DARKSWEEP). */}
+                  <li>
+                    <a href="/trust" className="hover:text-[#7C4DFF] transition-colors">
+                      Trust
+                    </a>
+                  </li>
                 </ul>
               </div>
 
