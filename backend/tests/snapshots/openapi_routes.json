@@ -161,6 +161,10 @@
  ],
  [
   "GET",
+  "/confirm/{token}/artifact"
+ ],
+ [
+  "GET",
   "/confirm/{token}/preview"
  ],
  [

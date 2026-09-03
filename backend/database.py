@@ -640,6 +640,17 @@ def create_tables():
             "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMPTZ",
             "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS reject_reason TEXT",
             "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS contact_purged_at TIMESTAMPTZ",
+            # ENGINE1. The SHA-256 the CLIENT computed over the bytes it
+            # displayed, sent back on approve. Stored so the artifact can
+            # show it; compared before the promotion so a mismatch is a
+            # 409 rather than a silent divergence.
+            "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS draft_sha256 TEXT",
+            # ENGINE1, owner-ruled: OPTIONAL, recorded when present, and
+            # NEVER displayed as verification. We do not verify it, a
+            # required-but-unverified field is stronger-looking provenance
+            # than we have, and "license" is not one thing across escrow,
+            # title, bar and notary.
+            "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS approver_license TEXT",
             """CREATE UNIQUE INDEX IF NOT EXISTS uq_api_deeds_confirmation_token
                ON api_deeds(confirmation_token)
                WHERE confirmation_token IS NOT NULL""",

@@ -1864,9 +1864,13 @@ re-running the check after the fetch rather than trusting the reading
 from minutes before; the branch was one commit behind, which is #249's
 exact conflict shape.
 
-**The generalisation, and it is narrower and more useful than "things go
-stale":** *a verification is invalidated by any command that could change
-what it measured, including a command you ran for an unrelated reason.*
+**THIS NARROWER FORM SUPERSEDES THE STATEMENT ABOVE (owner-ruled).** The
+original said premises go stale — a description of a *condition*, which
+gives a reader nothing to check. This names the *act* that stales them,
+and an act is checkable at the moment it happens:
+
+> **A verification is invalidated by any command that could change what
+> it measured, including a command you ran for an unrelated reason.**
 A fetch is not a read-only operation with respect to a base check. So the
 base check belongs immediately before the push, not immediately after the
 checkout, and re-running it costs one line.
@@ -2397,7 +2401,30 @@ outright on a parse error. All three probed by committing them.
 in the morning is fully available to recur in the afternoon, in the code
 written to prevent it, by the person who wrote it down.
 
-**THE SHARPEST INSTANCE SO FAR IS SIXTY MINUTES (ENGINE1, 2026-09-03).**
+**REDEFINED 2026-09-03 (owner-ruled), and the redefinition changes what
+this section prescribes.** The failures collected here are **RECOGNITION
+FAILURES, NOT DECAY.** In every instance the rule was available and
+recitable at the moment it was violated. Nothing had been forgotten.
+**The situation simply did not present itself as an instance of the
+rule.**
+
+That distinction is not academic, because the two diagnoses recommend
+opposite remedies:
+
+| if the cause were | the remedy would be |
+|---|---|
+| decay — the rule faded | reminders, repetition, a note at the top of the file |
+| **recognition — the rule never surfaced** | **a probe, because reading cannot help** |
+
+**Reminders are the wrong remedy for a rule that was never absent.** And
+the section's instances all re-read as recognition failures rather than
+lapses: a pin quoting an implementation written by someone who had just
+documented that failure mode; a string-presence assertion by someone who
+had just recorded string-presence assertions; the `git add` from a
+subdirectory, hours after the first. None of those people had forgotten.
+
+**THE INSTANCE THAT FORCED THE REDEFINITION IS SIXTY MINUTES (ENGINE1,
+2026-09-03).**
 This section's examples were previously separated by a day. This one was
 separated by about an hour, and the recurrence was of a rule its author
 had just finished writing into a test file.
