@@ -1451,6 +1451,32 @@ The rule KNEW what it was for. Enumerating three spellings of a subject
 you have already stated in general terms is the enumerate-vs-property
 error committed against your own documentation.
 
+**THE STRONGEST INSTANCE ARRIVED LATER, AND IT IS THIS SECTION'S OWN
+WARNING BEING WALKED PAST (ENGINE1, 2026-08-27).** The uptime rule in the
+same file reads:
+
+```
+\b99(?:\.9+)?\s*%[^.\n]{0,24}?\b(?:uptime|sla|availability)\b
+```
+
+`\.9+` requires the decimals to be **nines**. So **"99.95% uptime" passes
+cleanly** — `99.9` matches, and then `\s*%` cannot consume the `5`.
+
+The rule already carried a comment describing exactly this failure: its
+first version *"pinned the four spellings that happened to exist"*, was
+caught by its own test on `"99.9% API uptime"`, and was widened with the
+note **"a pin that guards a spelling does not guard a property."** The
+widening fixed the GAP between the number and the keyword — and left
+`\.9+`, which is a spelling of *"a high number"*, one character deeper in
+the same pattern.
+
+**So the property was stated, the failure mode was named, the lesson was
+written down in the file, and the fix reproduced the bug at a smaller
+scale.** Now `\.\d+`. What generalises: after fixing a
+spelling-not-property defect, re-read the *whole* pattern for the same
+error rather than the part that failed — the fix's author has just proved
+they were thinking in spellings.
+
 **And the restraint matters as much as the widening.** The fix widened
 `collaboration` only where it sits beside a multi-user / team / shared
 word — bare "collaboration" is NOT banned. A signing is a collaboration
@@ -1693,6 +1719,54 @@ habit: `git merge-base HEAD origin/main` equalling `git rev-parse
 origin/main` is the whole property, local, deterministic, no API, no
 "unknown" state. It is one line in the same breath as the checkout, not a
 separate discipline to sustain.
+
+---
+
+### §14.29 — A gate's coverage is a measurement, not an inference from the fact that it exists (2026-08-27, owner-ruled)
+
+**Statement.** §14.9 asks whether a control ever fires. This asks a
+different question with the same shape: **of the things it is understood
+to cover, how many does it actually catch?** Nobody asks, because a gate
+that fires on *something* feels like a gate that covers *the subject* —
+and the subject is usually a list nobody has ever run through it.
+
+**The instance, and the number is the finding.** ENGINE1 instructed:
+*"widen banned-claims to cover the ones it misses"* — phrasing that
+assumes the misses are exceptions. Before widening, the 23-item CUT list
+was run through the existing 14 rules.
+
+**22 of 23 passed cleanly. Only "SOC 2" was caught.**
+
+A status page, an SLA, insurance, data residency, an SDK, support
+response tiers, a deprecation notice, an encryption standard, unbuilt
+hostnames — every claim an integrator buys on, shippable that afternoon,
+past a gate whose entire stated subject is *claims we cannot honour*.
+
+**A gate that catches one item in twenty-three is a gate whose coverage
+was assumed rather than known**, by everyone including the people who
+built and extended it. Nothing was broken; the coverage had simply never
+been measured, and its reputation had been earned by the cases that
+prompted it.
+
+**Why the misestimate is systematic rather than careless.** A gate's
+reputation is built from the times it fired. Those are memorable, they
+appear in commit messages, and each one is evidence *for* the gate. The
+things it never caught leave no trace anywhere — **the evidence for
+coverage accumulates and the evidence against it does not exist.** So
+confidence rises with age regardless of scope.
+
+**The mechanical form, and it is cheap.** Before widening a gate, write
+the list of things it is meant to cover and *run them through it*. Do not
+add rules for the items you assume are missing; add rules for the items
+that **measurably** pass. Fifteen lines of throwaway script here turned a
+guess into `22/23` and found a defect in an existing rule as a
+by-product.
+
+**And the limit that survives the widening**, kept in the ledger where a
+reader meets it: *a gate can only tell you a page does not say one of 28
+specific false things — never that it says something true.* That is the
+misreading **"the gate covers it now"** invites, and it is the same
+sentence one category over from §14.20.
 
 ---
 
