@@ -55,6 +55,57 @@ CONFIRM_KEYS = frozenset({
 APPROVER_KEYS = frozenset({"name", "role"})
 REJECT_REASON_KEYS = frozenset({"id", "label"})
 
+# ═══ ENGINE1 — THE AUDITOR ARTIFACT ══════════════════════════════════
+#
+# Declared, not derived, exactly like the confirmation package: a key set
+# computed from the payload agrees with itself no matter what the payload
+# becomes.
+#
+# `pdf_sha256` and `sha256_recorded_at_approval` are TWO NAMES FOR ONE
+# FACT and the artifact says so. Approve promotes the preview bytes
+# rather than re-rendering, so the bytes the approver saw and the bytes
+# we store are the same object — they cannot disagree. The mockup showed
+# them as separate rows, which reads as two independent facts
+# corroborating each other. The second field is kept only because it
+# records what was COMPARED at approval time, and a reader deserves to
+# see that it matches rather than to be told it does.
+ARTIFACT_KEYS = frozenset({
+    "document_id",
+    "deed_type",
+    "pdf_sha256",
+    "sha256_recorded_at_approval",
+    "confirmed_by",
+    "role",
+    "license_claimed",   # NEVER "license" — see below
+    "confirmed_at",
+    "declarations",
+})
+
+# What the artifact asserts, in the artifact, so an auditor reading it
+# alone is not left to infer the scope from what is absent.
+#
+# The third line is the one that matters and the one a vendor review will
+# test: we do not verify licences. The field is named `license_claimed`
+# rather than `license` for the same reason — a bare `license` key reads
+# as a checked fact, and the difference between "recorded" and "verified"
+# is the whole of what an auditor is here to establish.
+ARTIFACT_DECLARATIONS = (
+    "This document was approved by the named person at the stated time, "
+    "and the bytes held hash to the SHA-256 shown.",
+    "The approver saw these exact bytes: approval promotes the previewed "
+    "PDF rather than re-rendering it.",
+    "The licence string, when present, is recorded as supplied and is NOT "
+    "verified by DeedPro.",
+    "Nothing here establishes that the approver read the document, or that "
+    "they were entitled to approve it.",
+)
+
+
+def assert_artifact_keys(artifact) -> None:
+    if set(artifact) != ARTIFACT_KEYS:
+        raise AssertionError(
+            f"artifact keys {sorted(artifact)} != {sorted(ARTIFACT_KEYS)}")
+
 # One catalog, sent by the server. The page renders what it is told.
 # Adding a reason is a product decision, not a frontend edit.
 REJECT_REASONS: tuple[Dict[str, str], ...] = (
