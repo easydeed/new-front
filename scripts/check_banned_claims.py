@@ -161,10 +161,18 @@ RULES = [
     # pin that guards a spelling does not guard a property. Bounded to a
     # single sentence on a single line so it stays a claim, not a
     # coincidence of two numbers sharing a paragraph.
+    # AND IT HAPPENED A THIRD TIME, found by ENGINE1 running the CUT list
+    # through this file: `99(?:\.9+)?` requires the decimals to be NINES,
+    # so **"99.95% uptime" walked straight through** — `99.9` matched and
+    # then `\s*%` could not consume the `5`. The rule's own comment above
+    # describes this exact failure and the fix repeated it one character
+    # deeper: `\.9+` is a spelling of "a high number", not the property.
+    # Now `\.\d+`, which is the property — any percentage at all next to
+    # an availability word is a claim nothing measures.
     Rule("uptime SLA",
-         r"\b99(?:\.9+)?\s*%[^.\n]{0,24}?\b(?:uptime|sla|availability)\b"
+         r"\b99(?:\.\d+)?\s*%[^.\n]{0,24}?\b(?:uptime|sla|availability)\b"
          r"|\buptime\s+sla\b"
-         r"|\b(?:uptime|availability)[^.\n]{0,24}?\b99(?:\.9+)?\s*%",
+         r"|\b(?:uptime|availability)[^.\n]{0,24}?\b99(?:\.\d+)?\s*%",
          "Nothing measures uptime and no SLA has been contractually offered."),
     Rule("title-software integration", r"\b(?:SoftPro|Qualia|ResWare|RamQuest|Closer'?s Choice|ClosingVue|E-Closing|SigniX)\b",
          "No integration exists for any title production system — no client, "
@@ -216,6 +224,130 @@ RULES = [
          r"(?:seats?|collaboration|workspace|access|accounts?)|user seats?)\b",
          "`deeds` carries one user_id and every query is scoped to it. "
          "There is no team model to manage (RED-S5, deferred by decision)."),
+
+    # ══ ENGINE1: THE INTEGRATOR-FACING CLAIMS ═════════════════════════
+    #
+    # MEASURED BEFORE WRITTEN. The ENGINE1 CUT list was run through this
+    # file's existing rules: **22 of 23 items passed cleanly.** Only
+    # "SOC 2" was caught. Every other claim an integrator would buy on —
+    # a status page, an SLA, insurance, a data-residency promise, an SDK
+    # — walked straight through a gate whose whole subject is claims we
+    # cannot honour.
+    #
+    # That is the TRIAL1 lesson a second time: the gate was drawn around
+    # the examples that prompted it (compliance badges, then feature
+    # chips) rather than around the property. An integrator's purchase
+    # surface is a purchase surface.
+    #
+    # These rules ban NOTHING that exists. Each one names a thing the
+    # product does not have, and the rule dies in the PR that builds it.
+
+    Rule("unbuilt deedpro host",
+         r"\b(?:api|app|status|docs|cdn)\.deedpro\.io\b",
+         "The only hosts that exist are the marketing site and the Render "
+         "app. `api.deedpro.io` and `app.deedpro.io` resolve to nothing — "
+         "an integrator who copies one gets a DNS error, and a short-link "
+         "host printed on a deed is worse than a broken link."),
+
+    Rule("status page / operational claim",
+         r"\bstatus\s+page\b|\ball\s+systems\s+operational\b",
+         "No status page exists and nothing publishes availability. A "
+         "status page is the first thing an integrator checks during an "
+         "incident; pointing at one that does not exist is worst at the "
+         "worst moment."),
+
+    Rule("support tier / response time",
+         r"\bP[123]\b[^.\n]{0,40}?\b(?:hour|business day|response|resolution)\b"
+         r"|\b(?:response|resolution)\s+time[^.\n]{0,24}?\b\d+\s*(?:hour|minute|business day)"
+         r"|\b2\s*a\.?m\.?\b[^.\n]{0,24}?\bescalat"
+         r"|\bescalation\s+path\b|\bnamed\s+engineer\b|\bshared\s+slack\b",
+         "There is no on-call rota, no ticket triage, and no support "
+         "contract. A response-time table is a contractual commitment "
+         "made by a marketing page."),
+
+    Rule("SLA offered",
+         r"\bDPA\s*\+\s*SLA\b"
+         r"|\bSLA\b[^.\n]{0,24}?\b(?:available|offered|included|guaranteed)\b"
+         r"|\b(?:available|offered|included)[^.\n]{0,16}?\bSLA\b",
+         "No service level has been contractually offered to anybody. "
+         "The uptime rule below guards the NUMBER; this guards the "
+         "commitment, which can be claimed without one."),
+
+    Rule("insurance",
+         r"\b(?:E&O|errors\s+and\s+omissions|cyber(?:\s+liability)?)\b[^.\n]{0,24}?\binsuran"
+         r"|\binsuran[^.\n]{0,24}?\b(?:E&O|errors\s+and\s+omissions|cyber\s+liability)\b",
+         "No policy is in force. Insurance is a diligence checkbox a title "
+         "company verifies against a certificate, so the claim fails at "
+         "exactly the moment it is relied on."),
+
+    Rule("security contact / disclosure programme",
+         r"\bsecurity@deedpro\.io\b|\bPGP\b|\bsecurity\s+pack\b"
+         r"|\b(?:CAIQ|SIG\s+Lite)\b",
+         "There is no monitored security mailbox, no published key, no "
+         "completed questionnaire and no pack to download. Publishing a "
+         "disclosure address nobody reads is worse than publishing none: "
+         "a researcher reports a real finding into a void."),
+
+    Rule("deprecation notice period",
+         r"\b\d+[\s\-]*months?\b[^.\n]{0,32}?\bdeprecat"
+         r"|\bdeprecat[^.\n]{0,32}?\b\d+[\s\-]*months?\b",
+         "No versioning policy has been written and no notice period has "
+         "been committed. An integrator plans their own roadmap around "
+         "this number."),
+
+    Rule("data residency",
+         r"\bnever\s+leaves?\s+the\s+(?:United\s+States|U\.?S\.?A?)\b"
+         r"|\bdata\s+residency\b"
+         r"|\b(?:US|U\.S\.)[\s\-]only\b[^.\n]{0,24}?\b(?:data|storage|infrastructure)\b",
+         "PROVEN FALSE by ENTITY1, not merely unverified: the address "
+         "autocomplete is browser-to-Google on every keystroke a user "
+         "types, so property data leaves for a third party before it ever "
+         "reaches us. This is the one rule here guarding a claim that was "
+         "shipped and was wrong."),
+
+    Rule("encryption standard",
+         r"\bAES[\s\-]?256\b|\bencrypted\s+at\s+rest\b",
+         "Nothing in this product configures its own encryption. Whatever "
+         "Render and Postgres do at rest is theirs, undocumented by us and "
+         "unverified by us. Naming a cipher asserts an implementation "
+         "decision nobody made."),
+
+    Rule("outbound webhook",
+         r"\b(?:outbound|subscribe\s+to|register\s+an?|configure\s+an?)\s+webhook"
+         r"|\bwebhooks?\b[^.\n]{0,24}?\b(?:available|supported|delivered|retried)\b",
+         "Nothing emits an outbound webhook. Deliberately NOT a bare ban "
+         "on the word: `billingPortal.ts` handles Stripe's INBOUND hook, "
+         "and the homepage says 'there is no client, no webhook, no stub' "
+         "— honest copy denying the feature, which a bare ban would flag "
+         "as claiming it."),
+
+    Rule("SDK / client library",
+         r"\b(?:official\s+)?SDKs?\b|\bPostman\s+collection\b|\bclient\s+librar",
+         "No SDK, no client library, no Postman collection exists in any "
+         "language. cURL against a documented JSON contract is what we "
+         "have, and saying so is stronger than promising a package."),
+
+    Rule("our own entity, stated wrongly",
+         r"\ba\s+Delaware\s+(?:corporation|company|LLC|Inc\.?)\b",
+         "ENTITY1 established the counterparty: DeedPro Corporation, a "
+         "WYOMING corporation. Scoped to the phrase 'a Delaware "
+         "corporation' rather than the bare state name, because "
+         "`vestingSplit.ts` matches 'A DELAWARE LIMITED LIABILITY "
+         "COMPANY' in RECORDED VESTING LANGUAGE — somebody else's text on "
+         "an instrument, which this gate must not touch."),
+
+    Rule("unsourced interaction count",
+         r"~?\s*\d+\s*clicks?\b|\bin\s+under\s+\d+\s*(?:seconds|minutes)\b",
+         "Nobody measured it. '~9 clicks' shipped on the homepage twice "
+         "with no instrumentation behind it, and a number a buyer can "
+         "count is a number a buyer will count."),
+
+    Rule("daily-use claim",
+         r"\b(?:use[sd]?|using)\s+(?:it\s+)?daily\b"
+         r"|\bdaily\b[^.\n]{0,16}?\bescrow\s+officers?\b",
+         "We have no usage telemetry and no daily-active figure. Stating "
+         "how often officers use the product describes a fact we have "
+         "never observed."),
 ]
 
 

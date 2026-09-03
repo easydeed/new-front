@@ -103,13 +103,43 @@ def test_superseded_api_generations_are_deleted():
 
 def test_only_bcrypt_key_hashing_remains():
     """Flag ruling: the api_keys format collision resolves in favor of
-    Gen 3's bcrypt design. No sha256 key hashing anywhere."""
+    Gen 3's bcrypt design. No sha256 key hashing anywhere.
+
+    ═══ AN EXEMPTION WAS DELETED FROM THIS TEST (2026-08-27) ═══
+
+    The assertion read `src.replace("generate_content_hash", "")` — a
+    symbol exemption, stripping an identifier by NAME rather than
+    narrowing to the property (is sha256 being applied to an API key?).
+
+    Measured before removing it: of the five modules containing
+    `key_hash` — `admin_api_v2.py`, `api_v1/router.py`, `db_rows.py`,
+    `database.py`, `utils/api_keys.py` — **not one contains `sha256(` or
+    `generate_content_hash` at all**, so the replace was a no-op on every
+    file the loop visits. Probed both ways by appending `sha256(b"k")` to
+    `utils/api_keys.py`: the test fails IDENTICALLY with the exemption
+    present and with it removed. It was never load-bearing.
+
+    AND IT COULD NOT HAVE HIDDEN ANYTHING, which is the inversion worth
+    keeping. `generate_content_hash` contains no `sha256`, so deleting it
+    can never remove a match; the only edge case is that stripping it
+    could JOIN surrounding text into a new `sha256(`, making the test
+    stricter. So it was not a weakened gate — **it was a gate carrying a
+    sign that said "weakened here"**, which is §14.9's family in
+    miniature: a control feature that looks like it is doing work.
+
+    Deleted rather than narrowed, owner-ruled, on the third word of the
+    verdict: inert, harmless, MISLEADING. A no-op exemption teaches the
+    next reader that sha256-beside-`key_hash` is tolerated, which is the
+    one thing this test forbids. If document-authenticity hashing ever
+    lands in a module that also touches `key_hash`, the fix then is to
+    assert on the USE — not to blank an identifier by name.
+    """
     for path in BACKEND.rglob("*.py"):
         if "tests" in path.parts:
             continue
         src = path.read_text(encoding="utf-8", errors="ignore")
         if "key_hash" in src:
-            assert "sha256(" not in src.replace("generate_content_hash", ""), \
+            assert "sha256(" not in src, \
                 f"{path.relative_to(BACKEND)} hashes API keys with sha256"
 
 

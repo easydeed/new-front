@@ -79,7 +79,7 @@ const ROOT = join(HERE, '..');
  *  not a ratchet, and this property belongs to every threshold in the
  *  repo, not just this one: re-measure whenever a deletion lowers what
  *  the threshold measures. */
-const CEILING = { errors: 126, warnings: 54 };
+const CEILING = { errors: 126, warnings: 53 };
 
 /** A file that stops being linted stops being measured, and unmeasured
  *  reads as clean. This floor is the count of files eslint actually
@@ -117,11 +117,18 @@ const CEILING = { errors: 126, warnings: 54 };
  *  after a deletion (§14.14): a floor left below the real count silently
  *  tolerates that many files going dark later.
  *
+ *  ENGINE1 raised it 285 -> 289 for four files that arrived with
+ *  #262-#265, and lowered the WARNING ceiling 54 -> 53 in the same pass.
+ *  Neither move was this ticket's own work — which is the point: the
+ *  ratchet is re-measured whenever the gate is run, not only when the
+ *  person running it caused the change. A gain left unlocked is a gain
+ *  the next author may spend without any diff recording the grant.
+ *
  *  The last move lowered the CEILING too: deleting dead files took 8
  *  errors and 2 warnings with them, and a ceiling left at the old number
  *  would quietly re-authorise that much new debt. Cleanup that does not
  *  move the ceiling is cleanup the gate forgets. */
-const FILES_FLOOR = 285;
+const FILES_FLOOR = 289;
 
 /**
  * These catch DEFECTS rather than style, and every one is at zero today —

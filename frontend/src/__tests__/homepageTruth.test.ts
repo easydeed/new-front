@@ -130,7 +130,28 @@ describe('HM2 — the differentiators are near the fold', () => {
   });
 
   it('the stats bar states what is true and specific', () => {
-    expect(PAGE).toContain('~9 clicks');
+    /**
+     * SUPERSEDED BY ENGINE1, and the irony is the finding: this test is
+     * named "states what is TRUE and specific" and its first assertion
+     * pinned **"~9 clicks"** — a number nobody ever measured. The name
+     * asserted the property; the body pinned an invention. A pin can
+     * carry a title that describes what it should be checking while
+     * checking something that contradicts it, and the title is what
+     * every future reader trusts.
+     *
+     * Every stat here now reads a value the CODE can answer:
+     * `API_DEED_TYPES.length` and `INSTRUMENT_COUNT` come from the
+     * registries themselves, so the copy cannot outdate the product —
+     * the move HOME2 made when it replaced a hardcoded 5.
+     *
+     * The click count is CUT rather than re-estimated. It varies by
+     * instrument, by how much the county record prefills, and by how
+     * much the officer changes; and a count a buyer can verify by
+     * counting is the worst kind to invent.
+     */
+    expect(PAGE).not.toContain('clicks');
+    expect(PAGE).toContain('String(API_DEED_TYPES.length)');
+    expect(PAGE).toContain('String(INSTRUMENT_COUNT)');
     expect(PAGE).toContain('Fields confirmed by your officer');
   });
 

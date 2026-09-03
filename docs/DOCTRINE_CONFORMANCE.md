@@ -1696,6 +1696,78 @@ separate discipline to sustain.
 
 ---
 
+### §14.27 — The verification reflex points outward before it points at itself (2026-08-27, owner-ruled)
+
+**Statement.** Checking somebody else's claims rigorously is the easy
+half, and doing it well produces a feeling of having been careful that
+**substitutes for** checking your own premise. The outward version has an
+obvious trigger — a claim arrived. The inward version has none: your own
+premise did not arrive, it accumulated.
+
+**The instance, and both halves happened in the same reply.** A message
+arrived describing migrations, a runner and a PR that belong to a
+different project. Every claim in it was checked against the tree —
+`run_migrations.py` absent, 28 migrations not 53, PR #27 merged a month
+earlier — and the verdict was right.
+
+In the same breath, **a refusal was issued on a premise two days stale.**
+Declining to supply a business address on the grounds that *"I cannot
+learn this from a repository"* was correct when formed and false when
+stated: ENTITY1 had shipped the entity in `#264`, and Terms already named
+DeedPro Corporation, a Wyoming corporation, at 440 Rte 66. The reply
+quoted `terms/page.tsx` saying *"identity pending"* — a real line, read
+out of a real file, from a tree that had moved.
+
+**The general shape.** A refusal grounded in *"this cannot be known"* is a
+claim about the world at a moment, and it decays exactly like a
+cross-reference does (§14.7's sweep trigger, where an entry describing
+another entry's state went stale within the hour). **Rigour applied
+outward can coexist with a stale interior, and it will feel like rigour
+throughout.**
+
+**The check.** Before refusing on impossibility, re-read the thing you are
+about to call absent. The cost is one command; the failure mode is
+declining to supply something the repository already contains, in a voice
+that sounds principled.
+
+---
+
+### §14.28 — Diff the branch head against its squash, never against its base (2026-08-27)
+
+**Statement.** A command can run cleanly, print a large and alarming
+result, and answer a **different question than the one you meant.** Exit
+codes and output volume are both silent about that.
+
+**The instance.** Proving a branch held no unmerged work, the natural
+command was `git diff origin/<branch> origin/main`. It printed **55 files,
++2529/−906**, which reads exactly like a large body of unpushed work.
+
+It was the opposite: **that diff is what `main` gained while the branch
+sat still** — four merged PRs moving the base. The branch's own content
+was already in `main` under a squashed SHA.
+
+**The mechanical form:**
+
+```
+git diff <branch head> <its squash commit>     # empty ⇒ fully merged
+```
+
+not
+
+```
+git diff <branch head> origin/main             # shows the BASE moving
+```
+
+**Why the wrong one is the tempting one.** `origin/main` is the thing you
+are comparing against conceptually — "is my branch in main?" — so it is
+the reference that comes to hand. But the base is not stable, and **every
+commit that moved it renders as your own**, in the direction that looks
+like unfinished work rather than finished work. The safe framing: to prove
+a thing is contained, compare it to *what contains it*, not to the whole
+container.
+
+---
+
 ### §14.26 — "A gate rejected my change, so I changed the gate" is flagged every time, regardless of how the flag comes out (2026-08-26, owner-ruled)
 
 **Statement.** Widening a control you just failed is a legitimate move and
