@@ -117,18 +117,21 @@ const CEILING = { errors: 126, warnings: 53 };
  *  after a deletion (§14.14): a floor left below the real count silently
  *  tolerates that many files going dark later.
  *
- *  ENGINE1 raised it 285 -> 289 for four files that arrived with
- *  #262-#265, and lowered the WARNING ceiling 54 -> 53 in the same pass.
- *  Neither move was this ticket's own work — which is the point: the
- *  ratchet is re-measured whenever the gate is run, not only when the
- *  person running it caused the change. A gain left unlocked is a gain
- *  the next author may spend without any diff recording the grant.
+ *  ENGINE1 moved it twice, and the two moves are different in kind.
+ *  285 -> 289 for four files that arrived with #262-#265 — NOT this
+ *  ticket's own work, which is the point: the ratchet is re-measured
+ *  whenever the gate is run, not only when the person running it caused
+ *  the change. A gain left unlocked is a gain the next author spends
+ *  with no diff recording the grant. The warning ceiling came down
+ *  54 -> 53 in the same pass, for the same reason.
+ *  Then 289 -> 291 for the trust page and its pins, which IS this
+ *  ticket's work — the ordinary case.
  *
  *  The last move lowered the CEILING too: deleting dead files took 8
  *  errors and 2 warnings with them, and a ceiling left at the old number
  *  would quietly re-authorise that much new debt. Cleanup that does not
  *  move the ceiling is cleanup the gate forgets. */
-const FILES_FLOOR = 289;
+const FILES_FLOOR = 291;
 
 /**
  * These catch DEFECTS rather than style, and every one is at zero today —

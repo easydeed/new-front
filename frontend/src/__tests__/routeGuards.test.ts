@@ -19,6 +19,13 @@ const APP_DIR = path.join(__dirname, '..', 'app');
 // Public BY DESIGN — everything else must guard.
 const PUBLIC_ROUTES = new Set([
   '/', // marketing homepage
+  // ENGINE1. The trust centre, and it is public for the same reason the
+  // homepage is: its whole audience is people deciding whether to become
+  // customers. A security reviewer arrives before there is an account to
+  // log into. Nothing on it is account-scoped — it is an inventory of
+  // what this company does and does not have, which is the same for
+  // every reader. Being on this list is a decision, not an oversight.
+  '/trust',
   '/login',
   '/register',
   '/forgot-password',
