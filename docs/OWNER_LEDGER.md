@@ -2062,6 +2062,43 @@ entry nobody checks a new feature against.
     is true and specific"* whose first assertion pinned **`~9 clicks`**.
     **The name asserted the property; the body pinned an invention.**
 
+  ═══ THE TRUST CENTRE — BUILT (2026-09-03, #268) ═══
+
+  `frontend/src/app/trust/page.tsx` + `trustPage.test.ts`. The honest
+  inventory: **gaps first, capability second**, ten gap lines of which
+  nine are under 65 characters, none explaining itself. Availability,
+  Support-and-SLA, insurance and the security mailbox are CUT rather
+  than bracketed — a panel of empty charts under "All systems
+  operational" says *we measure nothing* more loudly than omission does.
+
+  **THE MEASUREMENT THAT CHANGED A SENTENCE.** `POST /api-key-requests`
+  requires an authenticated user, only RECORDS an inquiry, and completes
+  through an ADMIN-ONLY patch (`new → contacted → approved`). So the
+  sandbox is real (`is_test`, `dp_test_` prefix) and **issuance is not
+  self-serve.** *"Self-serve sandbox"* was the easiest false sentence on
+  this page to write by accident, and it is what the mockup implied. The
+  page says **"on request"**, and a pin forbids the other phrasing.
+
+  ═══ AND THE TICKET REVERSED ITSELF — §14.30 ═══
+
+  **The other three pages needed almost nothing**, which was found by
+  building rather than by reading:
+
+  · `/developers` and `/confirm` **already carried the shipped contract
+    vocabulary** (`pending_confirmation`, `completed`). The
+    shipped-over-mockup ruling was satisfied by #262 and #263 before it
+    was written.
+  · The homepage carried **none of the CUT items** — no two-door fork,
+    no meta strips, no status/uptime card, no written-commitments
+    section, no dead footer links.
+
+  **The shipped pages were already more honest than the design meant to
+  fix them.** The audit read the live pages, the ticket was written from
+  the mockups, and the mockups described a page that would have needed
+  cutting. Recorded as §14.30: a remediation ticket written from an
+  aspirational artifact prescribes fixes for defects that do not exist,
+  and nothing about such a ticket looks wrong.
+
   ═══ NOT BUILT, AND BLOCKED ═══
 
   · **The positive design of the four pages.** The ticket says build
