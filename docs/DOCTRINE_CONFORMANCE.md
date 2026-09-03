@@ -1722,6 +1722,57 @@ separate discipline to sustain.
 
 ---
 
+### §14.30 — A remediation ticket written from an aspirational artifact prescribes fixes for defects that do not exist (2026-09-03, owner-ruled)
+
+**Statement.** When a ticket's scope is drawn from a design document
+rather than from the running surface, **every defect it names can be real
+of the design and absent from the product.** Nothing about such a ticket
+looks wrong: it has specific defects, named locations, a governing rule,
+and internal coherence. The only thing separating it from a real ticket
+is whether anybody read the live surface before scoping — **and that
+check feels redundant, because the artifact IS the description of the
+surface.**
+
+**The instance, and the direction is the surprise.** ENGINE1 carried a
+23-item CUT list and a set of page-repositioning rulings, written against
+four mockups on a `design-ref` branch. Built out, the finding reversed
+the ticket:
+
+  · **`/developers` and `/confirm` already used the shipped contract
+    vocabulary** — `pending_confirmation`, `completed`. The
+    "shipped-vocabulary-over-the-mockup's" ruling had been satisfied by
+    #262 and #263 before it was written.
+  · **The homepage carried NONE of the CUT items.** No two-door fork, no
+    meta strips, no status/uptime card, no written-commitments section,
+    no dead footer links. It linked to four pages, all of which exist.
+
+So the audit that produced the ticket read the LIVE pages; the ticket was
+written against the MOCKUPS; and the mockups described a future page that
+would have needed cutting. **The shipped pages were already more honest
+than the design meant to fix them.**
+
+**What makes this worth a section rather than an anecdote.** The ordinary
+assumption is that a design document runs *ahead* of the product, so
+building from it adds things. This is the mirror: a design document that
+ran ahead in a direction the product did not take, generating remediation
+work aimed at a surface that does not exist. **Aspirational artifacts age
+into descriptions of a road not taken, and they do not announce the
+change.**
+
+**And it was only visible because the work was done.** Reading the CUT
+list against the tree took ten minutes; reading the ticket revealed
+nothing. **The gap between "a plausible ticket" and "a ticket about
+something real" is not closed by reading more carefully** — it is closed
+by grepping the live surface for the thing the ticket says is there.
+
+**The check, and it is cheap enough to be unconditional.** Before scoping
+remediation from any document: take three specific claims the document
+makes about the current state and verify them against the running code.
+If the document is a mockup, a report older than a week, or a message
+from another context, do it before writing the first line of the ticket.
+
+---
+
 ### §14.29 — A gate's coverage is a measurement, not an inference from the fact that it exists (2026-08-27, owner-ruled)
 
 **Statement.** §14.9 asks whether a control ever fires. This asks a
@@ -1803,6 +1854,22 @@ throughout.**
 about to call absent. The cost is one command; the failure mode is
 declining to supply something the repository already contains, in a voice
 that sounds principled.
+
+**AND IT RECURRED ON ITS AUTHOR, TWO TICKETS LATER (2026-09-03).** A
+branch was verified `CLEAN BASE` against `origin/main`, work was
+committed, and a `git fetch` run in between — to resolve an unrelated
+squash SHA — **moved `origin/main` by one commit.** The earlier CLEAN
+BASE reading was true when taken and false when relied on. Caught by
+re-running the check after the fetch rather than trusting the reading
+from minutes before; the branch was one commit behind, which is #249's
+exact conflict shape.
+
+**The generalisation, and it is narrower and more useful than "things go
+stale":** *a verification is invalidated by any command that could change
+what it measured, including a command you ran for an unrelated reason.*
+A fetch is not a read-only operation with respect to a base check. So the
+base check belongs immediately before the push, not immediately after the
+checkout, and re-running it costs one line.
 
 ---
 
@@ -2329,6 +2396,37 @@ outright on a parse error. All three probed by committing them.
 **Statement.** A shape recognised, named, documented and reasoned about
 in the morning is fully available to recur in the afternoon, in the code
 written to prevent it, by the person who wrote it down.
+
+**THE SHARPEST INSTANCE SO FAR IS SIXTY MINUTES (ENGINE1, 2026-09-03).**
+This section's examples were previously separated by a day. This one was
+separated by about an hour, and the recurrence was of a rule its author
+had just finished writing into a test file.
+
+`test_only_bcrypt_key_hashing_remains` had an exemption deleted for being
+**inert** — a `.replace()` suppressing nothing, which teaches the next
+reader that a conflict exists where none does. The deletion carried a
+docstring explaining exactly that.
+
+Within the hour, the trust page shipped with **nine
+`banned-claims: allow` comments, four of which excused nothing.** Found
+only by probing: strip them all, and six violations appear rather than
+nine. The four inert ones were removed and are now **named individually
+in the file**, because dropping them silently would leave the next reader
+unable to tell a considered exemption from a decorative one.
+
+**What this instance adds.** The gap between writing a lesson and
+violating it is not measured in the time a person needs to forget — the
+author had not forgotten, and could have recited the rule. **The lesson
+was available and simply not consulted**, because writing an allow
+comment beside a denial felt like the same act as writing the denial. A
+rule fails to transfer not when memory decays but when the new situation
+does not present itself as an instance of the old one.
+
+**Which is the argument for the probe rather than for care.** Stripping
+the annotations took one command. No amount of attentiveness would have
+distinguished the four inert allows from the five real ones by reading,
+because they are identical in form and the difference lives in a gate's
+behaviour rather than in the text.
 
 **THE MECHANISM, FINALLY BUILT (2026-08-24) — and its limits stated.**
 Twice in one session `git add docs/…` was run from `backend/`. It errors,
