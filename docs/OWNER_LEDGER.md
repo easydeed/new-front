@@ -2073,6 +2073,19 @@ entry nobody checks a new feature against.
     developers, confirmation or trust document exists anywhere under
     `docs/`. Checked, not assumed.
 
+    **CAUSE FOUND (owner, 2026-08-27): they were committed to a
+    `design-ref` branch that was never pushed.** Verified against the
+    REMOTE rather than the local tree — `git ls-remote --heads origin`
+    carries no `design-ref`, and the four design branches that ARE
+    pushed (`claude/dash3-design-input`, `claude/deeddetail-design`,
+    `claude/f6-v0-design`, `v0/design-drop`) carry none of the four
+    files either. **UNBLOCKS WHEN THE OWNER PUSHES `design-ref`.**
+
+    Worth its own line: a mockup that exists only on an unpushed branch
+    is indistinguishable, from every other machine, from a mockup that
+    was never made — and the ticket that depends on it reads as a
+    reasonable instruction right up until somebody looks.
+
   ═══ NOT BUILT, NOT BLOCKED — awaiting sequencing ═══
 
   · **KEEP, corrected:** Wyoming and Glendora not Delaware (already true
