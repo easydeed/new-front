@@ -241,16 +241,44 @@ describe('placement — footer only during the design-partner phase', () => {
     expect(footer).toContain('href="/developers"');
   });
 
-  it('the homepage body does NOT — footer is the only entry point', () => {
-    // The integrations section carried a prominent "View API Docs"
-    // button. While keys are issued manually, a link into docs you
-    // cannot self-serve a key from is a dead-end funnel.
-    // Comments explaining the removal necessarily name the thing
-    // removed, so read what renders, not what the file contains.
+  it('the homepage body links it from the PLATFORM DOOR — DX0 reversed by ENGINE2', () => {
+    /**
+     * ═══ A RULING REVERSED, AND THE REVERSAL RECORDED ═══
+     *
+     * THIS PIN USED TO ASSERT THE OPPOSITE, and it is kept rewritten
+     * rather than deleted (§14.12: a removed rule must read as an
+     * answer, not as an absence somebody can mistake for an oversight).
+     *
+     * DX0 ruled footer-only, for a good reason: the integrations section
+     * carried a prominent "View API Docs" button, and *while keys are
+     * issued manually, a link into docs you cannot self-serve a key
+     * from is a dead-end funnel.*
+     *
+     * ENGINE2 ruling 6 reverses it: *link /trust and /developers from
+     * the platform door, not the footer.*
+     *
+     * **THE OLD RULE'S PREMISE IS STILL TRUE — keys are still issued by
+     * hand.** What changed is not the funnel, it is who the page is
+     * for: ENGINE2 makes the API the business, and an evaluator who
+     * bounces never reaches a footer. A link they meet only after
+     * deciding is not an entry point.
+     *
+     * And the dead end is answered structurally rather than waved off:
+     * the docs link sits BESIDE the platform door's primary CTA, which
+     * is the key request itself. The funnel it once dead-ended into is
+     * now the thing next to it.
+     */
     const body = withoutComments(homepage.slice(0, homepage.indexOf('<footer')));
-    expect(body).not.toContain('/developers');
+    expect(body).toContain('/developers');
+    expect(body).toContain('/trust');
+    expect(body).toContain('/api-key-request');
+
+    /* Still refused: the label DX0 removed. The reversal is about
+       WHERE an integrator finds the docs, not about reinstating a
+       button that promised self-service. */
     expect(body).not.toMatch(/View API Docs/i);
-    // ...but the integrations prose itself stays.
+
+    /* ...and the integrations prose itself stays. */
     expect(body).toMatch(/SoftPro, Qualia/);
   });
 
