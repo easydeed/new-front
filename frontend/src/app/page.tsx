@@ -139,7 +139,14 @@ export default function LandingPage() {
           <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-12">
               {[
-                { icon: Clock, label: "Recorder-ready deed", value: "~9 clicks", color: "text-[#7C4DFF]" },
+                /* ENGINE1 — "~9 clicks" CUT, not rebranded. Nobody
+                   instrumented the builder, so the number described
+                   nothing; and a count a buyer can verify by counting is
+                   the worst kind to invent. The slot is filled by a fact
+                   the code can answer instead of an estimate nobody
+                   measured — the same move HOME2 made two rows down when
+                   it replaced a hardcoded 5 with INSTRUMENT_COUNT. */
+                { icon: Clock, label: "Deed types on the partner API", value: String(API_DEED_TYPES.length), color: "text-[#7C4DFF]" },
                 { icon: Check, label: "Fields confirmed by your officer", value: "Every one", color: "text-[#4F76F6]" },
                 { icon: Shield, label: "Hash-stamped, immutable PDFs", value: "SHA-256", color: "text-[#7C4DFF]" },
                 /* HOME2 — was 5, while the catalog section three screens down
@@ -1003,7 +1010,12 @@ Content-Type: application/json
                 },
                 {
                   q: "How long does generation take?",
-                  a: "Once your officer confirms the fields, the PDF renders in seconds — a full deed is typically ~9 clicks end to end.",
+                  /* ENGINE1 — the "~9 clicks" tail is CUT. Rendering time
+                     is a fact about our own pipeline and stays; how many
+                     clicks a deed takes was never measured, and it varies
+                     by instrument, by how much the county record fills in,
+                     and by how much the officer changes. */
+                  a: "Once your officer confirms the fields, the PDF renders in seconds.",
                 },
                 {
                   q: "Can I save partial work?",

@@ -2019,6 +2019,96 @@ entry nobody checks a new feature against.
 
 ## Parked tickets (scoped, not scheduled)
 
+- **ENGINE1 — reposition the public pages for the integrator.**
+  **DECIDED** 2026-08-27, owner-ruled. **BUILT** — partially; the
+  enforceable half only. See the split below.
+
+  **PROVENANCE (§14.17): the ruling list below is REPORTED, not
+  repository-verified.** It arrived as ticket text. What has been checked
+  against the tree is marked as such; everything else is recorded in the
+  owner's voice because that is what it is.
+
+  **Governing rule:** the trust page's honesty gradient — *"including the
+  parts that are not finished"* — applies to all four pages. **Bracket a
+  gap visibly or cut the section. No future tense written as present.**
+
+  ═══ BUILT ═══
+
+  · **The CUT list is now ENFORCED rather than remembered.** Measured
+    first: the 23 CUT items were run through `check_banned_claims.py`
+    and **22 of 23 passed cleanly** — only "SOC 2" was caught. Every
+    other claim an integrator buys on (a status page, an SLA, insurance,
+    data residency, an SDK) walked through a gate whose entire subject
+    is claims we cannot honour. **13 rules added**, 14 → 28.
+  · **A defect in an existing rule, found the same way.** The uptime
+    pattern was `99(?:\.9+)?` — decimals had to be NINES — so
+    **"99.95% uptime" walked straight through**: `99.9` matched and then
+    `\s*%` could not consume the `5`. Now `\.\d+`. That rule's own
+    comment describes this failure mode and the fix repeated it one
+    character deeper.
+  · **`~9 clicks` cut**, the only CUT item that was live. Two sites on
+    the homepage. The stat slot now reads `API_DEED_TYPES.length` — a
+    value the code can answer, which also puts the app/API distinction on
+    the homepage.
+  · **Two false positives verified and NOT cut**, both of which a naive
+    rule would have broken: `Delaware` appears in `vestingSplit.ts` as
+    RECORDED VESTING LANGUAGE (`A DELAWARE LIMITED LIABILITY COMPANY`) —
+    somebody else's text on an instrument; and `webhook` appears in
+    `billingPortal.ts` as Stripe's INBOUND hook and on the homepage in
+    *"there is no client, no webhook, no stub"* — copy DENYING the
+    feature. The new rules are scoped so both pass.
+  · **A superseded pin rewritten, not deleted** (§14.12):
+    `homepageTruth.test.ts` had a test named *"the stats bar states what
+    is true and specific"* whose first assertion pinned **`~9 clicks`**.
+    **The name asserted the property; the body pinned an invention.**
+
+  ═══ NOT BUILT, AND BLOCKED ═══
+
+  · **The positive design of the four pages.** The ticket says build
+    against `docs/design/` (homepage, developers, confirmation, trust).
+    **Those four artifacts are not in this repository.** `docs/design/`
+    contains `dashboard_v2.html`, `dashboard_day_one.html`,
+    `dashboard_steady_state.html`, `dashboard-soften/` and
+    `email_signing_request.html` — nothing else, and no homepage,
+    developers, confirmation or trust document exists anywhere under
+    `docs/`. Checked, not assumed.
+
+  ═══ NOT BUILT, NOT BLOCKED — awaiting sequencing ═══
+
+  · **KEEP, corrected:** Wyoming and Glendora not Delaware (already true
+    since ENTITY1; the new rule guards the regression) · the ENTITY1
+    eight subprocessors named rather than `[N]: [hosting], [database],
+    [email]` · drafts expire in **7 days, not 30** · DPA bracketed as
+    drafted-pending-counsel.
+  · **Contract vocabulary is the SHIPPED one:** `pending_confirmation`,
+    `urls.confirmation`, `approver`, `status: "completed"`,
+    `POST /api/v1/deeds` on the current host. Copying the mockup's names
+    documents a contract the API does not serve — the split-brain
+    reversed.
+  · **State the app/API distinction rather than blurring it.** *"No path,
+    app or API, without a named person"* is true of the API since #263,
+    and in the app it is the SESSION rather than a confirmation record.
+    **That sentence is the page's central claim and cannot be the
+    imprecise thing on it.**
+  · **`draft_sha256` on the hosted path**, client hashes the bytes it
+    displayed, mismatch returns 409. Docs must say precisely what it
+    proves: **it binds the name to those bytes and shows the browser
+    fetched them; it does NOT prove a human read them.** Partner
+    `POST /deeds/:id/confirm` held for a first integrator.
+  · **The auditor artifact** — draft hash, PDF hash, confirmed_by, role,
+    timestamp, declarations. Per-key export stays cut.
+  · **`reviewer.license` optional**, recorded when present, **never
+    required and never displayed as verification** — we would not verify
+    it, a required-but-unverified field is stronger-looking provenance a
+    vendor review will ask about, and "license" is not one thing across
+    escrow, title, bar and notary.
+
+  **What a reader who believes this entry should still ask:** the four
+  pages are unchanged apart from the two `~9 clicks` edits. The CUT list
+  is enforced against FUTURE copy — it does not mean the pages have been
+  rewritten, and the gate cannot tell you whether a page says something
+  true, only that it does not say one of 28 specific false things.
+
 - **TSC-PARSE — the tsc baseline has no parse-error floor, and eslint's
   is what caught it.**
   **DECIDED** 2026-08-26, owner-ruled — this gets its own ticket.
