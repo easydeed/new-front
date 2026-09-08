@@ -5,8 +5,9 @@
 values ever appear in this file — item names and status only.
 
 _Last corrected: 2026-09-08 (ENGINE lane CLOSED — ENGINE2 merged as
-#272. The three unconsumed mockups ruled closed rather than pending:
-the evidence points against re-reading them, §14.30).
+#272, the mockup ruling and two stale fields as #273. §14.33 added and
+adopted here as the THIRD CONVENTION: the sweep trigger is a MERGE, not
+an interval).
 Previously 2026-09-03 (ENGINE2 — the homepage rebuilt for the
 integrator; §14.32 added; DX0's footer-only ruling reversed;
 `design-ref` pushed, unblocking ENGINE1's design dependency).
@@ -97,6 +98,55 @@ appropriate humility has expressed a mood.
 **This applies to every entry, not to the one that occasioned it.** Any
 caveat already in this file is a candidate for conversion, and new
 entries carry the mechanism form.
+
+## THE THIRD CONVENTION: the sweep trigger is a MERGE, not an interval
+
+**Adopted 2026-09-08, owner-ruled**, and it narrows a trigger this file
+had already recorded twice as unsatisfiable.
+
+**THE EVIDENCE IS THREE CONSECUTIVE MERGES.** Each falsified a field in
+this ledger, and **every one of those fields was true when it was
+written:**
+
+| field | true when written | falsified by |
+|---|---|---|
+| ENGINE1's blocked-section — *"those four artifacts are not in this repository"* | yes, for a week | the owner pushing `design-ref` |
+| ENGINE1's `BUILT` — *"the page COPY is not built and is blocked"* | yes | #272 building it |
+| ENGINE2's `BUILT` — a bare date, no PR | yes | its own PR existing |
+
+**NONE OF THEM DECAYED.** Decay implies a record drifting out of true as
+the world moves on around it. These were **falsified by the very event
+that made them worth reading** — a record about a blocker, retired by
+the blocker clearing; a record about unbuilt work, retired by the build.
+The moment the entry becomes interesting is the moment it becomes wrong.
+
+**And no gate caught any of them, because no gate can.** The falsifying
+act is a MERGE and the record is PROSE. There is nothing for a check to
+compare. The only thing that worked, three times, was going to look
+immediately.
+
+**SO THE TRIGGER IS NOT PERIODIC.** This file previously recorded that a
+cross-reference went stale *within an hour*, same author, same session —
+proving no interval is short enough. Three-merges-in-a-row shows the
+sharper thing: the staleness is not distributed in time at all, it is
+**concentrated at merges.**
+
+> **The entries most likely to be false at any given moment are the ones
+> describing the ticket a merge just closed.**
+
+That is narrower and far more actionable than "sweep at wave
+boundaries", because it names *which* entries and *when*: the ones the
+merge just spoke about, in the commit that causes it.
+
+**The practice:** when a merge closes a ticket, re-read that ticket's
+entry and every entry it cross-references, and fix what the merge made
+false **in the same change** — never on a later pass. A sweep scheduled
+for later is a sweep that reads an entry nobody now remembers writing.
+
+**`BUILT — n/a` is the form for a ruling whose content is that no work
+follows.** Recording a decision NOT to act is necessary precisely
+because **its absence is indistinguishable from nobody having reached
+it** — the same argument as the first convention, applied to a negative.
 
 ## The queue — RED0 remediation, as ruled
 
@@ -2148,8 +2198,14 @@ entry nobody checks a new feature against.
     `trust.html` remain in `docs/design/` on `design-ref`, unconsumed,
     and **they are not to be re-read against the shipped pages.**
 
-    **DECIDED** 2026-09-08 — do not re-read them. **BUILT** — n/a; the
-    ruling is that no work follows.
+    **DECIDED** 2026-09-08, #273 — do not re-read them. **BUILT** —
+    n/a; the ruling is that no work follows.
+
+    *(The PR number was added by the first application of the third
+    convention, one merge after a bare date on a `BUILT` field was
+    fixed for being the same omission. The convention caught its own
+    shape immediately, which is the argument for an event trigger over
+    an interval.)*
 
     The evidence points AGAINST it rather than merely failing to
     support it. ENGINE1 measured all three: `/developers` and
