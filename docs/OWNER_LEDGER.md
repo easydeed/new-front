@@ -4,7 +4,10 @@
 (not only in chat) so the list survives context windows. No credential
 values ever appear in this file — item names and status only.
 
-_Last corrected: 2026-08-27 (API-CONFIRM #263; approved ≠ merged,
+_Last corrected: 2026-09-03 (ENGINE1 lane CLOSED — the confirm-path
+remainder merged as #270; §14.31 added for the three artifact-shape
+rulings; §14.7 records its own definition demonstrating itself).
+Previously 2026-08-27 (API-CONFIRM #263; approved ≠ merged,
 third instance).
 Previously 2026-08-27 (ENTITY1 merged #264; Terms-vs-env entity pin).
 Previously 2026-08-27 (DX-BRUTAL's dead-control finding and the
@@ -2021,7 +2024,9 @@ entry nobody checks a new feature against.
 
 - **ENGINE1 — reposition the public pages for the integrator.**
   **DECIDED** 2026-08-27, owner-ruled. **BUILT** — partially; the
-  enforceable half only. See the split below.
+  enforceable half (#267), the trust centre (#268) and the confirm-path
+  remainder (#270). **The page COPY is not built and is blocked** on an
+  unpushed branch. See the split below.
 
   **PROVENANCE (§14.17): the ruling list below is REPORTED, not
   repository-verified.** It arrived as ticket text. What has been checked
@@ -2140,18 +2145,55 @@ entry nobody checks a new feature against.
     and in the app it is the SESSION rather than a confirmation record.
     **That sentence is the page's central claim and cannot be the
     imprecise thing on it.**
-  · **`draft_sha256` on the hosted path**, client hashes the bytes it
-    displayed, mismatch returns 409. Docs must say precisely what it
-    proves: **it binds the name to those bytes and shows the browser
-    fetched them; it does NOT prove a human read them.** Partner
-    `POST /deeds/:id/confirm` held for a first integrator.
-  · **The auditor artifact** — draft hash, PDF hash, confirmed_by, role,
-    timestamp, declarations. Per-key export stays cut.
+  ═══ THE REMAINDER — BUILT (2026-09-03, #270) ═══
+
+  `routers/api_confirm.py`, `services/api_confirm.py`, `database.py`,
+  `tests/test_engine1_confirm_artifact.py` (12 pins).
+
+  · **`draft_sha256` on the hosted path.** The client sends the SHA-256
+    it computed over the bytes it displayed; the server hashes the
+    preview bytes and **compares BEFORE the promotion**, so a mismatch is
+    `409 DRAFT_MISMATCH` leaving the draft *pending* rather than storing
+    bytes the approver never saw. **Order is pinned, not presence** —
+    comparing after the `UPDATE` would store the wrong bytes and then
+    complain about it. Optional deliberately: the hosted page is not the
+    only possible client.
+
+    **And the claim is bounded in the docstring, pinned AT THE
+    DISCLAIMER rather than at the feature** — the feature survives any
+    edit; the disclaimer is what gets trimmed when somebody shortens a
+    docstring. *It binds the name to those bytes and shows the browser
+    fetched them. It does NOT prove a human read them.*
+
+  · **The auditor artifact** — `GET /confirm/{token}/artifact`, declared
+    by exact key-set equality, refusing to exist before approval rather
+    than returning a null skeleton. Four declarations ride inside it,
+    **two of them negative on purpose**. See §14.31 for the three shape
+    rulings this produced:
+
+      · **ONE hash, named as one.** The mockup's two rows read as two
+        independent facts agreeing; **they cannot disagree**, because
+        approve promotes the preview bytes rather than re-rendering.
+        Both fields kept — the second records what was COMPARED — but
+        the file states they are one fact, or the layout goes on
+        claiming a cross-check nothing performs.
+      · **`pdf_sha256` is RECOMPUTED from the stored bytes at read
+        time**, never echoed from the column. That is the difference
+        between a record and a receipt: only a recomputation can come
+        out wrong, and a field that cannot come out wrong carries no
+        information while looking exactly like one that can.
+      · **`license_claimed`, never `license`** — the ruling lives in the
+        key name because **the key travels with the value and the caveat
+        does not.**
+
   · **`reviewer.license` optional**, recorded when present, **never
-    required and never displayed as verification** — we would not verify
-    it, a required-but-unverified field is stronger-looking provenance a
-    vendor review will ask about, and "license" is not one thing across
-    escrow, title, bar and notary.
+    displayed as verification.** We would not verify it; a
+    required-but-unverified field is stronger-looking provenance a vendor
+    review will ask about, and "license" is not one thing across escrow,
+    title, bar and notary.
+
+  **Still held by ruling:** partner `POST /deeds/:id/confirm` (awaiting a
+  first integrator) and per-key export.
 
   **What a reader who believes this entry should still ask:** the four
   pages are unchanged apart from the two `~9 clicks` edits. The CUT list

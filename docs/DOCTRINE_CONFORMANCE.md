@@ -1722,6 +1722,94 @@ separate discipline to sustain.
 
 ---
 
+### §14.31 — An evidence artifact's SHAPE is a claim, and the reader believes the shape before reading the fields (2026-09-03, owner-ruled)
+
+**Statement.** A record built to be read by an auditor asserts things
+through its **layout, its field names and its redundancy** that none of
+its values assert. Those assertions are never reviewed, because review
+attends to whether each field is TRUE and the shape is not a field.
+**Three of them were ruled in ENGINE1, and each one makes the artifact
+look like stronger evidence than it is** — which is the only failure
+direction that matters here, since an artifact exists to bound a claim.
+
+---
+
+**1. TWO NUMBERS THAT CANNOT DISAGREE ARE NOT CORROBORATION, AND
+PRESENTING THEM SIDE BY SIDE SAYS THEY ARE.**
+
+The mockup gave the auditor artifact a draft hash and a stored-PDF hash
+as separate rows. Both values would always be correct. **They also
+cannot differ**: approve *promotes* the preview bytes rather than
+re-rendering them, so the bytes the approver saw and the bytes we store
+are the same object.
+
+Two rows showing one number read as two independent measurements
+agreeing — and **agreement is what a reader converts into confidence.**
+The artifact would have been quietly claiming a cross-check it never
+performs. Nothing in it would be false.
+
+**The ruling is not "delete the second field".** It is kept, because it
+records what was actually COMPARED at approval time, and an auditor
+deserves to *see* that it matches rather than be told it does. The
+ruling is that **the file has to say they are one fact**, in the module
+and in the endpoint, or the layout goes on making the claim:
+
+> `pdf_sha256` and `sha256_recorded_at_approval` are **two names for one
+> fact** … they cannot disagree.
+
+**An artifact that appears to cross-check itself is worse than one that
+does not**, because the reader takes the agreement as evidence and stops
+looking for the check that would have produced it.
+
+---
+
+**2. RECOMPUTING IS THE DIFFERENCE BETWEEN A RECORD AND A RECEIPT.**
+
+`pdf_sha256` is hashed **from the stored bytes at read time**, not read
+back from the column written at approval. Echoing the column would have
+produced an identical-looking artifact — same key, same hex, same length
+— that **asserts nothing about the bytes we currently hold.** It would
+be the artifact quoting itself.
+
+Recomputing makes the two fields' agreement *capable of failing*, which
+is the whole of what makes their agreement worth printing: a divergence
+now means something replaced the bytes after approval. **A field that
+cannot come out wrong carries no information, and looks exactly like one
+that can.**
+
+General form, past hashes: when a record reports a derived value, ask
+whether it is DERIVED at read time or TRANSCRIBED from when it was
+derived. A transcription is a receipt — evidence that the computation
+once happened. Only a recomputation is evidence about the present state.
+
+---
+
+**3. THE KEY NAME CARRIES THE RULING, BECAUSE THE KEY IS WHAT SURVIVES.**
+
+`license_claimed`, **never `license`**. A bare `license` key reads as a
+verified fact, and **the difference between "recorded" and "verified" is
+the entire thing an auditor is here to establish.** We do not verify
+licences — not for escrow, title, bar or notary — and the declarations
+inside the artifact say so.
+
+But declarations get summarised, quoted into a vendor questionnaire, and
+rendered by an integrator who kept the field names and dropped the prose.
+**The key name travels with the value; the caveat does not.** Naming the
+field for what it is puts the ruling in the one part of the artifact that
+cannot be lost in transit — the same reason the field stays OPTIONAL: a
+required-but-unverified field is stronger-looking provenance than we have.
+
+---
+
+**Why these three are one section.** Each is a place where the artifact's
+*form* — redundancy, derivation, naming — was doing work its *content*
+did not authorise. None of them would have been caught by checking that
+every value is correct, and all three were correct. **The reviewable
+question is not "is each field true" but "what would a reader conclude
+from the arrangement, and is that also true".**
+
+---
+
 ### §14.30 — A remediation ticket written from an aspirational artifact prescribes fixes for defects that do not exist (2026-09-03, owner-ruled)
 
 **Statement.** When a ticket's scope is drawn from a design document
@@ -2454,6 +2542,32 @@ the annotations took one command. No amount of attentiveness would have
 distinguished the four inert allows from the five real ones by reading,
 because they are identical in form and the difference lives in a gate's
 behaviour rather than in the text.
+
+**AND THE SECTION DEMONSTRATED ITS OWN DEFINITION IN THE SESSION THAT
+WROTE THE DEFINITION (ENGINE1 remainder, 2026-09-03, owner-ruled).**
+
+While building the ticket whose docs change was this redefinition,
+`git checkout backend/services/api_confirm.py` was run to undo a mutation
+probe. It also discarded that file's **uncommitted ENGINE1 additions** —
+§14.5's second version-control habitat, recorded on 2026-08-21, with the
+mechanical form already written down: *stash a probe or copy the file
+aside, never revert a path edited this session.* Caught by the suite
+failing on a missing import, and re-applied.
+
+**Recorded as EVIDENCE THAT THIS SECTION IS CORRECT, not as a lapse
+needing an apology.** The rule was not absent. It was recitable, it was
+in this file, and its author was at that moment editing the section
+about rules being recitable and unconsulted. What failed was recognition:
+*undoing a probe* did not present itself as *reverting a path edited this
+session*, because the probe was the only thing in mind and the file's
+other contents were not part of the act being performed.
+
+**Which is the argument again, and it is now made by the section's own
+instance.** A reminder here would have been read by the person who wrote
+it, minutes before. The available remedies are mechanical — stash rather
+than checkout, or copy aside — and the reason they work is that they do
+not require the situation to be classified correctly at the moment it
+occurs.
 
 **THE MECHANISM, FINALLY BUILT (2026-08-24) — and its limits stated.**
 Twice in one session `git add docs/…` was run from `backend/`. It errors,
@@ -3202,6 +3316,7 @@ on.
 
 | Date | Change |
 |---|---|
+| 2026-09-03 | ENGINE1 lane closed (#270 merged). §14.31 added (owner-ruled) — AN EVIDENCE ARTIFACT'S SHAPE IS A CLAIM, AND THE READER BELIEVES THE SHAPE BEFORE READING THE FIELDS. A record built for an auditor asserts things through its layout, its field names and its redundancy that none of its values assert, and those assertions are never reviewed because review attends to whether each field is TRUE and the shape is not a field. Three rulings, each of which made the artifact look like stronger evidence than it is — the only failure direction that matters for an object whose purpose is to BOUND a claim. (1) TWO NUMBERS THAT CANNOT DISAGREE ARE NOT CORROBORATION, AND PRESENTING THEM SIDE BY SIDE SAYS THEY ARE: the mockup gave the artifact a draft hash and a stored-PDF hash as separate rows, both always correct and incapable of differing, because approve PROMOTES the preview bytes rather than re-rendering them, so the bytes seen and the bytes stored are the same object — two rows showing one number read as two independent measurements agreeing, and agreement is what a reader converts into confidence, so the artifact would have been quietly claiming a cross-check it never performs with nothing in it false. The ruling is NOT to delete the second field: it records what was actually COMPARED at approval and an auditor deserves to SEE it match rather than be told it does, so the ruling is that the module and the endpoint must SAY they are one fact, or the layout goes on making the claim. An artifact that appears to cross-check itself is worse than one that does not, because the reader takes the agreement as evidence and stops looking for the check that would have produced it. (2) RECOMPUTING IS THE DIFFERENCE BETWEEN A RECORD AND A RECEIPT: `pdf_sha256` is hashed from the STORED BYTES AT READ TIME rather than read back from the column written at approval; echoing the column would have produced an identical-looking artifact — same key, same hex, same length — asserting nothing about the bytes we currently hold, the artifact quoting itself. Recomputing makes the two fields' agreement CAPABLE OF FAILING, which is the whole of what makes it worth printing, since a divergence now means something replaced the bytes after approval. General form past hashes: when a record reports a derived value, ask whether it is DERIVED at read time or TRANSCRIBED from when it was derived — a transcription is evidence that a computation once happened; only a recomputation is evidence about the present state. (3) THE KEY NAME CARRIES THE RULING BECAUSE THE KEY IS WHAT SURVIVES: `license_claimed`, never `license`, since a bare `license` key reads as a verified fact and the difference between "recorded" and "verified" is the entire thing an auditor is here to establish — and while the artifact's declarations say we do not verify licences, declarations get summarised, quoted into a questionnaire, and rendered by an integrator who kept the field names and dropped the prose. The key name travels with the value; the caveat does not. Same reason the field stays OPTIONAL: a required-but-unverified field is stronger-looking provenance than we have. Why one section: each is a place where the artifact's FORM — redundancy, derivation, naming — was doing work its CONTENT did not authorise, none would have been caught by checking that every value is correct, and all three values were correct. The reviewable question is not "is each field true" but "what would a reader conclude from the arrangement, and is that also true". §14.7 gains its own definition demonstrating itself IN THE SESSION THAT WROTE THE DEFINITION: while building the ticket whose docs change WAS the recognition-failure redefinition, `git checkout backend/services/api_confirm.py` was run to undo a mutation probe and also discarded that file's uncommitted ENGINE1 additions — §14.5's second version-control habitat, recorded 2026-08-21 with the mechanical form already written down (stash a probe or copy the file aside, never revert a path edited this session), caught by the suite failing on a missing import and re-applied. RECORDED AS EVIDENCE THE SECTION IS CORRECT RATHER THAN AS A LAPSE NEEDING AN APOLOGY: the rule was not absent, it was recitable, it was in this file, and its author was at that moment editing the section about rules being recitable and unconsulted — what failed was recognition, because "undoing a probe" did not present itself as "reverting a path edited this session" when the probe was the only thing in mind. A reminder would have been read by the person who wrote it minutes before; the available remedies are mechanical precisely because they do not require the situation to be classified correctly at the moment it occurs. |
 | 2026-08-26 | PCOR-WIZ step 1. §14.24 added — an allowlist of FOREIGN STRINGS cannot be verified by reading. The officer-only allowlist holds 57 AcroForm field names copied from a county PDF, and two of them contain characters invisible in an editor: item A's `yes` box carries U+00AD SOFT HYPHEN and item J's `no` box carries U+2011 NON-BREAKING HYPHEN, both rendering as ordinary hyphens. A hand-typed list would carry two entries matching no field on the form, and NOTHING ABOUT THE FILE WOULD SAY SO — still 57 entries, still correctly spelled to the eye, still passing a careful review — while a name that matches nothing protects nothing and those two fields flow to a consumer on a form signed under penalty of perjury. Every check a human can perform passes while the list is wrong. The remedy is TWO things and one alone is insufficient: generate the literals from the source artifact (emitted ASCII-escaped so the invisible characters are visible AS escapes), and pin that every entry EXISTS in the reference, because generation can still drift through a later hand-edit, a merge, or a paste through a normalising editor. Probed by replacing the soft hyphen with an ordinary one: four pins fail, and without the existence pin none would. General form: any list whose members must match an external artifact byte-for-byte — form field names, API enum values, filenames, protocol constants — is in this class, and the test is *could I tell by looking?* If not it needs an existence assertion against the source rather than a careful reviewer. §14.25 added (owner-ruled) — THE ENUMERATION IS THE MECHANISM, THE PATTERN IS THE SMOKE DETECTOR. A heuristic too weak to DECIDE can still be strong enough to POINT, and keeping a rejected classifier as an alarm is not a hedge: the two have different failure modes and only one is silent. A wrong classifier produces a silent wrong answer (field misfiled, code runs, counts right); a wrong pointer produces a false alarm and somebody looks. PCOR-WIZ's ruling forbids classifying the PCOR's fields by letter prefix, so the officer-only set is enumerated — and the rejected prefix pattern was kept anyway as a test asserting nothing shaped like a Part 1 exclusion appears in the buyer's set. It fired on its FIRST RUN, flagging a 57th field the enumeration had missed: item J's "if yes, please explain" free text, which carries no letter AND a county typo ("recorded only a requirement", with "as" dropped) and had therefore survived a careful manual pass over all 177 widgets by someone who knew exactly what they were looking for. Why it works rather than luck: the two approaches fail on DIFFERENT inputs — the enumeration on fields a human overlooked, the pattern on fields whose wording is unusual — so a field must evade both, and the ways of evading them are uncorrelated. The rule: when a heuristic is rejected as a decision procedure, consider retaining it as an assertion, and SAY IN THE FILE that it is not the mechanism so no later reader promotes it back. Also from this ticket: the pronoun sweep caught `Q. Other. his transfer is to` — the COUNTY's typo, with the T dropped from "This" — and the exemption's own meta-pin then failed because it demanded "§" or "Civil Code", which are two SPELLINGS of the property it means (prescribed by an outside authority). A county AcroForm is that as firmly as Civil Code §1189 is, so the check was widened to the property rather than special-cased to the file; "a reason citing nothing still fails" keeps it a NARROWING in effect, demanding the same thing in more spellings rather than fewer things. The shape "a gate rejected my change so I changed the gate" was flagged for scrutiny before it was made, and the test applied was whether the widening moves toward the property or away from it. |
 | 2026-08-26 | DEED-POLISH. §14.20 added (owner-ruled) — a gate that knows where to look cannot measure findability, and "BUILT" is not a claim about the user's experience. The owner reported that escrow and title-order numbers had no way onto a deed; they had every way — inputs, builder state, `deedPayload`, the generate proxy, `DeedCreate`, the `extras` bucket, `metadata` JSONB, `build_context_from_row`, TWENTY-FOUR templates, and the preview. 1444 backend assertions and 1172 frontend assertions all disagreed with the officer AND THE OFFICER WAS RIGHT: "it isn't there" was a correct description of the product. The fields sat last in a collapsed accordion section below a `border-t` divider, and the section's summary line read one field of the five it held, so filling the requester made the section read as ANSWERED. Why no audit of ours could catch it: every control is handed the location of the thing it verifies — that is what makes it a pin rather than a search — and findability is precisely the property whose location is not known in advance. Not a coverage gap closable by more pins of the same kind. The cost is silent by construction: a real officer concludes the feature is absent, works around it, and never reports it, because there is nothing to report about something that does not exist; this one surfaced only because the person who could not find it also owned the backlog. The usable substitutes are structural rather than gates — a section summary reports EVERY populated field it holds rather than the first, and a container that clips must not clip the fields the summary exists to surface. §14.21 added — a discriminator is sound against the shapes that exist when it is written. `deedResume` read `typeof meta.return_to === 'object'` to mean "grantee", sound only while the requester branch sent a bare string; DEED-POLISH #1 gave that branch an address, so every resumed requester draft would have flipped to "Grantee" — changing where a recorded deed is MAILED, with no error and no visible difference, passing every gate. Replaced by testing for the `city` KEY, which only the grantee branch carries and carries even when empty (presence, not truthiness), correct for all four shapes including rows already stored that a frontend edit cannot migrate. And the cross-file dependency is now DECLARED: the inference requires the requester branch never to grow a `city` key — a constraint on `deedPayload.ts` enforced from `deedResume.ts` with no import between them, pinned on the payload side where the breaking edit would happen, because a cross-file invariant nothing states is a trap laid for whoever edits the other file. General form: when a branch gains a field, ask what elsewhere distinguishes the branches — not what breaks, because nothing breaks. Also recorded: §14.4's parse-error gap is REAL and asymmetric between our two frontend gates — a JSX comment in an expression position broke `InputSection.tsx` and the tsc count FELL FROM 83 TO 9, since a file that cannot be parsed stops reporting its errors, satisfying the monotonic-down invariant by breaking the thing it measures in the direction that reads as an improvement; eslint has a parse floor and tsc's baseline does not, and eslint moving the OTHER way (127, over ceiling) is the only reason it was seen — gate diversity did the work, not any single gate. Ticketed. And the DTT city defect was found by a pin written for something else: "bolding changes weight, not content" failed, and what it caught had nothing to do with bolding — the checkbox was gated on `area_type == 'city'` while the city NAME printed unconditionally, and the PREVIEW gated the value while the template did not, so the officer verified a blank city on screen and recorded a city name. Fixed at the state write AND at the template, the latter being the load-bearing half: rows already stored with the contradictory metadata are the ones at risk, created by officers who already made the mistake. |
 | 2026-08-24 | §14.19 added (owner-ruled) — an inconsistency that happens to be LOAD-BEARING is not tidy-able. Promoted out of §14.18, where it was a paragraph, because it generalises past CI entirely: some of what looks like untidiness is doing work nobody assigned it, and the impulse to normalise arrives with no obligation to find out what. The instance was one sentence from being recommended — §14.18's diagnosis ends at an obvious repair (add `claude/**` to `ci.yml`'s push filter so both workflows fire the same way), and that repair would have made `build-and-test` run regardless of mergeability, so a conflicted PR would show SEVEN greens instead of six-and-a-hole. The hole is the entire warning, so seven greens is strictly worse than six; the asymmetry that made the failure visible was an accident, and tidying it would have SPENT the accident, for symmetry. Not an argument for leaving things alone: the inconsistency is still an accident and still nobody's decision, but it is now recorded as load-bearing, which converts an untidiness into a constraint with a reason attached — the available move was never normalise-or-don't, it was write down what it carries so the next person reaching for the tidy fix meets an argument rather than an oddity. The general test, cheap enough to always run: what is currently true ONLY because of this asymmetry? "Nothing" means normalise it; an answer that takes more than a moment to find IS the finding. The danger is that the impulse to normalise feels like diligence and so never presents itself as a decision requiring evidence. Family: §14.9 is a control switched off, §14.18 is a control never asked to run, §14.19 is a control nobody built, running anyway, about to be switched off by tidiness — all three leave the repository looking better afterwards. Also recorded from #250: the PR body published `git checkout -B <branch> origin/main` with the placeholder stripped, angle brackets parsed as an HTML tag in transit, so the record of a mechanism rendered the mechanism as a broken command; the tracked files carried the exact bytes and only the description was damaged, which is §14.11's family (text that moved is not text that was copied until the bytes are compared) and a reminder that the canonical artifact is the file in the repo, not the description wrapped around it. And the §14.18.1 precondition had its first real use on #250: `mergeable_state` read `"unstable"` while two checks were still running — correctly BLOCKING — and `"clean"` once all seven reported. |
