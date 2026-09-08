@@ -4,7 +4,10 @@
 (not only in chat) so the list survives context windows. No credential
 values ever appear in this file — item names and status only.
 
-_Last corrected: 2026-09-03 (ENGINE2 — the homepage rebuilt for the
+_Last corrected: 2026-09-08 (ENGINE lane CLOSED — ENGINE2 merged as
+#272. The three unconsumed mockups ruled closed rather than pending:
+the evidence points against re-reading them, §14.30).
+Previously 2026-09-03 (ENGINE2 — the homepage rebuilt for the
 integrator; §14.32 added; DX0's footer-only ruling reversed;
 `design-ref` pushed, unblocking ENGINE1's design dependency).
 Previously 2026-09-03 (ENGINE1 lane CLOSED — the confirm-path
@@ -2028,8 +2031,9 @@ entry nobody checks a new feature against.
 - **ENGINE1 — reposition the public pages for the integrator.**
   **DECIDED** 2026-08-27, owner-ruled. **BUILT** — partially; the
   enforceable half (#267), the trust centre (#268) and the confirm-path
-  remainder (#270). **The page COPY is not built and is blocked** on an
-  unpushed branch. See the split below.
+  remainder (#270). **The homepage copy followed in ENGINE2 (#272)**,
+  which is where the repositioning this ticket was named for actually
+  happened — see §14.32 and the ENGINE2 entry. See the split below.
 
   **PROVENANCE (§14.17): the ruling list below is REPORTED, not
   repository-verified.** It arrived as ticket text. What has been checked
@@ -2138,11 +2142,32 @@ entry nobody checks a new feature against.
     artifacts were real and the ticket was accurate, which is the
     outcome that check exists to DISTINGUISH rather than to assume.
     **`homepage.html` was consumed by ENGINE2 (see its entry below).**
-    The other three remain available and unconsumed — `/developers`,
-    `/confirm` and `/trust` are all shipped, and ENGINE1 found the
-    shipped pages already more honest than the mockups meant to fix
-    them (§14.30), so re-reading them against a design is a decision
-    rather than a task.
+
+    **THE OTHER THREE ARE RULED CLOSED, NOT PENDING (2026-09-08,
+    owner-ruled).** `developers.html`, `confirmation.html` and
+    `trust.html` remain in `docs/design/` on `design-ref`, unconsumed,
+    and **they are not to be re-read against the shipped pages.**
+
+    **DECIDED** 2026-09-08 — do not re-read them. **BUILT** — n/a; the
+    ruling is that no work follows.
+
+    The evidence points AGAINST it rather than merely failing to
+    support it. ENGINE1 measured all three: `/developers` and
+    `/confirm` **already carried the correct contract vocabulary**
+    (`pending_confirmation`, `completed`) while the mockups carried an
+    invented pair, and `/trust` **was built from a ruling rather than
+    from its design** — its gaps-first structure is the reversal of
+    what the mockup showed. §14.30 applies directly: **the artifacts
+    ran ahead in a direction the product did not take**, so re-reading
+    them invites prescribing fixes for defects that do not exist.
+
+    **Recorded because an available artifact reads as a pending task.**
+    An unconsumed file sitting beside three consumed ones is an open
+    loop to every future reader, and the absence of a ruling is
+    indistinguishable from nobody having got to it yet. This is the
+    ledger's own convention applied to a NEGATIVE: *"BUILT — no" is
+    never expressed by leaving the field out*, and a decision not to
+    act is exactly as much a decision as a decision to act.
 
     Worth its own line: a mockup that exists only on an unpushed branch
     is indistinguishable, from every other machine, from a mockup that
@@ -2223,9 +2248,10 @@ entry nobody checks a new feature against.
   true, only that it does not say one of 28 specific false things.
 
 - **ENGINE2 — the homepage rebuilt for the integrator.**
-  **DECIDED** 2026-09-03, owner-ruled. **BUILT** — yes, 2026-09-03,
+  **DECIDED** 2026-09-03, owner-ruled. **BUILT** — yes, #272,
   `frontend/src/app/page.tsx`, `frontend/src/__tests__/engine2Homepage.test.ts`
   (28 pins), `backend/tests/test_engine2_homepage_claim.py` (7 pins).
+  **This closes the ENGINE lane.**
 
   **THE SCOPING ERROR THIS TICKET EXISTS TO CORRECT, in the owner's
   words:** *"you asked for repositioning and I ruled on the half that
