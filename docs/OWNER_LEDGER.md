@@ -4,7 +4,10 @@
 (not only in chat) so the list survives context windows. No credential
 values ever appear in this file — item names and status only.
 
-_Last corrected: 2026-09-03 (ENGINE1 lane CLOSED — the confirm-path
+_Last corrected: 2026-09-03 (ENGINE2 — the homepage rebuilt for the
+integrator; §14.32 added; DX0's footer-only ruling reversed;
+`design-ref` pushed, unblocking ENGINE1's design dependency).
+Previously 2026-09-03 (ENGINE1 lane CLOSED — the confirm-path
 remainder merged as #270; §14.31 added for the three artifact-shape
 rulings; §14.7 records its own definition demonstrating itself).
 Previously 2026-08-27 (API-CONFIRM #263; approved ≠ merged,
@@ -2104,24 +2107,42 @@ entry nobody checks a new feature against.
   aspirational artifact prescribes fixes for defects that do not exist,
   and nothing about such a ticket looks wrong.
 
-  ═══ NOT BUILT, AND BLOCKED ═══
+  ═══ WAS BLOCKED, NOW UNBLOCKED (2026-09-03) ═══
 
-  · **The positive design of the four pages.** The ticket says build
+  · **The positive design of the four pages.** The ticket said build
     against `docs/design/` (homepage, developers, confirmation, trust).
-    **Those four artifacts are not in this repository.** `docs/design/`
-    contains `dashboard_v2.html`, `dashboard_day_one.html`,
-    `dashboard_steady_state.html`, `dashboard-soften/` and
-    `email_signing_request.html` — nothing else, and no homepage,
-    developers, confirmation or trust document exists anywhere under
-    `docs/`. Checked, not assumed.
+    **THE BLOCK IS CLEARED — see below. The paragraph that follows is
+    kept as the record of what was true for a week**, because the
+    diagnosis is the point and a deleted blocker leaves the next reader
+    unable to see why the ticket stalled.
+
+    WHAT WAS TRUE UNTIL 2026-09-03: those four artifacts were not in
+    this repository. `docs/design/` held `dashboard_v2.html`,
+    `dashboard_day_one.html`, `dashboard_steady_state.html`,
+    `dashboard-soften/` and `email_signing_request.html` — nothing
+    else, and no homepage, developers, confirmation or trust document
+    existed anywhere under `docs/`. Checked, not assumed.
 
     **CAUSE FOUND (owner, 2026-08-27): they were committed to a
     `design-ref` branch that was never pushed.** Verified against the
     REMOTE rather than the local tree — `git ls-remote --heads origin`
-    carries no `design-ref`, and the four design branches that ARE
+    carried no `design-ref`, and the four design branches that ARE
     pushed (`claude/dash3-design-input`, `claude/deeddetail-design`,
-    `claude/f6-v0-design`, `v0/design-drop`) carry none of the four
-    files either. **UNBLOCKS WHEN THE OWNER PUSHES `design-ref`.**
+    `claude/f6-v0-design`, `v0/design-drop`) carried none of the four
+    files either.
+
+    **UNBLOCKED 2026-09-03 — `design-ref` is pushed.** All four exist:
+    `homepage.html`, `developers.html`, `confirmation.html`,
+    `trust.html`, plus `ENGINE1.md` describing them as reference rather
+    than copy. **The §14.30 check ran the other way this time** — the
+    artifacts were real and the ticket was accurate, which is the
+    outcome that check exists to DISTINGUISH rather than to assume.
+    **`homepage.html` was consumed by ENGINE2 (see its entry below).**
+    The other three remain available and unconsumed — `/developers`,
+    `/confirm` and `/trust` are all shipped, and ENGINE1 found the
+    shipped pages already more honest than the mockups meant to fix
+    them (§14.30), so re-reading them against a design is a decision
+    rather than a task.
 
     Worth its own line: a mockup that exists only on an unpushed branch
     is indistinguishable, from every other machine, from a mockup that
@@ -2200,6 +2221,74 @@ entry nobody checks a new feature against.
   is enforced against FUTURE copy — it does not mean the pages have been
   rewritten, and the gate cannot tell you whether a page says something
   true, only that it does not say one of 28 specific false things.
+
+- **ENGINE2 — the homepage rebuilt for the integrator.**
+  **DECIDED** 2026-09-03, owner-ruled. **BUILT** — yes, 2026-09-03,
+  `frontend/src/app/page.tsx`, `frontend/src/__tests__/engine2Homepage.test.ts`
+  (28 pins), `backend/tests/test_engine2_homepage_claim.py` (7 pins).
+
+  **THE SCOPING ERROR THIS TICKET EXISTS TO CORRECT, in the owner's
+  words:** *"you asked for repositioning and I ruled on the half that
+  was about not lying. The half about saying the right thing to the
+  right buyer — the fork, the 422 proof, leading with the confirmation
+  step — I never ruled at all."* Recorded as §14.32.
+
+  ═══ BUILT ═══
+
+  · **The two-door fork above the fold.** *"I'm building a product that
+    prepares deeds"* and *"I prepare deeds for California
+    transactions"*, each with its own primary CTA — the platform door to
+    `/api-key-request`, the escrow door to `/register`. The escrow story
+    stays and stops being the only door.
+  · **The 422 is the platform door's proof, and it is DERIVED.** The
+    sample reads `API_DEED_TYPES.find(t => t.vesting ===
+    'fixed-by-instrument')` rather than naming an instrument, so if the
+    catalog stops fixing that instrument's vesting the page stops
+    claiming it does. **Verified by execution, not by reading:** the
+    refusal fires, the same request without vesting is ACCEPTED, and a
+    `grant_deed` without vesting is refused for the opposite reason — so
+    the rejection is attributable to the rule rather than to an
+    incomplete fixture.
+  · **The instrument table renders FROM the catalog** rather than
+    transcribing it, so the printed doctrine cannot drift from the
+    enforced doctrine.
+  · **The confirmation step is led with**, as the product rather than as
+    friction, with the three-stage sequence in the SHIPPED vocabulary —
+    `pending_confirmation` / `completed`, not the mockup's
+    `awaiting_confirmation` / `confirmed`.
+  · **The app/API distinction is stated, not blurred:** the API's
+    confirmation is a stored RECORD since #263; the app's is the
+    officer's SESSION. That sentence is the page's central claim and is
+    pinned as prose.
+  · **`/trust` and `/developers` link from the platform door.** DX0's
+    footer-only ruling reversed — see the flag below.
+
+  ═══ THE CUT LIST HELD, AND CAUGHT ITS OWN SOURCE ═══
+
+  **The gate ENGINE1 added caught the mockup ENGINE1 was written from,
+  on first contact with real copy.** The hero line *"an application
+  escrow officers use daily"* tripped the new daily-use rule: nothing
+  here measures usage, so a frequency is a fact never observed. The 13
+  rules were added speculatively against a CUT list, and the first thing
+  one of them caught was the ticket's own source artifact. **A mockup is
+  a claims surface like any other.**
+
+  ═══ THE TWO EMPTIED META SLOTS — OWNER RATIFICATION WANTED ═══
+
+  The owner flagged these: *"those slots need honest replacements rather
+  than removal, or the strip reads as truncated."* Both replacements are
+  measured, and both are the agent's wording:
+
+  | mockup slot | why it is cut | what is there now |
+  |---|---|---|
+  | `Priced per confirmed deed` | no metering price exists; keys are issued by hand | `Sandbox keys on request` |
+  | `DPA + SLA` | `/trust` says *"No SLA. Nothing has been contractually offered to anybody."* | `No deed without a named person` |
+  | `[99.9%] uptime · status page` | both denied on `/trust` | `8 subprocessors · named individually on the trust page` |
+
+  The pricing section says it outright rather than omitting it: **"There
+  is no published per-deed rate yet, and we would rather tell you that
+  than print a number we would renegotiate."** Owner's call whether that
+  sentence ships or a rate replaces it.
 
 - **TSC-PARSE — the tsc baseline has no parse-error floor, and eslint's
   is what caught it.**
