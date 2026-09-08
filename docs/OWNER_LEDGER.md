@@ -254,6 +254,43 @@ when their trigger arrives.
 
 ## Open — owner's card
 
+- **POSITIONING — officers or platforms first.**
+  **DECIDED** — no; open, owner's call. **BUILT** — n/a; the page carries
+  either pitch since ENGINE2 (#272).
+
+  **THE ONE THING THIS SIDE CAN CONTRIBUTE, STATED AT ITS ACTUAL
+  STRENGTH.** The API's case is **checkable by a stranger, alone,
+  without the owner present**: the 422 demonstrates the instrument
+  doctrine in one exchange, the confirmation record is a stored fact
+  (#263), and `/trust` answers a security review before it is asked. The
+  officer product's case is a demo somebody has to be walked through.
+
+  **AND THE CORRECTION, RECORDED AS A CORRECTION RATHER THAN A
+  FOOTNOTE (2026-09-08).** That asymmetry is an argument about **PROOF,
+  not about DEMAND.** It says what a stranger can verify unaided. It says
+  nothing about whether any platform wants an integration enough to
+  spend roadmap on it.
+
+  The agent overstated it once — closing a report with *"it argues for
+  platforms"* — and the owner accepted the correction. **Treating a
+  verifiable-proof property as evidence of a market is the same
+  substitution this project refuses everywhere else**: a thing that can
+  be measured standing in for the thing that was actually asked. The
+  industry partner's doubt about escrow adoption and the title rep's
+  note on the PCOR are opinions about people; **so is any confidence
+  that five California title platforms are buyers.** Nobody can have an
+  opinion about a 422 that fires. Everybody still gets one about
+  roadmap.
+
+  **What a reader who believes this entry should still ask:** nothing
+  here measures demand on either side, and nothing in this repository
+  can. The proof asymmetry is a reason to LEAD with platforms, not a
+  reason to believe in them.
+
+  **Independent of the answer:** counsel is the longest lead time on the
+  board and is on the critical path either way — no platform signs
+  against DRAFT terms with no DPA, and neither does a title company.
+
 - **MONEY1 — Stripe, owner-side (Tier 3), 2026-08-13.** Two items only
   the owner can do, both blocking a live launch.
 
