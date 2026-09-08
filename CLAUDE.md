@@ -35,6 +35,40 @@ surface that outlives the machine.**
 failed `add` followed by a "successful" push is the shape: every
 individual command did what it said.
 
+## A fixed-width identifier is READ from the tool that owns it
+
+**Never reconstructed, never padded, never completed from its prefix.**
+A SHA, a token, a digest, an id — read it in the same command sequence
+that uses it:
+
+```
+git -C /home/user/new-front rev-parse HEAD
+```
+
+The one it would have prevented: merging #274 needed the head SHA as a
+merge precondition, the short hash `719de8fe` was on screen from a `git
+commit` line, and **the remaining 32 characters were manufactured to
+satisfy the length requirement.** A value that must be READ was
+INVENTED, in the one field whose entire purpose is proving the caller
+knows what it is merging.
+
+**And the error that caught it points away from the fault.** GitHub
+answered `409 Head branch was modified` — a *concurrent-modification*
+message, so the obvious reading is "someone pushed", which sends you to
+re-fetch and retry rather than to notice a fabricated argument. It was
+somebody else's guardrail, and §14.18 is explicit that a near-miss
+caught by somebody else's guardrail is not a caught near-miss.
+
+**Why it lives in the digest.** This is the act the project refuses
+everywhere it has been named — generate the allowlist rather than type
+it, derive the count rather than transcribe it, recompute the hash
+rather than echo the stored string. **It held everywhere it was named
+and failed in the one place nobody had thought to name**, which is
+§14.7: not a rule forgotten, a situation that did not announce itself as
+an instance of the rule.
+
+Same honest limit as the two rules above: **a prompt, not a gate.**
+
 ## Every ticket re-cuts its branch from `origin/main`. No exceptions.
 
 ```
