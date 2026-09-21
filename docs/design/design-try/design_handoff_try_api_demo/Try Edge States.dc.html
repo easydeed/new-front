@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@800&display=swap" rel="stylesheet" />
+<style>
+  body { margin: 0; background: #F3F4F6; color: #14161A; font-family: Inter, system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: #7C4DFF; text-decoration: none; }
+  a:hover { color: #6a3ff0; text-decoration: underline; }
+  * { box-sizing: border-box; }
+</style>
+</helmet>
+
+<div style="padding:48px;background:#F3F4F6">
+
+  <div style="max-width:1100px;margin-bottom:40px">
+    <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#7C4DFF;margin-bottom:12px">/try · every state that is not the happy path</div>
+    <h1 style="margin:0;font-size:44px;line-height:1.1;letter-spacing:-0.03em;font-weight:700;color:#1F2B37">The states a sales call actually hits</h1>
+    <p style="margin:16px 0 0;font-size:17px;line-height:1.65;color:#4B5563">
+      The happy path is in <strong>Try Prototype.dc.html</strong>. These are the rest: the cold container, the four refusals, the phone that says no, the draft that ran out of days, the ceiling, the dropped connection, the narrow screen, and the two modes. Pins are numbered per card and explained beneath it; every one is tagged with whether it exists today.
+    </p>
+    <div style="margin-top:20px;display:flex;flex-wrap:wrap;gap:10px">
+      <span style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:4px 10px;border-radius:6px;background:#F0FDF4;color:#166534;border:1px solid #BBF7D0">Exists today</span>
+      <span style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:4px 10px;border-radius:6px;background:#F5F3FF;color:#6D3BF0;border:1px solid #DDD6FE">Needs building</span>
+      <span style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:4px 10px;border-radius:6px;background:#FFFBEB;color:#92400E;border:1px solid #FDE68A">Unverified — confirm against the API</span>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start">
+
+    <!-- 1 · COLD START -->
+    <div style="width:620px;background:#fff;border:1px solid #E5E7EB;border-radius:16px;overflow:hidden">
+      <div style="padding:16px 20px;border-bottom:1px solid #E5E7EB;display:flex;gap:12px;align-items:baseline">
+        <span style="font-family:ui-monospace,monospace;font-size:12px;color:#9CA3AF">01</span>
+        <span style="font-size:16px;font-weight:700;color:#14161A">Cold start — the sandbox is asleep</span>
+      </div>
+      <div style="padding:24px;background:#FCFCFD">
+        <div style="border:1px solid #E5E7EB;border-radius:12px;background:#fff;padding:20px">
+          <div style="display:inline-flex;align-items:center;gap:7px;border:1px solid #E5E7EB;background:#F3F4F6;color:#4B5563;border-radius:999px;padding:6px 13px;font-size:13px;font-weight:600">
+            <span aria-hidden="true">◔</span><span>Sandbox warming</span>
+            <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:999px;border:1.5px solid #7C4DFF;color:#7C4DFF;font-size:10px;font-weight:700;margin-left:2px">1</span>
+          </div>
+          <div style="margin-top:14px;height:6px;border-radius:999px;background:#F3F4F6;overflow:hidden">
+            <div style="width:62%;height:100%;background:#7C4DFF;border-radius:999px"></div>
+          </div>
+          <p style="margin:12px 0 0;font-size:14px;line-height:1.6;color:#4B5563">
+            Cold containers take up to 30 seconds to wake. <strong>11s remaining.</strong> Nothing is hidden behind a spinner — when this finishes the Send buttons turn on.
+          </p>
+          <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+            <button type="button" style="border:0;border-radius:8px;background:#E5E7EB;color:#9CA3AF;font-size:14px;font-weight:700;padding:11px 18px;cursor:not-allowed">Send this request</button>
+            <span style="font-size:13px;color:#9CA3AF;align-self:center">Disabled until the sandbox is up.
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:999px;border:1.5px solid #7C4DFF;color:#7C4DFF;font-size:10px;font-weight:700">2</span>
+            </span>
+          </div>
+        </div>
+        <div style="margin-top:16px;border:1px solid #FDE68A;background:#FFFBEB;border-radius:12px;padding:16px">
+          <div style="font-size:13.5px;font-weight:700;color:#92400E;margin-bottom:6px">◷ If it is still down after 45 seconds</div>
+          <p style="margin:0;font-size:13.5px;line-height:1.6;color:#92400E">
+            The page stops counting and says so: “The sandbox has not come up. This is our infrastructure, not your connection — here is the same sequence as a recording, and here is how to reach a human.” A countdown that restarts forever is the failure mode that kills the meeting.
+            <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:999px;border:1.5px solid #B45309;color:#B45309;font-size:10px;font-weight:700">3</span>
+          </p>
+        </div>
+      </div>
+      <div style="padding:18px 20px;border-top:1px solid #E5E7EB;background:#fff">
+        <sc-for list="{{ notes1 }}" as="n" hint-placeholder-count="3">
+          <div style="display:flex;gap:12px;padding:7px 0;align-items:flex-start">
+            <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;border:1.5px solid #7C4DFF;color:#7C4DFF;font-size:11px;font-weight:700;flex-shrink:0">{{ n.n }}</span>
+            <div style="min-width:0">
+              <span style="{{ n.tagStyle }}">{{ n.tag }}</span>
+              <span style="font-size:13.5px;line-height:1.6;color:#4B5563;margin-left:8px">{{ n.body }}</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- 2 · 422 SPEC -->
+    <div style="width:620px;background:#fff;border:1px solid #E5E7EB;border-radius:16px;overflow:hidden">
+      <div style="padding:16px 20px;border-bottom:1px solid #E5E7EB;display:flex;gap:12px;align-items:baseline">
+        <span style="font-family:ui-monospace,monospace;font-size:12px;color:#9CA3AF">02</span>
+        <span style="font-size:16px;font-weight:700;color:#14161A">Each trap's 422 — the reason as the hero</span>
+      </div>
+      <div style="padding:24px;background:#FCFCFD">
+        <div style="border:1px solid #FECACA;background:#FEF2F2;border-radius:12px;padding:20px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="border:1px solid rgba(185,28,28,0.3);background:rgba(220,38,38,0.1);color:#B91C1C;border-radius:6px;padding:3px 8px;font-family:ui-monospace,monospace;font-size:12px;font-weight:700">422</span>
+            <span style="font-family:ui-monospace,monospace;font-size:12.5px;font-weight:600;color:#6B7280">VALIDATION_ERROR</span>
+            <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:999px;border:1.5px solid #7C4DFF;color:#7C4DFF;font-size:10px;font-weight:700">1</span>
+          </div>
+          <p style="margin:14px 0 0;font-size:18px;line-height:1.5;font-weight:600;color:#14161A;text-wrap:pretty">This instrument fixes its own vesting — Vesting is fixed by the instrument: joint tenancy. Choosing this form IS the vesting decision, so no vesting value is accepted.</p>
+          <p style="margin:12px 0 0;font-size:14px;line-height:1.6;color:#4B5563">One sentence of gloss beneath, in our voice, saying why the instrument decided — never repeating the message.<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:999px;border:1.5px solid #7C4DFF;color:#7C4DFF;font-size:10px;font-weight:700;margin-left:6px">2</span></p>
+          <div style="margin-top:16px;border-top:1px solid #FECACA;padding-top:14px">
+            <div style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#9CA3AF;margin-bottom:8px">detail.details[]</div>
+            <div style="display:flex;gap:10px;font-family:ui-monospace,monospace;font-size:12.5px;line-height:1.6;color:#4B5563">
+              <span style="color:#7C4DFF">body.recording</span><span>Value error, This instrument fixes its own vesting — …</span>
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:999px;border:1.5px solid #B45309;color:#B45309;font-size:10px;font-weight:700;flex-shrink:0">3</span>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:16px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+          <sc-for list="{{ trapStates }}" as="t" hint-placeholder-count="5">
+            <div style="border:1px solid #E5E7EB;border-radius:10px;background:#fff;padding:12px 14px">
+              <div style="font-size:13px;font-weight:700;color:#14161A;line-height:1.35">{{ t.label }}</div>
+              <div style="font-size:12px;color:#6B7280;margin-top:4px;font-family:ui-monospace,monospace">{{ t.code }}</div>
+              <div style="margin-top:8px"><span style="{{ t.tagStyle }}">{{ t.tag }}</span></div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="padding:18px 20px;border-top:1px solid #E5E7EB;background:#fff">
+        <sc-for list="{{ notes2 }}" as="n" hint-placeholder-count="3">
+          <div style="display:flex;gap:12px;padding:7px 0;align-items:flex-start">
+            <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;border:1.5px solid #7C4DFF;color:#7C4DFF;font-size:11px;font-weight:700;flex-shrink:0">{{ n.n }}</span>
+            <div style="min-width:0">
+              <span style="{{ n.tagStyle }}">{{ n.tag }}</span>
+              <span style="font-size:13.5px;line-height:1.6;color:#4B5563;margin-left:8px">{{ n.body }}</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- 3 · WAITING / APPROVED / REJECTED -->
+    <div style="width:1268px;background:#fff;border:1px solid #E5E7EB;border-radius:16px;overflow:hidden">
+      <div style="padding:16px 20px;border-bottom:1px solid #E5E7EB;display:flex;gap:12px;align-items:baseline">
+        <span style="font-family:ui-monospace,monospace;font-size:12px;color:#9CA3AF">03</span>
+        <span style="font-size:16px;font-weight:700;color:#14161A">The desktop while the phone decides — three outcomes</span>
+      </div>
+      <div style="padding:24px;background:#FCFCFD;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px">
+
+        <div style="border:1px solid #E5E7EB;border-radius:12px;background:#fff;overflow:hidden">
+          <div style="padding:12px 16px;border-bottom:1px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:13px;font-weight:700;color:#14161A">Waiting</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;border:1px solid #FDE68A;background:#FFFBEB;color:#92400E;border-radius:999px;padding:4px 10px;font-size:11.5px;font-weight:600"><span aria-hidden="true">◷</span> pending_confirmation</span>
+          </div>
+          <div style="padding:16px">
+            <p style="margin:0;font-size:13.5px;line-height:1.6;color:#4B5563">The link is open on a phone somewhere. Nothing here moves on its own.</p>
+            <div style="margin-top:12px;border:1px solid #E5E7EB;border-radius:8px;background:#F8F8FB;padding:11px 13px;font-family:ui-monospace,monospace;font-size:11.5px;line-height:1.7;color:#4B5563">
+              ↻ GET /api/v1/deeds/{id}<br />every 3s · attempt 14<br />no webhooks exist
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:999px;border:1.5px solid #7C4DFF;color:#7C4DFF;font-size:10px;font-weight:700">1</span>
+            </div>
+            <p style="margin:12px 0 0;font-size:12.5px;line-height:1.6;color:#6B7280">After 4 minutes: “Still waiting. The link stays good for 7 days — you can close this and come back.”</p>
+          </div>
+        </div>
+
+        <div style="border:1px solid #BBF7D0;border-radius:12px;background:#fff;overflow:hidden">
+          <div style="padding:12px 16px;border-bottom:1px solid #BBF7D0;display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:13px;font-weight:700;color:#14161A">Approved</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;border:1px solid #BBF7D0;background:#F0FDF4;color:#166534;border-radius:999px;padding:4px 10px;font-size:11.5px;font-weight:600"><span aria-hidden="true">✓</span> completed</span>
+          </div>
+          <div style="padding:16px">
+            <p style="margin:0;font-size:13.5px;line-height:1.6;color:#4B5563">The poll that returned <code style="font-family:ui-monospace,monospace;font-size:12.5px;background:#F3F4F6;padding:1px 5px;border-radius:4px">completed</code> is the one that changes the page. The PDF link appears; the artifact unlocks.</p>
+            <div style="margin-top:12px;border:1px solid #BBF7D0;border-radius:8px;background:#F0FDF4;padding:11px 13px;font-size:12.5px;line-height:1.6;color:#166534">
+              ✓ urls.pdf is no longer null<br />✓ approved_at recorded<br />✓ Act 3 opens
+            </div>
+            <p style="margin:12px 0 0;font-size:12.5px;line-height:1.6;color:#6B7280">No confetti, no sound. The moment is the status word changing while they are still holding the phone.
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:999px;border:1.5px solid #7C4DFF;color:#7C4DFF;font-size:10px;font-weight:700">2</span>
+            </p>
+          </div>
+        </div>
+
+        <div style="border:1px solid #FDE68A;border-radius:12px;background:#fff;overflow:hidden">
+          <div style="padding:12px 16px;border-bottom:1px solid #FDE68A;display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:13px;font-weight:700;color:#14161A">Rejected, with a reason</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;border:1px solid #FDE68A;background:#FFFBEB;color:#92400E;border-radius:999px;padding:4px 10px;font-size:11.5px;font-weight:600"><span aria-hidden="true">◷</span> rejected</span>
+          </div>
+          <div style="padding:16px">
+            <p style="margin:0;font-size:13.5px;line-height:1.6;color:#4B5563">The reason comes back as text, assembled from the server's own catalog — not a code the page has to interpret.</p>
+            <div style="margin-top:12px;border:1px solid #E5E7EB;border-radius:8px;background:#F8F8FB;padding:11px 13px;font-family:ui-monospace,monospace;font-size:11.5px;line-height:1.7;color:#4B5563">
+              reject_reason:<br />"Vesting incorrect; grantee is<br />a married couple"
+            </div>
+            <p style="margin:12px 0 0;font-size:12.5px;line-height:1.6;color:#6B7280">Next step on screen: correct the facts in your system and POST again with a <strong>new</strong> Idempotency-Key. Replaying the old one returns the rejected draft.
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:999px;border:1.5px solid #7C4DFF;color:#7C4DFF;font-size:10px;font-weight:700">3</span>
+            </p>
+          </div>
+        </div>
+      </div>
+      <div style="padding:18px 20px;border-top:1px solid #E5E7EB;background:#fff">
+        <sc-for list="{{ notes3 }}" as="n" hint-placeholder-count="3">
+          <div style="display:flex;gap:12px;padding:7px 0;align-items:flex-start">
+            <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;border:1.5px solid #7C4DFF;color:#7C4DFF;font-size:11px;font-weight:700;flex-shrink:0">{{ n.n }}</span>
+            <div style="min-width:0">
+              <span style="{{ n.tagStyle }}">{{ n.tag }}</span>
+              <span style="font-size:13.5px;line-height:1.6;color:#4B5563;margin-left:8px">{{ n.body }}</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- 4 · FAILURE STATES -->
+    <div style="width:820px;background:#fff;border:1px solid #E5E7EB;border-radius:16px;overflow:hidden">
+      <div style="padding:16px 20px;border-bottom:1px solid #E5E7EB;display:flex;gap:12px;align-items:baseline">
+        <span style="font-family:ui-monospace,monospace;font-size:12px;color:#9CA3AF">04</span>
+        <span style="font-size:16px;font-weight:700;color:#14161A">Expired · rate-limited · network gone</span>
+      </div>
+      <div style="padding:24px;background:#FCFCFD;display:flex;flex-direction:column;gap:16px">
+        <sc-for list="{{ failures }}" as="f" hint-placeholder-count="3">
+          <div style="{{ f.wrap }}">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <span style="{{ f.badge }}">{{ f.status }}</span>
+              <span style="font-family:ui-monospace,monospace;font-size:12.5px;font-weight:600;color:#6B7280">{{ f.code }}</span>
+              <span style="{{ f.tagStyle }}">{{ f.tag }}</span>
+            </div>
+            <p style="margin:12px 0 0;font-size:17px;line-height:1.5;font-weight:600;color:#14161A">{{ f.headline }}</p>
+            <p style="margin:10px 0 0;font-size:14px;line-height:1.65;color:#4B5563">{{ f.body }}</p>
+            <div style="margin-top:12px;font-family:ui-monospace,monospace;font-size:12px;color:#9CA3AF">{{ f.src }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- 5 · MOBILE -->
+    <div style="width:420px;background:#fff;border:1px solid #E5E7EB;border-radius:16px;overflow:hidden">
+      <div style="padding:16px 20px;border-bottom:1px solid #E5E7EB;display:flex;gap:12px;align-items:baseline">
+        <span style="font-family:ui-monospace,monospace;font-size:12px;color:#9CA3AF">05</span>
+        <span style="font-size:16px;font-weight:700;color:#14161A">Narrow screen · 390px</span>
+      </div>
+      <div style="padding:24px;background:#FCFCFD;display:flex;justify-content:center">
+        <div style="width:340px;border:9px solid #14161A;border-radius:30px;overflow:hidden;background:#fff">
+          <div style="background:#14161A;height:20px"></div>
+          <div style="padding:16px 14px">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#7C4DFF">Live sandbox · /try</div>
+            <h3 style="margin:8px 0 0;font-size:26px;line-height:1.1;letter-spacing:-0.02em;font-weight:700;color:#1F2B37">Try to get a bad deed past us.</h3>
+            <div style="margin-top:12px;display:inline-flex;align-items:center;gap:7px;border:1px solid #BBF7D0;background:#F0FDF4;color:#166534;border-radius:999px;padding:5px 11px;font-size:12px;font-weight:600"><span aria-hidden="true">✓</span> Sandbox ready</div>
+
+            <div style="margin-top:16px;border:1.5px solid #7C4DFF;background:#F5F3FF;border-radius:10px;padding:11px 13px">
+              <div style="font-size:13px;font-weight:700;color:#14161A">Vesting clause on a joint-tenancy deed</div>
+              <div style="font-size:11.5px;color:#6B7280;font-family:ui-monospace,monospace;margin-top:3px">deed_type → grant_deed_jt</div>
+            </div>
+            <div style="margin-top:8px;border:1px solid #E5E7EB;border-radius:10px;padding:11px 13px">
+              <div style="font-size:13px;font-weight:700;color:#14161A">Grant deed with no vesting at all</div>
+            </div>
+            <div style="margin-top:10px;border:1px solid #262A33;background:#0B0D11;border-radius:10px;padding:11px 13px;font-family:ui-monospace,monospace;font-size:10.5px;line-height:1.7;color:#D1D5DB;overflow:hidden">
+              { "deed_type": <span style="color:#C4B5FD">"grant_deed_jt"</span>,<br />&nbsp;&nbsp;"grantee": { "vesting": … } }
+            </div>
+            <div style="margin-top:8px;font-size:11.5px;color:#6B7280">Request collapsed to the two lines the trap changes.
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:999px;border:1.5px solid #7C4DFF;color:#7C4DFF;font-size:10px;font-weight:700">1</span>
+            </div>
+
+            <div style="margin-top:16px;border:1px solid #E5E7EB;border-radius:10px;padding:14px;background:#F8F8FB">
+              <div style="font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#6B7280;margin-bottom:8px">Act two</div>
+              <a href="#top" style="display:block;text-align:center;border-radius:8px;background:#7C4DFF;color:#fff;font-size:14px;font-weight:700;padding:13px 16px">Open the confirmation link ↗</a>
+              <p style="margin:10px 0 0;font-size:12px;line-height:1.6;color:#6B7280">No QR on a phone — you are already holding the second device. The link opens /confirm/[token] in a new tab; come back to this one for the receipt.
+                <span style="display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:999px;border:1.5px solid #7C4DFF;color:#7C4DFF;font-size:10px;font-weight:700">2</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:18px 20px;border-top:1px solid #E5E7EB;background:#fff">
+        <sc-for list="{{ notes5 }}" as="n" hint-placeholder-count="2">
+          <div style="display:flex;gap:12px;padding:7px 0;align-items:flex-start">
+            <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;border:1.5px solid #7C4DFF;color:#7C4DFF;font-size:11px;font-weight:700;flex-shrink:0">{{ n.n }}</span>
+            <div style="min-width:0">
+              <span style="{{ n.tagStyle }}">{{ n.tag }}</span>
+              <span style="font-size:13.5px;line-height:1.6;color:#4B5563;margin-left:8px">{{ n.body }}</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- 6 · PRESENTER VS SELF-SERVE -->
+    <div style="width:820px;background:#fff;border:1px solid #E5E7EB;border-radius:16px;overflow:hidden">
+      <div style="padding:16px 20px;border-bottom:1px solid #E5E7EB;display:flex;gap:12px;align-items:baseline">
+        <span style="font-family:ui-monospace,monospace;font-size:12px;color:#9CA3AF">06</span>
+        <span style="font-size:16px;font-weight:700;color:#14161A">Presenter mode vs self-serve</span>
+      </div>
+      <div style="padding:24px;background:#FCFCFD">
+        <div style="border:1px solid #262A33;border-radius:12px;background:#12141A;padding:16px 18px;display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin-bottom:18px">
+          <span style="display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(167,139,250,0.3);background:rgba(167,139,250,0.1);color:#C4B5FD;border-radius:6px;padding:5px 11px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em">Presenter mode</span>
+          <span style="font-family:ui-monospace,monospace;font-size:24px;font-weight:700;color:#fff">01:12</span>
+          <span style="flex:1;min-width:240px;font-size:13.5px;line-height:1.5;color:#9CA3AF"><span style="color:#fff;font-weight:600">Say:</span> “Take your phone out — you are about to be the named person on this deed.”</span>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:14px">
+          <thead>
+            <tr style="border-bottom:1px solid #E5E7EB;text-align:left">
+              <th style="padding:10px 12px 10px 0;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#9CA3AF">Element</th>
+              <th style="padding:10px 12px;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#6D3BF0">?presenter=1</th>
+              <th style="padding:10px 0 10px 12px;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#9CA3AF">Self-serve</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{ modes }}" as="m" hint-placeholder-count="7">
+              <tr style="border-bottom:1px solid #F3F4F6;vertical-align:top">
+                <td style="padding:11px 12px 11px 0;font-weight:600;color:#14161A">{{ m.el }}</td>
+                <td style="padding:11px 12px;color:#4B5563;line-height:1.55">{{ m.p }}</td>
+                <td style="padding:11px 0 11px 12px;color:#4B5563;line-height:1.55">{{ m.s }}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+        <p style="margin:16px 0 0;font-size:13.5px;line-height:1.65;color:#6B7280">
+          One page, one query parameter. A separate presenter build would drift from the self-serve one within a month, and the demo that matters is the one a stranger runs alone at 11pm.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+const TAG = {
+  exists: "font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:3px 7px;border-radius:5px;background:#F0FDF4;color:#166534;border:1px solid #BBF7D0;white-space:nowrap",
+  build: "font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:3px 7px;border-radius:5px;background:#F5F3FF;color:#6D3BF0;border:1px solid #DDD6FE;white-space:nowrap",
+  check: "font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:3px 7px;border-radius:5px;background:#FFFBEB;color:#92400E;border:1px solid #FDE68A;white-space:nowrap",
+};
+
+class Component extends DCLogic {
+  renderVals() {
+    const n = (num, tag, body) => ({ n: num, tag: tag === "exists" ? "Exists today" : tag === "build" ? "Needs building" : "Unverified", tagStyle: TAG[tag], body });
+    return {
+      notes1: [
+        n(1, "build", "The warming state needs something real to count against — a cheap readiness ping the page polls, not a fixed timer pretending to know. A timer that finishes while the container is still asleep is worse than no timer."),
+        n(2, "exists", "Disabling Send is the honest move: a request fired at a sleeping container returns a gateway error the prospect reads as our product failing, not our host waking."),
+        n(3, "build", "The give-up state needs somewhere to go — a recorded walkthrough of the same three acts, and a mailto. Neither exists today."),
+      ],
+      notes2: [
+        n(1, "exists", "Code and status come from the shipped envelope: detail.code, detail.message, detail.details[] of {field, message}, pinned by test_api_v1_error_contract.py."),
+        n(2, "exists", "The gloss is ours and must never restate the message. The message is already written for a human; a second paragraph saying the same thing tells the reader neither was written carefully."),
+        n(3, "check", "The field path reads body.recording for three of the five traps, because check_type_rules runs as a validator on the last field of the model. Technically correct, misleading to a reader. Either move the check or map the path before it ships."),
+      ],
+      notes3: [
+        n(1, "exists", "There are no webhooks — /trust says so in those words. Showing the interval and the attempt count is what keeps the page honest while the wait is boring."),
+        n(2, "exists", "status flips pending_confirmation → completed. Both words are the shipped contract; neither is 'confirmed' or 'awaiting_confirmation', which earlier mockups invented."),
+        n(3, "exists", "reject_reason is assembled server-side by normalize_rejection from the eight-item catalog plus optional free text. The page renders the string; it does not build one."),
+      ],
+      notes5: [
+        n(1, "build", "The narrow layout is new work: the request panel collapses to the changed lines, and the traps become a single-column list. Nothing on /try exists for mobile today."),
+        n(2, "exists", "The QR step becomes a link. One device means one tab flow — and /confirm/[token] already works on a phone apart from its preview iframe."),
+      ],
+      trapStates: [
+        { label: "Joint-tenancy deed, vesting sent", code: "422 · fixed_vesting", tag: "Exists today", tagStyle: TAG.exists },
+        { label: "Grant deed, no vesting", code: "422 · requires_vesting", tag: "Exists today", tagStyle: TAG.exists },
+        { label: "Corporate grantor, no entity_state", code: "422 · required_entity_facts", tag: "Exists today", tagStyle: TAG.exists },
+        { label: "Parcel outside California", code: "422 · state_must_be_ca", tag: "Exists today", tagStyle: TAG.exists },
+        { label: "No transfer-tax declaration", code: "422 · field required", tag: "Unverified", tagStyle: TAG.check },
+      ],
+      failures: [
+        {
+          status: "410", code: "GONE", tag: "Exists today", tagStyle: TAG.exists,
+          wrap: "border:1px solid #E5E7EB;background:#fff;border-radius:12px;padding:20px",
+          badge: "border:1px solid #E5E7EB;background:#F3F4F6;color:#4B5563;border-radius:6px;padding:3px 8px;font-family:ui-monospace,monospace;font-size:12px;font-weight:700",
+          headline: "This draft is no longer available to preview",
+          body: "An unconfirmed draft expires after seven days and the preview bytes are dropped — deleted, not archived. On /try this is nearly impossible to hit live, so the page keeps a second, deliberately expired token a presenter can open: the honest way to show a state that takes a week to reach. The desktop reads expired with a glyph and the word, in amber, and offers to create a fresh draft.",
+          src: "services/api_confirm.py · resolve_state · CONFIRM_EXPIRY_DAYS = 7",
+        },
+        {
+          status: "429", code: "RATE_LIMITED", tag: "Exists today", tagStyle: TAG.exists,
+          wrap: "border:1px solid #FDE68A;background:#FFFBEB;border-radius:12px;padding:20px",
+          badge: "border:1px solid #FDE68A;background:#FEF3C7;color:#92400E;border-radius:6px;padding:3px 8px;font-family:ui-monospace,monospace;font-size:12px;font-weight:700",
+          headline: "Too many requests for this confirmation link",
+          body: "Confirmation is throttled at 60/min per IP and 120/min per token before the database is touched; the v1 key has hourly and daily ceilings of its own. The page reads Retry-After and counts down against it rather than inviting a retry that will fail again. A shared demo key means one enthusiastic prospect can rate-limit the next — worth saying in the copy, not hiding.",
+          src: "routers/api_confirm.py · _throttle · X-RateLimit-Remaining",
+        },
+        {
+          status: "—", code: "NO RESPONSE", tag: "Needs building", tagStyle: TAG.build,
+          wrap: "border:1px solid #E5E7EB;background:#fff;border-radius:12px;padding:20px",
+          badge: "border:1px solid #E5E7EB;background:#F3F4F6;color:#4B5563;border-radius:6px;padding:3px 8px;font-family:ui-monospace,monospace;font-size:12px;font-weight:700",
+          headline: "The request did not come back",
+          body: "A fetch that never resolves gets a hard 20-second ceiling and then says what happened: the attempt, the elapsed time, and a Retry button. Never an indefinite spinner. Where the failure is ambiguous the page says so — “we cannot tell whether this reached us” is a true sentence and a guess is not.",
+          src: "needs: a timeout wrapper and a retry affordance on every call this page makes",
+        },
+      ],
+      modes: [
+        { el: "Sandbox", p: "Pre-warmed on page load — a ping fires before the rep starts talking.", s: "Warms on arrival with the honest countdown." },
+        { el: "Timer", p: "Large, running, visible to the rep only when the window is theirs.", s: "None." },
+        { el: "Script prompts", p: "One line per act, changing as state changes. Never shown to the prospect's own screen.", s: "None." },
+        { el: "Act locking", p: "Unlocked — the rep can jump to Act 3 if the room is short on time.", s: "Sequential. The sequence is the argument." },
+        { el: "Reset", p: "One button returns the page to a cold demo between calls.", s: "Reload." },
+        { el: "Approver name", p: "Pre-filled with the prospect's name if the rep typed it in.", s: "Empty, placeholder “Your name”." },
+        { el: "Copy", p: "Identical. Nothing is said to a live room that a self-serve visitor is not told.", s: "Identical." },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

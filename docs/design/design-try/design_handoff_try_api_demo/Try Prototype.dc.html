@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@800&display=swap" rel="stylesheet" />
+<style>
+  body { margin: 0; background: #FFFFFF; color: #14161A; font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: #7C4DFF; text-decoration: none; }
+  a:hover { color: #6a3ff0; text-decoration: underline; }
+  * { box-sizing: border-box; }
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#FFFFFF">
+
+  <nav style="position:sticky;top:0;z-index:50;background:rgba(255,255,255,0.95);backdrop-filter:blur(12px);border-bottom:1px solid #E5E7EB">
+    <div style="max-width:1280px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:64px">
+      <a href="#top" style="display:inline-flex;align-items:center;gap:11px;text-decoration:none">
+        <svg viewBox="0 0 64 80" width="24" height="30" fill="none" aria-hidden="true">
+          <path d="M4 0H50L64 14V76C64 78.2 62.2 80 60 80H4C1.8 80 0 78.2 0 76V4C0 1.8 1.8 0 4 0Z" fill="#7C4DFF"></path>
+          <path d="M50 0L64 14H50V0Z" fill="#5B35D5"></path>
+          <rect x="10" y="22" width="34" height="3" rx="1.5" fill="#FFFFFF" fill-opacity="0.88"></rect>
+          <rect x="10" y="30" width="26" height="2.5" rx="1.25" fill="#FFFFFF" fill-opacity="0.58"></rect>
+          <rect x="10" y="37" width="31" height="2.5" rx="1.25" fill="#FFFFFF" fill-opacity="0.58"></rect>
+          <circle cx="32" cy="60" r="11.25" stroke="#FFFFFF" stroke-width="1.6"></circle>
+          <circle cx="32" cy="60" r="7" stroke="#FFFFFF" stroke-width="1.6"></circle>
+          <circle cx="32" cy="60" r="1.75" fill="#FFFFFF"></circle>
+        </svg>
+        <span style="font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-weight:800;letter-spacing:-0.025em;font-size:23px;line-height:1;user-select:none"><span style="color:#1F2B37">Deed</span><span style="color:#7C4DFF">Pro</span></span>
+      </a>
+      <div style="display:flex;align-items:center;gap:12px">
+        <a href="#request-access" style="padding:8px 16px;font-size:14px;font-weight:500;border-radius:8px;color:#374151">Request access</a>
+        <a href="#top" style="padding:9px 16px;font-size:14px;font-weight:700;border-radius:8px;background:#7C4DFF;color:#fff">Read the docs</a>
+      </div>
+    </div>
+  </nav>
+
+  <sc-if value="{{ presenterOn }}" hint-placeholder-val="{{ false }}">
+    <div style="background:#12141A;color:#E5E7EB;border-bottom:1px solid #262A33">
+      <div style="max-width:1280px;margin:0 auto;padding:14px 24px;display:flex;flex-wrap:wrap;align-items:center;gap:20px">
+        <span style="display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(167,139,250,0.3);background:rgba(167,139,250,0.1);color:#C4B5FD;border-radius:6px;padding:5px 11px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em">Presenter mode</span>
+        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:26px;font-weight:700;color:#fff;letter-spacing:-0.02em">{{ clock }}</div>
+        <div style="flex:1;min-width:280px;font-size:14px;line-height:1.5;color:#9CA3AF"><span style="color:#fff;font-weight:600">Say:</span> {{ script }}</div>
+        <div style="display:flex;gap:8px">
+          <button type="button" onClick="{{ toggleClock }}" style="border:1px solid #374151;background:#0B0D11;color:#E5E7EB;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer">{{ clockLabel }}</button>
+          <button type="button" onClick="{{ resetAll }}" style="border:1px solid #374151;background:#0B0D11;color:#E5E7EB;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer">Reset demo</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <section id="top" style="border-bottom:1px solid #E5E7EB;background:#FFFFFF">
+    <div style="max-width:1280px;margin:0 auto;padding:56px 24px 40px">
+      <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#7C4DFF;margin-bottom:14px">Live sandbox · /try</div>
+      <h1 style="margin:0;font-size:52px;line-height:1.05;letter-spacing:-0.03em;font-weight:700;color:#1F2B37;max-width:900px;text-wrap:pretty">Try to get a bad deed past us.</h1>
+      <p style="margin:20px 0 0;font-size:19px;line-height:1.6;color:#4B5563;max-width:760px">
+        Every button on this page sends a real request to the DeedPro sandbox. You will break it on purpose, then confirm a deed with your own name and phone, then try to make the receipt lie. About ninety seconds.
+      </p>
+
+      <div style="margin-top:28px;display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+        <div style="{{ sandboxChipStyle }}">
+          <span aria-hidden="true" style="font-size:14px">{{ sandboxGlyph }}</span>
+          <span>{{ sandboxWord }}</span>
+        </div>
+        <span style="font-size:13.5px;color:#6B7280">{{ sandboxNote }}</span>
+        <sc-if value="{{ warming }}" hint-placeholder-val="{{ true }}">
+          <button type="button" onClick="{{ skipWarming }}" style="border:1px solid #E5E7EB;background:#fff;color:#4B5563;border-radius:8px;padding:6px 12px;font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer">Skip the wait</button>
+        </sc-if>
+        <sc-if value="{{ ann }}" hint-placeholder-val="{{ true }}">
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;border:1.5px solid #7C4DFF;color:#7C4DFF;font-size:11px;font-weight:700">1</span>
+        </sc-if>
+      </div>
+    </div>
+  </section>
+
+  <div style="background:#F8F8FB;border-bottom:1px solid #E5E7EB">
+    <div style="max-width:1280px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))">
+      <sc-for list="{{ actRail }}" as="a" hint-placeholder-count="3">
+        <div style="{{ a.style }}">
+          <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;font-weight:700;letter-spacing:0.1em;color:#9CA3AF">{{ a.n }}</div>
+          <div style="font-size:15px;font-weight:700;color:#14161A;margin-top:4px">{{ a.title }}</div>
+          <div style="font-size:13px;color:#6B7280;margin-top:2px">{{ a.state }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- ══ ACT 1 ══ -->
+  <section style="padding:56px 0;border-bottom:1px solid #E5E7EB;background:#FFFFFF">
+    <div style="max-width:1280px;margin:0 auto;padding:0 24px">
+      <div style="max-width:780px;margin-bottom:28px">
+        <div style="font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#7C4DFF;margin-bottom:10px">Act one</div>
+        <h2 style="margin:0;font-size:34px;line-height:1.15;letter-spacing:-0.02em;font-weight:700;color:#14161A">Break it on purpose</h2>
+        <p style="margin:14px 0 0;font-size:16.5px;line-height:1.65;color:#4B5563">
+          The console is loaded with a valid grant deed. Pick a trap; it rewrites the request and sends it. These are the mistakes an integration makes in month one — the question is whether they fail in your tests or at the counter.
+        </p>
+      </div>
+
+      <div style="display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:20px;align-items:start">
+
+        <div style="border-radius:16px;background:#12141A;overflow:hidden;box-shadow:0 20px 40px -20px rgba(0,0,0,0.45)">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid #262A33">
+            <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#9CA3AF">POST /api/v1/deeds</div>
+            <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#6B7280">Authorization: Bearer dp_test_•••</div>
+          </div>
+          <div style="padding:18px 20px;max-height:430px;overflow:auto">
+            <sc-for list="{{ requestLines }}" as="l" hint-placeholder-count="18">
+              <div style="{{ l.style }}">{{ l.text }}</div>
+            </sc-for>
+          </div>
+          <div style="padding:14px 20px;border-top:1px solid #262A33;display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+            <button type="button" onClick="{{ sendTrap }}" style="border:0;border-radius:8px;background:#7C4DFF;color:#fff;font-size:14px;font-weight:700;padding:11px 18px;cursor:pointer" style-hover="background:#6a3ff0">Send this request</button>
+            <span style="font-size:12.5px;color:#6B7280">{{ sendHint }}</span>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#6B7280">The traps</span>
+            <sc-if value="{{ ann }}" hint-placeholder-val="{{ true }}">
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;border:1.5px solid #7C4DFF;color:#7C4DFF;font-size:11px;font-weight:700">2</span>
+            </sc-if>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+            <sc-for list="{{ traps }}" as="t" hint-placeholder-count="6">
+              <button type="button" onClick="{{ t.pick }}" style="{{ t.style }}">
+                <span style="font-size:14px;font-weight:700;line-height:1.35;display:block">{{ t.label }}</span>
+                <span style="font-size:12.5px;color:#6B7280;display:block;margin-top:4px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace">{{ t.sub }}</span>
+              </button>
+            </sc-for>
+          </div>
+
+          <div style="{{ responseStyle }}">
+            <sc-if value="{{ hasResponse }}" hint-placeholder-val="{{ true }}">
+              <div>
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                  <span style="{{ resp.badgeStyle }}">{{ resp.status }}</span>
+                  <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;font-weight:600;color:#6B7280;letter-spacing:0.04em">{{ resp.code }}</span>
+                  <sc-if value="{{ ann }}" hint-placeholder-val="{{ true }}">
+                    <span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;border:1.5px solid #7C4DFF;color:#7C4DFF;font-size:11px;font-weight:700">3</span>
+                  </sc-if>
+                </div>
+                <p style="margin:14px 0 0;font-size:19px;line-height:1.5;font-weight:600;color:#14161A;text-wrap:pretty">{{ resp.message }}</p>
+                <p style="margin:12px 0 0;font-size:14.5px;line-height:1.6;color:#4B5563">{{ resp.gloss }}</p>
+                <sc-if value="{{ resp.hasDetails }}" hint-placeholder-val="{{ true }}">
+                  <div style="margin-top:16px;border-top:1px solid #E5E7EB;padding-top:14px">
+                    <div style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#9CA3AF;margin-bottom:8px">detail.details[]</div>
+                    <sc-for list="{{ resp.details }}" as="d" hint-placeholder-count="1">
+                      <div style="display:flex;gap:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;line-height:1.6;color:#4B5563;padding:3px 0">
+                        <span style="color:#7C4DFF;flex-shrink:0">{{ d.field }}</span>
+                        <span>{{ d.message }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ resp.flagged }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:14px;display:flex;gap:10px;border:1px solid #FDE68A;background:#FFFBEB;border-radius:10px;padding:12px 14px">
+                    <span aria-hidden="true" style="color:#B45309;font-size:14px">◷</span>
+                    <span style="font-size:13.5px;line-height:1.55;color:#92400E"><strong>Unverified against the running API.</strong> {{ resp.flagNote }}</span>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
+            <sc-if value="{{ noResponse }}" hint-placeholder-val="{{ false }}">
+              <div style="color:#9CA3AF;font-size:14.5px;line-height:1.6">Pick a trap, send the request, and the refusal lands here — the reason first, the envelope under it.</div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:22px;border:1px solid #E5E7EB;background:#F8F8FB;border-radius:12px;padding:18px 20px;display:flex;gap:14px;align-items:flex-start">
+        <span aria-hidden="true" style="color:#7C4DFF;font-size:16px;line-height:1.4">◆</span>
+        <p style="margin:0;font-size:14.5px;line-height:1.65;color:#4B5563;max-width:900px">
+          <strong style="color:#14161A">The first two traps are the same lesson from both sides.</strong> A joint-tenancy deed states its vesting on its own face, so sending <code style="font-family:ui-monospace,monospace;font-size:13px;background:#F3F4F6;padding:1px 5px;border-radius:4px">grantee.vesting</code> is refused — choosing the instrument <em style="font-style:normal;color:#6D3BF0;font-weight:600">is</em> the vesting decision. A plain grant deed refuses the opposite way: no vesting, no deed. Neither is a preference we hold; both are what the instrument decides.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ ACT 2 ══ -->
+  <section style="{{ act2SectionStyle }}">
+    <div style="max-width:1280px;margin:0 auto;padding:0 24px">
+      <div style="max-width:780px;margin-bottom:28px">
+        <div style="font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#7C4DFF;margin-bottom:10px">Act two</div>
+        <h2 style="margin:0;font-size:34px;line-height:1.15;letter-spacing:-0.02em;font-weight:700;color:#14161A">You confirm it</h2>
+        <p style="margin:14px 0 0;font-size:16.5px;line-height:1.65;color:#4B5563">
+          Send the valid request and no PDF exists yet — you get a draft, a status, and a confirmation URL. Put your own name on it, open the link on your phone, and read the deed as it will print.
+        </p>
+      </div>
+
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:24px;align-items:start">
+
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="border:1px solid #E5E7EB;border-radius:14px;background:#fff;padding:20px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+              <span style="font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#6B7280">Who is confirming</span>
+              <sc-if value="{{ ann }}" hint-placeholder-val="{{ true }}">
+                <span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;border:1.5px solid #7C4DFF;color:#7C4DFF;font-size:11px;font-weight:700">4</span>
+              </sc-if>
+            </div>
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px">
+              <label style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-size:13px;font-weight:500;color:#1F2B37">approver.name</span>
+                <input type="text" value="{{ approverName }}" onChange="{{ setName }}" placeholder="Your name" style="border:1px solid #D1D5DB;border-radius:8px;padding:11px 14px;font-size:14.5px;font-family:inherit;color:#14161A;width:100%" />
+              </label>
+              <label style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-size:13px;font-weight:500;color:#1F2B37">approver.role</span>
+                <input type="text" value="{{ approverRole }}" onChange="{{ setRole }}" style="border:1px solid #D1D5DB;border-radius:8px;padding:11px 14px;font-size:14.5px;font-family:inherit;color:#14161A;width:100%" />
+              </label>
+            </div>
+            <p style="margin:12px 0 0;font-size:13.5px;line-height:1.6;color:#6B7280">Both are required by the shipped contract. The token authenticates; DeedPro does not verify the person. What gets recorded is who you said it was.</p>
+            <div style="margin-top:16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+              <button type="button" onClick="{{ sendValid }}" style="{{ sendValidStyle }}">{{ sendValidLabel }}</button>
+              <span style="font-size:13px;color:#6B7280">{{ act2Hint }}</span>
+            </div>
+          </div>
+
+          <sc-if value="{{ hasDraft }}" hint-placeholder-val="{{ false }}">
+            <div style="border:1px solid #E5E7EB;border-radius:14px;background:#12141A;overflow:hidden">
+              <div style="padding:12px 18px;border-bottom:1px solid #262A33;display:flex;align-items:center;justify-content:space-between">
+                <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:#9CA3AF">201 · response.data</span>
+                <span style="{{ draftChipStyle }}"><span aria-hidden="true">{{ draftGlyph }}</span> {{ draftWord }}</span>
+              </div>
+              <div style="padding:16px 18px">
+                <sc-for list="{{ draftLines }}" as="l" hint-placeholder-count="10">
+                  <div style="{{ l.style }}">{{ l.text }}</div>
+                </sc-for>
+              </div>
+              <div style="padding:13px 18px;border-top:1px solid #262A33;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                <span aria-hidden="true" style="color:#9CA3AF;font-size:13px">{{ pollGlyph }}</span>
+                <span style="font-size:13px;color:#9CA3AF">{{ pollLine }}</span>
+                <sc-if value="{{ ann }}" hint-placeholder-val="{{ true }}">
+                  <span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;border:1.5px solid #A78BFA;color:#C4B5FD;font-size:11px;font-weight:700">6</span>
+                </sc-if>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isApproved }}" hint-placeholder-val="{{ false }}">
+            <div style="border:1px solid #BBF7D0;border-radius:14px;background:#F0FDF4;padding:20px;display:flex;gap:16px;align-items:flex-start">
+              <span aria-hidden="true" style="font-size:20px;color:#16A34A;line-height:1.2">✓</span>
+              <div style="min-width:0">
+                <div style="font-size:17px;font-weight:700;color:#14161A">The PDF now exists — and it did not a moment ago</div>
+                <p style="margin:8px 0 0;font-size:14.5px;line-height:1.6;color:#4B5563">
+                  Approval promoted the bytes you read on your phone. It did not re-render them: the document you saw and the document we store are the same object, which is why there is only ever one hash.
+                </p>
+                <div style="margin-top:14px;display:flex;flex-wrap:wrap;gap:10px">
+                  <span style="border:1px solid #E5E7EB;background:#fff;border-radius:8px;padding:7px 12px;font-family:ui-monospace,monospace;font-size:12.5px;color:#4B5563">urls.pdf · GET /api/v1/deeds/{id}/pdf</span>
+                  <span style="border:1px solid #E5E7EB;background:#fff;border-radius:8px;padding:7px 12px;font-family:ui-monospace,monospace;font-size:12.5px;color:#4B5563">status: "completed"</span>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="border:1px solid #E5E7EB;border-radius:14px;background:#fff;padding:18px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+              <span style="font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#6B7280">Scan to confirm</span>
+              <sc-if value="{{ ann }}" hint-placeholder-val="{{ true }}">
+                <span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;border:1.5px solid #7C4DFF;color:#7C4DFF;font-size:11px;font-weight:700">5</span>
+              </sc-if>
+            </div>
+            <div style="display:flex;justify-content:center;padding:6px 0">{{ qr }}</div>
+            <p style="margin:12px 0 0;font-size:12.5px;line-height:1.55;color:#6B7280;font-family:ui-monospace,monospace;word-break:break-all">{{ confirmUrl }}</p>
+            <p style="margin:10px 0 0;font-size:13px;line-height:1.6;color:#6B7280">On a phone already? <a href="#phone">Open the link instead.</a></p>
+          </div>
+
+          <div id="phone" style="border:1px solid #E5E7EB;border-radius:14px;background:#F8F8FB;padding:16px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+              <span style="font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#6B7280">Their phone · /confirm/[token]</span>
+              <sc-if value="{{ ann }}" hint-placeholder-val="{{ true }}">
+                <span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;border:1.5px solid #7C4DFF;color:#7C4DFF;font-size:11px;font-weight:700">7</span>
+              </sc-if>
+            </div>
+
+            <div style="border:10px solid #14161A;border-radius:34px;overflow:hidden;background:#F8FAFC;box-shadow:0 18px 40px -18px rgba(0,0,0,0.4)">
+              <div style="background:#14161A;height:22px"></div>
+              <div style="background:#fff;border-bottom:1px solid #E2E8F0;padding:12px 14px;display:flex;align-items:center;gap:10px">
+                <div style="width:32px;height:32px;border-radius:8px;background:#7C4DFF;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                </div>
+                <div style="min-width:0">
+                  <div style="font-size:14px;font-weight:700;color:#1E293B">Confirm this deed</div>
+                  <div style="font-size:12px;color:#64748B;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ greeting }}</div>
+                </div>
+              </div>
+              <div style="padding:14px">
+                <div style="display:inline-flex;align-items:center;gap:6px;border:1px solid #FDE68A;background:#FFFBEB;color:#92400E;border-radius:999px;padding:5px 10px;font-size:11.5px;margin-bottom:12px">
+                  <span aria-hidden="true">◷</span> Expires {{ expiresDate }}
+                </div>
+                <p style="margin:0 0 12px;font-size:12.5px;line-height:1.55;color:#475569">
+                  Review the document as it will print. DeedPro does not confirm the facts — you do. Approve it, or send it back with a reason.
+                </p>
+
+                <div style="position:relative;border:1px solid #E2E8F0;border-radius:10px;background:#fff;padding:14px 12px;overflow:hidden;min-height:240px">
+                  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
+                    <div style="transform:rotate(-32deg);border:3px solid rgba(220,38,38,0.28);color:rgba(220,38,38,0.32);font-size:13px;font-weight:800;letter-spacing:0.14em;padding:8px 14px;border-radius:6px;text-align:center;line-height:1.3">SAMPLE<br />NOT FOR RECORDING</div>
+                  </div>
+                  <div style="font-family:Georgia,'Times New Roman',serif;color:#1F2937;position:relative">
+                    <div style="font-size:7px;text-transform:uppercase;letter-spacing:0.16em;color:#9CA3AF">Recording requested by</div>
+                    <div style="font-size:9.5px;font-weight:700;margin-bottom:10px">Pacific Coast Escrow</div>
+                    <div style="text-align:center;font-size:14px;font-weight:700;letter-spacing:0.04em">GRANT DEED</div>
+                    <div style="text-align:center;font-size:7.5px;letter-spacing:0.08em;color:#6B7280;margin-bottom:10px">CALIFORNIA CIVIL CODE § 1092</div>
+                    <div style="height:1px;background:#E5E7EB;margin-bottom:10px"></div>
+                    <div style="font-size:9px;line-height:1.7">
+                      <div><strong>APN:</strong> 8888-000-001</div>
+                      <div><strong>GRANTOR:</strong> JOHN Q. SAMPLE AND MARY R. SAMPLE, HUSBAND AND WIFE</div>
+                      <div><strong>GRANTEE:</strong> AVERY K. SPECIMEN, an unmarried person</div>
+                      <div style="margin-top:8px">DOCUMENTARY TRANSFER TAX IS $825.00 — computed on full value of property conveyed.</div>
+                    </div>
+                    <div style="margin-top:10px;border:1px solid #E5E7EB;border-radius:4px;padding:7px">
+                      <div style="font-size:6.5px;text-transform:uppercase;letter-spacing:0.16em;color:#9CA3AF;margin-bottom:3px">Legal description</div>
+                      <div style="font-family:ui-monospace,monospace;font-size:7.5px;line-height:1.6;color:#4B5563">LOT 7, BLOCK 2, TRACT NO. 99999,<br />CITY OF GLENDORA, COUNTY OF LOS ANGELES</div>
+                    </div>
+                  </div>
+                  <sc-if value="{{ ann }}" hint-placeholder-val="{{ true }}">
+                    <span style="position:absolute;top:8px;right:8px;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;border:1.5px solid #A78BFA;background:#fff;color:#6D3BF0;font-size:11px;font-weight:700">8</span>
+                  </sc-if>
+                </div>
+
+                <div style="margin-top:12px">
+                  <sc-if value="{{ phoneIdle }}" hint-placeholder-val="{{ true }}">
+                    <div style="font-size:12.5px;color:#94A3B8;line-height:1.6;text-align:center;padding:8px 0">Waiting for a draft. The link does not exist until the request is sent.</div>
+                  </sc-if>
+                  <sc-if value="{{ phoneActions }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;flex-direction:column;gap:8px">
+                      <button type="button" onClick="{{ phoneApprove }}" style="width:100%;padding:12px 14px;border-radius:8px;border:0;background:#16A34A;color:#fff;font-size:13.5px;font-weight:600;font-family:inherit;cursor:pointer">✓&nbsp;&nbsp;Approve</button>
+                      <button type="button" onClick="{{ openReject }}" style="width:100%;padding:12px 14px;border-radius:8px;border:1px solid #CBD5E1;background:#fff;color:#334155;font-size:13.5px;font-weight:600;font-family:inherit;cursor:pointer">This is not the deed</button>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ phoneRejectOpen }}" hint-placeholder-val="{{ false }}">
+                    <div style="border:1px solid #E2E8F0;background:#fff;border-radius:10px;padding:12px">
+                      <div style="font-size:13px;font-weight:700;color:#1E293B;margin-bottom:8px">What is wrong?</div>
+                      <sc-for list="{{ rejectReasons }}" as="r" hint-placeholder-count="4">
+                        <label style="display:flex;gap:8px;align-items:center;padding:3px 0;font-size:12px;color:#334155">
+                          <input type="checkbox" checked="{{ r.checked }}" onChange="{{ r.toggle }}" />
+                          <span>{{ r.label }}</span>
+                        </label>
+                      </sc-for>
+                      <div style="display:flex;gap:8px;margin-top:10px">
+                        <button type="button" onClick="{{ phoneReject }}" style="flex:1;padding:12px 14px;border-radius:8px;border:0;background:#D97706;color:#fff;font-size:13.5px;font-weight:600;font-family:inherit;cursor:pointer">Send back</button>
+                        <button type="button" onClick="{{ closeReject }}" style="flex:1;padding:12px 14px;border-radius:8px;border:1px solid #CBD5E1;background:#fff;color:#64748B;font-size:13.5px;font-weight:600;font-family:inherit;cursor:pointer">Cancel</button>
+                      </div>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ phoneApproved }}" hint-placeholder-val="{{ false }}">
+                    <div style="border:1px solid #BBF7D0;background:#F0FDF4;border-radius:10px;padding:14px;text-align:center">
+                      <div aria-hidden="true" style="font-size:20px;color:#16A34A;line-height:1.2">✓</div>
+                      <div style="font-size:14px;font-weight:700;color:#14161A;margin-top:4px">Deed approved</div>
+                      <div style="font-size:12px;color:#475569;margin-top:6px;line-height:1.55">The integrator can now download the stored PDF. The record shows who approved and when.</div>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ phoneRejected }}" hint-placeholder-val="{{ false }}">
+                    <div style="border:1px solid #FDE68A;background:#FFFBEB;border-radius:10px;padding:14px;text-align:center">
+                      <div aria-hidden="true" style="font-size:20px;color:#B45309;line-height:1.2">◷</div>
+                      <div style="font-size:14px;font-weight:700;color:#14161A;margin-top:4px">Returned for correction</div>
+                      <div style="font-size:12px;color:#475569;margin-top:6px;line-height:1.55">Vesting incorrect. The integrator has the reason; they correct the facts in their system and submit again.</div>
+                      <button type="button" onClick="{{ backToPending }}" style="width:100%;margin-top:10px;padding:12px 14px;border-radius:8px;border:1px solid #CBD5E1;background:#fff;color:#475569;font-size:13.5px;font-weight:600;font-family:inherit;cursor:pointer">Back to pending</button>
+                    </div>
+                  </sc-if>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ ACT 3 ══ -->
+  <section style="{{ act3SectionStyle }}">
+    <div style="max-width:1280px;margin:0 auto;padding:0 24px">
+      <div style="max-width:780px;margin-bottom:28px">
+        <div style="font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#7C4DFF;margin-bottom:10px">Act three</div>
+        <h2 style="margin:0;font-size:34px;line-height:1.15;letter-spacing:-0.02em;font-weight:700;color:#14161A">The receipt — and an attempt to make it lie</h2>
+        <p style="margin:14px 0 0;font-size:16.5px;line-height:1.65;color:#4B5563">
+          This is the artifact you hand a risk team. Then: a second draft is created, and we confirm it using the <em style="font-style:normal;font-weight:600;color:#14161A">first</em> draft's hash. Drafts are immutable — nothing is edited. The hash simply does not match the bytes we hold.
+        </p>
+      </div>
+
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start">
+        <div style="border:1px solid #E5E7EB;border-radius:14px;background:#fff;overflow:hidden">
+          <div style="padding:14px 18px;border-bottom:1px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between;gap:10px">
+            <span style="font-family:ui-monospace,monospace;font-size:12px;color:#6B7280">GET /confirm/{token}/artifact</span>
+            <sc-if value="{{ ann }}" hint-placeholder-val="{{ true }}">
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;border:1.5px solid #7C4DFF;color:#7C4DFF;font-size:11px;font-weight:700">9</span>
+            </sc-if>
+          </div>
+          <div style="padding:18px">
+            <sc-for list="{{ artifactRows }}" as="r" hint-placeholder-count="7">
+              <div style="display:grid;grid-template-columns:200px minmax(0,1fr);gap:14px;padding:9px 0;border-bottom:1px solid #F3F4F6">
+                <span style="font-family:ui-monospace,monospace;font-size:12.5px;color:#6D3BF0">{{ r.k }}</span>
+                <span style="font-size:13.5px;line-height:1.55;color:#14161A;word-break:break-all;font-family:{{ r.font }}">{{ r.v }}</span>
+              </div>
+            </sc-for>
+            <div style="margin-top:16px">
+              <div style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#9CA3AF;margin-bottom:8px">declarations[]</div>
+              <sc-for list="{{ declarations }}" as="d" hint-placeholder-count="4">
+                <div style="display:flex;gap:10px;padding:5px 0;font-size:13.5px;line-height:1.6;color:#4B5563">
+                  <span aria-hidden="true" style="color:#9CA3AF">—</span><span>{{ d.text }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="border:1px solid #E5E7EB;border-radius:14px;background:#fff;padding:20px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+              <span style="font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#6B7280">Try to make it lie</span>
+              <sc-if value="{{ ann }}" hint-placeholder-val="{{ true }}">
+                <span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;border:1.5px solid #7C4DFF;color:#7C4DFF;font-size:11px;font-weight:700">10</span>
+              </sc-if>
+            </div>
+            <p style="margin:0 0 14px;font-size:14.5px;line-height:1.65;color:#4B5563">
+              We create a second draft — same parties, one different figure — and POST its approval carrying <code style="font-family:ui-monospace,monospace;font-size:13px;background:#F3F4F6;padding:1px 5px;border-radius:4px">draft_sha256</code> from the deed you already confirmed. A client that hashed one document cannot put a name on another.
+            </p>
+            <div style="border:1px solid #E5E7EB;border-radius:10px;background:#0B0D11;padding:14px;margin-bottom:14px">
+              <sc-for list="{{ tamperLines }}" as="l" hint-placeholder-count="5">
+                <div style="{{ l.style }}">{{ l.text }}</div>
+              </sc-for>
+            </div>
+            <button type="button" onClick="{{ doTamper }}" style="{{ tamperBtnStyle }}">{{ tamperLabel }}</button>
+          </div>
+
+          <sc-if value="{{ tamperDone }}" hint-placeholder-val="{{ false }}">
+            <div style="border:1px solid #FECACA;border-radius:14px;background:#FEF2F2;padding:20px">
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <span style="border:1px solid rgba(185,28,28,0.3);background:rgba(220,38,38,0.1);color:#B91C1C;border-radius:6px;padding:3px 8px;font-family:ui-monospace,monospace;font-size:12px;font-weight:700">409</span>
+                <span style="font-family:ui-monospace,monospace;font-size:12.5px;font-weight:600;color:#7F1D1D;letter-spacing:0.04em">DRAFT_MISMATCH</span>
+              </div>
+              <p style="margin:14px 0 0;font-size:18px;line-height:1.5;font-weight:600;color:#14161A">The bytes you hashed are not the bytes we hold for this draft. Re-fetch the preview and confirm again.</p>
+              <p style="margin:12px 0 0;font-size:14.5px;line-height:1.65;color:#4B5563">
+                The comparison happens before the promotion, so the second draft is still <strong>pending_confirmation</strong> — a mismatch never stores bytes nobody saw. Your receipt from Act 2 is untouched.
+              </p>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ CLOSE ══ -->
+  <section id="request-access" style="padding:64px 0;background:#12141A">
+    <div style="max-width:1280px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);gap:40px;align-items:center">
+      <div>
+        <h2 style="margin:0;font-size:36px;line-height:1.15;letter-spacing:-0.02em;font-weight:700;color:#fff;max-width:640px">You just ran the whole integration.</h2>
+        <p style="margin:16px 0 0;font-size:16.5px;line-height:1.65;color:#9CA3AF;max-width:620px">
+          Four traps refused, one deed confirmed by name, one receipt that would not take a false hash. The next step is a key of your own — three fields, no account. We issue keys after a short conversation about what you are building.
+        </p>
+        <div style="margin-top:20px;display:flex;flex-wrap:wrap;gap:10px 18px;font-size:13.5px;color:#6B7280">
+          <span>9 deed-family instruments</span><span style="color:#374151">•</span>
+          <span>Test keys prefixed dp_test_</span><span style="color:#374151">•</span>
+          <span><a href="#top" style="color:#C4B5FD;font-weight:600">What we do not have</a></span>
+        </div>
+      </div>
+      <div style="border:1px solid #262A33;border-radius:14px;background:#0B0D11;padding:24px">
+        <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px">Request API access</div>
+        <p style="margin:0 0 16px;font-size:13.5px;line-height:1.6;color:#9CA3AF">Company, work email, what you are building.</p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <input type="text" placeholder="Pacific Coast Escrow" style="border:1px solid #374151;background:#12141A;color:#E5E7EB;border-radius:8px;padding:11px 14px;font-size:14px;font-family:inherit;width:100%" />
+          <input type="email" placeholder="you@company.com" style="border:1px solid #374151;background:#12141A;color:#E5E7EB;border-radius:8px;padding:11px 14px;font-size:14px;font-family:inherit;width:100%" />
+          <textarea rows="3" placeholder="Generating grant deeds at closing from our escrow platform — roughly 200 a month, California only." style="border:1px solid #374151;background:#12141A;color:#E5E7EB;border-radius:8px;padding:11px 14px;font-size:14px;font-family:inherit;width:100%;resize:vertical"></textarea>
+          <button type="button" style="border:0;border-radius:8px;background:#7C4DFF;color:#fff;font-size:14px;font-weight:700;padding:12px 18px;cursor:pointer;margin-top:4px" style-hover="background:#6a3ff0">Request access</button>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:2px">
+            <span style="font-size:12.5px;color:#6B7280">Posts to the existing /api-key-inquiries endpoint.</span>
+            <sc-if value="{{ ann }}" hint-placeholder-val="{{ true }}">
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;border:1.5px solid #A78BFA;color:#C4B5FD;font-size:11px;font-weight:700">12</span>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ ANNOTATION LEGEND ══ -->
+  <sc-if value="{{ ann }}" hint-placeholder-val="{{ true }}">
+    <section style="padding:56px 0;background:#FFFFFF;border-top:1px solid #E5E7EB">
+      <div style="max-width:1280px;margin:0 auto;padding:0 24px">
+        <h2 style="margin:0 0 6px;font-size:26px;font-weight:700;letter-spacing:-0.02em;color:#14161A">Annotations</h2>
+        <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#6B7280;max-width:760px">Every numbered pin on the page. Each carries what it is and whether it exists today — read against the repo, not from memory.</p>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px">
+          <sc-for list="{{ pins }}" as="p" hint-placeholder-count="12">
+            <div style="border:1px solid #E5E7EB;border-radius:12px;background:#FCFCFD;padding:16px 18px;display:flex;gap:14px;align-items:flex-start">
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:999px;border:1.5px solid #7C4DFF;color:#7C4DFF;font-size:12.5px;font-weight:700;flex-shrink:0">{{ p.n }}</span>
+              <div style="min-width:0">
+                <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:6px">
+                  <span style="font-size:14.5px;font-weight:700;color:#14161A">{{ p.title }}</span>
+                  <span style="{{ p.tagStyle }}">{{ p.tag }}</span>
+                </div>
+                <p style="margin:0;font-size:13.5px;line-height:1.6;color:#4B5563">{{ p.body }}</p>
+                <div style="margin-top:8px;font-family:ui-monospace,monospace;font-size:12px;color:#9CA3AF">{{ p.src }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <p style="margin:24px 0 0;font-size:13.5px;line-height:1.65;color:#6B7280;max-width:860px">
+          The full build-requirements list — everything this page assumes that does not exist yet — is in <strong style="color:#14161A">Build Requirements.dc.html</strong>. Edge states (cold start, expiry, rejection, rate limit, network failure, mobile) are in <strong style="color:#14161A">Try Edge States.dc.html</strong>.
+        </p>
+      </div>
+    </section>
+  </sc-if>
+
+  <footer style="border-top:1px solid #E5E7EB;background:#F8F8FB;padding:28px 0">
+    <div style="max-width:1280px;margin:0 auto;padding:0 24px;font-size:13px;line-height:1.7;color:#6B7280">
+      Sample data only. A fixed, fictional property and fictional parties; no property lookup runs on this page. Every PDF rendered here is watermarked SAMPLE — NOT FOR RECORDING.
+      <br />DeedPro is software, not a law firm. It prepares documents at the direction of the professional using it and does not provide legal advice or legal determinations.
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1320},&quot;presenterMode&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Demo&quot;},&quot;showAnnotations&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Demo&quot;}}">
+const MONO = "ui-monospace,SFMono-Regular,Menlo,monospace";
+const LINE = "font-family:" + MONO + ";font-size:12.5px;line-height:1.75;white-space:pre-wrap;word-break:break-word;color:#D1D5DB";
+const LINE_DEL = LINE.replace("#D1D5DB", "#FCA5A5") + ";background:rgba(220,38,38,0.12);text-decoration:line-through;text-decoration-color:rgba(252,165,165,0.6)";
+const LINE_ADD = LINE.replace("#D1D5DB", "#C4B5FD") + ";background:rgba(124,77,255,0.14)";
+const LINE_DIM = LINE.replace("#D1D5DB", "#6B7280");
+
+const TRAPS = [
+  { id: "jt_vesting", label: "Vesting clause on a joint-tenancy deed", sub: "deed_type → grant_deed_jt" },
+  { id: "no_vesting", label: "Grant deed with no vesting at all", sub: "drop grantee.vesting" },
+  { id: "corp", label: "Corporate grantor, no organizing state", sub: "deed_type → grant_deed_corp" },
+  { id: "no_dtt", label: "Remove the transfer-tax declaration", sub: "drop transfer_tax" },
+  { id: "not_ca", label: "A parcel outside California", sub: "property.state → NV" },
+];
+
+const RESPONSES = {
+  jt_vesting: {
+    status: "422", code: "VALIDATION_ERROR",
+    message: "This instrument fixes its own vesting — Vesting is fixed by the instrument: joint tenancy. Choosing this form IS the vesting decision, so no vesting value is accepted. Remove grantee.vesting, or choose a deed type whose vesting you set.",
+    gloss: "Not a preference. The joint-tenancy template never reads a supplied vesting value, so accepting one and dropping it would silently discard your legal input. It is refused instead, and the refusal names the instrument that decided.",
+    details: [{ field: "body.recording", message: "Value error, This instrument fixes its own vesting — …" }],
+  },
+  no_vesting: {
+    status: "422", code: "VALIDATION_ERROR",
+    message: "grantee.vesting is required for this deed type",
+    gloss: "The mirror of the trap beside it. A plain grant deed does not state vesting on its face, so the value has to come from you — and an absent one is a blank line in a granting clause, not a partial document.",
+    details: [{ field: "body.recording", message: "Value error, grantee.vesting is required for this deed type" }],
+  },
+  corp: {
+    status: "422", code: "VALIDATION_ERROR",
+    message: "This instrument recites facts about the grantor entity that are missing: grantor.entity.entity_state. Corporate grantor. The deed recites the state under whose laws the corporation is organized.",
+    gloss: "The deed says the corporation is organized under the laws of ______ mid-sentence. Missing, that prints as a blank inside a recital — a defective instrument, which is worse than no instrument.",
+    details: [{ field: "body.recording", message: "Value error, This instrument recites facts about the grantor entity that are missing: grantor.entity.entity_state." }],
+  },
+  no_dtt: {
+    status: "422", code: "VALIDATION_ERROR",
+    message: "Request validation failed",
+    gloss: "transfer_tax is a required object on CreateDeedRequest, so the request never reaches the template. The declaration is statutory furniture (R&T §11932): a recorder will not take the page without it.",
+    details: [{ field: "body.transfer_tax", message: "Field required" }],
+    flagged: true,
+    flagNote: "The field path and the top-level message are inferred from the Pydantic model plus the router's 422 mapping. Run this request against the sandbox and paste the exact strings in before the page ships.",
+  },
+  not_ca: {
+    status: "422", code: "VALIDATION_ERROR",
+    message: "Currently only California (CA) deeds are supported",
+    gloss: "Templates are measured against California county recorder requirements and the data model is California-specific. A second state is not on the roadmap; if you need one, we are the wrong vendor.",
+    details: [{ field: "body.property.state", message: "Value error, Currently only California (CA) deeds are supported" }],
+  },
+};
+
+const PINS = [
+  { n: 1, title: "Honest warming state", tag: "Needs building", body: "The sandbox can take ~30s to wake. It counts down against a real readiness check rather than spinning, and every Send button is disabled until it is up — a hang in a sales call kills the demo.", src: "needs: demo key + a cheap /health ping the page can poll" },
+  { n: 2, title: "Traps are real requests", tag: "Exists today", body: "Four of the five refusals come straight from api_catalog.TYPE_REQUIREMENTS and the PropertyModel validator. No trap is scripted client-side; the page sends and shows what came back.", src: "backend/services/api_catalog.py · schemas/api_v1/deeds.py" },
+  { n: 3, title: "The reason is the hero", tag: "Exists today", body: "detail.message is rendered verbatim at 19px, above the envelope, because the message is already written to be read by a human. detail.details[] carries {field, message} pairs underneath.", src: "backend/tests/test_api_v1_error_contract.py" },
+  { n: 4, title: "The prospect becomes approver.name", tag: "Exists today", body: "name and role are required by the shipped contract and are what gets recorded. The copy says DeedPro does not verify the person, because it does not — the token authenticates, the name is a claim.", src: "schemas/api_v1/deeds.py · ApproverModel" },
+  { n: 5, title: "QR encodes urls.confirmation", tag: "Needs building", body: "The URL is real API output; the QR is drawn client-side from it. No QR library ships in the frontend today, and the PDF must never carry one (recorded pages carry no verification chrome).", src: "needs: a client-side QR renderer on this page only" },
+  { n: 6, title: "Polling, stated out loud", tag: "Exists today", body: "There are no webhooks — /trust says so in those words. The page polls the deed and shows the interval and the attempt count instead of a spinner that implies a push channel we do not have.", src: "GET /api/v1/deeds/{id} · frontend/src/app/trust/page.tsx" },
+  { n: 7, title: "The phone is /confirm/[token], unchanged", tag: "Exists, with gaps", body: "Same surface, same allowlisted package, same reject-with-reason catalog. Two things it does not do today: it renders the PDF in an 80vh iframe that is unusable on a phone, and it has no demo-safe styling for a watermarked sample.", src: "frontend/src/app/confirm/[token]/page.tsx" },
+  { n: 8, title: "Watermark on every rendered page", tag: "Needs building", body: "A clean, recordable-looking deed that anyone on the internet can mint is a fraud-adjacent artifact. The demo template must print SAMPLE — NOT FOR RECORDING into the PDF itself, not as a CSS overlay the screenshot loses.", src: "needs: a watermark layer in the demo render path" },
+  { n: 9, title: "The artifact's exact key set", tag: "Exists today", body: "Nine keys, no more: assert_artifact_keys enforces it. Two hash fields are shown as what they are — one fact recorded twice — because approval promotes the preview bytes rather than re-rendering them.", src: "backend/services/api_confirm.py · ARTIFACT_KEYS" },
+  { n: 10, title: "The tamper needs a second draft", tag: "Exists, needs a demo step", body: "Re-approving the deed you just confirmed returns NOT_PENDING, not DRAFT_MISMATCH — the state check runs first. To show the hash check the demo must create a second pending draft and confirm it with the first one's hash.", src: "backend/routers/api_confirm.py · approve_confirmation" },
+  { n: 11, title: "Doctrinal colour", tag: "Exists today", body: "Amber is only ever unconfirmed data awaiting a human: the pending draft, the expiry pill, the unverified-string flag. Violet is only ever a proposed legal choice. Status always carries a glyph and a word, never colour alone.", src: "docs/BRAND.md" },
+  { n: 12, title: "The one honest next step", tag: "Exists today", body: "Three fields, no account, posting to the same /api-key-inquiries endpoint /developers already uses. No trial signup, no self-serve key, because neither exists.", src: "frontend/src/app/developers/ApiInquiryForm.tsx" },
+];
+
+const DECLARATIONS = [
+  "This document was approved by the named person at the stated time, and the bytes held hash to the SHA-256 shown.",
+  "The approver saw these exact bytes: approval promotes the previewed PDF rather than re-rendering it.",
+  "The licence string, when present, is recorded as supplied and is NOT verified by DeedPro.",
+  "Nothing here establishes that the approver read the document, or that they were entitled to approve it.",
+];
+
+const SHA_A = "9f2c41b8e7a05d3c6b19fe84072ad5c3918be6f40d27ca55e83b1097d6fa42e8";
+const SHA_B = "3ad07e51c982bf46d3150a7e2c8b94f60ed7a318b52c4097fe6db8310c45a7f2";
+
+class Component extends DCLogic {
+  state = {
+    ready: false, secs: 30,
+    trap: "jt_vesting", resp: null,
+    name: "", role: "escrow officer",
+    draft: false, polls: 0, phone: "pending", rejectOpen: false, issues: ["Vesting incorrect"],
+    tamper: false, clockRunning: false, t: 0,
+  };
+
+  get presenter() { return this.props.presenterMode ?? false; }
+
+  componentDidMount() { this.armWarming(); }
+  componentDidUpdate() { this.armWarming(); }
+  componentWillUnmount() { clearInterval(this.warm); clearInterval(this.poll); clearInterval(this.tick); }
+
+  armWarming() {
+    if (this.state.ready || this.warm) return;
+    if (this.presenter) { this.setState({ ready: true, secs: 0 }); return; }
+    if (!this.warmStart) this.warmStart = Date.now();
+    this.warm = setInterval(() => {
+      if (this.warmLeft() <= 0) { clearInterval(this.warm); this.warm = null; this.setState({ ready: true }); }
+      else this.forceUpdate();
+    }, 250);
+  }
+
+  warmLeft() {
+    if (!this.warmStart) return 30;
+    return Math.max(0, 30 - Math.floor((Date.now() - this.warmStart) / 700));
+  }
+
+  startPolling() {
+    clearInterval(this.poll);
+    this.poll = setInterval(() => {
+      this.setState(s => (s.phone === "pending" ? { polls: s.polls + 1 } : s));
+    }, 3000);
+  }
+
+  qrNode() {
+    const N = 25, seed = 1337;
+    const on = (r, c) => {
+      const fin = (br, bc) => r >= br && r < br + 7 && c >= bc && c < bc + 7 &&
+        (r === br || r === br + 6 || c === bc || c === bc + 6 || (r >= br + 2 && r <= br + 4 && c >= bc + 2 && c <= bc + 4));
+      const inFinder = (br, bc) => r >= br - 1 && r < br + 8 && c >= bc - 1 && c < bc + 8;
+      if (inFinder(0, 0) || inFinder(0, N - 7) || inFinder(N - 7, 0))
+        return fin(0, 0) || fin(0, N - 7) || fin(N - 7, 0);
+      const h = (r * 73856093) ^ (c * 19349663) ^ seed;
+      return ((h >>> 3) & 7) > 3;
+    };
+    const rects = [];
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      if (on(r, c)) rects.push(React.createElement("rect", { key: r + "-" + c, x: c, y: r, width: 1, height: 1, fill: "#14161A" }));
+    }
+    return React.createElement("svg", {
+      viewBox: "-1 -1 27 27", width: 168, height: 168,
+      style: { background: "#fff", border: "1px solid #E5E7EB", borderRadius: 8, padding: 4 },
+      role: "img", "aria-label": "QR code linking to the confirmation URL",
+    }, rects);
+  }
+
+  requestLines() {
+    const t = this.state.trap;
+    const L = [];
+    const push = (text, kind) => L.push({ text, style: kind === "del" ? LINE_DEL : kind === "add" ? LINE_ADD : kind === "dim" ? LINE_DIM : LINE });
+    push("{");
+    if (t === "jt_vesting") push('  "deed_type": "grant_deed_jt",', "add");
+    else if (t === "corp") push('  "deed_type": "grant_deed_corp",', "add");
+    else push('  "deed_type": "grant_deed",');
+    push("  \"property\": {");
+    push('    "address": "1300 Nonesuch Avenue",');
+    push('    "city": "Glendora",');
+    if (t === "not_ca") push('    "state": "NV",', "add");
+    else push('    "state": "CA",');
+    push('    "zip": "91750",');
+    push('    "county": "Los Angeles",');
+    push('    "apn": "8888-000-001",');
+    push('    "legal_description": "LOT 7, BLOCK 2, TRACT NO. 99999…"');
+    push("  },");
+    if (t === "corp") {
+      push('  "grantor": { "name": "SAMPLE HOLDINGS, INC.",');
+      push('               "entity": { } },', "del");
+    } else {
+      push('  "grantor": { "name": "JOHN Q. SAMPLE AND MARY R. SAMPLE, HUSBAND AND WIFE" },');
+    }
+    if (t === "no_vesting") {
+      push('  "grantee": { "name": "AVERY K. SPECIMEN" },');
+      push('  //           "vesting": "an unmarried person"', "del");
+    } else {
+      push('  "grantee": { "name": "AVERY K. SPECIMEN", "vesting": "an unmarried person" },');
+    }
+    if (t === "no_dtt") {
+      push('  // "transfer_tax": { "exempt": false, "value": 750000, … }', "del");
+    } else {
+      push('  "transfer_tax": { "exempt": false, "value": 750000,');
+      push('                    "computed_amount": "825.00", "basis": "full_value" },');
+    }
+    push('  "recording": { "requested_by": "Pacific Coast Escrow", "return_to": { … } },', "dim");
+    const nm = (this.state.name || "").trim() || "Your name";
+    push('  "approver": { "name": "' + nm + '", "role": "' + (this.state.role || "escrow officer") + '" }');
+    push("}");
+    return L;
+  }
+
+  draftLines() {
+    const nm = (this.state.name || "").trim() || "Your name";
+    const done = this.state.phone === "approved";
+    const st = k => ({ text: k, style: LINE });
+    return [
+      st("{"),
+      st('  "deed_id": "deed_8Kd2mQxR4vLp",'),
+      st('  "document_id": "DOC-2026-H7K3M",'),
+      { text: '  "status": "' + (done ? "completed" : "pending_confirmation") + '",', style: done ? LINE.replace("#D1D5DB", "#86EFAC") : LINE.replace("#D1D5DB", "#FCD34D") },
+      st('  "expires_at": "2026-09-28T19:26:00Z",'),
+      st('  "urls": {'),
+      st('    "confirmation": "https://deedpro.io/confirm/3f9a…",'),
+      { text: '    "pdf": ' + (done ? '"/api/v1/deeds/deed_8Kd2mQxR4vLp/pdf",' : "null,"), style: done ? LINE.replace("#D1D5DB", "#86EFAC") : LINE_DIM },
+      st('    "verification": ' + (done ? '"/verify/DOC-2026-H7K3M"' : "null")),
+      st("  },"),
+      st('  "approver": { "name": "' + nm + '", "role": "' + this.state.role + '" }'),
+      st("}"),
+    ];
+  }
+
+  tamperLines() {
+    const s = k => ({ text: k, style: LINE });
+    return [
+      s("POST /confirm/{draft_B_token}/approve"),
+      s("{"),
+      { text: '  "draft_sha256": "' + SHA_A.slice(0, 32) + '…"', style: LINE_ADD },
+      s("}"),
+      { text: "// draft B hashes to " + SHA_B.slice(0, 12) + "… — immutable, unedited", style: LINE_DIM },
+    ];
+  }
+
+  renderVals() {
+    const s = this.state;
+    const ann = this.props.showAnnotations ?? true;
+    const ready = s.ready;
+    const nm = (s.name || "").trim();
+
+    const chip = (bg, bd, fg) => "display:inline-flex;align-items:center;gap:7px;border:1px solid " + bd + ";background:" + bg + ";color:" + fg + ";border-radius:999px;padding:6px 13px;font-size:13px;font-weight:600";
+
+    const trapBtn = id => "text-align:left;border:1.5px solid " + (s.trap === id ? "#7C4DFF" : "#E5E7EB") +
+      ";background:" + (s.trap === id ? "#F5F3FF" : "#fff") + ";border-radius:12px;padding:13px 15px;cursor:pointer;font-family:inherit;color:#14161A;transition:border-color .15s";
+
+    const r = s.resp ? RESPONSES[s.resp] : null;
+    const sectionBase = "padding:56px 0;border-bottom:1px solid #E5E7EB;";
+
+    const act2Live = !!s.resp;
+    const act3Live = s.phone === "approved";
+
+    return {
+      ann,
+      presenterOn: this.presenter,
+      clock: String(Math.floor(s.t / 60)).padStart(2, "0") + ":" + String(s.t % 60).padStart(2, "0"),
+      clockLabel: s.clockRunning ? "Pause" : "Start",
+      script: !s.resp
+        ? "“Before I show you what it does, I want you to try to break it. Pick the one you think we would have got wrong.”"
+        : s.phone !== "approved"
+          ? "“Now the part you cannot build in a weekend. Take your phone out — you are about to be the named person on this deed.”"
+          : "“That is what your risk team gets. Watch what happens when I try to put your name on a document you never saw.”",
+      toggleClock: () => {
+        if (s.clockRunning) { clearInterval(this.tick); this.setState({ clockRunning: false }); }
+        else { this.tick = setInterval(() => this.setState(p => ({ t: p.t + 1 })), 1000); this.setState({ clockRunning: true }); }
+      },
+      resetAll: () => {
+        clearInterval(this.poll);
+        this.setState({ trap: "jt_vesting", resp: null, draft: false, polls: 0, phone: "pending", rejectOpen: false, tamper: false, t: 0, name: "" });
+      },
+
+      sandboxChipStyle: ready ? chip("#F0FDF4", "#BBF7D0", "#166534") : chip("#F3F4F6", "#E5E7EB", "#4B5563"),
+      sandboxGlyph: ready ? "✓" : "◔",
+      sandboxWord: ready ? "Sandbox ready" : "Sandbox warming",
+      sandboxNote: ready
+        ? "dp_test_ key · every request below is real"
+        : "Cold containers take up to 30 seconds to wake. " + this.warmLeft() + "s remaining — nothing is hidden behind a spinner.",
+      warming: !ready,
+      skipWarming: () => { clearInterval(this.warm); this.warm = null; this.setState({ ready: true, secs: 0 }); },
+      isApproved: s.phone === "approved",
+
+      actRail: [
+        { n: "ACT 01", title: "Break it on purpose", state: s.resp ? "Refused — as designed" : "Waiting for you", style: "padding:16px 20px;border-right:1px solid #E5E7EB;" + (!s.resp ? "background:#fff;box-shadow:inset 0 -3px 0 #7C4DFF" : "") },
+        { n: "ACT 02", title: "You confirm it", state: s.phone === "approved" ? "Confirmed by " + (nm || "you") : act2Live ? "Ready" : "Locked until a trap fires", style: "padding:16px 20px;border-right:1px solid #E5E7EB;" + (act2Live && s.phone !== "approved" ? "background:#fff;box-shadow:inset 0 -3px 0 #7C4DFF" : "") },
+        { n: "ACT 03", title: "The receipt", state: s.tamper ? "409 — refused" : act3Live ? "Artifact issued" : "Locked until confirmation", style: "padding:16px 20px;" + (act3Live && !s.tamper ? "background:#fff;box-shadow:inset 0 -3px 0 #7C4DFF" : "") },
+      ],
+
+      traps: TRAPS.map(t => ({ ...t, style: trapBtn(t.id), pick: () => this.setState({ trap: t.id, resp: null }) })),
+      requestLines: this.requestLines(),
+      sendTrap: () => { if (ready) this.setState({ resp: s.trap }); },
+      sendHint: ready ? "Real POST against the sandbox — nothing is stubbed." : "Disabled until the sandbox is up.",
+
+      hasResponse: !!r,
+      noResponse: !r,
+      responseStyle: "border:1px solid " + (r ? "#FECACA" : "#E5E7EB") + ";background:" + (r ? "#FEF2F2" : "#FCFCFD") + ";border-radius:14px;padding:20px;min-height:150px",
+      resp: r ? {
+        status: r.status, code: r.code, message: r.message, gloss: r.gloss,
+        details: r.details.map(d => ({ ...d })), hasDetails: true,
+        flagged: !!r.flagged, flagNote: r.flagNote || "",
+        badgeStyle: "border:1px solid rgba(185,28,28,0.3);background:rgba(220,38,38,0.1);color:#B91C1C;border-radius:6px;padding:3px 8px;font-family:" + MONO + ";font-size:12px;font-weight:700",
+      } : null,
+
+      act2SectionStyle: sectionBase + "background:#F8F8FB;" + (act2Live ? "" : "opacity:0.55"),
+      act3SectionStyle: sectionBase + "background:#fff;" + (act3Live ? "" : "opacity:0.55"),
+
+      approverName: s.name, approverRole: s.role,
+      setName: e => this.setState({ name: e.target.value }),
+      setRole: e => this.setState({ role: e.target.value }),
+      sendValidLabel: s.draft ? "Draft created" : "Send the valid request",
+      sendValidStyle: "border:0;border-radius:8px;background:" + (s.draft || !act2Live ? "#E5E7EB" : "#7C4DFF") + ";color:" + (s.draft || !act2Live ? "#6B7280" : "#fff") +
+        ";font-size:14px;font-weight:700;padding:12px 18px;cursor:" + (s.draft || !act2Live ? "default" : "pointer"),
+      act2Hint: !act2Live ? "Fire a trap in Act 1 first — the sequence is the argument." : s.draft ? "No PDF exists yet. urls.pdf is null." : "Same payload, no trap. Returns a draft, not a document.",
+      sendValid: () => {
+        if (!ready || s.draft || !act2Live) return;
+        this.setState({ draft: true, polls: 1 });
+        this.startPolling();
+      },
+      hasDraft: s.draft,
+      draftLines: this.draftLines(),
+      draftChipStyle: s.phone === "approved"
+        ? chip("rgba(22,163,74,0.12)", "rgba(22,163,74,0.35)", "#86EFAC")
+        : chip("rgba(245,158,11,0.12)", "rgba(245,158,11,0.35)", "#FCD34D"),
+      draftGlyph: s.phone === "approved" ? "✓" : "◷",
+      draftWord: s.phone === "approved" ? "completed" : "pending_confirmation",
+      pollGlyph: s.phone === "approved" ? "✓" : "↻",
+      pollLine: s.phone === "approved"
+        ? "Stopped polling after " + s.polls + (s.polls === 1 ? " attempt." : " attempts.") + " No webhooks exist — this is a poll, and the page says so."
+        : "Polling GET /api/v1/deeds/deed_8Kd2mQxR4vLp every 3s · attempt " + s.polls + ". No webhooks — this is a poll, not a push.",
+
+      qr: this.qrNode(),
+      confirmUrl: "https://deedpro.io/confirm/3f9a7c21e0b84d55a6c7f2d1b93e40c8",
+      greeting: (nm || "Approver") + ", " + s.role,
+      expiresDate: "9/28/2026",
+
+      phoneIdle: !s.draft,
+      phoneActions: s.draft && s.phone === "pending" && !s.rejectOpen,
+      phoneRejectOpen: s.draft && s.phone === "pending" && s.rejectOpen,
+      phoneApproved: s.phone === "approved",
+      phoneRejected: s.phone === "rejected",
+      phoneApprove: () => this.setState({ phone: "approved" }),
+      openReject: () => this.setState({ rejectOpen: true }),
+      closeReject: () => this.setState({ rejectOpen: false }),
+      phoneReject: () => this.setState({ phone: "rejected", rejectOpen: false }),
+      backToPending: () => this.setState({ phone: "pending" }),
+      rejectReasons: ["Grantor name incorrect", "Grantee name incorrect", "Legal description issue", "Vesting incorrect"].map(label => ({
+        label,
+        checked: s.issues.indexOf(label) >= 0,
+        toggle: () => this.setState(p => ({ issues: p.issues.indexOf(label) >= 0 ? p.issues.filter(i => i !== label) : p.issues.concat([label]) })),
+      })),
+
+      artifactRows: [
+        { k: "document_id", v: "DOC-2026-H7K3M", font: MONO },
+        { k: "deed_type", v: "grant_deed", font: MONO },
+        { k: "pdf_sha256", v: SHA_A, font: MONO },
+        { k: "sha256_recorded_at_approval", v: SHA_A + "  (same fact, recorded at approval)", font: MONO },
+        { k: "confirmed_by", v: nm || "— not yet confirmed —", font: "inherit" },
+        { k: "role", v: s.role, font: "inherit" },
+        { k: "license_claimed", v: "null — never verified by DeedPro", font: MONO },
+        { k: "confirmed_at", v: act3Live ? "2026-09-21T19:27:14Z" : "null", font: MONO },
+      ],
+      declarations: DECLARATIONS.map(text => ({ text })),
+
+      tamperLines: this.tamperLines(),
+      tamperLabel: s.tamper ? "Refused — see below" : "Confirm draft B with draft A's hash",
+      tamperBtnStyle: "border:1.5px solid " + (s.tamper ? "#E5E7EB" : "#14161A") + ";background:" + (s.tamper ? "#F3F4F6" : "#14161A") +
+        ";color:" + (s.tamper ? "#6B7280" : "#fff") + ";border-radius:8px;padding:12px 18px;font-size:14px;font-weight:700;font-family:inherit;cursor:" + (s.tamper ? "default" : "pointer"),
+      doTamper: () => { if (act3Live) this.setState({ tamper: true }); },
+      tamperDone: s.tamper,
+
+      pins: PINS.map(p => ({
+        ...p,
+        tagStyle: "font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:3px 8px;border-radius:5px;" +
+          (p.tag === "Exists today"
+            ? "background:#F0FDF4;color:#166534;border:1px solid #BBF7D0"
+            : p.tag === "Needs building"
+              ? "background:#F5F3FF;color:#6D3BF0;border:1px solid #DDD6FE"
+              : "background:#FFFBEB;color:#92400E;border:1px solid #FDE68A"),
+      })),
+    };
+  }
+
+}
+</script>
+</body>
+</html>

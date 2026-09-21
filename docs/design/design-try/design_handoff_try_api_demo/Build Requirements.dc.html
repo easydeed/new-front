@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  body { margin: 0; background: #fff; color: #14161A; font-family: Inter, system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: #7C4DFF; text-decoration: none; }
+  a:hover { color: #6a3ff0; text-decoration: underline; }
+  * { box-sizing: border-box; }
+</style>
+</helmet>
+
+<div style="max-width:860px;margin:0 auto;padding:64px 24px 96px">
+
+  <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#7C4DFF;margin-bottom:12px">/try · build requirements</div>
+  <h1 style="margin:0;font-size:38px;line-height:1.15;letter-spacing:-0.025em;font-weight:700;color:#1F2B37;text-wrap:pretty">Everything the design assumes that does not exist yet</h1>
+  <p style="margin:18px 0 0;font-size:17px;line-height:1.7;color:#4B5563">
+    Read against the repo at <code style="font-family:ui-monospace,monospace;font-size:15px;background:#F3F4F6;padding:1px 6px;border-radius:4px">main</code>, not from memory. Anything the design draws that the API cannot do today is here rather than on the page as though it were real. Where a claim could not be verified by reading, it says so instead of guessing.
+  </p>
+
+  <div style="margin-top:28px;border:1px solid #FDE68A;background:#FFFBEB;border-radius:12px;padding:18px 20px">
+    <div style="font-size:14px;font-weight:700;color:#92400E;margin-bottom:6px">◷ One correction to the brief</div>
+    <p style="margin:0;font-size:14.5px;line-height:1.65;color:#92400E">
+      The brief specifies <code style="font-family:ui-monospace,monospace;font-size:13.5px">409 DRAFT_SUPERSEDED</code>. The shipped code returns <code style="font-family:ui-monospace,monospace;font-size:13.5px">409 DRAFT_MISMATCH</code> — “The bytes you hashed are not the bytes we hold for this draft. Re-fetch the preview and confirm again.” The design uses the shipped code. If DRAFT_SUPERSEDED is the intended name, renaming it is an API change and belongs on this list.
+    </p>
+  </div>
+
+  <h2 style="margin:48px 0 8px;font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#6D3BF0">Must exist before /try can ship</h2>
+  <div style="display:flex;flex-direction:column;gap:14px;margin-top:18px">
+    <sc-for list="{{ blockers }}" as="r" hint-placeholder-count="7">
+      <div style="border:1px solid #E5E7EB;border-radius:12px;padding:18px 20px;background:#FCFCFD">
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px">
+          <span style="font-family:ui-monospace,monospace;font-size:12px;font-weight:700;color:#7C4DFF">{{ r.id }}</span>
+          <span style="font-size:16px;font-weight:700;color:#14161A">{{ r.title }}</span>
+          <span style="{{ r.ownerStyle }}">{{ r.owner }}</span>
+        </div>
+        <p style="margin:0;font-size:14.5px;line-height:1.7;color:#4B5563">{{ r.body }}</p>
+        <div style="margin-top:10px;font-family:ui-monospace,monospace;font-size:12.5px;line-height:1.6;color:#9CA3AF">{{ r.src }}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <h2 style="margin:48px 0 8px;font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#6D3BF0">Should exist — the demo is weaker without it</h2>
+  <div style="display:flex;flex-direction:column;gap:14px;margin-top:18px">
+    <sc-for list="{{ shoulds }}" as="r" hint-placeholder-count="5">
+      <div style="border:1px solid #E5E7EB;border-radius:12px;padding:18px 20px;background:#fff">
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px">
+          <span style="font-family:ui-monospace,monospace;font-size:12px;font-weight:700;color:#7C4DFF">{{ r.id }}</span>
+          <span style="font-size:16px;font-weight:700;color:#14161A">{{ r.title }}</span>
+          <span style="{{ r.ownerStyle }}">{{ r.owner }}</span>
+        </div>
+        <p style="margin:0;font-size:14.5px;line-height:1.7;color:#4B5563">{{ r.body }}</p>
+        <div style="margin-top:10px;font-family:ui-monospace,monospace;font-size:12.5px;line-height:1.6;color:#9CA3AF">{{ r.src }}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <h2 style="margin:48px 0 8px;font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#92400E">Unverified — confirm against the running API before launch</h2>
+  <div style="display:flex;flex-direction:column;gap:14px;margin-top:18px">
+    <sc-for list="{{ unknowns }}" as="r" hint-placeholder-count="4">
+      <div style="border:1px solid #FDE68A;border-radius:12px;padding:18px 20px;background:#FFFBEB">
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px">
+          <span style="font-family:ui-monospace,monospace;font-size:12px;font-weight:700;color:#B45309">{{ r.id }}</span>
+          <span style="font-size:16px;font-weight:700;color:#14161A">{{ r.title }}</span>
+        </div>
+        <p style="margin:0;font-size:14.5px;line-height:1.7;color:#78350F">{{ r.body }}</p>
+      </div>
+    </sc-for>
+  </div>
+
+  <h2 style="margin:48px 0 8px;font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#166534">Already exists — the design leans on it as-is</h2>
+  <div style="margin-top:18px;border:1px solid #E5E7EB;border-radius:12px;overflow:hidden">
+    <sc-for list="{{ exists }}" as="e" hint-placeholder-count="8">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;padding:13px 18px;border-bottom:1px solid #F3F4F6;align-items:baseline">
+        <span style="font-size:14.5px;line-height:1.55;color:#14161A">{{ e.what }}</span>
+        <span style="font-family:ui-monospace,monospace;font-size:12px;line-height:1.55;color:#9CA3AF">{{ e.src }}</span>
+      </div>
+    </sc-for>
+  </div>
+
+  <h2 style="margin:48px 0 8px;font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#6B7280">Deliberately not built</h2>
+  <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px">
+    <sc-for list="{{ nots }}" as="x" hint-placeholder-count="5">
+      <div style="display:flex;gap:12px;font-size:14.5px;line-height:1.7;color:#4B5563">
+        <span aria-hidden="true" style="color:#9CA3AF">—</span><span>{{ x.text }}</span>
+      </div>
+    </sc-for>
+  </div>
+
+  <p style="margin:48px 0 0;padding-top:24px;border-top:1px solid #E5E7EB;font-size:13.5px;line-height:1.7;color:#6B7280">
+    Screens: <strong style="color:#14161A">Try Prototype.dc.html</strong> (happy path, clickable, presenter toggle) and <strong style="color:#14161A">Try Edge States.dc.html</strong> (every other state). Source association and screen map: <strong style="color:#14161A">github.md</strong>.
+  </p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+const OWNER = {
+  be: "font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:3px 8px;border-radius:5px;background:#F5F3FF;color:#6D3BF0;border:1px solid #DDD6FE",
+  fe: "font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:3px 8px;border-radius:5px;background:#F3F4F6;color:#4B5563;border:1px solid #E5E7EB",
+  ops: "font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:3px 8px;border-radius:5px;background:#FFFBEB;color:#92400E;border:1px solid #FDE68A",
+};
+
+class Component extends DCLogic {
+  renderVals() {
+    const row = (id, title, owner, body, src) => ({ id, title, owner: owner === "be" ? "Backend" : owner === "fe" ? "Frontend" : "Ops", ownerStyle: OWNER[owner], body, src });
+    return {
+      blockers: [
+        row("TRY-1", "A demo key, scoped to this page", "be",
+          "The page calls the API from a browser, so whatever key it carries is public. It needs a key class that can only create the fixed sample deed: no arbitrary property, no arbitrary parties, no live-key capability, a low ceiling, and rotation without a deploy. A dp_test_ key pasted into client JavaScript is not that — anyone can then mint deeds against our sandbox with their own facts.",
+          "backend/routers/api_v1/router.py · get_api_key · needs a new key class"),
+        row("TRY-2", "SAMPLE — NOT FOR RECORDING, printed in the PDF", "be",
+          "Not a CSS overlay. The watermark must be in the rendered bytes, so a screenshot, a download and a print all carry it, and so the hash in the artifact is the hash of a watermarked document. Applies to the preview bytes too, since those are the bytes approval promotes.",
+          "templates/grant_deed_ca/ · the WeasyPrint render path"),
+        row("TRY-3", "Traps sourced from the catalog, not hard-coded", "fe",
+          "The five traps are mutations of one payload, and the refusals they produce are TYPE_REQUIREMENTS entries. If the page types the expected messages as literals it will outlive the doctrine — the homepage already solved this by deriving its 422 sample from API_DEED_TYPES. Do the same: the trap list reads the catalog and the page renders whatever comes back.",
+          "frontend/src/lib/apiDocs.ts · backend/services/api_catalog.py"),
+        row("TRY-4", "A second draft for the tamper step", "fe",
+          "Re-approving the deed just confirmed returns NOT_PENDING, because the state check runs before the hash comparison. To reach DRAFT_MISMATCH the page must create a second pending draft and POST its approval carrying the first draft's draft_sha256. That is two extra API calls in Act 3 and must not be described as editing anything: drafts are immutable.",
+          "backend/routers/api_confirm.py · approve_confirmation"),
+        row("TRY-5", "A readiness ping the page can poll", "ops",
+          "The warming state has to count against something real. A cheap unauthenticated endpoint that answers when the container is up, polled every second, with a hard stop at 45 seconds and a stated fallback. A fixed 30-second timer that finishes while the service is still asleep is worse than no timer at all.",
+          "needs: GET /health or equivalent, reachable from the browser"),
+        row("TRY-6", "Client-side QR rendering", "fe",
+          "No QR library is in the frontend today. It renders urls.confirmation from the API response, on this page only — recorded pages carry no QR, no verification URL and no document id by rule.",
+          "frontend/src/app/developers/page.tsx · 'Recorded pages carry no verification chrome'"),
+        row("TRY-7", "A phone-usable /confirm/[token]", "fe",
+          "The surface is right and should not be duplicated, but it renders the PDF in an 80vh iframe, which on a phone is a pinch-zoom fight with a document the reader is being asked to actually read. Either a mobile-first preview (paged image render, or the browser's native PDF view full-screen) or an explicit 'open the PDF' step. This is the one thing in the brief that the existing surface cannot serve as-is.",
+          "frontend/src/app/confirm/[token]/page.tsx · previewSrc iframe"),
+      ],
+      shoulds: [
+        row("TRY-8", "A deliberately expired token for demos", "be",
+          "Expiry takes seven days to reach honestly. Keeping one permanently expired draft lets a presenter show the state without faking it — the alternative is a mock, which on a page whose whole claim is that everything is real would be the one lie on it.",
+          "services/api_confirm.py · CONFIRM_EXPIRY_DAYS = 7"),
+        row("TRY-9", "Per-IP rate limiting for the demo key", "be",
+          "The v1 key limits are per key, and every visitor shares this one. Without a per-IP layer, one prospect exhausts the ceiling for the next and the page greets them with a 429 as their first impression.",
+          "backend/routers/api_v1/router.py · hourly and daily ceilings"),
+        row("TRY-10", "A timeout wrapper on every call", "fe",
+          "20-second ceiling, then a stated failure with the elapsed time and a Retry. Where it is ambiguous whether the request reached us, the page says exactly that.",
+          "needs: shared fetch helper for this page"),
+        row("TRY-11", "Presenter mode as a query parameter", "fe",
+          "?presenter=1 pre-warms the sandbox, unlocks the acts, shows a timer and one script line per act, and adds a reset. Same copy, same components — a separate presenter build drifts from the self-serve one within a month.",
+          "no equivalent exists today"),
+        row("TRY-12", "A recorded fallback walkthrough", "ops",
+          "For the give-up state at 45 seconds. Ninety seconds of the same three acts, so a dead sandbox costs the meeting its interactivity rather than its argument.",
+          "needs: a hosted recording and a link"),
+      ],
+      unknowns: [
+        { id: "?-1", title: "The exact 422 body for a missing transfer_tax", body: "Inferred from the Pydantic model plus the router's 422 mapping: detail.details[] carrying {field: \"body.transfer_tax\", message: \"Field required\"}. Run it and paste the real strings in." },
+        { id: "?-2", title: "The field path on instrument-rule refusals", body: "check_type_rules is a validator on the recording field, so three of the five traps report body.recording rather than body.grantee.vesting or body.grantor.entity. Correct, and misleading to a reader. Either move the check or map the path — the demo makes this quirk visible to exactly the audience that will notice it." },
+        { id: "?-3", title: "Whether the sandbox actually takes ~30s", body: "The brief says up to 30 seconds. Measure a cold start ten times and set the ceiling from the slowest, not the median." },
+        { id: "?-4", title: "The rendered deed's appearance at phone scale", body: "The screens here draw a representative grant deed, not a screenshot of the real template output. Confirm the actual render before the page ships, especially the legal-description block at 390px." },
+      ],
+      exists: [
+        { what: "POST /api/v1/deeds returning a draft with status pending_confirmation and urls.confirmation", src: "routers/api_v1/router.py" },
+        { what: "Error envelope {detail: {code, message, details[]}}, pinned by tests", src: "tests/test_api_v1_error_contract.py" },
+        { what: "The five instrument refusals Act 1 uses (four confirmed, one inferred)", src: "services/api_catalog.py · schemas/api_v1/deeds.py" },
+        { what: "approver.name and approver.role, required, recorded, never verified", src: "schemas/api_v1/deeds.py · ApproverModel" },
+        { what: "/confirm/[token] — the confirmation surface, approve and reject-with-reason", src: "app/confirm/[token]/page.tsx · routers/api_confirm.py" },
+        { what: "GET /confirm/{token}/artifact — nine keys, exact set enforced", src: "services/api_confirm.py · ARTIFACT_KEYS" },
+        { what: "409 DRAFT_MISMATCH on a draft_sha256 that does not match the held bytes", src: "routers/api_confirm.py · approve_confirmation" },
+        { what: "429 RATE_LIMITED with Retry-After on the confirmation surface", src: "routers/api_confirm.py · _throttle" },
+        { what: "The public three-field access request", src: "app/developers/ApiInquiryForm.tsx · POST /api-key-inquiries" },
+      ],
+      nots: [
+        { text: "No real-time channel. There are no webhooks and the design does not imply one — the page polls and says the interval out loud." },
+        { text: "No property lookup. Fixed, fictional sample data; SiteX is never called from this page." },
+        { text: "No self-serve key issuance. Keys are issued after a conversation, and the close says so." },
+        { text: "No uptime, SLA, status page, logos, certifications or pricing figures anywhere on the page." },
+        { text: "No editable deed on the confirmation surface. Correction is reject-with-reason; the integrator holds the facts." },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>
