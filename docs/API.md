@@ -8,6 +8,45 @@ Two FastAPI apps ship from `backend/`:
 1. **Main API** — `backend/main.py` (`uvicorn main:app`, Render service `deedpro-main-api`, port 8000)
 2. **External Partner API** — `backend/external_api/app.py` (Render service `deedpro-external-api`, port 8001)
 
+## Changelog — breaking changes to the public v1 contract
+
+Started 2026-09-21. Additive changes ship inside v1 and are not listed
+here; **this section is for changes that alter what an existing caller
+receives.**
+
+### 2026-09-21 — `422 VALIDATION_ERROR` bodies are the sentence, not the envelope
+
+**What changed.** `detail.message` now carries the refusal's own
+sentence. It previously carried Pydantic's rendering of it, prefixed
+with the field path:
+
+| | before | after |
+|---|---|---|
+| `detail.message` | `body.recording: Value error, This instrument fixes its own vesting — …` | `This instrument fixes its own vesting — …` |
+| `details[].field` | `body.recording` | `body.grantee.vesting` |
+
+**Two defects, one fix.** The message opened with a field path and the
+literal words `Value error,` — framework output in the string an
+integrator's error UI shows a user. And for every instrument-rule
+refusal the field named `body.recording`, because the validator that
+raises them hangs off that field for ordering reasons. **`body.recording`
+is a field the caller got right.**
+
+**Who is affected.** Any client that string-matches `detail.message`, or
+that branches on `details[].field` for the three instrument rules
+(fixed vesting, required vesting, required entity recitals). Clients
+branching on `detail.code` are unaffected — `VALIDATION_ERROR` and the
+envelope's shape are unchanged.
+
+**Why it shipped as a change rather than a v2.** There are no live
+integrators, which is the same reason the Model 2 cutover was cheap. A
+contract nobody consumes yet is a contract that can still be corrected;
+once it has readers, this would have been a `/v2`.
+
+**Pinned** by `backend/tests/test_try_stage1.py`: no `detail.message`
+starts with a field path or a framework prefix, and the instrument rules
+name the field actually at fault.
+
 ## Auth legend
 
 | Tag | Meaning |

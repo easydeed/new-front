@@ -7,7 +7,7 @@ from datetime import datetime
 from enum import Enum
 
 
-from services.api_catalog import API_DEED_TYPES, rules_for
+from services.api_catalog import API_DEED_TYPES, InstrumentRuleError, rules_for
 
 # A2: derived from the FORMS registry (via services/form_families), deed
 # family only per the Flag-4 doctrine ruling. The old hardcoded five-value
@@ -143,23 +143,35 @@ class CreateDeedRequest(BaseModel):
         rules = rules_for(deed_type.value if hasattr(deed_type, "value") else str(deed_type))
         supplied_vesting = (getattr(grantee, "vesting", None) or "").strip() if grantee else ""
 
+        # ?-2: the field at fault travels on the exception. This validator
+        # hangs off `recording` for ordering reasons, and without this the
+        # caller is told `body.recording` — the one field they got right.
         if rules.fixed_vesting and supplied_vesting:
-            raise ValueError(
+            raise InstrumentRuleError(
                 f"This instrument fixes its own vesting — {rules.note} "
-                "Remove grantee.vesting, or choose a deed type whose vesting you set."
+                "Remove grantee.vesting, or choose a deed type whose vesting you set.",
+                field="body.grantee.vesting",
             )
         if rules.requires_vesting and not supplied_vesting:
-            raise ValueError("grantee.vesting is required for this deed type")
+            raise InstrumentRuleError(
+                "grantee.vesting is required for this deed type",
+                field="body.grantee.vesting",
+            )
 
         if rules.required_entity_facts:
             entity = getattr(grantor, "entity", None)
             missing = [f for f in rules.required_entity_facts
                        if not (getattr(entity, f, None) or "").strip()]
             if missing:
-                raise ValueError(
+                raise InstrumentRuleError(
                     "This instrument recites facts about the grantor entity that are "
                     f"missing: {', '.join('grantor.entity.' + f for f in missing)}. "
-                    + rules.note
+                    + rules.note,
+                    # The FIRST missing recital. A field path names one
+                    # place; the message names them all, which is the
+                    # right division — `details[].field` is what a client
+                    # branches on, and a list there has no single target.
+                    field=f"body.grantor.entity.{missing[0]}",
                 )
         return v
 

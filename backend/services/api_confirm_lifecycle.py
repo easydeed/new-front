@@ -9,6 +9,35 @@ or rejected drafts, and NULLs approver email after CONTACT_RETENTION_DAYS.
 The name and role survive. A name is not contact, and the provenance
 record of who approved must outlive our ability to reach them — otherwise
 a purge rewrites history into "somebody with the link."
+
+═══ AND THE ONE CLASS OF ROW THAT IS DELETED ENTIRELY, NAME INCLUDED ═══
+
+`demo_kind = 'try'` rows are deleted outright after DEMO_RETENTION_HOURS.
+That reads as a contradiction of the paragraph above, and it is not — the
+reconciliation is recorded here rather than in the demo code, because
+THIS is the rule a future reader will think is being broken.
+
+**The survival rule exists because an INSTRUMENT's provenance must
+outlive our ability to reach the person who approved it.** A
+`SAMPLE — NOT FOR RECORDING` draft created by a marketing page never
+becomes an instrument: it is watermarked in its own bytes (every render
+under a `dp_test_` key is — see `services/sample_watermark.py`), it is
+never recorded, and nobody will ever ask who approved it. There is no
+provenance to preserve, so the rule's premise does not hold. Deleting it
+rewrites no history.
+
+What remains true, and is why the name goes: a prospect typed their real
+name into a public demo. Keeping it would make a sandbox a quiet store of
+people who once looked at the product.
+
+**THE PREDICATE IS EXACT EQUALITY ON A MARKER WRITTEN AT INSERT**, never
+a heuristic over sample APNs or approver names. A delete that identifies
+its targets by guessing is an irreversible data operation against the
+same table real deeds live in, and the only safe version of it is one
+that cannot match a row nobody marked. `demo_kind IS NOT NULL` would
+have been the loose version; it is deliberately not that, which is also
+what makes the TRY-8 fixture (`demo_kind = 'fixture'`) exempt BY
+CONSTRUCTION rather than by an extra clause somebody could drop.
 """
 from __future__ import annotations
 
@@ -20,6 +49,17 @@ from services.signing_loop import CONTACT_RETENTION_DAYS
 
 JOB_NAME = "api_confirm_lifecycle"
 SWEEP_INTERVAL_SECONDS = 3600
+
+# Demo drafts live a few hours — long enough that a prospect who walks
+# away mid-demo can come back to the same tab, short enough that the
+# sandbox is not a register of who visited.
+DEMO_RETENTION_HOURS = 3
+
+# The ONLY value this sweep deletes. `fixture` rows (TRY-8's permanently
+# expired token) carry a different value and are therefore out of reach
+# of the predicate rather than excluded by it.
+DEMO_KIND_TRY = "try"
+DEMO_KIND_FIXTURE = "fixture"
 
 EXPIRE_SQL = """
     UPDATE api_deeds
@@ -57,6 +97,31 @@ PURGE_EMAIL_SQL = """
 """
 
 
+DELETE_DEMO_SQL = """
+    DELETE FROM api_deeds
+     WHERE demo_kind = %s
+       AND created_at < %s
+    RETURNING id
+"""
+
+
+def delete_demo_drafts(conn, *, older_than_hours: int = DEMO_RETENTION_HOURS,
+                       now: Optional[datetime] = None) -> int:
+    """Delete `/try` drafts outright — row, name, bytes, all of it.
+
+    See the module header for why this does not contradict the survival
+    rule two paragraphs above it. The predicate is exact equality on
+    `demo_kind`, so a row nobody marked cannot be reached by it, and the
+    permanently expired fixture carries a different marker.
+    """
+    now = now or datetime.now(timezone.utc)
+    cutoff = now - timedelta(hours=older_than_hours)
+    with conn.cursor() as cur:
+        cur.execute(DELETE_DEMO_SQL, (DEMO_KIND_TRY, cutoff))
+        rows = cur.fetchall() or []
+    return len(rows)
+
+
 def expire_unapproved_drafts(conn, *, now: Optional[datetime] = None) -> int:
     """Drop preview bytes on drafts past their 7-day window.
 
@@ -91,7 +156,9 @@ def purge_approver_email(conn, *, older_than_days: int = CONTACT_RETENTION_DAYS,
 def run_lifecycle(conn, *, now: Optional[datetime] = None) -> Dict[str, int]:
     expired = expire_unapproved_drafts(conn, now=now)
     purged = purge_approver_email(conn, now=now)
-    return {"expired_or_cleared": expired, "emails_purged": purged}
+    demo = delete_demo_drafts(conn, now=now)
+    return {"expired_or_cleared": expired, "emails_purged": purged,
+            "demo_deleted": demo}
 
 
 def sweep_if_due(conn, *, interval_seconds: int = SWEEP_INTERVAL_SECONDS,
@@ -118,7 +185,8 @@ def sweep_if_due(conn, *, interval_seconds: int = SWEEP_INTERVAL_SECONDS,
                 "UPDATE system_jobs SET last_run_at = %s, last_result = %s, "
                 "updated_at = now() WHERE job_name = %s",
                 (now, f"expired {result['expired_or_cleared']}, "
-                      f"purged {result['emails_purged']}", JOB_NAME))
+                      f"purged {result['emails_purged']}, "
+                      f"demo deleted {result['demo_deleted']}", JOB_NAME))
         conn.commit()
         return result
     except Exception as e:

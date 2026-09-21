@@ -47,6 +47,30 @@ def chassis_type(api_slug: str) -> str:
 API_DEED_TYPES: List[str] = [api_type(s) for s in _chassis_slugs()]
 
 
+class InstrumentRuleError(ValueError):
+    """A refusal that knows WHICH field is at fault.
+
+    ═══ WHY THIS EXISTS (?-2, owner-ruled 2026-09-21) ═══
+
+    `CreateDeedRequest.check_type_rules` is a validator on `recording`,
+    because it needs every earlier field present in `values` to decide.
+    That is correct and it made every instrument-rule refusal report
+    `field: "body.recording"` — a field the caller got RIGHT, named as
+    the one at fault, to exactly the audience that reads field paths.
+
+    The field is carried on the EXCEPTION rather than derived from the
+    message, because deriving it would mean matching prose (§14.1: match
+    the PROPERTY, not the spelling) and would silently mis-route the
+    moment a sentence is reworded. Pydantic v2 preserves the original
+    exception at `ctx["error"]`, so the route handler reads `.field`
+    off the object rather than parsing anything.
+    """
+
+    def __init__(self, message: str, *, field: str):
+        super().__init__(message)
+        self.field = field
+
+
 class TypeRules(NamedTuple):
     """Per-instrument facts and refusals.
 

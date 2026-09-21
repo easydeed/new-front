@@ -4,7 +4,10 @@
 (not only in chat) so the list survives context windows. No credential
 values ever appear in this file — item names and status only.
 
-_Last corrected: 2026-09-08 (ENGINE lane CLOSED — ENGINE2 merged as
+_Last corrected: 2026-09-21 (TRY Stage 1 — the backend prerequisites;
+§14.34 added; the public 422 contract corrected and changelogged; the
+sample watermark widened to every `dp_test_` render).
+Previously 2026-09-08 (ENGINE lane CLOSED — ENGINE2 merged as
 #272, the mockup ruling and two stale fields as #273. §14.33 added and
 adopted here as the THIRD CONVENTION: the sweep trigger is a MERGE, not
 an interval).
@@ -2114,6 +2117,76 @@ entry nobody checks a new feature against.
   defect.
 
 ## Parked tickets (scoped, not scheduled)
+
+- **TRY — the live API demonstration. STAGE 1 of 3.**
+  **DECIDED** 2026-09-21, owner-ruled. **BUILT** — Stage 1 yes; Stages 2
+  and 3 no.
+
+  Design handoff: `docs/design/design-try/design_handoff_try_api_demo/`
+  on **`cursor/design-try-unzip-8b4b`** — *not* `design-try`, which does
+  not exist. Verified against the remote before reading, which is the
+  check ENGINE1 paid a week to learn.
+
+  ═══ STAGE 1 — BUILT ═══
+
+  · **The published 422 body is the sentence, not the envelope** (§14.34).
+    `detail.message` carried Pydantic's rendering prefixed with the field
+    path; `details[].field` named `body.recording` for every
+    instrument-rule refusal, which is the one field the caller got
+    right. Both read structurally from `ctx["error"]` rather than
+    stripped, so nothing parses prose. **API change, changelogged in
+    `docs/API.md`** — cheap because there are no live integrators, the
+    same reason the Model 2 cutover was.
+  · **`SAMPLE — NOT FOR RECORDING` in the rendered bytes**, driven by
+    `is_test` rather than by the demo — owner-widened. One render seam,
+    not 21 templates. A render that cannot be watermarked **fails**
+    rather than shipping clean.
+  · **`/try/deed`**, a backend route holding the demo key, accepting
+    `{trap_id, approver_name}` and nothing else. It calls the real auth
+    dependency and the real create handler.
+  · **`/ready`** beside `/health`, which stays liveness.
+  · **Demo drafts deleted entirely after 3 hours, name included**, by
+    exact equality on a marker written at insert.
+  · **TRY-8's permanently expired token** as a seeded row with a
+    different marker.
+
+  ═══ WHAT A READER WHO BELIEVES THIS ENTRY SHOULD STILL ASK ═══
+
+  · **The demo route does not cross a network.** It calls the real
+    handler in-process, so validation, catalog rules, render, watermark,
+    per-key limits and the database write are all genuinely exercised —
+    **the HTTP hop and nothing else is not.** `/try` may say the code
+    path is real; it may not imply the bytes travelled.
+  · **`/ready` does not prove the next request is fast.** It opens a
+    connection and runs `SELECT 1`. The first WeasyPrint render in a
+    process can still take seconds on a container it calls ready.
+  · **The throttle is not a security boundary.** In-memory, per-process,
+    keyed on spoofable `X-Forwarded-For`. The payload constraint is the
+    boundary; the demo key's durable per-key ceilings are the backstop;
+    **a determined abuser can exhaust the demo for everyone, and that is
+    an accepted risk rather than a solved one.**
+  · **`?-3` is unanswerable from here.** Whether a cold start really
+    takes ~30s needs measurement in production, not reading.
+  · **Trap 4's refusal carries no doctrine in its own string** — it is
+    `Field required`. It stays, per ruling, with a gloss carrying
+    REQUIRED1's lesson, and that gloss is Stage 3 copy that does not
+    exist yet.
+
+  ═══ OWNER ITEM (Tier 3) ═══
+
+  · **`TRY_DEMO_API_KEY`** must be set on Render to a `dp_test_` key
+    before `/try` works. Unset, the route answers **503
+    `DEMO_UNAVAILABLE`** rather than degrading into a simulation (§14.8).
+    Name only — no value appears in this repository.
+  · **`python backend/scripts/seed_try_fixture.py`** once per
+    environment, for the expired-token demo.
+
+  ═══ STAGE 2 AND 3 — NOT BUILT ═══
+
+  · **Stage 2, TRY-7:** `/confirm/[token]`'s 80vh iframe on a phone.
+    Options to be reported before building — and the ruling is to build
+    the one that serves the real product, not the demo.
+  · **Stage 3:** `/try` itself.
 
 - **ENGINE1 — reposition the public pages for the integrator.**
   **DECIDED** 2026-08-27, owner-ruled. **BUILT** — partially; the
