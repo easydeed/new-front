@@ -265,6 +265,10 @@
  ],
  [
   "GET",
+  "/ready"
+ ],
+ [
+  "GET",
   "/shared-deeds"
  ],
  [
@@ -506,6 +510,10 @@
  [
   "POST",
   "/signing/{token}/windows"
+ ],
+ [
+  "POST",
+  "/try/deed"
  ],
  [
   "POST",

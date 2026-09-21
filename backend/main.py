@@ -236,6 +236,12 @@ app.include_router(api_v1_router, tags=["Public API v1"])
 from routers.api_confirm import router as api_confirm_router
 app.include_router(api_confirm_router, tags=["API Confirmation"])
 
+# TRY — the server-side route behind /try. It holds the demo key so the
+# browser never does, and accepts only {trap_id, approver_name}: the
+# payload constraint is the security boundary, not the throttle.
+from routers.try_demo import router as try_demo_router
+app.include_router(try_demo_router, tags=["Try demo"])
+
 # A3: API-access inquiry funnel (the form that used to fake its submit).
 from routers.api_key_requests import router as api_key_requests_router
 app.include_router(api_key_requests_router)

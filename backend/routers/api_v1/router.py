@@ -35,6 +35,8 @@ from services.dtt_rates import compute_dtt
 from utils.api_keys import extract_key_prefix, validate_api_key, generate_deed_id, generate_document_id
 from pdf_engine import render_pdf_async
 from services.deed_pdf import render_deed_html
+from services.api_error_envelope import validation_envelope
+from services.sample_watermark import watermark_if_test
 
 
 logger = logging.getLogger(__name__)
@@ -121,18 +123,18 @@ class PublicAPIRoute(APIRoute):
             try:
                 return await original(request)
             except RequestValidationError as exc:
-                details = []
-                for error in exc.errors():
-                    field = ".".join(str(part) for part in error.get("loc", ()))
-                    details.append({
-                        "field": field or None,
-                        "message": error.get("msg", "Invalid value"),
-                    })
-                message = "; ".join(
-                    f"{item['field']}: {item['message']}"
-                    if item["field"] else item["message"]
-                    for item in details
-                ) or "Request validation failed"
+                # The envelope is built in ONE place —
+                # `services/api_error_envelope.py` — because `/try`'s
+                # server-side route must return byte-identical bodies,
+                # and two copies agree on the day they are written.
+                #
+                # It also carries the ?-2 fix: `message` is the doctrine
+                # sentence, with no field path and no "Value error,"
+                # prefix, and `details[].field` names the field actually
+                # at fault rather than the one the validator hangs off.
+                # The module says why, and why it reads the exception
+                # rather than the string.
+                message, details = validation_envelope(exc.errors())
                 return _error_response(
                     422, "VALIDATION_ERROR", message, details=details,
                 )
@@ -520,6 +522,15 @@ async def create_deed(
         execution_date = pin_execution_date(created_at)
         html_content = render_deed_html(
             build_render_row(deed_request, execution_date=execution_date))
+        # Owner-ruled 2026-09-21: EVERY render under a dp_test_ key is
+        # watermarked, not just /try's. A test key producing clean,
+        # recordable-looking deeds is the same artifact whoever called
+        # it. One seam covers all 21 instruments — and because approve
+        # promotes these preview bytes rather than re-rendering, the
+        # stored PDF and the hash in the auditor artifact are the
+        # watermarked document too.
+        html_content = watermark_if_test(
+            html_content, is_test=bool(api_key.get("is_test")))
 
         try:
             preview_bytes = await render_pdf_async(html_content)

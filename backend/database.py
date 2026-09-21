@@ -651,6 +651,15 @@ def create_tables():
             # than we have, and "license" is not one thing across escrow,
             # title, bar and notary.
             "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS approver_license TEXT",
+            # TRY — the marker that makes a demo draft deletable, written
+            # at INSERT and never inferred. `'try'` rows are deleted
+            # entirely (name included) a few hours after creation;
+            # `'fixture'` is TRY-8's permanently expired token and is out
+            # of reach of that predicate rather than excluded by it. NULL
+            # is every real deed, which no demo sweep can match.
+            "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS demo_kind TEXT",
+            "CREATE INDEX IF NOT EXISTS idx_api_deeds_demo_kind "
+            "ON api_deeds(demo_kind) WHERE demo_kind IS NOT NULL",
             """CREATE UNIQUE INDEX IF NOT EXISTS uq_api_deeds_confirmation_token
                ON api_deeds(confirmation_token)
                WHERE confirmation_token IS NOT NULL""",
