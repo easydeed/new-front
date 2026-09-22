@@ -115,7 +115,13 @@ VERIFICATION_OWNERS = {"routers/auth_extra.py", "services/verification.py"}
 
 #: Not valid Python, so not parseable — pinned as an exact set in
 #: test_db_identity.py, and skipped here rather than crashing the sweep.
-UNPARSEABLE = {"run_migration.py"}
+#:
+#: EMPTY SINCE 2026-09-22: the only member, `run_migration.py`, was
+#: deleted in the credential response. Kept as an empty set rather than
+#: removed, because the SKIP MECHANISM is what this guards — a future
+#: unparseable file must land in a named quarantine rather than silently
+#: falling out of the sweep.
+UNPARSEABLE: set = set()
 
 
 def _decision_expressions(node):

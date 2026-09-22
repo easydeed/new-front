@@ -679,10 +679,10 @@ def test_something_that_is_neither_is_refused_by_name():
 #: something else entirely, which is the point being made a section up:
 #: the enforcement finds the population.
 #:
-#: It is NOT deleted here. It also carries a hard-coded database URL with
-#: a password in it, which makes its removal part of a credential
-#: response and therefore an owner decision, not a side effect of a test.
-UNPARSEABLE = {"run_migration.py"}
+#: DELETED 2026-09-22 as part of the credential response, which is why
+#: this set is now empty: the owner ruled the removal, so it stopped
+#: being a side effect of a test and became the decision it needed to be.
+UNPARSEABLE: set = set()
 
 
 def test_the_unparseable_set_is_exactly_what_we_think_it_is():
@@ -774,15 +774,23 @@ def test_every_call_site_names_at_least_one_table():
 # and a new offender cannot join quietly.
 
 #: Files known to contain a connection string with an inline password.
-#: Held for the owner's credential response — rotation first, because
-#: scrubbing the working tree while the secret stays live in history is
-#: the appearance of a fix rather than a fix.
-CREDENTIALS_IN_SOURCE = {
-    "run_migration.py",
-    "migrations/run_migration.py",
-    "migrations/run_adminfix_migration.py",
-    "set_admin_role.py",
-}
+#:
+#: EMPTY SINCE 2026-09-22. The four offenders were DELETED from the
+#: working tree once the repository was found to be PUBLIC — which
+#: voided the deferral that had kept them (see `OWNER_LEDGER.md`), since
+#: its premise was that exposure required clone access to a private
+#: repository.
+#:
+#: All four were dead one-offs: a completed Phase-11 migration, a
+#: one-time admin grant, a staging admin toggle, and a runner that has
+#: never parsed. None was replaced with an env-reading version, because
+#: writing one for a finished migration is speculative work.
+#:
+#: **The secrets remain in git HISTORY and are NOT removed by this.**
+#: The history scrub waits on rotation, for the reason that has not
+#: changed: scrubbing first destroys the evidence of which credential
+#: needs rotating. Their fingerprints are recorded in the ledger.
+CREDENTIALS_IN_SOURCE: set = set()
 
 _DSN_WITH_PASSWORD = re.compile(
     r"postgres(?:ql)?://[A-Za-z0-9_]+:[^@\s\"']{8,}@")

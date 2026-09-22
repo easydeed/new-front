@@ -101,8 +101,11 @@ def test_no_file_hard_codes_an_admin_spelling_any_more():
                    for lit in ("== 'admin'", '== "admin"')):
                 offenders.append(f"{path.relative_to(backend)} → comparison")
             continue
-        if path.name in ("auth.py", "set_admin_role.py", "role_census.py"):
-            continue  # the definition itself, and two admin tools
+        if path.name in ("auth.py", "role_census.py"):
+            continue  # the definition itself, and one admin tool
+            # `set_admin_role.py` was here too and was DELETED
+            # 2026-09-22 in the credential response — it carried a
+            # staging database URL with an inline password.
         if "migrations" in path.parts or path.name == "api_baseline.py":
             # WRITES, not gates. `SET role = 'admin'` assigns the
             # canonical spelling; it does not decide who is one. The
