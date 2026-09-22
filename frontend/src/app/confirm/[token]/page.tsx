@@ -49,6 +49,12 @@ export default function ConfirmDeedPage() {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<'approved' | 'rejected' | null>(null);
   const [showReject, setShowReject] = useState(false);
+  /* TRY-7. The preview opens in a NEW TAB, so this page is never
+     unloaded and the approver returns to it exactly as they left it —
+     no reload, no lost scroll position, no re-fetch. That is the
+     cheapest way to satisfy "the returning state shows the controls
+     without re-scrolling": nothing scrolled. */
+  const [openedPreview, setOpenedPreview] = useState(false);
   const [issues, setIssues] = useState<string[]>([]);
   const [comment, setComment] = useState('');
 
@@ -200,12 +206,84 @@ export default function ConfirmDeedPage() {
           </div>
         )}
 
+        {/* ═══ TRY-7 — THE PREVIEW, AND WHY IT FORKS AT 1024px ═══
+            (owner-ruled 2026-09-22)
+
+            The `h-[80vh]` iframe below is kept for laptops, where it is
+            genuinely the right surface. Beneath 1024px it is replaced by
+            an explicit step that hands the PDF to the device's own
+            viewer.
+
+            THE ARGUMENT IS LEGIBILITY, NOT LAYOUT. A US Letter page
+            fitted to a 390px viewport renders 10pt body text at roughly
+            4pt effective. Any fix must therefore solve ZOOM, not just
+            display — and a phone's built-in PDF viewer already has a
+            competent zoom UI, which a component in this file would be
+            rebuilding badly. The alternative considered was rasterising
+            the PDF to page images; that is a new dependency in a stack
+            that has no rasteriser at all (`pypdf` cannot render,
+            `weasyprint` only goes HTML→PDF), and the server-side
+            candidate is AGPL — a licensing decision, not a dependency
+            choice.
+
+            ═══ THE OPTION THAT WAS REFUSED, RECORDED HERE BECAUSE THIS
+                IS WHERE IT WILL BE PROPOSED AGAIN ═══
+
+            We already hold the HTML: `render_deed_html()` produces
+            exactly what WeasyPrint turns into the PDF. Serving THAT to
+            the phone is nearly free, reflows to any width, and needs no
+            dependency. **It is the obvious fix and it breaks the
+            model.**
+
+            Approval PROMOTES the previewed PDF bytes. `draft_sha256`
+            exists to bind the approver's name to those exact bytes, and
+            the auditor artifact reports their hash. Show reflowed HTML
+            while promoting PDF bytes and the approver has read one
+            artifact and approved another — which does not weaken the
+            binding, it makes it **a fiction**, while every pin around it
+            stays green.
+
+            An HTML preview would be a different rendering of the same
+            facts. The whole product rests on the approver seeing the
+            document AS IT WILL PRINT. Do not do this. */}
         {previewSrc ? (
-          <iframe
-            title="Rendered deed preview"
-            src={previewSrc}
-            className="h-[80vh] w-full rounded-xl border border-slate-200 bg-white"
-          />
+          <>
+            <iframe
+              title="Rendered deed preview"
+              src={previewSrc}
+              className="hidden h-[80vh] w-full rounded-xl border border-slate-200 bg-white lg:block"
+            />
+
+            <div className="rounded-xl border border-slate-200 bg-white p-6 lg:hidden">
+              <h2 className="text-base font-bold text-slate-800">
+                Read the deed before you approve it
+              </h2>
+              <p className="mt-2 text-sm text-slate-600">
+                It opens in your phone&apos;s own PDF viewer, where you can zoom and
+                read the legal description properly. Come back to this page to
+                approve or send it back — the buttons are just below.
+              </p>
+              <a
+                href={previewSrc}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setOpenedPreview(true)}
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#7C4DFF] px-5 py-3 font-medium text-white hover:bg-[#6a3ff0]"
+              >
+                <FileText className="h-5 w-5" />
+                Open the deed
+              </a>
+              {openedPreview && (
+                /* Says only that the document was OPENED. It does not say
+                   it was read — the same bound ENGINE1 put on
+                   `draft_sha256`, which shows the bytes were fetched and
+                   proves nothing about a human reading them. */
+                <p className="mt-3 text-sm text-slate-500">
+                  Opened in a new tab. Approve or send back below.
+                </p>
+              )}
+            </div>
+          </>
         ) : (
           <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-600">
             The rendered deed is no longer available to preview.

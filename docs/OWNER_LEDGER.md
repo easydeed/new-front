@@ -4,7 +4,11 @@
 (not only in chat) so the list survives context windows. No credential
 values ever appear in this file — item names and status only.
 
-_Last corrected: 2026-09-21 (TRY Stage 1 — the backend prerequisites;
+_Last corrected: 2026-09-22 (TRY Stage 2 — TRY-7 built as Option B; the
+HTML-reflow option refused and the refusal recorded beside the confirm
+page; PDF rasterisation recorded as a licensing decision before a
+dependency one).
+Previously 2026-09-21 (TRY Stage 1 — the backend prerequisites;
 §14.34 added; the public 422 contract corrected and changelogged; the
 sample watermark widened to every `dp_test_` render).
 Previously 2026-09-08 (ENGINE lane CLOSED — ENGINE2 merged as
@@ -2119,8 +2123,8 @@ entry nobody checks a new feature against.
 ## Parked tickets (scoped, not scheduled)
 
 - **TRY — the live API demonstration. STAGE 1 of 3.**
-  **DECIDED** 2026-09-21, owner-ruled. **BUILT** — Stage 1 yes; Stages 2
-  and 3 no.
+  **DECIDED** 2026-09-21, owner-ruled. **BUILT** — Stages 1 and 2 yes
+  (#277 and the TRY-7 fork); Stage 3 no.
 
   Design handoff: `docs/design/design-try/design_handoff_try_api_demo/`
   on **`cursor/design-try-unzip-8b4b`** — *not* `design-try`, which does
@@ -2181,12 +2185,74 @@ entry nobody checks a new feature against.
   · **`python backend/scripts/seed_try_fixture.py`** once per
     environment, for the expired-token demo.
 
-  ═══ STAGE 2 AND 3 — NOT BUILT ═══
+  ═══ STAGE 2, TRY-7 — BUILT (2026-09-22) ═══
 
-  · **Stage 2, TRY-7:** `/confirm/[token]`'s 80vh iframe on a phone.
-    Options to be reported before building — and the ruling is to build
-    the one that serves the real product, not the demo.
-  · **Stage 3:** `/try` itself.
+  **Option B.** The `h-[80vh]` iframe stays at ≥1024px, where it is
+  genuinely right. Below that, an explicit step hands the PDF to the
+  device's own viewer, with approve and reject beneath it.
+
+  **THE RULING DID NOT DEPEND ON THE HANDSET TEST**, and the owner's
+  reasoning is the record: a US Letter page fitted to 390px renders 10pt
+  body text at roughly 4pt effective, so **both** options must solve
+  ZOOM — and only the native viewer supplies a competent zoom UI for
+  nothing. The handset test is still wanted, but for describing how bad
+  today's state is, not for choosing the fix.
+
+  · **Opens in a NEW TAB**, so this page is never unloaded and the
+    approver returns to it exactly as they left it. "The returning state
+    shows the controls without re-scrolling" is satisfied by
+    construction: nothing scrolled.
+  · **Opening is never reported as reading** — the same bound ENGINE1
+    put on `draft_sha256`.
+  · **`/try` inherits it**: the demo's phone card shows this surface as
+    it ships, so the flow cost lands on the demo (the prospect leaves
+    and returns while the desktop keeps polling) rather than on the
+    product.
+
+  **THE OPTION REFUSED, and the refusal is recorded in
+  `frontend/src/app/confirm/[token]/page.tsx` rather than only in the
+  PR** — because that file is where it will be proposed again. Serving
+  the HTML we already hold (`render_deed_html()`) is nearly free,
+  reflows to any width and needs no dependency. **It breaks the model:**
+  approval promotes the PDF BYTES, so the approver would read one
+  artifact and approve another, turning `draft_sha256`'s binding of a
+  name to exact bytes into **a fiction** while every pin around it
+  stayed green.
+
+  ═══ STANDING CONSTRAINT — PDF RASTERISATION NEEDS A LICENSING RULING
+      BEFORE IT NEEDS A DEPENDENCY ═══
+
+  **There is no rasteriser anywhere in this stack.** `pypdf` cannot
+  render, `pillow` cannot rasterise a PDF without poppler, and
+  `weasyprint` only goes HTML→PDF. So any future "show the PDF as
+  images" work — TRY-7's Option A, a thumbnail, a page preview — is a
+  **new dependency**, and the obvious server-side candidate is
+  **PyMuPDF, which is AGPL-3.0 or commercial.**
+
+  **That is a licensing decision on a commercial product, not a
+  dependency choice, and it is the owner's.** The licensing-clean route
+  is client-side `pdf.js` (Apache-2.0), at the cost of ~1MB of worker
+  and rebuilding zoom controls. Recorded here so the next person to
+  reach for a rasteriser meets the constraint before the install
+  command.
+
+  ═══ STAGE 3 — NOT BUILT ═══
+
+  · **`/try` itself**, per the README, with the owner's changes.
+  · **COPY RULING CARRIED FORWARD (2026-09-22), and it governs the
+    page's first sentence.** The browser posts to `/try/deed`, which
+    runs the real validation, handler, database and render **but not
+    the partner route's HTTP auth path**. So the hero reads *"every
+    button runs the real API code against the sandbox"*, not *"sends a
+    real request"*, and the console labels its payload as **the request
+    the partner API receives** rather than implying the browser sent
+    `POST /api/v1/deeds` with that `Authorization` header. On a page
+    whose whole argument is that nothing is faked, the opening sentence
+    cannot be the one inaccurate claim on it.
+  · **Trap 4 keeps its gloss** carrying REQUIRED1's lesson — the
+    endpoint that PRINTS is where legal decisions are enforced, which is
+    why the API refuses a deed with no transfer-tax declaration and is
+    stricter than the browser. Not paired with the vesting traps.
 
 - **ENGINE1 — reposition the public pages for the integrator.**
   **DECIDED** 2026-08-27, owner-ruled. **BUILT** — partially; the
