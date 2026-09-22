@@ -2418,10 +2418,39 @@ entry nobody checks a new feature against.
     as the handoff drew it.** That endpoint needs an API key the browser
     deliberately does not have. The polled endpoint is named on the page
     so it does not imply a call it cannot make.
-  · **TRY-6 (the QR renderer) is deliberately not built.** No QR library
-    exists in this frontend and adding one is a dependency decision, not
-    a page detail — the same standing rule as the rasteriser. The
-    confirmation link does the same job.
+  · **TRY-6 — BUILT after the refusal was reversed (owner, 2026-09-22).**
+    `@paulmillr/qr`, **MIT OR Apache-2.0, zero dependencies**, rendering
+    `urls.confirmation` on `/try` only. Act 2's moment is the prospect's
+    own phone, and on a screen-shared call a QR is the only clean path
+    from the presenter's screen to their device — "send yourself the
+    link" serves a solo visitor and breaks a live demo. Hidden below
+    `sm`: a QR on the device you are already holding is useless, and the
+    open-link button is the whole answer there.
+
+    **THE STANDING RULE IS UNTOUCHED AND PINNED:** no recorded page and
+    no PDF carries a QR, a verification URL or a document id. A test
+    walks every page and fails if the encoder is imported anywhere but
+    `/try`.
+
+    **The server-side option was refused despite costing nothing.**
+    `qrcode[pil]` is already a backend dependency, so a QR endpoint
+    would have added no package at all — but it means a public endpoint
+    rendering caller-supplied text into an image, which is a new surface
+    to reason about for a demo convenience. **7 kB is cheaper than the
+    thinking.**
+
+    **THE MEASUREMENT IS THE FINDING.** The registry's `unpackedSize`
+    reads **343 KB**; the measured cost on this route is **+6.6 kB route
+    / +7 kB First Load JS** — about **50× out, in the direction that
+    would have argued AGAINST a good dependency.** A licence-and-size
+    report is exactly the artifact that would quote that metadata, and
+    it would have been wrong about the one number it existed to state.
+    Build it, do not read it.
+
+    And `dangerouslySetInnerHTML` here was CHECKED rather than assumed:
+    the encoder emits only `<svg>` and `<rect>`, and the input text
+    never reaches the markup — probed with a script-tag payload, nothing
+    echoed.
   · **🔴 `/try` IS UNVERIFIED AGAINST A LIVE SANDBOX, and stays that way
     until the owner runs all three acts end to end.** Nothing in this
     repository can close that gap: every pin here reads SOURCE, and the

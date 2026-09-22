@@ -39,6 +39,15 @@ import Link from 'next/link';
 import { API_DEED_TYPES } from '@/lib/apiDocs';
 import { LogoLockup } from '@/components/brand/Logo';
 import ApiInquiryForm from '../developers/ApiInquiryForm';
+/* @paulmillr/qr — MIT OR Apache-2.0, zero dependencies, +7 kB measured
+   on this route's First Load JS (10.2→16.8 kB route, 113→120 kB first
+   load). The registry's `unpackedSize` reads 343 KB, ~50x the shipped
+   cost, which is why the number was BUILT rather than read.
+
+   Renders `urls.confirmation` ON THIS PAGE ONLY. The standing rule is
+   untouched: no recorded page and no PDF carries a QR, a verification
+   URL, or a document id. */
+import encodeQR from '@paulmillr/qr';
 
 const API = () =>
   process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com';
@@ -659,16 +668,35 @@ function TryDemo() {
                 <div className="text-[12.5px] font-bold uppercase tracking-widest text-gray-500">On your phone</div>
                 {confirmationUrl ? (
                   <>
+                    {/* THE QR IS FOR A SCREEN SOMEBODY ELSE IS LOOKING AT.
+                        On a shared call it is the only clean path from the
+                        presenter's screen to the prospect's phone; pasting
+                        a long URL into chat mid-demo is the fumble this
+                        page exists to avoid.
+
+                        Hidden below `sm` because a QR on the device you
+                        are already holding is useless — there the button
+                        below is the whole answer.
+
+                        `dangerouslySetInnerHTML` is safe here and it was
+                        CHECKED rather than assumed: the encoder emits only
+                        <svg> and <rect>, and the input text never reaches
+                        the markup — it is encoded into the matrix. Probed
+                        with a script-tag payload; nothing echoed. */}
+                    <div
+                      aria-hidden
+                      className="mx-auto mt-3 hidden w-[168px] rounded-lg border border-gray-200 bg-white p-2 sm:block [&>svg]:h-full [&>svg]:w-full"
+                      dangerouslySetInnerHTML={{ __html: encodeQR(confirmationUrl, 'svg') }}
+                    />
+                    <p className="mt-2 hidden text-center text-[13px] text-gray-500 sm:block">
+                      Scan it with your phone.
+                    </p>
                     <a href={confirmationUrl} target="_blank" rel="noopener noreferrer"
                       className="mt-3 block rounded-lg bg-[#14161A] px-4 py-3 text-center text-sm font-bold text-white">
                       Open the confirmation link ↗
                     </a>
                     <p className="mt-2.5 break-all font-mono text-[12.5px] text-gray-500">{confirmationUrl}</p>
                     <p className="mt-2 text-[13px] text-gray-500">
-                      {/* TRY-6 (a QR renderer) is deliberately NOT built:
-                          no QR library exists in this frontend, and adding
-                          one is a dependency decision rather than a page
-                          detail. The link does the same job. */}
                       Open it on a phone to read the deed and approve it. This page keeps polling while you do —
                       come back here for the receipt.
                     </p>

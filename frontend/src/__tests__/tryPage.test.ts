@@ -221,6 +221,72 @@ describe('TRY — the honest limits are on the page', () => {
   });
 });
 
+describe('TRY — the QR, and the rule it does not touch', () => {
+  it('renders urls.confirmation, and only that', () => {
+    /**
+     * TRY-6, built after the refusal was reversed. Act 2's moment is the
+     * prospect's own phone, and on a screen-shared call a QR is the only
+     * clean path from the presenter's screen to their device — "send
+     * yourself the link" serves a solo visitor and breaks a live demo.
+     */
+    expect(CODE).toContain("encodeQR(confirmationUrl, 'svg')");
+    expect(CODE).toContain('@paulmillr/qr');
+  });
+
+  it('the standing no-QR rule is untouched — nothing recorded carries one', () => {
+    /**
+     * THE PIN THAT MATTERS MORE THAN THE FEATURE. Recorded pages and
+     * PDFs carry no QR, no verification URL and no document id, by rule.
+     * This encoder may therefore appear on exactly one page.
+     */
+    const appDir = path.join(__dirname, '..', 'app');
+    const offenders: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (/\.tsx?$/.test(entry.name)) {
+          const body = fs.readFileSync(full, 'utf8');
+          if (body.includes('@paulmillr/qr') && !full.includes(`${path.sep}try${path.sep}`)) {
+            offenders.push(path.relative(appDir, full));
+          }
+        }
+      }
+    };
+    walk(appDir);
+    expect(offenders).toEqual([]);
+  });
+
+  it('the QR is hidden on phones — it is for a screen somebody else sees', () => {
+    /** A QR on the device you are already holding is useless, and the
+     *  open-link button is the whole answer there. */
+    /* Scoped to the QR ELEMENT, not the card around it. The first
+       version sliced the whole card and passed with `hidden` deleted
+       from the QR, because the caption beside it carries the same two
+       classes — a mutation probe walked straight through. Three probes
+       fired and this one did not; §14.29, twice in this file now. */
+    const at = CODE.indexOf('dangerouslySetInnerHTML');
+    expect(at).toBeGreaterThan(-1);
+    const openTag = CODE.lastIndexOf('<div', at);
+    const element = CODE.slice(openTag, at);
+
+    /* TOKENS, not substrings. The element carries `aria-hidden`, which
+       CONTAINS the string "hidden" — so a substring check passed with
+       the class deleted. §14.1 in the pin written to guard the fix for
+       the previous §14.29 miss: match the property, never the spelling.
+       Parse the class list and look for the class itself. */
+    const className = /className="([^"]*)"/.exec(element)?.[1] ?? '';
+    const classes = className.split(/\s+/).filter(Boolean);
+
+    expect(classes).toContain('hidden');
+    expect(classes).toContain('sm:block');
+  });
+
+  it('the open-link button is kept beside it', () => {
+    expect(SPOKEN).toContain('Open the confirmation link');
+  });
+});
+
 describe('TRY — reachable, and reusing rather than forking', () => {
   it('is linked from the homepage platform door and /developers', () => {
     /** A page nothing links to does not exist from where the reader
