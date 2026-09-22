@@ -2368,7 +2368,34 @@ entry nobody checks a new feature against.
   name to exact bytes into **a fiction** while every pin around it
   stayed green.
 
-  ═══ STANDING CONSTRAINT — PDF RASTERISATION NEEDS A LICENSING RULING
+  ═══ `qr_generator.py` DELETED (2026-09-22, owner-ruled) ═══
+
+`backend/utils/qr_generator.py` and `qrcode[pil]==7.4.2` are gone.
+
+**The reason is not that it was dead code.** It was that — no callers,
+never imported — but dead code is merely maintenance. This was **a
+module built to put QR codes on documents, sitting ready beside a
+standing rule that recorded pages and PDFs carry no QR, no verification
+URL and no document id.** A loaded capability that contradicts doctrine
+is one import from being helpfully wired up, and the person who does it
+will be reading the module rather than the rule.
+
+**Checked before removing, not after:**
+
+  · nothing else in the backend imports `qrcode` — only this module;
+  · nothing imports `qr_generator` or `generate_verification_qr`;
+  · **`pillow==11.3.0` is pinned independently** (line 40), so the
+    `[pil]` extra leaving does not take it — the render path is
+    untouched;
+  · `typing_extensions` is likewise pinned on its own; `pypng` arrives
+    only through `qrcode` and nothing imports it;
+  · no Dockerfile, YAML or shell script names the package.
+
+**`/try`'s QR is unaffected** — it is client-side `@paulmillr/qr`, a
+different package on the other side of the wire, and it renders on one
+marketing page rather than on anything recordable.
+
+═══ STANDING CONSTRAINT — PDF RASTERISATION NEEDS A LICENSING RULING
       BEFORE IT NEEDS A DEPENDENCY ═══
 
   **There is no rasteriser anywhere in this stack.** `pypdf` cannot
