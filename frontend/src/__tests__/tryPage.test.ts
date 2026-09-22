@@ -48,8 +48,19 @@ describe('TRY — what "real" is allowed to mean', () => {
     expect(CODE).not.toContain('dp_test_');
   });
 
-  it('the browser sends two fields and holds no key', () => {
-    expect(CODE).toContain("JSON.stringify({ trap_id: trapId, approver_name: approverName })");
+  it('the browser sends three selectors and holds no key', () => {
+    /**
+     * `variant` joined the body in TRY-FIX so the tamper act can ask
+     * for a SECOND, DIFFERENT draft — the old one repeated the sample
+     * exactly, the two hashed the same, and the guard it claimed to
+     * demonstrate could never fire.
+     *
+     * It does not widen what the browser may say. Like `trap_id` it is
+     * a key into a server-side table; the payload is still built from
+     * constants the page cannot reach.
+     */
+    expect(CODE).toContain(
+      "JSON.stringify({ trap_id: trapId, approver_name: approverName, variant })");
     expect(CODE).toContain('/try/deed');
   });
 });
@@ -182,9 +193,17 @@ describe('TRY — the close counts what actually happened', () => {
     /* Ends at the useMemo dependency array, which is unambiguous —
        `return (` occurs several times earlier in this file. */
     const start = CODE.indexOf('const closeLine');
-    const close = CODE.slice(start, CODE.indexOf('[trapsFired, phone, tamper]', start));
+    const close = CODE.slice(start, CODE.indexOf('[trapsFired, phone, tamperRefused]', start));
     expect(close).toContain("phone === 'completed'");
-    expect(close).toContain("tamper?.code === 'DRAFT_MISMATCH'");
+    /**
+     * `tamperRefused` — which is `409 AND DRAFT_MISMATCH`, not either
+     * alone. The close may only report a refusal that the API actually
+     * sent; the version this replaces sat beside a panel that printed
+     * one whatever came back.
+     */
+    expect(close).toContain('if (tamperRefused) parts.push(');
+    expect(CODE).toContain(
+      "const tamperRefused = tamper?.status === 409 && tamper.error?.code === 'DRAFT_MISMATCH'");
   });
 });
 
@@ -306,5 +325,58 @@ describe('TRY — reachable, and reusing rather than forking', () => {
      *  promises a conversation rather than a key (§14.3). */
     expect(CODE).toContain('ApiInquiryForm');
     expect(CODE).not.toContain('api-key-inquiries');
+  });
+});
+
+/**
+ * TRY-FIX — Act 3, after a live walkthrough found the page showing a
+ * refusal that had not happened.
+ *
+ * Draft B was the sample repeated verbatim. WeasyPrint renders identical
+ * HTML to identical bytes, so draft B hashed exactly as draft A did,
+ * `DRAFT_MISMATCH` could not fire, and the approval SUCCEEDED — while
+ * this panel displayed a typed `409` and the words "Refused — see
+ * below". Every pin here closes one step of that.
+ */
+describe('TRY — the tamper act reports what came back', () => {
+  it('asks for a second draft that actually differs', () => {
+    expect(CODE).toContain("callTry(null, 'second_draft')");
+  });
+
+  it('reads the status code and displays no typed one', () => {
+    /** The two shapes the defect took: a status as a JSX text node, and
+     *  a status inside the act rail's string. `CODE` is comment-
+     *  stripped, so this bans the literal outright rather than guessing
+     *  at its surroundings. */
+    expect(CODE).toContain('r.status');
+    expect(CODE.match(/\{tamper\.status\}/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(CODE).not.toContain('409 —');
+    expect(CODE).not.toContain('>409<');
+  });
+
+  it('recognises the refusal by its CODE, not by its status alone', () => {
+    /** `NOT_PENDING` is also a 409. Matching the status alone reads the
+     *  shape of the answer instead of the answer — and what the tester
+     *  saw was a 409 with `DRAFT_MISMATCH` nowhere on the page. */
+    expect(CODE).toContain(
+      "tamper?.status === 409 && tamper.error?.code === 'DRAFT_MISMATCH'");
+  });
+
+  it('does not dress a guard that did not fire as a refusal', () => {
+    /** Grey, and it says the demonstration failed. The red panel is how
+     *  the page came to announce a refusal it never received. */
+    expect(SPOKEN).toContain('The guard did not fire. This demonstration failed.');
+    const fail = CODE.slice(
+      CODE.lastIndexOf('border-gray-300 bg-gray-50',
+        CODE.indexOf('The guard did not fire.')),
+      CODE.indexOf('The guard did not fire.'));
+    expect(fail).not.toContain('red');
+  });
+
+  it('the act rail reports the state of the work, not of the accordion', () => {
+    /** Act 02 read "Ready" before any draft existed — the act was
+     *  unlocked, nothing had been sent. */
+    expect(CODE).toContain("'Unlocked — no draft sent yet'");
+    expect(CODE).not.toContain("act2Open ? 'Ready'");
   });
 });

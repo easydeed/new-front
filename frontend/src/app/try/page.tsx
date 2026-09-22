@@ -145,7 +145,9 @@ function TryDemo() {
   const [phone, setPhone] = useState<'pending' | 'completed' | 'rejected' | 'expired'>('pending');
 
   const [artifact, setArtifact] = useState<Record<string, unknown> | null>(null);
-  const [tamper, setTamper] = useState<ApiError | null>(null);
+  /* The STATUS is part of the result, not decoration around it. The
+   * panel reads it; nothing on this page types a status code. */
+  const [tamper, setTamper] = useState<{ status: number; error: ApiError | null } | null>(null);
 
   const [busy, setBusy] = useState<string | null>(null);
   const [failure, setFailure] = useState<{ kind: 'network' | 'rate' | 'gone' | 'other'; text: string; retryAfter?: number } | null>(null);
@@ -156,6 +158,13 @@ function TryDemo() {
   const warmed = ready || skipped;
   const act2Open = presenter || trapsFired.size > 0;
   const act3Open = presenter || phone === 'completed';
+
+  /* The refusal this act demonstrates is `DRAFT_MISMATCH` specifically.
+   * A 409 on its own is NOT it — `NOT_PENDING` is also a 409, and the
+   * tester's report was a page showing 409 with `DRAFT_MISMATCH`
+   * nowhere on it. Matching the status alone would read the shape of
+   * the answer instead of the answer. */
+  const tamperRefused = tamper?.status === 409 && tamper.error?.code === 'DRAFT_MISMATCH';
 
   /* ── Readiness ──────────────────────────────────────────────────────
    * Derived from a stored timestamp each tick rather than decremented,
@@ -194,7 +203,7 @@ function TryDemo() {
    * Two fields. The payload is built server-side from the fixed sample;
    * this page cannot submit facts of its own. */
   const callTry = useCallback(
-    async (trapId: TrapId | null): Promise<TryResult | null> => {
+    async (trapId: TrapId | null, variant: string | null = null): Promise<TryResult | null> => {
       setFailure(null);
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 20000);
@@ -202,7 +211,7 @@ function TryDemo() {
         const r = await fetch(`${API()}/try/deed`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ trap_id: trapId, approver_name: approverName }),
+          body: JSON.stringify({ trap_id: trapId, approver_name: approverName, variant }),
           signal: controller.signal,
         });
         const d = await r.json().catch(() => ({}));
@@ -308,11 +317,24 @@ function TryDemo() {
    * because the state check runs before the hash comparison. Reaching
    * DRAFT_MISMATCH needs a SECOND pending draft approved with the
    * FIRST draft's hash. Nothing is edited — drafts are immutable. */
+  /* ── Act 3: the tamper ──────────────────────────────────────────────
+   *
+   * Draft B is the `second_draft` VARIANT, not a repeat of the sample.
+   *
+   * It used to be a repeat, and that made the whole act a lie. WeasyPrint
+   * renders identical HTML to identical bytes, so draft B hashed exactly
+   * as draft A did, `DRAFT_MISMATCH` could not fire, and the approval
+   * SUCCEEDED — promoting a second deed while this panel displayed a
+   * hardcoded `409` and the words "Refused — see below". The guard was
+   * never shown a tamper; the page invented the refusal.
+   *
+   * So: a draft that genuinely differs, and every word below derived
+   * from the response. No status literal anywhere on this page. */
   const runTamper = async () => {
     const firstHash = (artifact as { pdf_sha256?: string })?.pdf_sha256;
     if (!firstHash) return;
     setBusy('tamper');
-    const second = await callTry(null);
+    const second = await callTry(null, 'second_draft');
     if (!second) {
       setBusy(null);
       return;
@@ -331,7 +353,7 @@ function TryDemo() {
         body: JSON.stringify({ draft_sha256: firstHash }),
       });
       const d = await r.json().catch(() => ({}));
-      setTamper((d as { detail?: ApiError })?.detail ?? { message: 'The approval was accepted — the guard did not fire.' });
+      setTamper({ status: r.status, error: (d as { detail?: ApiError })?.detail ?? null });
     } catch {
       setFailure({ kind: 'network', text: 'The tamper request did not come back.' });
     } finally {
@@ -354,9 +376,9 @@ function TryDemo() {
     if (n === 0) parts.push('You have not fired a trap yet');
     else parts.push(`${n} trap${n === 1 ? '' : 's'} refused`);
     if (phone === 'completed') parts.push('one deed confirmed by name');
-    if (tamper?.code === 'DRAFT_MISMATCH') parts.push('one receipt that would not take a false hash');
+    if (tamperRefused) parts.push('one receipt that would not take a false hash');
     return `${parts.join(', ')}.`;
-  }, [trapsFired, phone, tamper]);
+  }, [trapsFired, phone, tamperRefused]);
 
   return (
     <main className="min-h-screen bg-white text-[#1F2B37]">
@@ -454,8 +476,14 @@ function TryDemo() {
         <div className="mx-auto grid max-w-7xl grid-cols-1 divide-y divide-gray-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
           {[
             { n: 'ACT 01', t: 'Break it on purpose', s: trapsFired.size ? 'Refused — as designed' : 'Waiting for you' },
-            { n: 'ACT 02', t: 'You confirm it', s: phone === 'completed' ? `Confirmed by ${approverName || 'you'}` : act2Open ? 'Ready' : 'Locked until a trap fires' },
-            { n: 'ACT 03', t: 'The receipt', s: tamper ? '409 — refused' : artifact ? 'Artifact issued' : 'Locked until confirmation' },
+            /* "Ready" described a draft that did not exist — the act was
+             * unlocked, nothing had been sent. The rail reports the state
+             * of the WORK, not the state of the accordion. */
+            { n: 'ACT 02', t: 'You confirm it', s: phone === 'completed' ? `Confirmed by ${approverName || 'you'}` : draft ? 'Draft awaiting your confirmation' : act2Open ? 'Unlocked — no draft sent yet' : 'Locked until a trap fires' },
+            /* Derived, like everything else about this act. It used to
+             * announce a refusal, with a typed status code, whatever
+             * came back — including the 200 that actually did. */
+            { n: 'ACT 03', t: 'The receipt', s: tamper ? (tamperRefused ? `${tamper.status} — refused` : `${tamper.status} — guard did not fire`) : artifact ? 'Artifact issued' : 'Locked until confirmation' },
           ].map((a) => (
             <div key={a.n} className="px-5 py-4">
               <div className="font-mono text-[11px] font-bold tracking-widest text-gray-400">{a.n}</div>
@@ -760,23 +788,46 @@ function TryDemo() {
               </p>
               <button type="button" onClick={runTamper} disabled={!artifact || busy !== null || !!tamper}
                 className="mt-4 rounded-lg bg-[#14161A] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500">
-                {tamper ? 'Refused — see below' : busy === 'tamper' ? 'Sending…' : "Confirm draft B with draft A's hash"}
+                {tamper ? 'Sent — see below' : busy === 'tamper' ? 'Sending…' : "Confirm draft B with draft A's hash"}
               </button>
 
-              {tamper && (
+              {tamper && (tamperRefused ? (
                 <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4">
                   <div className="flex items-center gap-2">
-                    <span className="rounded border border-red-300 bg-red-100 px-2 py-0.5 font-mono text-xs font-bold text-red-800">409</span>
-                    <span className="font-mono text-[12.5px] text-gray-500">{tamper.code}</span>
+                    <span className="rounded border border-red-300 bg-red-100 px-2 py-0.5 font-mono text-xs font-bold text-red-800">{tamper.status}</span>
+                    <span className="font-mono text-[12.5px] text-gray-500">{tamper.error?.code}</span>
                   </div>
-                  <p className="mt-2.5 text-[15px] font-semibold text-[#14161A]">{tamper.message}</p>
+                  <p className="mt-2.5 text-[15px] font-semibold text-[#14161A]">{tamper.error?.message}</p>
                   <p className="mt-2 text-sm leading-relaxed text-gray-600">
                     The comparison happens before the promotion, so the second draft is still{' '}
                     <strong>pending_confirmation</strong> — a mismatch never stores bytes nobody saw. Your receipt
                     from Act 2 is untouched.
                   </p>
                 </div>
-              )}
+              ) : (
+                /* NOT styled as a refusal. A guard that did not fire is a
+                 * failure of this demo's central claim, and dressing it in
+                 * the red panel is how the last version came to display a
+                 * refusal that never happened. Grey, and it says so. */
+                <div className="mt-4 rounded-xl border border-gray-300 bg-gray-50 p-4">
+                  <div className="flex items-center gap-2">
+                    <span className="rounded border border-gray-400 bg-gray-100 px-2 py-0.5 font-mono text-xs font-bold text-gray-700">{tamper.status}</span>
+                    <span className="font-mono text-[12.5px] text-gray-500">{tamper.error?.code ?? 'no error code'}</span>
+                  </div>
+                  <p className="mt-2.5 text-[15px] font-semibold text-[#14161A]">
+                    The guard did not fire. This demonstration failed.
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                    {tamper.error?.message
+                      ? <>The API answered <span className="font-mono text-[13px]">{tamper.status}</span> with{' '}
+                         <span className="font-mono text-[13px]">{tamper.error.code}</span> — not the mismatch refusal
+                         this step exists to show. </>
+                      : <>Draft B was approved while carrying draft A&rsquo;s hash. </>}
+                    We would rather show you that than a refusal we did not receive. Please tell us &mdash; this is
+                    the one thing on this page that must not be reported by the page itself.
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         </div>

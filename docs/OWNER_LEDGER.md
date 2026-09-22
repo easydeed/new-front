@@ -4,8 +4,17 @@
 (not only in chat) so the list survives context windows. No credential
 values ever appear in this file — item names and status only.
 
-_Last corrected: 2026-09-22 (TRY Stage 3 — `/try` built and linked;
-the TRY lane closes. Earlier the same day: credential response — the four offender
+_Last corrected: 2026-09-22 (TRY-FIX rulings 1–3 — a live walkthrough
+found the demo minting PERMANENT PUBLIC VERIFICATION RECORDS for a
+fictional parcel, an unwatermarked PDF under a footer promising every
+PDF is watermarked, and a tamper step printing a refusal that never
+happened. 🔴 **OWNER ACTION OUTSTANDING: run
+`python backend/scripts/demo_authenticity_audit.py` and report the
+count** — existing rows are NOT removed by this change, only new ones
+prevented. Also: the standing PDF-rasterisation constraint CORRECTED —
+it named PyMuPDF/AGPL as "the obvious candidate" and `pypdfium2` is
+BSD-3/Apache-2.0. Earlier the same day: TRY Stage 3 — `/try` built and
+linked; the TRY lane closes; credential response — the four offender
 files DELETED from `main`, a blocking secrets gate added to CI, and
 rotation deferred a SECOND time, this one WITH the facts and recorded
 as a different object from the first. 🔴 THE FIRST DEFERRAL WAS VOID — the
@@ -2402,15 +2411,32 @@ marketing page rather than on anything recordable.
   render, `pillow` cannot rasterise a PDF without poppler, and
   `weasyprint` only goes HTML→PDF. So any future "show the PDF as
   images" work — TRY-7's Option A, a thumbnail, a page preview — is a
-  **new dependency**, and the obvious server-side candidate is
-  **PyMuPDF, which is AGPL-3.0 or commercial.**
+  **new dependency.**
 
-  **That is a licensing decision on a commercial product, not a
-  dependency choice, and it is the owner's.** The licensing-clean route
-  is client-side `pdf.js` (Apache-2.0), at the cost of ~1MB of worker
-  and rebuilding zoom controls. Recorded here so the next person to
-  reach for a rasteriser meets the constraint before the install
-  command.
+  ⚠️ **CORRECTED 2026-09-22 — THIS ENTRY NAMED A CANDIDATE AND READ AS
+  A SURVEY.** It said the obvious server-side candidate is **PyMuPDF,
+  AGPL-3.0 or commercial**, and therefore that rasterisation is a
+  licensing decision on a commercial product before it is a dependency
+  choice. The first half was true and the conclusion was wrong:
+
+  · **`pypdfium2` is BSD-3-Clause / Apache-2.0** — no copyleft
+    obligation on the shipped artifact. Its bundled PDFium binary
+    carries 14 third-party licences (ICU, freetype, libjpeg-turbo,
+    libtiff, libpng, abseil, agg23, lcms, openjpeg, llvm-libc and
+    others); the only GPL text among them is in ICU's **build-time
+    autotools files**, each under the Autoconf exception, and llvm-libc
+    is Apache-2.0-with-LLVM-exception. Read, not recalled.
+  · **Measured, not taken from the registry** (the `@paulmillr/qr`
+    lesson): wheel **3.73 MB**, installed **8.7 MB**, of which **7.4 MB
+    is `libpdfium.so`**.
+
+  So rasterisation is an ordinary dependency decision after all, on
+  size rather than licence — 8.7 MB is a real addition to a backend
+  image for a check that only CI runs, which is the actual trade-off
+  and a different conversation from AGPL. **The licensing ruling this
+  entry demanded was demanded on a false premise**, and the premise was
+  one named candidate presented as the field. `pdf.js` (Apache-2.0,
+  ~1MB worker, zoom rebuilt by hand) remains the client-side route.
 
   ═══ STAGE 3 — BUILT (2026-09-22) ═══
 
@@ -2439,8 +2465,138 @@ marketing page rather than on anything recordable.
   · **The close counts what the prospect actually did** — never a
     literal "four traps refused".
 
+  ═══ TRY-FIX — BUILT (2026-09-22, three owner rulings) ═══
+
+  An external tester ran `/try` in production. Three defects; the
+  **discovery found while reporting on two of them outranked both.**
+
+  🔴 **(1) THE DEMO WAS MINTING PERMANENT PUBLIC VERIFICATION RECORDS.**
+  Every `/try` approval inserted a `document_authenticity` row with
+  `status='active'` — the table `GET /api/v1/verify/{code}` answers
+  from, **unauthenticated, no expiry** — for the fictional 1300
+  Nonesuch Avenue parcel, under whatever name the visitor typed, with
+  **no marker distinguishing it from a real deed.** `delete_demo_drafts`
+  reclaims the `api_deeds` row after three hours and does not touch that
+  table, so **the public record outlived the deed it described and kept
+  answering `valid: true` afterwards.**
+
+  Every field in those rows is accurate. What is false is the
+  endpoint's purpose — telling a DeedPro document from a fabrication.
+
+  **FIXED, in two places, and the second is the one that would have been
+  missed.** Demo approvals write no authenticity row
+  (`routers/api_confirm.py` branches on `demo_kind`), **and** the verify
+  endpoint's `api_deeds` fallback excludes any marked row — without it
+  the completed demo deed is publicly confirmed anyway for the three
+  hours before retention reaches it.
+
+  🔴 **OWNER ACTION — EXISTING ROWS ARE NOT REMOVED BY THIS CHANGE.**
+
+  ```
+  python backend/scripts/demo_authenticity_audit.py
+  ```
+
+  Report-only by default, as ruled. It prints the total, the count
+  matching the demo parcel, how many are orphaned (no surviving deed
+  row — certain demo rows, since a real approved deed keeps its row
+  forever), each row, and **what `GET /api/v1/verify/{code}` returns for
+  one**, run as the endpoint's own query rather than a paraphrase of it.
+  `--delete` removes only rows matching both conditions. The count could
+  not be produced from here: it is production data and there are no
+  credentials on this side.
+
+  · **The safe default flips with the operation, on the same column.**
+    `DELETE_DEMO_SQL` requires `demo_kind = 'try'` EXACTLY so an
+    unmarked row can never be destroyed; the verify fallback requires
+    `demo_kind IS NULL` so a row marked with a kind nobody has written
+    yet is refused rather than confirmed. **Destroying fails closed by
+    naming what it may touch; asserting fails closed by naming what it
+    may not.**
+  · **So `_mark_demo_row`'s failure direction moved with its cost.** An
+    unmarked demo row used to be a housekeeping miss; it is now a row
+    whose approval mints a public claim. The route refuses to hand out
+    a draft it could not mark, and checks `rowcount` — an UPDATE that
+    matched nothing succeeds loudly.
+
+  🔴 **(2) THE WATERMARK — and the cause was never in the watermark
+  code.** `/try`'s footer claims **unconditionally** that every PDF
+  rendered there is watermarked. The mechanism was `api_keys.is_test`:
+  a column defaulting FALSE, set only at key creation, and — until this
+  ticket — **with no update path in the admin API at all.** In
+  production it was falsy, so the demo emitted clean,
+  recordable-looking deeds under a true-sounding sentence. The claim and
+  the mechanism were never the same proposition and nothing compared
+  them.
+
+  **Ruled: the route decides.** The page says "every PDF rendered
+  HERE", and here is `/try/deed`, so that route forces the watermark
+  regardless of the key. `watermark_if_test` still governs every other
+  `dp_test_` render — the 2026-09-21 ruling is untouched; the demo
+  stopped depending on it.
+
+  · **The owner withdrew the fallback instruction** ("remove the footer
+    claim if it can't be fixed immediately") on the agent's objection:
+    both changes ship on the same deploy, so there is no window in
+    which removing the claim helps. The choice was between a true page
+    and a quieter false one.
+  · **`PATCH /admin/api-keys` listed `is_test` in its `RETURNING`
+    clause, among four settable fields, and never wrote it.** An admin
+    reading the response would reasonably conclude they had set it.
+    Same shape as the demo's hardcoded `409`: an artifact asserting
+    something it did not check. Now settable — **with the `dp_test_` →
+    live direction REFUSED**, because the prefix is baked at creation
+    and that disagreement produces clean deeds under a key that says
+    test on its face, one PATCH away from the artifact the watermark
+    ruling exists to prevent. The opposite disagreement watermarks more
+    than the prefix suggests, which is harmless.
+  · **OWNER, Tier 3:** the demo key still needs recreating as a real
+    `dp_test_` key with `TRY_DEMO_API_KEY` re-set on Render. Confirm the
+    diagnosis in ten seconds first: `GET /admin/api-keys` returns
+    `key_prefix` and `is_test` per key.
+
+  🔴 **(3) THE TAMPER ACT COULD NOT FAIL AND THEREFORE COULD NOT PASS.**
+  Draft B was the sample repeated verbatim. WeasyPrint renders identical
+  HTML to identical bytes — **measured: the same 24,208-byte PDF, the
+  same SHA-256** — so `claimed != pdf_sha256` was False, `DRAFT_MISMATCH`
+  was **unreachable**, and the approval returned **200**, promoting a
+  second deed. The page displayed `409 Refused` because the badge was a
+  **string literal** and `r.status` was never read, beside the fallback
+  sentence "the approval was accepted — the guard did not fire", which
+  was the only true thing on the panel.
+
+  **The guard was correct throughout. It was never shown a tamper.**
+
+  Draft B is now the `second_draft` variant: one differing figure that
+  **prints on the face of the deed** — documentary transfer tax
+  **$825.00 → $852.50** — derived from the same rate table the deed
+  relies on rather than typed beside the value. Verified end to end:
+  the two drafts now hash differently and the guard's own predicate
+  fires. The panel reads the status, and **a 200 renders in GREY as a
+  failed demonstration**, never in the red refusal styling.
+
+  · `variant` joins `trap_id` and `approver_name` on `TryRequest`. It
+    does not widen the boundary — like `trap_id` it is a key into a
+    server-side table, not content, and extras stay forbidden.
+  · The refusal is recognised by **`DRAFT_MISMATCH`, not by 409**.
+    `NOT_PENDING` is also a 409, and what the tester saw was a 409 with
+    `DRAFT_MISMATCH` nowhere on the page.
+
   ═══ WHAT A READER WHO BELIEVES THIS ENTRY SHOULD STILL ASK ═══
 
+  · **The count of existing authenticity rows is still unknown.** The
+    script exists; nobody has run it. Nothing above should be read as
+    saying the historical rows are gone.
+  · **The pixel gate is NOT built.** `pypdfium2` measured and reported
+    (BSD-3-Clause / Apache-2.0, 8.7 MB installed); approved in
+    principle, held pending the size ruling. Until it exists, CI
+    asserts that the marker reaches the HTML and that `/try` forces it
+    — not that it is visible on the page.
+  · **Still unverified against a live sandbox**, and the mobile path
+    remains untested: the tester could not resize below 1536px.
+  · **Defect 3 (`/confirm` shows no deed at ≥1024px) and the nine
+    smaller items are NOT in this change.** They are next, including
+    the report on why the banned-claims ticket-ID rule let `REQUIRED1:`
+    into user copy.
   · **The page polls `/confirm/{token}`, not `GET /api/v1/deeds/{id}`
     as the handoff drew it.** That endpoint needs an API key the browser
     deliberately does not have. The polled endpoint is named on the page

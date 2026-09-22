@@ -1001,11 +1001,30 @@ async def verify_document(document_id: str, request: Request, response: Response
                 row['short_code'], row['document_type'],
                 row['generated_at'], row['status'])
         else:
-            # Also check api_deeds
+            # Also check api_deeds — but NEVER a demo row.
+            #
+            # `/try` approvals no longer mint a `document_authenticity`
+            # row, so without this clause the sample would fall through
+            # to here and be publicly confirmed anyway for the three
+            # hours before retention reclaims it. Closing one door and
+            # leaving the other open is not closing it.
+            #
+            # ═══ THE SAFE DEFAULT FLIPS WITH THE OPERATION ═══
+            #
+            # `DELETE_DEMO_SQL` requires `demo_kind = 'try'` EXACTLY, so
+            # an unmarked row can never be destroyed by it. This is the
+            # same predicate read the other way round: publishing a
+            # public claim requires the ABSENCE of any marker, so a row
+            # marked with a kind nobody has written yet is refused
+            # rather than confirmed.
+            #
+            # Destroying fails closed by naming what it may touch.
+            # Asserting fails closed by naming what it may not.
             cursor.execute("""
                 SELECT authenticity_id, document_id, deed_type, created_at, status
                 FROM api_deeds
                 WHERE document_id = %s AND status = 'completed'
+                  AND demo_kind IS NULL
             """, (document_id,))
             row = cursor.fetchone()
             if not row:
