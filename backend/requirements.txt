@@ -78,7 +78,6 @@ webencodings==0.5.1
 websockets==11.0.3
 yarl==1.20.1
 zopfli==0.2.3.post1
-qrcode[pil]==7.4.2
 sendgrid==6.11.0
 # RED-H1.4: was 2.1.0, which PyPI has YANKED (the maintainer withdrew it —
 # stale python_requires metadata). A yanked pin installs today and can stop
