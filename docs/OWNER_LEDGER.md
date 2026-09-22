@@ -4,7 +4,10 @@
 (not only in chat) so the list survives context windows. No credential
 values ever appear in this file — item names and status only.
 
-_Last corrected: 2026-09-22 (🔴 THE CREDENTIAL DEFERRAL IS VOID — the
+_Last corrected: 2026-09-22 (credential response — the four offender
+files DELETED from `main`, a blocking secrets gate added to CI, and
+rotation deferred a SECOND time, this one WITH the facts and recorded
+as a different object from the first. 🔴 THE FIRST DEFERRAL WAS VOID — the
 repository is PUBLIC and the files were never quarantined, so its trigger
 had already fired when it was written. Full-history scan recorded, report
 only. Also TRY Stage 2 — TRY-7 built as Option B; the
@@ -548,6 +551,40 @@ to `os.getenv`, in that order. `run_migration.py` stays quarantined with
 them (it is also unparseable — a migration runner that has never parsed,
 so has never run a migration); deleting it is part of the same pass.
 
+═══ THE SECOND DEFERRAL — MADE WITH THE FACTS (2026-09-22, owner) ═══
+
+**Rotation is deferred again, and this one is a different object from
+the one above it.** Both entries say "deferred"; only one of them was a
+decision.
+
+| | the first deferral | this deferral |
+|---|---|---|
+| repository visibility | **assumed** private — and it was public | **known** public |
+| the files | believed quarantined — three were on `main` | known to be on `main`, now deleted |
+| the trigger | "before anyone else gets access" | already fired, and known to have |
+| what it is | a conclusion drawn from an unchecked premise | **an informed acceptance of a known risk** |
+
+**Recorded this way round deliberately.** The first is not a decision
+the owner made badly; it is a decision the owner was never in a position
+to make, because the fact it turned on was never put in front of him.
+This one he can be held to, and that difference is the whole reason both
+are written down instead of the second replacing the first.
+
+**WHAT IS ACCEPTED, stated so the acceptance is legible.** The
+production `deedpro` credential, a staging credential, a Google API key,
+three OpenAI keys, two Stripe test keys, a webhook secret and a
+SiteX/TitlePoint credential are in the history of a repository that has
+been public. Anyone who cloned it holds them, permanently, and no later
+action reaches them. Rotation is the only thing that ends that, and it
+has not happened yet.
+
+**WHAT WAS DONE INSTEAD, and what it is worth.** The four files were
+deleted from `main` (below), which removes the credentials from the
+default branch where casual readers and HEAD-only scanners look. **That
+is a reduction in discovery, not in exposure** — the values are
+unchanged and still in history. Saying otherwise would make this entry
+the same kind of object as the one above it.
+
 ═══ FULL-HISTORY SCAN, 2026-09-22 — REPORT ONLY, NOTHING REWRITTEN ═══
 
 Run after unshallowing the clone. **This matters: the working clone was
@@ -594,6 +631,19 @@ still works means USING it against the vendor's API, and these are the
 owner's production credentials at payment and mail providers. Liveness is
 confirmed in each vendor console, by the owner. What this scan
 establishes is **exposure**, which is the fact that decides rotation.
+
+**WORKING TREE CLEARED 2026-09-22 (owner-ruled), HISTORY UNTOUCHED.**
+All four files deleted from `main`: `backend/run_migration.py`,
+`backend/migrations/run_migration.py`,
+`backend/migrations/run_adminfix_migration.py`, `backend/set_admin_role.py`.
+
+None was replaced with an env-reading version. All four were dead
+one-offs — a completed Phase-11 migration, a one-time admin grant for a
+single test account, a staging admin toggle, and a runner that has never
+parsed — and writing an env-reading version of a finished migration is
+speculative work. `CREDENTIALS_IN_SOURCE` and `UNPARSEABLE` in
+`test_db_identity.py` are now empty sets, with the reason in place of
+the members.
 
 **ORDER, unchanged and now urgent: rotate first, scrub second.**
 Scrubbing history before rotation destroys the evidence of which

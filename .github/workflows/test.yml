@@ -131,6 +131,39 @@ jobs:
       working-directory: frontend
       run: npx jest --ci
 
+  secrets-gate:
+    # Added 2026-09-22, after a full-history scan found twelve credentials
+    # in a repository that turned out to be PUBLIC.
+    #
+    # THE GATE THAT EXISTED WAS THE WRONG SHAPE, not missing. `test_db_
+    # identity.py` held an exact set of files carrying a Postgres
+    # connection string — a good gate, answering "has this known list
+    # grown?". The scan found a Google API key across ten files, three
+    # OpenAI keys, two Stripe keys and a webhook secret, NOT ONE of which
+    # that gate could ever have seen, because none of them is a DSN.
+    #
+    # Scans TRACKED FILES AT HEAD, not history. The secrets already in
+    # history are recorded in the ledger by fingerprint and the scrub
+    # waits on rotation, so a history-scanning gate would fail every
+    # build until then — and a gate everyone disables is §14.9.
+    #
+    # The self-test runs FIRST and is part of the gate: a regex that
+    # stops matching produces a check that passes everything, and a
+    # passing secrets gate is indistinguishable from a clean repository
+    # from the outside.
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    - name: patterns can detect their own kind
+      # No `|| true`. If the instrument is blind, the scan below is
+      # worthless and the build must say so rather than go green.
+      run: python scripts/check_secrets.py --self-test
+    - name: no credential in tracked files
+      run: python scripts/check_secrets.py
+
   eslint-gate:
     # ESLINT1 — the gate that was turned OFF, not the gate we lacked.
     #
