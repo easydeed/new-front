@@ -26,6 +26,16 @@ const PUBLIC_ROUTES = new Set([
   // what this company does and does not have, which is the same for
   // every reader. Being on this list is a decision, not an oversight.
   '/trust',
+  // TRY Stage 3. Public BY DESIGN and the design is the point: a
+  // platform engineer evaluating the API must be able to OPERATE it
+  // before there is an account to log into. A demo behind a login wall
+  // is the funnel friction /developers was already fixed for.
+  //
+  // It holds no key: the browser posts {trap_id, approver_name} to
+  // `/try/deed`, which holds the demo credential server-side and builds
+  // the payload from a fixed sample. The security boundary is the
+  // payload constraint, not this list.
+  '/try',
   '/login',
   '/register',
   '/forgot-password',
