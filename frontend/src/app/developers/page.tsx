@@ -174,12 +174,23 @@ export default function DevelopersPage() {
           <a href="/" aria-label="DeedPro home">
             <LogoLockup size={30} />
           </a>
-          <a
-            href="#request-access"
-            className="rounded-lg bg-[#7C4DFF] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#6a3ff0]"
-          >
-            Request access
-          </a>
+          <div className="flex items-center gap-3">
+            {/* TRY: an evaluator reading docs is exactly who benefits
+                from running the thing instead. Placed beside the CTA
+                rather than in a footer. */}
+            <a
+              href="/try"
+              className="rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100"
+            >
+              Run it live
+            </a>
+            <a
+              href="#request-access"
+              className="rounded-lg bg-[#7C4DFF] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#6a3ff0]"
+            >
+              Request access
+            </a>
+          </div>
         </div>
       </header>
 

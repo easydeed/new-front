@@ -148,8 +148,12 @@ export default function LandingPage() {
                     door, not the footer. An evaluator reads them BEFORE
                     deciding, and a link in the footer is a link they
                     reach after they have already decided. */}
+                {/* TRY: the demo hangs off the platform door for the
+                    same reason /developers and /trust do — an evaluator
+                    who bounces never reaches a footer. */}
                 <div className="text-center text-[13px] text-gray-500">
-                  Keys issued on request ·{' '}
+                  <Link href="/try" className="font-semibold text-[#C4B5FD] hover:underline">Break it yourself</Link>
+                  {' '}·{' '}
                   <Link href="/developers" className="font-semibold text-[#C4B5FD] hover:underline">read the docs</Link>
                   {' '}·{' '}
                   <Link href="/trust" className="font-semibold text-[#C4B5FD] hover:underline">what we do not have</Link>

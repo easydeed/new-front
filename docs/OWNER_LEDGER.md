@@ -4,7 +4,8 @@
 (not only in chat) so the list survives context windows. No credential
 values ever appear in this file — item names and status only.
 
-_Last corrected: 2026-09-22 (credential response — the four offender
+_Last corrected: 2026-09-22 (TRY Stage 3 — `/try` built and linked;
+the TRY lane closes. Earlier the same day: credential response — the four offender
 files DELETED from `main`, a blocking secrets gate added to CI, and
 rotation deferred a SECOND time, this one WITH the facts and recorded
 as a different object from the first. 🔴 THE FIRST DEFERRAL WAS VOID — the
@@ -2270,8 +2271,9 @@ entry nobody checks a new feature against.
 ## Parked tickets (scoped, not scheduled)
 
 - **TRY — the live API demonstration. STAGE 1 of 3.**
-  **DECIDED** 2026-09-21, owner-ruled. **BUILT** — Stages 1 and 2 yes
-  (#277 and the TRY-7 fork); Stage 3 no.
+  **DECIDED** 2026-09-21, owner-ruled. **BUILT** — all three stages.
+  Stage 1 #277, Stage 2 #278, Stage 3 below. **`/try` is inert until
+  `TRY_DEMO_API_KEY` is set on Render.**
 
   Design handoff: `docs/design/design-try/design_handoff_try_api_demo/`
   on **`cursor/design-try-unzip-8b4b`** — *not* `design-try`, which does
@@ -2383,9 +2385,54 @@ entry nobody checks a new feature against.
   reach for a rasteriser meets the constraint before the install
   command.
 
-  ═══ STAGE 3 — NOT BUILT ═══
+  ═══ STAGE 3 — BUILT (2026-09-22) ═══
 
-  · **`/try` itself**, per the README, with the owner's changes.
+  `frontend/src/app/try/page.tsx` + `tryPage.test.ts` (22 pins). Linked
+  from the homepage platform door and `/developers`, not the top nav.
+
+  · **A TERM IN THE RULING TRACED BACK TO THE AGENT'S OWN SLIP.** Stage
+    3 was ruled as "the two-door page". `/try` is not one — it is the
+    THREE-ACT page, and the two-door fork is the homepage's (ENGINE2).
+    The phrase entered from a Stage 2 report written here and was echoed
+    back. Built to the handoff; flagged rather than followed, because
+    building a two-door `/try` would have contradicted the README while
+    matching the instruction.
+  · **The hero says "runs the real API code against the sandbox"**, and
+    the console labels its payload **the request the partner API
+    receives**. Pinned, because it is the page's first sentence and the
+    one place an overclaim would cost the whole argument.
+  · **Traps derived from the catalog**, no slug and no expected message
+    typed. Trap 4 keeps REQUIRED1's gloss and is not paired with the
+    vesting traps.
+  · **Colour is doctrine:** amber ONLY on the pending draft, failure
+    red, absence grey, every status a glyph plus a word. The amber pin
+    is positional — it measures where each amber token sits rather than
+    slicing a region.
+  · **Presenter mode keeps the timer and carries no script line.**
+  · **The close counts what the prospect actually did** — never a
+    literal "four traps refused".
+
+  ═══ WHAT A READER WHO BELIEVES THIS ENTRY SHOULD STILL ASK ═══
+
+  · **The page polls `/confirm/{token}`, not `GET /api/v1/deeds/{id}`
+    as the handoff drew it.** That endpoint needs an API key the browser
+    deliberately does not have. The polled endpoint is named on the page
+    so it does not imply a call it cannot make.
+  · **TRY-6 (the QR renderer) is deliberately not built.** No QR library
+    exists in this frontend and adding one is a dependency decision, not
+    a page detail — the same standing rule as the rasteriser. The
+    confirmation link does the same job.
+  · **`/try` does nothing until `TRY_DEMO_API_KEY` is set on Render.**
+    Unset, `/try/deed` answers 503 `DEMO_UNAVAILABLE` and every button
+    on the page reports a refusal. **The page has never been exercised
+    against a live sandbox from here** — the flow is built and pinned
+    against the contract, not observed end to end.
+  · **`ApiInquiryForm` is reused rather than restyled.** The design
+    asked for dark-styled fields; a second copy would fork the failure
+    handling that already keeps the input and promises a conversation
+    rather than a key.
+
+  ═══ NOT BUILT ═══
   · **COPY RULING CARRIED FORWARD (2026-09-22), and it governs the
     page's first sentence.** The browser posts to `/try/deed`, which
     runs the real validation, handler, database and render **but not
