@@ -2422,11 +2422,25 @@ entry nobody checks a new feature against.
     exists in this frontend and adding one is a dependency decision, not
     a page detail — the same standing rule as the rasteriser. The
     confirmation link does the same job.
-  · **`/try` does nothing until `TRY_DEMO_API_KEY` is set on Render.**
-    Unset, `/try/deed` answers 503 `DEMO_UNAVAILABLE` and every button
-    on the page reports a refusal. **The page has never been exercised
-    against a live sandbox from here** — the flow is built and pinned
-    against the contract, not observed end to end.
+  · **🔴 `/try` IS UNVERIFIED AGAINST A LIVE SANDBOX, and stays that way
+    until the owner runs all three acts end to end.** Nothing in this
+    repository can close that gap: every pin here reads SOURCE, and the
+    suites cannot observe a cold container, a real render, a phone
+    approving, or a 409 coming back from a second draft. **The page is
+    built and pinned against the CONTRACT, not against a running
+    system** — which is exactly the distinction §14.20 was written
+    about, since a gate handed the location of the thing it verifies
+    cannot measure whether the thing works.
+
+    Unset `TRY_DEMO_API_KEY` and `/try/deed` answers 503
+    `DEMO_UNAVAILABLE`; every button reports a refusal rather than
+    pretending. **Turning the demo on does NOT depend on rotation** —
+    the agent implied it did and was wrong. Three owner steps: create a
+    `dp_test_` key, set `TRY_DEMO_API_KEY` on `deedpro-main-api`, and
+    run `python backend/scripts/seed_try_fixture.py` once.
+
+    **Until that walkthrough happens, treat this entry as describing a
+    build rather than a working demo.**
   · **`ApiInquiryForm` is reused rather than restyled.** The design
     asked for dark-styled fields; a second copy would fork the failure
     handling that already keeps the input and promises a conversation
