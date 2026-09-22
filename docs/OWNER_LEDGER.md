@@ -4,7 +4,10 @@
 (not only in chat) so the list survives context windows. No credential
 values ever appear in this file — item names and status only.
 
-_Last corrected: 2026-09-22 (TRY Stage 2 — TRY-7 built as Option B; the
+_Last corrected: 2026-09-22 (🔴 THE CREDENTIAL DEFERRAL IS VOID — the
+repository is PUBLIC and the files were never quarantined, so its trigger
+had already fired when it was written. Full-history scan recorded, report
+only. Also TRY Stage 2 — TRY-7 built as Option B; the
 HTML-reflow option refused and the refusal recorded beside the confirm
 page; PDF rasterisation recorded as a licensing decision before a
 dependency one).
@@ -476,9 +479,50 @@ holds, and a fingerprint is how the rule stays useful rather than merely
 observed. Found by an AST sweep written for an unrelated argument-shape
 bug.
 
-**Why deferring is defensible today.** Exposure requires clone access to
-a private repository with a single collaborator. Obscurity is not
-security, but access control is, and that is access control.
+**🔴 THE DEFERRAL IS VOID. ITS PREMISE WAS FALSE WHEN IT WAS MADE
+(2026-09-22).** Superseded text kept below verbatim, because the reason
+it was wrong is the finding.
+
+> ~~**Why deferring is defensible today.** Exposure requires clone access
+> to a private repository with a single collaborator. Obscurity is not
+> security, but access control is, and that is access control.~~
+
+**THE REPOSITORY IS PUBLIC.** Checked against the GitHub API rather than
+assumed: `"private": false, "visibility": "public"`. There is no clone
+access to require. Anyone on the internet could clone this repository on
+any day this entry claimed access control was protecting it — and git
+history keeps the credentials whatever the working tree says.
+
+**AND THE SECOND PREMISE WAS ALSO FALSE: THE FILES ARE NOT
+QUARANTINED.** Verified with `git cat-file -e origin/main:<path>` on each
+one. Three files carrying the **production `deedpro`** credential are on
+`main` today, plus one carrying staging:
+
+| file | on `main` now | database |
+|---|---|---|
+| `backend/run_migration.py` | **yes** | `deedpro` (production) |
+| `backend/migrations/run_migration.py` | **yes** | `deedpro` (production) |
+| `backend/migrations/run_adminfix_migration.py` | **yes** | `deedpro` (production) |
+| `backend/set_admin_role.py` | **yes** | `mr_staging_db` |
+
+**So the trigger — "rotate before anyone else gets repo access" — had
+already fired before the deferral was written.** It could never fire
+later, because the condition it waited for was the condition it was
+already in.
+
+**§14.27, at the worst available target.** The verification reflex
+pointed outward: this entry measured fingerprints, enumerated files,
+built a gate to stop a fifth offender, and reasoned carefully about
+diligence and first-clone risk — **while never checking the one fact the
+whole argument rested on.** The surrounding rigour is what made it
+persuasive. Nobody asks whether the foundation is load-bearing when the
+building above it is this well built.
+
+**The general form, and it is cheap: when a decision rests on a single
+external fact, verify THAT FACT FIRST and name it in the record as
+verified.** Everything else in this entry was checked against the
+repository. Repository visibility is one API call and was checked against
+nobody's memory.
 
 **The two ways it actually bites — and neither is "an attacker finds us".**
 
@@ -503,6 +547,59 @@ above stops being checkable against the code. Rotation first, then scrub
 to `os.getenv`, in that order. `run_migration.py` stays quarantined with
 them (it is also unparseable — a migration runner that has never parsed,
 so has never run a migration); deleting it is part of the same pass.
+
+═══ FULL-HISTORY SCAN, 2026-09-22 — REPORT ONLY, NOTHING REWRITTEN ═══
+
+Run after unshallowing the clone. **This matters: the working clone was
+SHALLOW, and a secrets scan on a shallow clone silently cannot see the
+old commits the credentials live in — it would have reported clean for
+the same reason a gate that never runs reports no failures (§14.2).**
+After `git fetch --unshallow` and fetching all 263 branches: **1,342
+commits, 16,653 objects, 8,181 text blobs scanned**, back to the initial
+commit of 2025-07-23.
+
+**FOUND — 12 distinct credential-shaped strings, of which these are
+real.** Values never appear here; fingerprints are `sha256(secret)[:12]`.
+
+| kind | fingerprint | still on `main` |
+|---|---|---|
+| Postgres — **`deedpro` production** | `105f01e0f1f4` | **yes, 3 files** |
+| Postgres — `mr_staging_db` | `d6e6271abdfc` | **yes, 1 file** |
+| Postgres — a **Supabase** project | `c43cd5ae66eb` | history only |
+| Google API key | `fa40f921ebe5` | history only (10 files) |
+| OpenAI key ×3 | `953a26e87d42`, `b9cbeea9150a`, `920a235492a5` | history only |
+| Stripe **test** secret key ×2 | `49cb02176c18`, `d48678adaa54` | history only |
+| Stripe webhook secret | `0c2ac94a4b7a` | history only |
+| SiteX / TitlePoint credential | `bf5b8946177f` | `backend/env.example` |
+
+Three further matches are documentation placeholders (`user:password@host/db`,
+`prod_user@prod_host`, `your_user@localhost`) and are not credentials.
+
+**The Supabase one is worth its own line:** a database at a vendor this
+project does not otherwise use appears in history. It may be dead, from
+an abandoned early spike — but nobody has said so, and an unexplained
+production-shaped credential is not a thing to assume about.
+
+**NOT FOUND — and the absence is bounded, not absolute.** No Stripe
+**live** key, no AWS access key or secret, no SendGrid key, no private
+key block, no JWT secret literal. **A positive control was run on every
+pattern before reporting these absences**: each was shown to detect a
+correctly-formatted key of its own kind, because an absence reported by
+an instrument that cannot detect presence is worth nothing. The bound
+that remains: the scan finds what its patterns describe, so a credential
+in a format not listed above would not appear.
+
+**Liveness was NOT tested, deliberately.** Determining whether a key
+still works means USING it against the vendor's API, and these are the
+owner's production credentials at payment and mail providers. Liveness is
+confirmed in each vendor console, by the owner. What this scan
+establishes is **exposure**, which is the fact that decides rotation.
+
+**ORDER, unchanged and now urgent: rotate first, scrub second.**
+Scrubbing history before rotation destroys the evidence of which
+credential needs rotating — the table above stops being checkable — and
+it does not un-give anything to anyone who already cloned. Making the
+repository private does not undo exposure either, for the same reason.
 
 **What is mechanical in the meantime.**
 `backend/tests/test_db_identity.py::test_no_new_file_hard_codes_a_database_password`
