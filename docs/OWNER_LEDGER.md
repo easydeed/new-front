@@ -4,23 +4,18 @@
 (not only in chat) so the list survives context windows. No credential
 values ever appear in this file — item names and status only.
 
-_Last corrected: 2026-09-23 (**THE TRY-FIX LANE IS CLOSED** — #284
-through #288 merged. §14.36 and §14.35.1 added. The lane began as three
-demo defects from a live walkthrough and **none of what it fixed was
-demo-only**: `area_type` asserting incorporation from tax data across
-five writers and eight instruments, with 35 of 46 known cities printing
-the wrong box on a recordable instrument; the public error contract,
-which every integrator's error UI would have shown users as a field path
-wrapped in framework noise; `/confirm/[token]` on a phone, the surface
-real notaries and buyers use; and the admin console minting LIVE keys
-when nothing was ticked. 🔴 **OWNER, BEFORE `/try` WORKS AT ALL:**
-deactivate the exposed `dp_live_kcBztNxnJ86z…`, create a test key with
-the "Test key" checkbox ticked, and re-set `TRY_DEMO_API_KEY` on
-`deedpro-main-api`. Only then does the demo render watermarked deeds for
-the first time. Earlier the same day: TRY-FIX rulings 1–3; the demo had
-been minting PERMANENT PUBLIC VERIFICATION RECORDS for a fictional
-parcel; the ticket-prefix allowlist derived rather than typed; defect 3
-did not reproduce and the observation was answered anyway.)
+_Last corrected: 2026-09-23 (**THE TRY LANE IS COMPLETE** — #284
+through #291 merged. §14.36, §14.35.1, §14.37 and §14.35.2 added. The
+demo works end to end and is honest about what it is: watermark visible
+on both pages, tamper refusing a false hash with 409/DRAFT_MISMATCH,
+and a receipt that can now be taken — as the API sent it, not as the
+page rendered it. **None of what the lane fixed was demo-only.** The
+`area_type` defect alone was a false statement on the transfer-tax
+declaration of every API-generated deed for an incorporated city that
+levies no city DTT — 35 of 46 known places. ⚠️ **The shared demo key is
+rate-limited by our own testing** and clears on its own hourly and
+daily ceilings; `/try` may not run for an hour. TRY-9 flagged that one
+visitor could exhaust it for the next — it turned out to be us.)
 Previously 2026-09-21 (TRY Stage 1 — the backend prerequisites;
 §14.34 added; the public 422 contract corrected and changelogged; the
 sample watermark widened to every `dp_test_` render).
