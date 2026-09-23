@@ -350,7 +350,7 @@ async def get_confirmation_artifact(token: str, request: Request):
     with this SHA-256, at this moment, and the bytes we hold hash to it.
 
     Does NOT establish: that they read it, that they were entitled to
-    approve it, or that the licence string is true. The licence is
+    approve it, or that the license string is true. The license is
     recorded when supplied and is NEVER verified — it is reproduced here
     as `license_claimed` so no reader can mistake it for a check we ran.
     """

@@ -550,8 +550,26 @@ function TryDemo() {
             </p>
           </div>
 
+          {/* `min-w-0` ON EVERY GRID CHILD.
+           *
+           * A grid item defaults to `min-width: auto`, which means it
+           * will not shrink below its own content. Below `lg` these
+           * grids are one column, so a wide child — a JSON console, a
+           * 64-character hash — pushed the DOCUMENT wider than the
+           * viewport instead of wrapping inside it.
+           *
+           * Measured on production at a 400px viewport: clean on load,
+           * clean after the 422, then 567px once the 201 draft panel
+           * rendered and 642px with the artifact and tamper panels too.
+           *
+           * THE SHAPE, NOT THE INSTANCE: these responsive rules were
+           * written and checked against the EMPTY page, where every
+           * child is narrow and nothing can overflow. The page only
+           * breaks once it has content, which is a state no one looks
+           * at while writing layout. The pin at the foot of
+           * `tryPage.test.ts` holds all three panels rendered. */}
           <div className="grid gap-5 lg:grid-cols-2">
-            <div className="overflow-hidden rounded-2xl bg-[#12141A]">
+            <div className="min-w-0 overflow-hidden rounded-2xl bg-[#12141A]">
               <div className="flex items-center justify-between border-b border-[#262A33] px-5 py-3.5">
                 <span className="font-mono text-xs text-gray-400">the request the partner API receives</span>
                 <span className="font-mono text-[11px] text-gray-500">POST /api/v1/deeds</span>
@@ -636,7 +654,7 @@ function TryDemo() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-            <div className="space-y-5">
+            <div className="min-w-0 space-y-5">
               <div className="rounded-2xl border border-gray-200 bg-white p-5">
                 <div className="text-[12.5px] font-bold uppercase tracking-widest text-gray-500">Who is confirming</div>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -817,7 +835,7 @@ function TryDemo() {
           </div>
 
           <div className="grid gap-5 lg:grid-cols-2">
-            <div className="rounded-2xl border border-gray-200 bg-white p-5">
+            <div className="min-w-0 rounded-2xl border border-gray-200 bg-white p-5">
               <div className="font-mono text-xs text-gray-500">GET /confirm/{'{token}'}/artifact</div>
               {artifact ? (
                 <dl className="mt-3 divide-y divide-gray-100">

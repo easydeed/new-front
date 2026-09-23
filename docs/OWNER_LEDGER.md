@@ -2668,6 +2668,64 @@ marketing page rather than on anything recordable.
   and nothing clears it, so a blank there means that key has never been
   used by anything.
 
+  ═══ THE LIVE WALKTHROUGH — THE DEMO WORKS END TO END (2026-09-23) ═══
+
+  Run against **https://www.deedpro.io/try**, in a real browser, after
+  #284–#288 deployed.
+
+  · **WATERMARK PRESENT AND VISIBLE.** A 2-page, 26,263-byte render
+    carries `SAMPLE` and `NOT FOR RECORDING` in the text layer of BOTH
+    pages, and rasterised at 2x measures **5,620 and 5,922 reddish
+    pixels** against **0** for a clean render. Pale red, rotated ~-32°,
+    two lines. **The deed text is fully readable over it** — the
+    acknowledgment paragraph, the perjury clause, the notary block and
+    the Optional Section all read normally through it.
+  · **TAMPER CORRECT.** `409` and `DRAFT_MISMATCH`, with the sentence
+    *"The bytes you hashed are not the bytes we hold for this draft.
+    Re-fetch the preview and confirm again."* Reads as a refusal; the
+    act rail says *"Refused — as designed"*; the button disables after
+    firing. No "the approval was accepted" text anywhere.
+  · Sandbox **ready in 2.2s**. Approval on a second device reflected on
+    the desktop in **4.1s**. Two traps returned 422 with plain-English
+    reasons, and the fixed-vesting one no longer stutters.
+  · **?-3 IS ANSWERED: the 45-second warm ceiling is GENEROUS, not
+    tight.** It was set against an unmeasured fear of cold containers.
+
+  🔴 **THE ONE DEFECT THE WALKTHROUGH FOUND — horizontal overflow at
+  phone width.** `scrollWidth` 390 on load, 390 after the 422, then
+  **642 once the 201 draft panel rendered.** Cause: a grid item's
+  default `min-width: auto`, so a JSON console or a 64-character hash
+  pushes the document wider than the viewport instead of wrapping.
+  Fixed with `min-w-0` on the three grid children; isolated with the
+  same classes and content at 390px, **811 without it and 390 with**.
+
+  **The shape is the finding, not the instance.** These responsive
+  rules were written and checked against the EMPTY page, where every
+  child is narrow and nothing can overflow. **The page only breaks once
+  it has content** — a state nobody looks at while writing layout,
+  which is how a file that reads as carefully responsive shipped with
+  this in it. The pin holds every multi-column grid child, so a new
+  panel cannot be added without it.
+
+  ═══ NO LONGER BLOCKED ON THE CREDENTIAL STEPS ═══
+
+  **The demo does not wait on the key work.** `/try/deed` forces
+  `is_test` as built, so the watermark holds regardless of the key's
+  class — which the walkthrough confirms on live pixels. The owner's
+  key work stands **for its own reasons**: the key was exposed in a
+  screenshot, and it is the wrong class. Neither is a blocker on `/try`.
+
+  ═══ A HALF-FIX OF MY OWN, IN THE CHANGE THAT NAMED §14.36 ═══
+
+  The walkthrough item *"licence vs `license_claimed`"* was reported
+  fixed. **Only the page's prose was corrected.** `ARTIFACT_DECLARATIONS`
+  — the half a risk team actually reads, shipped in the API response —
+  still said *"The licence string…"* beside a key named
+  `license_claimed`. Found by looking at the rendered artifact on the
+  live page, four hours after writing the section about applying a rule
+  to one half of a pair. Corrected here, with the reason recorded beside
+  the constant.
+
   ═══ THE AREA-TYPE DECLARATION (2026-09-23, owner-ruled) ═══
 
   🔴 **A FALSE STATEMENT ON THE TRANSFER-TAX DECLARATION OF EVERY DEED

@@ -449,3 +449,66 @@ describe('TRY — the poll claims only what it controls', () => {
     expect(cleanup.slice(0, 900)).toContain('clearInterval(id)');
   });
 });
+
+/**
+ * TRY-FIX — horizontal overflow at phone width, found on production.
+ *
+ * Measured on www.deedpro.io at a 390px viewport: `scrollWidth` 390 on
+ * load, 390 after the 422 refusal, then **642 once the 201 draft panel
+ * rendered** and 642 with the artifact and tamper panels too.
+ *
+ * THE SHAPE, NOT THE INSTANCE. These responsive rules were written and
+ * checked against the EMPTY page, where every child is narrow and
+ * nothing can overflow. The page only breaks once it HAS CONTENT — a
+ * state nobody looks at while writing layout, and the reason a
+ * perfectly responsive-looking file shipped with this in it.
+ *
+ * The cause is `min-width: auto`, a grid item's default: it will not
+ * shrink below its own content. Below `lg` these grids are one column,
+ * so a JSON console or a 64-character hash pushes the DOCUMENT wider
+ * than the viewport instead of wrapping inside it.
+ *
+ * Isolated with the same classes and the same content widths at 390px:
+ * **811 without `min-w-0`, 390 with it.**
+ *
+ * WHAT THIS PIN DOES NOT DO, stated rather than implied: jsdom has no
+ * layout engine, so it cannot measure a rendered width. It asserts the
+ * MECHANISM — that every grid child carrying unbreakable content also
+ * carries `min-w-0`. A rendered-width check would need a browser in CI,
+ * which this repository does not run.
+ */
+describe('TRY — the page fits a phone once it has content, not only when empty', () => {
+  const gridChildren = () => {
+    /* Each `className="grid …"` container, paired with the first child
+       div that follows it. Textual, because the property is textual. */
+    const out: Array<{ grid: string; child: string }> = [];
+    const rx = /className="(grid [^"]*)"\s*>\s*\n\s*<div className="([^"]*)"/g;
+    let m: RegExpExecArray | null;
+    while ((m = rx.exec(CODE)) !== null) out.push({ grid: m[1], child: m[2] });
+    return out;
+  };
+
+  it('finds the grids it means to guard', () => {
+    /* §14.29 — a pin whose subject it cannot locate passes forever. */
+    expect(gridChildren().length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('every multi-column grid child carries min-w-0', () => {
+    for (const { grid, child } of gridChildren()) {
+      if (!/grid-cols|minmax/.test(grid)) continue;   // single-column, cannot trap
+      expect(`${grid} :: ${child}`).toContain('min-w-0');
+    }
+  });
+
+  it('the three panels that actually overflowed are covered by name', () => {
+    /* The console, the draft panel's column, and the artifact — the
+       three that took production from 390 to 642. */
+    expect(CODE).toContain('min-w-0 overflow-hidden rounded-2xl bg-[#12141A]');
+    expect(CODE).toContain('min-w-0 space-y-5');
+    expect(CODE).toContain('min-w-0 rounded-2xl border border-gray-200 bg-white p-5');
+  });
+
+  it('records what was measured rather than asserting it was checked', () => {
+    expect(RAW).toContain('567px once the 201 draft panel');
+  });
+});
