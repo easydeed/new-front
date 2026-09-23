@@ -121,15 +121,55 @@ def test_an_unmarkable_demo_row_fails_the_request():
         "an UPDATE that matched nothing succeeds loudly and marks nothing")
 
 
-def test_the_audit_script_is_report_only_by_default():
-    """Owner-ruled: report the count before deciding on removal."""
-    audit = BACKEND.joinpath("scripts/demo_authenticity_audit.py")
-    assert audit.exists()
-    code = code_only(audit.read_text())
-    assert '"--delete", action="store_true"' in code
+def test_the_audit_deletes_only_what_it_is_NAMED():
+    """REWRITTEN after the first real audit (2026-09-23).
+
+    The first version deleted every row matching "demo parcel AND
+    orphaned". Wrong shape twice: the predicate is INFERENTIAL, against
+    this project's own rule that destroying fails closed by naming what
+    it MAY TOUCH — and on the day it was needed it would have removed
+    ZERO, because neither row was orphaned yet. A quiet no-op reads as
+    "nothing to do".
+    """
+    code = code_only(
+        BACKEND.joinpath("scripts/demo_authenticity_audit.py").read_text())
+    assert 'nargs="+", metavar="SHORT_CODE"' in code
+    assert "DELETE FROM document_authenticity WHERE short_code = ANY(%s)" in code
+    assert "WHERE id = ANY(%s)" not in code, "the inferential delete must be gone"
+    refuse = code.index("unknown = wanted - known")
     delete = code.index("DELETE FROM document_authenticity")
+    assert refuse < delete, "membership check must precede the DELETE"
+
+
+def test_the_audit_is_report_only_without_arguments():
+    code = code_only(
+        BACKEND.joinpath("scripts/demo_authenticity_audit.py").read_text())
     guard = code.index("if not args.delete:")
+    delete = code.index("DELETE FROM document_authenticity")
     assert guard < delete, "the default path must return before deleting"
+
+
+def test_orphaning_is_recorded_as_NOT_reducing_reachability():
+    """The fact that decides the sequencing. `verify_document` queries
+    `document_authenticity` by short_code FIRST and unconditionally, so
+    a demo row answers `valid: true` whether or not its deed row
+    survives. Waiting for the sweep removes the corroborating deed and
+    nothing else."""
+    raw = BACKEND.joinpath("scripts/demo_authenticity_audit.py").read_text()
+    assert flowed("Orphaning changes nothing about reachability") in flowed(raw)
+    first = ROUTER_CODE.index("FROM document_authenticity")
+    fallback = ROUTER_CODE.index("SELECT authenticity_id, document_id")
+    assert first < fallback, "the authenticity lookup runs first"
+
+
+def test_the_closed_population_is_stated_rather_than_implied():
+    """No authenticity row is written for a demo approval any more, so
+    there is no marker to add and no future rows to reach. A cleanup
+    tool that reads as permanent invites someone to widen its predicate
+    later."""
+    raw = BACKEND.joinpath("scripts/demo_authenticity_audit.py").read_text()
+    assert flowed("no authenticity row is inserted for a demo approval any "
+                  "more") in flowed(raw)
 
 
 def test_the_audit_identifies_demo_rows_from_the_payload_not_by_hand():
@@ -164,22 +204,47 @@ def test_the_broader_is_test_rule_survives_the_demo_fix():
     assert "watermark_if_test(" in ROUTER_CODE
 
 
-def test_the_admin_patch_writes_the_field_it_reports():
-    """It listed `is_test` in RETURNING among four settable fields and
-    never wrote it — the hardcoded-409 shape in an admin API."""
-    assert 'is_test: Optional[bool] = Body(None, embed=True)' in ADMIN_CODE
-    assert 'updates.append("is_test = %s")' in ADMIN_CODE
+def test_the_admin_patch_no_longer_reports_a_field_it_cannot_write():
+    """REWRITTEN, not deleted (§14.12). Both rulings are named.
+
+    2026-09-22: `is_test` sat in the `RETURNING` clause among four
+    settable fields and was never written — an interface asserting
+    something it did not check — so it was made settable.
+
+    2026-09-23: ruling 3 superseded that. The field is gone from the
+    signature entirely, and `RETURNING` reporting it is now honest for a
+    different reason: it is IMMUTABLE context about the key, not an echo
+    of a setting this call could have changed.
+    """
+    assert 'is_test: Optional[bool] = Body(None, embed=True)' not in ADMIN_CODE
+    assert "RETURNING id, key_prefix, name, is_active, is_test" in ADMIN_CODE
 
 
-def test_a_dp_test_key_cannot_be_turned_live():
-    """The asymmetry is what SHIPPED on 2026-09-22, and the owner has
-    since ruled the invariant TOTAL — see the held conflict in
-    `update_api_key`'s docstring. Until that is resolved this pin holds
-    the dangerous half: `dp_test_` + is_test=false produces clean,
-    recordable-looking deeds under a key that says test on its face — the exact artifact the watermark
-    ruling exists to prevent, one PATCH away."""
-    assert 'startswith("dp_test_")' in ADMIN_CODE
-    assert "A dp_test_ key cannot be marked live" in ADMIN_CODE
+def test_nothing_can_turn_a_key_from_one_class_to_the_other():
+    """REWRITTEN. The 2026-09-22 version pinned an ASYMMETRY — `dp_test_`
+    → live refused, `dp_live_` → test allowed as "harmless".
+
+    Ruling 3 retired the asymmetry on the owner's own reasoning: the
+    prefix is the only thing a human reads, so a `dp_live_` key behaving
+    as a test key is *also* a prefix that lies. Both directions are now
+    unreachable because the field does not exist.
+    """
+    import inspect
+    from routers.admin_api_v2 import update_api_key
+    assert "is_test" not in set(inspect.signature(update_api_key).parameters)
+    assert 'updates.append("is_test = %s")' not in ADMIN_CODE
+    assert 'startswith("dp_test_")' not in ADMIN_CODE
+
+
+def test_the_conflict_is_resolved_rather_than_still_held():
+    """A flag left standing after its ruling arrives is the §14.33 shape
+    — a record falsified by the event it describes."""
+    raw = BACKEND.joinpath("routers/admin_api_v2.py").read_text()
+    assert "HELD: THIS FIELD AND THE CREATION INVARIANT" not in raw
+    assert flowed("Ruling 2 of 2026-09-23 is SUPERSEDED BY RULING 3") in flowed(raw)
+    assert flowed("Recorded rather than deleted") in flowed(raw)
+    assert flowed("A key's class is fixed at creation and a key of the "
+                  "wrong class is recreated, not edited") in flowed(raw)
 
 
 # ═══ (3) THE TAMPER PRESENTS AN ACTUAL TAMPER ════════════════════════
@@ -286,16 +351,6 @@ def test_only_a_disagreement_is_refused():
     endpoint's business, and a refusal that fires on an ordinary partner
     name would be worse than the defect."""
     assert "if claimed is not None and claimed != bool(is_test):" in ADMIN_CODE
-
-
-def test_the_patch_conflict_is_held_where_the_field_lives():
-    """Rulings 2 and 3 of 2026-09-23 cannot both hold: `key_prefix` is
-    derived from the secret and is the lookup column, so correcting an
-    existing key's class without recreation NECESSARILY produces the
-    disagreement ruling 3 forbids. Flagged, not silently decided."""
-    raw = BACKEND.joinpath("routers/admin_api_v2.py").read_text()
-    assert flowed("HELD: THIS FIELD AND THE CREATION INVARIANT CANNOT BOTH "
-                  "HOLD") in flowed(raw)
 
 
 # ═══ (5) THE USAGE DISPLAY THAT READ AS COMPLETE ═════════════════════

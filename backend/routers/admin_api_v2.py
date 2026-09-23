@@ -852,69 +852,59 @@ def update_api_key(
     key_id: str,  # UUID as string
     name: Optional[str] = Body(None, embed=True),
     is_active: Optional[bool] = Body(None, embed=True),
-    is_test: Optional[bool] = Body(None, embed=True),
     rate_limit_hour: Optional[int] = Body(None, embed=True),
     rate_limit_day: Optional[int] = Body(None, embed=True),
     admin=Depends(get_current_admin)
 ):
-    """Update API key settings.
+    """Update API key settings: name, active state, rate limits.
 
-    🔴 ═══ HELD: THIS FIELD AND THE CREATION INVARIANT CANNOT BOTH HOLD
-             (flagged 2026-09-23, awaiting the owner) ═══
+    ═══ `is_test` IS NOT HERE, AND THAT IS A RULING, NOT AN OMISSION ═══
 
-    Ruling 2 of 2026-09-23 keeps `is_test` settable here **"so existing
-    keys can be corrected without recreation"**. Ruling 3 of the same
-    message says **prefix and `is_test` cannot disagree**, because the
-    prefix is the only thing a human reads.
+    **Ruling 2 of 2026-09-23 is SUPERSEDED BY RULING 3 of the same
+    message. Recorded rather than deleted, because the reason is the
+    load-bearing part.**
 
-    **Those are incompatible, and not marginally.** `key_prefix` is
-    `full_key[:20]` — it is derived from the secret and is the lookup
-    column, so it cannot be rewritten without invalidating the key.
-    Correcting an existing `dp_live_` key to `is_test = true` therefore
-    NECESSARILY produces the disagreement ruling 3 forbids. Ruling 2's
-    stated purpose is the thing ruling 3 rules out.
+    Ruling 2 made `is_test` settable here "so existing keys can be
+    corrected without recreation". Ruling 3 said prefix and `is_test`
+    cannot disagree. **Those are incompatible, and not marginally.**
 
-    Held rather than decided in either direction (deviation doctrine).
-    The field stays as ruled on 2026-09-22, with the dangerous direction
-    refused below, and the creation-time invariant is asserted in
-    `create_api_key` where nothing contests it. If ruling 3 is meant
-    totally, this field should go and existing keys must be recreated —
-    which is a credential operation, and the owner's.
+    `key_prefix` is `full_key[:20]` — derived from the secret and used
+    as the lookup column — so it cannot be rewritten without
+    invalidating the key. Correcting an existing `dp_live_` key to
+    `is_test = true` therefore NECESSARILY produces the disagreement
+    ruling 3 forbids. **Ruling 2's stated purpose was the thing ruling 3
+    rules out.**
 
-    ═══ ONE DIRECTION IS REFUSED, AND IT IS THE DANGEROUS ONE ═══
+    Ruling 3 wins, on the owner's own reasoning: **the prefix is the
+    only thing a human reads.** A `dp_live_` key behaving as a test key
+    is a prefix that lies — the same defect as a `dp_test_` key
+    rendering recordable deeds, pointed the other way. It is the
+    disease, not the cure.
 
-    `key_prefix` is baked at creation and cannot change, so a settable
-    `is_test` can put the column and the prefix into disagreement. The
-    two disagreements are not symmetrical:
+    So this endpoint has no `is_test`. **A key's class is fixed at
+    creation and a key of the wrong class is recreated, not edited** —
+    a credential operation, and the owner's.
 
-      `dp_live_…` with `is_test = true`   watermarks more than the
-                                          prefix suggests. Harmless.
-      `dp_test_…` with `is_test = false`  produces CLEAN, recordable-
-                                          looking deeds under a key
-                                          that says "test" on its face.
+    ═══ WHAT THE EARLIER VERSION GOT WRONG, KEPT BECAUSE IT RECURS ═══
 
-    The second is the exact artifact the 2026-09-21 watermark ruling
-    exists to prevent, and it would now be one PATCH away. So it is
-    refused: a `dp_test_` key cannot be turned off. Turning a key ON is
-    allowed from either prefix.
+    Before 2026-09-22 this endpoint listed `is_test` in its `RETURNING`
+    clause, among the fields the body could change, and never wrote it.
+    An admin could PATCH, read `is_test` back, and reasonably conclude
+    they had set it. That mattered the day it mattered: the `/try` demo
+    key was created without the flag, every render under it came out
+    unwatermarked, and this endpoint reported the field as though it
+    were under its control.
 
-    ═══ WHY `is_test` IS HERE NOW ═══
+    A response listing a field it does not write is the same shape as a
+    badge printing `409` without reading the status code, and a form
+    accepting a name that implies a class it cannot produce — **an
+    interface asserting something it did not check.** Three instances in
+    one investigation.
 
-    It was already in the `RETURNING` clause, sitting among the four
-    fields the body could change, so the response read as a full
-    settings echo. It was not settable. An admin could send a PATCH,
-    read `is_test` back in the reply, and reasonably conclude they had
-    just set it.
-
-    That mattered the day it mattered: the `/try` demo key was created
-    without the flag, every render under it came out unwatermarked, and
-    there was no way to correct the key short of recreating it — while
-    this endpoint reported the field as though it were under its
-    control.
-
-    A response that lists a field it never writes is the same shape as a
-    badge that prints `409` without reading the status code: an artifact
-    asserting something it did not check.
+    `is_test` is still RETURNED below, and that is now honest for a
+    different reason: it is IMMUTABLE context about the key, not an
+    echo of a setting this call could have changed. Nothing in the
+    signature above suggests otherwise.
     """
     with db_connection() as conn, conn.cursor() as cur:
         # Build update query dynamically
@@ -927,21 +917,6 @@ def update_api_key(
         if is_active is not None:
             updates.append("is_active = %s")
             params.append(is_active)
-        if is_test is not None:
-            if is_test is False:
-                cur.execute(
-                    "SELECT key_prefix FROM api_keys WHERE id = %s", (key_id,))
-                current = cur.fetchone()
-                if current and str(current["key_prefix"]).startswith("dp_test_"):
-                    raise HTTPException(
-                        status_code=409,
-                        detail="A dp_test_ key cannot be marked live. Its "
-                               "prefix says test and its renders would stop "
-                               "being watermarked. Create a dp_live_ key "
-                               "instead.",
-                    )
-            updates.append("is_test = %s")
-            params.append(is_test)
         if rate_limit_hour is not None:
             updates.append("rate_limit_hour = %s")
             params.append(rate_limit_hour)

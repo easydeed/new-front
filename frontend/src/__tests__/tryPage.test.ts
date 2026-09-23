@@ -95,10 +95,17 @@ describe('TRY — the traps derive from the catalog', () => {
     }
   });
 
-  it('trap 4 carries REQUIRED1 and is not paired with the vesting traps', () => {
+  it('trap 4 carries its doctrine in prose, not a ticket number', () => {
     /** OWNER-RULED. Its refusal string is `Field required` — a framework
-     *  string with no doctrine in it — so the doctrine goes in the gloss. */
-    expect(SPOKEN).toContain('the endpoint that PRINTS is where legal decisions are enforced');
+     *  string with no doctrine in it — so the doctrine goes in the gloss.
+     *
+     *  RENAMED 2026-09-23. The gloss used to OPEN with `REQUIRED1:`, an
+     *  internal ticket identifier naming nothing a prospect could look
+     *  up, and the banned-claims gate missed it because its prefix list
+     *  was hand-typed and `REQUIRED` was never added. The doctrine is
+     *  the sentence; the label was carrying nothing. */
+    expect(SPOKEN).toContain('endpoint that PRINTS is where legal decisions are enforced');
+    expect(SPOKEN).not.toContain('REQUIRED1');
     const gloss = CODE.slice(CODE.indexOf('const GLOSS'), CODE.indexOf('type ApiError'));
     const taxGloss = gloss.slice(gloss.indexOf('no_transfer_tax'));
     expect(taxGloss).not.toContain('vesting');

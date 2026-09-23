@@ -20,6 +20,7 @@ behaviour is pinned in BOTH directions, which is the part that matters: it
 is easy to write a test proving a checker catches things, and the bug that
 actually bites is the one where it catches too much.
 """
+import re
 import sys
 from pathlib import Path
 
@@ -29,6 +30,7 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import check_banned_claims as bc  # noqa: E402
+from tests.source_text import code_only  # noqa: E402
 
 
 def _scan_text(tmp_path, monkeypatch, body: str, name: str = "sample.tsx"):
@@ -199,3 +201,93 @@ def test_the_deleted_marketing_components_are_really_gone():
         assert not (ROOT / "frontend" / "src" / "components" / name).exists(), \
             f"{name} is back"
     assert not (ROOT / "frontend" / "src" / "components" / "escrow").exists()
+
+
+# ── The ticket-family list is DERIVED, not typed (2026-09-23) ─────────
+#
+# `REQUIRED1:` shipped in `/try`'s user-facing copy and this gate said
+# nothing. The rule enumerated twelve prefixes by hand and `REQUIRED`
+# was not among them. Measured: 8 of 26 families covered, 30%, and four
+# of the twelve named families no longer in the records at all.
+
+
+def test_the_prefix_list_is_generated_from_the_records():
+    """§14.24 — the allowlist is generated, never transcribed."""
+    # Through `code_only` — this suite's own rule, and the right one
+    # here: a pin greping raw Python eventually trips on the comment
+    # explaining the thing it forbids, and the comment above this rule
+    # quotes `REQUIRED1` and `ADMIN6` at length.
+    src = code_only(bc.ROOT / "scripts" / "check_banned_claims.py")
+    assert "def ticket_prefixes()" in src
+    assert "OWNER_LEDGER.md" in src and "DOCTRINE_CONFORMANCE.md" in src
+    families = bc.ticket_prefixes()
+    assert len(families) >= 20, f"only derived {sorted(families)}"
+
+
+def test_the_families_the_typed_list_missed_are_now_covered():
+    families = bc.ticket_prefixes()
+    for missed in ("REQUIRED", "ENGINE", "TRY", "UX", "ROLE", "SIGNUP"):
+        assert missed in families, f"{missed} still uncovered"
+
+
+@pytest.mark.parametrize("leak", [
+    "REQUIRED1: the endpoint that PRINTS is where it is enforced",
+    "trends arrive with ADMIN6",
+    "ENGINE2 rebuilt this page",
+    "TRY-7 is the confirmation preview",
+    "see RED0 for the remediation",
+])
+def test_a_ticket_identifier_in_rendered_text_fails(tmp_path, monkeypatch, leak):
+    body = f'export default function P() {{ return <p>{leak}</p> }}'
+    assert _scan_text(tmp_path, monkeypatch, body), f"{leak!r} was not caught"
+
+
+@pytest.mark.parametrize("ok", [
+    "Every PDF is hashed with SHA-256",
+    "the sha256 of the stored bytes",
+    "encoded as utf8, then base64",
+    "the BOE-502-A is the PCOR that accompanies the deed",
+    "the SB2 recording fee applies",
+    "licensed AGPL-3.0 or BSD-3-Clause",
+    "see the H2 heading above",
+    "ADDRESS1 and ADDRESS2 are separate fields",
+    "RFC7231 defines the status code",
+])
+def test_external_tokens_are_not_mistaken_for_ticket_numbers(
+        tmp_path, monkeypatch, ok):
+    """THE FAILURE THE ORIGINAL AUTHOR WAS RIGHT TO FEAR.
+
+    A shape rule matched ADDRESS1 and SHA256 on its first run, which is
+    why the list was enumerated. Derivation keeps the enumeration and
+    removes only the transcription — so these must still pass. A
+    blocking gate refusing `utf8` in developer copy would be worse than
+    the leak it was added for.
+    """
+    body = f'export default function P() {{ return <p>{ok}</p> }}'
+    assert not _scan_text(tmp_path, monkeypatch, body), f"{ok!r} was refused"
+
+
+def test_the_ticket_rule_is_case_significant_and_the_others_are_not():
+    """`utf8` and `ADMIN6` are the same shape. Capitalisation is part of
+    what makes a ticket number a ticket number — but "soc 2" and "SOC 2"
+    are the same claim, so this is opt-in for one rule."""
+    rules = {r.name: r for r in bc.RULES}
+    assert not (rules["internal ticket identifier"].rx.flags & re.IGNORECASE)
+    assert rules["SOC 2"].rx.flags & re.IGNORECASE
+
+
+def test_a_missing_record_file_fails_rather_than_emptying_the_allowlist():
+    """§14.9 — a gate that silently matches nothing is indistinguishable
+    from a clean repository from the outside."""
+    # `code_only` blanks comments and docstrings but KEEPS string
+    # literals, which is what these two messages are.
+    src = code_only(bc.ROOT / "scripts" / "check_banned_claims.py")
+    assert "Refusing to run with an empty" in src
+    assert "derived ZERO ticket families" in src
+
+
+def test_longest_prefix_first_so_REQUIRED_is_not_matched_as_RED():
+    """Python's `|` is first-match, not longest."""
+    pattern = bc._ticket_identifier_pattern()
+    families = pattern[pattern.index("(?:") + 3:pattern.index(")-?")].split("|")
+    assert families.index("REQUIRED") < families.index("RED")
