@@ -85,7 +85,11 @@ ARTIFACT_KEYS = frozenset({
 # alone is not left to infer the scope from what is absent.
 #
 # The third line is the one that matters and the one a vendor review will
-# test: we do not verify licences. The field is named `license_claimed`
+# test: we do not verify licenses. The field is named `license_claimed`
+# — and the DECLARATION SPELLS IT THE SAME WAY, which it did not until
+# 2026-09-23. The page's prose was corrected and this was not: the
+# declaration is the half a risk team actually reads, beside a key it
+# does not match. §14.36, in the change that named §14.36.
 # rather than `license` for the same reason — a bare `license` key reads
 # as a checked fact, and the difference between "recorded" and "verified"
 # is the whole of what an auditor is here to establish.
@@ -94,7 +98,7 @@ ARTIFACT_DECLARATIONS = (
     "and the bytes held hash to the SHA-256 shown.",
     "The approver saw these exact bytes: approval promotes the previewed "
     "PDF rather than re-rendering it.",
-    "The licence string, when present, is recorded as supplied and is NOT "
+    "The license string, when present, is recorded as supplied and is NOT "
     "verified by DeedPro.",
     "Nothing here establishes that the approver read the document, or that "
     "they were entitled to approve it.",
