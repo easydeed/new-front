@@ -30,6 +30,7 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import check_banned_claims as bc  # noqa: E402
+from tests.source_text import code_only  # noqa: E402
 
 
 def _scan_text(tmp_path, monkeypatch, body: str, name: str = "sample.tsx"):
@@ -212,7 +213,11 @@ def test_the_deleted_marketing_components_are_really_gone():
 
 def test_the_prefix_list_is_generated_from_the_records():
     """§14.24 — the allowlist is generated, never transcribed."""
-    src = bc.ROOT.joinpath("scripts/check_banned_claims.py").read_text()
+    # Through `code_only` — this suite's own rule, and the right one
+    # here: a pin greping raw Python eventually trips on the comment
+    # explaining the thing it forbids, and the comment above this rule
+    # quotes `REQUIRED1` and `ADMIN6` at length.
+    src = code_only(bc.ROOT / "scripts" / "check_banned_claims.py")
     assert "def ticket_prefixes()" in src
     assert "OWNER_LEDGER.md" in src and "DOCTRINE_CONFORMANCE.md" in src
     families = bc.ticket_prefixes()
@@ -274,7 +279,9 @@ def test_the_ticket_rule_is_case_significant_and_the_others_are_not():
 def test_a_missing_record_file_fails_rather_than_emptying_the_allowlist():
     """§14.9 — a gate that silently matches nothing is indistinguishable
     from a clean repository from the outside."""
-    src = bc.ROOT.joinpath("scripts/check_banned_claims.py").read_text()
+    # `code_only` blanks comments and docstrings but KEEPS string
+    # literals, which is what these two messages are.
+    src = code_only(bc.ROOT / "scripts" / "check_banned_claims.py")
     assert "Refusing to run with an empty" in src
     assert "derived ZERO ticket families" in src
 
