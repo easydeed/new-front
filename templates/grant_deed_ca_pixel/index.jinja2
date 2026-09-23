@@ -73,10 +73,20 @@
           {% endif %}
         </div>
         <div>
+          {# A BINARY else CANNOT EXPRESS AN UNKNOWN. This read "if city,
+             else unincorporated", so one box was ALWAYS checked — and
+             unlike the other seven instruments, no data value could make
+             it abstain. It has been asserting on every deed rendered
+             through `routers/deeds.py`, independent of the API path.
+
+             Three branches now, and the third prints the blank line an
+             officer completes rather than a claim nobody made. #}
           {% if dtt and dtt.get('area_type') == 'city' %}
             ☑ City of {{ dtt.get('city_name') or '________________' }}
-          {% else %}
+          {% elif dtt and dtt.get('area_type') == 'unincorporated' %}
             ☑ Unincorporated area
+          {% else %}
+            ☐ Unincorporated area&nbsp;&nbsp;&nbsp;☐ City of ________________
           {% endif %}
         </div>
       </div>

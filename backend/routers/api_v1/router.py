@@ -32,6 +32,7 @@ from services.api_confirm import (
 )
 from services import api_confirm_lifecycle
 from services.dtt_rates import compute_dtt
+from services.jurisdictions import area_type_for
 from utils.api_keys import extract_key_prefix, validate_api_key, generate_deed_id, generate_document_id
 from pdf_engine import render_pdf_async
 from services.deed_pdf import render_deed_html
@@ -66,7 +67,21 @@ def build_render_row(deed_request, *, execution_date: Optional[str] = None) -> d
     dtt = {
         "calculated_amount": tt.computed_amount or "",
         "basis": tt.basis.value if tt.basis else "full_value",
-        "area_type": "city" if tt.city_tax else "unincorporated",
+        # ═══ THE PLACE DECIDES THIS, NOT THE TAX RATE ═══
+        #
+        # This line used to read `"city" if tt.city_tax else
+        # "unincorporated"`, which asks whether the CITY LEVIES A
+        # TRANSFER TAX and answers a question about whether the PROPERTY
+        # IS IN A CITY. Most California cities levy none, so 35 of the
+        # 46 incorporated places this registry holds — Long Beach,
+        # Pasadena, Glendale, Burbank, Torrance — printed ☒
+        # Unincorporated area on a recordable instrument.
+        #
+        # T-2 fixed exactly this in the wizard and recorded the rule in
+        # `services/jurisdictions.py`: incorporation and taxation are
+        # independent facts, and absence of knowledge must not render as
+        # a fact. This path was built from the tax rate anyway.
+        "area_type": area_type_for(deed_request.property.city),
         "city_name": tt.city_name or "",
         "is_exempt": bool(tt.exempt),
         "exemption_reason": tt.exempt_code or "",

@@ -215,3 +215,47 @@ def is_incorporated(city: Optional[str]) -> Optional[bool]:
     right tax by accident."""
     place = lookup_place(city)
     return place.incorporated if place else None
+
+
+# ═══ THE AREA TYPE, AND WHY IT HAS THREE VALUES ══════════════════════
+#
+# The deed's transfer-tax declaration asks which of two boxes to check:
+# "Unincorporated area" or "City of ____". For most of this product's
+# life the answer was computed from whether the city levied its own
+# DTT — so Glendale, Pasadena, Long Beach and 32 other incorporated
+# cities that levy none were declared UNINCORPORATED on a recordable
+# instrument.
+#
+# T-2 fixed that in the wizard and wrote the rule down two files away:
+# **incorporation and taxation are independent facts**, and **absence of
+# knowledge must not render as a fact.** The API path was then built
+# from `city_tax` anyway, which is the same defect the rule forbids,
+# one directory from the rule.
+#
+# The third value is the whole point. `"city" | "unincorporated"` can
+# only express two answers, so a place we do not know had to become one
+# of them — and whichever we picked, we would be stating something
+# nobody established. UNKNOWN renders as NEITHER BOX CHECKED, which is
+# what an unanswered question looks like on a form: a blank an officer
+# completes, not a claim we made for them.
+AREA_TYPE_CITY = "city"
+AREA_TYPE_UNINCORPORATED = "unincorporated"
+AREA_TYPE_UNKNOWN = "unknown"
+
+AREA_TYPES = frozenset({AREA_TYPE_CITY, AREA_TYPE_UNINCORPORATED,
+                        AREA_TYPE_UNKNOWN})
+
+
+def area_type_for(city: Optional[str]) -> str:
+    """The area type a PLACE implies — never what its tax rate implies.
+
+    Returns `AREA_TYPE_UNKNOWN` for a place the registry does not hold,
+    including an empty city. That is not a hedge: an address we cannot
+    resolve is not evidence of unincorporation, and the pre-T-2 code
+    treating it as such is exactly how Long Beach's city tax came to be
+    skipped.
+    """
+    incorporated = is_incorporated(city)
+    if incorporated is None:
+        return AREA_TYPE_UNKNOWN
+    return AREA_TYPE_CITY if incorporated else AREA_TYPE_UNINCORPORATED
