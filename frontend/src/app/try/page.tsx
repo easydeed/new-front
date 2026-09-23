@@ -286,7 +286,8 @@ function TryDemo() {
   useEffect(() => {
     if (!token || phone !== 'pending') return;
     let live = true;
-    const id = setInterval(async () => {
+
+    const pollOnce = async () => {
       if (!live) return;
       try {
         const r = await fetch(`${API()}/confirm/${token}`);
@@ -299,10 +300,30 @@ function TryDemo() {
       } catch {
         /* a failed poll is not a state change; keep counting attempts */
       }
-    }, POLL_MS);
+    };
+
+    const id = setInterval(pollOnce, POLL_MS);
+
+    /* ═══ THE SEQUENCE THIS ACT ACTUALLY ASKS FOR ═══
+     *
+     * Switch to your phone, approve, come back. The tab is HIDDEN for
+     * the middle step, which is exactly when the browser clamps this
+     * interval — so the prospect returned to a page that could sit on
+     * `pending_confirmation` for up to a minute after they had already
+     * approved, and the demo looked broken at its own climax.
+     *
+     * Polling faster would not fix it and could not: the throttle is
+     * the browser's. Asking once, immediately, on the way back is the
+     * move that matches what the visitor did. */
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') pollOnce();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
     return () => {
       live = false;
       clearInterval(id);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, [token, phone]);
 
@@ -686,9 +707,19 @@ function TryDemo() {
 {JSON.stringify(draft, null, 2)}
                   </pre>
                   <div className="border-t border-[#262A33] px-5 py-3 font-mono text-[12px] text-gray-400">
+                    {/* "every 3s" was a claim about something THE BROWSER
+                        CONTROLS. A hidden tab has its timers clamped —
+                        the HTML spec requires at least 1s, and Chrome
+                        drops to roughly once a minute after five minutes
+                        hidden — so the sentence was false exactly when a
+                        prospect had switched away to use their phone,
+                        which is the moment this act asks them to.
+                        Naming it turns a slow demo into an explained
+                        one; asserting the interval made the page's own
+                        instrument the thing that was faked. */}
                     {phone === 'completed'
                       ? `✓ Stopped polling after ${polls} attempt(s). No webhooks exist — this is a poll, and the page says so.`
-                      : `↻ Polling GET /confirm/{token} every 3s · attempt ${polls}. No webhooks — this is a poll, not a push.`}
+                      : `↻ Polling GET /confirm/{token} · attempt ${polls}. Browsers slow this down in a background tab. No webhooks — this is a poll, not a push.`}
                   </div>
                 </div>
               )}
