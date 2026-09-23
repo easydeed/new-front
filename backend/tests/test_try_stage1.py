@@ -246,8 +246,14 @@ def test_a_real_deed_cannot_be_reached_by_the_demo_predicate():
 # ═══ (6) THE DEMO ROUTE ══════════════════════════════════════════════
 
 def test_the_browser_cannot_submit_arbitrary_facts():
-    """THE SECURITY BOUNDARY. Two fields, extras forbidden."""
-    assert set(TryRequest.model_fields) == {"trap_id", "approver_name"}
+    """THE SECURITY BOUNDARY. A fixed field set, extras forbidden.
+
+    `variant` joined `trap_id` and `approver_name` in TRY-FIX. It does
+    not widen the boundary: like `trap_id` it is a KEY INTO A
+    SERVER-SIDE TABLE, not content. The property this pins is that the
+    set is exact and closed — a new field has to come through here.
+    """
+    assert set(TryRequest.model_fields) == {"trap_id", "approver_name", "variant"}
     with pytest.raises(ValidationError):
         TryRequest(trap_id=None, approver_name="x", property={"apn": "mine"})
 

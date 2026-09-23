@@ -65,6 +65,7 @@ from pydantic import BaseModel, Field, ValidationError
 from database import get_db_connection
 from schemas.api_v1.deeds import CreateDeedRequest
 from services.api_catalog import TYPE_REQUIREMENTS
+from services.dtt_rates import compute_dtt
 from services.api_error_envelope import body_prefixed, validation_envelope
 from services.api_confirm_lifecycle import DEMO_KIND_TRY
 from utils.throttle import ThrottleExceeded, client_key, throttle
@@ -159,25 +160,65 @@ TRAPS = {
 }
 
 
+# ── The second draft, and why it cannot be the same request ──────────
+#
+# Act 3 confirms draft B while claiming draft A's hash, and the guard is
+# supposed to refuse. **It could not.** Draft B was built from the
+# identical payload, WeasyPrint renders identical HTML to identical
+# bytes, so the two drafts hashed the same and `DRAFT_MISMATCH` was
+# unreachable. The guard was never presented with a tamper; the page
+# printed a refusal that had not happened.
+#
+# So draft B differs, in exactly one figure, and the figure PRINTS ON
+# THE FACE OF THE DEED — the documentary transfer tax. A reader can see
+# the two documents are different without being told they are.
+#
+# It is not a trap. It is a valid request that produces a valid second
+# deed, which is the only kind of second draft a tamper story can use.
+#
+# The amount is DERIVED from the same rate table the API computes
+# against, never typed beside the value. `compute_dtt` on the sample's
+# own figure reproduces the sample's own "825.00", so this is the same
+# arithmetic the deed already relies on rather than a number that
+# happens to agree today.
+SECOND_DRAFT_VALUE = 775_000
+
+
+def _second_draft(p) -> None:
+    breakdown = compute_dtt(SECOND_DRAFT_VALUE, p["property"].get("city"))
+    p["transfer_tax"]["value"] = SECOND_DRAFT_VALUE
+    p["transfer_tax"]["computed_amount"] = f"{breakdown['total_tax']:.2f}"
+
+
+VARIANTS = {"second_draft": _second_draft}
+
+
 class TryRequest(BaseModel):
     """The ENTIRE public surface of this route.
 
-    Two fields. Anything else a caller sends is ignored rather than
-    merged — `model_config` forbids extras so a request trying to reach
-    the payload fails loudly instead of being silently dropped.
+    Three fields, and each one selects from a server-side table rather
+    than carrying content. Anything else a caller sends is refused
+    rather than merged — `model_config` forbids extras so a request
+    trying to reach the payload fails loudly instead of being silently
+    dropped. This page still cannot submit facts of its own.
     """
     model_config = {"extra": "forbid"}
 
     trap_id: Optional[str] = Field(
         default=None, description="One of TRAPS, or null for the valid request")
     approver_name: str = Field(default="", max_length=120)
+    variant: Optional[str] = Field(
+        default=None, description="One of VARIANTS, or null for the sample")
 
 
-def _build(trap_id: Optional[str], approver_name: str) -> Dict[str, Any]:
+def _build(trap_id: Optional[str], approver_name: str,
+           variant: Optional[str] = None) -> Dict[str, Any]:
     payload = deepcopy(SAMPLE_PAYLOAD)
     payload["approver"]["name"] = (approver_name or "").strip() or "Demo Visitor"
     if trap_id:
         TRAPS[trap_id](payload)
+    if variant:
+        VARIANTS[variant](payload)
     return payload
 
 
@@ -202,6 +243,13 @@ async def try_deed(body: TryRequest, request: Request):
                     "message": f"Unknown trap_id. Known: {sorted(TRAPS)}"},
         )
 
+    if body.variant is not None and body.variant not in VARIANTS:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "INVALID_REQUEST",
+                    "message": f"Unknown variant. Known: {sorted(VARIANTS)}"},
+        )
+
     demo_key = os.getenv(DEMO_KEY_ENV)
     if not demo_key:
         # §14.8: absent CONFIGURATION is a broken deploy, not a neutral
@@ -212,7 +260,7 @@ async def try_deed(body: TryRequest, request: Request):
                     "message": "The demo sandbox is not configured."},
         )
 
-    payload = _build(body.trap_id, body.approver_name)
+    payload = _build(body.trap_id, body.approver_name, body.variant)
 
     # Validate exactly as the partner API does, and return the SAME
     # envelope — `body`-prefixed paths included, or the demo would teach
@@ -234,35 +282,91 @@ async def try_deed(body: TryRequest, request: Request):
         HTTPAuthorizationCredentials(scheme="Bearer", credentials=demo_key),
         request,
     )
+
+    # ═══ THE ROUTE DECIDES THE WATERMARK, NOT A DATABASE COLUMN ═══
+    #
+    # `/try`'s page states, unconditionally, that every PDF rendered
+    # there is watermarked SAMPLE — NOT FOR RECORDING. The mechanism
+    # behind that sentence used to be `api_keys.is_test`, a column that
+    # defaults FALSE, is set only at key creation, and — until this
+    # ticket — had no update path in the admin API at all.
+    #
+    # In production the demo key's column was falsy, so the page made a
+    # true-sounding claim over unwatermarked, recordable-looking deeds.
+    # The claim and the mechanism were never the same proposition and
+    # nothing compared them.
+    #
+    # The page says "every PDF rendered HERE". Here is this route. So
+    # this route is what decides, and the guarantee no longer depends on
+    # anyone having remembered to tick a box. `watermark_if_test` keeps
+    # governing every other `dp_test_` render — the broader ruling of
+    # 2026-09-21 is untouched; the demo simply stops relying on it.
+    #
+    # Mutating the dict is the whole mechanism because `is_test` has
+    # exactly one consumer: the watermark seam in `create_deed`. It
+    # drives no rate limit, no response field and no billing.
+    api_key = {**api_key, "is_test": True}
+
     result = await create_deed(request, deed_request, api_key, None)
 
-    _mark_demo_row(getattr(result, "data", None))
+    # ═══ AND AN UNMARKED DEMO ROW NOW FAILS THE REQUEST ═══
+    #
+    # `_mark_demo_row` used to swallow its failure, on the reasoning
+    # that an unmarked row is only a housekeeping miss. **That
+    # reasoning expired with the ruling above it.** An unmarked row is
+    # one an approval will mint a permanent public verification record
+    # for, because `approve_confirmation` reads `demo_kind` to decide.
+    #
+    # So the cost of failing to mark went from "a row lingers" to "a
+    # fictional deed is publicly confirmed as genuine", and the failure
+    # direction has to move with it. The row stays — unmarked, but
+    # unreachable, because the confirmation token is in the response we
+    # are discarding and nobody ever receives it.
+    if not _mark_demo_row(getattr(result, "data", None)):
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "DEMO_UNAVAILABLE",
+                    "message": "The sandbox could not mark this draft as a "
+                               "demo, so it will not hand one out."},
+        )
     return {"request": payload, "status_code": 201, "response": result}
 
 
-def _mark_demo_row(data) -> None:
-    """Stamp `demo_kind` so the lifecycle sweep may delete this row.
+def _mark_demo_row(data) -> bool:
+    """Stamp `demo_kind`. Returns whether the row is actually marked.
 
     Written AFTER the insert rather than inside it, which leaves a window
-    where the row is unmarked. The failure direction is deliberate: an
-    unmarked row is simply never deleted, whereas a delete predicate
-    loose enough to catch it without the marker could reach a real deed.
-    A demo row that lingers is a housekeeping miss; a real deed deleted
-    is not recoverable.
+    where the row is unmarked. That placement still stands: a delete
+    predicate loose enough to catch an unmarked row could reach a real
+    deed, so the marker must be exact and it must be written by the one
+    caller that knows.
+
+    **What changed is what an unmarked row costs.** It is no longer just
+    a row the sweep will not reclaim — `approve_confirmation` reads
+    `demo_kind` to decide whether to mint a public verification record,
+    so an unmarked demo row approves into a permanent public claim about
+    a fictional parcel. The caller now refuses to hand out a draft it
+    could not mark, which is why this reports rather than swallows.
+
+    `rowcount` is checked, not just the absence of an exception: an
+    UPDATE that matched nothing succeeds loudly and marks nothing.
     """
     deed_id = getattr(data, "deed_id", None) if data is not None else None
     if not deed_id:
-        return
+        return False
     conn = get_db_connection()
     if not conn:
-        return
+        return False
     try:
         with conn.cursor() as cur:
             cur.execute(
                 "UPDATE api_deeds SET demo_kind = %s WHERE deed_id = %s",
                 (DEMO_KIND_TRY, deed_id))
+            marked = cur.rowcount == 1
         conn.commit()
+        return marked
     except Exception:
         conn.rollback()
+        return False
     finally:
         conn.close()

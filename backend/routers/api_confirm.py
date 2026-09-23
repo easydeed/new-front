@@ -92,7 +92,7 @@ def _load(token: str, request: Request):
                    approver_license, draft_sha256, approved_at,
                    preview_pdf_data, pdf_data, request_data,
                    property_address, property_apn, property_county,
-                   grantor_name, grantee_name
+                   grantor_name, grantee_name, demo_kind
             FROM api_deeds
             WHERE confirmation_token = %s
         """, (token,))
@@ -210,23 +210,48 @@ async def approve_confirmation(token: str, request: Request,
         content_hash = generate_content_hash(json.dumps(request_data, default=str))
         now = datetime.now(timezone.utc)
 
-        cursor.execute("""
-            INSERT INTO document_authenticity (
-                short_code, document_type, property_address, property_apn, county,
-                grantor_display, grantee_display, content_hash, status
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'active')
-            RETURNING id
-        """, (
-            row["document_id"],
-            row["deed_type"],
-            row["property_address"],
-            row["property_apn"],
-            row["property_county"],
-            (row["grantor_name"] or "")[:50],
-            (row["grantee_name"] or "")[:50],
-            content_hash,
-        ))
-        authenticity_id = cursor.fetchone()["id"]
+        # ═══ A DEMO APPROVAL MINTS NO PUBLIC VERIFICATION RECORD ═══
+        #
+        # `document_authenticity` is the table `/api/v1/verify/{code}`
+        # answers from, with no authentication and no expiry. A row here
+        # is a PERMANENT PUBLIC CLAIM that a document is genuine.
+        #
+        # Every `/try` approval used to insert one — `status='active'`,
+        # a visitor's typed name, a fictional Glendora parcel, and no
+        # marker distinguishing it from a real deed. `delete_demo_drafts`
+        # reclaims the `api_deeds` row after three hours and does not
+        # touch this table, so the sample outlived the deed it described
+        # and kept verifying as authentic afterwards.
+        #
+        # The demo is allowed to exercise the whole pipeline. It is not
+        # allowed to leave a public assertion behind. `authenticity_id`
+        # stays NULL, which the verify endpoint already tolerates — and
+        # which it now refuses to answer from at all (see the demo
+        # exclusion in `routers/api_v1/router.py::verify_document`).
+        #
+        # Owner-ruled 2026-09-22, ahead of both live-walkthrough defects:
+        # a public endpoint confirming a fictional deed as active is a
+        # worse claim than the missing watermark or the false 409.
+        if row["demo_kind"]:
+            authenticity_id = None
+        else:
+            cursor.execute("""
+                INSERT INTO document_authenticity (
+                    short_code, document_type, property_address, property_apn, county,
+                    grantor_display, grantee_display, content_hash, status
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'active')
+                RETURNING id
+            """, (
+                row["document_id"],
+                row["deed_type"],
+                row["property_address"],
+                row["property_apn"],
+                row["property_county"],
+                (row["grantor_name"] or "")[:50],
+                (row["grantee_name"] or "")[:50],
+                content_hash,
+            ))
+            authenticity_id = cursor.fetchone()["id"]
 
         cursor.execute("""
             UPDATE api_deeds

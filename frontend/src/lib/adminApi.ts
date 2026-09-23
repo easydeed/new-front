@@ -46,7 +46,13 @@ export type ApiKeyRow = {
   rate_limit_day: number;
   created_at?: string;
   last_used_at?: string | null;
+  /** Deeds we STILL HOLD. `/try`'s rows are reclaimed after three
+   *  hours, so a key serving the demo settles back to 0 here. */
   deed_count?: number;
+  /** Deeds this key ever created, counted from `api_usage_log`, which
+   *  has no retention sweep. Survives the deletion of the rows it
+   *  describes — which is why it is a separate number. */
+  deeds_created?: number;
   request_count?: number;
 };
 
