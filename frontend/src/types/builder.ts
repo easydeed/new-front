@@ -132,7 +132,12 @@ export interface DTTData {
   transferValue: string;
   calculatedAmount: string;
   basis: 'full_value' | 'less_liens';
-  areaType: 'city' | 'unincorporated';
+  /* THREE VALUES, and the third is the point. The deed asks which of
+     two boxes to check; a two-valued type forced every place we could
+     not resolve to become one of them, which is a claim nobody made.
+     'unknown' renders as NEITHER box — an unanswered question on a
+     form, which is what it is. See services/jurisdictions.py. */
+  areaType: 'city' | 'unincorporated' | 'unknown';
   cityName?: string;
 }
 

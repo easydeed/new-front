@@ -328,6 +328,25 @@ export function TransferTaxSection({
           </div>
 
           {/* Area Type */}
+          {value.areaType === "unknown" && (
+            /* AMBER, which on this product means unconfirmed data
+               awaiting a human — exactly what this is. Neither radio is
+               selected because we do not know, and showing two blank
+               radios with no explanation would read as a control the
+               officer had simply not reached yet.
+               The alternative was to pick one for them, which is the
+               defect this whole change exists to remove: 35 incorporated
+               cities printed a checked "Unincorporated area" because a
+               two-valued field had to say something. */
+            <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              <span className="font-semibold">◷ Not established.</span>{" "}
+              We do not hold {city ? `"${city}"` : "this place"} in the
+              jurisdiction registry, so neither box is checked on the deed
+              until you say which applies. Incorporation is a fact about the
+              parcel, not a calculation — and it is independent of whether
+              the city levies its own transfer tax.
+            </div>
+          )}
           <div className="flex gap-4">
             <label className="flex items-center gap-2 cursor-pointer">
               <input

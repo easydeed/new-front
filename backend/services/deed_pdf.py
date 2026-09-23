@@ -16,6 +16,7 @@ import psycopg2
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from pdf_engine import render_pdf
+from services.jurisdictions import AREA_TYPE_UNKNOWN
 
 TEMPLATE_ROOT = os.path.join(os.path.dirname(os.path.dirname(__file__)), "..", "templates")
 
@@ -81,7 +82,11 @@ def _map_dtt(raw):
     return {
         "amount": str(amount).lstrip("$"),
         "basis": "less_liens" if raw.get("basis") == "less_liens" else "full",
-        "area_type": raw.get("area_type") or "unincorporated",
+        # A DEFAULT IS AN ASSERTION WEARING A FALLBACK'S CLOTHES. This
+        # said "unincorporated" for every caller that omitted the field
+        # — the app before the officer touched the control, any script,
+        # any future writer. Unknown renders as NEITHER box.
+        "area_type": raw.get("area_type") or AREA_TYPE_UNKNOWN,
         "city_name": raw.get("city_name") or "",
         "is_exempt": bool(raw.get("is_exempt")),
         "exemption_reason": raw.get("exemption_reason") or "",
