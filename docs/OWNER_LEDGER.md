@@ -5,14 +5,23 @@
 values ever appear in this file — item names and status only.
 
 _Last corrected: 2026-09-23 (**THE TRY LANE IS COMPLETE** — #284
-through #292 merged. §14.36, §14.35.1, §14.37, §14.35.2 and §14.38
-added — the last one being the claim that outlives the lane: **a
-surface that renders every field audits the path better than a suite
-asserting the fields somebody thought to name**, and the limit that
-keeps it from being an argument for more demos is that the surface
-must be a reader of the REAL path with no mocks between it and
-production. The demo
-works end to end and is honest about what it is: watermark visible
+through #293 merged. §14.36, §14.35.1, §14.37, §14.35.2, §14.38 and
+§14.18.2 added. ⚠️ **Two 13-month-old PRs closed as a HAZARD, not as
+housekeeping** — #7 ("Restore repository tree to last known-good
+snapshot") displayed `+26 / −8,585` and would have deleted **6,141
+files / −211,758 lines** against today's `main`, because GitHub computes
+a diffstat against a recorded base commit that is no longer in the
+repository; #6 the same at 6,139 files. No common ancestor with `main`
+at all. #276 closed too (SHA-256 identical to the zip on `main`).
+Branches kept.
+
+§14.38 is the claim that outlives the lane: **a surface that renders
+every field audits the path better than a suite asserting the fields
+somebody thought to name**, and the limit that keeps it from being an
+argument for more demos is that the surface must be a reader of the
+REAL path with no mocks between it and production.
+
+The demo works end to end and is honest about what it is: watermark visible
 on both pages, tamper refusing a false hash with 409/DRAFT_MISMATCH,
 and a receipt that can now be taken — as the API sent it, not as the
 page rendered it. **None of what the lane fixed was demo-only.** The
@@ -2282,10 +2291,18 @@ entry nobody checks a new feature against.
   Stage 1 #277, Stage 2 #278, Stage 3 below. **`/try` is inert until
   `TRY_DEMO_API_KEY` is set on Render.**
 
-  Design handoff: `docs/design/design-try/design_handoff_try_api_demo/`
-  on **`cursor/design-try-unzip-8b4b`** — *not* `design-try`, which does
-  not exist. Verified against the remote before reading, which is the
-  check ENGINE1 paid a week to learn.
+  Design handoff: **`docs/design/Pixel-perfect recreations pending.zip`
+  on `main`** — the six files under `design_handoff_try_api_demo/`.
+  **Corrected 2026-09-23**: this line used to cite the unpacked copy on
+  `cursor/design-try-unzip-8b4b` (PR #276, closed 2026-09-23 without
+  merging). The branch still exists and still carries the unpack, but
+  **a branch can be deleted and `main` cannot**, so the zip is the
+  durable pointer and the branch is secondary. All six files were
+  compared byte-for-byte before #276 was closed — **SHA-256 identical,
+  6 of 6, 0 differing** — so nothing was lost by closing it and a
+  future reader does not need to re-derive that. `docs/design/design-try`
+  has never existed on `main`; verify against the remote before reading,
+  which is the check ENGINE1 paid a week to learn.
 
   ═══ STAGE 1 — BUILT ═══
 
