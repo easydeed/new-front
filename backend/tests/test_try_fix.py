@@ -172,10 +172,11 @@ def test_the_admin_patch_writes_the_field_it_reports():
 
 
 def test_a_dp_test_key_cannot_be_turned_live():
-    """The asymmetry is the point. `dp_live_` + is_test=true watermarks
-    more than its prefix suggests, which is harmless. `dp_test_` +
-    is_test=false produces clean, recordable-looking deeds under a key
-    that says test on its face — the exact artifact the watermark
+    """The asymmetry is what SHIPPED on 2026-09-22, and the owner has
+    since ruled the invariant TOTAL — see the held conflict in
+    `update_api_key`'s docstring. Until that is resolved this pin holds
+    the dangerous half: `dp_test_` + is_test=false produces clean,
+    recordable-looking deeds under a key that says test on its face — the exact artifact the watermark
     ruling exists to prevent, one PATCH away."""
     assert 'startswith("dp_test_")' in ADMIN_CODE
     assert "A dp_test_ key cannot be marked live" in ADMIN_CODE
@@ -230,3 +231,94 @@ def test_an_unknown_variant_is_refused_rather_than_ignored():
 # untouched — so a ban on a typed status code failed on the comment
 # explaining why it was banned. Same §14.1 shape as asserting prose
 # against a comment-stripped file: the tool has to own the language.
+
+
+# ═══ (4) THE KEY CLASS — prefix and is_test cannot disagree ══════════
+#
+# Owner-ruled 2026-09-23, after the console minted `dp_live_…` for a key
+# the owner had named `dp_test_`. The prefix is the only thing a human
+# reads; a key whose prefix lies about its class is the defect underneath
+# the whole watermark investigation.
+
+def test_the_key_class_invariant_is_asserted_where_the_row_is_written():
+    from utils.api_keys import KeyClassMismatch, assert_key_class
+
+    assert_key_class("dp_test_abc123def456", True)
+    assert_key_class("dp_live_abc123def456", False)
+    for prefix, flag in (("dp_test_abc123def456", False),
+                         ("dp_live_abc123def456", True)):
+        try:
+            assert_key_class(prefix, flag)
+        except KeyClassMismatch:
+            continue
+        raise AssertionError(f"{prefix} with is_test={flag} was not refused")
+
+
+def test_generated_keys_cannot_disagree_with_themselves():
+    """Both halves come from one argument, and the function says so."""
+    from utils.api_keys import generate_api_key, key_class_of
+    for is_test in (True, False):
+        _full, prefix, _hash = generate_api_key(is_test=is_test)
+        assert key_class_of(prefix) is is_test
+
+
+def test_creation_asserts_the_invariant_rather_than_trusting_it():
+    assert "assert_key_class(key_prefix, is_test)" in ADMIN_CODE
+    assert_at = ADMIN_CODE.index("assert_key_class(key_prefix, is_test)")
+    insert_at = ADMIN_CODE.index("INSERT INTO api_keys")
+    assert assert_at < insert_at, "asserted BEFORE the row is written"
+
+
+def test_a_name_may_not_assert_a_class_the_checkbox_contradicts():
+    """What actually happened: the class went into the field the eye
+    lands on first, and the control that decides sat unticked below it.
+
+    A form accepting a value that implies a class it will not produce is
+    the third instance of this shape in one investigation — after the
+    hardcoded `409` and the PATCH echoing `is_test` without writing it.
+    """
+    assert "The name says" in ADMIN_CODE
+    assert "The 'Test key' checkbox decides the class" in ADMIN_CODE
+
+
+def test_only_a_disagreement_is_refused():
+    """A name that says nothing about the class is none of this
+    endpoint's business, and a refusal that fires on an ordinary partner
+    name would be worse than the defect."""
+    assert "if claimed is not None and claimed != bool(is_test):" in ADMIN_CODE
+
+
+def test_the_patch_conflict_is_held_where_the_field_lives():
+    """Rulings 2 and 3 of 2026-09-23 cannot both hold: `key_prefix` is
+    derived from the secret and is the lookup column, so correcting an
+    existing key's class without recreation NECESSARILY produces the
+    disagreement ruling 3 forbids. Flagged, not silently decided."""
+    raw = BACKEND.joinpath("routers/admin_api_v2.py").read_text()
+    assert flowed("HELD: THIS FIELD AND THE CREATION INVARIANT CANNOT BOTH "
+                  "HOLD") in flowed(raw)
+
+
+# ═══ (5) THE USAGE DISPLAY THAT READ AS COMPLETE ═════════════════════
+
+def test_deeds_created_survives_the_retention_that_empties_deed_count():
+    """`deed_count` counts rows we STILL HOLD. `/try`'s are reclaimed
+    after three hours, so a key serving the public demo settles back to
+    0 while having rendered hundreds — the console read that as "this
+    key has never made a deed"."""
+    assert "as deeds_created" in ADMIN_CODE
+    created = ADMIN_CODE[ADMIN_CODE.index("as deeds_created") - 400:
+                         ADMIN_CODE.index("as deeds_created")]
+    assert "api_usage_log" in created, "counted from the log, not the rows"
+    assert "status_code = 200" in created
+
+
+def test_the_demo_route_does_increment_the_usage_log():
+    """The report's discriminating fact. `/try/deed` calls the real
+    `create_deed`, which logs before it commits, under a SAVEPOINT — so
+    a key `/try` has served CANNOT read zero requests. A key that does
+    has never authenticated, whatever else is true of it."""
+    success = ROUTER_CODE.index(
+        '_log_usage(cursor, api_key["id"], "/api/v1/deeds", "POST", 200')
+    commit = ROUTER_CODE.index("conn.commit()", success)
+    assert commit > success
+    assert "DELETE FROM api_usage_log" not in ROUTER_CODE

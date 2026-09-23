@@ -671,7 +671,24 @@ def list_api_keys(
             SELECT 
                 ak.id, ak.key_prefix, ak.name, ak.is_active, ak.is_test,
                 ak.rate_limit_hour, ak.rate_limit_day, ak.created_at, ak.last_used_at,
+                -- `deed_count` is DEEDS WE STILL HOLD, not deeds this key
+                -- ever made, and the two diverge by design: `/try`'s rows
+                -- carry `demo_kind` and `delete_demo_drafts` reclaims them
+                -- after three hours. So a key serving the public demo
+                -- settles back to 0 here while having rendered hundreds --
+                -- a usage display reading as complete when it is not.
+                --
+                -- `deeds_created` counts the successful creations in
+                -- `api_usage_log`, which has no retention sweep, so it
+                -- survives the deletion of the rows it describes. Both are
+                -- returned and the console labels them differently: one
+                -- number cannot answer both questions, and picking either
+                -- silently is how this column came to mislead.
                 (SELECT COUNT(*) FROM api_deeds WHERE api_key_id = ak.id) as deed_count,
+                (SELECT COUNT(*) FROM api_usage_log
+                  WHERE api_key_id = ak.id
+                    AND endpoint = '/api/v1/deeds' AND method = 'POST'
+                    AND status_code = 200) as deeds_created,
                 (SELECT COUNT(*) FROM api_usage_log WHERE api_key_id = ak.id) as request_count
             FROM api_keys ak
             ORDER BY ak.created_at DESC
@@ -699,11 +716,54 @@ def create_api_key(
     """
     Create a new API key.
     Returns the full key ONCE - it cannot be retrieved again.
+
+    ═══ THE NAME MAY NOT ASSERT A CLASS THE CHECKBOX CONTRADICTS ═══
+
+    `name` is a free-text label — "Pacific Coast Escrow". `is_test` is
+    what decides the key's class. Nothing connected them, so a key could
+    be **named** `dp_test_` and **minted** `dp_live_`, and the console
+    would show exactly that pair in adjacent columns without comment.
+
+    It happened, on 2026-09-23, to the owner, while trying to create the
+    demo key for `/try`: the class went into the field the eye lands on
+    first and the control that actually decides sat unticked below it.
+    The key that came out rendered unwatermarked deeds on a public page.
+
+    A form that accepts a value implying a class it will not produce is
+    the same shape as a badge printing `409` without reading the status
+    and a PATCH reporting `is_test` without writing it — **an interface
+    asserting something it did not check.** Third instance in one
+    investigation, which is why this refuses rather than warns.
+
+    Only a DISAGREEMENT is refused. A name that says nothing about the
+    class is none of this endpoint's business.
     """
-    from utils.api_keys import generate_api_key as gen_key
-    
+    from utils.api_keys import (
+        LIVE_PREFIX, TEST_PREFIX, assert_key_class,
+        generate_api_key as gen_key,
+    )
+
+    claimed = None
+    if TEST_PREFIX in (name or ""):
+        claimed = True
+    elif LIVE_PREFIX in (name or ""):
+        claimed = False
+    if claimed is not None and claimed != bool(is_test):
+        would_be = TEST_PREFIX if is_test else LIVE_PREFIX
+        says = TEST_PREFIX if claimed else LIVE_PREFIX
+        raise HTTPException(
+            status_code=400,
+            detail=(f"The name says {says} but this key would be minted "
+                    f"{would_be}. The 'Test key' checkbox decides the class, "
+                    f"not the name — tick it, or take {says} out of the name."),
+        )
+
     full_key, key_prefix, key_hash = gen_key(is_test=is_test)
-    
+    # The row about to be written must not carry a prefix and a flag that
+    # disagree. `gen_key` derives both from one argument, so this can
+    # only fire on an edit that breaks that — which is the whole risk.
+    assert_key_class(key_prefix, is_test)
+
     with db_connection() as conn, conn.cursor() as cur:
         # Use gen_random_uuid() for UUID id
         cur.execute("""
@@ -798,6 +858,28 @@ def update_api_key(
     admin=Depends(get_current_admin)
 ):
     """Update API key settings.
+
+    🔴 ═══ HELD: THIS FIELD AND THE CREATION INVARIANT CANNOT BOTH HOLD
+             (flagged 2026-09-23, awaiting the owner) ═══
+
+    Ruling 2 of 2026-09-23 keeps `is_test` settable here **"so existing
+    keys can be corrected without recreation"**. Ruling 3 of the same
+    message says **prefix and `is_test` cannot disagree**, because the
+    prefix is the only thing a human reads.
+
+    **Those are incompatible, and not marginally.** `key_prefix` is
+    `full_key[:20]` — it is derived from the secret and is the lookup
+    column, so it cannot be rewritten without invalidating the key.
+    Correcting an existing `dp_live_` key to `is_test = true` therefore
+    NECESSARILY produces the disagreement ruling 3 forbids. Ruling 2's
+    stated purpose is the thing ruling 3 rules out.
+
+    Held rather than decided in either direction (deviation doctrine).
+    The field stays as ruled on 2026-09-22, with the dangerous direction
+    refused below, and the creation-time invariant is asserted in
+    `create_api_key` where nothing contests it. If ruling 3 is meant
+    totally, this field should go and existing keys must be recreated —
+    which is a credential operation, and the owner's.
 
     ═══ ONE DIRECTION IS REFUSED, AND IT IS THE DANGEROUS ONE ═══
 

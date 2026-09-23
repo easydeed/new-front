@@ -2581,8 +2581,100 @@ marketing page rather than on anything recordable.
     `NOT_PENDING` is also a 409, and what the tester saw was a 409 with
     `DRAFT_MISMATCH` nowhere on the page.
 
+  ═══ THE KEY CLASS (2026-09-23, owner rulings 1–3) ═══
+
+  The owner's screenshot: a key **named** `dp_test_` and **minted**
+  `dp_live_kcBztNxnJ86z…`. Both existing keys `dp_live_`, so `is_test`
+  is FALSE, the watermark condition never fired, and `/try` has been
+  rendering clean recordable-looking deeds under a live key on a public
+  page.
+
+  ⚠️ **RULING 1's PREMISE IS FALSE, AND IT IS THE USEFUL KIND OF FALSE.**
+  The console **can** create a test key. `ApiTab.tsx` has carried a
+  **"Test key (dp_test_ prefix)" checkbox since #105**, it is in
+  `origin/main`, it is deployed, `AdminApi.createApiKey` sends
+  `is_test`, and `POST /admin/api-keys` has always read it. Nothing was
+  missing.
+
+  **What happened is better than a missing control and worse than a
+  bug:** the class went into the **name** field — the one the eye lands
+  on first, labelled "Who is this key for?" — and the control that
+  actually decides sat unticked below it. Every component did exactly
+  what it said. **The defect is that nothing connected them**, which is
+  the owner's own framing of ruling 1 and is the part that got built.
+
+  · **`POST` now refuses a name that asserts a class the checkbox
+    contradicts.** Exercised through the real endpoint: `{"name":
+    "dp_test_", "is_test": false}` → **400**, *"The name says dp_test_
+    but this key would be minted dp_live_. The 'Test key' checkbox
+    decides the class, not the name."* A name saying nothing about the
+    class is untouched. **Third instance of the shape** in one
+    investigation, after the hardcoded `409` and the PATCH echoing
+    `is_test` without writing it.
+  · **The console states the outcome before the click** — "This will
+    mint `dp_live_`… NOT watermarked — these are the deeds that get
+    recorded." A control that exists and is missed is answered by making
+    its consequence visible, not by adding a second one.
+  · **Ruling 3 built:** `utils/api_keys.py` gains `TEST_PREFIX`,
+    `LIVE_PREFIX`, `key_class_of()`, `assert_key_class()` and
+    `KeyClassMismatch`, asserted inside `generate_api_key` and again in
+    `create_api_key` **before the INSERT**. Near-tautological by
+    construction, which is the point: it can only fire on an edit that
+    changes one half without the other, and that is the only way this
+    invariant has ever been at risk.
+
+  🔴 **HELD — RULINGS 2 AND 3 CANNOT BOTH HOLD.** Ruling 2 keeps
+  `is_test` settable on `PATCH` *"so existing keys can be corrected
+  without recreation"*. Ruling 3 says prefix and `is_test` cannot
+  disagree. **`key_prefix` is `full_key[:20]` — derived from the secret
+  and used as the lookup column — so it cannot be rewritten without
+  invalidating the key.** Correcting an existing `dp_live_` key to
+  `is_test = true` therefore *necessarily* creates the disagreement
+  ruling 3 forbids. Ruling 2's stated purpose is the thing ruling 3
+  rules out.
+
+  Not decided in either direction. The field stays as ruled on
+  2026-09-22 with the `dp_test_` → live direction refused; the
+  invariant is asserted at creation, where nothing contests it. **If
+  ruling 3 is meant totally, `PATCH`'s `is_test` should go and existing
+  keys must be recreated** — a credential operation, and the owner's.
+
+  ═══ RULING 4 — THE USAGE DISPLAY, ANSWERED ═══
+
+  **`/try/deed` DOES increment both counters.** It calls the real
+  `create_deed`, which calls `_log_usage` under a SAVEPOINT and then
+  commits (`routers/api_v1/router.py:594–595`), and **nothing purges
+  `api_usage_log`**. So the suggested cause is not the cause.
+
+  **But the Deeds column was misleading, for a different reason, and it
+  is a genuine fourth instance.** `deed_count` counted rows we STILL
+  HOLD — and `/try`'s rows carry `demo_kind`, so `delete_demo_drafts`
+  reclaims them after three hours. A key serving the public demo
+  **settles back to 0 while having rendered hundreds.** Fixed: the list
+  now also returns `deeds_created`, counted from the unpurged usage log,
+  and the console shows **"Deeds created"** and **"Held now"** as
+  separate columns. One number was answering two questions and had been
+  silently answering the wrong one.
+
+  🔴 **SO THE ZERO IN THE REQUESTS COLUMN IS UNEXPLAINED, AND THAT IS
+  THE OPERATIONALLY IMPORTANT PART.** `request_count` has no retention
+  sweep. **A key `/try` has ever served cannot read zero requests.** If
+  both keys genuinely show 0, then **neither has ever authenticated**,
+  which means `TRY_DEMO_API_KEY` names a key that is not in that list.
+
+  **Consequence for the deactivation in flight:** deactivating
+  `dp_live_kcBztNxnJ86z…` is right regardless — it was exposed in a
+  screenshot. But if its request count is 0, **it may not be the key
+  `/try` is using, and deactivating it may not stop the unwatermarked
+  demo.** One glance settles it: the **Last used** column on each row.
+  `get_api_key` sets `last_used_at` on every successful authentication
+  and nothing clears it, so a blank there means that key has never been
+  used by anything.
+
   ═══ WHAT A READER WHO BELIEVES THIS ENTRY SHOULD STILL ASK ═══
 
+  · **Which key is `TRY_DEMO_API_KEY`?** Not determinable from here, and
+    the answer changes whether the exposure is contained.
   · **The count of existing authenticity rows is still unknown.** The
     script exists; nobody has run it. Nothing above should be read as
     saying the historical rows are gone.

@@ -181,8 +181,19 @@ export default function ApiTab() {
             />
             <label className="hstack" style={{ gap: 8, alignItems: 'center' }}>
               <input type="checkbox" checked={mintTest} onChange={(e) => setMintTest(e.target.checked)} />
-              <span>Test key (dp_test_ prefix)</span>
+              <span>Test key — renders are watermarked SAMPLE and cannot be recorded</span>
             </label>
+            {/* THE OUTCOME, BEFORE THE CLICK. This control existed and was
+                missed: the class went into the name field above, the
+                checkbox stayed unticked, and a live key was minted for a
+                public demo. The name is a label; THIS decides the class,
+                so the class it decides is stated rather than implied. */}
+            <div style={{ color: 'var(--dp-text-dim)', fontSize: 13 }}>
+              This will mint <code>{mintTest ? 'dp_test_' : 'dp_live_'}</code>…
+              {' '}{mintTest
+                ? 'Watermarked, for sandboxes and demos.'
+                : 'NOT watermarked — these are the deeds that get recorded.'}
+            </div>
             <button className="btn" onClick={handleMint} disabled={minting || !mintName.trim()}>
               {minting ? 'Creating…' : 'Create key'}
             </button>
@@ -199,8 +210,14 @@ export default function ApiTab() {
             <table className="table">
               <thead>
                 <tr>
+                  {/* "Deeds" was ONE number answering two questions and
+                      it answered the wrong one: it counts rows we still
+                      hold, and `/try`'s are reclaimed after three hours,
+                      so a key serving the public demo reads 0 here while
+                      having rendered hundreds. Split, and labelled. */}
                   <th>Name</th><th>Prefix</th><th>Status</th><th>Limits</th>
-                  <th>Deeds</th><th>Requests</th><th>Last used</th><th></th>
+                  <th>Deeds created</th><th>Held now</th>
+                  <th>Requests</th><th>Last used</th><th></th>
                 </tr>
               </thead>
               <tbody>
@@ -215,6 +232,7 @@ export default function ApiTab() {
                       {k.is_test && <Badge kind="neutral">Test</Badge>}
                     </td>
                     <td>{k.rate_limit_hour}/hr · {k.rate_limit_day}/day</td>
+                    <td>{k.deeds_created ?? 0}</td>
                     <td>{k.deed_count ?? 0}</td>
                     <td>{k.request_count ?? 0}</td>
                     <td>{fmtDate(k.last_used_at)}</td>
