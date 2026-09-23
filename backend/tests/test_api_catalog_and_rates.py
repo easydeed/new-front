@@ -103,7 +103,14 @@ def test_fixed_vesting_instruments_refuse_a_supplied_vesting(deed_type):
     and dropping it would silently discard a caller's legal input."""
     with pytest.raises(Exception) as exc:
         CreateDeedRequest(**_payload(deed_type, vesting="as tenants in common"))
-    assert "fixes its own vesting" in str(exc.value)
+    # The INSTRUMENT'S OWN NOTE, not a generic prefix. The refusal used
+    # to open "This instrument fixes its own vesting —" and then repeat
+    # itself in the note; the prefix went (2026-09-23) because the note
+    # names the actual vesting and the prefix could not. Asserting the
+    # note ties this to what the catalog says rather than to a sentence
+    # somebody typed twice.
+    assert TYPE_REQUIREMENTS[deed_type].note in str(exc.value)
+    assert "Remove grantee.vesting" in str(exc.value)
 
     # And they build fine without one.
     CreateDeedRequest(**_payload(deed_type, vesting=None))

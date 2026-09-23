@@ -88,8 +88,18 @@ describe('TRY — the traps derive from the catalog', () => {
 
   it('no expected refusal message is hard-coded', () => {
     /** The page renders whatever the API returns, so a reworded refusal
-     *  updates the demo instead of contradicting it. */
-    for (const sentence of ['fixes its own vesting', 'is required for this deed type',
+     *  updates the demo instead of contradicting it.
+     *
+     *  `fixes its own vesting` used to head this list. That prefix was
+     *  removed from the API on 2026-09-23 — it duplicated the catalog
+     *  note that followed it — and this pin would have gone on passing
+     *  while guarding a phrase that no longer existed anywhere. §14.29:
+     *  a gate's coverage is a measurement, not an inference from the
+     *  fact that it exists. Replaced with sentences the API still
+     *  sends. */
+    for (const sentence of ['Vesting is fixed by the instrument',
+                            'Remove grantee.vesting',
+                            'is required for this deed type',
                             'recites facts about the grantor', 'Field required']) {
       expect(SPOKEN).not.toContain(sentence);
     }

@@ -303,10 +303,21 @@ def test_the_traps_derive_their_instruments_from_the_catalog():
 
 def test_the_expected_messages_are_NOT_in_the_demo_route():
     """The page renders what the API returns. A reworded refusal must
-    update the demo, never contradict it."""
-    for sentence in ("fixes its own vesting", "is required for this deed type",
-                     "recites facts about the grantor"):
-        assert sentence not in TRY_RAW
+    update the demo, never contradict it.
+
+    THE SENTENCES ARE READ FROM THE CATALOG, not typed here. The first
+    version listed "fixes its own vesting" — and when that prefix was
+    removed on 2026-09-23 the pin would have gone on passing while
+    guarding a phrase that no longer existed anywhere, which is §14.29:
+    a gate whose coverage is assumed from the fact that it exists.
+    Deriving means a reworded refusal re-aims this pin instead of
+    retiring it silently.
+    """
+    sentences = [r.note for r in TYPE_REQUIREMENTS.values() if r.note]
+    sentences += ["is required for this deed type", "Remove grantee.vesting"]
+    assert len(sentences) > 3, "the catalog notes stopped being readable"
+    for sentence in sentences:
+        assert sentence not in TRY_RAW, f"the demo hard-codes: {sentence!r}"
 
 
 def test_the_boundary_is_stated_as_the_payload_not_the_throttle():
