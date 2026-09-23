@@ -94,8 +94,14 @@ const GLOSS: Record<TrapId, string> = {
     'The opposite refusal from the same rule: a plain grant deed has no vesting unless someone states one. Neither is a preference we hold — both are what the instrument decides.',
   entity_state_missing:
     'The deed recites the state under whose laws the entity is organized, mid-sentence. Absent, it prints a blank line inside a granting clause — a defective instrument, not a partial one.',
+  /* The ticket identifier that used to open this sentence named nothing
+   * a prospect could look up. The doctrine it referred to is the
+   * sentence itself, so the label carried no meaning outward — it was a
+   * note to the next developer sitting in a string the customer reads.
+   * The banned-claims gate now derives its ticket families from the
+   * ledger rather than a hand-typed list, and catches this one. */
   no_transfer_tax:
-    'REQUIRED1: the endpoint that PRINTS is where legal decisions are enforced, which is why the API refuses this and the browser wizard is the more permissive surface. A deed cannot generate without a transfer-tax declaration.',
+    'The endpoint that PRINTS is where legal decisions are enforced, which is why the API refuses this and the browser wizard is the more permissive surface. A deed cannot generate without a transfer-tax declaration.',
   out_of_state:
     'California only, and the API says so at the boundary rather than rendering a document against templates measured to the wrong state.',
 };

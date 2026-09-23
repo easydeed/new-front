@@ -53,15 +53,111 @@ EXCLUDE_PARTS = {"node_modules", ".next", "__tests__", "__mocks__", "dist", "bui
 
 
 class Rule:
-    def __init__(self, name: str, pattern: str, why: str):
+    def __init__(self, name: str, pattern: str, why: str, *,
+                 case_sensitive: bool = False):
+        """`case_sensitive` exists for exactly one rule and is opt-in.
+
+        Claims are matched case-insensitively because "SOC 2" and "soc
+        2" are the same claim. **Ticket identifiers are not**: `utf8`,
+        `base64` and `sha256` are lowercase technical tokens sharing
+        their shape with `ADMIN6`, and folding case would make this file
+        refuse the word `utf8` in developer documentation.
+        Capitalisation is part of what makes a ticket number a ticket
+        number.
+        """
         self.name = name
-        self.rx = re.compile(pattern, re.IGNORECASE)
+        self.rx = re.compile(pattern, 0 if case_sensitive else re.IGNORECASE)
         self.why = why
 
 
 # Each rule names the claim and WHY it cannot ship. If one of these ever
 # becomes true, delete its rule in the same PR that makes it true — the
 # way the T-0 pin retired in the PR that built the lineage it guarded.
+# ── The ticket-family vocabulary, DERIVED ────────────────────────────
+#
+# Named by somebody else, and therefore stable: licences, hash and
+# encoding algorithms, standards bodies, and the California forms and
+# bills this product actually cites. `BOE-502-A` is the PCOR; `SB2` is
+# the Building Homes and Jobs Act fee. Both belong in product copy, and
+# a gate refusing them would be the false positive this rule's original
+# author was right to fear.
+EXTERNAL_TOKEN_PREFIXES = {
+    # licences
+    "AGPL", "GPL", "LGPL", "BSD", "MIT", "APACHE", "CC", "MPL", "EPL",
+    # hashes, ciphers, encodings
+    "SHA", "MD", "AES", "RSA", "ECDSA", "UTF", "BASE", "CRC", "HMAC",
+    # standards and protocols
+    "ISO", "PCI", "SOC", "RFC", "HTTP", "HTTPS", "TLS", "SSL", "IPV",
+    "UTC", "JPEG", "PNG", "PDF", "SQL", "OAUTH", "SAML", "WCAG", "ARIA",
+    # government forms, bills and agencies
+    "BOE", "SB", "AB", "IRS", "FIPS", "NIST", "USPS", "ALTA", "UCC",
+}
+
+# A ticket family must be seen this many times in the records before it
+# arms the gate. One stray capitalised token is not a lane.
+_TICKET_MIN_MENTIONS = 3
+
+# Two letters minimum, digits attached, hyphen optional: `ADMIN6` and
+# `TRY-7` are both ticket numbers and both must arm the rule. The
+# hyphenated form is also where `AGPL-3`, `BSD-3`, `SHA-256` and
+# `BOE-502` enter, which is what `EXTERNAL_TOKEN_PREFIXES` subtracts —
+# measured 2026-09-23, those four are exactly what the hyphen adds
+# beyond the unhyphenated harvest, plus the real family `TRY`.
+#
+# **The failure direction, chosen rather than stumbled into.** If a new
+# external standard is cited in the records in hyphenated form and is
+# not in the typed set, this gate starts refusing it in product copy and
+# the build goes red until somebody adds the word. That is LOUD and
+# takes one line to fix. The alternative — harvesting only unhyphenated
+# tokens — is SILENT, and silence is how `REQUIRED1` reached a customer.
+# A gate that occasionally asks a question beats one that occasionally
+# says nothing.
+_TICKET_IN_RECORDS = re.compile(r"\b([A-Z][A-Z0-9]*[A-Z])-?([0-9]+)(?:\.[0-9]+)?[a-z]?\b")
+
+_RECORD_FILES = (ROOT / "docs" / "OWNER_LEDGER.md",
+                 ROOT / "docs" / "DOCTRINE_CONFORMANCE.md")
+
+
+def ticket_prefixes() -> set:
+    """The project's ticket families, READ from its own records.
+
+    Generated rather than transcribed (§14.24). The hand-typed version
+    of this list covered 8 of the 26 families actually in use.
+
+    If the records cannot be read the gate FAILS rather than degrading
+    to an empty allowlist: a rule that silently matches nothing is
+    indistinguishable from a clean repository, which is the §14.9 shape
+    this whole file exists to avoid.
+    """
+    counts = {}
+    for path in _RECORD_FILES:
+        if not path.exists():
+            raise SystemExit(
+                f"banned-claims: {path} is missing, so the ticket-family "
+                f"list cannot be derived. Refusing to run with an empty "
+                f"allowlist — see ticket_prefixes().")
+        for match in _TICKET_IN_RECORDS.finditer(path.read_text(encoding="utf-8")):
+            prefix = match.group(1)
+            counts[prefix] = counts.get(prefix, 0) + 1
+    found = {p for p, n in counts.items()
+             if n >= _TICKET_MIN_MENTIONS and p not in EXTERNAL_TOKEN_PREFIXES}
+    if not found:
+        raise SystemExit(
+            "banned-claims: derived ZERO ticket families from the records. "
+            "That is a broken derivation, not a clean vocabulary.")
+    return found
+
+
+def _ticket_identifier_pattern() -> str:
+    """`(?:ADMIN|ENGINE|...)-?\d+(\.\d+)?[a-z]?`, case-SIGNIFICANT.
+
+    Sorted longest-first so `REQUIRED1` cannot be matched as `RED` plus
+    junk — Python's `|` is first-match, not longest.
+    """
+    families = sorted(ticket_prefixes(), key=lambda p: (-len(p), p))
+    return r"\b(?:" + "|".join(families) + r")-?[0-9]+(?:\.[0-9]+)?[a-z]?\b"
+
+
 RULES = [
     Rule("SOC 2", r"\bSOC[\s\-]?2\b",
          "No SOC 2 audit has been performed. Claiming one to enterprise "
@@ -84,36 +180,64 @@ RULES = [
     # arrived the same way: a note to the next developer, written in a
     # string the customer reads.
     #
-    # ═══ THIS RULE ENUMERATES, AND THAT IS DELIBERATE ═══
+    # ═══ THIS RULE ENUMERATES — AND THE LIST IS NOW GENERATED ═══
     #
     # Every other rule in this file matches a SHAPE, because guarding a
     # spelling is how "enterprise-grade security" walked past two rules
     # written for "bank-level" and "military-grade". The reflex here was
-    # the same: match `[A-Z]{2,}[0-9]+` — capitals then a digit, standing
-    # as a word — and be done.
+    # the same: match `[A-Z]{2,}[0-9]+` and be done.
     #
-    # It was tried. It matched ADDRESS1, ADDRESS2 and SHA256 on the first
-    # run, and it would match ISO27001, UTF8, LINE2 and every form field
-    # anybody names that way. The shape of a ticket identifier is
-    # genuinely indistinguishable from the shape of a field name, and
-    # this file's own doctrine says what to do about that: a pattern
-    # smart enough to tell them apart is a classifier, and a classifier
-    # in a BLOCKING gate fails in whichever direction nobody predicted.
+    # **It was tried, and it was rightly rejected.** It matched ADDRESS1,
+    # ADDRESS2 and SHA256 on the first run, and it would match ISO27001,
+    # UTF8, LINE2 and every form field anybody names that way. A ticket
+    # identifier and a field name are the same shape. A pattern smart
+    # enough to tell them apart is a CLASSIFIER, and a classifier in a
+    # BLOCKING gate fails in whichever direction nobody predicted.
     #
-    # So the prefixes are listed. Adding a ticket family means adding a
-    # word here, which is a real cost and a small one — and unlike the
-    # security-claim rules, the thing being guarded is OUR OWN
-    # vocabulary, which we control and can therefore enumerate honestly.
-    # Single-letter prefixes (S1, T5, X2, H2) are deliberately absent:
+    # ═══ WHAT THAT ARGUMENT GOT WRONG, AND IT IS ONE CLAUSE ═══
+    #
+    # The conclusion was: "the thing being guarded is OUR OWN vocabulary,
+    # which we control and can therefore enumerate honestly."
+    #
+    # **We control the vocabulary. We never maintained the list.**
+    #
+    # Measured 2026-09-23 against the families actually used in
+    # `OWNER_LEDGER.md` and `DOCTRINE_CONFORMANCE.md`: the hand-typed
+    # list covered **8 of 26 — 30%** — and four of its twelve entries
+    # named families that no longer appear in the records at all. It was
+    # accurate the day it was written and has drifted ever since, in the
+    # direction that produces SILENCE. `REQUIRED1:` shipped in `/try`'s
+    # user-facing copy and this gate said nothing, because `REQUIRED`
+    # was never added. Nor were ENGINE, TRY, UX, ROLE or thirteen more.
+    #
+    # So enumeration stays — no classifier in a blocking gate — and the
+    # LIST IS DERIVED FROM THE RECORDS RATHER THAN TYPED. §14.24: the
+    # allowlist is generated, never transcribed. Naming a lane in the
+    # ledger now arms this rule for it, with nobody remembering to.
+    #
+    # ═══ THE SPLIT: WHAT DRIFTS IS GENERATED, WHAT IS STABLE IS TYPED ═══
+    #
+    # `EXTERNAL_TOKEN_PREFIXES` above is typed, and that is not the same
+    # mistake. Licences, hash algorithms, RFCs and government form
+    # numbers are named by somebody else and do not change when we ship
+    # a lane. Our ticket families change weekly. The generated half is
+    # the half that moves.
+    #
+    # Both spellings are harvested and matched — `ADMIN6` and `TRY-7`
+    # are both ticket numbers — with the external tokens the hyphenated
+    # form drags in subtracted by name. Single-letter prefixes (S1, T5,
+    # X2, H2) cannot appear: the pattern requires two letters, because
     # one letter and a digit is a heading level, a form field or a
     # version, and a gate that fires on `H2` is worse than the leak.
+    # Case is SIGNIFICANT for the same reason — `utf8` and `base64` are
+    # not ticket numbers.
     Rule("internal ticket identifier",
-         r"\b(?:ADMIN|DASH|DOCTRINE|DX|FLOW|NOTARY|PARTNER|PRICING|RED|TP|TRIAL|VERIFY)"
-         r"[0-9]+(?:\.[0-9]+)?[a-z]?\b",
+         _ticket_identifier_pattern(),
          "Internal ticket identifiers name nothing a customer can look "
          "up and promise dates nobody gave them. Say what the screen "
          "does today, or say the capability does not exist yet — "
-         "'trends arrive with ADMIN6' is a dead button in prose."),
+         "'trends arrive with ADMIN6' is a dead button in prose.",
+         case_sensitive=True),
     # ── THE PROPERTY, not the spellings (owner-ruled, PRICING1) ───────
     #
     # This started as two rules for two phrasings: "bank-level security"
