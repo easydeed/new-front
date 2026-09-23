@@ -5,8 +5,14 @@
 values ever appear in this file — item names and status only.
 
 _Last corrected: 2026-09-23 (**THE TRY LANE IS COMPLETE** — #284
-through #291 merged. §14.36, §14.35.1, §14.37 and §14.35.2 added. The
-demo works end to end and is honest about what it is: watermark visible
+through #292 merged. §14.36, §14.35.1, §14.37, §14.35.2 and §14.38
+added — the last one being the claim that outlives the lane: **a
+surface that renders every field audits the path better than a suite
+asserting the fields somebody thought to name**, and the limit that
+keeps it from being an argument for more demos is that the surface
+must be a reader of the REAL path with no mocks between it and
+production. The demo
+works end to end and is honest about what it is: watermark visible
 on both pages, tamper refusing a false hash with 409/DRAFT_MISMATCH,
 and a receipt that can now be taken — as the API sent it, not as the
 page rendered it. **None of what the lane fixed was demo-only.** The
