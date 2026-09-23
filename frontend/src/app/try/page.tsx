@@ -154,6 +154,7 @@ function TryDemo() {
   /* The STATUS is part of the result, not decoration around it. The
    * panel reads it; nothing on this page types a status code. */
   const [tamper, setTamper] = useState<{ status: number; error: ApiError | null } | null>(null);
+  const [copied, setCopied] = useState<'ok' | 'fail' | null>(null);
 
   const [busy, setBusy] = useState<string | null>(null);
   const [failure, setFailure] = useState<{ kind: 'network' | 'rate' | 'gone' | 'other'; text: string; retryAfter?: number } | null>(null);
@@ -388,10 +389,23 @@ function TryDemo() {
     }
   };
 
+  /* The artifact AS RETURNED. `JSON.stringify(artifact)` — not a walk of
+   * the rendered rows, which carry gloss text this page added for the
+   * reader and the API never sent. */
+  const copyArtifact = async () => {
+    if (!artifact) return;
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(artifact, null, 2));
+      setCopied('ok');
+    } catch {
+      setCopied('fail');
+    }
+  };
+
   const resetDemo = () => {
     setRefusal(null); setSentRequest(null); setTrapsFired(new Set());
     setDraft(null); setPolls(0); setPhone('pending'); setArtifact(null);
-    setTamper(null); setFailure(null); setClock(0);
+    setTamper(null); setFailure(null); setClock(0); setCopied(null);
   };
 
   /* The close counts WHAT THE PROSPECT ACTUALLY DID. Never "four traps
@@ -836,20 +850,64 @@ function TryDemo() {
 
           <div className="grid gap-5 lg:grid-cols-2">
             <div className="min-w-0 rounded-2xl border border-gray-200 bg-white p-5">
-              <div className="font-mono text-xs text-gray-500">GET /confirm/{'{token}'}/artifact</div>
+              <div className="flex items-center justify-between gap-3">
+                <div className="font-mono text-xs text-gray-500">GET /confirm/{'{token}'}/artifact</div>
+                {/* ═══ THE PAGE SAYS "HAND IT TO A RISK TEAM" ═══
+                 *
+                 * And gave no way to take it. A claim the page does not
+                 * honour is the defect this whole lane has been about,
+                 * in its mildest form — so it copies the artifact as it
+                 * came off the wire, not a re-rendering of what is on
+                 * screen. The gloss text beside the values ("same fact,
+                 * recorded at approval", "never verified by DeedPro")
+                 * is OURS, added for the reader; putting it in the
+                 * clipboard would mean handing a risk team something
+                 * the API never returned. */}
+                {artifact && (
+                  <button type="button" onClick={copyArtifact}
+                    className="shrink-0 rounded-lg border border-gray-300 px-3 py-1.5 text-[12.5px] font-semibold text-gray-700 hover:bg-gray-50">
+                    {copied === 'ok' ? '✓ Copied' : copied === 'fail' ? 'Select and copy' : 'Copy JSON'}
+                  </button>
+                )}
+              </div>
+              {copied === 'fail' && (
+                /* Clipboard access is refused outright in some browsers
+                   and over plain HTTP. Saying so beats a button that
+                   silently does nothing. */
+                <p className="mt-2 text-[12.5px] text-gray-500">
+                  This browser would not let the page write to the clipboard. The
+                  JSON is below, and <code className="font-mono">GET /confirm/&#123;token&#125;/artifact</code>{' '}
+                  returns it directly.
+                </p>
+              )}
               {artifact ? (
                 <dl className="mt-3 divide-y divide-gray-100">
                   {Object.entries(artifact).map(([k, v]) => (
-                    <div key={k} className="grid grid-cols-[180px_minmax(0,1fr)] gap-3 py-2.5">
-                      <dt className="font-mono text-[12.5px] text-[#6D3BF0]">{k}</dt>
-                      <dd className="break-all text-[13.5px] text-[#14161A]">
+                    /* `180px` clipped the longest key —
+                       `sha256_recorded_at_approval` rendered as
+                       "sha256_recorded_at_approva" against its own
+                       value, in the receipt whose job is to look
+                       credible. `auto` sizes to the real longest key,
+                       and the column wraps rather than colliding. */
+                    <div key={k} className="grid grid-cols-1 gap-1 py-2.5 sm:grid-cols-[minmax(0,auto)_minmax(0,1fr)] sm:gap-3">
+                      <dt className="break-words font-mono text-[12.5px] text-[#6D3BF0]">{k}</dt>
+                      {/* `break-all` BELONGS TO HASHES, NOT SENTENCES. It
+                          was on the whole cell, so the declarations read
+                          "at the s tated time", "th e previewed PDF",
+                          "a nd is NOT verified" — mid-word breaks in the
+                          one element on the page whose job is
+                          credibility. Prose wraps on spaces; only the
+                          unbreakable values get `break-all`. */}
+                      <dd className="min-w-0 text-[13.5px] text-[#14161A]">
                         {k === 'declarations' && Array.isArray(v)
-                          ? <ul className="space-y-1.5 text-gray-600">{v.map((d, i) => <li key={i}>— {String(d)}</li>)}</ul>
+                          ? <ul className="space-y-1.5 break-words text-gray-600">{v.map((d, i) => <li key={i}>— {String(d)}</li>)}</ul>
                           : k === 'sha256_recorded_at_approval'
-                            ? <>{String(v)} <span className="text-gray-500">(same fact, recorded at approval)</span></>
+                            ? <><span className="break-all font-mono">{String(v)}</span>{' '}<span className="break-words text-gray-500">(same fact, recorded at approval)</span></>
                             : k === 'license_claimed' && !v
-                              ? <span className="text-gray-500">null — never verified by DeedPro</span>
-                              : String(v)}
+                              ? <span className="break-words text-gray-500">null — never verified by DeedPro</span>
+                              : k === 'pdf_sha256'
+                                ? <span className="break-all font-mono">{String(v)}</span>
+                                : <span className="break-words">{String(v)}</span>}
                       </dd>
                     </div>
                   ))}
