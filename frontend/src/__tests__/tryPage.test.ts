@@ -238,7 +238,12 @@ describe('TRY — the honest limits are on the page', () => {
      * says so, rather than naming a call it cannot make.
      */
     expect(CODE).toContain('`${API()}/confirm/${token}`');
-    expect(SPOKEN).toContain('Polling GET /confirm/{token} every 3s');
+    /* The endpoint, not the cadence. `every 3s` came out on 2026-09-23
+       because the browser, not this page, decides how often a hidden
+       tab's timer fires — see the poll-honesty block at the foot of
+       this file. What this pin guards is that the page names the call
+       it actually makes. */
+    expect(SPOKEN).toContain('Polling GET /confirm/{token}');
   });
 
   it('the warming state has a ceiling and never restarts', () => {
@@ -395,5 +400,52 @@ describe('TRY — the tamper act reports what came back', () => {
      *  unlocked, nothing had been sent. */
     expect(CODE).toContain("'Unlocked — no draft sent yet'");
     expect(CODE).not.toContain("act2Open ? 'Ready'");
+  });
+});
+
+/**
+ * TRY-FIX — the poll, after a walkthrough asked whether the demo was
+ * being throttled in a background tab.
+ *
+ * It almost certainly was: the HTML spec clamps `setInterval` in a
+ * hidden document to at least 1s, and Chrome drops to roughly once a
+ * minute after five minutes hidden. It could not be MEASURED here —
+ * Playwright keeps every page's renderer visible and neither
+ * `Emulation.setPageVisibilityOverride` nor `Page.setWebLifecycleState`
+ * was available, so `document.hidden` never became true. A first probe
+ * that "found no throttling" had in fact timed two foreground tabs.
+ */
+describe('TRY — the poll claims only what it controls', () => {
+  it('does not assert an interval the browser can override', () => {
+    /** "every 3s" was false exactly when the prospect had switched away
+     *  to use their phone — the moment Act 2 asks them to. */
+    expect(SPOKEN).not.toContain('every 3s');
+    expect(SPOKEN).toContain('Browsers slow this down in a background tab');
+  });
+
+  it('still says a poll is a poll', () => {
+    /** The honesty this replaces, not removes: there are no webhooks and
+     *  the page has always said so. */
+    expect(SPOKEN).toContain('this is a poll, not a push');
+    expect(CODE).not.toContain('webhook_url');
+  });
+
+  it('asks once on the way back rather than polling harder', () => {
+    /** Polling faster cannot beat the throttle — it IS the throttle.
+     *  One immediate request when the tab becomes visible matches what
+     *  the visitor actually did. */
+    expect(CODE).toContain("document.addEventListener('visibilitychange', onVisible)");
+    expect(CODE).toContain("document.visibilityState === 'visible'");
+    expect(CODE).toContain('POLL_MS');
+  });
+
+  it('removes the listener with the interval', () => {
+    /** The effect re-runs on `phone`, so a listener left behind would
+     *  accumulate one per state change and keep polling a draft that is
+     *  no longer pending. */
+    const cleanup = CODE.slice(CODE.indexOf('const onVisible'));
+    expect(cleanup.slice(0, 900)).toContain(
+      "document.removeEventListener('visibilitychange', onVisible)");
+    expect(cleanup.slice(0, 900)).toContain('clearInterval(id)');
   });
 });
