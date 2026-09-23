@@ -50,7 +50,7 @@ interface WizardState {
   granteeName?: string
   vesting?: string
   dtt?: {
-    area_type?: "city" | "unincorporated"
+    area_type?: "city" | "unincorporated" | "unknown"
     city_name?: string
     is_exempt?: boolean
     exempt_reason?: string
@@ -88,12 +88,19 @@ interface WizardState {
  * city that levies no DTT; the old code called it "unincorporated"
  * because that produced the right tax by accident.
  */
-export function inferDTTAreaType(city: string): "city" | "unincorporated" {
-  if (!city) return "unincorporated"
-  // Only an affirmative "this place is unincorporated" may say so. An
-  // unknown place is NOT evidence of unincorporation — defaulting it to
-  // "unincorporated" is what silently skipped Long Beach's city tax.
-  return isIncorporated(city) === false ? "unincorporated" : "city"
+export function inferDTTAreaType(city: string): "city" | "unincorporated" | "unknown" {
+  // T-2 got half of this right: it stopped defaulting to
+  // "unincorporated", because an unknown place is NOT evidence of
+  // unincorporation — that is what silently skipped Long Beach's city
+  // tax. But it then returned "city" for unknowns, which is the same
+  // move pointed the other way: still an assertion, still from absence.
+  //
+  // Only an affirmative answer may be stated. Everything else is
+  // "unknown", which renders as neither box checked.
+  if (!city) return "unknown"
+  const incorporated = isIncorporated(city)
+  if (incorporated === null || incorporated === undefined) return "unknown"
+  return incorporated ? "city" : "unincorporated"
 }
 
 /**

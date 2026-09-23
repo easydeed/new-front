@@ -149,7 +149,12 @@ export function buildDeedPayload(genState: DeedBuilderState) {
       is_exempt: genState.dtt?.isExempt || false,
       exemption_reason: genState.dtt?.exemptReason || '',
       basis: genState.dtt?.basis || 'full_value',
-      area_type: genState.dtt?.areaType || 'unincorporated',
+      // No default. `|| 'unincorporated'` fired whenever the officer
+      // had not touched the control and prefill had not run — a manual
+      // entry with no property lookup — and stated unincorporation on
+      // their behalf. A default is an assertion wearing a fallback's
+      // clothes.
+      area_type: genState.dtt?.areaType || 'unknown',
       city_name: genState.dtt?.cityName || '',
       calculated_amount: genState.dtt?.calculatedAmount || '',
     },

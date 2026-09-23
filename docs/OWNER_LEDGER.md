@@ -2671,8 +2671,87 @@ marketing page rather than on anything recordable.
   and nothing clears it, so a blank there means that key has never been
   used by anything.
 
+  ═══ THE AREA-TYPE DECLARATION (2026-09-23, owner-ruled) ═══
+
+  🔴 **A FALSE STATEMENT ON THE TRANSFER-TAX DECLARATION OF EVERY DEED
+  FOR AN INCORPORATED CITY THAT LEVIES NO CITY DTT.**
+
+  ```python
+  "area_type": "city" if tt.city_tax else "unincorporated"
+  ```
+
+  That asks whether the CITY LEVIES A TRANSFER TAX and answers a
+  question about whether the PROPERTY IS IN A CITY. Most California
+  cities levy none. **35 of the 46 incorporated places in the
+  registry** — Long Beach, Pasadena, Glendale, Burbank, Torrance —
+  printed a checked ☒ *Unincorporated area* on a recordable instrument.
+
+  ═══ THE FINDING, WHICH IS LARGER THAN THE DEFECT ═══
+
+  **The rule against this already existed, in this repository, one
+  directory from the code that violated it.** `jurisdictions.ts` and
+  `services/jurisdictions.py` both say incorporation and taxation are
+  independent facts, and that absence of knowledge must not render as a
+  fact. `is_incorporated()` has carried a docstring naming the Glendale
+  conflation by name since T-2.
+
+  **One ruling, five writers, one obeying.** T-2 fixed the app path only
+  after substring matching had put invented tax on a declaration — the
+  lesson was learned, recorded, and the next surface was built as though
+  it had not been. §14.7 at its most expensive: not a rule nobody knew,
+  a rule nobody re-read while building the next thing.
+
+  ═══ WHAT WAS BUILT ═══
+
+  · **A third value, not a default.** `"city" | "unincorporated"` can
+    only express two answers, so every unresolvable place had to become
+    one of them and we would be stating something nobody established.
+    `unknown` renders as NEITHER BOX — an unanswered question on a form.
+    `area_type_for()` is the one declaration.
+  · **All five writers.** `router.py` reads the place rather than the
+    rate; `deed_pdf.py`, `deedPayload.ts` and `deedResume.ts` lost their
+    defaults; `inferDTTAreaType` stops returning `"city"` for unknowns —
+    T-2 had fixed one direction and left the other.
+    **`deedResume.ts` was the fifth and was found while wiring the other
+    four**: `=== 'city' ? 'city' : 'unincorporated'` mapped a stored
+    `unknown` back onto an assertion on the way in.
+  · **`grant_deed_ca_pixel`'s binary `else`.** One box was ALWAYS
+    checked and no data value could make it abstain, so it had been
+    asserting on every deed through `routers/deeds.py`, independent of
+    the API. Three branches now.
+  · **The officer sees it.** `unknown` surfaces in the builder as an
+    amber "not established" note — the colour that means unconfirmed
+    data awaiting a human, which is exactly what it is.
+  · **Pinned as a property, not a list** (33 assertions): no writer may
+    produce an area type from the absence of information, every live
+    instrument checks neither box on `unknown`, and every incorporated
+    place resolves to `city` whatever its rate. Rendered, not read.
+
+  ═══ NOT REMEDIATED, AND THAT IS THE RULING ═══
+
+  **Already-generated deeds keep their box.** Approval promotes stored
+  bytes and never re-renders — the immutability guarantee the whole
+  confirmation model rests on. **A deed with a wrong box is corrected by
+  preparing a corrected instrument, which is what supersession is for,
+  not by rewriting bytes somebody confirmed.** A count can be recorded
+  when it is cheap to get; the decision belongs to whoever owns the file.
+
+  ═══ ORPHAN TEMPLATES — LEFT, AND LEDGERED ═══
+
+  `templates/grant_deed_ca/body_deed.jinja2` and
+  `templates/grant_deed/body_deed.html` carry the declaration and are
+  rendered by nothing. Left in place; deleting is a separate call.
+
+  **The second is worse than the code that was fixed**: it is binary on
+  a different variable entirely (`is_unincorporated`, not
+  `dtt.area_type`) and checks **City** when that variable is falsy — so
+  an absent value asserts the opposite of the live defect. Inverted and
+  binary, which is what a dead file drifts into while nobody reads it.
+
   ═══ WHAT A READER WHO BELIEVES THIS ENTRY SHOULD STILL ASK ═══
 
+  · **How many already-generated deeds carry the wrong box?** Unknown,
+    and deliberately not remediated. See the ruling above.
   · **Which key is `TRY_DEMO_API_KEY`?** Not determinable from here, and
     the answer changes whether the exposure is contained.
   · **The count of existing authenticity rows is still unknown.** The

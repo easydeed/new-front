@@ -126,7 +126,13 @@ export function hydrateStateFromDeedRow(row: Record<string, any>): ResumeResult 
       transferValue: String(meta.dtt.transfer_value ?? ''),
       calculatedAmount: String(meta.dtt.calculated_amount ?? ''),
       basis: meta.dtt.basis === 'less_liens' ? 'less_liens' : 'full_value',
-      areaType: meta.dtt.area_type === 'city' ? 'city' : 'unincorporated',
+      // A FIFTH WRITER, and the same shape: `=== 'city' ? city :
+      // unincorporated` mapped every other value — including a stored
+      // 'unknown' — onto an assertion. Resuming a draft must not decide
+      // something the draft left open.
+      areaType: meta.dtt.area_type === 'city' ? 'city'
+        : meta.dtt.area_type === 'unincorporated' ? 'unincorporated'
+        : 'unknown',
       cityName: meta.dtt.city_name || '',
     };
   }
