@@ -318,13 +318,13 @@ export default function LandingPage() {
               ))}
             </div>
 
-            {/* The licence ruling, stated where a buyer forms the
+            {/* The license ruling, stated where a buyer forms the
                 expectation. ENGINE1 ruled it OPTIONAL and named it
                 `license_claimed` precisely so nobody reads it as a check
                 we ran — a homepage that implied otherwise would undo the
                 naming. */}
             <p className="mt-5 text-sm text-gray-500 max-w-3xl">
-              A licence number can be recorded alongside the name when your integration sends one. It is optional, it is
+              A license number can be recorded alongside the name when your integration sends one. It is optional, it is
               stored as supplied, and it is never verified by DeedPro — the confirmation record calls it{' '}
               <code className="font-mono text-[13px] text-gray-700">license_claimed</code> so no reader mistakes it for a
               check we performed.
@@ -741,7 +741,7 @@ export default function LandingPage() {
                 },
                 {
                   q: "Who is allowed to confirm a deed?",
-                  a: "A named person, recorded with their name and role. A service account cannot confirm. A licence number can be recorded when supplied, and is never verified by us.",
+                  a: "A named person, recorded with their name and role. A service account cannot confirm. A license number can be recorded when supplied, and is never verified by us.",
                 },
                 {
                   q: "What if the recorder rejects a document?",
