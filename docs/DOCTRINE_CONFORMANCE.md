@@ -1773,6 +1773,21 @@ This instance is that ruling's vindication and its sharpest case: here
 permanent and correct answer for a branch that can never merge
 meaningfully.
 
+**And that is the part worth generalising, because it is an argument
+about how to write a rule.** When §14.18.1 was decided, `unknown` meant
+one thing: a value not computed yet, observed right after a force-push,
+which would settle if you looked again. It now also means a second
+thing with a different cause — no common ancestor, so there is nothing
+to compute, ever. **Same field, two mechanisms, and the ruling covers
+both without amendment**, because it was written to the PROPERTY (*this
+field can fail to answer, and a precondition you learn to wave through
+is not a precondition*) rather than to the CASE (*force-pushes race the
+API*). A rule written to the case would have been correct in 2026-08 and
+silent here — and silent in exactly the situation where it mattered
+more. This is the payoff §14.36 argues for from the other side: a fix
+shaped to the half that arrived relocates the defect, and a rule shaped
+to the property catches the half that has not arrived yet.
+
 **And the framing is the hazard, not a footnote.** A PR called *"restore
 to last known-good snapshot"* is what somebody reaches for **during an
 incident** — at the exact moment nobody reads a diff, nobody checks a
@@ -2076,6 +2091,59 @@ decides something, and `x === a ? a : b` over three possible values
 decides it silently. The audit question is not "what writes this field"
 but **"what produces a value for this field"** — which includes every
 parse, default, migration and resume path.
+
+---
+
+### §14.39 — A clean board means the work you know about (2026-09-23, owner-ruled)
+
+**The instance, and it is the agent's, reported as such.** Asked *"is
+all good now?"* at the close of the TRY lane, the agent verified its own
+work exhaustively — local `HEAD` equal to `origin/main`, clean tree,
+every one of #284–#293 merged, no subscriptions, no armed check-ins —
+and reported **"nothing open."**
+
+The repository had **three open pull requests**. They had been open for
+**thirteen months, thirteen months, and two days.** The oldest pair
+were #6 and #7, and they are the hazard recorded in §14.18.2: a
+restore-shaped PR displaying `+26 / −8,585` that would have deleted
+211,758 lines.
+
+**The sentence was true and the answer was wrong.** "Nothing open" was
+an accurate statement about the agent's own queue, delivered as a
+statement about the repository. Nobody asked about the queue.
+
+**Why this is not carelessness, which is what makes it worth a
+section.** The verification was *good* — six checks, all run, all
+correctly interpreted. What it measured was the set of things the agent
+had touched, because that is the set an agent can enumerate without
+asking anything. **The boundary of what is checkable without a query is
+not the boundary of what was asked**, and the first is always the one
+that gets reported, because it is the one that comes back instantly and
+completely. A complete answer to the wrong question does not feel
+partial. It feels finished.
+
+**Distinct from §14.35**, which is a probe measuring the wrong
+predicate: here the probe was right about its subject, and **the
+subject was wrong** — scope, not predicate. Distinct from §14.33: the
+records were not stale, they were never consulted. The nearest relative
+is §14.18's count-as-claim, one level up — *a report's boundary is a
+claim about its coverage*, and an unstated boundary is claimed as total.
+
+**The mechanical form.** Before answering a question about a system's
+state, say which set you actually measured and whether it is the set
+that was asked about. *"No open PRs from this session"* and *"no open
+PRs"* are one word apart and are different claims; one costs a single
+API call to convert into the other. Where the two differ, **query the
+wider set** — and if that is not possible, **state the boundary in the
+answer** rather than letting it be inferred.
+
+**The cost, stated plainly because it is the argument.** The gap between
+the two boards is where a PR titled *"Restore repository tree to last
+known-good snapshot"* sits for a year, with a reassuring diffstat,
+waiting for a bad day. It was found because the question was asked
+again, more literally, by somebody who did not accept the first answer's
+frame. **That is not a mechanism. There isn't one here — only the habit
+of widening the set before reporting on it.**
 
 ---
 
@@ -3926,6 +3994,7 @@ on.
 
 | Date | Change |
 |---|---|
+| 2026-09-23 | **§14.39 added (owner-ruled) — A CLEAN BOARD MEANS THE WORK YOU KNOW ABOUT**, and §14.18.2 extended with the argument its own vindication makes. The instance is the agent's: asked "is all good now?", it verified its own work exhaustively — `HEAD` equal to `origin/main`, clean tree, #284–#293 all merged, no subscriptions, no armed check-ins — and reported **"nothing open"**. The repository had **three open PRs, at thirteen months, thirteen months and two days**, the oldest pair being §14.18.2's hazard. **THE SENTENCE WAS TRUE AND THE ANSWER WAS WRONG**: an accurate statement about the agent's own queue, delivered as a statement about the repository, when nobody had asked about the queue. Not carelessness — the verification was good, six checks all run and all correctly read; what it measured was THE SET THE AGENT HAD TOUCHED, because that is the set an agent can enumerate without asking anything. **The boundary of what is checkable without a query is not the boundary of what was asked**, and the first is always the one reported because it returns instantly and completely: a complete answer to the wrong question does not feel partial, it feels finished. Distinct from §14.35 (a probe measuring the wrong PREDICATE — here the probe was right about its subject and THE SUBJECT was wrong, scope not predicate) and from §14.33 (the records were not stale, they were never consulted); nearest relative is §14.18's count-as-claim one level up — a report's boundary is a claim about its coverage, and an unstated boundary is claimed as total. Mechanical form: before answering about a system's state, say which set was measured and whether it is the set asked about — "no open PRs from this session" and "no open PRs" are one word apart, are different claims, and cost one API call to convert; where they differ, QUERY THE WIDER SET, and where that is impossible, STATE THE BOUNDARY IN THE ANSWER rather than letting it be inferred. The cost, which is the argument: the gap between the two boards is where a PR titled "Restore repository tree to last known-good snapshot" sits for a year with a reassuring diffstat, waiting for a bad day — found only because the question was asked again by somebody who did not accept the first answer's frame, which is not a mechanism. **And §14.18.2 extended**: when §14.18.1 was decided, `mergeable_state: unknown` meant one thing — not computed yet, observed after a force-push, would settle on a second look. It now also means a second thing with a different cause — no common ancestor, so there is nothing to compute, ever. **Same field, two mechanisms, and the ruling covers both WITHOUT AMENDMENT**, because it was written to the PROPERTY (this field can fail to answer, and a precondition you learn to wave through is not a precondition) rather than to the CASE (force-pushes race the API). A rule written to the case would have been correct in 2026-08 and silent here — silent in exactly the situation where it mattered more. This is §14.36's payoff from the other side: a fix shaped to the half that arrived relocates the defect; a rule shaped to the property catches the half that has not arrived yet. |
 | 2026-09-23 | **§14.18.2 added (owner-ruled) — A SCOPE CLAIM IS COMPUTED AGAINST A BASE, AND A BASE CAN BE GONE.** §14.18's sharpest instance, found thirteen months after it was opened and closed the same day. **#7, titled "Restore repository tree to last known-good snapshot (91978cd)", reported `+26 / −8,585` across 32 files and would have deleted `6,141 files changed, −211,758 lines` against today's `main`**; its sibling #6 reported `+350 / 12 files` and measured 6,139 files / −211,588. Mechanism, and it is the transferable part: GitHub computes a PR's diffstat against the PR's RECORDED BASE COMMIT, #7's is `cd27d2f`, and that object is NO LONGER IN THE REPOSITORY (`fatal: bad object`) — `main` was re-rooted after these branches were cut, so `git merge-base origin/main origin/chore/restore-to-91978cd` returns NOTHING: unrelated histories, no common ancestor at all. **The figures are an honest computation against a fiction** — not stale, not cached, not a rendering bug; nothing about them looks wrong because nothing about them IS wrong except the world they describe. The only tell is `mergeable_state: unknown` rather than `dirty` (GitHub cannot compute a merge state with no common ancestor), and **it is not a field anyone reads under pressure** — which vindicates §14.18.1's conditioning of that field and its ruling that THE UNKNOWN BRANCH MUST BLOCK AND RE-READ, here permanently rather than lazily. **The framing is the hazard, not a footnote**: a PR called "restore to last known-good snapshot" is what somebody reaches for DURING AN INCIDENT, at the exact moment nobody reads a diff or checks a base, and a small reassuring diffstat is precisely the confirmation being looked for — every layer of the reassurance generated by the same dead base. Third finding in a week whose defect is A NUMBER THAT IS RIGHT ABOUT THE WRONG THING, after the fabricated merge SHA and the mutation check scanning the wrong region (§14.35.2). Distinct from §14.2: the control was not believed unchecked, it was CHECKED AND IT ANSWERED CORRECTLY ABOUT A BASE THAT NO LONGER EXISTS. Mechanical form: verify an old or long-open PR **by merging it against current `main` and reading the real diffstat**, never by reading the page — an empty `git merge-base` is a full stop, not a warning. General rule, which outlives GitHub: a diffstat is a claim about scope, every claim about scope is computed against a base, so **when the base is gone the claim is confidently wrong in whichever direction the histories diverged.** Also closed: **#276** (draft, the `/try` design handoff unpack) — all six files compared byte-for-byte against `docs/design/Pixel-perfect recreations pending.zip` already tracked on `main`, **SHA-256 identical 6 of 6**, so it was a convenience unpack and not a source of truth; `OWNER_LEDGER.md` corrected in the same change to cite the zip on `main` as the handoff's home with the branch secondary, **because a branch can be deleted and `main` cannot**, with the hash identity recorded in the entry so a future reader need not re-derive it. No branches were deleted. |
 | 2026-09-23 | **§14.38 added (owner-ruled) — A SURFACE THAT RENDERS EVERY FIELD AUDITS THE PATH BETTER THAN A SUITE ASSERTING THE FIELDS SOMEBODY THOUGHT TO NAME.** The TRY lane closed at #292, and the claim that outlives it is not about demos. A test asserts a property a person named in advance; a surface rendering EVERY field of a real response asserts nothing and exposes everything, and a human reading it supplies the propositions nobody wrote down. Measured for the section rather than carried into it — the ruling quoted 1,586 and 1,281 from memory, and they are TESTS, not assertions — the suites stand at **1,619 passed / 212 skipped** backend and **1,290 across 92 suites** frontend, re-run at `ff73a9c`, with **3,135** `assert` statements in `backend/tests`; **every one checks a property somebody anticipated**, which makes the count a measure of diligence and not of coverage against the unknown. `/try` exercised the public API end to end and PRINTED WHAT CAME BACK, which is why it found `area_type` — a false statement on the transfer-tax declaration of every API-generated deed for an incorporated city levying no city DTT, 35 of 46 known places, on a recordable instrument, standing for months and INVISIBLE TO EVERY GATE BECAUSE NO GATE KNEW TO ASK. The field was written consistently by all five writers and consumed consistently by all eight instruments; consistency was never the defect — the value meant TAXATION and the name meant INCORPORATION, and a suite cannot assert against a meaning nobody has noticed is two meanings. **Five findings in one lane, none from a test**, all from a field being displayed to a human who then read it: `area_type` (rendered on the deed and read); `body.recording: Value error, ` on every public error (found because a design decided to show the string at 19px); the unwatermarked PDF (found by opening it); `sha256_recorded_at_approva` clipped at `180px`; and *"at the s tated time"*, `break-all` applied to prose — the last two found by reading the receipt. None had a failing assertion anywhere, and in the sharpest case the repository HAD pinned the error envelope's shape exhaustively while nothing pinned what the message said inside it (§14.34). **The limit is the whole property, and it stops this being an argument for more demos:** `/try` audits because it is A READER OF THE REAL PATH WITH NO MOCKS BETWEEN IT AND PRODUCTION — same router, validators, rate table, render seam, stored bytes. A surface rendering FIXTURES audits nothing; it confirms the fixture matches the fixture, which is §14.29's shape, and the polish is exactly what makes it persuasive. Corollary: **a field no surface renders has only the assertions somebody thought to write** — every column existing solely to be consumed by another service is in that category, and `area_type` sat there while a person looked at deeds that printed it, because what printed it was a PDF nobody was auditing and what audited it was a suite that could not see it. Mechanical form: where a path has no rendering surface, the question is not "what else should we assert?" (that reproduces the anticipation problem one level up) but **"what would print every field of one real response, and who would read it?"** Distinct from §14.35 (a probe measuring the wrong predicate — here there was no predicate), from §14.29 (a gate firing on nothing — these fired correctly on all they covered), and from §14.7 (a rule available and unconsulted — here NO RULE WAS MISSING: the finding lay outside the suite's domain rather than inside it and skipped). The owner's framing, kept because it is not a demo summary: **we built a sales demo and found a false statement on real deeds.** |
 | 2026-09-23 | **THE TRY LANE IS COMPLETE** (#284–#291). **§14.37 added (owner-ruled) — COPY THE SOURCE, NOT THE RENDERING OF IT**, and it is a CHOICE rather than a catch. `/try` says "this is the artifact you hand a risk team" and had no way to take it; adding a copy button is trivial and WHICH BYTES IT COPIES IS NOT. The artifact renders as a table carrying gloss THIS PAGE ADDED FOR THE READER — `(same fact, recorded at approval)` beside the second hash, `null — never verified by DeedPro` where the license is absent — sentences that exist to stop a reader misreading the data and THAT THE API NEVER SENT. Walking the DOM was the easy implementation: it is what is on screen, it needs no knowledge of the response shape, and it would have looked right in every test — while putting OUR COMMENTARY INTO A RISK TEAM'S CLIPBOARD AS THOUGH IT CAME FROM THE SERVER, which is this lane's defining defect, an artifact asserting something its source did not. It copies `JSON.stringify(artifact)`. General form: when a UI renders data and then offers to export, copy, download or share it, ask WHICH OBJECT IS LEAVING — the DATA, or the PAGE'S PRESENTATION OF IT. The rendering is the tempting source because it is already assembled and already correct-looking; it is also the one carrying every annotation, unit, placeholder and empty-state string the interface added, none of which the sender is accountable for and all of which the recipient will attribute to them. **The tell is any conditional in the render path** — a ternary substituting prose for a null, a suffix naming a unit, a label expanding an enum: each is a place the presentation diverges from the payload, and each travels if the export reads the screen. **§14.35.2 added — A MUTATION CHECK MUST SCAN THE REGION ITS PIN SCANS.** Third region mismatch in one week and the first whose DIRECTION would have caused damage: the pin slices the artifact block and asserts `break-all font-mono` appears in it, the check searched the WHOLE FILE where that string already existed on the confirmation URL hundreds of lines away, and reported the pin VACUOUS. It was sound. The other two mismatches this week reported a problem that was not there and cost a second look; **this one reported that a WORKING PIN WAS WORTHLESS, and the natural response to "this assertion would pass anyway" is to rewrite or delete it — a false negative about a gate is an instruction to remove the gate.** Mechanical form: a mutation check runs the pin's own slicing, or else runs the pin itself against the old file and reads its pass/fail, rather than re-implementing its predicate beside it. Also closed with the lane: TRY-9's accepted risk ARRIVED FROM THE DIRECTION NOBODY PLANNED FOR — the shared demo key was exhausted by OUR OWN four walkthroughs in an afternoon rather than by an abuser, which cost the end-to-end "after" measurement of the 390px overflow fix (verified by isolating the CSS mechanism instead: 811px without `min-w-0`, 390px with it, and the pin states that boundary rather than reading as end-to-end). |

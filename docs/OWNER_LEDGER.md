@@ -5,15 +5,18 @@
 values ever appear in this file — item names and status only.
 
 _Last corrected: 2026-09-23 (**THE TRY LANE IS COMPLETE** — #284
-through #293 merged. §14.36, §14.35.1, §14.37, §14.35.2, §14.38 and
-§14.18.2 added. ⚠️ **Two 13-month-old PRs closed as a HAZARD, not as
-housekeeping** — #7 ("Restore repository tree to last known-good
+through #294 merged. §14.36, §14.35.1, §14.37, §14.35.2, §14.38,
+§14.18.2 and §14.39 added. ⚠️ **Two 13-month-old PRs closed as a
+HAZARD, not as housekeeping** — #7 ("Restore repository tree to last known-good
 snapshot") displayed `+26 / −8,585` and would have deleted **6,141
 files / −211,758 lines** against today's `main`, because GitHub computes
 a diffstat against a recorded base commit that is no longer in the
 repository; #6 the same at 6,139 files. No common ancestor with `main`
 at all. #276 closed too (SHA-256 identical to the zip on `main`).
-Branches kept.
+Branches kept. **§14.39 records how they went unseen:** "nothing open"
+was true of the agent's own work and false of the repository, and **a
+clean board means the work you know about** — the gap between the two
+is where a restore-shaped PR waits for a bad day.
 
 §14.38 is the claim that outlives the lane: **a surface that renders
 every field audits the path better than a suite asserting the fields
