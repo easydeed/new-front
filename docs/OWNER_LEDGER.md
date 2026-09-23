@@ -2668,6 +2668,57 @@ marketing page rather than on anything recordable.
   and nothing clears it, so a blank there means that key has never been
   used by anything.
 
+  ═══ TRY-POLISH — THE RECEIPT, AND WHAT WAS NOT BUILT (2026-09-23) ═══
+
+  Three items from the walkthrough's rendered artifact, **built**:
+
+  · **A copy control.** The page said *"this is the artifact you hand a
+    risk team"* and gave no way to take it — **a claim the page did not
+    honour, which is this lane's defect in its mildest form.** It copies
+    `JSON.stringify(artifact)`, not a walk of the rendered rows: those
+    carry gloss this page added for the reader (*"same fact, recorded at
+    approval"*, *"never verified by DeedPro"*) and handing a risk team a
+    clipboard containing text the API never sent would be the artifact
+    describing itself in our words. It says so when the browser refuses
+    the clipboard rather than doing nothing.
+  · **`break-all` split from `break-words`.** It sat on the whole cell,
+    so the declarations rendered *"at the s tated time"*, *"th e
+    previewed PDF"*, *"a nd is NOT verified"* — mid-word breaks in the
+    one element whose job is credibility. Hashes get `break-all`;
+    sentences wrap on spaces.
+  · **The clipped key.** `180px` cut `sha256_recorded_at_approval` to
+    *"sha256_recorded_at_approva"* against its own value. The column now
+    sizes to the real longest key and stacks below `sm`.
+
+  ═══ 4, 5 AND 6 — LEDGERED, NOT BUILT, WITH THE TRIGGER NAMED ═══
+
+  · a reset control for ordinary visitors (presenter-only today);
+  · the draft panel's `max-h-64` nested scroll area;
+  · Act 3's right column emptying out below the short tamper panel.
+
+  **The trigger is a real prospect mentioning one of them.** These were
+  ranked from inside the room, and **nobody outside it has run the
+  page** — so a ranking of comfort items is a guess about what a visitor
+  would notice, which is §14.20: a judgement made by people who already
+  know where everything is cannot measure findability. A reload serves
+  the first today.
+
+  ═══ TRY-9's ACCEPTED RISK ARRIVED FROM THE UNPLANNED DIRECTION ═══
+
+  TRY-9 named it: the shared demo key is exhaustible, and a visitor can
+  meet a 429 as their first impression. **It was exhausted by our own
+  walkthroughs** — four full runs in an afternoon, verifying the
+  watermark and the overflow fix — not by an abuser. Internal testing is
+  a consumer of the same budget and nobody planned for it.
+
+  Consequence, recorded because it bit: the "after" measurement of the
+  overflow fix **could not be taken end to end** on either production or
+  the preview, because the sandbox was rate-limited by the runs that
+  found the defect. The fix was verified by isolating the CSS mechanism
+  instead — **811px without `min-w-0`, 390px with it**, same classes,
+  same content widths, same viewport — and that boundary is stated in
+  the pin rather than implied.
+
   ═══ THE LIVE WALKTHROUGH — THE DEMO WORKS END TO END (2026-09-23) ═══
 
   Run against **https://www.deedpro.io/try**, in a real browser, after

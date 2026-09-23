@@ -512,3 +512,60 @@ describe('TRY — the page fits a phone once it has content, not only when empty
     expect(RAW).toContain('567px once the 201 draft panel');
   });
 });
+
+/**
+ * TRY-POLISH — three things the live walkthrough showed in the
+ * artifact, which is the one element on the page whose job is to look
+ * credible to a risk team.
+ */
+describe('TRY — the receipt honours what the page says about it', () => {
+  it('can actually be taken', () => {
+    /** The copy says "This is the artifact you hand a risk team" and
+     *  there was no way to take it. A claim the page does not honour is
+     *  this lane's defect in its mildest form. */
+    expect(SPOKEN).toContain('the artifact you hand a risk team');
+    expect(CODE).toContain('Copy JSON');
+    expect(CODE).toContain('navigator.clipboard.writeText');
+  });
+
+  it('copies what the API returned, not what the page rendered', () => {
+    /** The rows carry gloss this page added for the reader — "same fact,
+     *  recorded at approval", "never verified by DeedPro". Handing a
+     *  risk team a clipboard containing text the API never sent would be
+     *  the artifact describing itself in our words. */
+    expect(CODE).toContain('JSON.stringify(artifact, null, 2)');
+    const fn = CODE.slice(CODE.indexOf('const copyArtifact'), CODE.indexOf('const resetDemo'));
+    expect(fn).not.toContain('same fact');
+    expect(fn).not.toContain('innerText');
+  });
+
+  it('says so when the browser refuses the clipboard', () => {
+    /** Refused outright in some browsers and over plain HTTP. A button
+     *  that silently does nothing is worse than no button. */
+    expect(CODE).toContain("setCopied('fail')");
+    expect(SPOKEN).toContain('would not let the page write to the clipboard');
+  });
+
+  it('break-all is for hashes, break-words is for sentences', () => {
+    /** It was on the whole cell, so the declarations rendered "at the s
+     *  tated time", "th e previewed PDF", "a nd is NOT verified" —
+     *  mid-word breaks in the receipt. */
+    const dl = CODE.slice(CODE.indexOf('Object.entries(artifact)'),
+                          CODE.indexOf('The artifact appears here'));
+    expect(dl).not.toContain('<dd className="break-all');
+    for (const hash of ['pdf_sha256', 'sha256_recorded_at_approval']) {
+      expect(dl).toContain(hash);
+    }
+    expect(dl).toContain('break-all font-mono');     // the hashes
+    expect(dl).toContain('break-words text-gray-600'); // the declarations
+  });
+
+  it('the key column sizes to its longest key instead of clipping it', () => {
+    /** `180px` clipped `sha256_recorded_at_approval` — it rendered as
+     *  "sha256_recorded_at_approva" against its own value. */
+    const dl = CODE.slice(CODE.indexOf('Object.entries(artifact)'),
+                          CODE.indexOf('The artifact appears here'));
+    expect(dl).not.toContain('grid-cols-[180px_minmax(0,1fr)]');
+    expect(dl).toContain('sm:grid-cols-[minmax(0,auto)_minmax(0,1fr)]');
+  });
+});
