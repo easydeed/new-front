@@ -576,7 +576,12 @@ function TryDemo() {
                     <p className="mt-3 text-sm leading-relaxed text-gray-600">{GLOSS[trap]}</p>
                     {refusal.details?.length ? (
                       <div className="mt-4 border-t border-gray-200 pt-3">
-                        <div className="text-[11.5px] font-bold uppercase tracking-wider text-gray-400">detail.details[]</div>
+                        {/* A FIELD PATH, not a section heading. `uppercase
+                            tracking-wider` rendered it "DETAIL.DETAILS[]",
+                            which is not a key any response contains and not
+                            a path an integrator can look up — the styling
+                            made a literal into a label. Mono, as written. */}
+                        <div className="font-mono text-[11.5px] text-gray-400">detail.details[]</div>
                         {refusal.details.map((d, i) => (
                           <div key={i} className="mt-1 font-mono text-[12.5px]">
                             <span className="text-[#7C4DFF]">{d.field}</span>{' '}
@@ -644,10 +649,29 @@ function TryDemo() {
               {draft && (
                 <div className="overflow-hidden rounded-2xl bg-[#12141A]">
                   <div className="flex items-center justify-between border-b border-[#262A33] px-5 py-3">
-                    <span className="font-mono text-[11.5px] text-gray-400">201 · response.data</span>
+                    {/* ═══ TWO TIMES IN ONE PANEL, AND THEY MUST SAY SO ═══
+                     *
+                     * The body below is the 201 AS RETURNED. It is never
+                     * re-fetched, because the poll asks `/confirm/{token}`,
+                     * which answers a different shape. The badge is the
+                     * draft's state NOW.
+                     *
+                     * Unlabelled, that read as one object: a green
+                     * "completed" sitting over JSON whose own `status`
+                     * field still said `pending_confirmation`. The badge
+                     * was right, the body was right, and together they
+                     * contradicted each other.
+                     *
+                     * The one fix NOT taken: rewriting `status` inside the
+                     * body. That would mean showing the reader a response
+                     * the API never sent, on the page whose whole argument
+                     * is that nothing on it is faked. */}
+                    <span className="font-mono text-[11.5px] text-gray-400">
+                      201 · response.data <span className="text-gray-500">— as returned</span>
+                    </span>
                     {phone === 'completed' ? (
                       <span className="rounded border border-green-500/35 bg-green-500/10 px-2 py-0.5 font-mono text-xs text-green-300">
-                        ✓ completed
+                        draft is now ✓ completed
                       </span>
                     ) : (
                       /* AMBER, and this is the ONLY amber on the page:

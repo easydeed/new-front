@@ -14,6 +14,28 @@ Started 2026-09-21. Additive changes ship inside v1 and are not listed
 here; **this section is for changes that alter what an existing caller
 receives.**
 
+### 2026-09-23 — the fixed-vesting refusal no longer repeats itself
+
+**What changed.** The refusal for supplying `grantee.vesting` to an
+instrument that fixes its own vesting lost its opening clause.
+
+| | before | after |
+|---|---|---|
+| `detail.message` | `This instrument fixes its own vesting — Vesting is fixed by the instrument: joint tenancy. Choosing this form IS the vesting decision, so no vesting value is accepted. Remove grantee.vesting, …` | `Vesting is fixed by the instrument: joint tenancy. Choosing this form IS the vesting decision, so no vesting value is accepted. Remove grantee.vesting, …` |
+
+`details[].field` is unchanged (`body.grantee.vesting`), as is the
+status code, the `code`, and the behaviour being refused.
+
+**Why.** The prefix and the sentence after it said the same thing, and
+a live walkthrough read the pair as a stutter. **The note won because it
+is per-instrument**: it names *joint tenancy*, or *community property
+with right of survivorship*, where the prefix could only ever say "this
+instrument". The generic half was the one carrying less.
+
+**What a caller must do.** Nothing, unless you match on message text —
+which the 2026-09-21 entry already warns against. Match `detail.code`
+and `details[].field`.
+
 ### 2026-09-21 — `422 VALIDATION_ERROR` bodies are the sentence, not the envelope
 
 **What changed.** `detail.message` now carries the refusal's own

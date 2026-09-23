@@ -147,8 +147,18 @@ class CreateDeedRequest(BaseModel):
         # hangs off `recording` for ordering reasons, and without this the
         # caller is told `body.recording` — the one field they got right.
         if rules.fixed_vesting and supplied_vesting:
+            # The prefix that used to open this sentence — "This
+            # instrument fixes its own vesting —" — said exactly what
+            # `rules.note` says next, and a live walkthrough read the
+            # pair as one stutter: "...fixes its own vesting — Vesting
+            # is fixed by the instrument: joint tenancy."
+            #
+            # The note wins because it is PER-INSTRUMENT: it names joint
+            # tenancy, or community property with right of survivorship,
+            # where the prefix could only ever say "this instrument".
+            # The generic half was the one carrying less.
             raise InstrumentRuleError(
-                f"This instrument fixes its own vesting — {rules.note} "
+                f"{rules.note} "
                 "Remove grantee.vesting, or choose a deed type whose vesting you set.",
                 field="body.grantee.vesting",
             )

@@ -254,6 +254,44 @@ export default function ConfirmDeedPage() {
               className="hidden h-[80vh] w-full rounded-xl border border-slate-200 bg-white lg:block"
             />
 
+            {/* ═══ AN ESCAPE HATCH THE EMBEDDED VIEWER CANNOT SWALLOW ═══
+             *
+             * A live walkthrough reported "no deed at desktop width". The
+             * DIAGNOSIS attached to it — that the card above carries
+             * `lg:hidden` and nothing replaces it — is wrong: the iframe
+             * carries `lg:block` and does replace it, measured at 1024px
+             * and 1536px with the real page against a real preview
+             * response. The deed renders.
+             *
+             * The OBSERVATION still deserves an answer, because the two
+             * are different claims (§14.35). An `<iframe>` pointed at a
+             * PDF renders nothing, silently, whenever the browser
+             * declines to display it inline — an extension, a hardened
+             * profile, a viewer Safari will not embed cross-origin. The
+             * frame stays 992x720 and empty, the approve button sits
+             * right below it, and NOTHING ON THE PAGE TELLS THE APPROVER
+             * THE DOCUMENT IS MISSING RATHER THAN BLANK.
+             *
+             * That is the failure worth closing, and it is closable
+             * without knowing which browser did it: there is always a
+             * link out. The phone card below is the same affordance for
+             * the same reason, so this is the desktop half of a rule the
+             * page already follows rather than a new idea. */}
+            <p className="hidden text-sm text-slate-500 lg:block">
+              Not seeing the document above?{' '}
+              <a
+                href={previewSrc}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setOpenedPreview(true)}
+                className="font-medium text-[#7C4DFF] underline underline-offset-2 hover:text-[#6a3ff0]"
+              >
+                Open it in a new tab
+              </a>{' '}
+              — some browsers will not display a PDF inline. Approve or send it
+              back using the buttons below either way.
+            </p>
+
             <div className="rounded-xl border border-slate-200 bg-white p-6 lg:hidden">
               <h2 className="text-base font-bold text-slate-800">
                 Read the deed before you approve it

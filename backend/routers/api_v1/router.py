@@ -562,10 +562,11 @@ async def create_deed(
                 transfer_tax_amount, transfer_tax_exempt,
                 preview_pdf_data, request_data, idempotency_key,
                 confirmation_token, confirmation_expires_at,
-                approver_name, approver_role, approver_email
+                approver_name, approver_role, approver_email,
+                created_at
             ) VALUES (
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s, %s, %s
+                %s, %s, %s, %s, %s, %s, %s, %s, %s
             )
         """, (
             deed_id,
@@ -589,6 +590,25 @@ async def create_deed(
             deed_request.approver.name.strip(),
             deed_request.approver.role.strip(),
             (deed_request.approver.email or "").strip() or None,
+            # ═══ ONE CLOCK READ, NOT TWO ═══
+            #
+            # `created_at` used to be left to the column default, so the
+            # row was stamped at COMMIT while `confirmation_expires_at`
+            # was computed from a Python read taken BEFORE the render.
+            # WeasyPrint takes a few seconds, so the response came back
+            # with an `expires_at` that preceded its own `created_at` —
+            # measured at four seconds by a live walkthrough.
+            #
+            # Nothing was wrong with the expiry: it was seven days from
+            # a real instant. What was wrong is that the two timestamps
+            # answered to different clocks, and a reader comparing them
+            # sees a record that expired before it existed.
+            #
+            # The fix is not to re-read the clock later. It is to read
+            # it ONCE, at the top, and use that read for both — which is
+            # also what `execution_date` already does, pinned at create
+            # so the template cannot print a later `now()`.
+            created_at,
         ))
 
         _log_usage(cursor, api_key["id"], "/api/v1/deeds", "POST", 200, start_time, request)

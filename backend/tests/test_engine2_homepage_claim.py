@@ -85,7 +85,11 @@ def test_supplying_vesting_to_a_fixed_vesting_instrument_is_refused(slug):
     covered the day it is added — the homepage's sample could pick it."""
     with pytest.raises(ValidationError) as exc:
         CreateDeedRequest(**_body(slug, vesting="a single man"))
-    assert "fixes its own vesting" in str(exc.value)
+    # Derived from the catalog, like the parametrisation above it: the
+    # duplicated "This instrument fixes its own vesting —" prefix went
+    # on 2026-09-23, and a pin naming the removed spelling would have
+    # been guarding the wrong half of the sentence anyway.
+    assert TYPE_REQUIREMENTS[slug].note in str(exc.value)
 
 
 @pytest.mark.parametrize("slug", FIXED_VESTING_SLUGS)

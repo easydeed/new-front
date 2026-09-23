@@ -124,3 +124,55 @@ describe('TRY-7 — the refused option, recorded where it will be proposed', () 
     expect(CODE).toContain('preview_url');
   });
 });
+
+/**
+ * TRY-FIX defect 3 — "no deed at desktop width".
+ *
+ * The DIAGNOSIS that came with it was checkably wrong: the card does not
+ * go unreplaced above `lg`, the iframe carries `lg:block` and replaces
+ * it. Measured with the real page against a real preview response at
+ * 1024px and 1536px — the deed renders, both pages, watermark and all.
+ *
+ * The OBSERVATION still deserved an answer, because it is a different
+ * claim from the diagnosis (§14.35). An `<iframe>` pointed at a PDF
+ * renders nothing, SILENTLY, whenever a browser declines to display it
+ * inline. The frame stays 992x720 and empty with the approve button
+ * directly beneath it, and nothing tells the approver the document is
+ * missing rather than blank.
+ */
+describe('TRY-FIX — every width has a way out of a blank viewer', () => {
+  it('desktop carries a link out, not only the embedded frame', () => {
+    expect(CODE).toContain('Open it in a new tab');
+    const hatch = CODE.slice(CODE.indexOf('Not seeing the document above'));
+    expect(hatch.slice(0, 700)).toContain('target="_blank"');
+    expect(hatch.slice(0, 700)).toContain('rel="noopener noreferrer"');
+  });
+
+  it('the two escape hatches never both show, and never both hide', () => {
+    /** The desktop line is `hidden … lg:block`; the phone card is
+     *  `lg:hidden`. Complementary, so exactly one is on screen at any
+     *  width — no duplication, and no gap. Verified in a browser at
+     *  390px, 1024px and 1536px, not inferred from the classes. */
+    const hatch = CODE.slice(CODE.indexOf('Not seeing the document above') - 400,
+                             CODE.indexOf('Not seeing the document above'));
+    expect(hatch).toContain('hidden text-sm text-slate-500 lg:block');
+    expect(CODE).toContain('bg-white p-6 lg:hidden');
+  });
+
+  it('it says WHY the frame might be empty rather than only offering a link', () => {
+    /** "Not seeing it? Click here" tells an approver they are doing
+     *  something wrong. The cause is the browser's, and saying so is the
+     *  difference between an escape hatch and a shrug. */
+    expect(PROSE).toContain('some browsers will not display a PDF inline');
+  });
+
+  it('the link out never claims the deed was read', () => {
+    /** Same bound ENGINE1 put on `draft_sha256`: fetching bytes is not
+     *  reading a document. This link sets `openedPreview`, and that
+     *  state may only ever say OPENED. */
+    const hatch = CODE.slice(CODE.indexOf('Not seeing the document above'));
+    expect(hatch.slice(0, 700)).toContain('setOpenedPreview(true)');
+    expect(PROSE).not.toContain('you have read');
+    expect(PROSE).not.toContain('confirms you read');
+  });
+});
