@@ -129,6 +129,10 @@ SUITE = BACKEND / "tests"
 # ENCODING or about a comment's presence is asking about the bytes, not
 # about the code, and must not be forced through the helper.
 RAW_TEXT_ALLOWED = {
+    "test_release_readiness.py": (
+        "parses GitHub Actions YAML and checks its job graph, not raw Python "
+        "source. Python filenames appear only as the imported executable "
+        "module and workflow test command; code_only is not a YAML parser."),
     "test_red_h1_requirements.py": "requirements.txt is not Python; the encoding IS the subject",
     "test_source_text_helper.py": "this file tests the helper itself",
     "test_share_pdf_source.py": "reads SQL/schema from the database, not source text",

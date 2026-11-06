@@ -98,9 +98,11 @@ class ReleaseReadinessTests(unittest.TestCase):
         self.assertEqual(workflow["on"]["workflow_dispatch"]["inputs"]["owner_acknowledgment"]["default"], "false")
         self.assertTrue(all(value == "read" for value in workflow["permissions"].values()))
         jobs = workflow["jobs"]
+        self.assertEqual(set(jobs), {"guard-tests", "candidate", "owner-checkpoint"})
         self.assertEqual(jobs["candidate"]["if"], "${{ github.event_name == 'workflow_dispatch' }}")
         self.assertEqual(jobs["candidate"]["needs"], "guard-tests")
         self.assertEqual(jobs["owner-checkpoint"]["needs"], "candidate")
+        self.assertEqual(jobs["owner-checkpoint"]["if"], "${{ github.event_name == 'workflow_dispatch' }}")
         self.assertEqual(jobs["owner-checkpoint"]["environment"], gate.ENVIRONMENT)
         text = (ROOT / ".github/workflows/release-train.yml").read_text(encoding="utf-8")
         for forbidden in ("secrets.", "vercel deploy", "API_DEPLOY_CMD", "|| true", "continue-on-error", "env.RELEASE_TRAIN_ENABLED"):
