@@ -1,6 +1,6 @@
 {
   "ticket": "P00",
-  "status": "in_progress_stop_and_report",
+  "status": "baseline_restored_pending_review_and_main_integration",
   "date": "2026-11-06",
   "baseline_commit": "4273cec74c49d65e70e7d7b8d1793a6cda413e6e",
   "branch": "codex/platform-p00-baseline",
@@ -58,5 +58,38 @@
     {"path": "backend/tests/test_verify_check.py:182", "finding": "str(relative_path) does not match the POSIX owner whitelist on Windows; this failure does not prove production verification gating"},
     {"path": "backend/services/signing.py:134", "finding": "%-I is not a supported Windows strftime directive; scheduling_label raises ValueError on the scheduled branch"}
   ],
-  "policy_disposition": "New security discovery and red baseline prevent automatic progression to the next ticket. Report before changing ticket priority or claiming readiness."
+  "policy_disposition": "Owner approved the reported security and portability work. Historical red results above remain intact. Current local gates below pass within the existing lint/type ceilings; G1 and launch readiness remain unachieved.",
+  "restored_verification": {
+    "backend": {"passed": 1843, "failed": 0, "skipped": 0},
+    "frontend": {"passed": 1291, "failed": 0, "suites": 93, "snapshots": 2},
+    "proofs": {"s1_concurrency": "passed", "s2_backup_restore_hash_recovery": "passed", "s3_walkthrough": "passed", "six_flow_baseline": "passed_unchanged", "api_baseline": "passed_unchanged", "openapi_contract": "passed_in_backend_suite"},
+    "frontend_build": "passed",
+    "typescript": {"errors": 83, "ceiling": 83, "parse_errors": 0, "status": "existing_debt_not_clean_typecheck"},
+    "eslint": {"errors": 126, "warnings": 53, "status": "passed_existing_ceiling"},
+    "secrets": "passed_current_tracked_tree_and_13_scanner_self_tests",
+    "banned_claims": "passed_28_rules",
+    "environment": {
+      "python": "3.11.9",
+      "node": "24.15.0",
+      "postgresql": "16.15",
+      "database": "marked_disposable_deedpro_platform_ci_on_loopback_55439",
+      "native_pdf_rendering": "passed_with_private_local_libraries",
+      "frontend_dependency_source": "codex/platform-security installed lockfile; not the original P00 lockfile",
+      "frontend_lock_sha256": "047092d77a97d0e898deace6f2ab02164332d5e5a06dc3f2b616f8f4794d1d72"
+    },
+    "qualifications": [
+      "CI Node 20 parity requires the exact-head CI result; local Node is 24",
+      "Browser end-to-end tests were not run; Cypress binary was deliberately not installed",
+      "The restore proof covers the application artifact path, not the known API second-copy gap",
+      "Current-tree scanning does not prove historical credentials were revoked",
+      "No production configuration, database, or deployment was used"
+    ]
+  },
+  "portability_remediation": [
+    "Canonical LF checkout attributes for source-reading policy tests",
+    "Canonical POSIX allowlist keys on Windows and POSIX hosts",
+    "Replace shell grep and swallowed failures with a fail-closed source scan",
+    "Portable scheduling hour formatting with six boundary-hour regressions",
+    "docs/skills/titlepoint-integration.md has only mechanical line-ending normalization"
+  ]
 }

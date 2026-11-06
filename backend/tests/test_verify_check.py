@@ -179,7 +179,7 @@ def test_nothing_in_the_product_gates_on_verified():
     for path in sorted(BACKEND.rglob("*.py")):
         if "__pycache__" in path.parts or "tests" in path.parts:
             continue
-        rel = str(path.relative_to(BACKEND))
+        rel = path.relative_to(BACKEND).as_posix()
         if rel in VERIFICATION_OWNERS or rel in UNPARSEABLE:
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"), rel)

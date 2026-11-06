@@ -7,7 +7,6 @@
  * it must not become a live dependency by accident.
  */
 import { describe, expect, it } from '@jest/globals';
-import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -77,11 +76,16 @@ describe('BRAND2 — the hard constraints', () => {
 
   it('nothing under figma/ is ever imported — it is a design reference, not a dependency', () => {
     // Sweep every app source file for an import/require reaching figma/.
-    const hits = execSync(
-      String.raw`grep -rlE "(from ['\"]|require\().*figma/" src --include='*.ts' --include='*.tsx' || true`,
-      { cwd: path.join(__dirname, '..', '..'), encoding: 'utf8' }
-    ).trim();
-    expect(hits).toBe('');
+    const referenceImport = /(from ['"]|require\().*figma\//;
+    const files = (dir: string): string[] => fs.readdirSync(dir, { withFileTypes: true })
+      .flatMap((entry) => entry.isDirectory() ? files(path.join(dir, entry.name))
+        : /\.tsx?$/.test(entry.name) ? [path.join(dir, entry.name)] : []);
+    // No shell-specific grep or swallowed command failures. Enumeration
+    // and reads must succeed for an absence to be meaningful.
+    const hits = files(path.join(__dirname, '..'))
+      .filter((file) => referenceImport.test(fs.readFileSync(file, 'utf8')));
+    expect(hits).toEqual([]);
+    expect(referenceImport.test(['import X from', '"../figma/reference"'].join(' '))).toBe(true);
   });
 
   it('the deployed surfaces use the component, not ad-hoc squares', () => {

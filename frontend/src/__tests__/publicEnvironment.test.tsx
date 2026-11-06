@@ -25,7 +25,7 @@ import { render, screen } from '@testing-library/react';
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 
-import { codeOnly } from '../test-support/sourceText';
+import { codeOnly, relativeSourcePath } from '../test-support/sourceText';
 
 const SRC = join(__dirname, '..');
 const MODULE = join(SRC, 'lib', 'publicEnvironment.ts');
@@ -126,7 +126,7 @@ describe('the manifest', () => {
       const src = codeOnly(readFileSync(f, 'utf8'));
       return CONTACT.some((k) => src.includes(`process.env.${k}`));
     });
-    expect(carriers.map((f) => f.replace(SRC, ''))).toEqual(['/lib/publicEnvironment.ts']);
+    expect(carriers.map((f) => '/' + relativeSourcePath(SRC, f))).toEqual(['/lib/publicEnvironment.ts']);
   });
 });
 

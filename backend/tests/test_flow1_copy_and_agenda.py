@@ -166,7 +166,7 @@ def test_no_template_asserts_a_pronoun_for_a_named_party():
     # copy sweep. Habitats are now every directory that can emit prose.
     for folder in ("utils", "services", "routers"):
         for path in sorted((BACKEND / folder).glob("*.py")):
-            if str(path.relative_to(REPO)) in PRONOUN_EXEMPT:
+            if path.relative_to(REPO).as_posix() in PRONOUN_EXEMPT:
                 continue
             for lineno, line in _rendered_lines(path):
                 if PRONOUNS.search(line):
@@ -199,7 +199,7 @@ def test_no_template_asserts_a_pronoun_for_a_named_party():
     for path in sorted((BACKEND / "templates").rglob("*")):
         if not path.is_file():
             continue
-        rel = str(path.relative_to(REPO))
+        rel = path.relative_to(REPO).as_posix()
         if rel in PRONOUN_EXEMPT:
             continue
         text = path.read_text(encoding="utf-8", errors="ignore")
