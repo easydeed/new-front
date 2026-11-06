@@ -60,4 +60,12 @@ describe('platform dependency security regression', () => {
       expect(atLeast((entry as { version: string }).version, [8, 5, 23])).toBe(true);
     }
   });
+
+  it('uses the patched transpiler without overriding the test runner glob major', () => {
+    const transpiler = lock.packages['node_modules/sucrase'];
+    expect(atLeast(transpiler.version, [3, 35, 1])).toBe(true);
+    expect(transpiler.dependencies.glob).toBeUndefined();
+    expect(transpiler.dependencies.tinyglobby).toBeDefined();
+    expect(manifest.overrides.glob).toBeUndefined();
+  });
 });

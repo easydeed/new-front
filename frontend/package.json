@@ -60,7 +60,6 @@
   "overrides": {
     "sharp": "0.35.5",
     "postcss": "$postcss",
-    "postcss-selector-parser@^6.0.0": "6.1.5",
-    "glob@>=9.0.0 <14.0.2": "14.0.2"
+    "postcss-selector-parser@^6.0.0": "6.1.5"
   }
 }
