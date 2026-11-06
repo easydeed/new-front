@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { describe, expect, it } from '@jest/globals';
 
 const root = path.resolve(__dirname, '../..');
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
@@ -46,6 +47,17 @@ describe('platform dependency security regression', () => {
       const version = (entry as { version: string }).version;
       expect(atLeast(version, [0, 35, 5])).toBe(true);
       expect(version).toBe(manifest.overrides.sharp);
+    }
+  });
+
+  it('also patches the CSS processor behind the framework', () => {
+    expect(atLeast(manifest.devDependencies.postcss, [8, 5, 23])).toBe(true);
+    expect(manifest.overrides.postcss).toBe('$postcss');
+    const processors = Object.entries(lock.packages)
+      .filter(([name]) => name.endsWith('node_modules/postcss'));
+    expect(processors.length).toBeGreaterThan(0);
+    for (const [, entry] of processors) {
+      expect(atLeast((entry as { version: string }).version, [8, 5, 23])).toBe(true);
     }
   });
 });
