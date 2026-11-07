@@ -23,9 +23,11 @@ async function main() {
   await fs.writeFile(spec, `describe('isolated patched toolchain', () => {
     it('serves and executes the minified local bundle', () => {
       cy.intercept('**', (request) => {
-        if (!['127.0.0.1', 'localhost'].includes(new URL(request.url).hostname)) {
+        const hostname = new URL(request.url).hostname;
+        if (!['127.0.0.1', 'localhost'].includes(hostname)) {
           request.destroy();
-          throw new Error('Non-loopback request refused by the toolchain smoke');
+          // Hostname only: never print paths, query strings or credentials.
+          throw new Error('Non-loopback request refused by the toolchain smoke: ' + hostname);
         }
         request.continue();
       });
