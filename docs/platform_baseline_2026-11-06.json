@@ -1,0 +1,95 @@
+{
+  "ticket": "P00",
+  "status": "baseline_restored_pending_review_and_main_integration",
+  "date": "2026-11-06",
+  "baseline_commit": "4273cec74c49d65e70e7d7b8d1793a6cda413e6e",
+  "branch": "codex/platform-p00-baseline",
+  "original_worktree_preserved": true,
+  "production_configuration_changed": false,
+  "production_database_used": false,
+  "product_fixes_started": false,
+  "verification": {
+    "preflight_unit_tests": {"passed": 6, "failed": 0},
+    "backend_without_database": {
+      "passed": 1584,
+      "failed": 39,
+      "skipped": 212,
+      "seconds": 223.37,
+      "classification": "36 PDF-related failures with missing native renderer support; two path-whitelist assertions use Windows backslashes against POSIX allowances; one scheduling label uses unsupported Windows %-I formatting. Not green."
+    },
+    "frontend_clean_install": {"status": "timed_out", "timeout_seconds": 240},
+    "frontend_tests": {"status": "timed_out", "timeout_seconds": 180, "qualification": "Attempted after incomplete dependency installation; not a product test pass or established product failure"},
+    "database_proof_harnesses": {"status": "not_run", "reason": "No marked disposable PostgreSQL database or local PostgreSQL tools configured"},
+    "build": {"status": "not_run"},
+    "lint_and_type_gates": {"status": "not_run"},
+    "secrets_pattern_self_test": {"passed": 13, "failed": 0},
+    "secrets_scan": {"status": "timed_out", "timeout_seconds": 45},
+    "banned_claims_scan": {"status": "timed_out", "timeout_seconds": 45}
+  },
+  "environment_findings": [
+    "Explicit Python and Node paths avoid inconsistent PATH resolution",
+    "Python packages match backend/requirements.txt",
+    "PYTHONUTF8=1 resolves the initial three test-collection decoding failures on Windows",
+    "Native PDF rendering cannot load libgobject-2.0-0 in the isolated environment",
+    "psql, pg_dump and pg_restore are not on the isolated test PATH",
+    "Installed Node is 24.15.0 while CI uses Node 20; establish the supported test runtime before claiming parity"
+  ],
+  "reproduced_contract_findings": {
+    "valid_example_accepted": true,
+    "blank_grantor_name_accepted": true,
+    "blank_grantee_name_accepted": true,
+    "blank_apn_accepted": true,
+    "blank_legal_description_accepted": true,
+    "blank_return_address_accepted": true,
+    "whitespace_approver_accepted": true,
+    "omitted_tax_basis_rendered_as": "full_value",
+    "serialized_request_includes_optional_approver_contact": true
+  },
+  "new_security_finding": {
+    "package": "next",
+    "pinned_version": "15.4.8",
+    "status": "installer warning confirmed against upstream advisory; remediation not performed",
+    "advisory": "https://nextjs.org/blog/security-update-2025-12-11",
+    "qualification": "The advisory lists 15.4.10 for its fixes; that historical minimum is not a claim of complete current security coverage. Select the current compatible patched release against current advisories.",
+    "production_exploitation_tested": false
+  },
+  "additional_portability_findings": [
+    {"path": "backend/tests/test_flow1_copy_and_agenda.py:169", "finding": "str(relative_path) does not match POSIX path exemptions on Windows; same issue at line 202"},
+    {"path": "backend/tests/test_verify_check.py:182", "finding": "str(relative_path) does not match the POSIX owner whitelist on Windows; this failure does not prove production verification gating"},
+    {"path": "backend/services/signing.py:134", "finding": "%-I is not a supported Windows strftime directive; scheduling_label raises ValueError on the scheduled branch"}
+  ],
+  "policy_disposition": "Owner approved the reported security and portability work. Historical red results above remain intact. Current local gates below pass within the existing lint/type ceilings; G1 and launch readiness remain unachieved.",
+  "restored_verification": {
+    "backend": {"passed": 1843, "failed": 0, "skipped": 0},
+    "frontend": {"passed": 1291, "failed": 0, "suites": 93, "snapshots": 2},
+    "proofs": {"s1_concurrency": "passed", "s2_backup_restore_hash_recovery": "passed", "s3_walkthrough": "passed", "six_flow_baseline": "passed_unchanged", "api_baseline": "passed_unchanged", "openapi_contract": "passed_in_backend_suite"},
+    "frontend_build": "passed",
+    "typescript": {"errors": 83, "ceiling": 83, "parse_errors": 0, "status": "existing_debt_not_clean_typecheck"},
+    "eslint": {"errors": 126, "warnings": 53, "status": "passed_existing_ceiling"},
+    "secrets": "passed_current_tracked_tree_and_13_scanner_self_tests",
+    "banned_claims": "passed_28_rules",
+    "environment": {
+      "python": "3.11.9",
+      "node": "24.15.0",
+      "postgresql": "16.15",
+      "database": "marked_disposable_deedpro_platform_ci_on_loopback_55439",
+      "native_pdf_rendering": "passed_with_private_local_libraries",
+      "frontend_dependency_source": "codex/platform-security installed lockfile; not the original P00 lockfile",
+      "frontend_lock_sha256": "047092d77a97d0e898deace6f2ab02164332d5e5a06dc3f2b616f8f4794d1d72"
+    },
+    "qualifications": [
+      "CI Node 20 parity requires the exact-head CI result; local Node is 24",
+      "Browser end-to-end tests were not run; Cypress binary was deliberately not installed",
+      "The restore proof covers the application artifact path, not the known API second-copy gap",
+      "Current-tree scanning does not prove historical credentials were revoked",
+      "No production configuration, database, or deployment was used"
+    ]
+  },
+  "portability_remediation": [
+    "Canonical LF checkout attributes for source-reading policy tests",
+    "Canonical POSIX allowlist keys on Windows and POSIX hosts",
+    "Replace shell grep and swallowed failures with a fail-closed source scan",
+    "Portable scheduling hour formatting with six boundary-hour regressions",
+    "docs/skills/titlepoint-integration.md has only mechanical line-ending normalization"
+  ]
+}

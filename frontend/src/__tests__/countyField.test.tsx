@@ -26,7 +26,7 @@ import { describe, expect, it } from '@jest/globals';
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 
-import { codeOnly } from '../test-support/sourceText';
+import { codeOnly, relativeSourcePath } from '../test-support/sourceText';
 import { CA_COUNTY_NAMES, COUNTIES } from '../lib/jurisdictions';
 
 const SRC = join(__dirname, '..');
@@ -82,7 +82,7 @@ describe('the county picker', () => {
       return ['Calaveras', 'Tuolumne', 'Siskiyou'].every((n) => src.includes(`'${n}'`)
         || src.includes(`"${n}"`));
     });
-    expect(carriers.map((f) => f.replace(SRC, ''))).toEqual(['/lib/jurisdictions.ts']);
+    expect(carriers.map((f) => '/' + relativeSourcePath(SRC, f))).toEqual(['/lib/jurisdictions.ts']);
   });
 });
 

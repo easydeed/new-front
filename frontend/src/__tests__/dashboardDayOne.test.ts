@@ -26,7 +26,7 @@ import { describe, expect, it } from '@jest/globals';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-import { codeOnly } from '../test-support/sourceText';
+import { codeOnly, relativeSourcePath } from '../test-support/sourceText';
 
 const SRC = join(__dirname, '..');
 const DASHBOARD = join(SRC, 'app', 'dashboard', 'page.tsx');
@@ -146,11 +146,11 @@ describe('the trial length', () => {
     walk(SRC);
     const declarations = files.filter((f) =>
       /(?:const|let|var)\s+TRIAL_DAYS\s*=/.test(readFileSync(f, 'utf8')));
-    expect(declarations.map((f) => f.replace(SRC, ''))).toEqual(['/lib/trial.ts']);
+    expect(declarations.map((f) => '/' + relativeSourcePath(SRC, f))).toEqual(['/lib/trial.ts']);
 
     // And nowhere writes the length as prose instead of importing it.
     for (const f of files) {
-      if (f.endsWith('lib/trial.ts')) continue;
+      if (relativeSourcePath(SRC, f) === 'lib/trial.ts') continue;
       expect(codeOnly(readFileSync(f, 'utf8')))
         .not.toMatch(/\d+[\s-]day (?:free )?trial/i);
     }

@@ -131,7 +131,10 @@ def scheduling_label(row: Dict[str, Any]) -> Optional[str]:
         return f"Signing request sent — {n} time{'s' if n != 1 else ''} proposed, none chosen yet"
 
     when = row.get("scheduled_at")
-    when_text = when.strftime("%B %d, %Y at %-I:%M %p") if hasattr(when, "strftime") else str(when)
+    # %I is portable; %-I is a POSIX-only extension and raises on Windows.
+    # Remove only the hour's leading zero, preserving the existing wording.
+    when_text = (when.strftime("%B %d, %Y at %I:%M %p").replace(" at 0", " at ", 1)
+                 if hasattr(when, "strftime") else str(when))
     who = row.get("scheduled_by")
     if who == ASSERTED_BY_NOTARY:
         return f"Notary confirmed availability for {when_text}"

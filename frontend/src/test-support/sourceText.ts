@@ -86,6 +86,16 @@
  * point at the right place in the original file.
  */
 import * as fs from 'fs';
+import * as path from 'path';
+
+/** Canonical allowlist keys, independent of the host path separator. */
+export function relativeSourcePath(
+  root: string,
+  file: string,
+  dialect: Pick<typeof path, 'relative' | 'sep'> = path,
+): string {
+  return dialect.relative(root, file).split(dialect.sep).join('/');
+}
 
 /** Characters that can precede `/` when it starts a regex literal. */
 const REGEX_ALLOWED_BEFORE = new Set([

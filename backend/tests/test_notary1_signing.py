@@ -229,6 +229,22 @@ def test_nothing_auto_completes_a_signing():
         "has passed is not evidence that anybody met")
 
 
+@pytest.mark.parametrize("hour,display", [(0, "12:05 AM"), (1, "1:05 AM"),
+                                         (9, "9:05 AM"), (12, "12:05 PM"),
+                                         (13, "1:05 PM"), (23, "11:05 PM")])
+def test_scheduling_label_uses_a_portable_hour_format(hour, display):
+    class WindowsDateTime(datetime):
+        def strftime(self, fmt):
+            if "%-" in fmt:
+                raise ValueError("Invalid format string")
+            return super().strftime(fmt)
+
+    row = {"share_kind": "signing_request", "scheduled_by": "notary",
+           "scheduled_at": WindowsDateTime(2026, 9, 1, hour, 5, tzinfo=timezone.utc)}
+    assert signing.scheduling_label(row) == (
+        f"Notary confirmed availability for September 01, 2026 at {display}")
+
+
 def test_the_label_never_promises_the_signing_will_happen():
     """A notary tapping a window asserts AVAILABILITY, not attendance."""
     row = {"share_kind": "signing_request",

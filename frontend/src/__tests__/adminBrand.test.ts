@@ -28,7 +28,7 @@
 import { describe, expect, it } from '@jest/globals';
 import * as fs from 'fs';
 import * as path from 'path';
-import { codeOnly } from '../test-support/sourceText';
+import { codeOnly, relativeSourcePath } from '../test-support/sourceText';
 
 const ADMIN = path.join(__dirname, '..', 'app', 'admin');
 const TOKENS = path.join(ADMIN, 'styles', 'tokens.css');
@@ -47,7 +47,7 @@ function withoutComments(src: string): string {
   return codeOnly(src);
 }
 
-const FILES = adminFiles().map((f) => [path.relative(ADMIN, f), fs.readFileSync(f, 'utf8')] as const);
+const FILES = adminFiles().map((f) => [relativeSourcePath(ADMIN, f), fs.readFileSync(f, 'utf8')] as const);
 const CODE = FILES.map(([name, src]) => [name, withoutComments(src)] as const);
 
 describe('every admin token resolves to a definition', () => {
