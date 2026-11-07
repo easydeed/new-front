@@ -131,6 +131,20 @@ jobs:
       working-directory: frontend
       run: npx jest --ci
 
+  production-dependency-audit:
+    # A framework-only upgrade can leave vulnerable transitive packages
+    # resolved underneath it. Audit the committed production graph too.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    - name: Production dependencies must have no high or critical advisory
+      working-directory: frontend
+      run: npm audit --omit=dev --audit-level=high
+
   secrets-gate:
     # Added 2026-09-22, after a full-history scan found twelve credentials
     # in a repository that turned out to be PUBLIC.

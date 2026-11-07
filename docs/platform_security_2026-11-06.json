@@ -1,0 +1,69 @@
+{
+  "status": "verified_pending_main_integration_not_launch_clearance",
+  "date": "2026-11-06",
+  "executor": "Codex implementation and QA",
+  "verified_code_commit": "9c8c5c3ff5ddcd3056e7c9ca5f8ecaaa4c5af861",
+  "frontend_lock_sha256": "845fb9cf7558678631a2634ba7bbe48aa76929c4c9cad6c33c8d48b6f6090271",
+  "dependency_changes": {
+    "next_and_eslint_config_next": "15.5.29",
+    "react_and_react_dom": "19.1.10",
+    "sharp": "0.35.5",
+    "postcss": "8.5.23",
+    "sucrase": "3.35.1",
+    "glob_override": "removed; patch-level sucrase replaces its affected glob dependency without changing the test runner glob major",
+    "zod": "unused direct dependency removed; no application source imports found"
+  },
+  "local_verification": {
+    "python": "3.11.9",
+    "postgresql": "16.15 marked disposable loopback instance",
+    "node": "20.20.2",
+    "npm": "10.8.2",
+    "clean_install": {"exit_code": 0, "installed_packages": 1116, "cypress_binary": "not_installed"},
+    "backend": {"passed": 1843, "failed": 0, "skipped": 0},
+    "frontend": {"passed": 1296, "suites": 94, "snapshots": 2, "failed": 0},
+    "frontend_build": "passed",
+    "typescript": {"errors": 83, "ceiling": 83, "parse_errors": 0},
+    "eslint": {"errors": 126, "warnings": 53, "status": "passed_existing_ceilings"},
+    "proofs": {"s1": "passed", "s2_restore_hash_recovery": "passed", "s3": "passed_on_isolated_rerun", "six_flow": "passed_unchanged", "api_baseline": "passed_unchanged", "openapi": "passed_in_backend_suite"},
+    "secrets_current_tree": "passed",
+    "banned_claims": "passed",
+    "initial_attempts_retained": [
+      "The first npm 11 lockfile failed npm 10 CI validation; corrected using a narrow sucrase patch and verified with a clean npm 10 install",
+      "One local Jest invocation exceeded a 180-second runner cap; isolated rerun passed all 1296 tests in 107.86 seconds without changing test assertions",
+      "One S3 process exited with Windows interruption code 3221225786 before producing a verdict; isolated rerun exited 0 in 17.47 seconds; interruption cause not established"
+    ]
+  },
+  "independent_ci": {
+    "commit": "9c8c5c3ff5ddcd3056e7c9ca5f8ecaaa4c5af861",
+    "build_and_backend_run": "https://github.com/easydeed/new-front/actions/runs/42313442184",
+    "all_test_and_proof_jobs_run": "https://github.com/easydeed/new-front/actions/runs/42313437289",
+    "maintained_jobs": "all_passed",
+    "inherited_release_workflow": "invalid_on_baseline; separate_owner_approved_repair_in_PR_298"
+  },
+  "audit": {
+    "production": {"info": 0, "low": 0, "moderate": 0, "high": 0, "critical": 0},
+    "all_dependencies_including_development": {"low": 3, "moderate": 25, "high": 18, "critical": 3, "total_flagged_entries": 49},
+    "qualification": "Counts describe the registry audit at verification time, not a security certification. Development/build toolchain debt remains open. No high/critical launch clearance is claimed."
+  },
+  "owner_runtime_confirmation": {
+    "source": "Owner response in this chat on 2026-11-06",
+    "minimum_sharp_requirement": ">=20.9.0",
+    "compatible_frontend_deployment_line_confirmed": true,
+    "preview": "Owner reports Vercel preview of verified code commit succeeded on 2026-11-06",
+    "exact_live_process_version_observed": false,
+    "production_settings_changed_by_agent": false
+  },
+  "remaining_gates": [
+    "Exact-head CI after rebasing onto main and main integration",
+    "Historical credential revocation is owner-only and remains unverified",
+    "Development toolchain findings require separate remediation",
+    "Existing CI Node 20 is end-of-life; supported-LTS CI migration remains separate from production settings",
+    "Browser end-to-end coverage, API safety fixes, API recovery, tenant continuity, legal/commercial and pilot gates remain open"
+  ],
+  "primary_sources": [
+    "https://nextjs.org/blog/november-2026-security-release",
+    "https://nextjs.org/blog/nextjs-security-update-october-14-2026",
+    "https://github.com/react/react/security/advisories/GHSA-xqc2-xf4c-x3h3",
+    "https://nodejs.org/en/about/previous-releases"
+  ]
+}
