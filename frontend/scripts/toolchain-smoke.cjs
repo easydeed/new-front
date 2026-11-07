@@ -45,10 +45,14 @@ async function main() {
       else resolve();
     }));
     const baseUrl = `http://127.0.0.1:${server.server.address().port}`;
-    const result = await cypress.run({ project, configFile: false, browser: 'electron',
-      headed: false, record: false, env: { API_URL: baseUrl },
-      config: { video: false, screenshotOnRunFailure: false,
-        e2e: { baseUrl, specPattern: spec.replaceAll('\\', '/'), supportFile: false } } });
+    const configFile = path.join(project, 'cypress.config.cjs');
+    const config = { video: false, screenshotOnRunFailure: false,
+      e2e: { baseUrl, specPattern: spec.replaceAll('\\', '/'), supportFile: false } };
+    // Cypress 15 requires an explicit file. This generated file is the only
+    // config loaded; the repository's deployed-API defaults are never read.
+    await fs.writeFile(configFile, `module.exports = ${JSON.stringify(config, null, 2)};\n`);
+    const result = await cypress.run({ project, configFile, browser: 'electron',
+      headed: false, record: false, env: { API_URL: baseUrl } });
     assert.equal(result.totalFailed, 0, result.message || 'Cypress smoke failed');
     assert.equal(result.totalPassed, 1, 'Cypress must pass the actual test, not skip it');
     console.log('Local toolchain smoke passed; no app or production API was used.');
