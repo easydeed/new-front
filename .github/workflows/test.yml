@@ -133,12 +133,18 @@ jobs:
     - name: Jest (blocking)
       working-directory: frontend
       run: npx jest --ci
+    - name: Patched browser and dev-server smoke (loopback only)
+      working-directory: frontend
+      timeout-minutes: 5
+      run: node scripts/toolchain-smoke.cjs
 
   production-dependency-audit:
     # A framework-only upgrade can leave vulnerable transitive packages
     # resolved underneath it. Audit the committed production graph too.
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      AUDIT_LEVEL: high
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4
@@ -146,7 +152,13 @@ jobs:
         node-version: '20'
     - name: Production dependencies must have no high or critical advisory
       working-directory: frontend
-      run: npm audit --omit=dev --audit-level=high
+      run: npm audit --omit=dev --audit-level="$AUDIT_LEVEL"
+    # Keep the existing check name for release/branch-protection compatibility.
+    # Build and test packages can execute code too; do not exempt them from
+    # the same high/critical threshold as the runtime graph.
+    - name: Development and build tools must pass the same advisory threshold
+      working-directory: frontend
+      run: npm audit --audit-level="$AUDIT_LEVEL"
 
   secrets-gate:
     # Added 2026-09-22, after a full-history scan found twelve credentials
