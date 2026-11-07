@@ -1,109 +1,70 @@
-name: Release Train
+name: Release readiness (no deployment)
 
+# Owner-approved preparation, 2026-11-06. The former scheduled deployment
+# recipe never parsed. Fixing its condition must not activate deployments.
+# This workflow validates one main SHA and records an owner checkpoint only.
 on:
-  schedule:
-    - cron: '0 23 * * 1-5'   # 16:00 PT staging
-    - cron: '0 1 * * 2-6'    # 18:00 PT prod (01:00 UTC next day)
+  pull_request:
+    paths:
+      - .github/workflows/release-train.yml
+      - scripts/check_release_readiness.py
+      - backend/tests/test_release_readiness.py
   workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: Exact main commit to review (full 40-character SHA)
+        required: true
+        type: string
+      owner_acknowledgment:
+        description: I am the repository owner requesting this release review, not a deployment
+        required: true
+        type: boolean
+        default: false
 
-env:
-  RELEASE_TRAIN_ENABLED: true
+permissions:
+  contents: read
+  checks: read
+  actions: read
+
+concurrency:
+  group: release-readiness-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  staging:
-    if: ${{ env.RELEASE_TRAIN_ENABLED == 'true' }}
+  guard-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install & Build Frontend
-        run: |
-          cd frontend || exit 0
-          npm ci
-          npm run build
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - run: pip install PyYAML==6.0.2
+      - run: python -m unittest discover -s backend/tests -p test_release_readiness.py -v
 
-      - name: Install Backend
-        run: |
-          cd backend || exit 0
-          python -m pip install -r requirements.txt
-
-      - name: Deploy Frontend to Vercel (staging)
-        if: success()
-        run: |
-          if [ -d "frontend" ]; then
-            npm i -g vercel@latest
-            vercel deploy --prebuilt --token ${{ secrets.VERCEL_TOKEN }} --prod=false --scope ${{ secrets.VERCEL_ORG_ID }} --confirm || true
-          fi
-
-      - name: Deploy Backend (staging)
-        if: success()
-        run: |
-          if [ -n "${{ secrets.API_DEPLOY_CMD }}" ]; then
-            bash -lc "${{ secrets.API_DEPLOY_CMD }} staging"
-          fi
-
-      - name: Playwright Smoke (staging)
-        if: success()
-        run: |
-          npm i -g playwright
-          npx playwright install --with-deps chromium
-          node e2e/run_smoke.js "${{ secrets.FRONTEND_BASE_URL_STAGING }}" "${{ secrets.API_BASE_URL_STAGING }}"
-
-  production:
-    if: ${{ env.RELEASE_TRAIN_ENABLED == 'true' }}
-    needs: [ staging ]
+  candidate:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    needs: guard-tests
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: Gate on last staging run
-        run: echo "Proceeding to prod if staging passed."
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: Install & Build Frontend
-        run: |
-          cd frontend || exit 0
-          npm ci
-          npm run build
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Refuse unapproved, stale, unprotected or failing candidates
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          OWNER_ACKNOWLEDGMENT: ${{ inputs.owner_acknowledgment }}
+        run: python scripts/check_release_readiness.py
 
-      - name: Install Backend
-        run: |
-          cd backend || exit 0
-          python -m pip install -r requirements.txt
-
-      - name: Deploy Frontend to Vercel (prod)
-        if: success()
-        run: |
-          if [ -d "frontend" ]; then
-            npm i -g vercel@latest
-            vercel deploy --prebuilt --token ${{ secrets.VERCEL_TOKEN }} --prod --scope ${{ secrets.VERCEL_ORG_ID }} --confirm || true
-          fi
-
-      - name: Deploy Backend (prod)
-        if: success()
-        run: |
-          if [ -n "${{ secrets.API_DEPLOY_CMD }}" ]; then
-            bash -lc "${{ secrets.API_DEPLOY_CMD }} prod"
-          fi
-
-      - name: Playwright Smoke (prod)
-        if: success()
-        run: |
-          npm i -g playwright
-          npx playwright install --with-deps chromium
-          node e2e/run_smoke.js "${{ secrets.FRONTEND_BASE_URL_PROD }}" "${{ secrets.API_BASE_URL_PROD }}"
+  owner-checkpoint:
+    needs: candidate
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    environment: production-release-review
+    timeout-minutes: 5
+    steps:
+      - name: Record review only
+        run: echo "Owner checkpoint reached for $GITHUB_SHA. No deployment performed."
