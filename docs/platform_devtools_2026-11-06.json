@@ -1,0 +1,70 @@
+{
+  "ticket": "P13 development toolchain security follow-up",
+  "date": "2026-11-06",
+  "executor": "Codex implementation and QA",
+  "baseline_commit": "bdb78774bf47625e11672d6760586f69381901dd",
+  "verified_code_commit": "f7453729c92e6535e916a51decd1234d3b6b8f98",
+  "frontend_lock_sha256": "f7bde294ee6d6d3c56cba466b78662f6f18ae2e05c42fd7ad73949b7f07a83db",
+  "audit_before": {"critical": 3, "high": 18, "moderate": 25, "low": 3, "total_flagged_entries": 49},
+  "audit_after": {"critical": 0, "high": 0, "moderate": 22, "low": 3, "total_flagged_entries": 25},
+  "production_audit": {"critical": 0, "high": 0, "moderate": 0, "low": 0},
+  "qualification": "Registry audit findings are not distinct exploit counts or a security certification. Lower-severity development findings, runtime lifecycle support, application safety and credential gates remain open.",
+  "patched_versions": {
+    "cypress": "15.21.1",
+    "terser-webpack-plugin": "5.6.1",
+    "proxy-addr": "2.0.8",
+    "shell-quote": "1.12.0",
+    "websocket-driver": "0.7.5",
+    "systeminformation": "5.33.19",
+    "extract-zip": "removed_from_dependency_graph",
+    "serialize-javascript": "removed_from_dependency_graph"
+  },
+  "protected_runtime_pins_unchanged": {"next": "15.5.29", "react": "19.1.10", "react-dom": "19.1.10", "sharp": "0.35.5", "postcss": "8.5.23"},
+  "guard": {
+    "required_check_name_preserved": "production-dependency-audit",
+    "scope": "runtime plus complete build/test graph",
+    "shared_threshold": "high",
+    "old_graph_negative_control": {"exit_code": 1, "critical": 3, "high": 18},
+    "patched_graph": {"runtime_exit_code": 0, "complete_graph_exit_code": 0},
+    "failure_swallowing_added": false
+  },
+  "local_verification": {
+    "node": "20.20.2",
+    "npm": "10.8.2",
+    "python": "3.11.9",
+    "database": "marked_disposable_PostgreSQL_16.15_on_loopback_55439",
+    "clean_install": {"exit_code": 0, "installed_packages": 1108},
+    "backend": {"passed": 1853, "failed": 0, "skipped": 0},
+    "frontend": {"passed": 1302, "suites": 94, "snapshots": 2, "failed": 0},
+    "typescript": {"errors": 83, "ceiling": 83, "parse_errors": 0},
+    "eslint": {"errors": 126, "warnings": 53, "files": 297, "status": "passed_existing_ceilings"},
+    "production_build": "passed",
+    "proofs": {"concurrency": "passed", "backup_restore_second_copy_hash": "passed", "walkthrough": "passed", "six_flow": "passed_unchanged", "api_baseline": "passed_unchanged", "openapi": "passed_in_backend_suite"},
+    "secrets_and_scanner_self_tests": "passed",
+    "banned_claims": "passed",
+    "browser_smoke": {"cypress": "15.21.1", "browser": "Electron 138 headless", "passed": 1, "failed": 0, "pending": 0, "skipped": 0, "scope": "synthetic page, production minification and loopback dev server only"},
+    "retained_failed_attempts": [
+      "Windows Modern Standby interrupted the first local runs for roughly 54 minutes; affected groups were stopped and restarted without reusing incomplete results",
+      "Initial Cypress binary verification exceeded its 30-second startup wait; verification remained enabled and passed on the awake retry with a documented 120-second local startup allowance",
+      "Initial smoke used unsupported configFile:false; corrected to an explicit generated config in the synthetic temporary project, without loading repository configs or disabling the check"
+    ]
+  },
+  "independent_ci": {"code_commit": "f7453729c92e6535e916a51decd1234d3b6b8f98", "run": "https://github.com/easydeed/new-front/actions/runs/42325565994", "maintained_jobs": "all_seven_passed_including_browser_smoke_and_complete_graph_audit", "final_documentation_head": "must_pass_before_merge"},
+  "new_discovery_held": {
+    "classification": "source_confirmed_deployed_API_test_target_risk_not_executed",
+    "references": ["frontend/cypress.config.js:17", "frontend/cypress/support/commands.js:14", "frontend/cypress/support/commands.js:43"],
+    "finding": "Legacy browser configuration and login helpers default to a deployed API. Account defaults and unsafe target behavior need separate review; no account values are reproduced here.",
+    "disposition": "Do not run the legacy application browser suites against their defaults. The toolchain smoke uses its own generated temporary config, synthetic fixture and loopback host. Stop and report before advancing to another ticket."
+  },
+  "production_settings_changed": false,
+  "production_database_used": false,
+  "historical_credential_revocation_verified": false,
+  "legal_or_commercial_choices_applied": false,
+  "primary_sources": [
+    "https://github.com/advisories/GHSA-jqcg-44mw-7w3h",
+    "https://github.com/advisories/GHSA-w7jw-789q-3m8p",
+    "https://github.com/advisories/GHSA-xv26-6w52-cph6",
+    "https://docs.cypress.io/app/references/advanced-installation",
+    "https://docs.cypress.io/app/references/changelog"
+  ]
+}
