@@ -4,6 +4,17 @@
   "executor": "Codex implementation and QA",
   "baseline_commit": "bdb78774bf47625e11672d6760586f69381901dd",
   "verified_code_commit": "f7453729c92e6535e916a51decd1234d3b6b8f98",
+  "diagnostic_code_commit": "94f88cc69f7ecb52f9d8622c03416f65a8b7d24a",
+  "integration_state": "draft_PR_300_held_not_merged",
+  "merge_hold": {
+    "failed_run": "https://github.com/easydeed/new-front/actions/runs/42326489453",
+    "finding": "The synthetic browser network fence refused a non-loopback request; the original error did not identify its host. The cause is unresolved.",
+    "diagnostic_change": "Report only the blocked hostname, never request paths, query strings or credentials. Refusal and test failure remain unchanged.",
+    "subsequent_ci": "All maintained jobs, build, release guard and Vercel checks passed at diagnostic_code_commit; a repeat CI browser job also passed. These passes do not establish the cause of the original failure.",
+    "bounded_local_diagnostic": {"runs": 3, "passed_runs": 3, "seconds": [65.5, 50.08, 56.62], "tests_per_run": 1, "skipped": 0, "qualification": "The original non-loopback request was not reproduced; successful repetitions do not clear the hold."},
+    "network_fence_probe": "The exact generated intercept handler allowed two loopback cases and destroyed/refused two reserved non-local cases without continuing them; diagnostic errors omitted synthetic query data. No network requests were made by this probe.",
+    "disposition": "Keep the PR in draft; do not merge based only on successful reruns or bypass the fence. Stop and report before another ticket."
+  },
   "frontend_lock_sha256": "f7bde294ee6d6d3c56cba466b78662f6f18ae2e05c42fd7ad73949b7f07a83db",
   "audit_before": {"critical": 3, "high": 18, "moderate": 25, "low": 3, "total_flagged_entries": 49},
   "audit_after": {"critical": 0, "high": 0, "moderate": 22, "low": 3, "total_flagged_entries": 25},
@@ -46,7 +57,9 @@
     "retained_failed_attempts": [
       "Windows Modern Standby interrupted the first local runs for roughly 54 minutes; affected groups were stopped and restarted without reusing incomplete results",
       "Initial Cypress binary verification exceeded its 30-second startup wait; verification remained enabled and passed on the awake retry with a documented 120-second local startup allowance",
-      "Initial smoke used unsupported configFile:false; corrected to an explicit generated config in the synthetic temporary project, without loading repository configs or disabling the check"
+      "Initial smoke used unsupported configFile:false; corrected to an explicit generated config in the synthetic temporary project, without loading repository configs or disabling the check",
+      "A later CI browser run refused an unexpected non-loopback request. Subsequent diagnostic runs passed, but the cause remains unresolved and PR 300 is held in draft",
+      "An ad-hoc local Node-spawned diagnostic stalled at browser startup and only its validated owned process tree was stopped; retained log was not counted as a passing run"
     ]
   },
   "independent_ci": {"code_commit": "f7453729c92e6535e916a51decd1234d3b6b8f98", "run": "https://github.com/easydeed/new-front/actions/runs/42325565994", "maintained_jobs": "all_seven_passed_including_browser_smoke_and_complete_graph_audit", "final_documentation_head": "must_pass_before_merge"},
@@ -59,6 +72,7 @@
   "production_settings_changed": false,
   "production_database_used": false,
   "historical_credential_revocation_verified": false,
+  "owner_credential_confirmation": "engineering_approval_only_rotation_unconfirmed",
   "legal_or_commercial_choices_applied": false,
   "primary_sources": [
     "https://github.com/advisories/GHSA-jqcg-44mw-7w3h",
