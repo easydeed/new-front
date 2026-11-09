@@ -1,7 +1,8 @@
 const { defineConfig } = require('cypress')
-const { configureTargets } = require('./cypress/target-policy.cjs')
+const { configureSyntheticBrowser, SYNTHETIC_BROWSER } = require('./scripts/synthetic-browser.cjs')
 
 module.exports = defineConfig({
+  defaultBrowser: SYNTHETIC_BROWSER,
   e2e: {
     supportFile: 'cypress/support/e2e-staging.js',
     specPattern: 'cypress/e2e/wizard-regression-pack.cy.js', // Only run core regression tests
@@ -24,7 +25,7 @@ module.exports = defineConfig({
       SKIP_ACCESSIBILITY_CHECKS: 'true'
     },
     setupNodeEvents(on, config) {
-      configureTargets(config)
+      configureSyntheticBrowser(on, config)
       on('task', {
         log(message) {
           console.log(message)

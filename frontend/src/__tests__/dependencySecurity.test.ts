@@ -68,4 +68,34 @@ describe('platform dependency security regression', () => {
     expect(transpiler.dependencies.tinyglobby).toBeDefined();
     expect(manifest.overrides.glob).toBeUndefined();
   });
+
+  it.each([
+    ['proxy-addr', [2, 0, 8]],
+    ['shell-quote', [1, 8, 5]],
+    ['websocket-driver', [0, 7, 5]],
+    ['systeminformation', [5, 33, 16]],
+  ] as const)('keeps every %s toolchain resolution above its security floor', (name, floor) => {
+    const resolutions = Object.entries(lock.packages)
+      .filter(([key]) => key.endsWith(`node_modules/${name}`));
+    expect(resolutions.length).toBeGreaterThan(0);
+    for (const [, entry] of resolutions) {
+      expect(atLeast((entry as { version: string }).version, [...floor])).toBe(true);
+    }
+  });
+
+  it('does not retain an unsafe serializer if a tool still requires it', () => {
+    // Current terser no longer needs it; absence is preferable to an override.
+    for (const [name, entry] of Object.entries(lock.packages)) {
+      if (name.endsWith('node_modules/serialize-javascript')) {
+        expect(atLeast((entry as { version: string }).version, [7, 1, 3])).toBe(true);
+      }
+    }
+  });
+
+  it('retains Cypress 15 with a patched dependency floor', () => {
+    const version = lock.packages['node_modules/cypress'].version;
+    expect(version.split('.')[0]).toBe('15');
+    expect(atLeast(version, [15, 21, 1])).toBe(true);
+    expect(manifest.devDependencies.cypress).toBe('^15.21.1');
+  });
 });

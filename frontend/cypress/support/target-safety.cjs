@@ -1,4 +1,4 @@
-const { targets, checkedUrl } = require('../target-policy.cjs')
+const { targets, checkedUrl, knownBrowserDownloadBlock } = require('../target-policy.cjs')
 
 function currentTargets(Cypress) {
   return targets({ baseUrl: Cypress.config('baseUrl'), env: { API_URL: Cypress.env('API_URL') } })
@@ -57,11 +57,26 @@ function installTargetSafety(Cypress, cy, before, beforeEach) {
   const fence = () => {
     const configured = currentTargets(Cypress)
     cy.intercept({ url: '**', middleware: true }, (request) => {
+      const blocked = knownBrowserDownloadBlock(request)
+      if (blocked) {
+        request.reply(blocked) // Local 503, never request.continue or forwarding.
+        return
+      }
       try {
         checkedUrl(request.url, configured.frontend, Object.values(configured))
       } catch {
         request.destroy()
-        throw new Error('[browser target safety] browser traffic outside the test origins refused')
+        let hostname = 'invalid-url'
+        let category = 'unclassified'
+        try {
+          const parsed = new URL(request.url)
+          hostname = parsed.hostname
+          if (parsed.pathname.includes('/chrome/dict/') || parsed.pathname.endsWith('.bdic')) category = 'spellcheck-dictionary'
+          else if (parsed.pathname.includes('chrome_component')) category = 'browser-component'
+        } catch { /* never include raw URLs, paths or query strings */ }
+        const resource = ['xhr', 'fetch', 'document', 'other', 'image', 'script'].includes(request.resourceType)
+          ? request.resourceType : 'unknown'
+        throw new Error('[browser target safety] browser traffic outside the test origins refused: ' + hostname + ' [' + category + '; ' + resource + ']')
       }
     })
   }

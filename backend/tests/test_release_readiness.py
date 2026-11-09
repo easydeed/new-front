@@ -92,6 +92,18 @@ class ReleaseReadinessTests(unittest.TestCase):
         self.assertTrue(names <= gate.REQUIRED_CHECKS)
         self.assertIn("production-dependency-audit", gate.REQUIRED_CHECKS)
 
+    def test_runtime_and_toolchain_share_a_blocking_audit_threshold(self):
+        workflow = yaml.load((ROOT / ".github/workflows/test.yml").read_text(encoding="utf-8"), Loader=yaml.BaseLoader)
+        job = workflow["jobs"]["production-dependency-audit"]
+        self.assertEqual(job["env"]["AUDIT_LEVEL"], "high")
+        self.assertNotEqual(job.get("continue-on-error"), "true")
+        audits = [step for step in job["steps"] if "npm audit" in step.get("run", "")]
+        self.assertEqual({step["run"] for step in audits}, {
+            'npm audit --omit=dev --audit-level="$AUDIT_LEVEL"',
+            'npm audit --audit-level="$AUDIT_LEVEL"',
+        })
+        self.assertTrue(all(step.get("continue-on-error") != "true" for step in audits))
+
     def test_workflow_has_no_automatic_or_secret_backed_deployment_path(self):
         workflow = yaml.load((ROOT / ".github/workflows/release-train.yml").read_text(encoding="utf-8"), Loader=yaml.BaseLoader)
         self.assertEqual(set(workflow["on"]), {"pull_request", "workflow_dispatch"})

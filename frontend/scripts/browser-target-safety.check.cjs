@@ -5,12 +5,21 @@ const fs = require('node:fs')
 const path = require('node:path')
 const vm = require('node:vm')
 const { createRequire } = require('node:module')
-const { targets, checkedUrl } = require('../cypress/target-policy.cjs')
+const { targets, checkedUrl, knownBrowserDownloadBlock } = require('../cypress/target-policy.cjs')
 const { installTargetSafety, loginInputs } = require('../cypress/support/target-safety.cjs')
+const { configureSyntheticBrowser, SYNTHETIC_BROWSER } = require('./synthetic-browser.cjs')
 
 const frontend = 'http://127.0.0.1:3000'
 const api = 'http://127.0.0.1:8000'
 const config = () => ({ baseUrl: frontend, env: { API_URL: api } })
+
+test('synthetic proofs keep the bundled browser and do not mutate profiles, arguments or startup policy', () => {
+  const explicit = config()
+  assert.equal(SYNTHETIC_BROWSER, 'electron')
+  assert.equal(configureSyntheticBrowser(() => assert.fail('unexpected launch mutation'), explicit), explicit)
+  assert.throws(() => configureSyntheticBrowser(() => assert.fail('registered'),
+    { ...explicit, baseUrl: 'https://blocked.invalid' }), /browser target safety/)
+})
 
 for (const value of [undefined, '', 'https://deedpro.io', 'https://www.deedpro.io',
   'https://deedpro-frontend-new.vercel.app', 'https://deedpro-main-api.onrender.com',
@@ -40,6 +49,7 @@ for (const filename of ['cypress.config.js', 'cypress-staging.config.js', 'cypre
       name === 'cypress' ? { defineConfig: (value) => value } : localRequire(name) }
     vm.runInNewContext(fs.readFileSync(full, 'utf8'), box, { filename })
     const e2e = box.module.exports.e2e
+    assert.equal(box.module.exports.defaultBrowser, 'electron')
     assert.equal(e2e.baseUrl, undefined)
     assert.equal(e2e.env.API_URL, undefined)
     let events = 0
@@ -67,6 +77,75 @@ function harness() {
   installTargetSafety(Cypress, cy, (fn) => hooks.push(fn), (fn) => hooks.push(fn))
   return { state, Cypress, overwrites, hooks, intercepts }
 }
+
+const browserDownload = (overrides = {}) => ({
+  url: 'https://edgedl.me.gvt1.com/browser-fixture', method: 'GET',
+  resourceType: 'other', headers: {}, ...overrides,
+})
+
+test('known anonymous browser download hosts receive fresh local 503 responses, never authorization', () => {
+  for (const hostname of ['www.gstatic.com', 'edgedl.me.gvt1.com', 'redirector.gvt1.com', 'rr4---sn-vgqsknez.gvt1.com']) {
+    for (const method of ['GET', 'HEAD']) {
+      const request = browserDownload({ url: `https://${hostname}/fixture?synthetic=value`, method })
+      const blocked = knownBrowserDownloadBlock(request)
+      assert.equal(blocked.statusCode, 503)
+      assert.equal(blocked.headers['x-deedpro-test-block'], 'browser-background-download')
+      assert.equal(blocked.headers['cache-control'], 'no-store')
+      assert.doesNotMatch(blocked.body, /synthetic|value/)
+      assert.notEqual(blocked, knownBrowserDownloadBlock(request))
+      assert.throws(() => checkedUrl(request.url, frontend, [frontend, api]), /outside/)
+    }
+  }
+})
+
+test('app resources, app context, credentials and writes never receive the background treatment', () => {
+  for (const resourceType of ['fetch', 'xhr', 'document', 'image', 'script', 'stylesheet', 'websocket']) {
+    assert.equal(knownBrowserDownloadBlock(browserDownload({ resourceType })), null)
+  }
+  for (const headers of [{ Origin: frontend }, { REFERER: frontend }, { Authorization: 'fixture-only' },
+    { Cookie: 'fixture-only' }, { 'Sec-Fetch-Site': 'cross-site' }, { 'Sec-Fetch-Dest': 'document' }]) {
+    assert.equal(knownBrowserDownloadBlock(browserDownload({ headers })), null)
+  }
+  for (const method of ['POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']) {
+    assert.equal(knownBrowserDownloadBlock(browserDownload({ method })), null)
+  }
+})
+
+test('background denial cannot be expanded using deceptive hosts, URL credentials or custom ports', () => {
+  for (const url of ['https://edgedl.me.gvt1.com.evil.invalid/file', 'https://unknown.gvt1.com/file',
+    'https://gvt1.com/file', 'https://rr4---sn-vgqsknez.gvt1.com.evil.invalid/file',
+    'https://fixture:fixture@edgedl.me.gvt1.com/file', 'https://edgedl.me.gvt1.com:8443/file',
+    'https://www.gstatic.com.evil.invalid/file', 'file://edgedl.me.gvt1.com/file', 'not-a-url']) {
+    assert.equal(knownBrowserDownloadBlock(browserDownload({ url })), null)
+  }
+})
+
+test('both real registered fence handlers reply locally without forwarding browser downloads', () => {
+  const h = harness()
+  h.hooks.forEach(hook => hook())
+  for (const { handler } of h.intercepts) {
+    let replies = 0
+    handler({ ...browserDownload(),
+      reply: response => { replies++; assert.equal(response.statusCode, 503) },
+      destroy: () => assert.fail('background should receive an explicit local response'),
+      continue: () => assert.fail('background must never be forwarded'),
+    })
+    assert.equal(replies, 1)
+    let destroyed = 0
+    assert.throws(() => handler({ ...browserDownload({ resourceType: 'fetch', headers: { Origin: frontend } }),
+      reply: () => assert.fail('app fetch must retain strict failure'),
+      destroy: () => { destroyed++ }, continue: () => assert.fail('app must not be forwarded'),
+    }), /outside the test origins refused/)
+    assert.equal(destroyed, 1)
+  }
+})
+
+test('cy.request and cy.visit never use the browser-background exception even for known hosts', () => {
+  const h = harness()
+  const url = browserDownload().url
+  assert.throws(() => h.overwrites.request(() => assert.fail('sent'), url), /outside/)
+  assert.throws(() => h.overwrites.visit(() => assert.fail('sent'), url), /outside/)
+})
 
 test('direct request refusals happen before the original command, with value-free errors', () => {
   const h = harness()
@@ -140,7 +219,11 @@ test('both suite and per-test fences destroy unapproved traffic before it contin
     let destroyed = 0
     handler({ url: api + '/test', destroy: () => { destroyed++ } })
     assert.equal(destroyed, 0)
-    assert.throws(() => handler({ url: 'https://blocked.invalid', destroy: () => { destroyed++ } }), /refused/)
+    assert.throws(() => handler({ url: 'https://blocked.invalid/private?token=fixture', destroy: () => { destroyed++ } }), error => {
+      assert.match(error.message, /refused: blocked\.invalid/)
+      assert.doesNotMatch(error.message, /private|token|fixture/)
+      return true
+    })
     assert.equal(destroyed, 1)
   }
 })
