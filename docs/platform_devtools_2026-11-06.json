@@ -5,7 +5,7 @@
   "baseline_commit": "bdb78774bf47625e11672d6760586f69381901dd",
   "verified_code_commit": "f7453729c92e6535e916a51decd1234d3b6b8f98",
   "diagnostic_code_commit": "94f88cc69f7ecb52f9d8622c03416f65a8b7d24a",
-  "integration_state": "PR_300_rebased_candidate_final_verification_required",
+  "integration_state": "review_300_candidate_evidence_see_PR_merge_record_for_integration",
   "merge_hold": {
     "failed_run": "https://github.com/easydeed/new-front/actions/runs/42326489453",
     "finding": "The synthetic browser network fence refused a non-loopback request; the original error did not identify its host. Subsequent reproduction and correction are recorded in follow_up_2026_11_09.",
@@ -85,6 +85,7 @@
       "shared_safety_checks": {"passed": 33, "failed": 0, "skipped": 0},
       "production_build": "passed",
       "three_start_local_smoke": {"passed": 3, "failed": 0, "skipped": 0, "exit_code": 0, "seconds": 136.36},
+      "local_forbidden_target_proof": {"positive_passed": 1, "expected_refusals": 2, "forbidden_sentinel_hits": 0, "skipped": 0, "exit_code": 0, "seconds": 59.34},
       "typescript": {"errors": 83, "ceiling": 83, "parse_errors": 0},
       "eslint": {"errors": 126, "warnings": 53, "files": 298, "status": "passed_existing_ceilings"},
       "all_five_proofs": "passed_in_marked_disposable_database_then_stopped",

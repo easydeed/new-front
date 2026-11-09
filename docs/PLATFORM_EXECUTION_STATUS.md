@@ -82,7 +82,7 @@ The historical deployed-API default discovery is addressed by merged review 301.
 | G2 integration pilot readiness | Not achieved: durable partner ownership, safe retries/lifecycle, integration documentation, operations and commercial readiness remain |
 | G3 broader sales | Not achieved: external integration, approved terms, recovery/incident evidence and a qualified pilot remain |
 
-The runtime production dependency audit reports zero known advisories at verification time. The held toolchain candidate's complete graph has **25 flagged development/build entries: zero critical, zero high, 22 moderate and 3 low**, down from 49 on its main baseline. These are registry dependency findings, not necessarily 25 distinct exploits. The remaining entries need separate compatibility and exposure review; clearing the high/critical npm findings is not a complete security clearance.
+The runtime production dependency audit reports zero known advisories at verification time. The verified toolchain graph has **25 flagged development/build entries: zero critical, zero high, 22 moderate and 3 low**, down from 49 on its main baseline. These are registry dependency findings, not necessarily 25 distinct exploits. The remaining entries need separate compatibility and exposure review; clearing the high/critical npm findings is not a complete security clearance.
 
 CI still asks for Node 20, which is end-of-life in the [official Node release table](https://nodejs.org/en/about/previous-releases). A supported-LTS CI update is separate from changing production settings. The legacy mixed-encoding root ignore file also remains unchanged; private verification tools, logs, artifacts and the disposable database are excluded locally and never committed.
 
