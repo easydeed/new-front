@@ -7,6 +7,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { createRequire } = require('node:module');
 const cypress = require('cypress');
+const { SYNTHETIC_BROWSER } = require('./synthetic-browser.cjs');
 const toolRequire = createRequire(require.resolve('@cypress/webpack-dev-server/package.json'));
 const webpack = toolRequire('webpack');
 const WebpackDevServer = toolRequire('webpack-dev-server');
@@ -56,7 +57,7 @@ async function main() {
     // the first failure; never retry a failed result until it happens to pass.
     for (let attempt = 1; attempt <= 3; attempt++) {
         console.log(`Toolchain isolated browser ${attempt}/3`);
-        const result = await cypress.run({ project, configFile, browser: 'electron',
+        const result = await cypress.run({ project, configFile, browser: SYNTHETIC_BROWSER,
           headed: false, record: false, env: { API_URL: baseUrl } });
         assert.equal(result.totalFailed, 0, result.message || 'Cypress smoke failed');
         assert.equal(result.totalPassed, 1, 'Cypress must pass the actual test, not skip it');

@@ -1,7 +1,8 @@
 const { defineConfig } = require('cypress')
-const { configureSyntheticBrowser } = require('./scripts/synthetic-browser.cjs')
+const { configureSyntheticBrowser, SYNTHETIC_BROWSER } = require('./scripts/synthetic-browser.cjs')
 
 module.exports = defineConfig({
+  defaultBrowser: SYNTHETIC_BROWSER,
   e2e: {
     supportFile: 'cypress/support/e2e-staging.js',
     specPattern: 'cypress/e2e/wizard-regression-pack.cy.js', // Only run core regression tests

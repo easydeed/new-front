@@ -13,21 +13,27 @@ const frontend = 'http://127.0.0.1:3000'
 const api = 'http://127.0.0.1:8000'
 const config = () => ({ baseUrl: frontend, env: { API_URL: api } })
 
-test('test windows disable only Electron spellchecking and preserve every other launch preference', () => {
+test('Chrome disables spelling before launch while preserving other profile preferences and arguments', () => {
   let launch
   const explicit = config()
   assert.equal(configureSyntheticBrowser((event, fn) => {
     assert.equal(event, 'before:browser:launch'); launch = fn
   }, explicit), explicit)
-  const options = { args: ['--lang=es'], preferences: { darkTheme: true,
-    webPreferences: { contextIsolation: true, spellcheck: true } } }
-  const updated = launch({ name: 'electron' }, options)
-  assert.equal(updated.preferences.webPreferences.spellcheck, false)
-  assert.equal(updated.preferences.webPreferences.contextIsolation, true)
-  assert.equal(updated.preferences.darkTheme, true)
+  const options = { args: ['--lang=es'], preferences: { default: {
+    browser: { enable_spellchecking: true, check_default_browser: false },
+    spellcheck: { dictionaries: ['fr-FR'], use_spelling_service: true },
+    unrelated: 'preserved',
+  } } }
+  const updated = launch({ name: 'chrome', family: 'chromium' }, options)
+  assert.equal(updated.preferences.default.browser.enable_spellchecking, false)
+  assert.equal(updated.preferences.default.browser.check_default_browser, false)
+  assert.equal(updated.preferences.default.spellcheck.use_spelling_service, false)
+  assert.deepEqual(updated.preferences.default.spellcheck.dictionaries, [])
+  assert.equal(updated.preferences.default.unrelated, 'preserved')
   assert.equal(updated.args, options.args)
-  assert.equal(options.preferences.webPreferences.spellcheck, true)
-  assert.equal(launch({ name: 'chrome' }, options), options)
+  assert.equal(options.preferences.default.browser.enable_spellchecking, true)
+  assert.equal(launch({ name: 'electron', family: 'chromium' }, options), options)
+  assert.equal(launch({ name: 'firefox', family: 'firefox' }, options), options)
   assert.throws(() => configureSyntheticBrowser(() => assert.fail('registered'),
     { ...explicit, baseUrl: 'https://blocked.invalid' }), /browser target safety/)
 })
@@ -60,6 +66,7 @@ for (const filename of ['cypress.config.js', 'cypress-staging.config.js', 'cypre
       name === 'cypress' ? { defineConfig: (value) => value } : localRequire(name) }
     vm.runInNewContext(fs.readFileSync(full, 'utf8'), box, { filename })
     const e2e = box.module.exports.e2e
+    assert.equal(box.module.exports.defaultBrowser, 'chrome')
     assert.equal(e2e.baseUrl, undefined)
     assert.equal(e2e.env.API_URL, undefined)
     let events = 0

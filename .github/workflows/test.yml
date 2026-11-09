@@ -130,6 +130,8 @@ jobs:
     - name: Browser target safety (no deployed requests)
       working-directory: frontend
       run: node --test scripts/browser-target-safety.check.cjs
+    - name: Supported Chrome must be available for isolated browser proofs
+      run: google-chrome --version
     - name: Jest (blocking)
       working-directory: frontend
       run: npx jest --ci

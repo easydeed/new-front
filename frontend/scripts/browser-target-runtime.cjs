@@ -5,6 +5,7 @@ const fs = require('node:fs/promises')
 const http = require('node:http')
 const os = require('node:os')
 const path = require('node:path')
+const { SYNTHETIC_BROWSER } = require('./synthetic-browser.cjs')
 
 const listen = (server) => new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
 const close = (server) => new Promise(resolve => server.close(resolve))
@@ -37,7 +38,7 @@ async function runProof(cypress) {
     await fs.writeFile(positive, "describe('local positive control',()=>{it('visits and requests the configured fixture',()=>{cy.visit('/');cy.get('#result').should('have.text','local fixture');cy.request('/health').its('status').should('eq',200);});});")
     const negative = path.join(project, 'negative.cy.js')
     await fs.writeFile(negative, `describe('expected safety refusals',()=>{it('refuses a different origin before sending',()=>{cy.request(${JSON.stringify(forbiddenUrl + '/direct')});});it('refuses redirects before following',()=>{cy.request('/redirect');});});`)
-    const options = { project, configFile, browser:'electron', headed:false, record:false }
+    const options = { project, configFile, browser:SYNTHETIC_BROWSER, headed:false, record:false }
     const good = await cypress.run({ ...options, spec:positive })
     assert.equal(good.totalPassed, 1); assert.equal(good.totalFailed, 0)
     assert.equal(good.totalPending, 0); assert.equal(good.totalSkipped, 0)
