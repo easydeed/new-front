@@ -6,7 +6,9 @@ The three maintained E2E configurations require explicit frontend and API origin
 
 From `frontend`, run `npm run test:browser-safety`. The checks exercise configuration, command and redirect refusals without contacting any application or deployed service. CI runs the same command's underlying Node check before Jest; both remain blocking.
 
-With a compatible Cypress binary installed, `npm run test:browser-safety:runtime` exercises the actual guard modules against disposable synthetic loopback servers, not the application. Its proof requires one normal passing test, two deliberately failing refusal tests with the expected error messages, and zero hits at the forbidden local server. Any missing refusal, skipped test or unexpected failure makes the proof fail. This runtime proof is available for local verification; it is not a claim that CI runs the legacy application journeys.
+With a compatible Cypress binary installed, `npm run test:browser-safety:runtime` exercises the actual guard modules against disposable synthetic loopback servers, not the application. Its proof requires one normal passing test, two deliberately failing refusal tests with the expected error messages, and zero hits at the forbidden local server. Any missing refusal, skipped test or unexpected failure makes the proof fail. The toolchain follow-up also runs this synthetic proof in CI; it does not run the legacy application journeys.
+
+Synthetic browser proofs apply process-local background/component/model-fetch controls through `scripts/synthetic-browser.cjs`, restoring prior launch arguments afterward. This addresses observed browser-startup traffic without admitting remote hosts or ignoring refusals. The minifier/dev-server smoke uses the same target policy, requires three fresh browser starts, and stops on the first failed result. These settings do not change the production browser or hosting configuration.
 
 ## Configuring local application tests
 

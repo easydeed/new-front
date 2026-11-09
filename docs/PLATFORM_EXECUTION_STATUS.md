@@ -15,6 +15,7 @@ The first implementation wave restores verification, patches the frontend runtim
 | Non-deploying release readiness guard | [298](https://github.com/easydeed/new-front/pull/298) | `56c4c373` |
 | Isolated and portable verification baseline | [296](https://github.com/easydeed/new-front/pull/296) | `b9ce9f7e` |
 | Frontend runtime dependency security | [297](https://github.com/easydeed/new-front/pull/297) | `88f8513b` |
+| Explicit browser test targets and refusal guards | [301](https://github.com/easydeed/new-front/pull/301) | `c1f9dacd` |
 
 The original dirty `engine1` checkout is preserved. Its local-only work is not treated as merged or obsolete. Temporary integration branches must be rebased onto main before merging; no child is merged into a feature branch.
 
@@ -54,23 +55,23 @@ The source references and ticket acceptance criteria remain in the approved plan
 
 ## Browser test safety repair
 
-The owner approved a separate repair on 2026-11-09. Its candidate removes deployed frontend/API defaults from all three maintained E2E configurations, removes embedded login account defaults, and checks final configuration plus request/visit destinations with one shared policy. Both origins must be explicit loopback HTTP(S) origins; no remote destination is approved. Direct requests cannot auto-follow redirects. The candidate adds blocking refusal checks to the existing frontend CI job without relaxing the maintained suites or baselines.
+The owner approved a separate repair on 2026-11-09, then approved proceeding after its checks passed. Review 301 reached main as `c1f9dacd`; its merged tree was identical to the reviewed tree and post-merge CI passed. The repair removes deployed frontend/API defaults from all three maintained E2E configurations, removes embedded login account defaults, and checks final configuration plus request/visit destinations with one shared policy. Both origins must be explicit loopback HTTP(S) origins; no remote destination is approved. Direct requests cannot auto-follow redirects. Blocking refusal checks run before Jest without relaxing the maintained suites or baselines.
 
-The [operator guide](../frontend/cypress/README.md) describes setup and limits. Loopback configuration cannot establish whether a local application or API uses production services behind it; those services still require disposable fixtures and separate review. Full legacy application journeys remain unverified. This repair does not resolve the unrelated, unexplained browser refusal holding [toolchain review 300](https://github.com/easydeed/new-front/pull/300), and it does not include that review's dependency changes. The repair is prepared on a separate branch from main, not stacked on review 300.
+The [operator guide](../frontend/cypress/README.md) describes setup and limits. Loopback configuration cannot establish whether a local application or API uses production services behind it; those services still require disposable fixtures and separate review. Full legacy application journeys remain unverified. Review 301 did not include the toolchain dependency changes; review 300 was subsequently rebased onto its merged main commit.
 
-Implementation references: `frontend/cypress/target-policy.cjs:7`, `frontend/cypress/support/target-safety.cjs:33`, `frontend/cypress.config.js:21`, and `.github/workflows/test.yml:130`. The [verification record](platform_browser_safety_2026-11-09.json) and the repair's review retain the results and failed attempts; preparation is not integration or launch clearance.
+Implementation references: `frontend/cypress/target-policy.cjs:7`, `frontend/cypress/support/target-safety.cjs:33`, `frontend/cypress.config.js:21`, and `.github/workflows/test.yml:130`. The [verification record](platform_browser_safety_2026-11-09.json) and review 301 retain the candidate results and failed attempts. Integration does not clear the launch gates below.
 
 ## Development toolchain security follow-up
 
 **DECIDED** — the owner authorized continued engineering work on 2026-11-06. The security follow-up retains the existing tool major versions and production runtime pins.
 
-**HELD, NOT MERGED** — [review 300](https://github.com/easydeed/new-front/pull/300) is a draft. One synthetic browser run refused an unexpected non-loopback request. A hostname-only diagnostic was added without relaxing the fence. Subsequent exact-head CI and repeated local runs passed, but they do not explain the earlier failure; the browser check's reliability remains unresolved. Main does not yet contain the toolchain fixes or the full-graph audit gate described in this section. The results below describe the candidate, not a completed release.
+The original hold in [review 300](https://github.com/easydeed/new-front/pull/300) was reproduced on 2026-11-09: the browser attempted traffic to a `gvt1.com` host before visiting the synthetic page. Component-updater suppression alone failed. Browser-process background/model-fetch controls then passed three fresh Linux browser starts with the network refusal still active, plus the explicit forbidden-request and redirect proof. The exact background asset was not logged or identified; no request paths, query strings or credentials were printed. The review carries final exact-head integration checks, not a launch clearance.
 
 The resolved graph clears the previously reported three critical and 18 high dependency findings. Compatible transitive updates close the proxy-address, shell-quoting and WebSocket issues. Cypress 15.21.1 removes its vulnerable archive extractor and permits a patched system-information dependency; the updated minifier no longer requires the affected serializer. The full dependency audit now blocks high/critical findings in development tools as well as runtime packages, using one shared threshold and the existing required check name.
 
-A maintained smoke test compiles and minifies a synthetic page, serves it on loopback, and runs one real headless Cypress test. It generates its own temporary config and does not load repository browser configs, application code, login helpers or deployed APIs. A regression probe confirmed the new audit command refuses the old graph with its three critical and 18 high findings. Detailed results and remaining lower-severity findings are in [the toolchain verification record](platform_devtools_2026-11-06.json).
+A maintained smoke test compiles and minifies a synthetic page, serves it on loopback, and requires the same test to pass in three fresh headless browsers, stopping on the first failure. It generates its own temporary config and reuses review 301's single target policy and refusal guards, without loading application browser configs, application code, login commands or deployed APIs. A separate browser proof requires one positive test and two intended refusal failures with zero hits at a forbidden local sentinel. Both checks are blocking in CI. A regression probe confirmed the new audit command refuses the old graph with its three critical and 18 high findings. Detailed results and remaining lower-severity findings are in [the toolchain verification record](platform_devtools_2026-11-06.json).
 
-**Discovery held for separate work:** `frontend/cypress.config.js:17` selects a deployed API by default, and `frontend/cypress/support/commands.js:14` and `:43` contain deployed-API fallbacks for login requests. Those helpers were not executed or changed. Application browser runs need a fail-closed non-production target policy before they can be treated as safe verification. The synthetic toolchain smoke is not a substitute for that work.
+The historical deployed-API default discovery is addressed by merged review 301. That change and these synthetic proofs do not establish that the full application browser journeys pass against a disposable environment.
 
 ## Remaining release gates
 
@@ -87,11 +88,11 @@ CI still asks for Node 20, which is end-of-life in the [official Node release ta
 
 ## Owner checkpoints
 
-1. Revoke or rotate historical exposed credentials and retain value-free confirmation. The owner confirmed engineering approval only; rotation remains unconfirmed. Current-tree scanning cannot prove revocation.
+1. Credential rotation remains owner-managed. On 2026-11-09 the owner directed engineering to proceed independently of that work. Revocation is not attested here, and current-tree scanning cannot prove it.
 2. Configure or verify `production-release-review` in GitHub with the repository owner as the sole required reviewer, administrator bypass disabled, and self-review allowed for that sole owner. The readiness script refuses an absent, inaccessible or unprotected environment before an environment job can create it implicitly. This checkpoint never deploys.
 3. Resolve the conditional tax matrix, contact-retention transition, legacy-scope compatibility and legacy tenant mappings before the affected contract or data changes ship.
 4. Approve the commercial offer, counsel-reviewed documents, service targets and the first platform pilot. No money or customer communication is automated by this wave.
 5. Reconcile the preserved `engine1` work separately.
-6. Approve a fail-closed non-production browser-test target policy before running the legacy application browser suites. The new toolchain smoke remains isolated regardless of their defaults.
+6. The loopback-only browser-test policy is approved and integrated through review 301. Verify disposable local app/API fixtures before attempting the full legacy browser journeys; no remote destination is approved.
 
 The billing, home-value report, agent-pilot and LR-001 decisions pasted into this chat were explicitly retracted as belonging to another project. None are applied to DeedPro.

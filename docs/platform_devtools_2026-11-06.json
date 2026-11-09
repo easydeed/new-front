@@ -5,15 +5,15 @@
   "baseline_commit": "bdb78774bf47625e11672d6760586f69381901dd",
   "verified_code_commit": "f7453729c92e6535e916a51decd1234d3b6b8f98",
   "diagnostic_code_commit": "94f88cc69f7ecb52f9d8622c03416f65a8b7d24a",
-  "integration_state": "draft_PR_300_held_not_merged",
+  "integration_state": "PR_300_rebased_candidate_final_verification_required",
   "merge_hold": {
     "failed_run": "https://github.com/easydeed/new-front/actions/runs/42326489453",
-    "finding": "The synthetic browser network fence refused a non-loopback request; the original error did not identify its host. The cause is unresolved.",
+    "finding": "The synthetic browser network fence refused a non-loopback request; the original error did not identify its host. Subsequent reproduction and correction are recorded in follow_up_2026_11_09.",
     "diagnostic_change": "Report only the blocked hostname, never request paths, query strings or credentials. Refusal and test failure remain unchanged.",
     "subsequent_ci": "All maintained jobs, build, release guard and Vercel checks passed at diagnostic_code_commit; a repeat CI browser job also passed. These passes do not establish the cause of the original failure.",
     "bounded_local_diagnostic": {"runs": 3, "passed_runs": 3, "seconds": [65.5, 50.08, 56.62], "tests_per_run": 1, "skipped": 0, "qualification": "The original non-loopback request was not reproduced; successful repetitions do not clear the hold."},
     "network_fence_probe": "The exact generated intercept handler allowed two loopback cases and destroyed/refused two reserved non-local cases without continuing them; diagnostic errors omitted synthetic query data. No network requests were made by this probe.",
-    "disposition": "Keep the PR in draft; do not merge based only on successful reruns or bypass the fence. Stop and report before another ticket."
+    "disposition": "The original hold was correct. Clear it only after the reproduced browser-startup cause is addressed and final exact-head gates pass; never bypass the fence or clear it solely on successful retries."
   },
   "frontend_lock_sha256": "f7bde294ee6d6d3c56cba466b78662f6f18ae2e05c42fd7ad73949b7f07a83db",
   "audit_before": {"critical": 3, "high": 18, "moderate": 25, "low": 3, "total_flagged_entries": 49},
@@ -39,7 +39,7 @@
     "patched_graph": {"runtime_exit_code": 0, "complete_graph_exit_code": 0},
     "failure_swallowing_added": false
   },
-  "local_verification": {
+  "initial_local_verification_2026_11_06": {
     "node": "20.20.2",
     "npm": "10.8.2",
     "python": "3.11.9",
@@ -58,16 +58,47 @@
       "Windows Modern Standby interrupted the first local runs for roughly 54 minutes; affected groups were stopped and restarted without reusing incomplete results",
       "Initial Cypress binary verification exceeded its 30-second startup wait; verification remained enabled and passed on the awake retry with a documented 120-second local startup allowance",
       "Initial smoke used unsupported configFile:false; corrected to an explicit generated config in the synthetic temporary project, without loading repository configs or disabling the check",
-      "A later CI browser run refused an unexpected non-loopback request. Subsequent diagnostic runs passed, but the cause remains unresolved and PR 300 is held in draft",
+      "A later CI browser run refused an unexpected non-loopback request. Subsequent initial diagnostic runs passed without explaining it, so PR 300 was held in draft until the November 9 investigation",
       "An ad-hoc local Node-spawned diagnostic stalled at browser startup and only its validated owned process tree was stopped; retained log was not counted as a passing run"
     ]
   },
-  "independent_ci": {"code_commit": "f7453729c92e6535e916a51decd1234d3b6b8f98", "run": "https://github.com/easydeed/new-front/actions/runs/42325565994", "maintained_jobs": "all_seven_passed_including_browser_smoke_and_complete_graph_audit", "final_documentation_head": "must_pass_before_merge"},
-  "new_discovery_held": {
+  "initial_independent_ci": {"code_commit": "f7453729c92e6535e916a51decd1234d3b6b8f98", "run": "https://github.com/easydeed/new-front/actions/runs/42325565994", "maintained_jobs": "all_seven_passed_including_browser_smoke_and_complete_graph_audit", "final_documentation_head": "must_pass_before_merge"},
+  "follow_up_2026_11_09": {
+    "rebased_onto_main": "c1f9dacd941ec8116d761a00bfad88cef32fdabb",
+    "merged_browser_target_repair": "https://github.com/easydeed/new-front/pull/301",
+    "reproduced_failure": "https://github.com/easydeed/new-front/actions/runs/42675648711",
+    "observed_blocked_host": "rr4---sn-vgqsknez.gvt1.com",
+    "observation": "The request was refused before cy.visit could run: the test failed in under a second while a ten-second observation wait preceded the visit. The synthetic page and entry bundle contain no external requests. This identifies browser-startup traffic, not a DeedPro application/API request. The exact asset was not logged or identified.",
+    "unsuccessful_component_only_suppression": "https://github.com/easydeed/new-front/actions/runs/42676102011",
+    "correction": "Process-local background/component/model-fetch controls for synthetic browsers, with previous launch arguments restored. Shared exact-origin policy and request/visit/redirect guards from merged PR 301 replace the separate host-only smoke fence. No remote host is admitted; all refusals remain blocking.",
+    "shared_policy_source": "frontend/cypress/target-policy.cjs",
+    "synthetic_browser_controls_source": "frontend/scripts/synthetic-browser.cjs",
+    "bounded_smoke": "Three fresh browser launches, each with a ten-second guarded startup observation, one required passing fixture test and no skips. Stop on the first failed result, not retry-until-green.",
+    "negative_runtime_proof": "One positive test plus two expected refusal failures with the required messages and zero hits at a forbidden local sentinel; the harness fails if any condition is absent. Maintained in CI after the toolchain smoke.",
+    "corrected_ci_code_run": "https://github.com/easydeed/new-front/actions/runs/42676508203",
+    "classified_code_head": "fe0f6e575b38a5da18f46eb6d65dad4be7821910",
+    "classified_code_ci_run": "https://github.com/easydeed/new-front/actions/runs/42676761901",
+    "classified_code_ci_status": "all_seven_maintained_jobs_build_release_guard_and_preview_passed",
+    "local_suites_and_proofs": {
+      "backend": {"passed": 1853, "failed": 0, "skipped": 0},
+      "frontend": {"passed": 1304, "suites": 95, "snapshots": 2, "failed": 0},
+      "shared_safety_checks": {"passed": 33, "failed": 0, "skipped": 0},
+      "production_build": "passed",
+      "three_start_local_smoke": {"passed": 3, "failed": 0, "skipped": 0, "exit_code": 0, "seconds": 136.36},
+      "typescript": {"errors": 83, "ceiling": 83, "parse_errors": 0},
+      "eslint": {"errors": 126, "warnings": 53, "files": 298, "status": "passed_existing_ceilings"},
+      "all_five_proofs": "passed_in_marked_disposable_database_then_stopped",
+      "secrets_and_claims": "passed",
+      "audits": {"runtime_exit_code": 0, "complete_graph_exit_code": 0, "critical": 0, "high": 0, "moderate": 22, "low": 3}
+    },
+    "qualified_result": "Frontend job passed all three browser starts and the refusal/redirect proof. Final evidence head must independently pass complete CI and preview before merge.",
+    "credential_direction": "Owner requested engineering proceed independently of owner-managed credential work; no revocation verification or secret testing was performed."
+  },
+  "historical_discovery_addressed_by_PR_301": {
     "classification": "source_confirmed_deployed_API_test_target_risk_not_executed",
-    "references": ["frontend/cypress.config.js:17", "frontend/cypress/support/commands.js:14", "frontend/cypress/support/commands.js:43"],
+    "references_at_baseline": ["frontend/cypress.config.js:17", "frontend/cypress/support/commands.js:14", "frontend/cypress/support/commands.js:43"],
     "finding": "Legacy browser configuration and login helpers default to a deployed API. Account defaults and unsafe target behavior need separate review; no account values are reproduced here.",
-    "disposition": "Do not run the legacy application browser suites against their defaults. The toolchain smoke uses its own generated temporary config, synthetic fixture and loopback host. Stop and report before advancing to another ticket."
+    "disposition": "Resolved by owner-approved PR 301, merged as c1f9dacd and verified on main. Full application journeys remain unverified; these synthetic proofs do not exercise app code."
   },
   "production_settings_changed": false,
   "production_database_used": false,
@@ -79,6 +110,9 @@
     "https://github.com/advisories/GHSA-w7jw-789q-3m8p",
     "https://github.com/advisories/GHSA-xv26-6w52-cph6",
     "https://docs.cypress.io/app/references/advanced-installation",
-    "https://docs.cypress.io/app/references/changelog"
+    "https://docs.cypress.io/app/references/changelog",
+    "https://docs.cypress.io/api/node-events/browser-launch-api",
+    "https://github.com/GoogleChrome/chrome-launcher/blob/main/docs/chrome-flags-for-tools.md",
+    "https://github.com/cypress-io/cypress/issues/22622"
   ]
 }
