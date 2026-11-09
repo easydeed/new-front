@@ -5,7 +5,7 @@
   "baseline_commit": "bdb78774bf47625e11672d6760586f69381901dd",
   "verified_code_commit": "f7453729c92e6535e916a51decd1234d3b6b8f98",
   "diagnostic_code_commit": "94f88cc69f7ecb52f9d8622c03416f65a8b7d24a",
-  "integration_state": "review_300_candidate_evidence_see_PR_merge_record_for_integration",
+  "integration_state": "draft_PR_300_held_for_owner_test_policy_decision",
   "merge_hold": {
     "failed_run": "https://github.com/easydeed/new-front/actions/runs/42326489453",
     "finding": "The synthetic browser network fence refused a non-loopback request; the original error did not identify its host. Subsequent reproduction and correction are recorded in follow_up_2026_11_09.",
@@ -70,7 +70,15 @@
     "observed_blocked_host": "rr4---sn-vgqsknez.gvt1.com",
     "observation": "The request was refused before cy.visit could run: the test failed in under a second while a ten-second observation wait preceded the visit. The synthetic page and entry bundle contain no external requests. This identifies browser-startup traffic, not a DeedPro application/API request. The exact asset was not logged or identified.",
     "unsuccessful_component_only_suppression": "https://github.com/easydeed/new-front/actions/runs/42676102011",
-    "correction": "Process-local background/component/model-fetch controls for synthetic browsers, with previous launch arguments restored. Shared exact-origin policy and request/visit/redirect guards from merged PR 301 replace the separate host-only smoke fence. No remote host is admitted; all refusals remain blocking.",
+    "intermediate_background_controls": "Process-local background/component/model-fetch controls initially passed repeated starts but proved insufficient in the final evidence-head run. They are not the final fix and were removed.",
+    "specific_dictionary_failure": "https://github.com/easydeed/new-front/actions/runs/42678012203",
+    "observed_dictionary_host": "rr1---sn-2imern7r.gvt1.com",
+    "observed_download_category": "spellcheck-dictionary",
+    "failed_electron_window_preference_run": "https://github.com/easydeed/new-front/actions/runs/42678472223",
+    "failed_chrome_private_profile_run": "https://github.com/easydeed/new-front/actions/runs/42679160560",
+    "failed_chrome_startup_controls_run": "https://github.com/easydeed/new-front/actions/runs/42679723017",
+    "observed_chrome_background_host": "edgedl.me.gvt1.com",
+    "correction": "Use supported headless Chrome explicitly, with spelling disabled in its private Cypress profile before launch. All three maintained E2E configs default to Chrome; both proofs require it with no Electron fallback, and CI checks availability. Electron's session dictionary download persisted despite its window preference. No broad flags, process environment or personal browser profiles are changed. Shared exact-origin policy and request/visit/redirect guards from merged PR 301 replace the separate host-only fence. No remote host is admitted; all refusals remain blocking.",
     "shared_policy_source": "frontend/cypress/target-policy.cjs",
     "synthetic_browser_controls_source": "frontend/scripts/synthetic-browser.cjs",
     "bounded_smoke": "Three fresh browser launches, each with a ten-second guarded startup observation, one required passing fixture test and no skips. Stop on the first failed result, not retry-until-green.",
@@ -79,7 +87,7 @@
     "classified_code_head": "fe0f6e575b38a5da18f46eb6d65dad4be7821910",
     "classified_code_ci_run": "https://github.com/easydeed/new-front/actions/runs/42676761901",
     "classified_code_ci_status": "all_seven_maintained_jobs_build_release_guard_and_preview_passed",
-    "local_suites_and_proofs": {
+    "intermediate_local_suites_and_proofs": {
       "backend": {"passed": 1853, "failed": 0, "skipped": 0},
       "frontend": {"passed": 1304, "suites": 95, "snapshots": 2, "failed": 0},
       "shared_safety_checks": {"passed": 33, "failed": 0, "skipped": 0},
@@ -92,7 +100,9 @@
       "secrets_and_claims": "passed",
       "audits": {"runtime_exit_code": 0, "complete_graph_exit_code": 0, "critical": 0, "high": 0, "moderate": 22, "low": 3}
     },
-    "qualified_result": "Frontend job passed all three browser starts and the refusal/redirect proof. Final evidence head must independently pass complete CI and preview before merge.",
+    "latest_local_chrome_results": {"native_checks": 33, "frontend_passed": 1304, "suites": 95, "build": "passed", "type_errors": 83, "lint_errors": 126, "lint_warnings": 53, "three_start_smoke_exit": 0, "three_start_seconds": 142.44, "refusal_proof_exit": 0, "refusal_proof_seconds": 60.53, "forbidden_sentinel_hits": 0},
+    "qualified_result": "Local Chrome checks passed but cold CI still refused a browser-background CDN request. Do not treat successful local repetitions as resolving the CI failure. PR 300 remains draft and unmerged.",
+    "owner_decision_pending": "May known browser-background download attempts receive an explicit local blocked response, never forwarded, without failing the entire application fixture? Application/API requests to unapproved targets would still fail. No such exception has been applied.",
     "credential_direction": "Owner requested engineering proceed independently of owner-managed credential work; no revocation verification or secret testing was performed."
   },
   "historical_discovery_addressed_by_PR_301": {
@@ -114,6 +124,9 @@
     "https://docs.cypress.io/app/references/changelog",
     "https://docs.cypress.io/api/node-events/browser-launch-api",
     "https://github.com/GoogleChrome/chrome-launcher/blob/main/docs/chrome-flags-for-tools.md",
-    "https://github.com/cypress-io/cypress/issues/22622"
+    "https://github.com/cypress-io/cypress/issues/22622",
+    "https://www.electronjs.org/docs/latest/tutorial/spellchecker",
+    "https://docs.cypress.io/app/references/launching-browsers",
+    "https://chromium.googlesource.com/chromium/src/+/main/components/spellcheck/browser/pref_names.h"
   ]
 }
