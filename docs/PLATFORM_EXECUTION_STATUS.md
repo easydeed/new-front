@@ -16,6 +16,7 @@ The first implementation wave restores verification, patches the frontend runtim
 | Isolated and portable verification baseline | [296](https://github.com/easydeed/new-front/pull/296) | `b9ce9f7e` |
 | Frontend runtime dependency security | [297](https://github.com/easydeed/new-front/pull/297) | `88f8513b` |
 | Explicit browser test targets and refusal guards | [301](https://github.com/easydeed/new-front/pull/301) | `c1f9dacd` |
+| Development/build dependency security and local browser download denials | [300](https://github.com/easydeed/new-front/pull/300) | `a7321b63` |
 
 The original dirty `engine1` checkout is preserved. Its local-only work is not treated as merged or obsolete. Temporary integration branches must be rebased onto main before merging; no child is merged into a feature branch.
 
@@ -80,6 +81,14 @@ The historical deployed-API default discovery is addressed by merged review 301.
 **DECIDED** — on 2026-11-09 the owner approved a temporary tax-deed generation block and completing P02 for eight available API types. The full legal/form redesign remains unapproved. The [containment contract](TAX_DEED_CONTAINMENT.md) records the single shared availability policy, affected entry points, pending-preview restriction and preservation of completed stored bytes. No tax-deed template text or historical record is changed.
 
 Integration requires green exact-head checks and verification on main. P02 remains a separate review and must be rebased onto the actual merged containment commit before its own eight-type-plus-refusal gates run. This phased scope does not clear the broader launch gates.
+
+## P02 Public API input validation
+
+**DECIDED** — on 2026-11-09 the owner approved P02, then approved the documented v1 safety cutover after the existing public versioning promise was flagged. The owner directed the engineer to use the recommended compatibility approach. That recommendation is an explicit safety cutover after green gates, not preservation of unusable deed inputs. External caller inventory remains unverified; the approval is not recorded as a claim of zero live integrations.
+
+The implementation shares the existing substantive-presence predicate, preserves the required-field corpus and instrument catalog, and rejects invalid input at the public request-model boundary before deed rendering or artifact persistence. It adds bounded text, NUL refusals, finite/non-boolean numeric inputs and amount syntax that fits existing decimal storage. It does not trim or truncate supplied facts, introduce a name/identity filter, change partial application drafts, or decide tax instructions. Authentication still runs first.
+
+The developer page records this specific compatibility exception and retains the new-version promise for other breaking changes. Field names, routes and response shapes remain unchanged; invalid authenticated requests receive actionable field-specific 422 errors. No schema migration, historical data rewrite, production transaction or customer notification is included. Implementation and cutover details are in [the input validation contract](API_INPUT_VALIDATION.md); exact local and review checks are recorded in [the P02 evidence](platform_p02_2026-11-09.json). Integration is conditional on all final checks passing and the reviewed tree reaching main; G1 remains unachieved.
 
 ## Remaining release gates
 

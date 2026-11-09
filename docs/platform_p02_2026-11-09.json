@@ -1,0 +1,56 @@
+{
+  "ticket": "P02 usable public API inputs",
+  "date": "2026-11-09",
+  "executor": "Codex implementation and independent gate re-verification",
+  "baseline_commit": "a7321b63169849a46a61ee98e8f436b434e12cd4",
+  "branch": "codex/p02-api-input-validation",
+  "integration_state": "candidate_verification_in_progress_not_merged",
+  "validation_revision": "P02-2026-11-09",
+  "scope": "Public request models plus shared presence predicate, technical numeric syntax/storage limits, tests and contract documentation",
+  "reproduction": {
+    "baseline_accepts_whitespace": ["grantor.name", "grantee.name", "property.apn", "property.legal_description", "approver.name", "approver.role"],
+    "http_negative_control": "Before implementation, an empty property.address reached the mocked deed persistence seam and returned 500 instead of the required 422; no real DB or renderer was used."
+  },
+  "owner_compatibility_ruling": {
+    "conflict_flagged": "Public docs promised a new path for breaking changes; rejecting previously accepted inputs is a compatibility change even when it fixes a defect.",
+    "responses": ["Approved", "What ever you recommend"],
+    "recorded_recommendation": "Explicit documented v1 safety cutover after green checks rather than retaining acceptance of unusable deed input. Existing callers relying on that behavior receive actionable 422 errors. No silent exception to the published promise: the developer changelog records this specific cutover and retains versioning for other breaking changes.",
+    "external_caller_inventory": "unverified_not_assumed_empty",
+    "production_calls_or_customer_notifications": false
+  },
+  "implementation": {
+    "shared_presence": "services.required_fields.has_substance is used by the existing required-field reader and API text validation; the required-field corpus and catalog are unchanged",
+    "boundary": "CreateDeedRequest and nested request models, shared with the in-process /try route, before deed rendering/persistence; auth still executes first",
+    "error_contract": "422 VALIDATION_ERROR with field-specific details; no raw rejected values echoed",
+    "text": "Nonblank mandatory text, NUL refusal, Unicode and multiline contents preserved; no truncation or ASCII/name-identity filter",
+    "limits": {"property_city": 100, "property_county": 100, "property_apn": 50, "general_text": 10000, "legal_description": 1000000, "computed_amount_text": 64},
+    "numeric": "Finite float inputs; nonblank supplied amount must have ordinary decimal syntax, at most two fractional digits and fit the existing DECIMAL(10,2). Optional blank/omitted amounts and numeric signs retain their prior treatment; no tax policy is inferred.",
+    "migration": "application_only_no_schema_or_data_migration",
+    "rollback": "Application revert restores the old unsafe acceptance; existing records are untouched"
+  },
+  "mutation_probe": {
+    "method": "In an isolated no-DB test process, replace API has_substance with an always-true function and run the whitespace refusal test with -x",
+    "exit_code": 1,
+    "result": "The first whitespace property.address case failed because input reached the protected persistence spy; no database, PDF or remote request was used"
+  },
+  "retained_failed_attempts": [
+    "Initial required-field test incorrectly treated omitted property.state as mandatory; corrected to preserve the existing CA default, with an explicit positive regression test",
+    "Direct 30-second interactive test call exceeded its observation timeout; no pass was claimed and durable captured runners replaced it",
+    "First captured focused matrix: 606 passed, one NUL refusal failed because composed AfterValidator metadata dropped the earlier check; fixed by one composed required-text validator and retained NUL regressions",
+    "Initial frontend run: 1303 passed and one free-form exemption source pin failed on the new Text alias; the pin now follows Text to its str declaration and a runtime test proves arbitrary optional exemption wording remains accepted",
+    "Initial PDF assertions expected mixed case, while existing deed CSS uppercases names; assertions now permit that established casing but still require accents and punctuation. No template or PDF behavior was changed."
+  ],
+  "verification": "pending_final_local_and_exact_head_CI_results",
+  "invariants": {
+    "corpus_or_catalog_changed": false,
+    "application_partial_draft_workflow_changed": false,
+    "legal_choices_auto_applied": false,
+    "api_or_six_flow_snapshots_rerecorded": false,
+    "ci_weakened": false,
+    "production_settings_changed": false,
+    "production_database_used": false,
+    "credentials_read_or_changed": false,
+    "original_dirty_engine1_checkout_preserved": true
+  },
+  "limits": "Not proof of human identity, truthful parcel facts, legal sufficiency, full browser journeys, API artifact recovery or launch readiness. P03 tax matrix and other launch gates remain open."
+}
