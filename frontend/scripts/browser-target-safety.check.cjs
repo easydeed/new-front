@@ -7,10 +7,29 @@ const vm = require('node:vm')
 const { createRequire } = require('node:module')
 const { targets, checkedUrl } = require('../cypress/target-policy.cjs')
 const { installTargetSafety, loginInputs } = require('../cypress/support/target-safety.cjs')
+const { withSyntheticBrowser } = require('./synthetic-browser.cjs')
 
 const frontend = 'http://127.0.0.1:3000'
 const api = 'http://127.0.0.1:8000'
 const config = () => ({ baseUrl: frontend, env: { API_URL: api } })
+
+test('synthetic updater suppression preserves launch arguments and restores them after success or failure', async () => {
+  const environment = { ELECTRON_EXTRA_LAUNCH_ARGS: '--lang=es' }
+  assert.equal(await withSyntheticBrowser(() => {
+    assert.ok(environment.ELECTRON_EXTRA_LAUNCH_ARGS.startsWith('--lang=es '))
+    assert.ok(environment.ELECTRON_EXTRA_LAUNCH_ARGS.includes('--disable-component-update'))
+    assert.ok(environment.ELECTRON_EXTRA_LAUNCH_ARGS.includes('--disable-background-networking'))
+    assert.ok(environment.ELECTRON_EXTRA_LAUNCH_ARGS.includes('OptimizationHintsFetching'))
+    return 42
+  }, environment), 42)
+  assert.equal(environment.ELECTRON_EXTRA_LAUNCH_ARGS, '--lang=es')
+  const empty = {}
+  await assert.rejects(withSyntheticBrowser(() => {
+    assert.ok(empty.ELECTRON_EXTRA_LAUNCH_ARGS.includes('--disable-component-update'))
+    throw new Error('synthetic failure')
+  }, empty), /synthetic failure/)
+  assert.equal(Object.hasOwn(empty, 'ELECTRON_EXTRA_LAUNCH_ARGS'), false)
+})
 
 for (const value of [undefined, '', 'https://deedpro.io', 'https://www.deedpro.io',
   'https://deedpro-frontend-new.vercel.app', 'https://deedpro-main-api.onrender.com',
@@ -140,7 +159,11 @@ test('both suite and per-test fences destroy unapproved traffic before it contin
     let destroyed = 0
     handler({ url: api + '/test', destroy: () => { destroyed++ } })
     assert.equal(destroyed, 0)
-    assert.throws(() => handler({ url: 'https://blocked.invalid', destroy: () => { destroyed++ } }), /refused/)
+    assert.throws(() => handler({ url: 'https://blocked.invalid/private?token=fixture', destroy: () => { destroyed++ } }), error => {
+      assert.match(error.message, /refused: blocked\.invalid/)
+      assert.doesNotMatch(error.message, /private|token|fixture/)
+      return true
+    })
     assert.equal(destroyed, 1)
   }
 })

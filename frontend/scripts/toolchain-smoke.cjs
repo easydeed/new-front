@@ -7,6 +7,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { createRequire } = require('node:module');
 const cypress = require('cypress');
+const { withSyntheticBrowser } = require('./synthetic-browser.cjs');
 const toolRequire = createRequire(require.resolve('@cypress/webpack-dev-server/package.json'));
 const webpack = toolRequire('webpack');
 const WebpackDevServer = toolRequire('webpack-dev-server');
@@ -22,15 +23,6 @@ async function main() {
     '<!doctype html><html><body><p id="result">loading</p><script src="/bundle.js"></script></body></html>');
   await fs.writeFile(spec, `describe('isolated patched toolchain', () => {
     it('serves and executes the minified local bundle', () => {
-      cy.intercept('**', (request) => {
-        const hostname = new URL(request.url).hostname;
-        if (!['127.0.0.1', 'localhost'].includes(hostname)) {
-          request.destroy();
-          // Hostname only: never print paths, query strings or credentials.
-          throw new Error('Non-loopback request refused by the toolchain smoke: ' + hostname);
-        }
-        request.continue();
-      });
       // Temporary diagnostic observation window: keep the refusal active while
       // browser startup/background requests settle. This is not an app retry.
       cy.wait(10000);
@@ -43,13 +35,6 @@ async function main() {
     output: { path: publicDir, filename: 'bundle.js' } });
   const server = new WebpackDevServer({ host: '127.0.0.1', port: 0, open: false,
     static: { directory: publicDir }, client: false, hot: false, webSocketServer: false }, compiler);
-  // A fresh CI browser attempted a gvt1.com background download, correctly
-  // refused by the fence. Suppress component updates in this synthetic browser
-  // process, not by admitting the host or ignoring a failed request.
-  // https://docs.cypress.io/api/node-events/browser-launch-api#Modify-Electron-app-switches
-  const previousElectronArgs = process.env.ELECTRON_EXTRA_LAUNCH_ARGS;
-  process.env.ELECTRON_EXTRA_LAUNCH_ARGS = [previousElectronArgs, '--disable-component-update']
-    .filter(Boolean).join(' ');
   try {
     await server.start();
     await new Promise((resolve, reject) => server.middleware.waitUntilValid((stats) => {
@@ -58,26 +43,31 @@ async function main() {
     }));
     const baseUrl = `http://127.0.0.1:${server.server.address().port}`;
     const configFile = path.join(project, 'cypress.config.cjs');
+    const supportFile = path.join(project, 'support.cjs');
+    const policyFile = path.resolve(__dirname, '../cypress/target-policy.cjs').replaceAll('\\', '/');
+    const safetyFile = path.resolve(__dirname, '../cypress/support/target-safety.cjs').replaceAll('\\', '/');
+    // Use the already-merged safety policy, not another copy of loopback rules.
+    await fs.writeFile(supportFile, `const { installTargetSafety } = require(${JSON.stringify(safetyFile)}); installTargetSafety(Cypress, cy, before, beforeEach);\n`);
     const config = { video: false, screenshotOnRunFailure: false,
-      e2e: { baseUrl, specPattern: spec.replaceAll('\\', '/'), supportFile: false } };
+      e2e: { baseUrl, specPattern: spec.replaceAll('\\', '/'), supportFile: supportFile.replaceAll('\\', '/') } };
     // Cypress 15 requires an explicit file. This generated file is the only
     // config loaded; the repository's deployed-API defaults are never read.
-    await fs.writeFile(configFile, `module.exports = ${JSON.stringify(config, null, 2)};\n`);
+    await fs.writeFile(configFile, `const { configureTargets } = require(${JSON.stringify(policyFile)}); module.exports = ${JSON.stringify(config, null, 2)}; module.exports.e2e.setupNodeEvents = (on, config) => configureTargets(config);\n`);
     // Bounded reproduction: three fresh browsers, all required to pass. Stop on
     // the first failure; never retry a failed result until it happens to pass.
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      console.log(`Toolchain diagnostic browser ${attempt}/3`);
-      const result = await cypress.run({ project, configFile, browser: 'electron',
-        headed: false, record: false, env: { API_URL: baseUrl } });
-      assert.equal(result.totalFailed, 0, result.message || 'Cypress smoke failed');
-      assert.equal(result.totalPassed, 1, 'Cypress must pass the actual test, not skip it');
-      assert.equal(result.totalSkipped, 0);
-      assert.equal(result.totalPending, 0);
-    }
+    await withSyntheticBrowser(async () => {
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        console.log(`Toolchain diagnostic browser ${attempt}/3`);
+        const result = await cypress.run({ project, configFile, browser: 'electron',
+          headed: false, record: false, env: { API_URL: baseUrl } });
+        assert.equal(result.totalFailed, 0, result.message || 'Cypress smoke failed');
+        assert.equal(result.totalPassed, 1, 'Cypress must pass the actual test, not skip it');
+        assert.equal(result.totalSkipped, 0);
+        assert.equal(result.totalPending, 0);
+      }
+    });
     console.log('Local toolchain smoke passed; no app or production API was used.');
   } finally {
-    if (previousElectronArgs === undefined) delete process.env.ELECTRON_EXTRA_LAUNCH_ARGS;
-    else process.env.ELECTRON_EXTRA_LAUNCH_ARGS = previousElectronArgs;
     await server.stop();
     await new Promise((resolve, reject) => compiler.close((error) => error ? reject(error) : resolve()));
     console.log(`Synthetic smoke evidence retained at ${project}`);

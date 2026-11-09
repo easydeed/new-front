@@ -5,11 +5,12 @@ const fs = require('node:fs/promises')
 const http = require('node:http')
 const os = require('node:os')
 const path = require('node:path')
+const { withSyntheticBrowser } = require('./synthetic-browser.cjs')
 
 const listen = (server) => new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
 const close = (server) => new Promise(resolve => server.close(resolve))
 
-async function runProof(cypress) {
+async function runFixtureProof(cypress) {
   let forbiddenHits = 0
   const forbidden = http.createServer((req, res) => { forbiddenHits++; res.end('must not reach') })
   await listen(forbidden)
@@ -58,5 +59,6 @@ async function runProof(cypress) {
   }
 }
 
+const runProof = (cypress) => withSyntheticBrowser(() => runFixtureProof(cypress))
 module.exports = runProof
 if (require.main === module) runProof(require('cypress')).catch(error => { console.error(error); process.exitCode = 1 })

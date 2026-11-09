@@ -137,6 +137,10 @@ jobs:
       working-directory: frontend
       timeout-minutes: 5
       run: node scripts/toolchain-smoke.cjs
+    - name: Patched browser must refuse forbidden requests and redirects
+      working-directory: frontend
+      timeout-minutes: 5
+      run: npm run test:browser-safety:runtime
 
   production-dependency-audit:
     # A framework-only upgrade can leave vulnerable transitive packages

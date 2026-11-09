@@ -61,7 +61,9 @@ function installTargetSafety(Cypress, cy, before, beforeEach) {
         checkedUrl(request.url, configured.frontend, Object.values(configured))
       } catch {
         request.destroy()
-        throw new Error('[browser target safety] browser traffic outside the test origins refused')
+        let hostname = 'invalid-url'
+        try { hostname = new URL(request.url).hostname } catch { /* no raw URL in errors */ }
+        throw new Error('[browser target safety] browser traffic outside the test origins refused: ' + hostname)
       }
     })
   }
