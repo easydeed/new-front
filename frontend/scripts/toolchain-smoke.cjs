@@ -43,6 +43,13 @@ async function main() {
     output: { path: publicDir, filename: 'bundle.js' } });
   const server = new WebpackDevServer({ host: '127.0.0.1', port: 0, open: false,
     static: { directory: publicDir }, client: false, hot: false, webSocketServer: false }, compiler);
+  // A fresh CI browser attempted a gvt1.com background download, correctly
+  // refused by the fence. Suppress component updates in this synthetic browser
+  // process, not by admitting the host or ignoring a failed request.
+  // https://docs.cypress.io/api/node-events/browser-launch-api#Modify-Electron-app-switches
+  const previousElectronArgs = process.env.ELECTRON_EXTRA_LAUNCH_ARGS;
+  process.env.ELECTRON_EXTRA_LAUNCH_ARGS = [previousElectronArgs, '--disable-component-update']
+    .filter(Boolean).join(' ');
   try {
     await server.start();
     await new Promise((resolve, reject) => server.middleware.waitUntilValid((stats) => {
@@ -69,6 +76,8 @@ async function main() {
     }
     console.log('Local toolchain smoke passed; no app or production API was used.');
   } finally {
+    if (previousElectronArgs === undefined) delete process.env.ELECTRON_EXTRA_LAUNCH_ARGS;
+    else process.env.ELECTRON_EXTRA_LAUNCH_ARGS = previousElectronArgs;
     await server.stop();
     await new Promise((resolve, reject) => compiler.close((error) => error ? reject(error) : resolve()));
     console.log(`Synthetic smoke evidence retained at ${project}`);
