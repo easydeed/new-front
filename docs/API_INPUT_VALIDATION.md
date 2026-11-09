@@ -1,5 +1,7 @@
 # Public API input validation
 
+**HELD — not merged.** On 2026-11-09 the owner directed that P02 remain unmerged after its real-PDF acceptance test exposed the existing tax-deed contradiction. The [separate repair proposal](TAX_DEED_API_REPAIR_PROPOSAL.md) is for review only. The failing test remains blocking; the nine-instrument acceptance criterion is not satisfied.
+
 P02 implements validation revision `P02-2026-11-09` before deed rendering or artifact persistence. On 2026-11-09 the owner approved the documented v1 safety cutover after the conflict with the public new-version promise was raised, then directed the engineer to use the recommended compatibility approach. The recommendation is the explicit v1 safety cutover after green checks, rather than preserving acceptance of unusable deed inputs. External caller inventory remains unverified; no claim of zero live integrations is made.
 
 With the candidate applied, authenticated invalid input returns HTTP 422 in the existing `detail.code = VALIDATION_ERROR` envelope, with the actual field path in `detail.details[].field`. Authentication remains first and can consume the key's request allowance even when the body is refused.
@@ -34,7 +36,7 @@ P02 does not add conditional tax requirements, require a previously optional amo
 
 Repository consumers are the public `POST /api/v1/deeds` endpoint, the constrained server-side `/try` demo, developer-page request examples, and the API lifecycle harness. Both create callers construct `CreateDeedRequest`, so the same validation applies; no router-only duplicate exists. The documented valid example and fixed demo payload remain valid, while the existing demo's intended catalog refusals remain refusals.
 
-Before merging, run both maintained suites, all five database-backed proofs, route-contract checks, type/lint baseline gates, production build, browser safety checks, secret/claims scans, and dependency audits. Do not re-record the API or six-flow snapshots. Review checks and the P02 evidence record carry exact results. The database harness verifies real-key invalid requests create no draft/authenticity rows, and all nine valid instruments produce readable PDF previews with international names.
+Before merging, run both maintained suites, all five database-backed proofs, route-contract checks, type/lint baseline gates, production build, browser safety checks, secret/claims scans, and dependency audits. Do not re-record the API or six-flow snapshots. Review checks and the P02 evidence record carry exact results. The database harness verifies real-key invalid requests create no draft/authenticity rows. Eight instrument previews preserve the tested international party names; tax_deed drops the supplied grantor and keeps P02's all-nine PDF acceptance test red. This is a reproduced defect, not a cleared rendering claim.
 
 External caller inventory is not established by searching this repository. Any separately managed integration must be checked against this revision before its production cutover; no production traffic, customer communication or external migration is performed by this ticket. Rollback is an application revert, with no schema/data migration, and would restore the previously unsafe acceptance behavior rather than repair stored drafts.
 

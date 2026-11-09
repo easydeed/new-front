@@ -4,7 +4,7 @@
   "executor": "Codex implementation and independent gate re-verification",
   "baseline_commit": "a7321b63169849a46a61ee98e8f436b434e12cd4",
   "branch": "codex/p02-api-input-validation",
-  "integration_state": "candidate_verification_in_progress_not_merged",
+  "integration_state": "owner_directed_hold_PR_302_not_merged_tax_deed_repair_proposal_only",
   "validation_revision": "P02-2026-11-09",
   "scope": "Public request models plus shared presence predicate, technical numeric syntax/storage limits, tests and contract documentation",
   "reproduction": {
@@ -24,7 +24,7 @@
     "error_contract": "422 VALIDATION_ERROR with field-specific details; no raw rejected values echoed",
     "text": "Nonblank mandatory text, NUL refusal, Unicode and multiline contents preserved; no truncation or ASCII/name-identity filter",
     "limits": {"property_city": 100, "property_county": 100, "property_apn": 50, "general_text": 10000, "legal_description": 1000000, "computed_amount_text": 64},
-    "numeric": "Finite float inputs; nonblank supplied amount must have ordinary decimal syntax, at most two fractional digits and fit the existing DECIMAL(10,2). Optional blank/omitted amounts and numeric signs retain their prior treatment; no tax policy is inferred.",
+    "numeric": "Finite non-boolean numeric inputs; nonblank supplied amount must have ordinary decimal syntax, at most two fractional digits and fit the existing DECIMAL(10,2). Optional blank/omitted amounts and numeric signs retain their prior treatment; no tax policy is inferred.",
     "migration": "application_only_no_schema_or_data_migration",
     "rollback": "Application revert restores the old unsafe acceptance; existing records are untouched"
   },
@@ -40,7 +40,33 @@
     "Initial frontend run: 1303 passed and one free-form exemption source pin failed on the new Text alias; the pin now follows Text to its str declaration and a runtime test proves arbitrary optional exemption wording remains accepted",
     "Initial PDF assertions expected mixed case, while existing deed CSS uppercases names; assertions now permit that established casing but still require accents and punctuation. No template or PDF behavior was changed."
   ],
-  "verification": "pending_final_local_and_exact_head_CI_results",
+  "tax_deed_discovery": {
+    "owner_direction": "Hold P02 and prepare a separate tax-deed repair proposal (Recommended)",
+    "proposal": "docs/TAX_DEED_API_REPAIR_PROPOSAL.md",
+    "facts": "Tax-deed PDF omits supplied grantor; the template does not consume required vesting or mapped dtt and prints a fixed exempt declaration despite the synthetic request's non-exempt instruction. Sale/official facts have no complete public-schema/context mapping.",
+    "source": ["templates/tax_deed_ca/index.jinja2:143", "templates/tax_deed_ca/index.jinja2:156", "templates/tax_deed_ca/index.jinja2:196", "backend/services/api_catalog.py:99", "backend/services/deed_pdf.py:111"],
+    "scope": "Inherited from unchanged baseline code, not introduced by P02. No legal repair, containment, test skip, catalog withdrawal or production action is applied.",
+    "eight_other_variants": "The actual PDF name checks pass; not a complete legal-sufficiency certification",
+    "acceptance": "all_nine_correct_rendering_requirement_not_met_keep_test_blocking"
+  },
+  "verification": {
+    "code_commit": "18d0e39180dae28721573fa1d4385206e977e9ff",
+    "backend_local": {"passed": 2544, "failed": 1, "skipped": 0, "failure": "tax_deed_grantor_preservation", "seconds": 334.12},
+    "frontend_local": {"passed": 1305, "suites": 95, "snapshots": 2, "failed": 0},
+    "native_safety": {"passed": 38, "failed": 0, "skipped": 0},
+    "typescript": {"errors": 83, "ceiling": 83, "parse_errors": 0},
+    "eslint": {"errors": 126, "warnings": 53, "status": "passed_existing_ceiling_not_clean_lint"},
+    "production_build": "passed",
+    "three_start_browser_smoke": {"passed": 3, "failed": 0, "skipped": 0, "seconds": 147.22},
+    "browser_refusal_proof": {"positive_passed": 1, "expected_refusals": 3, "forbidden_sentinel_hits": 0, "skipped": 0, "seconds": 71.58},
+    "secret_and_claims_scans": "passed_complete_staged_change",
+    "dependency_audits": "runtime_and_complete_graph_passed_unchanged_lockfile",
+    "all_five_local_proofs": "passed_concurrency_restore_walkthrough_six_flow_and_api_baselines_unchanged",
+    "openapi_route_contract": "passed_in_backend_suite_unchanged_snapshot",
+    "local_database": "marked_disposable_loopback_55439_verified_then_stopped_after_all_checks",
+    "independent_ci": {"tests": "https://github.com/easydeed/new-front/actions/runs/42687636735", "build": "https://github.com/easydeed/new-front/actions/runs/42687648600", "result": "build_preview_frontend_and_other_jobs_passed_proof_job_failed_on_same_tax_deed_test", "database_suite": {"passed": 2542, "failed": 1, "skipped": 2, "qualification": "Two existing conditional skips are not counted as passes; no new test skip was added"}},
+    "overall": "not_green_not_mergeable_owner_hold"
+  },
   "invariants": {
     "corpus_or_catalog_changed": false,
     "application_partial_draft_workflow_changed": false,
