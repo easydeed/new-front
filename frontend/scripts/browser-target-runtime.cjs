@@ -5,12 +5,11 @@ const fs = require('node:fs/promises')
 const http = require('node:http')
 const os = require('node:os')
 const path = require('node:path')
-const { withSyntheticBrowser } = require('./synthetic-browser.cjs')
 
 const listen = (server) => new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
 const close = (server) => new Promise(resolve => server.close(resolve))
 
-async function runFixtureProof(cypress) {
+async function runProof(cypress) {
   let forbiddenHits = 0
   const forbidden = http.createServer((req, res) => { forbiddenHits++; res.end('must not reach') })
   await listen(forbidden)
@@ -33,7 +32,7 @@ async function runFixtureProof(cypress) {
     const support = path.join(project, 'support.cjs')
     await fs.writeFile(support, `const { installTargetSafety } = require(${JSON.stringify(root + '/cypress/support/target-safety.cjs')}); installTargetSafety(Cypress, cy, before, beforeEach);`)
     const configFile = path.join(project, 'cypress.config.cjs')
-    await fs.writeFile(configFile, `const { configureTargets } = require(${JSON.stringify(root + '/cypress/target-policy.cjs')}); module.exports = ${JSON.stringify({ video:false, screenshotOnRunFailure:false, e2e:{ baseUrl, supportFile:support.replaceAll('\\','/'), specPattern:'*.cy.js' }, env:{API_URL:baseUrl} })}; module.exports.e2e.setupNodeEvents = (on, config) => configureTargets(config);`)
+    await fs.writeFile(configFile, `const { configureSyntheticBrowser } = require(${JSON.stringify(root + '/scripts/synthetic-browser.cjs')}); module.exports = ${JSON.stringify({ video:false, screenshotOnRunFailure:false, e2e:{ baseUrl, supportFile:support.replaceAll('\\','/'), specPattern:'*.cy.js' }, env:{API_URL:baseUrl} })}; module.exports.e2e.setupNodeEvents = configureSyntheticBrowser;`)
     const positive = path.join(project, 'positive.cy.js')
     await fs.writeFile(positive, "describe('local positive control',()=>{it('visits and requests the configured fixture',()=>{cy.visit('/');cy.get('#result').should('have.text','local fixture');cy.request('/health').its('status').should('eq',200);});});")
     const negative = path.join(project, 'negative.cy.js')
@@ -59,6 +58,5 @@ async function runFixtureProof(cypress) {
   }
 }
 
-const runProof = (cypress) => withSyntheticBrowser(() => runFixtureProof(cypress))
 module.exports = runProof
 if (require.main === module) runProof(require('cypress')).catch(error => { console.error(error); process.exitCode = 1 })

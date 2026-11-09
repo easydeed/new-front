@@ -1,5 +1,5 @@
 const { defineConfig } = require('cypress')
-const { configureTargets } = require('./cypress/target-policy.cjs')
+const { configureSyntheticBrowser } = require('./scripts/synthetic-browser.cjs')
 
 module.exports = defineConfig({
   e2e: {
@@ -24,7 +24,7 @@ module.exports = defineConfig({
       SKIP_ACCESSIBILITY_CHECKS: 'true'
     },
     setupNodeEvents(on, config) {
-      configureTargets(config)
+      configureSyntheticBrowser(on, config)
       on('task', {
         log(message) {
           console.log(message)

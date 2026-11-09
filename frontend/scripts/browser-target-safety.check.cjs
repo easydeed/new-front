@@ -7,28 +7,29 @@ const vm = require('node:vm')
 const { createRequire } = require('node:module')
 const { targets, checkedUrl } = require('../cypress/target-policy.cjs')
 const { installTargetSafety, loginInputs } = require('../cypress/support/target-safety.cjs')
-const { withSyntheticBrowser } = require('./synthetic-browser.cjs')
+const { configureSyntheticBrowser } = require('./synthetic-browser.cjs')
 
 const frontend = 'http://127.0.0.1:3000'
 const api = 'http://127.0.0.1:8000'
 const config = () => ({ baseUrl: frontend, env: { API_URL: api } })
 
-test('synthetic updater suppression preserves launch arguments and restores them after success or failure', async () => {
-  const environment = { ELECTRON_EXTRA_LAUNCH_ARGS: '--lang=es' }
-  assert.equal(await withSyntheticBrowser(() => {
-    assert.ok(environment.ELECTRON_EXTRA_LAUNCH_ARGS.startsWith('--lang=es '))
-    assert.ok(environment.ELECTRON_EXTRA_LAUNCH_ARGS.includes('--disable-component-update'))
-    assert.ok(environment.ELECTRON_EXTRA_LAUNCH_ARGS.includes('--disable-background-networking'))
-    assert.ok(environment.ELECTRON_EXTRA_LAUNCH_ARGS.includes('OptimizationHintsFetching'))
-    return 42
-  }, environment), 42)
-  assert.equal(environment.ELECTRON_EXTRA_LAUNCH_ARGS, '--lang=es')
-  const empty = {}
-  await assert.rejects(withSyntheticBrowser(() => {
-    assert.ok(empty.ELECTRON_EXTRA_LAUNCH_ARGS.includes('--disable-component-update'))
-    throw new Error('synthetic failure')
-  }, empty), /synthetic failure/)
-  assert.equal(Object.hasOwn(empty, 'ELECTRON_EXTRA_LAUNCH_ARGS'), false)
+test('test windows disable only Electron spellchecking and preserve every other launch preference', () => {
+  let launch
+  const explicit = config()
+  assert.equal(configureSyntheticBrowser((event, fn) => {
+    assert.equal(event, 'before:browser:launch'); launch = fn
+  }, explicit), explicit)
+  const options = { args: ['--lang=es'], preferences: { darkTheme: true,
+    webPreferences: { contextIsolation: true, spellcheck: true } } }
+  const updated = launch({ name: 'electron' }, options)
+  assert.equal(updated.preferences.webPreferences.spellcheck, false)
+  assert.equal(updated.preferences.webPreferences.contextIsolation, true)
+  assert.equal(updated.preferences.darkTheme, true)
+  assert.equal(updated.args, options.args)
+  assert.equal(options.preferences.webPreferences.spellcheck, true)
+  assert.equal(launch({ name: 'chrome' }, options), options)
+  assert.throws(() => configureSyntheticBrowser(() => assert.fail('registered'),
+    { ...explicit, baseUrl: 'https://blocked.invalid' }), /browser target safety/)
 })
 
 for (const value of [undefined, '', 'https://deedpro.io', 'https://www.deedpro.io',
@@ -69,7 +70,7 @@ for (const filename of ['cypress.config.js', 'cypress-staging.config.js', 'cypre
     assert.equal(events, 0)
     const explicit = config()
     assert.equal(e2e.setupNodeEvents(on, explicit), explicit)
-    assert.equal(events, 1)
+    assert.equal(events, 2)
   })
 }
 

@@ -7,7 +7,6 @@ const os = require('node:os');
 const path = require('node:path');
 const { createRequire } = require('node:module');
 const cypress = require('cypress');
-const { withSyntheticBrowser } = require('./synthetic-browser.cjs');
 const toolRequire = createRequire(require.resolve('@cypress/webpack-dev-server/package.json'));
 const webpack = toolRequire('webpack');
 const WebpackDevServer = toolRequire('webpack-dev-server');
@@ -44,7 +43,7 @@ async function main() {
     const baseUrl = `http://127.0.0.1:${server.server.address().port}`;
     const configFile = path.join(project, 'cypress.config.cjs');
     const supportFile = path.join(project, 'support.cjs');
-    const policyFile = path.resolve(__dirname, '../cypress/target-policy.cjs').replaceAll('\\', '/');
+    const browserFile = path.resolve(__dirname, 'synthetic-browser.cjs').replaceAll('\\', '/');
     const safetyFile = path.resolve(__dirname, '../cypress/support/target-safety.cjs').replaceAll('\\', '/');
     // Use the already-merged safety policy, not another copy of loopback rules.
     await fs.writeFile(supportFile, `const { installTargetSafety } = require(${JSON.stringify(safetyFile)}); installTargetSafety(Cypress, cy, before, beforeEach);\n`);
@@ -52,11 +51,10 @@ async function main() {
       e2e: { baseUrl, specPattern: spec.replaceAll('\\', '/'), supportFile: supportFile.replaceAll('\\', '/') } };
     // This generated file is the only config loaded; application browser
     // settings and account helpers are never read.
-    await fs.writeFile(configFile, `const { configureTargets } = require(${JSON.stringify(policyFile)}); module.exports = ${JSON.stringify(config, null, 2)}; module.exports.e2e.setupNodeEvents = (on, config) => configureTargets(config);\n`);
+    await fs.writeFile(configFile, `const { configureSyntheticBrowser } = require(${JSON.stringify(browserFile)}); module.exports = ${JSON.stringify(config, null, 2)}; module.exports.e2e.setupNodeEvents = configureSyntheticBrowser;\n`);
     // Bounded reproduction: three fresh browsers, all required to pass. Stop on
     // the first failure; never retry a failed result until it happens to pass.
-    await withSyntheticBrowser(async () => {
-      for (let attempt = 1; attempt <= 3; attempt++) {
+    for (let attempt = 1; attempt <= 3; attempt++) {
         console.log(`Toolchain isolated browser ${attempt}/3`);
         const result = await cypress.run({ project, configFile, browser: 'electron',
           headed: false, record: false, env: { API_URL: baseUrl } });
@@ -64,8 +62,7 @@ async function main() {
         assert.equal(result.totalPassed, 1, 'Cypress must pass the actual test, not skip it');
         assert.equal(result.totalSkipped, 0);
         assert.equal(result.totalPending, 0);
-      }
-    });
+    }
     console.log('Local toolchain smoke passed; no app or production API was used.');
   } finally {
     await server.stop();

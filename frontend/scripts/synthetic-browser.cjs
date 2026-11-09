@@ -1,21 +1,18 @@
-// Process-local settings for synthetic browser proofs, never production.
-// A fresh CI browser attempted a gvt1.com download while our network fence was
-// active. Component-only suppression was insufficient. Suppress browser-only
-// background/model fetching, never by admitting a remote host or ignoring errors.
-// https://docs.cypress.io/api/node-events/browser-launch-api#Modify-Electron-app-switches
-// https://github.com/cypress-io/cypress/issues/22622
-const syntheticArgs = '--disable-background-networking --disable-component-update ' +
-  '--disable-features=OptimizationHints,OptimizationHintsFetching,OptimizationTargetPrediction,OptimizationGuideModelDownloading';
-async function withSyntheticBrowser(run, environment = process.env) {
-  const previous = environment.ELECTRON_EXTRA_LAUNCH_ARGS;
-  environment.ELECTRON_EXTRA_LAUNCH_ARGS = [previous, syntheticArgs]
-    .filter(Boolean).join(' ');
-  try {
-    return await run();
-  } finally {
-    if (previous === undefined) delete environment.ELECTRON_EXTRA_LAUNCH_ARGS;
-    else environment.ELECTRON_EXTRA_LAUNCH_ARGS = previous;
-  }
+const { configureTargets } = require('../cypress/target-policy.cjs');
+
+// Electron fetches Hunspell dictionaries from Google's CDN by default. That
+// request is unrelated to the fixture but must still be refused by our fence.
+// Disable only test-window spellchecking, not security checks or network guards.
+// https://www.electronjs.org/docs/latest/tutorial/spellchecker
+// https://docs.cypress.io/api/node-events/browser-launch-api#Change-browser-preferences
+function configureSyntheticBrowser(on, config) {
+  configureTargets(config);
+  on('before:browser:launch', (browser, options) => {
+    if (browser.name !== 'electron') return options;
+    return { ...options, preferences: { ...options.preferences,
+      webPreferences: { ...options.preferences?.webPreferences, spellcheck: false } } };
+  });
+  return config;
 }
 
-module.exports = { withSyntheticBrowser };
+module.exports = { configureSyntheticBrowser };
