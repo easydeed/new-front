@@ -74,7 +74,9 @@ function installTargetSafety(Cypress, cy, before, beforeEach) {
           if (parsed.pathname.includes('/chrome/dict/') || parsed.pathname.endsWith('.bdic')) category = 'spellcheck-dictionary'
           else if (parsed.pathname.includes('chrome_component')) category = 'browser-component'
         } catch { /* never include raw URLs, paths or query strings */ }
-        throw new Error('[browser target safety] browser traffic outside the test origins refused: ' + hostname + ' [' + category + ']')
+        const resource = ['xhr', 'fetch', 'document', 'other', 'image', 'script'].includes(request.resourceType)
+          ? request.resourceType : 'unknown'
+        throw new Error('[browser target safety] browser traffic outside the test origins refused: ' + hostname + ' [' + category + '; ' + resource + ']')
       }
     })
   }

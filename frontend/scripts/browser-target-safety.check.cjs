@@ -7,37 +7,16 @@ const vm = require('node:vm')
 const { createRequire } = require('node:module')
 const { targets, checkedUrl, knownBrowserDownloadBlock } = require('../cypress/target-policy.cjs')
 const { installTargetSafety, loginInputs } = require('../cypress/support/target-safety.cjs')
-const { configureSyntheticBrowser } = require('./synthetic-browser.cjs')
+const { configureSyntheticBrowser, SYNTHETIC_BROWSER } = require('./synthetic-browser.cjs')
 
 const frontend = 'http://127.0.0.1:3000'
 const api = 'http://127.0.0.1:8000'
 const config = () => ({ baseUrl: frontend, env: { API_URL: api } })
 
-test('Chrome disables spelling before launch while preserving other profile preferences and arguments', () => {
-  let launch
+test('synthetic proofs keep the bundled browser and do not mutate profiles, arguments or startup policy', () => {
   const explicit = config()
-  assert.equal(configureSyntheticBrowser((event, fn) => {
-    assert.equal(event, 'before:browser:launch'); launch = fn
-  }, explicit), explicit)
-  const options = { args: ['--lang=es'], preferences: { default: {
-    browser: { enable_spellchecking: true, check_default_browser: false },
-    spellcheck: { dictionaries: ['fr-FR'], use_spelling_service: true },
-    unrelated: 'preserved',
-  } } }
-  const updated = launch({ name: 'chrome', family: 'chromium' }, options)
-  assert.equal(updated.preferences.default.browser.enable_spellchecking, false)
-  assert.equal(updated.preferences.default.browser.check_default_browser, false)
-  assert.equal(updated.preferences.default.spellcheck.use_spelling_service, false)
-  assert.deepEqual(updated.preferences.default.spellcheck.dictionaries, [])
-  assert.equal(updated.preferences.default.unrelated, 'preserved')
-  assert.equal(updated.args[0], '--lang=es')
-  assert.ok(updated.args.includes('--disable-background-networking'))
-  assert.ok(updated.args.includes('--disable-component-update'))
-  assert.ok(updated.args.includes('--disable-default-apps'))
-  assert.deepEqual(options.args, ['--lang=es'])
-  assert.equal(options.preferences.default.browser.enable_spellchecking, true)
-  assert.equal(launch({ name: 'electron', family: 'chromium' }, options), options)
-  assert.equal(launch({ name: 'firefox', family: 'firefox' }, options), options)
+  assert.equal(SYNTHETIC_BROWSER, 'electron')
+  assert.equal(configureSyntheticBrowser(() => assert.fail('unexpected launch mutation'), explicit), explicit)
   assert.throws(() => configureSyntheticBrowser(() => assert.fail('registered'),
     { ...explicit, baseUrl: 'https://blocked.invalid' }), /browser target safety/)
 })
@@ -70,7 +49,7 @@ for (const filename of ['cypress.config.js', 'cypress-staging.config.js', 'cypre
       name === 'cypress' ? { defineConfig: (value) => value } : localRequire(name) }
     vm.runInNewContext(fs.readFileSync(full, 'utf8'), box, { filename })
     const e2e = box.module.exports.e2e
-    assert.equal(box.module.exports.defaultBrowser, 'chrome')
+    assert.equal(box.module.exports.defaultBrowser, 'electron')
     assert.equal(e2e.baseUrl, undefined)
     assert.equal(e2e.env.API_URL, undefined)
     let events = 0
@@ -81,7 +60,7 @@ for (const filename of ['cypress.config.js', 'cypress-staging.config.js', 'cypre
     assert.equal(events, 0)
     const explicit = config()
     assert.equal(e2e.setupNodeEvents(on, explicit), explicit)
-    assert.equal(events, 2)
+    assert.equal(events, 1)
   })
 }
 
@@ -105,7 +84,7 @@ const browserDownload = (overrides = {}) => ({
 })
 
 test('known anonymous browser download hosts receive fresh local 503 responses, never authorization', () => {
-  for (const hostname of ['edgedl.me.gvt1.com', 'redirector.gvt1.com', 'rr4---sn-vgqsknez.gvt1.com']) {
+  for (const hostname of ['www.gstatic.com', 'edgedl.me.gvt1.com', 'redirector.gvt1.com', 'rr4---sn-vgqsknez.gvt1.com']) {
     for (const method of ['GET', 'HEAD']) {
       const request = browserDownload({ url: `https://${hostname}/fixture?synthetic=value`, method })
       const blocked = knownBrowserDownloadBlock(request)
@@ -136,7 +115,7 @@ test('background denial cannot be expanded using deceptive hosts, URL credential
   for (const url of ['https://edgedl.me.gvt1.com.evil.invalid/file', 'https://unknown.gvt1.com/file',
     'https://gvt1.com/file', 'https://rr4---sn-vgqsknez.gvt1.com.evil.invalid/file',
     'https://fixture:fixture@edgedl.me.gvt1.com/file', 'https://edgedl.me.gvt1.com:8443/file',
-    'file://edgedl.me.gvt1.com/file', 'not-a-url']) {
+    'https://www.gstatic.com.evil.invalid/file', 'file://edgedl.me.gvt1.com/file', 'not-a-url']) {
     assert.equal(knownBrowserDownloadBlock(browserDownload({ url })), null)
   }
 })

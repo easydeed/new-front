@@ -48,7 +48,7 @@ function configureTargets(config) {
 function knownBrowserDownloadBlock(request) {
   let url
   try { url = new URL(request.url) } catch { return null }
-  const knownHost = url.hostname === 'edgedl.me.gvt1.com' ||
+  const knownHost = url.hostname === 'www.gstatic.com' || url.hostname === 'edgedl.me.gvt1.com' ||
     url.hostname === 'redirector.gvt1.com' || /^rr\d+---sn-[a-z0-9-]+\.gvt1\.com$/.test(url.hostname)
   if (!knownHost || !['http:', 'https:'].includes(url.protocol) ||
       url.port || url.username || url.password ||
