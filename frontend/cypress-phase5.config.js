@@ -1,8 +1,8 @@
 const { defineConfig } = require('cypress')
+const { configureTargets } = require('./cypress/target-policy.cjs')
 
 module.exports = defineConfig({
   e2e: {
-    baseUrl: 'https://deedpro-frontend-new.vercel.app',
     supportFile: 'cypress/support/e2e-staging.js',
     specPattern: 'cypress/e2e/wizard-regression-pack.cy.js', // Only run core regression tests
     viewportWidth: 1280,
@@ -18,20 +18,20 @@ module.exports = defineConfig({
     },
     env: {
       // Phase 5 staging environment variables
-      API_URL: 'https://deedpro-main-api.onrender.com',
       GOOGLE_PLACES_ENABLED: 'false',
       TITLEPOINT_ENABLED: 'false',
       DYNAMIC_WIZARD_ENABLED: 'false',
       SKIP_ACCESSIBILITY_CHECKS: 'true'
     },
     setupNodeEvents(on, config) {
-      // implement node event listeners here
+      configureTargets(config)
       on('task', {
         log(message) {
           console.log(message)
           return null
         }
       })
+      return config
     },
   },
 })

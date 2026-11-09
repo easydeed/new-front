@@ -1,3 +1,6 @@
+const { installTargetSafety, loginInputs } = require('./target-safety.cjs')
+installTargetSafety(Cypress, cy, before, beforeEach)
+
 // ***********************************************
 // This example commands.js shows you how to
 // create various custom commands and overwrite
@@ -9,12 +12,16 @@
 // ***********************************************
 
 // Custom command for API-based login (faster and more reliable)
-Cypress.Commands.add('login', (email = 'test@deedpro-check.com', password = 'TestPassword123!') => {
+Cypress.Commands.add('login', (email, password) => {
   // Use API login for speed and reliability
-  const apiUrl = Cypress.env('API_URL') || 'https://deedpro-main-api.onrender.com'
+  const account = loginInputs(Cypress, email, password)
+  const apiUrl = account.apiUrl
+  email = account.email
+  password = account.password
   
   cy.request({
     method: 'POST',
+    log: false,
     url: `${apiUrl}/users/login`,
     body: {
       email: email,
@@ -30,8 +37,8 @@ Cypress.Commands.add('login', (email = 'test@deedpro-check.com', password = 'Tes
       // Fallback to UI login if API fails
       cy.log('⚠️ API login failed, using UI login fallback')
       cy.visit('/login')
-      cy.get('input[type="email"]').type(email)
-      cy.get('input[type="password"]').type(password)
+      cy.get('input[type="email"]').type(email, { log: false })
+      cy.get('input[type="password"]').type(password, { log: false })
       cy.get('button[type="submit"]').click()
       cy.url().should('not.include', '/login')
     }
@@ -39,11 +46,15 @@ Cypress.Commands.add('login', (email = 'test@deedpro-check.com', password = 'Tes
 })
 
 // Custom command for programmatic login (bypasses UI completely)
-Cypress.Commands.add('loginProgrammatic', (email = 'test@deedpro-check.com', password = 'TestPassword123!') => {
-  const apiUrl = Cypress.env('API_URL') || 'https://deedpro-main-api.onrender.com'
+Cypress.Commands.add('loginProgrammatic', (email, password) => {
+  const account = loginInputs(Cypress, email, password)
+  const apiUrl = account.apiUrl
+  email = account.email
+  password = account.password
   
   return cy.request({
     method: 'POST',
+    log: false,
     url: `${apiUrl}/users/login`,
     body: { email, password }
   }).then((response) => {
