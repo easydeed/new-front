@@ -14,6 +14,7 @@ import { FORM_REGISTRY, INSTRUMENT_COUNT, SITUATION_GROUP_ORDER, formConfig, for
 import { DEED_LABELS, deedTypeLabel } from '../lib/deedTypes';
 import { isAffidavitType } from '../lib/deedValidation';
 import { codeOnly } from '../test-support/sourceText';
+import { canGenerate } from '../lib/instrumentAvailability';
 
 function readSource(...segments: string[]): string {
   return fs.readFileSync(path.join(__dirname, '..', ...segments), 'utf8');
@@ -24,7 +25,7 @@ const KNOWN_SECTIONS = new Set(['property', 'grantor', 'grantee', 'vesting', 'tr
 describe('FORMS registry — completeness and coherence', () => {
   const entries = Object.values(FORM_REGISTRY);
 
-  it('carries the twenty-one shipped types', () => {
+  it('retains twenty-one registered types, including temporarily held history', () => {
     expect(entries.length).toBe(21);
     // Wave 2 #8 — substitution of trustee (acknowledged; APN but no
     // legal description — the DOT reference identifies the property):
@@ -230,7 +231,7 @@ describe('FORMS flag-4 ruling — the companion notice is passive guidance', () 
  */
 describe('the instrument count nobody has to remember', () => {
   it('is derived from the registry rather than asserted beside it', () => {
-    expect(INSTRUMENT_COUNT).toBe(Object.keys(FORM_REGISTRY).length);
+    expect(INSTRUMENT_COUNT).toBe(Object.values(FORM_REGISTRY).filter((f) => canGenerate(f.slug)).length);
   });
 
   const SURFACES = ['app', 'components'];

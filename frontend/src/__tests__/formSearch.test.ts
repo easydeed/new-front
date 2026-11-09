@@ -11,6 +11,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { FORM_REGISTRY } from '../lib/formRegistry';
 import { groupedForms, matchesForm, searchForms } from '../lib/formSearch';
+import { canGenerate } from '../lib/instrumentAvailability';
 
 function readSource(...segments: string[]): string {
   return fs.readFileSync(path.join(__dirname, '..', ...segments), 'utf8');
@@ -55,7 +56,7 @@ describe('CAT1 — search translates situations into instruments', () => {
 
   it('empty query matches everything; results keep registry order (no ranking)', () => {
     const all = searchForms('');
-    expect(all.map((f) => f.slug)).toEqual(Object.keys(FORM_REGISTRY));
+    expect(all.map((f) => f.slug)).toEqual(Object.keys(FORM_REGISTRY).filter(canGenerate));
   });
 
   it('multi-word queries require every token', () => {
@@ -69,11 +70,11 @@ describe('CAT1 — grouped browse covers the whole catalog', () => {
   it('every type appears in exactly one group; groups are desk taxonomy', () => {
     const groups = groupedForms();
     const seen = groups.flatMap((g) => g.forms.map((f) => f.slug));
-    expect(seen.sort()).toEqual(Object.keys(FORM_REGISTRY).sort());
+    expect(seen.sort()).toEqual(Object.keys(FORM_REGISTRY).filter(canGenerate).sort());
     expect(new Set(seen).size).toBe(seen.length);
   });
 
-  it('all 21 types remain reachable through search with their own label', () => {
+  it('registered labels remain matchable even when generation is temporarily held', () => {
     for (const f of Object.values(FORM_REGISTRY)) {
       expect(matchesForm(f, f.label)).toBe(true);
     }

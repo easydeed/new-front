@@ -104,6 +104,7 @@ def get_document_types_registry() -> Dict[str, Any]:
             "schemas": {},
         }
     
-    return registry
+    from services.instrument_availability import can_generate
+    return {slug: config for slug, config in registry.items() if can_generate(slug)}
 
 

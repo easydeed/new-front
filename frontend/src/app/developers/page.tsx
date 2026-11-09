@@ -2,7 +2,7 @@
  * A4 — the partner-facing API documentation.
  *
  * Replaces /docs, which was ten cards linking to routes that were never
- * built. This page documents the API that exists: nine deed types
+ * built. This page documents the API that exists: available deed types
  * derived from the FORMS registry, the auth and idempotency contracts
  * A1 added, and the doctrine boundary stated as disclosure rather than
  * apology — a title company's counsel should be able to read section
@@ -17,6 +17,7 @@
  */
 import type { Metadata } from 'next';
 import { API_DEED_TYPES, HELD_FAMILIES } from '@/lib/apiDocs';
+import { HELD_INSTRUMENTS } from '@/lib/instrumentAvailability';
 import { LogoLockup } from '@/components/brand/Logo';
 import ApiInquiryForm from './ApiInquiryForm';
 
@@ -361,6 +362,9 @@ export default function DevelopersPage() {
           {/* Deed types */}
           <section className="mb-16">
             <H2 id="deed-types">Deed types</H2>
+            {HELD_INSTRUMENTS.map((hold) => (
+              <p key={hold.slug} className="mt-4 max-w-2xl text-sm text-gray-600">{hold.reason}</p>
+            ))}
             <p className="mt-4 max-w-2xl leading-relaxed text-gray-600">
               {API_DEED_TYPES.length} instruments, each rendered from its own template. The vesting column is
               worth reading closely: two instruments state their vesting on their own face,
@@ -649,7 +653,8 @@ export default function DevelopersPage() {
             <p className="mt-4 max-w-2xl leading-relaxed text-gray-600">
               The current version is <strong>v1</strong>, covering the deed family. Additive
               changes — new deed types, new optional fields, new response keys — ship within
-              v1 without notice. A later breaking change would ship under a new path (
+              v1 without notice. Apart from the explicit safety cutovers recorded below,
+              a later breaking change would ship under a new path (
               <code className="rounded bg-gray-100 px-1 text-[13px]">/api/v2</code>).
             </p>
             <p className="mt-4 max-w-2xl leading-relaxed text-gray-600">
@@ -661,6 +666,13 @@ export default function DevelopersPage() {
             </p>
             <div className="mt-6 space-y-3 text-sm text-gray-600">
               <div>
+                <span className="font-semibold text-[#1F2B37]">2026-11-09 · v1 tax-deed safety hold</span>{' '}
+                — new tax-deed creation and pending approval are suspended while the
+                county workflow and form are reviewed. Existing stored PDFs remain
+                readable. This is an explicit change to v1 availability; no substitute
+                instrument is selected for you.
+              </div>
+              <div>
                 <span className="font-semibold text-[#1F2B37]">2026-08-27 · v1 Model 2 cutover</span>{' '}
                 — <code className="text-[13px]">POST /api/v1/deeds</code> returns a draft
                 and a confirmation URL. A stored PDF exists only after approval.
@@ -671,7 +683,7 @@ export default function DevelopersPage() {
               </div>
               <div>
                 <span className="font-semibold text-[#1F2B37]">2026-08 · v1</span> — {API_DEED_TYPES.length}{' '}
-                deed types (grant, quitclaim, interspousal, warranty, tax, joint tenancy,
+                currently available deed types (grant, quitclaim, interspousal, warranty, joint tenancy,
                 community property with right of survivorship, corporate and partnership
                 grantors). Idempotency keys. Per-key rate limits and usage reporting.
                 Public document verification.

@@ -8,6 +8,7 @@ import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { FormTypeConfig, SITUATION_GROUP_ORDER, formConfig } from '@/lib/formRegistry';
 import { groupedForms, searchForms } from '@/lib/formSearch';
 import { apiFetch } from '@/lib/apiClient';
+import { canGenerate, HELD_INSTRUMENTS } from '@/lib/instrumentAvailability';
 
 // CAT1 — the catalog's front door, three registry-driven layers:
 // search (situation words), grouped browse (desk taxonomy), recents.
@@ -40,7 +41,7 @@ export default function DeedBuilderSelectPage() {
         const body = await resp.json();
         const counts = new Map<string, number>();
         for (const d of body.deeds ?? []) {
-          if (d.deed_type && formConfig(d.deed_type)) {
+          if (d.deed_type && formConfig(d.deed_type) && canGenerate(d.deed_type)) {
             counts.set(d.deed_type, (counts.get(d.deed_type) ?? 0) + 1);
           }
         }
@@ -59,7 +60,9 @@ export default function DeedBuilderSelectPage() {
   const results = useMemo(() => (query.trim() ? searchForms(query) : null), [query]);
   const groups = useMemo(() => groupedForms(), []);
 
-  const select = (slug: string) => router.push(`/deed-builder/${slug}`);
+  const select = (slug: string) => {
+    if (canGenerate(slug)) router.push(`/deed-builder/${slug}`);
+  };
 
   if (!checked) return null;
 
@@ -103,6 +106,9 @@ export default function DeedBuilderSelectPage() {
           </div>
 
           {/* Layer 1 — search first */}
+          {HELD_INSTRUMENTS.map((hold) => (
+            <p key={hold.slug} className="mb-4 text-sm text-gray-600">{hold.reason}</p>
+          ))}
           <div className="relative mb-6">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input

@@ -165,3 +165,55 @@ def test_usage_is_metered(client, api_key):
         count = cur.fetchone()[0]
     conn.close()
     assert count >= 1
+
+
+def _historical_tax_fixture(client, api_key, *, completed):
+    """Synthetic local fixture: previously stored bytes, not a legal template test."""
+    import psycopg2
+    created = client.post("/api/v1/deeds", json=_deed_request_body(),
+                          headers={"Authorization": f"Bearer {api_key}"})
+    assert created.status_code == 200, created.text
+    data = created.json()["data"]
+    token = data["urls"]["confirmation"].rsplit("/", 1)[-1]
+    preview = client.get(f"/confirm/{token}/preview")
+    assert preview.status_code == 200
+    with psycopg2.connect(LIVE_DB) as conn:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE api_deeds SET deed_type='tax_deed', "
+                        "request_data=jsonb_set(request_data, '{deed_type}', '\"tax_deed\"') "
+                        "WHERE deed_id=%s", (data["deed_id"],))
+            if completed:
+                cur.execute("UPDATE api_deeds SET status='completed', "
+                            "pdf_data=preview_pdf_data, preview_pdf_data=NULL "
+                            "WHERE deed_id=%s", (data["deed_id"],))
+    return data["deed_id"], token, preview.content
+
+
+def test_tax_hold_preserves_previously_stored_api_bytes(client, api_key):
+    deed_id, token, original = _historical_tax_fixture(client, api_key, completed=True)
+    response = client.get(f"/api/v1/deeds/{deed_id}/pdf",
+                          headers={"Authorization": f"Bearer {api_key}"})
+    assert response.status_code == 200
+    assert response.content == original
+    assert client.get(f"/confirm/{token}/preview").content == original
+
+
+def test_tax_hold_cannot_promote_a_preexisting_pending_preview(client, api_key):
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    deed_id, token, original = _historical_tax_fixture(client, api_key, completed=False)
+    refused = client.post(f"/confirm/{token}/approve")
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["detail"]["code"] == "INSTRUMENT_UNAVAILABLE"
+    package = client.get(f"/confirm/{token}").json()
+    assert package["state"] == "pending_confirmation"
+    assert package["can_approve"] is False
+    assert package["can_reject"] is True
+    assert client.get(f"/confirm/{token}/preview").content == original
+    with psycopg2.connect(LIVE_DB, cursor_factory=RealDictCursor) as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT status,pdf_data,preview_pdf_data,authenticity_id FROM api_deeds WHERE deed_id=%s", (deed_id,))
+            stored = cur.fetchone()
+    assert stored["status"] == "pending_confirmation"
+    assert stored["pdf_data"] is None and stored["authenticity_id"] is None
+    assert bytes(stored["preview_pdf_data"]) == original

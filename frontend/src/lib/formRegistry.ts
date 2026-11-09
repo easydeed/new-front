@@ -12,6 +12,8 @@
  * doctrine pass — the registry deliberately has no field for "auto-apply".
  */
 
+import { canGenerate } from './instrumentAvailability';
+
 export type NotarialCertificate = 'acknowledgment' | 'jurat';
 
 /**
@@ -658,13 +660,12 @@ export const FORM_REGISTRY: Record<string, FormTypeConfig> = {
  * mechanism — it fails when a literal count reappears anywhere near the
  * word "instrument", which is what re-hardcoding looks like.
  *
- * WHAT THIS COUNTS is entries in the registry, which is exactly what the
- * builder offers an officer. If a future entry is ever added in a
- * not-yet-offered state, this stops being the marketing number and the
- * count needs a predicate — that would be a change to what is being
- * claimed, so it should be visible here rather than in the copy.
+ * WHAT THIS COUNTS is currently offered generation, not historical
+ * registrations. TDX0 keeps held tax-deed metadata for saved documents
+ * but excludes it through the shared availability predicate here and
+ * in the picker, instead of leaving a stale marketing count.
  */
-export const INSTRUMENT_COUNT = Object.keys(FORM_REGISTRY).length;
+export const INSTRUMENT_COUNT = Object.values(FORM_REGISTRY).filter((form) => canGenerate(form.slug)).length;
 
 export function formConfig(slug: string | undefined | null): FormTypeConfig | undefined {
   return slug ? FORM_REGISTRY[slug] : undefined;

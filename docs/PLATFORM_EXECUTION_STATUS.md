@@ -75,6 +75,12 @@ A maintained smoke test compiles and minifies a synthetic page, serves it on loo
 
 The historical deployed-API default discovery is addressed by merged review 301. That change and these synthetic proofs do not establish that the full application browser journeys pass against a disposable environment.
 
+## Temporary tax deed containment
+
+**DECIDED** — on 2026-11-09 the owner approved a temporary tax-deed generation block and completing P02 for eight available API types. The full legal/form redesign remains unapproved. The [containment contract](TAX_DEED_CONTAINMENT.md) records the single shared availability policy, affected entry points, pending-preview restriction and preservation of completed stored bytes. No tax-deed template text or historical record is changed.
+
+Integration requires green exact-head checks and verification on main. P02 remains a separate review and must be rebased onto the actual merged containment commit before its own eight-type-plus-refusal gates run. This phased scope does not clear the broader launch gates.
+
 ## Remaining release gates
 
 | Gate | State |

@@ -8,6 +8,8 @@
  * registry and dtt_rates.py has with dttCalc.ts.
  */
 
+import { canGenerate } from './instrumentAvailability';
+
 export interface ApiDeedType {
   /** The value sent as `deed_type`. */
   slug: string;
@@ -21,7 +23,7 @@ export interface ApiDeedType {
   note?: string;
 }
 
-export const API_DEED_TYPES: ApiDeedType[] = [
+const REGISTERED_API_DEED_TYPES: ApiDeedType[] = [
   {
     slug: 'grant_deed',
     label: 'Grant Deed',
@@ -75,6 +77,8 @@ export const API_DEED_TYPES: ApiDeedType[] = [
     note: 'The deed recites the partnership type and the state under whose laws it is organized.',
   },
 ];
+
+export const API_DEED_TYPES = REGISTERED_API_DEED_TYPES.filter((type) => canGenerate(type.slug));
 
 /** Instrument families the API does not expose, and why. */
 export const HELD_FAMILIES = [
