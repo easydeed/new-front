@@ -1,4 +1,4 @@
-const { targets, checkedUrl } = require('../target-policy.cjs')
+const { targets, checkedUrl, knownBrowserDownloadBlock } = require('../target-policy.cjs')
 
 function currentTargets(Cypress) {
   return targets({ baseUrl: Cypress.config('baseUrl'), env: { API_URL: Cypress.env('API_URL') } })
@@ -57,6 +57,11 @@ function installTargetSafety(Cypress, cy, before, beforeEach) {
   const fence = () => {
     const configured = currentTargets(Cypress)
     cy.intercept({ url: '**', middleware: true }, (request) => {
+      const blocked = knownBrowserDownloadBlock(request)
+      if (blocked) {
+        request.reply(blocked) // Local 503, never request.continue or forwarding.
+        return
+      }
       try {
         checkedUrl(request.url, configured.frontend, Object.values(configured))
       } catch {
