@@ -10,6 +10,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:browser-safety": "node --test scripts/browser-target-safety.check.cjs",
+    "test:browser-safety:runtime": "node scripts/browser-target-runtime.cjs",
     "cypress:open": "cypress open",
     "cypress:run": "cypress run",
     "cypress:run:headless": "cypress run --headless",

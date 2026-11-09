@@ -1,0 +1,61 @@
+{
+  "ticket": "Browser test target safety repair",
+  "owner_approval_date": "2026-11-09",
+  "executor": "Codex implementation and independent gate re-verification",
+  "baseline_main": "bdb78774bf47625e11672d6760586f69381901dd",
+  "integration": "prepared_separate_review_not_merged",
+  "frontend_lock_sha256_unchanged": "845fb9cf7558678631a2634ba7bbe48aa76929c4c9cad6c33c8d48b6f6090271",
+  "scope": {
+    "configs": ["frontend/cypress.config.js", "frontend/cypress-staging.config.js", "frontend/cypress-phase5.config.js"],
+    "required_inputs": ["baseUrl", "API_URL"],
+    "allowed_hosts": ["localhost", "127.0.0.1", "[::1]"],
+    "approved_remote_destinations": [],
+    "policy": "One shared loopback-origin validator for final merged configuration and runtime commands; no production opt-in flag",
+    "requests": "Exact configured origins only; automatic redirects disabled and redirect responses refused",
+    "visits": "Configured frontend origin only",
+    "browser_middleware": "Root suite and per-test refusals before other intercept handlers",
+    "accounts": "No embedded account defaults; explicit disposable inputs required and auth request/UI inputs hidden from command logs"
+  },
+  "local_verification": {
+    "node": "20.20.2",
+    "npm": "10.8.2",
+    "python": "3.11.9",
+    "clean_install": "passed_from_unchanged_main_lockfile",
+    "backend": {"passed": 1852, "failed": 0, "skipped": 0},
+    "frontend": {"passed": 1298, "suites": 95, "snapshots": 2, "failed": 0},
+    "native_safety_checks": {"passed": 32, "failed": 0, "skipped": 0},
+    "instrument_ci_pins": {"passed": 2, "included_in_frontend_total": true},
+    "mutation_probe": {"scope": "private copy with origin refusal deliberately disabled", "exit_code": 1, "failed_checks": 4, "positive_checks_still_passed": 28, "no_network_requests": true},
+    "typescript": {"errors": 83, "ceiling": 83, "parse_errors": 0},
+    "eslint": {"errors": 126, "warnings": 53, "files": 298, "status": "passed_existing_ceilings"},
+    "production_build": "passed_before_review",
+    "proofs": {"concurrency": "passed", "real_backup_restore_second_copy_hash": "passed", "walkthrough": "passed", "six_flow": "passed_unchanged", "api_baseline": "passed_unchanged", "openapi": "passed_in_backend_suite"},
+    "database": "marked_disposable_loopback_55439_only_stopped_after_checks",
+    "current_tree_secrets_and_claims": "passed",
+    "runtime_dependency_audit": {"critical": 0, "high": 0, "moderate": 0, "low": 0},
+    "portable_browser_proof": {"tool": "Cypress 15.21.1 Electron 138", "positive_passed": 1, "expected_refusals": 2, "forbidden_local_sentinel_hits": 0, "skipped": 0, "exit_code": 0},
+    "committed_version_browser_proof": {"tool": "Cypress 15.3.0 headless Electron", "positive_passed": 1, "expected_refusals": 2, "forbidden_local_sentinel_hits": 0, "skipped": 0, "exit_code": 0, "binary_install_and_proof_seconds": 234.91},
+    "retained_failed_attempts": [
+      "Jest initially claimed the Node-only .test.cjs file and reported that it contained no Jest tests. Renamed to .check.cjs; both independent runners then passed. No Jest ignore or gate bypass was added.",
+      "The first private browser proof parsed attempt.error instead of the documented test.displayError. Correct refusals appeared in the log but the proof failed. Fixed parsing without relaxing refusal counts, messages or the sentinel assertion; portable proof passed.",
+      "An optional full-graph audit refresh exceeded its 45-second local process cap. It was not counted as passed. The required production audit passed; development dependency remediation remains in held review 300."
+    ]
+  },
+  "ci": "Exact review head must pass all maintained jobs, build and release guard; links are recorded in the review",
+  "limits": [
+    "No legacy application journeys executed; fixtures exercised guard modules only",
+    "Loopback does not attest local servers' databases or downstream services",
+    "Arbitrary custom configs, Node tasks, plugins and server-side app traffic are not an OS-level network fence",
+    "No dependency changes and no resolution of the unexplained refusal holding PR 300"
+  ],
+  "production_settings_changed": false,
+  "production_database_used": false,
+  "historical_credential_rotation": "owner_confirmed_engineering_approval_only_rotation_unconfirmed",
+  "legal_commercial_or_customer_actions": false,
+  "primary_sources": [
+    "https://docs.cypress.io/api/commands/request",
+    "https://docs.cypress.io/api/commands/visit",
+    "https://docs.cypress.io/api/node-events/configuration-api",
+    "https://docs.cypress.io/app/references/module-api"
+  ]
+}

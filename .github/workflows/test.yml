@@ -127,6 +127,9 @@ jobs:
         node-version: '20'
     - working-directory: frontend
       run: npm ci
+    - name: Browser target safety (no deployed requests)
+      working-directory: frontend
+      run: node --test scripts/browser-target-safety.check.cjs
     - name: Jest (blocking)
       working-directory: frontend
       run: npx jest --ci

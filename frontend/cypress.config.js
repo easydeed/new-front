@@ -1,8 +1,8 @@
 const { defineConfig } = require('cypress')
+const { configureTargets } = require('./cypress/target-policy.cjs')
 
 module.exports = defineConfig({
   e2e: {
-    baseUrl: 'http://localhost:3000',
     supportFile: 'cypress/support/e2e.js',
     specPattern: 'cypress/e2e/**/*.cy.{js,jsx,ts,tsx}',
     viewportWidth: 1280,
@@ -14,18 +14,18 @@ module.exports = defineConfig({
     responseTimeout: 10000,
     env: {
       // Test environment variables
-      API_URL: 'https://deedpro-main-api.onrender.com',
-      GOOGLE_PLACES_ENABLED: 'true',
-      TITLEPOINT_ENABLED: 'true'
+      GOOGLE_PLACES_ENABLED: 'false',
+      TITLEPOINT_ENABLED: 'false'
     },
     setupNodeEvents(on, config) {
-      // implement node event listeners here
+      configureTargets(config)
       on('task', {
         log(message) {
           console.log(message)
           return null
         }
       })
+      return config
     },
   },
   component: {

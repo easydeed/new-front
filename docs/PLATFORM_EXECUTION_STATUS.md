@@ -1,6 +1,6 @@
 # DeedPro platform execution status
 
-Updated 2026-11-06. Owner: Gerard. Governing rules: [EXECUTION_POLICY.md](EXECUTION_POLICY.md). Work plan: [PLATFORM_LAUNCH_PLAN.md](PLATFORM_LAUNCH_PLAN.md).
+Updated 2026-11-09. Owner: Gerard. Governing rules: [EXECUTION_POLICY.md](EXECUTION_POLICY.md). Work plan: [PLATFORM_LAUNCH_PLAN.md](PLATFORM_LAUNCH_PLAN.md).
 
 The first implementation wave restores verification, patches the frontend runtime dependencies, and replaces a broken scheduled deployment recipe with a non-deploying owner checkpoint. It does not make DeedPro ready for real partner documents or a public launch.
 
@@ -52,6 +52,14 @@ Implementation references at merged main `88f8513b`:
 
 The source references and ticket acceptance criteria remain in the approved plan. Engineering approval does not fill in an unknown retention duration, tenant mapping, price, tax instruction or legal term.
 
+## Browser test safety repair
+
+The owner approved a separate repair on 2026-11-09. Its candidate removes deployed frontend/API defaults from all three maintained E2E configurations, removes embedded login account defaults, and checks final configuration plus request/visit destinations with one shared policy. Both origins must be explicit loopback HTTP(S) origins; no remote destination is approved. Direct requests cannot auto-follow redirects. The candidate adds blocking refusal checks to the existing frontend CI job without relaxing the maintained suites or baselines.
+
+The [operator guide](../frontend/cypress/README.md) describes setup and limits. Loopback configuration cannot establish whether a local application or API uses production services behind it; those services still require disposable fixtures and separate review. Full legacy application journeys remain unverified. This repair does not resolve the unrelated, unexplained browser refusal holding [toolchain review 300](https://github.com/easydeed/new-front/pull/300), and it does not include that review's dependency changes. The repair is prepared on a separate branch from main, not stacked on review 300.
+
+Implementation references: `frontend/cypress/target-policy.cjs:7`, `frontend/cypress/support/target-safety.cjs:33`, `frontend/cypress.config.js:21`, and `.github/workflows/test.yml:130`. The [verification record](platform_browser_safety_2026-11-09.json) and the repair's review retain the results and failed attempts; preparation is not integration or launch clearance.
+
 ## Remaining release gates
 
 | Gate | State |
@@ -61,13 +69,13 @@ The source references and ticket acceptance criteria remain in the approved plan
 | G2 integration pilot readiness | Not achieved: durable partner ownership, safe retries/lifecycle, integration documentation, operations and commercial readiness remain |
 | G3 broader sales | Not achieved: external integration, approved terms, recovery/incident evidence and a qualified pilot remain |
 
-The runtime production dependency audit reports zero known advisories at verification time. The complete graph still has **49 flagged development/build entries: 3 critical, 18 high, 25 moderate and 3 low**. These are registry dependency findings, not necessarily 49 distinct exploits. Their remediation and exposure assessment remain open; this wave is not a complete security clearance.
+The runtime production dependency audit reports zero known advisories at verification time. The 2026-11-06 complete-graph baseline recorded **49 flagged development/build entries: 3 critical, 18 high, 25 moderate and 3 low**. These are registry dependency findings, not necessarily 49 distinct exploits. The browser-target repair leaves the dependency lockfile unchanged; the separate toolchain candidate remains held. Remediation and exposure assessment remain open; this wave is not a complete security clearance.
 
 CI still asks for Node 20, which is end-of-life in the [official Node release table](https://nodejs.org/en/about/previous-releases). A supported-LTS CI update is separate from changing production settings. The legacy mixed-encoding root ignore file also remains unchanged; private verification tools, logs, artifacts and the disposable database are excluded locally and never committed.
 
 ## Owner checkpoints
 
-1. Revoke or rotate historical exposed credentials and retain value-free confirmation. Current-tree scanning cannot prove revocation.
+1. Revoke or rotate historical exposed credentials and retain value-free confirmation. The owner confirmed engineering approval only; rotation remains unconfirmed. Current-tree scanning cannot prove revocation.
 2. Configure or verify `production-release-review` in GitHub with the repository owner as the sole required reviewer, administrator bypass disabled, and self-review allowed for that sole owner. The readiness script refuses an absent, inaccessible or unprotected environment before an environment job can create it implicitly. This checkpoint never deploys.
 3. Resolve the conditional tax matrix, contact-retention transition, legacy-scope compatibility and legacy tenant mappings before the affected contract or data changes ship.
 4. Approve the commercial offer, counsel-reviewed documents, service targets and the first platform pilot. No money or customer communication is automated by this wave.
