@@ -80,7 +80,9 @@ Executor: backend engineer with document-domain review. Dependency: P00.
 
 Apply a shared, instrument-aware substantive validation layer at the public API boundary. Reject blank and whitespace-only material names, APN, legal description, required recording fields and approver identity strings. Validate before rendering or persistence. Preserve lawful optional fields; do not turn uncertainty about a fact into invented content. Bound input lengths and numeric formats without rejecting legitimate long legal descriptions.
 
-Acceptance: each required field has absent, empty, whitespace and valid cases; all nine instrument variants render correctly with valid data; invalid requests return a field-specific 422 with no artifact created. Include international names and long descriptions. Reuse the existing required-field corpus where appropriate. No credential-like name filter is represented as proof of human identity.
+Acceptance: each required field has absent, empty, whitespace and valid cases; all available instrument variants render correctly with valid data; invalid requests return a field-specific 422 with no artifact created. Include international names and long descriptions. Reuse the existing required-field corpus where appropriate. No credential-like name filter is represented as proof of human identity.
+
+Owner-approved scope revision, 2026-11-09: the original all-nine requirement exposed the tax-deed template's discarded inputs and fixed exemption. The owner explicitly approved temporary blocking of new tax-deed generation and eight-type P02. Require successful rendering for the eight available types plus a blocking refusal/no-new-artifact test for tax_deed. Do not mark the legal tax-deed repair complete or skip its former failing case. See [the containment contract](TAX_DEED_CONTAINMENT.md); the county workflow/form decisions remain separate owner/domain gates.
 
 Excludes substantive legal determinations and changing the application’s permitted partial-draft workflow.
 

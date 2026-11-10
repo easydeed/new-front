@@ -142,6 +142,10 @@ class DraftSave(BaseModel):
 def create_deed_endpoint(deed: DeedCreate, user_id: int = Depends(get_current_user_id)):
     """Create a new deed with validation - Backend Hotfix V1"""
 
+    # This endpoint generates; partial drafts use a separate save path.
+    from services.instrument_availability import require_generation_available
+    require_generation_available(deed.deed_type)
+
     # Convert Pydantic model to dict
     deed_data = deed.dict()
 

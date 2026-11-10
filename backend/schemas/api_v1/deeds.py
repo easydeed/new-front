@@ -8,6 +8,7 @@ from enum import Enum
 
 
 from services.api_catalog import API_DEED_TYPES, InstrumentRuleError, rules_for
+from services.instrument_availability import hold_for
 
 # A2: derived from the FORMS registry (via services/form_families), deed
 # family only per the Flag-4 doctrine ruling. The old hardcoded five-value
@@ -118,6 +119,13 @@ class CreateDeedRequest(BaseModel):
     transfer_tax: TransferTaxModel
     recording: RecordingModel
     approver: ApproverModel
+
+    @validator("deed_type", pre=True)
+    def refuse_held_instrument(cls, value):
+        hold = hold_for(value)
+        if hold:
+            raise InstrumentRuleError(hold["reason"], field="body.deed_type")
+        return value
 
     @validator("recording")
     def check_type_rules(cls, v, values):

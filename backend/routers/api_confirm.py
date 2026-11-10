@@ -183,6 +183,8 @@ async def approve_confirmation(token: str, request: Request,
                 detail={"code": "NOT_PENDING",
                         "message": f"This draft is {state} and cannot be approved"},
             )
+        from services.instrument_availability import require_generation_available
+        require_generation_available(row.get("deed_type"))
         preview = row["preview_pdf_data"]
         if not preview:
             raise HTTPException(

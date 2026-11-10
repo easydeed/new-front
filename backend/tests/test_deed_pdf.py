@@ -87,6 +87,14 @@ def test_render_produces_pdf_bytes_for_every_mapped_deed_type():
     # WeasyPrint — the production engine since PS2 — renders locally.
     for deed_type in ("grant-deed", "quitclaim-deed", "interspousal-transfer",
                       "warranty-deed", "tax-deed"):
+        from services.instrument_availability import can_generate
+        if not can_generate(deed_type):
+            import pytest
+            from fastapi import HTTPException
+            with pytest.raises(HTTPException) as refused:
+                render_deed_pdf(minimal_row(deed_type=deed_type))
+            assert refused.value.detail["code"] == "INSTRUMENT_UNAVAILABLE"
+            continue
         pdf = render_deed_pdf(minimal_row(deed_type=deed_type))
         assert pdf[:5] == b"%PDF-", f"{deed_type} did not render a PDF"
         assert len(pdf) > 1000

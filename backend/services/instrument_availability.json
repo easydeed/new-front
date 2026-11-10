@@ -1,0 +1,10 @@
+{
+  "revision": "TDX0-2026-11-09",
+  "held": {
+    "tax-deed": {
+      "label": "Tax Deed",
+      "aliases": ["tax-deed-ca"],
+      "reason": "New tax-deed generation is temporarily unavailable pending approval of the county workflow, legal form and tax instructions. Existing stored documents remain accessible."
+    }
+  }
+}

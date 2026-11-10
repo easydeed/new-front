@@ -31,6 +31,7 @@ from __future__ import annotations
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Mapping, Optional, Sequence
+from services.instrument_availability import can_generate
 
 CONFIRM_EXPIRY_DAYS = 7
 
@@ -188,7 +189,7 @@ def confirmation_package(row: Mapping[str, Any], *,
             "name": (row.get("approver_name") or "").strip() or None,
             "role": (row.get("approver_role") or "").strip() or None,
         },
-        "can_approve": pending,
+        "can_approve": pending and can_generate(row.get("deed_type")),
         "can_reject": pending,
         "reject_reasons": [dict(r) for r in REJECT_REASONS],
     }

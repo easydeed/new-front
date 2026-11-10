@@ -12,6 +12,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { generationHold } from '@/lib/instrumentAvailability';
 import { CheckCircle, Clock, FileText, Loader2, MessageSquare, XCircle } from 'lucide-react';
 
 const API = () => process.env.NEXT_PUBLIC_API_URL || 'https://deedpro-main-api.onrender.com';
@@ -164,7 +165,8 @@ export default function ConfirmDeedPage() {
     ? `${pack.approver.name}${pack.approver.role ? `, ${pack.approver.role}` : ''}`
     : 'Approver';
   const previewSrc = pack?.preview_url ? `${API()}${pack.preview_url}` : null;
-  const pending = pack?.can_approve && pack?.state === 'pending_confirmation';
+  const hold = pack?.state === 'pending_confirmation' ? generationHold(pack.deed_type) : undefined;
+  const pending = (pack?.can_approve || pack?.can_reject) && pack?.state === 'pending_confirmation';
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -189,6 +191,7 @@ export default function ConfirmDeedPage() {
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-8 space-y-6">
+        {hold && <p role="alert" className="rounded-lg border border-amber-200 p-4">{hold.reason} This pending preview cannot be approved.</p>}
         <p className="text-slate-600">
           Review the document as it will print. DeedPro does not confirm the facts —
           you do. Approve it, or send it back with a reason. Changes are made in the
@@ -337,7 +340,7 @@ export default function ConfirmDeedPage() {
             <button
               type="button"
               onClick={approve}
-              disabled={submitting}
+              disabled={submitting || !pack?.can_approve || Boolean(hold)}
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-5 py-3 font-medium text-white hover:bg-green-700 disabled:opacity-50"
             >
               {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle className="h-5 w-5" />}

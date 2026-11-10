@@ -14,6 +14,7 @@ import {
   SITUATION_GROUP_ORDER,
   SituationGroup,
 } from '@/lib/formRegistry';
+import { canGenerate } from '@/lib/instrumentAvailability';
 
 const norm = (s: string) => s.toLowerCase().trim();
 
@@ -45,13 +46,13 @@ export function matchesForm(f: FormTypeConfig, query: string): boolean {
  * first, which is simply the catalog's first match.
  */
 export function searchForms(query: string): FormTypeConfig[] {
-  return Object.values(FORM_REGISTRY).filter((f) => matchesForm(f, query));
+  return Object.values(FORM_REGISTRY).filter((f) => canGenerate(f.slug) && matchesForm(f, query));
 }
 
 /** Browse groups in desk-frequency order; every type appears exactly once. */
 export function groupedForms(): Array<{ group: SituationGroup; forms: FormTypeConfig[] }> {
   return SITUATION_GROUP_ORDER.map((group) => ({
     group,
-    forms: Object.values(FORM_REGISTRY).filter((f) => f.situationGroup === group),
+    forms: Object.values(FORM_REGISTRY).filter((f) => canGenerate(f.slug) && f.situationGroup === group),
   })).filter((g) => g.forms.length > 0);
 }

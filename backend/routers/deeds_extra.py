@@ -9,6 +9,7 @@ from models.interspousal_transfer import InterspousalTransferContext
 from models.warranty_deed import WarrantyDeedContext
 from models.tax_deed import TaxDeedContext
 from auth import get_current_user_id
+from services.instrument_availability import require_generation_available
 
 router = APIRouter(prefix="/api/generate", tags=["deeds-extra"])
 
@@ -54,6 +55,7 @@ async def warranty(ctx: WarrantyDeedContext, user_id: str = Depends(get_current_
 
 @router.post("/tax-deed-ca", response_class=StreamingResponse)
 async def taxdeed(ctx: TaxDeedContext, user_id: str = Depends(get_current_user_id)):
+    require_generation_available("tax-deed")
     pdf = await _render_pdf("tax_deed_ca/index.jinja2", ctx.dict())
     rid = f"taxdeed_{user_id}_{int(time.time())}"
     return StreamingResponse(io.BytesIO(pdf), media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="Tax_Deed_CA_{rid}.pdf"',"X-Request-ID": rid})

@@ -24,6 +24,10 @@ recital belongs).
 from typing import Dict, List, NamedTuple
 
 from services.form_families import FAMILY_BY_DEED_TYPE
+from services.instrument_availability import can_generate
+
+# Registered history and active capabilities differ while an owner-approved
+# hold is in force. Keep labels/requirements for history, not for new creation.
 
 # Chassis slugs are hyphenated; the API's JSON contract is underscored.
 _LEGACY_ALIASES = {"grant_deed", "quitclaim"}
@@ -44,7 +48,8 @@ def chassis_type(api_slug: str) -> str:
     return api_slug.replace("_", "-")
 
 
-API_DEED_TYPES: List[str] = [api_type(s) for s in _chassis_slugs()]
+REGISTERED_API_DEED_TYPES: List[str] = [api_type(s) for s in _chassis_slugs()]
+API_DEED_TYPES: List[str] = [t for t in REGISTERED_API_DEED_TYPES if can_generate(t)]
 
 
 class InstrumentRuleError(ValueError):

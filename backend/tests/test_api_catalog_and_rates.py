@@ -23,8 +23,9 @@ from schemas.api_v1.deeds import (
     TransferTaxModel,
 )
 from services.api_catalog import (
-    API_DEED_TYPES, TYPE_REQUIREMENTS, chassis_type, rules_for,
+    API_DEED_TYPES, REGISTERED_API_DEED_TYPES, TYPE_REQUIREMENTS, chassis_type, rules_for,
 )
+from services.instrument_availability import can_generate
 from services.deed_pdf import TEMPLATE_BY_DEED_TYPE
 from services.dtt_rates import (
     CITIES_WITH_OWN_DTT, CITY_RATES_PER_1000, COUNTY_RATE_PER_1000,
@@ -48,8 +49,10 @@ def test_exposed_types_match_the_registry_deed_family():
         slug.replace("-", "_") for slug, fam in FAMILY_BY_DEED_TYPE.items()
         if fam == "deed" and "_" not in slug and slug not in legacy_aliases
     }
-    assert set(API_DEED_TYPES) == from_registry
-    assert set(t.value for t in DeedType) == from_registry
+    assert set(REGISTERED_API_DEED_TYPES) == from_registry
+    available = {t for t in from_registry if can_generate(t)}
+    assert set(API_DEED_TYPES) == available
+    assert set(t.value for t in DeedType) == available
 
 
 def test_the_four_previously_invisible_instruments_are_exposed():
@@ -67,7 +70,7 @@ def test_every_exposed_type_has_an_explicit_requirements_entry():
     shipped silently printing a blank line inside a granting clause."""
     missing = [t for t in API_DEED_TYPES if t not in TYPE_REQUIREMENTS]
     assert missing == [], f"exposed without a requirements decision: {missing}"
-    stale = [t for t in TYPE_REQUIREMENTS if t not in API_DEED_TYPES]
+    stale = [t for t in TYPE_REQUIREMENTS if t not in REGISTERED_API_DEED_TYPES]
     assert stale == [], f"requirements for types no longer exposed: {stale}"
 
 
@@ -117,7 +120,7 @@ def test_fixed_vesting_instruments_refuse_a_supplied_vesting(deed_type):
 
 
 @pytest.mark.parametrize("deed_type", ["grant_deed", "interspousal_transfer",
-                                       "warranty_deed", "tax_deed"])
+                                       "warranty_deed"])
 def test_ordinary_deeds_still_require_vesting(deed_type):
     with pytest.raises(Exception) as exc:
         CreateDeedRequest(**_payload(deed_type, vesting=None))

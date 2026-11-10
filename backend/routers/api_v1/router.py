@@ -26,6 +26,7 @@ from schemas.api_v1.deeds import (
     VerificationResponse,
 )
 from services.api_catalog import chassis_type
+from services.instrument_availability import require_generation_available
 from services.api_confirm import (
     STATUS_COMPLETED, STATUS_PENDING, mint_token, expires_at as confirm_expires_at,
     pin_execution_date,
@@ -502,6 +503,7 @@ async def create_deed(
     """
     start_time = time.time()
 
+    require_generation_available(deed_request.deed_type)
     conn = get_db_connection()
     if not conn:
         raise HTTPException(status_code=500, detail={"code": "INTERNAL_ERROR", "message": "Database unavailable"})

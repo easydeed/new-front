@@ -41,6 +41,7 @@ function withoutComments(src: string) {
 }
 
 import { API_DEED_TYPES, HELD_FAMILIES } from '@/lib/apiDocs';
+import { canGenerate } from '@/lib/instrumentAvailability';
 
 describe('documented deed types mirror the backend catalog', () => {
   it('every documented type has a requirements entry in api_catalog.py', () => {
@@ -50,7 +51,8 @@ describe('documented deed types mirror the backend catalog', () => {
   });
 
   it('documents every type the backend exposes — none omitted', () => {
-    const backendSlugs = [...pyCatalog.matchAll(/"([a-z_]+)": TypeRules\(/g)].map((m) => m[1]);
+    const backendSlugs = [...pyCatalog.matchAll(/"([a-z_]+)": TypeRules\(/g)].map((m) => m[1]).filter(canGenerate);
+    expect(pyCatalog).toContain('if can_generate(t)');
     expect([...API_DEED_TYPES.map((t) => t.slug)].sort()).toEqual(backendSlugs.sort());
   });
 

@@ -145,6 +145,8 @@ def render_deed_html(row) -> str:
 
 
 def render_deed_pdf(row) -> bytes:
+    from services.instrument_availability import require_generation_available
+    require_generation_available(row.get("deed_type"))
     return render_pdf(render_deed_html(row))
 
 
