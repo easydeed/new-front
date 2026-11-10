@@ -1,0 +1,44 @@
+{
+  "ticket": "P03 disabled-profile API v2 preparation and stored-zero response fidelity",
+  "date": "2026-11-10",
+  "baseline_main": "8e5c28ad4b3ae6c22e49e4b689561530e0fbedfb",
+  "branch": "codex/p03-tax-contract-v2",
+  "owner_decision": "D1-D8 engineering approved; prepare v2 with county profiles disabled; broader v1 cutover held for separate release approval",
+  "scope": "Structural tax instructions, closed profile/release boundaries, pure unaccepted receipt preparation and explicit-zero response representation",
+  "retained_attempts": [{"backend_passed": 2598, "backend_failed": 1, "reason": "New integration test destructured a database result positionally; row-contract gate correctly refused it. Corrected to named fields and rerun both suites and all proofs; no scanner or assertion bypass."}],
+  "predecessors": {
+    "interspousal_hold": {"review": 304, "main": "00cb1ae2c9c4ed00f1f5c3787698c3dab68f061d", "verified": true},
+    "county_rounding": {"review": 305, "main": "8e5c28ad4b3ae6c22e49e4b689561530e0fbedfb", "verified": true}
+  },
+  "verification": {
+    "status": "focused_controls_passed_full_local_exact_head_CI_and_main_receipts_required_in_review",
+    "focused": {"passed": 127, "failed": 0},
+    "mutation_controls": {
+      "conditional": "expected_test_failure_when_missing_basis_reaches_profile_409_instead_of_validation_422",
+      "amount": "expected_test_failure_when_negative_zero_city_amount_reaches_profile_409_instead_of_validation_422",
+      "city": "expected_test_failure_when_conflicting_city_reaches_profile_409_instead_of_validation_422",
+      "profile": "expected_test_failure_when_independent_release_409_replaces_expected_profile_409",
+      "registry": "expected_test_failure_when_malformed_registry_check_is_bypassed_even_though_profile_refusal_still_blocks_generation",
+      "source_modified_by_probes": false,
+      "note": "Private amount probe was narrowed from a broad syntax selection that hit a decimal conversion exception to the negative-zero city case; maintained assertions were not weakened."
+    },
+    "lockfile_sha256": "f7bde294ee6d6d3c56cba466b78662f6f18ae2e05c42fd7ad73949b7f07a83db",
+    "full_application_browser_journeys": "not_run_not_claimed"
+  },
+  "v2_production_router_mounted": false,
+  "v2_generation_implemented": false,
+  "county_profiles_enabled": false,
+  "legal_wording_or_applicability_approved": false,
+  "approval_evidence_persisted": false,
+  "broader_v1_input_or_preview_cutover_enabled": false,
+  "legacy_v1_tax_defaults_removed": false,
+  "legal_templates_changed": false,
+  "historical_artifacts_rewritten": false,
+  "production_database_used": false,
+  "production_settings_changed": false,
+  "credentials_read_or_changed": false,
+  "baselines_rerecorded": false,
+  "original_dirty_checkout_preserved": true,
+  "p03_complete": false,
+  "launch_gate_g1_achieved": false
+}

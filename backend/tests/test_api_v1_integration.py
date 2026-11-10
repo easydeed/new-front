@@ -150,6 +150,38 @@ def test_missing_key_is_401_not_500(client):
     assert resp.json()["detail"]["code"] == "UNAUTHORIZED"
 
 
+def test_explicit_zero_create_replay_retrieve_and_stored_bytes(client, api_key):
+    """Synthetic legacy representation proof, not approval of v1 tax semantics."""
+    import hashlib
+    from uuid import uuid4
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    body = _deed_request_body()
+    body["transfer_tax"] = {"exempt": True, "computed_amount": "0.00",
+                            "exempt_code": "Synthetic professional grounds, not a legal example"}
+    headers = {"Authorization": f"Bearer {api_key}", "Idempotency-Key": "zero-" + uuid4().hex}
+    first = client.post("/api/v1/deeds", json=body, headers=headers)
+    replay = client.post("/api/v1/deeds", json=body, headers=headers)
+    assert first.status_code == replay.status_code == 200
+    data = first.json()["data"]
+    assert replay.json()["data"]["deed_id"] == data["deed_id"]
+    got = client.get(f"/api/v1/deeds/{data['deed_id']}", headers=headers)
+    assert got.status_code == 200
+    for response in (first, replay, got):
+        assert response.json()["data"]["transfer_tax"]["amount"] == "$0.00"
+    token = data["urls"]["confirmation"].rsplit("/", 1)[-1]
+    preview = client.get(f"/confirm/{token}/preview")
+    assert preview.status_code == 200 and preview.content.startswith(b"%PDF-")
+    with psycopg2.connect(LIVE_DB, cursor_factory=RealDictCursor) as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT transfer_tax_amount,request_data,preview_pdf_data FROM api_deeds WHERE deed_id=%s", (data["deed_id"],))
+            stored = cur.fetchone()
+    assert stored["transfer_tax_amount"] == 0
+    assert stored["request_data"]["transfer_tax"]["computed_amount"] == "0.00"
+    assert bytes(stored["preview_pdf_data"]) == preview.content
+    assert hashlib.sha256(bytes(stored["preview_pdf_data"])).hexdigest() == hashlib.sha256(preview.content).hexdigest()
+
+
 def test_usage_is_metered(client, api_key):
     """Flag-3 ruling: metering from day one. Every authenticated call
     writes an api_usage_log row so pricing later prices from data."""
