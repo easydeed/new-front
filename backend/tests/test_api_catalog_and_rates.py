@@ -119,12 +119,18 @@ def test_fixed_vesting_instruments_refuse_a_supplied_vesting(deed_type):
     CreateDeedRequest(**_payload(deed_type, vesting=None))
 
 
-@pytest.mark.parametrize("deed_type", ["grant_deed", "interspousal_transfer",
-                                       "warranty_deed"])
+@pytest.mark.parametrize("deed_type", ["grant_deed", "warranty_deed"])
 def test_ordinary_deeds_still_require_vesting(deed_type):
     with pytest.raises(Exception) as exc:
         CreateDeedRequest(**_payload(deed_type, vesting=None))
     assert "vesting is required" in str(exc.value)
+
+
+def test_interspousal_history_keeps_registered_rules_while_generation_is_held():
+    assert TYPE_REQUIREMENTS["interspousal_transfer"].requires_vesting
+    with pytest.raises(Exception) as exc:
+        CreateDeedRequest(**_payload("interspousal_transfer"))
+    assert "temporarily unavailable" in str(exc.value)
 
 
 def test_quitclaim_vesting_is_optional():

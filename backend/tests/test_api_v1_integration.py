@@ -168,7 +168,7 @@ def test_usage_is_metered(client, api_key):
     assert count >= 1
 
 
-def _historical_tax_fixture(client, api_key, *, completed):
+def _historical_held_fixture(client, api_key, *, completed, deed_type):
     """Synthetic local fixture: previously stored bytes, not a legal template test."""
     import psycopg2
     created = client.post("/api/v1/deeds", json=_deed_request_body(),
@@ -180,9 +180,9 @@ def _historical_tax_fixture(client, api_key, *, completed):
     assert preview.status_code == 200
     with psycopg2.connect(LIVE_DB) as conn:
         with conn.cursor() as cur:
-            cur.execute("UPDATE api_deeds SET deed_type='tax_deed', "
-                        "request_data=jsonb_set(request_data, '{deed_type}', '\"tax_deed\"') "
-                        "WHERE deed_id=%s", (data["deed_id"],))
+            cur.execute("UPDATE api_deeds SET deed_type=%s, "
+                        "request_data=jsonb_set(request_data, '{deed_type}', to_jsonb(%s::text)) "
+                        "WHERE deed_id=%s", (deed_type, deed_type, data["deed_id"]))
             if completed:
                 cur.execute("UPDATE api_deeds SET status='completed', "
                             "pdf_data=preview_pdf_data, preview_pdf_data=NULL "
@@ -190,8 +190,9 @@ def _historical_tax_fixture(client, api_key, *, completed):
     return data["deed_id"], token, preview.content
 
 
-def test_tax_hold_preserves_previously_stored_api_bytes(client, api_key):
-    deed_id, token, original = _historical_tax_fixture(client, api_key, completed=True)
+@pytest.mark.parametrize("deed_type", ["tax_deed", "interspousal_transfer"])
+def test_held_types_preserve_previously_stored_api_bytes(client, api_key, deed_type):
+    deed_id, token, original = _historical_held_fixture(client, api_key, completed=True, deed_type=deed_type)
     response = client.get(f"/api/v1/deeds/{deed_id}/pdf",
                           headers={"Authorization": f"Bearer {api_key}"})
     assert response.status_code == 200
@@ -199,10 +200,11 @@ def test_tax_hold_preserves_previously_stored_api_bytes(client, api_key):
     assert client.get(f"/confirm/{token}/preview").content == original
 
 
-def test_tax_hold_cannot_promote_a_preexisting_pending_preview(client, api_key):
+@pytest.mark.parametrize("deed_type", ["tax_deed", "interspousal_transfer"])
+def test_held_types_cannot_promote_a_preexisting_pending_preview(client, api_key, deed_type):
     import psycopg2
     from psycopg2.extras import RealDictCursor
-    deed_id, token, original = _historical_tax_fixture(client, api_key, completed=False)
+    deed_id, token, original = _historical_held_fixture(client, api_key, completed=False, deed_type=deed_type)
     refused = client.post(f"/confirm/{token}/approve")
     assert refused.status_code == 409, refused.text
     assert refused.json()["detail"]["code"] == "INSTRUMENT_UNAVAILABLE"
@@ -249,13 +251,14 @@ def test_p02_invalid_inputs_leave_no_draft_or_pdf(client, api_key, monkeypatch):
         assert response.status_code == 422, response.text
         assert response.json()["detail"]["code"] == "VALIDATION_ERROR"
         assert any(e["field"] == "body.grantor.name" for e in response.json()["detail"]["details"])
-    # Fully populated tax input must still be refused, not reach a ninth
-    # rendering case or create a historical-looking draft during the hold.
-    held = client.post("/api/v1/deeds", json=payload("tax_deed"),
-                       headers={"Authorization": f"Bearer {api_key}"})
-    assert held.status_code == 422, held.text
-    assert held.json()["detail"]["code"] == "VALIDATION_ERROR"
-    assert any(e["field"] == "body.deed_type" for e in held.json()["detail"]["details"])
+    # Both owner-held types must refuse otherwise usable input; neither
+    # request may create a draft or invoke the renderer.
+    for deed_type in ("tax_deed", "interspousal_transfer"):
+        held = client.post("/api/v1/deeds", json=payload(deed_type),
+                           headers={"Authorization": f"Bearer {api_key}"})
+        assert held.status_code == 422, held.text
+        assert held.json()["detail"]["code"] == "VALIDATION_ERROR"
+        assert any(e["field"] == "body.deed_type" for e in held.json()["detail"]["details"])
     render.assert_not_called()
     assert artifact_counts() == before
 

@@ -4,6 +4,8 @@
 
 ## Behavior
 
+Subsequent owner-approved D5 containment on 2026-11-10 also holds interspousal generation and pending approval. The offered API set becomes seven types; the earlier eight-type tax-only containment/P02 scope is historical. Current availability comes from the single shared policy. See [interspousal containment](INTERSPOUSAL_CONTAINMENT.md); neither hold restores or legally clears its form.
+
 The single policy is `backend/services/instrument_availability.json:1`. Python and TypeScript read that same corpus. The public schema, capability counts, developer table, application picker, recent choices and direct builder links reflect the hold. Accepted legacy aliases and case/whitespace variants cannot bypass it.
 
 New public API requests for a held type receive a field-specific 422 validation error. The API handler also checks availability defensively before opening the deed database connection. Application generation and the feature-flagged direct generator refuse with 409 `INSTRUMENT_UNAVAILABLE` before saving/rendering. The shared `render_deed_pdf` entry point refuses before HTML/PDF rendering, including attempted legacy self-heal that would create new bytes. No environment flag bypass is introduced.
