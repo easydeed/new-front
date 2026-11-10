@@ -470,7 +470,7 @@ def _deed_response_from_row(row) -> DeedResponse:
             ),
             transfer_tax=DeedTransferTaxResponse(
                 amount=(f"${row['transfer_tax_amount']:.2f}"
-                        if row["transfer_tax_amount"] else None),
+                        if row["transfer_tax_amount"] is not None else None),
                 exempt=bool(row["transfer_tax_exempt"]),
             ),
             approver=DeedApproverResponse(

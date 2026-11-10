@@ -19,6 +19,7 @@ The first implementation wave restores verification, patches the frontend runtim
 | Development/build dependency security and local browser download denials | [300](https://github.com/easydeed/new-front/pull/300) | `a7321b63` |
 | Temporary tax-deed hold and narrow shared-policy packaging exception | [303](https://github.com/easydeed/new-front/pull/303) | `6a37115c` |
 | Interspousal generation/approval containment | [304](https://github.com/easydeed/new-front/pull/304) | `00cb1ae2` |
+| Separate county increment arithmetic repair | [305](https://github.com/easydeed/new-front/pull/305) | `8e5c28ad` |
 
 The original dirty `engine1` checkout is preserved. Its local-only work is not treated as merged or obsolete. Temporary integration branches must be rebased onto main before merging; no child is merged into a feature branch.
 
@@ -102,7 +103,9 @@ On 2026-11-10 the owner approved D1–D8 engineering, including separate intersp
 
 ## Remaining release gates
 
-The separate [county increment repair](COUNTY_ROUNDING_REPAIR.md) corrects a reproduced arithmetic discrepancy without selecting legal applicability or updating municipal rates; its own full gates and main receipt are required. It does not clear P11 or activate the new tax contract.
+**BUILT** — the separate [county increment repair](COUNTY_ROUNDING_REPAIR.md) reached main as `8e5c28ad`, with matching reviewed/merged trees and green post-merge Run Tests `42905025610`, CI `42905025456` and Vercel status. It corrects the reproduced arithmetic discrepancy without selecting legal applicability or updating municipal rates. It does not clear P11 or activate a new tax contract.
+
+**PREPARATION ONLY** — the [v2 tax contract](API_V2_TAX_PREPARATION.md) has no production mount or enabled county profiles. Its separate verification receipt is required before reporting the preparation integrated. The only v1 runtime change in that concern preserves stored zero in create/replay/retrieve responses. The [approved matrix](P03_TAX_DECISION_MATRIX.md) retains the original defects; broader v1 defaults and preview transitions remain behind separate release approval. P03 and G1 are not complete.
 
 | Gate | State |
 |---|---|
