@@ -43,6 +43,7 @@ async def quitclaim(ctx: QuitclaimDeedContext, user_id: str = Depends(get_curren
 
 @router.post("/interspousal-transfer-ca", response_class=StreamingResponse)
 async def interspousal(ctx: InterspousalTransferContext, user_id: str = Depends(get_current_user_id)):
+    require_generation_available("interspousal-transfer")
     pdf = await _render_pdf("interspousal_transfer_ca/index.jinja2", ctx.dict())
     rid = f"interspousal_{user_id}_{int(time.time())}"
     return StreamingResponse(io.BytesIO(pdf), media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="Interspousal_Transfer_CA_{rid}.pdf"',"X-Request-ID": rid})

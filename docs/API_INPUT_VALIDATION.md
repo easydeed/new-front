@@ -10,6 +10,8 @@ The revision is published on the `CreateDeedRequest` schema as `x-deedpro-valida
 
 ## Text requirements and limits
 
+Subsequent owner decision D5, 2026-11-10: interspousal generation and pending approval are also held for domain review. The current offered API set is seven types; the eight-type P02 results above remain historical evidence, not legal-form clearance. Positive tests follow the available set, with explicit refusal/no-artifact proofs for both held types. See [interspousal containment](INTERSPOUSAL_CONTAINMENT.md). P03 v2 preparation retains disabled county profiles, and the broader v1 cutover remains behind separate approval.
+
 Required party names, property facts, recording/return-address fields and approver name/role must contain non-whitespace text. The existing per-instrument catalog still decides vesting and entity recitals: fixed-vesting forms refuse supplied vesting, quitclaim vesting stays optional, and entity deeds require their existing recital facts. The shared required-field presence predicate is reused; no new legal requirement list is introduced.
 
 | Input | Maximum characters |

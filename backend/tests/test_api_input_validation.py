@@ -74,11 +74,12 @@ def assert_refused(boundary, body, field):
     render.assert_not_called()
 
 
-def test_p02_held_tax_type_refuses_otherwise_usable_input(boundary):
-    # Owner-approved scope: eight positive types plus an explicit refusal,
-    # not an untested or silently skipped ninth rendering case.
-    assert len(API_DEED_TYPES) == 8 and "tax_deed" not in API_DEED_TYPES
-    assert_refused(boundary, payload("tax_deed"), "deed_type")
+@pytest.mark.parametrize("deed_type", ["tax_deed", "interspousal_transfer"])
+def test_p02_held_types_refuse_otherwise_usable_input(boundary, deed_type):
+    # D5 explicitly revises active scope to seven positive types and two
+    # refusals; the original eight-type P02 evidence remains historical.
+    assert len(API_DEED_TYPES) == 7 and deed_type not in API_DEED_TYPES
+    assert_refused(boundary, payload(deed_type), "deed_type")
 
 
 @pytest.mark.parametrize("deed_type", API_DEED_TYPES)

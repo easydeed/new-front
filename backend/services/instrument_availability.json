@@ -1,10 +1,15 @@
 {
-  "revision": "TDX0-2026-11-09",
+  "revision": "ISH0-2026-11-10",
   "held": {
     "tax-deed": {
       "label": "Tax Deed",
       "aliases": ["tax-deed-ca"],
       "reason": "New tax-deed generation is temporarily unavailable pending approval of the county workflow, legal form and tax instructions. Existing stored documents remain accessible."
+    },
+    "interspousal-transfer": {
+      "label": "Interspousal Transfer Deed",
+      "aliases": ["interspousal-transfer-ca"],
+      "reason": "New interspousal-transfer generation is temporarily unavailable pending domain approval of its tax instructions and legal form. Existing stored documents remain accessible."
     }
   }
 }

@@ -8,19 +8,28 @@ import path from 'path';
 import { execFileSync } from 'child_process';
 import ignore from 'ignore';
 
-describe('owner-approved tax-deed hold', () => {
-  it.each(['tax-deed', 'tax_deed', ' TAX_DEED ', 'tax-deed-ca', 'tax_deed_ca'])('holds %s from the shared policy', (slug) => {
+const heldVariants = HELD_INSTRUMENTS.flatMap((hold) => [hold.slug, ...hold.aliases]
+  .flatMap((alias) => [alias, alias.replace(/-/g, '_'), ` ${alias.toUpperCase()} `])
+  .map((slug) => ({ slug, reason: hold.reason })));
+
+describe('owner-approved instrument holds', () => {
+  it.each(heldVariants)('holds $slug from the shared policy', ({ slug, reason }) => {
     expect(canGenerate(slug)).toBe(false);
-    expect(generationHold(slug)?.reason).toBe(HELD_INSTRUMENTS[0].reason);
+    expect(generationHold(slug)?.reason).toBe(reason);
   });
 
   it('keeps historical labels but does not offer or count held generation', () => {
     expect(formConfig('tax-deed')?.label).toBe('Tax Deed');
-    expect(API_DEED_TYPES).toHaveLength(8);
-    expect(API_DEED_TYPES.some((t) => t.slug === 'tax_deed')).toBe(false);
+    expect(formConfig('interspousal-transfer')?.label).toBe('Interspousal Transfer Deed');
+    expect(HELD_INSTRUMENTS.map((h) => h.slug).sort()).toEqual(['interspousal-transfer', 'tax-deed']);
+    expect(API_DEED_TYPES).toHaveLength(7);
+    expect(INSTRUMENT_COUNT).toBe(19);
     expect(INSTRUMENT_COUNT).toBe(Object.values(FORM_REGISTRY).filter((f) => canGenerate(f.slug)).length);
-    expect(searchForms('tax deed').some((f) => f.slug === 'tax-deed')).toBe(false);
-    expect(groupedForms().flatMap((g) => g.forms).some((f) => f.slug === 'tax-deed')).toBe(false);
+    for (const hold of HELD_INSTRUMENTS) {
+      expect(API_DEED_TYPES.some((t) => t.slug === hold.slug.replace(/-/g, '_'))).toBe(false);
+      expect(searchForms(hold.label).some((f) => f.slug === hold.slug)).toBe(false);
+      expect(groupedForms().flatMap((g) => g.forms).some((f) => f.slug === hold.slug)).toBe(false);
+    }
   });
 
   it('both language readers use one corpus; builder and docs consume the shared reason', () => {

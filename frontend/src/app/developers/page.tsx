@@ -675,6 +675,14 @@ export default function DevelopersPage() {
             </p>
             <div className="mt-6 space-y-3 text-sm text-gray-600">
               <div>
+                <span className="font-semibold text-[#1F2B37]">2026-11-10 · v1 interspousal safety hold</span>{' '}
+                — new interspousal-transfer creation and pending approval are suspended
+                while its tax instructions and legal form await domain review.
+                Seven API deed types remain available. Stored completed PDFs remain
+                accessible; this hold does not rewrite existing documents or choose
+                an exemption for you.
+              </div>
+              <div>
                 <span className="font-semibold text-[#1F2B37]">2026-11-09 · v1 tax-deed safety hold</span>{' '}
                 — new tax-deed creation and pending approval are suspended while the
                 county workflow and form are reviewed. Existing stored PDFs remain

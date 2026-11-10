@@ -88,6 +88,8 @@ Excludes substantive legal determinations and changing the application’s permi
 
 ### P03 Require explicit transfer tax instructions
 
+Owner-approved D5 scope revision, 2026-11-10: temporarily hold interspousal generation/approval in a separate review, preserving stored-document access. Positive creation/PDF coverage follows seven available API types; explicit refusal/no-new-artifact and historical-access proofs cover both held types. Preserve P02's original eight-type results as history, not a requirement to re-enable the contradicted form. The owner approved D1–D8 engineering and a separate county rounding repair, while county-specific wording/applicability remain domain-held. V2 may be prepared with county profiles disabled; a broader v1 cutover requires separate release approval.
+
 Executor: backend engineer plus owner/domain reviewer. Dependency: P02; owner confirms the conditional decision matrix.
 
 Remove the silent full_value fallback. Define taxable versus exempt requirements, explicit basis, exemption wording, monetary format, treatment of zero, and consistency of supplied fields. Do not invent statutory exemptions or validate a legal conclusion merely by matching a code string. Retain the officer’s actual instructions and provenance.

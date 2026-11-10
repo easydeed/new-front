@@ -93,6 +93,12 @@ The implementation shares the existing substantive-presence predicate, preserves
 
 The developer page records this specific compatibility exception and retains the new-version promise for other breaking changes. Field names, routes and response shapes remain unchanged; invalid authenticated requests receive actionable field-specific 422 errors. No schema migration, historical data rewrite, production transaction or customer notification is included. Implementation and cutover details are in [the input validation contract](API_INPUT_VALIDATION.md); exact local and review checks are recorded in [the P02 evidence](platform_p02_2026-11-09.json). Integration requires green exact-head checks and a verified main receipt in review 302. G1 remains unachieved.
 
+## P03 approved engineering and domain holds
+
+On 2026-11-10 the owner approved D1–D8 engineering, including separate interspousal containment and county rounding repair. The owner then selected preparation of v2 with county profiles disabled and a separate approval gate for the broader v1 cutover. County-specific wording, exemption applicability and profile activation are not approved.
+
+The [interspousal containment candidate](INTERSPOUSAL_CONTAINMENT.md) extends the existing shared policy without changing the legal template, reducing offered API types from eight to seven when integrated. Both held types receive refusal and historical-access/non-promotion coverage; original P02 counts remain historical. Integration requires every local gate, exact-head CI/Preview and a verified main receipt. The rounding repair and v2 preparation are separate concerns. None of these engineering approvals clears G1.
+
 ## Remaining release gates
 
 | Gate | State |
