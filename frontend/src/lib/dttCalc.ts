@@ -51,7 +51,9 @@ export function computeDttBreakdown(value: DTTData | null): DttBreakdown | null 
   const amount = parseFloat(value.transferValue.replace(/[^0-9.]/g, ''));
   if (isNaN(amount) || amount <= 0) return null;
 
-  const countyTax = (amount / 1000) * 1.1;
+  // An already supplied taxable base: arithmetic, not an exemption or
+  // applicability decision. Do not round away a fraction of a $500 unit.
+  const countyTax = Math.ceil(amount / 500) * (1.1 / 2);
   let cityTax = 0;
   let cityRateUnknown = false;
   let unknownPlace: string | undefined;

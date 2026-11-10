@@ -18,6 +18,7 @@ The first implementation wave restores verification, patches the frontend runtim
 | Explicit browser test targets and refusal guards | [301](https://github.com/easydeed/new-front/pull/301) | `c1f9dacd` |
 | Development/build dependency security and local browser download denials | [300](https://github.com/easydeed/new-front/pull/300) | `a7321b63` |
 | Temporary tax-deed hold and narrow shared-policy packaging exception | [303](https://github.com/easydeed/new-front/pull/303) | `6a37115c` |
+| Interspousal generation/approval containment | [304](https://github.com/easydeed/new-front/pull/304) | `00cb1ae2` |
 
 The original dirty `engine1` checkout is preserved. Its local-only work is not treated as merged or obsolete. Temporary integration branches must be rebased onto main before merging; no child is merged into a feature branch.
 
@@ -97,9 +98,11 @@ The developer page records this specific compatibility exception and retains the
 
 On 2026-11-10 the owner approved D1–D8 engineering, including separate interspousal containment and county rounding repair. The owner then selected preparation of v2 with county profiles disabled and a separate approval gate for the broader v1 cutover. County-specific wording, exemption applicability and profile activation are not approved.
 
-The [interspousal containment candidate](INTERSPOUSAL_CONTAINMENT.md) extends the existing shared policy without changing the legal template, reducing offered API types from eight to seven when integrated. Both held types receive refusal and historical-access/non-promotion coverage; original P02 counts remain historical. Integration requires every local gate, exact-head CI/Preview and a verified main receipt. The rounding repair and v2 preparation are separate concerns. None of these engineering approvals clears G1.
+**BUILT** — [interspousal containment](INTERSPOUSAL_CONTAINMENT.md) reached main as `00cb1ae2` with identical reviewed/merged trees, green exact-head CI/Preview and post-merge Run Tests `42900961057`, CI `42900960438` and Vercel status. Seven API types remain available. Both held types retain refusal and historical-access/non-promotion proofs; original P02 counts remain historical. No legal-template text changed. Rounding and disabled-profile v2 preparation remain separate concerns; none of these approvals clears G1.
 
 ## Remaining release gates
+
+The separate [county increment repair](COUNTY_ROUNDING_REPAIR.md) corrects a reproduced arithmetic discrepancy without selecting legal applicability or updating municipal rates; its own full gates and main receipt are required. It does not clear P11 or activate the new tax contract.
 
 | Gate | State |
 |---|---|

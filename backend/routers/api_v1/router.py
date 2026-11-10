@@ -914,7 +914,7 @@ async def calculate_transfer_tax(
             "breakdown": {
                 "county": {
                     "name": f"{request.county} County",
-                    "rate": f"${dtt['county_rate_per_1000']:.2f} per $1,000",
+                    "rate": f"${dtt['county_rate_per_1000'] / 2:.2f} per $500 or fraction",
                     "amount": dtt["county_tax"]
                 },
                 "city": city_breakdown
@@ -922,7 +922,9 @@ async def calculate_transfer_tax(
             # Rate provenance travels with the number — these are
             # approximations of tiered municipal schedules, and a caller
             # declaring tax on a recorded instrument should know that.
-            "disclaimer": "County rate per R&T §11911. City rates are approximations "
+            "disclaimer": "Calculation assumes a caller-supplied taxable base and does not "
+                          "decide taxability or exemptions. County increments per R&T §11911. "
+                          "City rates are approximations "
                           "of tiered municipal schedules; verify against the current "
                           "schedule for the recording jurisdiction."
         }
