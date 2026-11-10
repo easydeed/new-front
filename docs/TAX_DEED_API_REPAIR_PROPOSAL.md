@@ -1,10 +1,10 @@
 # Tax deed API repair proposal
 
-Prepared 2026-11-09. Status: read-only proposal for owner and domain review; no tax-deed repair or containment is authorized by this document. The owner directed that P02 remain unmerged and this proposal be prepared separately. [P02 review 302](https://github.com/easydeed/new-front/pull/302) remains draft, with its failing real-PDF test intact.
+Prepared 2026-11-09; containment status updated 2026-11-10. Full tax-deed legal/form restoration remains a proposal for owner and domain review. After the original P02 hold, the owner separately approved temporary containment and eight-type P02 acceptance. [Containment review 303](https://github.com/easydeed/new-front/pull/303) is merged on main as `6a37115c`, with green exact-head and post-merge checks. [P02 review 302](https://github.com/easydeed/new-front/pull/302) now requires eight positive PDF cases plus explicit held-tax refusal/no-artifact evidence; its original ninth-case failure remains historical evidence, not a repaired form.
 
 ## Recommendation
 
-Do not treat `tax_deed` as an ordinary grant deed with a different title. First decide whether DeedPro will support preparation for an authorized county tax-collector workflow, or hold this instrument outside the initial platform offer. If the owner wants immediate risk reduction, approve a separate temporary-refusal change across the affected creation surfaces. That containment is proposed, not implemented. Keep P02 held until the owner approves and verifies a resolution to its nine-instrument acceptance gate.
+Do not treat `tax_deed` as an ordinary grant deed with a different title. The approved first platform slice holds new tax-deed creation and pending approval while retaining access to stored documents. P02 may complete for the eight available types after its own gates pass. Restoring tax-deed generation still requires deciding the authorized county workflow, form and explicit instructions below; containment does not supply those decisions.
 
 ## Reproduced failures
 
@@ -45,19 +45,19 @@ Sources were checked on 2026-11-09. The manual cover is dated January 2026, whil
 
 ## Proposed engineering sequence
 
-**TDX0 Optional containment, separately approved.** Refuse new tax-deed creation before rendering/persistence with an explicit capability-unavailable response, while preserving lawful access to existing records. Audit all entry points, publish the same availability state in API docs and the application, and test refusal through HTTP. A hidden route-specific ban paired with a nine-type availability promise is not sufficient. The owner did not select this implementation in this turn.
+**TDX0 Containment approved and integrated.** The [containment contract](TAX_DEED_CONTAINMENT.md) and merged review 303 refuse new tax-deed creation and pending approval, publish one availability policy across API/application surfaces, and preserve stored bytes. A narrow owner-approved packaging exception admits only the shared policy JSON to Vercel. P02 is rebased onto this actual main commit. This phase is complete; it does not approve the legal/form restoration below.
 
 **TDX1 Approved contract.** Write the instrument-specific request/availability rules in one shared source. Decide whether typed tax-sale facts extend the current API or require a separately versioned contract. Publish a field-to-rendered-text map and explicit refusals for unsupported inputs. Preserve the generic grant-deed contract for other instruments.
 
 **TDX2 Shared mapping and renderer.** Carry approved facts through request, stored evidence and the shared PDF context. Replace or refuse fixed assertions only as the approved model directs. Use the same semantics for the application and API, without duplicate legal-policy engines. Keep physical execution and notary contents blank where doctrine requires them.
 
-**TDX3 Verification and release review.** Add legal-review-approved fixtures for every supported sale path, taxable/exempt cases, unsupported/contradictory inputs and missing facts. Assert actual PDF text, sale dates, identities, amounts and retained instructions—not merely a PDF header. Prove invalid requests leave no new artifact. Mutation-probe each refusal. Run both suites, all five proofs, unchanged route/six-flow/API baselines unless an intentional change is approved, production build and policy gates. Rebase P02 onto the resolved main only after the approved repair actually reaches main; then rerun P02's own gates before merging it.
+**TDX3 Verification and release review before restoration.** Add legal-review-approved fixtures for every supported sale path, taxable/exempt cases, unsupported/contradictory inputs and missing facts. Assert actual PDF text, sale dates, identities, amounts and retained instructions—not merely a PDF header. Prove invalid requests leave no new artifact. Mutation-probe each refusal. Run both suites, all five proofs, unchanged route/six-flow/API baselines unless an intentional change is approved, production build and policy gates. This is the future gate for lifting the hold. P02's separately approved eight-type completion does not wait for or certify nine-type restoration.
 
 ## Affected surfaces and limits
 
 The public API and saved application documents share `services/deed_pdf.py` and this tax template. There is also an older direct generator in `backend/routers/deeds_extra.py:55`, mounted only when `ENABLE_DEED_TYPES_EXTRA` is enabled, with a frontend proxy at `frontend/src/app/api/generate/tax-deed-ca/route.ts:9`. Its `TaxDeedContext` only adds the sale reference to a generic optional-field model (`backend/models/tax_deed.py:35`). The repository flag default is false; production flag state was not inspected. Do not assume disabling one public route repairs every rendering path.
 
-Production usage, affected real documents, active integrations and recording outcomes are unknown. No production query, correction, deployment, customer message or legal choice was performed. P02 is held, not complete or launch-cleared.
+Production usage, affected real documents, active integrations and recording outcomes are unknown. No production query, historical correction, manual deployment, hosting-setting change, customer message or legal choice was performed. Existing provider hooks can react to approved main merges. P02 integration and full launch clearance remain separate from restoring this instrument.
 
 ## Provisional effort for ranking
 
@@ -70,4 +70,4 @@ Production usage, affected real documents, active integrations and recording out
 | Compatibility docs, cross-surface checks and full gates | 8–12 |
 | Total including optional containment | 46–72 |
 
-This is a planning range, not a build authorization or fixed quote. It excludes counsel/owner review time, production inventory, historical remediation, customer coordination and waiting for county-specific requirements. Choosing a narrower supported sale path may reduce the build; permanent deferral of this instrument is a product decision, not an engineering failure.
+This original planning range includes TDX0, which has since been approved and integrated; it is not a fresh estimate of remaining work, a restoration authorization or a fixed quote. It excludes counsel/owner review time, production inventory, historical remediation, customer coordination and waiting for county-specific requirements. Choosing a narrower supported sale path may reduce the remaining build; permanent deferral of this instrument is a product decision, not an engineering failure.

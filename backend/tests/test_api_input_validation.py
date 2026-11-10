@@ -74,6 +74,13 @@ def assert_refused(boundary, body, field):
     render.assert_not_called()
 
 
+def test_p02_held_tax_type_refuses_otherwise_usable_input(boundary):
+    # Owner-approved scope: eight positive types plus an explicit refusal,
+    # not an untested or silently skipped ninth rendering case.
+    assert len(API_DEED_TYPES) == 8 and "tax_deed" not in API_DEED_TYPES
+    assert_refused(boundary, payload("tax_deed"), "deed_type")
+
+
 @pytest.mark.parametrize("deed_type", API_DEED_TYPES)
 @pytest.mark.parametrize("path", REQUIRED_TEXT)
 @pytest.mark.parametrize("case", ["absent", "empty", "whitespace", "null"])

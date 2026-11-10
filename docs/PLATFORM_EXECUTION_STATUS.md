@@ -1,6 +1,6 @@
 # DeedPro platform execution status
 
-Updated 2026-11-09. Owner: Gerard. Governing rules: [EXECUTION_POLICY.md](EXECUTION_POLICY.md). Work plan: [PLATFORM_LAUNCH_PLAN.md](PLATFORM_LAUNCH_PLAN.md).
+Updated 2026-11-10. Owner: Gerard. Governing rules: [EXECUTION_POLICY.md](EXECUTION_POLICY.md). Work plan: [PLATFORM_LAUNCH_PLAN.md](PLATFORM_LAUNCH_PLAN.md).
 
 The first implementation wave restores verification, patches the frontend runtime dependencies, and replaces a broken scheduled deployment recipe with a non-deploying owner checkpoint. It does not make DeedPro ready for real partner documents or a public launch.
 
@@ -17,6 +17,7 @@ The first implementation wave restores verification, patches the frontend runtim
 | Frontend runtime dependency security | [297](https://github.com/easydeed/new-front/pull/297) | `88f8513b` |
 | Explicit browser test targets and refusal guards | [301](https://github.com/easydeed/new-front/pull/301) | `c1f9dacd` |
 | Development/build dependency security and local browser download denials | [300](https://github.com/easydeed/new-front/pull/300) | `a7321b63` |
+| Temporary tax-deed hold and narrow shared-policy packaging exception | [303](https://github.com/easydeed/new-front/pull/303) | `6a37115c` |
 
 The original dirty `engine1` checkout is preserved. Its local-only work is not treated as merged or obsolete. Temporary integration branches must be rebased onto main before merging; no child is merged into a feature branch.
 
@@ -43,7 +44,7 @@ Implementation references at merged main `88f8513b`:
 
 | Finding group | Current evidence | Required completion work |
 |---|---|---|
-| Blank substantive API fields and whitespace approver | Reproduced; baseline JSON records the accepted invalid inputs | P02 shared validation and negative/positive runtime tests |
+| Blank substantive API fields and whitespace approver | P02 shared validation implemented; original reproduction and eight-type/held-refusal verification are retained | P02 requires its green exact-head checks and verified main receipt in review 302 |
 | Omitted tax basis | Reproduced as a silent `full_value` fallback | P03 explicit conditional instructions approved by the owner |
 | Optional approver contact copied into request JSON | Reproduced; purge behavior source-confirmed | P04 versioned evidence and retention transition |
 | Scopes, key-scoped ownership, API second copy and concurrent retries | Source-confirmed risks, not cleared security/recovery claims | P05, P07, P08 and P09 runtime isolation and recovery proofs |
@@ -80,24 +81,24 @@ The historical deployed-API default discovery is addressed by merged review 301.
 
 **DECIDED** — on 2026-11-09 the owner approved a temporary tax-deed generation block and completing P02 for eight available API types. The full legal/form redesign remains unapproved. The [containment contract](TAX_DEED_CONTAINMENT.md) records the single shared availability policy, affected entry points, pending-preview restriction and preservation of completed stored bytes. No tax-deed template text or historical record is changed.
 
-Integration requires green exact-head checks and verification on main. P02 remains a separate review and must be rebased onto the actual merged containment commit before its own eight-type-plus-refusal gates run. This phased scope does not clear the broader launch gates.
+**BUILT** — [review 303](https://github.com/easydeed/new-front/pull/303) reached main as `6a37115c` on 2026-11-10. Its reviewed and merged trees match; main Run Tests `42854645241`, CI `42854645253` and Vercel status passed. The owner-approved packaging correction includes only the shared availability JSON from the backend, with an exact included-file regression. P02 is rebased onto this actual main commit and must pass its own eight-type-plus-refusal gates. This phased scope does not clear the broader launch gates.
 
 ## P02 Public API input validation
 
-**HELD — BUILT no.** The owner directed on 2026-11-09 that [review 302](https://github.com/easydeed/new-front/pull/302) remain unmerged and a [separate tax-deed repair proposal](TAX_DEED_API_REPAIR_PROPOSAL.md) be prepared. Its real-PDF test shows tax_deed drops the supplied grantor and the unchanged template substitutes a fixed exempt declaration for the request's non-exempt instruction. The all-nine acceptance criterion is not met. No test is skipped or weakened to clear this discovery, and no tax-deed legal/template change is implemented.
+**Phased scope approved.** The original ninth PDF case exposed a real tax-deed defect, and [review 302](https://github.com/easydeed/new-front/pull/302) was held with a [separate repair proposal](TAX_DEED_API_REPAIR_PROPOSAL.md). The owner then explicitly approved temporary containment and revised P02 acceptance to eight available types plus a held-tax refusal/no-artifact proof. The original failed local/CI results remain in the evidence record. Full tax-deed restoration is not implemented or approved; no assertion is weakened to certify its broken form.
 
 **DECIDED** — on 2026-11-09 the owner approved P02, then approved the documented v1 safety cutover after the existing public versioning promise was flagged. The owner directed the engineer to use the recommended compatibility approach. That recommendation is an explicit safety cutover after green gates, not preservation of unusable deed inputs. External caller inventory remains unverified; the approval is not recorded as a claim of zero live integrations.
 
 The implementation shares the existing substantive-presence predicate, preserves the required-field corpus and instrument catalog, and rejects invalid input at the public request-model boundary before deed rendering or artifact persistence. It adds bounded text, NUL refusals, finite/non-boolean numeric inputs and amount syntax that fits existing decimal storage. It does not trim or truncate supplied facts, introduce a name/identity filter, change partial application drafts, or decide tax instructions. Authentication still runs first.
 
-The candidate developer page records this specific compatibility exception and retains the new-version promise for other breaking changes. Field names, routes and response shapes remain unchanged; invalid authenticated requests receive actionable field-specific 422 errors. No schema migration, historical data rewrite, production transaction or customer notification is included. Implementation and cutover details are in [the input validation contract](API_INPUT_VALIDATION.md); exact local and review checks are recorded in [the P02 evidence](platform_p02_2026-11-09.json). This candidate is not on main. G1 remains unachieved.
+The developer page records this specific compatibility exception and retains the new-version promise for other breaking changes. Field names, routes and response shapes remain unchanged; invalid authenticated requests receive actionable field-specific 422 errors. No schema migration, historical data rewrite, production transaction or customer notification is included. Implementation and cutover details are in [the input validation contract](API_INPUT_VALIDATION.md); exact local and review checks are recorded in [the P02 evidence](platform_p02_2026-11-09.json). Integration requires green exact-head checks and a verified main receipt in review 302. G1 remains unachieved.
 
 ## Remaining release gates
 
 | Gate | State |
 |---|---|
 | G0 reproducible verification foundation | Core local and CI baseline established and integrated on main |
-| G1 safe for real documents | Not achieved: substantive validation, tax instructions, retention, scopes, truthful approval claims, API artifact recovery and credential closure remain |
+| G1 safe for real documents | Not achieved: conditional tax instructions, retention, scopes, truthful approval claims, API artifact recovery and credential closure remain |
 | G2 integration pilot readiness | Not achieved: durable partner ownership, safe retries/lifecycle, integration documentation, operations and commercial readiness remain |
 | G3 broader sales | Not achieved: external integration, approved terms, recovery/incident evidence and a qualified pilot remain |
 

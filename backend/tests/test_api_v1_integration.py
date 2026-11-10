@@ -249,12 +249,19 @@ def test_p02_invalid_inputs_leave_no_draft_or_pdf(client, api_key, monkeypatch):
         assert response.status_code == 422, response.text
         assert response.json()["detail"]["code"] == "VALIDATION_ERROR"
         assert any(e["field"] == "body.grantor.name" for e in response.json()["detail"]["details"])
+    # Fully populated tax input must still be refused, not reach a ninth
+    # rendering case or create a historical-looking draft during the hold.
+    held = client.post("/api/v1/deeds", json=payload("tax_deed"),
+                       headers={"Authorization": f"Bearer {api_key}"})
+    assert held.status_code == 422, held.text
+    assert held.json()["detail"]["code"] == "VALIDATION_ERROR"
+    assert any(e["field"] == "body.deed_type" for e in held.json()["detail"]["details"])
     render.assert_not_called()
     assert artifact_counts() == before
 
 
 @pytest.mark.parametrize("deed_type", API_DEED_TYPES)
-def test_p02_all_instruments_create_and_render_valid_unicode(client, api_key, deed_type):
+def test_p02_all_available_instruments_create_and_render_valid_unicode(client, api_key, deed_type):
     from io import BytesIO
     from pypdf import PdfReader
     from tests.test_api_input_validation import payload
