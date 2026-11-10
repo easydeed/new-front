@@ -1,8 +1,12 @@
-backend/
+# TDX0: include only the non-secret shared availability policy, not the API.
+backend/*
+!backend/services/
+backend/services/*
+!backend/services/instrument_availability.json
 venv/
 __pycache__/
 *.pyc
 .env
 scripts/
 templates/
-*.log 
+*.log

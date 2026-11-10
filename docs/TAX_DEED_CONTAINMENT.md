@@ -26,6 +26,8 @@ The regression suite exercises public HTTP validation, internal-handler defense,
 
 Both maintained suites, all five database proofs, unchanged OpenAPI/six-flow/API snapshots, production build, type/lint ceilings, browser safety proofs, secret/claims scans and dependency audits remain blocking. Exact results belong in the review and evidence record; this document does not claim unrun gates passed.
 
+The initial Vercel Preview failed because `.vercelignore` excluded the backend directory containing the shared policy, despite full-checkout local and CI builds passing. The owner approved a narrow packaging correction on 2026-11-09: only `backend/services/instrument_availability.json` is included; all other backend files remain excluded. The regression test evaluates the ignore rules against every tracked backend file, checks representative excluded private/nested paths, and detects removal of the one-file exception. Exact-head Preview must pass after this correction. No hosting settings, root directories or service layout are changed.
+
 No schema or data migration is required. Reverting this patch would re-enable the known unsafe tax-deed generation path, so rollback is not a safe restoration of the capability. Lifting the hold requires a separately reviewed change after the county workflow, form, field/recital map, dates and explicit tax-instruction contract are approved. Stored historical documents are not regenerated as part of either containment or future restoration.
 
 Implementation: `backend/services/instrument_availability.py:1`, `backend/services/api_catalog.py:1`, `backend/schemas/api_v1/deeds.py:1`, `backend/services/deed_pdf.py:147`, `backend/tests/test_instrument_availability.py:1`, and `frontend/src/lib/instrumentAvailability.ts:1`.
