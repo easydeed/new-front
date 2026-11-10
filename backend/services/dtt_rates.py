@@ -23,6 +23,7 @@ must be charged nothing — the pre-X2.3 code applied a generic $2.20 to
 any city at all, which invented tax for cities that levy none.
 """
 from typing import Optional, TypedDict
+from decimal import Decimal, ROUND_CEILING
 
 from services.jurisdictions import PLACES as _PLACES, city_dtt_rate
 
@@ -78,7 +79,11 @@ def compute_dtt(taxable_value: float, city: Optional[str] = None,
     """County portion always; city portion only when the property sits in
     a city that levies its own DTT."""
     value = max(0.0, float(taxable_value or 0))
-    county_tax = (value / 1000.0) * COUNTY_RATE_PER_1000
+    # Arithmetic on the supplied taxable base, not a taxability/exemption
+    # decision. Each $500 increment OR FRACTION uses half the existing
+    # per-$1,000 rate. Decimal avoids rounding the base before the boundary.
+    county_units = (Decimal(str(value)) / Decimal("500")).to_integral_value(rounding=ROUND_CEILING)
+    county_tax = float(county_units * (Decimal(str(COUNTY_RATE_PER_1000)) / Decimal("2")))
 
     # A caller that supplies no city is not asking about an unknown place —
     # it is stating there is no city portion. Only a NAMED place we do not

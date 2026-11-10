@@ -622,7 +622,7 @@ export default function DevelopersPage() {
               <code className="rounded bg-gray-100 px-1 text-[13px]">transfer_tax</code>.
             </p>
             <ul className="mt-5 space-y-2 text-gray-600">
-              <li>County rate: $1.10 per $1,000 (R&amp;T §11911).</li>
+              <li>County calculation: $0.55 per $500 increment or fraction of the supplied taxable base (R&amp;T §11911).</li>
               <li>
                 City rates apply only to cities that levy their own documentary transfer
                 tax. A city that levies none is reported as levying none — the endpoint
@@ -674,6 +674,13 @@ export default function DevelopersPage() {
               old promise — POST and receive a stored PDF — is dead, not deprecated.
             </p>
             <div className="mt-6 space-y-3 text-sm text-gray-600">
+              <div>
+                <span className="font-semibold text-[#1F2B37]">2026-11-10 · county calculator rounding repair</span>{' '}
+                — the county estimate now uses $500 increments or fractions instead
+                of a continuous percentage. Municipal rate logic is unchanged.
+                Calculation does not determine taxability or select an exemption;
+                confirm the applicable jurisdiction and instructions separately.
+              </div>
               <div>
                 <span className="font-semibold text-[#1F2B37]">2026-11-10 · v1 interspousal safety hold</span>{' '}
                 — new interspousal-transfer creation and pending approval are suspended

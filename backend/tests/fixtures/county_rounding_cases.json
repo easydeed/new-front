@@ -1,0 +1,23 @@
+{
+  "revision": "RND0-2026-11-10",
+  "scope": "Arithmetic on an already supplied taxable calculation base under the existing county-rate assumption. Not a taxability, exemption, jurisdiction or municipal-rate determination.",
+  "reference": "https://www.lavote.gov/home/recorder/property-document-recording/documentary-transfer-taxes",
+  "cases": [
+    {"id": "official_county_example", "base": "21100.00", "county": "23.65"},
+    {"id": "first_positive_band", "base": "100.01", "county": "0.55"},
+    {"id": "below_first_boundary", "base": "499.99", "county": "0.55"},
+    {"id": "first_boundary", "base": "500.00", "county": "0.55"},
+    {"id": "cent_above_first_boundary", "base": "500.01", "county": "1.10"},
+    {"id": "fractional_cent_above_boundary", "base": "500.0001", "county": "1.10"},
+    {"id": "below_second_boundary", "base": "999.99", "county": "1.10"},
+    {"id": "second_boundary", "base": "1000.00", "county": "1.10"},
+    {"id": "cent_above_second_boundary", "base": "1000.01", "county": "1.65"},
+    {"id": "below_third_boundary", "base": "1499.99", "county": "1.65"},
+    {"id": "third_boundary", "base": "1500.00", "county": "1.65"},
+    {"id": "cent_above_third_boundary", "base": "1500.01", "county": "2.20"},
+    {"id": "official_rounded_base", "base": "21500.00", "county": "23.65"},
+    {"id": "cent_above_official_band", "base": "21500.01", "county": "24.20"},
+    {"id": "existing_exact_multiple", "base": "500000.00", "county": "550.00"},
+    {"id": "large_exact_cent_base", "base": "99999999.99", "county": "110000.00"}
+  ]
+}

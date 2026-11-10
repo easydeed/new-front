@@ -206,7 +206,7 @@ export function TransferTaxSection({
       {aiEnabled && !suggestion && !value.isExempt && !suggestionDismissed && (
         <FieldGuidance
           message={`For a ${deedType.replace(/-/g, " ")}, documentary transfer tax is typically calculated on the full transfer value.`}
-          details="California DTT is $1.10 per $1,000 of transfer value. Some cities add their own tax (e.g., LA adds $4.50/1,000). Common exemptions: R&T 11911 (gift), R&T 11927 (interspousal), R&T 11930 (trust transfer). If the transfer involves no cash exchange (like adding a spouse), it may be exempt."
+          details="County calculation uses $0.55 for each $500 increment or fraction of a supplied taxable base. Some cities add their own tax (e.g., LA adds $4.50/1,000). Common exemptions: R&T 11911 (gift), R&T 11927 (interspousal), R&T 11930 (trust transfer). If the transfer involves no cash exchange (like adding a spouse), it may be exempt."
           onDismiss={onDismissSuggestion}
         />
       )}
@@ -407,7 +407,7 @@ export function TransferTaxSection({
                 </span>
               </div>
               <div className="text-sm text-emerald-700 pl-7">
-                County ($1.10 / $1,000): ${dttBreakdown.county}
+                County ($0.55 / $500 or fraction): ${dttBreakdown.county}
                 {dttBreakdown.city && (
                   <> · City of {value.cityName}: ${dttBreakdown.city}</>
                 )}
