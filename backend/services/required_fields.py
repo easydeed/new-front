@@ -103,6 +103,11 @@ def _read(field: str, data: Dict[str, Any]) -> Any:
     return None
 
 
+def has_substance(value: Any) -> bool:
+    """Shared presence judgment; no inference about truth or legal sufficiency."""
+    return value is not None and bool(str(value).strip())
+
+
 def _present(field: str, value: Any) -> bool:
     """Is this field answered?
 
@@ -125,7 +130,7 @@ def _present(field: str, value: Any) -> bool:
                     or (value.get("basis") or "").strip()
                     or (str(value.get("transfer_value")
                             or value.get("transferValue") or "")).strip())
-    return bool(str(value).strip())
+    return has_substance(value)
 
 
 def missing(family: str, deed_type: str, data: Dict[str, Any]) -> List[Requirement]:

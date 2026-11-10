@@ -157,7 +157,13 @@ describe('transfer-tax vocabulary is disclosed without becoming a legal decision
   });
 
   it('documents exempt_code as the free-form field the API accepts', () => {
-    expect(pySchema).toMatch(/exempt_code:\s*Optional\[str\]/);
+    // P02 bounds text without replacing the officer's free-form instruction
+    // with a code list. Follow the alias to its string declaration too.
+    expect(pySchema).toMatch(/exempt_code:\s*Optional\[Text\]/);
+    const inputValidation = fs.readFileSync(
+      path.join(__dirname, '..', '..', '..', 'backend', 'services', 'api_input_validation.py'), 'utf8'
+    );
+    expect(codeOnly(inputValidation)).toMatch(/Text\s*=\s*Annotated\[str,/);
     expect(page).toMatch(/is a free-form/i);
     expect(page).toMatch(/does not maintain or validate against/i);
     expect(page).not.toContain('COMMON_EXEMPTIONS');
@@ -186,6 +192,16 @@ describe('versioning is promised', () => {
     expect(page).toMatch(/pending_confirmation/);
     expect(page).toMatch(/CONFIRMATION_REQUIRED/);
     expect(page).toMatch(/DeedPro does not confirm facts/);
+  });
+
+  it('records P02 as an explicit safety cutover without removing the versioning promise', () => {
+    expect(page).toContain('P02-2026-11-09');
+    expect(page).toMatch(/deliberately tightens v1/);
+    expect(page).toMatch(/Existing integrations must review/);
+    expect(page).toMatch(/field-specific 422 before a deed/);
+    expect(page).toMatch(/no tax basis, exemption or/);
+    expect(page).toMatch(/International names/);
+    expect(page).toMatch(/identity, a property fact/);
   });
 });
 

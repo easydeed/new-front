@@ -16,6 +16,7 @@ DATABASE_URL, same contract as test_poisoned_connection.py.
 import os
 
 import pytest
+from services.api_catalog import API_DEED_TYPES
 
 LIVE_DB = os.getenv("DATABASE_URL")
 pytestmark = pytest.mark.skipif(not LIVE_DB, reason="live test DB required")
@@ -217,3 +218,75 @@ def test_tax_hold_cannot_promote_a_preexisting_pending_preview(client, api_key):
     assert stored["status"] == "pending_confirmation"
     assert stored["pdf_data"] is None and stored["authenticity_id"] is None
     assert bytes(stored["preview_pdf_data"]) == original
+
+
+def test_p02_invalid_inputs_leave_no_draft_or_pdf(client, api_key, monkeypatch):
+    """Real authentication + real DB; count baseline established by this run."""
+    import importlib
+    from unittest.mock import AsyncMock
+    import psycopg2
+    from services.api_catalog import API_DEED_TYPES
+    from tests.test_api_input_validation import payload
+
+    api = importlib.import_module("routers.api_v1.router")
+    render = AsyncMock(side_effect=AssertionError("invalid input reached renderer"))
+    monkeypatch.setattr(api, "render_pdf_async", render)
+
+    def artifact_counts():
+        with psycopg2.connect(LIVE_DB) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT count(*) FROM api_deeds")
+                drafts = cur.fetchone()[0]
+                cur.execute("SELECT count(*) FROM document_authenticity")
+                return drafts, cur.fetchone()[0]
+
+    before = artifact_counts()
+    for deed_type in API_DEED_TYPES:
+        body = payload(deed_type)
+        body["grantor"]["name"] = " \t\u00a0"
+        response = client.post("/api/v1/deeds", json=body,
+                               headers={"Authorization": f"Bearer {api_key}"})
+        assert response.status_code == 422, response.text
+        assert response.json()["detail"]["code"] == "VALIDATION_ERROR"
+        assert any(e["field"] == "body.grantor.name" for e in response.json()["detail"]["details"])
+    # Fully populated tax input must still be refused, not reach a ninth
+    # rendering case or create a historical-looking draft during the hold.
+    held = client.post("/api/v1/deeds", json=payload("tax_deed"),
+                       headers={"Authorization": f"Bearer {api_key}"})
+    assert held.status_code == 422, held.text
+    assert held.json()["detail"]["code"] == "VALIDATION_ERROR"
+    assert any(e["field"] == "body.deed_type" for e in held.json()["detail"]["details"])
+    render.assert_not_called()
+    assert artifact_counts() == before
+
+
+@pytest.mark.parametrize("deed_type", API_DEED_TYPES)
+def test_p02_all_available_instruments_create_and_render_valid_unicode(client, api_key, deed_type):
+    from io import BytesIO
+    from pypdf import PdfReader
+    from tests.test_api_input_validation import payload
+
+    body = payload(deed_type)
+    body["grantor"]["name"] = "José García"
+    body["grantee"]["name"] = "Zoë O’Neill"
+    if deed_type == "grant_deed":
+        body["property"]["legal_description"] = (
+            "LOT 1 OF TRACT 12345, SUBJECT TO RECORDED EASEMENTS.\n" * 100
+        ) + "END OF LEGAL EXHIBIT"
+    created = client.post("/api/v1/deeds", json=body,
+                          headers={"Authorization": f"Bearer {api_key}"})
+    assert created.status_code == 200, created.text
+    data = created.json()["data"]
+    assert data["deed_type"] == deed_type
+    assert data["status"] == "pending_confirmation"
+    token = data["urls"]["confirmation"].rsplit("/", 1)[-1]
+    preview = client.get(f"/confirm/{token}/preview")
+    assert preview.status_code == 200
+    assert preview.content.startswith(b"%PDF-")
+    text = "\n".join(page.extract_text() for page in PdfReader(BytesIO(preview.content)).pages)
+    # Existing deed furniture capitalizes party names. Keep accents and
+    # punctuation exact while allowing that established presentation.
+    assert "José García".casefold() in text.casefold()
+    assert "Zoë O’Neill".casefold() in text.casefold()
+    if deed_type == "grant_deed":
+        assert "END OF LEGAL EXHIBIT" in text

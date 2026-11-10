@@ -9,6 +9,10 @@ from enum import Enum
 
 from services.api_catalog import API_DEED_TYPES, InstrumentRuleError, rules_for
 from services.instrument_availability import hold_for
+from services.api_input_validation import (
+    FiniteNumber, LegalDescription, RequiredText, StoredAmount, Text,
+    VALIDATION_REVISION,
+)
 
 # A2: derived from the FORMS registry (via services/form_families), deed
 # family only per the Flag-4 doctrine ruling. The old hardcoded five-value
@@ -23,21 +27,21 @@ class TaxBasis(str, Enum):
 
 # Request Models
 class AddressModel(BaseModel):
-    line1: str = Field(..., description="Street address line 1")
-    line2: Optional[str] = Field(None, description="Street address line 2")
-    city: str
-    state: str = Field(..., min_length=2, max_length=2)
-    zip: str = Field(..., min_length=5, max_length=10)
+    line1: RequiredText = Field(..., description="Street address line 1")
+    line2: Optional[Text] = Field(None, description="Street address line 2")
+    city: RequiredText
+    state: RequiredText = Field(..., min_length=2, max_length=2)
+    zip: RequiredText = Field(..., min_length=5, max_length=10)
 
 
 class PropertyModel(BaseModel):
-    address: str = Field(..., description="Street address")
-    city: str
-    state: str = Field("CA", description="State (must be CA)")
-    zip: str
-    county: str
-    apn: str = Field(..., description="Assessor's Parcel Number")
-    legal_description: str = Field(..., description="Full legal description")
+    address: RequiredText = Field(..., description="Street address")
+    city: RequiredText = Field(..., max_length=100)
+    state: RequiredText = Field("CA", max_length=2, description="State (must be CA)")
+    zip: RequiredText
+    county: RequiredText = Field(..., max_length=100)
+    apn: RequiredText = Field(..., max_length=50, description="Assessor's Parcel Number")
+    legal_description: LegalDescription = Field(..., description="Full legal description")
     
     @validator('state')
     def state_must_be_ca(cls, v):
@@ -51,25 +55,25 @@ class EntityModel(BaseModel):
     the entity deed types (see api_catalog.TYPE_REQUIREMENTS) — the deed
     recites them mid-sentence, so an absent value prints a blank line
     inside a granting clause."""
-    entity_state: Optional[str] = Field(
+    entity_state: Optional[Text] = Field(
         None, description="State under whose laws the entity is organized (e.g. 'California')")
-    partnership_type: Optional[str] = Field(
+    partnership_type: Optional[Text] = Field(
         None, description="Partnership type recited on the deed (e.g. 'general partnership')")
 
 
 class GrantorModel(BaseModel):
-    name: str = Field(..., description="Grantor name(s), uppercase recommended")
+    name: RequiredText = Field(..., description="Grantor name(s), uppercase recommended")
     address: Optional[AddressModel] = None
     entity: Optional[EntityModel] = Field(
         None, description="Required for entity deed types (grant_deed_corp, grant_deed_partnership)")
 
 
 class GranteeModel(BaseModel):
-    name: str = Field(..., description="Grantee name(s), uppercase recommended")
+    name: RequiredText = Field(..., description="Grantee name(s), uppercase recommended")
     # A2: optional at the schema level because two instruments FIX their
     # own vesting and refuse a supplied value; per-type enforcement lives
     # in CreateDeedRequest.check_type_rules so the message can say why.
-    vesting: Optional[str] = Field(
+    vesting: Optional[Text] = Field(
         None, description="Vesting clause (e.g., 'a married couple as joint tenants'). "
                           "Required for most deed types; refused for the fixed-vesting "
                           "instruments, whose title is itself the vesting decision.")
@@ -77,28 +81,28 @@ class GranteeModel(BaseModel):
 
 class TransferTaxModel(BaseModel):
     exempt: bool = Field(..., description="Is transfer tax exempt?")
-    exempt_code: Optional[str] = Field(None, description="R&T code if exempt (e.g., 'R&T 11927')")
-    value: Optional[float] = Field(None, description="Transfer value in dollars")
-    computed_amount: Optional[str] = Field(None, description="Computed tax amount as string")
+    exempt_code: Optional[Text] = Field(None, description="R&T code if exempt (e.g., 'R&T 11927')")
+    value: Optional[FiniteNumber] = Field(None, description="Transfer value in dollars")
+    computed_amount: Optional[StoredAmount] = Field(None, description="Computed tax amount as string")
     basis: Optional[TaxBasis] = Field(None, description="full_value or less_liens")
     city_tax: Optional[bool] = Field(None, description="Does city tax apply?")
-    city_name: Optional[str] = Field(None, description="City name for city tax")
+    city_name: Optional[Text] = Field(None, description="City name for city tax")
 
 
 class ReturnToModel(BaseModel):
-    name: str
-    company: Optional[str] = None
-    address: str
-    city: str
-    state: str
-    zip: str
+    name: RequiredText
+    company: Optional[Text] = None
+    address: RequiredText
+    city: RequiredText
+    state: RequiredText
+    zip: RequiredText
 
 
 class RecordingModel(BaseModel):
-    requested_by: str = Field(..., description="Name of requesting party")
+    requested_by: RequiredText = Field(..., description="Name of requesting party")
     return_to: ReturnToModel
-    title_order_no: Optional[str] = None
-    escrow_no: Optional[str] = None
+    title_order_no: Optional[Text] = None
+    escrow_no: Optional[Text] = None
 
 
 class ApproverModel(BaseModel):
@@ -106,9 +110,9 @@ class ApproverModel(BaseModel):
     person. Name and role become the provenance subject. Email is stored
     for the record and purged after CONTACT_RETENTION_DAYS — it is never
     mailed in v1. The integrator delivers the confirmation link."""
-    name: str = Field(..., min_length=1, description="Approver's name as it should appear on the record")
-    role: str = Field(..., min_length=1, description="Approver's role (e.g. escrow officer, title officer)")
-    email: Optional[str] = Field(None, description="Optional; stored for the record, not emailed, purged")
+    name: RequiredText = Field(..., description="Approver's name as it should appear on the record")
+    role: RequiredText = Field(..., description="Approver's role (e.g. escrow officer, title officer)")
+    email: Optional[Text] = Field(None, description="Optional; stored for the record, not emailed, purged")
 
 
 class CreateDeedRequest(BaseModel):
@@ -196,6 +200,7 @@ class CreateDeedRequest(BaseModel):
 
     class Config:
         json_schema_extra = {
+            "x-deedpro-validation-revision": VALIDATION_REVISION,
             "example": {
                 "deed_type": "grant_deed",
                 "property": {
@@ -302,10 +307,10 @@ class DeedListResponse(BaseModel):
 
 # Transfer Tax Calculator
 class TransferTaxCalculateRequest(BaseModel):
-    value: float = Field(..., gt=0, description="Property value in dollars")
-    city: Optional[str] = None
-    county: str = Field(..., description="County name")
-    less_liens: float = Field(0, ge=0, description="Amount of liens to subtract")
+    value: FiniteNumber = Field(..., gt=0, description="Property value in dollars")
+    city: Optional[Text] = None
+    county: RequiredText = Field(..., description="County name")
+    less_liens: FiniteNumber = Field(0, ge=0, description="Amount of liens to subtract")
 
 
 class TaxBreakdownItem(BaseModel):

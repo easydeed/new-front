@@ -448,6 +448,15 @@ export default function DevelopersPage() {
                   the conflict — not a 200 and a document that disregarded it. If your
                   input did not shape the instrument, you hear about it.
                 </p>
+                <p className="mt-2 leading-relaxed">
+                  Required text must contain more than whitespace. International names
+                  and multiline legal descriptions are accepted without truncation;
+                  character limits are published in the OpenAPI schema. Numeric inputs
+                  must be finite, and supplied decimal amounts must fit the documented
+                  precision. Invalid input returns a field-specific 422 before a deed
+                  preview is rendered or stored. These checks do not verify a person’s
+                  identity, a property fact, or the legal sufficiency of an instruction.
+                </p>
               </div>
 
               <div>
@@ -671,6 +680,15 @@ export default function DevelopersPage() {
                 county workflow and form are reviewed. Existing stored PDFs remain
                 readable. This is an explicit change to v1 availability; no substitute
                 instrument is selected for you.
+              </div>
+              <div>
+                <span className="font-semibold text-[#1F2B37]">2026-11-09 · v1 input safety cutover</span>{' '}
+                — validation revision <code className="text-[13px]">P02-2026-11-09</code>{' '}
+                deliberately tightens v1: blank required text, nonfinite numbers and
+                malformed or oversized inputs previously accepted now return 422.
+                Existing integrations must review the published schema before cutover.
+                Routes and response shapes stay unchanged; no tax basis, exemption or
+                other legal choice is made for the caller.
               </div>
               <div>
                 <span className="font-semibold text-[#1F2B37]">2026-08-27 · v1 Model 2 cutover</span>{' '}

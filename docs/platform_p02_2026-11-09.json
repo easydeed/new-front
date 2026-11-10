@@ -1,0 +1,117 @@
+{
+  "ticket": "P02 usable public API inputs",
+  "date": "2026-11-09",
+  "executor": "Codex implementation and independent gate re-verification",
+  "baseline_commit": "6a37115c0d973a11218e7cbe5866498f2d5c1841",
+  "original_nine_type_baseline_commit": "a7321b63169849a46a61ee98e8f436b434e12cd4",
+  "branch": "codex/p02-api-input-validation",
+  "integration_state": "eight_type_plus_held_refusal_green_locally_rebased_onto_merged_TDX0_exact_head_CI_and_verified_main_receipt_required",
+  "phased_scope_ruling": {
+    "owner_response": "Approve temporary block and eight-type P02 (Recommended)",
+    "follow_through": "Owner approved the narrow packaging correction and directed P02 to proceed after main checks pass and merge only when everything is green.",
+    "containment_review": "https://github.com/easydeed/new-front/pull/303",
+    "containment_main": "6a37115c0d973a11218e7cbe5866498f2d5c1841",
+    "containment_main_checks": "Run Tests 42854645241, CI 42854645253 and Vercel status succeeded; reviewed and merged trees match",
+    "acceptance": "Eight available types must render valid Unicode parties; an otherwise usable held-tax request must receive field-specific 422 with no draft/PDF/authenticity artifact. Original nine-type failure remains historical evidence, not a skip or legal repair.",
+    "restoration": "Full tax-deed county workflow, form and tax-instruction design remains unapproved"
+  },
+  "validation_revision": "P02-2026-11-09",
+  "scope": "Public request models plus shared presence predicate, technical numeric syntax/storage limits, tests and contract documentation",
+  "reproduction": {
+    "baseline_accepts_whitespace": ["grantor.name", "grantee.name", "property.apn", "property.legal_description", "approver.name", "approver.role"],
+    "http_negative_control": "Before implementation, an empty property.address reached the mocked deed persistence seam and returned 500 instead of the required 422; no real DB or renderer was used."
+  },
+  "owner_compatibility_ruling": {
+    "conflict_flagged": "Public docs promised a new path for breaking changes; rejecting previously accepted inputs is a compatibility change even when it fixes a defect.",
+    "responses": ["Approved", "What ever you recommend"],
+    "recorded_recommendation": "Explicit documented v1 safety cutover after green checks rather than retaining acceptance of unusable deed input. Existing callers relying on that behavior receive actionable 422 errors. No silent exception to the published promise: the developer changelog records this specific cutover and retains versioning for other breaking changes.",
+    "external_caller_inventory": "unverified_not_assumed_empty",
+    "production_calls_or_customer_notifications": false
+  },
+  "implementation": {
+    "shared_presence": "services.required_fields.has_substance is used by the existing required-field reader and API text validation; the required-field corpus and catalog are unchanged",
+    "boundary": "CreateDeedRequest and nested request models, shared with the in-process /try route, before deed rendering/persistence; auth still executes first",
+    "error_contract": "422 VALIDATION_ERROR with field-specific details; no raw rejected values echoed",
+    "text": "Nonblank mandatory text, NUL refusal, Unicode and multiline contents preserved; no truncation or ASCII/name-identity filter",
+    "limits": {"property_city": 100, "property_county": 100, "property_apn": 50, "general_text": 10000, "legal_description": 1000000, "computed_amount_text": 64},
+    "numeric": "Finite non-boolean numeric inputs; nonblank supplied amount must have ordinary decimal syntax, at most two fractional digits and fit the existing DECIMAL(10,2). Optional blank/omitted amounts and numeric signs retain their prior treatment; no tax policy is inferred.",
+    "migration": "application_only_no_schema_or_data_migration",
+    "rollback": "Application revert restores the old unsafe acceptance; existing records are untouched"
+  },
+  "mutation_probe": {
+    "reverified_on": "2026-11-10 after rebase onto merged TDX0",
+    "method": "In an isolated no-DB test process, replace API has_substance with an always-true function and run the whitespace refusal test with -x",
+    "exit_code": 1,
+    "result": "The first whitespace property.address case failed because input reached the protected persistence spy; no database, PDF or remote request was used"
+  },
+  "retained_failed_attempts": [
+    "Initial required-field test incorrectly treated omitted property.state as mandatory; corrected to preserve the existing CA default, with an explicit positive regression test",
+    "Direct 30-second interactive test call exceeded its observation timeout; no pass was claimed and durable captured runners replaced it",
+    "First captured focused matrix: 606 passed, one NUL refusal failed because composed AfterValidator metadata dropped the earlier check; fixed by one composed required-text validator and retained NUL regressions",
+    "Initial frontend run: 1303 passed and one free-form exemption source pin failed on the new Text alias; the pin now follows Text to its str declaration and a runtime test proves arbitrary optional exemption wording remains accepted",
+    "Initial PDF assertions expected mixed case, while existing deed CSS uppercases names; assertions now permit that established casing but still require accents and punctuation. No template or PDF behavior was changed."
+  ],
+  "tax_deed_discovery": {
+    "owner_direction": "Hold P02 and prepare a separate tax-deed repair proposal (Recommended)",
+    "proposal": "docs/TAX_DEED_API_REPAIR_PROPOSAL.md",
+    "facts": "Tax-deed PDF omits supplied grantor; the template does not consume required vesting or mapped dtt and prints a fixed exempt declaration despite the synthetic request's non-exempt instruction. Sale/official facts have no complete public-schema/context mapping.",
+    "source": ["templates/tax_deed_ca/index.jinja2:143", "templates/tax_deed_ca/index.jinja2:156", "templates/tax_deed_ca/index.jinja2:196", "backend/services/api_catalog.py:99", "backend/services/deed_pdf.py:111"],
+    "scope": "Inherited from unchanged original baseline code, not introduced by P02. The original held review applied no containment. Owner-approved TDX0 now separately blocks generation and pending approval; P02 retains that merged policy without a legal/template repair or test skip.",
+    "eight_other_variants": "The actual PDF name checks pass; not a complete legal-sufficiency certification",
+    "acceptance": "Original all-nine requirement failed. The owner explicitly revised this phase to eight positive types plus held-tax refusal; full nine-type restoration is not claimed."
+  },
+  "historical_nine_type_verification": {
+    "code_commit": "18d0e39180dae28721573fa1d4385206e977e9ff",
+    "backend_local": {"passed": 2544, "failed": 1, "skipped": 0, "failure": "tax_deed_grantor_preservation", "seconds": 334.12},
+    "frontend_local": {"passed": 1305, "suites": 95, "snapshots": 2, "failed": 0},
+    "native_safety": {"passed": 38, "failed": 0, "skipped": 0},
+    "typescript": {"errors": 83, "ceiling": 83, "parse_errors": 0},
+    "eslint": {"errors": 126, "warnings": 53, "status": "passed_existing_ceiling_not_clean_lint"},
+    "production_build": "passed",
+    "three_start_browser_smoke": {"passed": 3, "failed": 0, "skipped": 0, "seconds": 147.22},
+    "browser_refusal_proof": {"positive_passed": 1, "expected_refusals": 3, "forbidden_sentinel_hits": 0, "skipped": 0, "seconds": 71.58},
+    "secret_and_claims_scans": "passed_complete_staged_change",
+    "dependency_audits": "runtime_and_complete_graph_passed_unchanged_lockfile",
+    "all_five_local_proofs": "passed_concurrency_restore_walkthrough_six_flow_and_api_baselines_unchanged",
+    "openapi_route_contract": "passed_in_backend_suite_unchanged_snapshot",
+    "local_database": "marked_disposable_loopback_55439_verified_then_stopped_after_all_checks",
+    "independent_ci": {"tests": "https://github.com/easydeed/new-front/actions/runs/42687636735", "build": "https://github.com/easydeed/new-front/actions/runs/42687648600", "result": "build_preview_frontend_and_other_jobs_passed_proof_job_failed_on_same_tax_deed_test", "database_suite": {"passed": 2542, "failed": 1, "skipped": 2, "qualification": "Two existing conditional skips are not counted as passes; no new test skip was added"}},
+    "overall": "not_green_not_mergeable_owner_hold"
+  },
+  "verification": {
+    "date": "2026-11-10",
+    "baseline_main": "6a37115c0d973a11218e7cbe5866498f2d5c1841",
+    "backend_local": {"passed": 2497, "failed": 0, "skipped": 0, "seconds": 335.44},
+    "frontend_local": {"passed": 1325, "failed": 0, "suites": 96, "snapshots": 2},
+    "available_instrument_real_pdf_cases": 8,
+    "held_tax_refusal": "An otherwise usable tax_deed request receives field-specific 422 before render/persistence. Real-key DB test verifies unchanged draft/authenticity counts and zero renderer calls after eight invalid active-type requests plus the held request.",
+    "historical_tax_access": "Merged containment's stored-byte and pending-preview non-promotion regressions passed in the full suite",
+    "native_safety": {"passed": 38, "failed": 0, "skipped": 0},
+    "typescript": {"errors": 83, "ceiling": 83, "parse_errors": 0, "qualification": "existing_debt_not_clean_typecheck"},
+    "eslint": {"errors": 126, "warnings": 53, "qualification": "unchanged_existing_ceilings_not_clean_lint"},
+    "production_build": {"status": "passed", "seconds": 99.75},
+    "five_local_proofs": {"s1": "passed", "s2": "passed", "s3": "passed", "six_flow": "passed_unchanged", "api_baseline": "passed_unchanged"},
+    "openapi_route_contract": "passed_unchanged_in_backend_suite",
+    "three_fresh_browser_starts": {"passed": 3, "failed": 0, "skipped": 0, "seconds": 155.16},
+    "browser_refusal_proof": {"positive_passed": 1, "expected_refusals": 3, "forbidden_sentinel_hits": 0, "skipped": 0, "seconds": 83.08},
+    "private_browser_observation_budget_seconds": 900,
+    "observation_budget_qualification": "Private runner budget accounts for the previously observed slow host startup; maintained tests, assertions, refusal rules, network fence and CI timeouts are unchanged",
+    "secret_and_claims_scans": "passed_complete_staged_code_and_documentation",
+    "dependency_audits": {"runtime": {"total": 0}, "full_graph": {"critical": 0, "high": 0, "moderate": 22, "low": 3, "total": 25}, "lockfile": "unchanged_from_merged_main"},
+    "local_database": "Only marked disposable loopback database on 127.0.0.1:55439; restarted after the between-session stop and identity/marker verified before the suite",
+    "final_exact_head_CI": "required_before_merge; review_302_carries_final_head_and_main_verification_receipt",
+    "overall": "all_local_gates_green_eight_available_types_plus_held_refusal_not_nine_type_restoration"
+  },
+  "invariants": {
+    "corpus_or_catalog_changed": false,
+    "application_partial_draft_workflow_changed": false,
+    "legal_choices_auto_applied": false,
+    "api_or_six_flow_snapshots_rerecorded": false,
+    "ci_weakened": false,
+    "production_settings_changed": false,
+    "production_database_used": false,
+    "credentials_read_or_changed": false,
+    "original_dirty_engine1_checkout_preserved": true
+  },
+  "limits": "Not proof of human identity, truthful parcel facts, legal sufficiency, full browser journeys, API artifact recovery or launch readiness. P03 tax matrix and other launch gates remain open."
+}
