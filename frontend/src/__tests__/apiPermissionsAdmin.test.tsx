@@ -1,16 +1,20 @@
 import React from 'react';
-import { beforeEach, expect, it, jest } from '@jest/globals';
+import { afterAll, beforeEach, expect, it, jest } from '@jest/globals';
 import '@testing-library/jest-dom/jest-globals';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import ApiTab from '@/app/admin/components/ApiTab';
 import { AdminApi } from '@/lib/adminApi';
 
-jest.mock('@/lib/adminApi', () => ({ AdminApi: {
-  listApiKeys: jest.fn(), listApiKeyRequests: jest.fn(),
-  createApiKey: jest.fn(), updateApiKey: jest.fn(), revokeApiKey: jest.fn(),
-} }));
-
-const api = jest.mocked(AdminApi);
+// Spy on the actual shared object instead of depending on module-mock
+// hoisting through Next's transform of imported Jest globals.
+const api = {
+  listApiKeys: jest.spyOn(AdminApi, 'listApiKeys'),
+  listApiKeyRequests: jest.spyOn(AdminApi, 'listApiKeyRequests'),
+  createApiKey: jest.spyOn(AdminApi, 'createApiKey'),
+  updateApiKey: jest.spyOn(AdminApi, 'updateApiKey'),
+  revokeApiKey: jest.spyOn(AdminApi, 'revokeApiKey'),
+};
+afterAll(() => jest.restoreAllMocks());
 const permissions = { scopes: ['deed:read', 'deed:handoff'], operations: {}, reserved_unavailable: [] };
 
 beforeEach(() => {
