@@ -322,7 +322,9 @@ def test_real_inventory_is_aggregate_guarded_and_does_not_boot_schema(db_client)
     import subprocess
     import sys
     script=Path(__file__).resolve().parents[1]/'scripts/api_permission_review.py'
-    test_env={**os.environ,'EXPECTED_DATABASE':'deedpro_platform_ci'}
+    actual_database=sql('SELECT current_database() AS name',one=True)['name']
+    assert actual_database
+    test_env={**os.environ,'EXPECTED_DATABASE':actual_database}
     good=subprocess.run([sys.executable,str(script)],env=test_env,capture_output=True,text=True,timeout=30)
     assert good.returncode==0
     data=json.loads(good.stdout)
@@ -332,6 +334,6 @@ def test_real_inventory_is_aggregate_guarded_and_does_not_boot_schema(db_client)
     assert all(isinstance(value,int) for value in data['counts'].values())
     assert 'key_hash' not in good.stdout and 'key_prefix' not in good.stdout
     assert '[schema]' not in good.stdout
-    refused=subprocess.run([sys.executable,str(script)],env={**test_env,'EXPECTED_DATABASE':'not-the-test-database'},capture_output=True,text=True,timeout=30)
+    refused=subprocess.run([sys.executable,str(script)],env={**test_env,'EXPECTED_DATABASE':actual_database+'-not-this-database'},capture_output=True,text=True,timeout=30)
     assert refused.returncode==1
     assert not refused.stdout.strip()
