@@ -640,6 +640,22 @@ def create_tables():
             "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMPTZ",
             "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS reject_reason TEXT",
             "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS contact_purged_at TIMESTAMPTZ",
+            # P04: additive only. NULL versions identify legacy rows; no
+            # historical JSON/hash backfill or redaction runs on convergence.
+            "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS request_snapshot_version TEXT",
+            "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS request_snapshot_sha256 TEXT",
+            "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS approval_evidence JSONB",
+            "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS approval_evidence_version TEXT",
+            "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS approval_evidence_sha256 TEXT",
+            "ALTER TABLE api_deeds ADD COLUMN IF NOT EXISTS retention_hold BOOLEAN NOT NULL DEFAULT FALSE",
+            """CREATE TABLE IF NOT EXISTS api_contact_hold_events (
+                id BIGSERIAL PRIMARY KEY,
+                deed_id TEXT NOT NULL,
+                held BOOLEAN NOT NULL,
+                operator_claim TEXT NOT NULL,
+                case_reference TEXT NOT NULL,
+                occurred_at TIMESTAMPTZ NOT NULL
+            )""",
             # ENGINE1. The SHA-256 the CLIENT computed over the bytes it
             # displayed, sent back on approve. Stored so the artifact can
             # show it; compared before the promotion so a mismatch is a
@@ -1742,4 +1758,4 @@ if DATABASE_URL:
     threading.Thread(target=_converge_schema_with_retry, daemon=True,
                      name="schema-convergence").start()
 else:
-    print("Warning: DATABASE_URL environment variable not set") 
+    print("Warning: DATABASE_URL environment variable not set")

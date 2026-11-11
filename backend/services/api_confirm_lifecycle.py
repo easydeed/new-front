@@ -46,6 +46,7 @@ from typing import Any, Dict, Optional
 
 from services.api_confirm import STATUS_EXPIRED, STATUS_PENDING, STATUS_REJECTED
 from services.signing_loop import CONTACT_RETENTION_DAYS
+from services import api_contact_retention
 
 JOB_NAME = "api_confirm_lifecycle"
 SWEEP_INTERVAL_SECONDS = 3600
@@ -66,6 +67,7 @@ EXPIRE_SQL = """
        SET status = %s,
            preview_pdf_data = NULL
      WHERE status = %s
+       AND NOT retention_hold
        AND confirmation_expires_at IS NOT NULL
        AND confirmation_expires_at < %s
     RETURNING id
@@ -78,28 +80,18 @@ REJECTED_PREVIEW_SQL = """
     UPDATE api_deeds
        SET preview_pdf_data = NULL
      WHERE status = %s
+       AND NOT retention_hold
        AND preview_pdf_data IS NOT NULL
     RETURNING id
 """
 
-PURGE_EMAIL_SQL = """
-    UPDATE api_deeds
-       SET approver_email = NULL,
-           contact_purged_at = now()
-     WHERE contact_purged_at IS NULL
-       AND approver_email IS NOT NULL
-       AND (
-            approved_at < %s
-         OR rejected_at < %s
-         OR (status = %s AND confirmation_expires_at < %s)
-       )
-    RETURNING id
-"""
+PURGE_EMAIL_SQL = api_contact_retention.PURGE_SQL
 
 
 DELETE_DEMO_SQL = """
     DELETE FROM api_deeds
      WHERE demo_kind = %s
+       AND NOT retention_hold
        AND created_at < %s
     RETURNING id
 """
@@ -139,18 +131,15 @@ def expire_unapproved_drafts(conn, *, now: Optional[datetime] = None) -> int:
 
 def purge_approver_email(conn, *, older_than_days: int = CONTACT_RETENTION_DAYS,
                          now: Optional[datetime] = None) -> int:
-    """NULL approver email. Name and role stay.
+    """Purge eligible versioned contact only. Legacy copies await owner review.
+
+    Name and role stay as personal record evidence, not contact channels.
 
     Clock starts at the finished event (approve / reject / expiry), not
     at create — a pending draft must keep the named-for-record email
     until the draft is done.
     """
-    now = now or datetime.now(timezone.utc)
-    cutoff = now - timedelta(days=older_than_days)
-    with conn.cursor() as cur:
-        cur.execute(PURGE_EMAIL_SQL, (cutoff, cutoff, STATUS_EXPIRED, cutoff))
-        rows = cur.fetchall() or []
-    return len(rows)
+    return api_contact_retention.purge_new_contact(conn, older_than_days=older_than_days, now=now)
 
 
 def run_lifecycle(conn, *, now: Optional[datetime] = None) -> Dict[str, int]:
@@ -189,37 +178,26 @@ def sweep_if_due(conn, *, interval_seconds: int = SWEEP_INTERVAL_SECONDS,
                       f"demo deleted {result['demo_deleted']}", JOB_NAME))
         conn.commit()
         return result
-    except Exception as e:
+    except Exception:
         try:
             conn.rollback()
         except Exception:
             pass
-        print(f"[api-confirm] sweep failed (non-blocking): "
-              f"{type(e).__name__}: {str(e)[:200]}")
+        print("[api-confirm] sweep failed (non-blocking); review job status")
         return None
 
 
-def purge_status(conn) -> Dict[str, Any]:
+def purge_status(conn, *, now=None) -> Dict[str, Any]:
     with conn.cursor() as cur:
         cur.execute("SELECT last_run_at, last_result FROM system_jobs "
                     "WHERE job_name = %s", (JOB_NAME,))
         job = cur.fetchone()
-        cutoff = datetime.now(timezone.utc) - timedelta(days=CONTACT_RETENTION_DAYS)
-        cur.execute(
-            """SELECT count(*) AS n FROM api_deeds
-                WHERE contact_purged_at IS NULL
-                  AND approver_email IS NOT NULL
-                  AND (
-                       approved_at < %s
-                    OR rejected_at < %s
-                    OR (status = %s AND confirmation_expires_at < %s)
-                  )""",
-            (cutoff, cutoff, STATUS_EXPIRED, cutoff))
-        overdue = cur.fetchone()
+    counts = api_contact_retention.inventory(conn, now=now)
     return {
         "job": JOB_NAME,
         "retention_days": CONTACT_RETENTION_DAYS,
         "last_run_at": (job or {}).get("last_run_at") if job else None,
         "last_result": (job or {}).get("last_result") if job else None,
-        "overdue": (overdue or {}).get("n", 0) if overdue else 0,
+        **counts,
+        "production_cleanup_released": False,
     }

@@ -101,6 +101,12 @@ On 2026-11-10 the owner approved D1–D8 engineering, including separate intersp
 
 **BUILT** — [interspousal containment](INTERSPOUSAL_CONTAINMENT.md) reached main as `00cb1ae2` with identical reviewed/merged trees, green exact-head CI/Preview and post-merge Run Tests `42900961057`, CI `42900960438` and Vercel status. Seven API types remain available. Both held types retain refusal and historical-access/non-promotion proofs; original P02 counts remain historical. No legal-template text changed. Rounding and disabled-profile v2 preparation remain separate concerns; none of these approvals clears G1.
 
+## P04 approved contact and evidence engineering
+
+On 2026-11-10 the owner approved D1–D7 and explicitly retained optional approver email in one purgeable location for compatibility. [The decision matrix](P04_RETENTION_DECISION_MATRIX.md) and [engineering contract](API_CONTACT_EVIDENCE.md) define contact-free versioned snapshots/approval evidence, restricted new-record contact cleanup, aggregate legacy-remnant visibility, owner-operated record holds and restore-review preparation. Historical JSON and hashes are not automatically rewritten. The existing API lifecycle command's stale identity-helper calls are repaired with real command tests; no deployment configuration is changed.
+
+Full local, exact-head and merged-main receipts are required before reporting this engineering integrated. Actual production inventory/cleanup, backup/log/export horizons, scheduling, customer-facing publication and P03 activation remain held. [Draft wording](P04_WORDING_REVIEW_DRAFT.md) is not published. P04 operational closure and G1 remain unachieved.
+
 ## Remaining release gates
 
 **BUILT** — the separate [county increment repair](COUNTY_ROUNDING_REPAIR.md) reached main as `8e5c28ad`, with matching reviewed/merged trees and green post-merge Run Tests `42905025610`, CI `42905025456` and Vercel status. It corrects the reproduced arithmetic discrepancy without selecting legal applicability or updating municipal rates. It does not clear P11 or activate a new tax contract.

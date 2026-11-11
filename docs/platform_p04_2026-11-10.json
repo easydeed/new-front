@@ -1,0 +1,43 @@
+{
+  "ticket": "P04 contact separation and approval evidence engineering",
+  "date": "2026-11-10",
+  "baseline_main": "ca56c8fe184dbff2437f04dc50f1fcefdac6fea8",
+  "branch": "codex/p04-contact-evidence",
+  "owner_decisions": "D1-D7 approved; keep optional email in one purgeable location for compatibility",
+  "scope": "Versioned contact-free request/approval evidence, restricted new-record contact lifecycle, aggregate legacy review, record-level owner holds and restore-review preparation",
+  "retained_attempts": [
+    {"passed": 34, "setup_errors": 1, "reason": "Local connection timeout during existing admin-token fixture setup; fresh isolated connection probes subsequently succeeded; no assertions or production settings relaxed"},
+    {"passed": 36, "failed": 1, "reason": "New operator caller used stale database-identity keyword; exact helper contract inspected and both new/existing API lifecycle callers corrected, including connection-based describe call"},
+    {"probe": "hold_mutation", "qualification": "Initial probe hit schema-convergence deadlock, not its intended regression. Rechecked only after full schema setup; initial failure is not counted as a successful guard proof"},
+    {"phase": "initial_full_backend_and_concurrency", "qualification": "Exceeded private observation budgets; partial output retained and not counted as a final pass. Final-source verification avoids redundant test-fixture DDL and uses diagnostic verbosity"},
+    {"phase": "local_collection_diagnostic", "exit_code": 3221225477, "qualification": "Windows access violation during cached SQLAlchemy module loading before P04 tests. Final local Python runs use a fresh task-only cache path without changing installed packages or production settings"},
+    {"phase": "frontend_selector", "passed": 1349, "failed": 1, "qualification": "Existing billing-tab selector failed once on the unchanged frontend. Its full 14-test file passed in isolation without code/assertion changes. Entire frontend suite is rechecked before any merge"}
+  ],
+  "verification": {
+    "status": "full_local_exact_head_CI_and_main_receipts_required_in_review",
+    "initial_focused_passed": 89,
+    "corrected_expanded_focused_passed": 94,
+    "final_private_backend_observation_budget_seconds": 900,
+    "maintained_CI_timeouts_or_assertions_changed": false,
+    "guard_probes": "contact_projection_snapshot_integrity_hold_legacy_boundary_inventory_preview_hold_and_restore_release",
+    "lockfile_sha256": "f7bde294ee6d6d3c56cba466b78662f6f18ae2e05c42fd7ad73949b7f07a83db",
+    "full_application_browser_journeys": "not_run_not_claimed",
+    "production_backup_erasure_or_API_disaster_recovery": "not_proven"
+  },
+  "request_snapshot_scheme": "api-contact-free-request/1",
+  "approval_evidence_scheme": "api-approval-evidence/1",
+  "current_contact_retention_days": 90,
+  "new_public_routes_or_response_fields": false,
+  "legacy_request_JSON_redacted": false,
+  "historical_hashes_or_PDFs_rewritten": false,
+  "production_inventory_or_cleanup_executed": false,
+  "production_deployment_or_job_settings_changed": false,
+  "credentials_read_or_changed": false,
+  "customer_facing_wording_published": false,
+  "P03_profiles_or_activation_enabled": false,
+  "P03_instrument_or_v1_cutover_holds_changed": false,
+  "baselines_rerecorded": false,
+  "original_dirty_checkout_preserved": true,
+  "operational_P04_closure": false,
+  "launch_gate_G1_achieved": false
+}

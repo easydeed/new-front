@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import logging
 from datetime import datetime, timezone
 from typing import List, Optional
 
@@ -21,6 +22,7 @@ from pydantic import BaseModel, Field
 
 from database import get_db_connection
 from services import api_confirm_lifecycle
+from services import api_evidence
 from services.api_confirm import (
     ARTIFACT_DECLARATIONS, STATUS_COMPLETED, STATUS_PENDING, STATUS_REJECTED,
     assert_artifact_keys, confirmation_package, normalize_rejection,
@@ -30,6 +32,7 @@ from utils.short_code import generate_content_hash
 from utils.throttle import ThrottleExceeded, client_key, throttle
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 class RejectBody(BaseModel):
@@ -88,11 +91,12 @@ def _load(token: str, request: Request):
         cursor.execute("""
             SELECT deed_id, document_id, deed_type, status,
                    confirmation_token, confirmation_expires_at,
-                   approver_name, approver_role, approver_email,
+                   approver_name, approver_role,
                    approver_license, draft_sha256, approved_at,
                    preview_pdf_data, pdf_data, request_data,
                    property_address, property_apn, property_county,
-                   grantor_name, grantee_name, demo_kind
+                   grantor_name, grantee_name, demo_kind,
+                   request_snapshot_version, request_snapshot_sha256
             FROM api_deeds
             WHERE confirmation_token = %s
         """, (token,))
@@ -109,7 +113,8 @@ def _load(token: str, request: Request):
         raise
     except Exception:
         conn.close()
-        raise
+        logger.error("API confirmation lookup failed")
+        raise HTTPException(500, detail={"code": "INTERNAL_ERROR", "message": "Confirmation lookup failed"}) from None
 
 
 @router.get("/confirm/{token}")
@@ -211,6 +216,16 @@ async def approve_confirmation(token: str, request: Request,
             request_data = json.loads(request_data)
         content_hash = generate_content_hash(json.dumps(request_data, default=str))
         now = datetime.now(timezone.utc)
+        license_claimed = ((body.license or "").strip() or None if body else None) or row.get("approver_license")
+        try:
+            evidence = api_evidence.approval_evidence(
+                row, pdf_sha256=pdf_sha256, approved_at=now,
+                license_claimed=license_claimed, client_digest_supplied=bool(claimed),
+                server_declarations=ARTIFACT_DECLARATIONS,
+            )
+        except (ValueError, TypeError):
+            raise HTTPException(409, detail={"code": "EVIDENCE_INTEGRITY",
+                                            "message": "Request evidence integrity check failed"})
 
         # ═══ A DEMO APPROVAL MINTS NO PUBLIC VERIFICATION RECORD ═══
         #
@@ -263,11 +278,16 @@ async def approve_confirmation(token: str, request: Request,
                    authenticity_id = %s,
                    approved_at = %s,
                    draft_sha256 = %s,
-                   approver_license = COALESCE(%s, approver_license)
+                   approver_license = COALESCE(%s, approver_license),
+                   approval_evidence = %s,
+                   approval_evidence_version = %s,
+                   approval_evidence_sha256 = %s
              WHERE confirmation_token = %s
                AND status = %s
         """, (STATUS_COMPLETED, authenticity_id, now, pdf_sha256,
               (body.license or "").strip() or None if body else None,
+              json.dumps(evidence, ensure_ascii=False), api_evidence.EVIDENCE_VERSION,
+              api_evidence.digest(evidence),
               token, STATUS_PENDING))
         if cursor.rowcount != 1:
             conn.rollback()
@@ -282,6 +302,10 @@ async def approve_confirmation(token: str, request: Request,
     except HTTPException:
         conn.rollback()
         raise
+    except Exception:
+        conn.rollback()
+        logger.error("API confirmation approval failed")
+        raise HTTPException(500, detail={"code": "INTERNAL_ERROR", "message": "Approval failed"}) from None
     finally:
         cursor.close()
         conn.close()
@@ -327,6 +351,10 @@ async def reject_confirmation(token: str, request: Request, body: RejectBody):
     except HTTPException:
         conn.rollback()
         raise
+    except Exception:
+        conn.rollback()
+        logger.error("API confirmation rejection failed")
+        raise HTTPException(500, detail={"code": "INTERNAL_ERROR", "message": "Rejection failed"}) from None
     finally:
         cursor.close()
         conn.close()
