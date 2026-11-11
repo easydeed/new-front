@@ -34,12 +34,12 @@ def main() -> int:
     conn = psycopg2.connect(url, cursor_factory=ROW_FACTORY)
     try:
         try:
-            who = assert_tables(conn, "api_deeds", "system_jobs",
-                                expected=expected_database())
+            assert_tables(conn, "api_deeds", "system_jobs", "document_authenticity",
+                          expect_database=expected_database())
         except WrongDatabase as exc:
             print(str(exc), file=sys.stderr)
             return 1
-        print(f"database: {describe(who)}")
+        print(f"database: {describe(conn)}")
 
         if status_only:
             print(purge_status(conn))
@@ -58,4 +58,9 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        result = main()
+    except Exception:
+        print("API lifecycle command failed; no raw database detail is logged", file=sys.stderr)
+        result = 1
+    sys.exit(result)

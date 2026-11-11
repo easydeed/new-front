@@ -32,6 +32,7 @@ from services.api_confirm import (
     pin_execution_date,
 )
 from services import api_confirm_lifecycle
+from services import api_evidence
 from services.dtt_rates import compute_dtt
 from services.jurisdictions import area_type_for
 from utils.api_keys import extract_key_prefix, validate_api_key, generate_deed_id, generate_document_id
@@ -551,8 +552,8 @@ async def create_deed(
 
         try:
             preview_bytes = await render_pdf_async(html_content)
-        except Exception as pdf_error:
-            print(f"PDF generation error: {pdf_error}")
+        except Exception:
+            logger.error("API preview generation failed")
             raise HTTPException(
                 status_code=500,
                 detail={"code": "INTERNAL_ERROR", "message": "PDF generation failed"}
@@ -568,8 +569,7 @@ async def create_deed(
 
         token = mint_token()
         exp = confirm_expires_at(created_at)
-        payload = deed_request.dict()
-        payload["_execution_date"] = execution_date
+        payload = api_evidence.request_snapshot(deed_request, execution_date=execution_date)
 
         cursor.execute("""
             INSERT INTO api_deeds (
@@ -580,10 +580,10 @@ async def create_deed(
                 preview_pdf_data, request_data, idempotency_key,
                 confirmation_token, confirmation_expires_at,
                 approver_name, approver_role, approver_email,
-                created_at
+                created_at, request_snapshot_version, request_snapshot_sha256
             ) VALUES (
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s, %s, %s, %s
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
             )
         """, (
             deed_id,
@@ -626,6 +626,8 @@ async def create_deed(
             # also what `execution_date` already does, pinned at create
             # so the template cannot print a later `now()`.
             created_at,
+            api_evidence.SNAPSHOT_VERSION,
+            api_evidence.digest(payload),
         ))
 
         _log_usage(cursor, api_key["id"], "/api/v1/deeds", "POST", 200, start_time, request)
@@ -637,13 +639,12 @@ async def create_deed(
 
     except HTTPException:
         raise
-    except Exception as e:
-        print(f"Create deed error: {e}")
-        import traceback
-        traceback.print_exc()
+    except Exception:
+        # Database exceptions can include a failing row and its contact value.
+        logger.error("API draft creation failed")
         raise HTTPException(
             status_code=500,
-            detail={"code": "INTERNAL_ERROR", "message": str(e)}
+            detail={"code": "INTERNAL_ERROR", "message": "Draft creation failed"}
         )
     finally:
         cursor.close()
