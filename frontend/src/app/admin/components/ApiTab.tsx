@@ -53,6 +53,9 @@ export default function ApiTab() {
         AdminApi.listApiKeys(),
         AdminApi.listApiKeyRequests().catch(() => ({ items: [], total: 0 })),
       ]);
+      if (!keyRes.permissions || !Array.isArray(keyRes.permissions.scopes)) {
+        throw new Error('Permission catalog unavailable; key issuance is disabled.');
+      }
       setKeys(keyRes.api_keys || []);
       setRequests(reqRes.items || []);
       setAvailableScopes(keyRes.permissions.scopes);
@@ -231,8 +234,10 @@ export default function ApiTab() {
 
         {keys.length === 0 ? (
           <div style={{ color: 'var(--dp-text-dim)' }}>
-            No API keys yet. Keys are issued manually — create one after you&apos;ve
-            talked with the partner.
+            {error ? 'API key data is unavailable; no permissions changed.' : <>
+              No API keys yet. Keys are issued manually — create one after you&apos;ve
+              talked with the partner.
+            </>}
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>

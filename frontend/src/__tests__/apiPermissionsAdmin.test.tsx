@@ -69,3 +69,15 @@ it('refuses to present a successful issuance form if permission loading fails', 
   expect(screen.getByRole('button', { name: 'Create key' })).toBeDisabled();
   expect(api.createApiKey).not.toHaveBeenCalled();
 });
+
+it('fails closed when an older backend omits the permission catalog', async () => {
+  const legacy = { api_keys: [{ id: 'legacy', name: 'Legacy key' }], total: 1, page: 1, pages: 1 };
+  api.listApiKeys.mockResolvedValue(legacy as unknown as Awaited<ReturnType<typeof AdminApi.listApiKeys>>);
+  render(<ApiTab />);
+  await screen.findByText('Permission catalog unavailable; key issuance is disabled.');
+  expect(screen.getByText('API key data is unavailable; no permissions changed.')).toBeInTheDocument();
+  expect(screen.queryByText('Legacy key')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Create key' }));
+  expect(screen.getByRole('button', { name: 'Create key' })).toBeDisabled();
+  expect(api.createApiKey).not.toHaveBeenCalled();
+});
