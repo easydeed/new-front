@@ -282,6 +282,9 @@ async def try_deed(body: TryRequest, request: Request):
         HTTPAuthorizationCredentials(scheme="Bearer", credentials=demo_key),
         request,
     )
+    from services.api_permissions import require_operation
+    require_operation(api_key, "deed.create")
+    require_operation(api_key, "deed.handoff")
 
     # ═══ THE ROUTE DECIDES THE WATERMARK, NOT A DATABASE COLUMN ═══
     #

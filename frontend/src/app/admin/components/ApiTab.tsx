@@ -38,11 +38,15 @@ export default function ApiTab() {
   const [showMint, setShowMint] = useState(false);
   const [mintName, setMintName] = useState('');
   const [mintTest, setMintTest] = useState(false);
+  const [availableScopes, setAvailableScopes] = useState<string[]>([]);
+  const [permissionsLoaded, setPermissionsLoaded] = useState(false);
+  const [mintScopes, setMintScopes] = useState<string[]>([]);
   const [minting, setMinting] = useState(false);
   const [minted, setMinted] = useState<CreatedApiKey['api_key'] | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setPermissionsLoaded(false);
     setError('');
     try {
       const [keyRes, reqRes] = await Promise.all([
@@ -51,6 +55,8 @@ export default function ApiTab() {
       ]);
       setKeys(keyRes.api_keys || []);
       setRequests(reqRes.items || []);
+      setAvailableScopes(keyRes.permissions.scopes);
+      setPermissionsLoaded(true);
     } catch (e) {
       // Loud, not an empty state pretending to be "no keys yet".
       setError(e instanceof Error ? e.message : 'Failed to load API data');
@@ -71,10 +77,12 @@ export default function ApiTab() {
       const res = await AdminApi.createApiKey({
         name: mintName.trim(),
         is_test: mintTest,
+        scopes: mintScopes,
       });
       setMinted(res.api_key);
       setMintName('');
       setMintTest(false);
+      setMintScopes([]);
       setShowMint(false);
       load();
     } catch (e) {
@@ -84,13 +92,22 @@ export default function ApiTab() {
     }
   }
 
-  async function handleDeactivate(key: ApiKeyRow) {
-    if (!confirm(`Deactivate "${key.name}" (${key.key_prefix})? Calls using it will stop working immediately.`)) return;
+  async function handleRevoke(key: ApiKeyRow) {
+    if (!confirm(`Permanently revoke "${key.name}" (${key.key_prefix})? It cannot be resumed. Existing confirmation links are not cancelled.`)) return;
     try {
-      await AdminApi.deactivateApiKey(key.id);
+      await AdminApi.revokeApiKey(key.id);
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to deactivate key');
+      setError(e instanceof Error ? e.message : 'Failed to revoke key');
+    }
+  }
+
+  async function handlePause(key: ApiKeyRow) {
+    try {
+      await AdminApi.updateApiKey(key.id, { is_active: !key.is_active });
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to change key pause state');
     }
   }
 
@@ -183,6 +200,18 @@ export default function ApiTab() {
               <input type="checkbox" checked={mintTest} onChange={(e) => setMintTest(e.target.checked)} />
               <span>Test key — renders are watermarked SAMPLE and cannot be recorded</span>
             </label>
+            <fieldset disabled={!permissionsLoaded}>
+              <legend>Explicit permissions</legend>
+              {availableScopes.map((scope) => (
+                <label key={scope} className="hstack" style={{ gap: 8 }}>
+                  <input type="checkbox" checked={mintScopes.includes(scope)}
+                    onChange={(e) => setMintScopes((selected) => e.target.checked
+                      ? [...selected, scope] : selected.filter((value) => value !== scope))} />
+                  <code>{scope}</code>
+                </label>
+              ))}
+              <div>No permissions are selected automatically. With none selected, this key grants no operations.</div>
+            </fieldset>
             {/* THE OUTCOME, BEFORE THE CLICK. This control existed and was
                 missed: the class went into the name field above, the
                 checkbox stayed unticked, and a live key was minted for a
@@ -194,7 +223,7 @@ export default function ApiTab() {
                 ? 'Watermarked, for sandboxes and demos.'
                 : 'NOT watermarked — these are the deeds that get recorded.'}
             </div>
-            <button className="btn" onClick={handleMint} disabled={minting || !mintName.trim()}>
+            <button className="btn" onClick={handleMint} disabled={minting || !mintName.trim() || !permissionsLoaded}>
               {minting ? 'Creating…' : 'Create key'}
             </button>
           </div>
@@ -215,7 +244,7 @@ export default function ApiTab() {
                       hold, and `/try`'s are reclaimed after three hours,
                       so a key serving the public demo reads 0 here while
                       having rendered hundreds. Split, and labelled. */}
-                  <th>Name</th><th>Prefix</th><th>Status</th><th>Limits</th>
+                  <th>Name</th><th>Prefix</th><th>Status</th><th>Permissions</th><th>Limits</th>
                   <th>Deeds created</th><th>Held now</th>
                   <th>Requests</th><th>Last used</th><th></th>
                 </tr>
@@ -226,21 +255,27 @@ export default function ApiTab() {
                     <td>{k.name}</td>
                     <td><code style={{ fontSize: 13 }}>{k.key_prefix}…</code></td>
                     <td>
-                      <Badge kind={k.is_active ? 'success' : 'neutral'}>
-                        {k.is_active ? 'Active' : 'Deactivated'}
+                      <Badge kind={k.is_active && !k.revoked_at ? 'success' : 'neutral'}>
+                        {k.revoked_at ? 'Revoked' : k.is_active ? 'Active' : 'Paused'}
                       </Badge>
                       {k.is_test && <Badge kind="neutral">Test</Badge>}
                     </td>
+                    <td>{k.scopes === null ? 'Legacy permissions need review' : k.scopes.join(', ') || 'No permissions'}</td>
                     <td>{k.rate_limit_hour}/hr · {k.rate_limit_day}/day</td>
                     <td>{k.deeds_created ?? 0}</td>
                     <td>{k.deed_count ?? 0}</td>
                     <td>{k.request_count ?? 0}</td>
                     <td>{fmtDate(k.last_used_at)}</td>
                     <td>
-                      {k.is_active && (
-                        <button className="btn" onClick={() => handleDeactivate(k)}>
-                          Deactivate
-                        </button>
+                      {!k.revoked_at && (
+                        <>
+                          <button className="btn" onClick={() => handlePause(k)}>
+                            {k.is_active ? 'Pause' : 'Resume'}
+                          </button>
+                          <button className="btn" onClick={() => handleRevoke(k)}>
+                            Revoke permanently
+                          </button>
+                        </>
                       )}
                     </td>
                   </tr>

@@ -124,7 +124,8 @@ def run_flows(db_url):
     token = client.post("/users/login", json={
         "email": ADMIN_EMAIL, "password": ADMIN_PASSWORD}).json().get("access_token", "")
     mint = client.post("/admin/api-keys", headers={"Authorization": f"Bearer {token}"},
-                       json={"name": "api-baseline", "is_test": True})
+                       json={"name": "api-baseline", "is_test": True,
+                             "scopes": ["deed:create", "deed:read", "deed:pdf", "deed:handoff", "tax:calculate"]})
     minted = mint.json().get("api_key", {}) if mint.status_code == 200 else {}
     api_key = minted.get("key", "")
     results["1_key_mint"] = {
