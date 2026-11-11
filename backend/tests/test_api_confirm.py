@@ -170,7 +170,8 @@ def test_rejected_idempotency_key_is_not_resurrected():
         "email": email, "password": "Harness!Passw0rd"}).json()["access_token"]
     key = client.post("/admin/api-keys",
                       headers={"Authorization": f"Bearer {token}"},
-                      json={"name": "confirm-reject", "is_test": True}
+                      json={"name": "confirm-reject", "is_test": True,
+                            "scopes": ["deed:create", "deed:read", "deed:pdf", "deed:handoff"]}
                       ).json()["api_key"]["key"]
     body = {
         "deed_type": "grant_deed",

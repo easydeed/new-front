@@ -84,7 +84,8 @@ def api_key(client, admin_token):
     same key-creation path the admin UI (A3) will use."""
     resp = client.post("/admin/api-keys",
                        headers={"Authorization": f"Bearer {admin_token}"},
-                       json={"name": "integration-harness", "is_test": True})
+                       json={"name": "integration-harness", "is_test": True,
+                             "scopes": ["deed:create", "deed:read", "deed:pdf", "deed:handoff", "tax:calculate"]})
     assert resp.status_code == 200, resp.text
     key = resp.json()["api_key"]["key"]
     assert key.startswith("dp_test_")

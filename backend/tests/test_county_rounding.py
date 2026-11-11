@@ -31,7 +31,7 @@ def test_public_calculator_uses_the_corrected_county_result_without_db_or_pdf(mo
     monkeypatch.setattr(api, "render_pdf_async", forbidden)
     app = FastAPI()
     app.include_router(api.router)
-    app.dependency_overrides[api.get_api_key] = lambda: {"id": "synthetic-calculation"}
+    app.dependency_overrides[api.get_api_key] = lambda: {"id": "synthetic-calculation", "scopes": ["tax:calculate"]}
     with TestClient(app) as client:
         response = client.post("/api/v1/transfer-tax/calculate", json={
             "value": 21100, "county": "Los Angeles", "less_liens": 0,
