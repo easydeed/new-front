@@ -10,7 +10,8 @@
     {"passed": 36, "failed": 1, "reason": "New operator caller used stale database-identity keyword; exact helper contract inspected and both new/existing API lifecycle callers corrected, including connection-based describe call"},
     {"probe": "hold_mutation", "qualification": "Initial probe hit schema-convergence deadlock, not its intended regression. Rechecked only after full schema setup; initial failure is not counted as a successful guard proof"},
     {"phase": "initial_full_backend_and_concurrency", "qualification": "Exceeded private observation budgets; partial output retained and not counted as a final pass. Final-source verification avoids redundant test-fixture DDL and uses diagnostic verbosity"},
-    {"phase": "local_collection_diagnostic", "exit_code": 3221225477, "qualification": "Windows access violation during cached SQLAlchemy module loading before P04 tests. Final local Python runs use a fresh task-only cache path without changing installed packages or production settings"}
+    {"phase": "local_collection_diagnostic", "exit_code": 3221225477, "qualification": "Windows access violation during cached SQLAlchemy module loading before P04 tests. Final local Python runs use a fresh task-only cache path without changing installed packages or production settings"},
+    {"phase": "frontend_selector", "passed": 1349, "failed": 1, "qualification": "Existing billing-tab selector failed once on the unchanged frontend. Its full 14-test file passed in isolation without code/assertion changes. Entire frontend suite is rechecked before any merge"}
   ],
   "verification": {
     "status": "full_local_exact_head_CI_and_main_receipts_required_in_review",
