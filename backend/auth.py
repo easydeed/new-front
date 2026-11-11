@@ -325,21 +325,17 @@ def authorization_role(role) -> str:
 
 
 async def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    """Verify admin access from JWT token"""
-    try:
-        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
-        user_email: str = payload.get("email")
-        user_role: str = payload.get("role")
-        
-        if user_email is None or not is_admin_role(user_role):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Admin access required"
-            )
-        return user_email
-        
-    except JWTError:
+    """Apply the normal session gate, then the shared administrator role gate.
+
+    Keep the email return contract used by admin audit/issuance callers.
+    Decoding independently here used to accept a logged-out session even
+    though the same token was refused by ordinary authenticated routes.
+    """
+    payload = verify_token(credentials)
+    user_email: str = payload.get("email")
+    if user_email is None or not is_admin_role(payload.get("role")):
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials"
-        ) 
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
+    return user_email
