@@ -25,7 +25,8 @@ STORED = b"%PDF-1.4\nsynthetic previously stored bytes\n%%EOF"
 def client_for(router):
     app = FastAPI()
     app.include_router(router)
-    app.dependency_overrides[api.get_api_key] = lambda: {"id": "synthetic", "is_test": True}
+    app.dependency_overrides[api.get_api_key] = lambda: {
+        "id": "synthetic", "is_test": True, "scopes": ["deed:create", "deed:pdf"]}
     app.dependency_overrides[deeds_crud.get_current_user_id] = lambda: 7
     return TestClient(app)
 
@@ -91,7 +92,7 @@ def test_internal_api_call_cannot_bypass_the_request_model(monkeypatch, deed_typ
     db = Mock(side_effect=AssertionError("DB reached"))
     monkeypatch.setattr(api, "get_db_connection", db)
     with pytest.raises(HTTPException) as refused:
-        asyncio.run(api.create_deed(Mock(), SimpleNamespace(deed_type=deed_type.replace("-", "_")), {}, None))
+        asyncio.run(api.create_deed(Mock(), SimpleNamespace(deed_type=deed_type.replace("-", "_")), {"scopes": ["deed:create"]}, None))
     assert refused.value.status_code == 409
     db.assert_not_called()
 

@@ -41,6 +41,8 @@ export type ApiKeyRow = {
   key_prefix: string;
   name: string;
   is_active: boolean;
+  scopes: string[] | null;
+  revoked_at: string | null;
   is_test: boolean;
   rate_limit_hour: number;
   rate_limit_day: number;
@@ -58,6 +60,7 @@ export type ApiKeyRow = {
 
 export type ApiKeyListResponse = {
   api_keys: ApiKeyRow[];
+  permissions: { scopes: string[]; operations: Record<string, string>; reserved_unavailable: string[] };
   total: number;
   page: number;
   pages: number;
@@ -84,7 +87,7 @@ export type ApiKeyDetail = {
 /** The full key is returned exactly once, at creation. */
 export type CreatedApiKey = {
   success: boolean;
-  api_key: ApiKeyRow & { key: string };
+  api_key: Omit<ApiKeyRow, 'scopes' | 'revoked_at'> & { key: string };
   warning: string;
 };
 
@@ -370,15 +373,15 @@ export const AdminApi = {
 
   getApiKey: (id: string) => http<ApiKeyDetail>(`/admin/api-keys/${id}`),
 
-  createApiKey: (body: { name: string; is_test?: boolean; rate_limit_hour?: number; rate_limit_day?: number }) =>
+  createApiKey: (body: { name: string; scopes: string[]; is_test?: boolean; rate_limit_hour?: number; rate_limit_day?: number }) =>
     http<CreatedApiKey>('/admin/api-keys', { method: 'POST', body: JSON.stringify(body) }),
 
-  updateApiKey: (id: string, updates: { name?: string; is_active?: boolean; rate_limit_hour?: number; rate_limit_day?: number }) =>
+  updateApiKey: (id: string, updates: { name?: string; is_active?: boolean; scopes?: string[]; rate_limit_hour?: number; rate_limit_day?: number }) =>
     http<{ success: boolean; api_key: ApiKeyRow }>(`/admin/api-keys/${id}`, {
       method: 'PATCH', body: JSON.stringify(updates)
     }),
 
-  deactivateApiKey: (id: string) =>
+  revokeApiKey: (id: string) =>
     http<{ success: boolean; message: string }>(`/admin/api-keys/${id}`, { method: 'DELETE' }),
 
   // The inquiry queue behind manual key issuance.

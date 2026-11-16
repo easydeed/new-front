@@ -23,6 +23,8 @@ except Exception:
 
 router = APIRouter(prefix="/admin", tags=["Admin v2"])
 
+from services.api_permissions import permission_catalog, validate_scopes
+
 # Note: connections use RealDictCursor, so fetchall() already returns dicts
 # No need for a _dictify helper function
 
@@ -671,6 +673,7 @@ def list_api_keys(
             SELECT 
                 ak.id, ak.key_prefix, ak.name, ak.is_active, ak.is_test,
                 ak.rate_limit_hour, ak.rate_limit_day, ak.created_at, ak.last_used_at,
+                ak.scopes, ak.revoked_at,
                 -- `deed_count` is DEEDS WE STILL HOLD, not deeds this key
                 -- ever made, and the two diverge by design: `/try`'s rows
                 -- carry `demo_kind` and `delete_demo_drafts` reclaims them
@@ -699,6 +702,7 @@ def list_api_keys(
         
         return {
             "api_keys": keys,
+            "permissions": permission_catalog(),
             "total": total,
             "page": page,
             "pages": (total + limit - 1) // limit
@@ -708,6 +712,7 @@ def list_api_keys(
 @router.post("/api-keys")
 def create_api_key(
     name: str = Body(..., embed=True),
+    scopes: List[str] = Body(..., embed=True),
     is_test: bool = Body(False, embed=True),
     rate_limit_hour: int = Body(100, embed=True),
     rate_limit_day: int = Body(1000, embed=True),
@@ -738,6 +743,7 @@ def create_api_key(
     Only a DISAGREEMENT is refused. A name that says nothing about the
     class is none of this endpoint's business.
     """
+    scopes = validate_scopes(scopes)
     from utils.api_keys import (
         LIVE_PREFIX, TEST_PREFIX, assert_key_class,
         generate_api_key as gen_key,
@@ -767,10 +773,10 @@ def create_api_key(
     with db_connection() as conn, conn.cursor() as cur:
         # Use gen_random_uuid() for UUID id
         cur.execute("""
-            INSERT INTO api_keys (id, key_prefix, key_hash, name, is_test, rate_limit_hour, rate_limit_day, created_by_email, is_active, created_at)
-            VALUES (gen_random_uuid(), %s, %s, %s, %s, %s, %s, %s, true, NOW())
+            INSERT INTO api_keys (id, key_prefix, key_hash, name, is_test, rate_limit_hour, rate_limit_day, created_by_email, scopes, is_active, created_at)
+            VALUES (gen_random_uuid(), %s, %s, %s, %s, %s, %s, %s, %s, true, NOW())
             RETURNING id, created_at
-        """, (key_prefix, key_hash, name, is_test, rate_limit_hour, rate_limit_day, admin))
+        """, (key_prefix, key_hash, name, is_test, rate_limit_hour, rate_limit_day, admin, scopes))
         
         row = cur.fetchone()
         conn.commit()
@@ -800,7 +806,8 @@ def get_api_key(
     with db_connection() as conn, conn.cursor() as cur:
         cur.execute("""
             SELECT id, key_prefix, name, is_active, is_test,
-                   rate_limit_hour, rate_limit_day, created_at, last_used_at, created_by_email
+                   rate_limit_hour, rate_limit_day, created_at, last_used_at, created_by_email,
+                   scopes, revoked_at
             FROM api_keys
             WHERE id = %s
         """, (key_id,))
@@ -854,6 +861,7 @@ def update_api_key(
     is_active: Optional[bool] = Body(None, embed=True),
     rate_limit_hour: Optional[int] = Body(None, embed=True),
     rate_limit_day: Optional[int] = Body(None, embed=True),
+    scopes: Optional[List[str]] = Body(None, embed=True),
     admin=Depends(get_current_admin)
 ):
     """Update API key settings: name, active state, rate limits.
@@ -923,15 +931,26 @@ def update_api_key(
         if rate_limit_day is not None:
             updates.append("rate_limit_day = %s")
             params.append(rate_limit_day)
+        if scopes is not None:
+            scopes = validate_scopes(scopes)
+            updates.append("scopes = %s")
+            params.append(scopes)
         
         if not updates:
             raise HTTPException(status_code=400, detail="No updates provided")
+
+        cur.execute("SELECT revoked_at FROM api_keys WHERE id=%s FOR UPDATE", (key_id,))
+        existing = cur.fetchone()
+        if not existing:
+            raise HTTPException(status_code=404, detail="API key not found")
+        if is_active is True and existing['revoked_at'] is not None:
+            raise HTTPException(status_code=409, detail="A revoked API key cannot be resumed")
         
         params.append(key_id)
         cur.execute(f"""
             UPDATE api_keys SET {', '.join(updates)}
             WHERE id = %s
-            RETURNING id, key_prefix, name, is_active, is_test, rate_limit_hour, rate_limit_day
+            RETURNING id, key_prefix, name, is_active, is_test, rate_limit_hour, rate_limit_day, scopes, revoked_at
         """, params)
         
         row = cur.fetchone()
@@ -951,10 +970,10 @@ def delete_api_key(
     key_id: str,  # UUID as string
     admin=Depends(get_current_admin)
 ):
-    """Deactivate (soft delete) an API key."""
+    """Terminal revocation; pause/resume uses PATCH on never-revoked keys."""
     with db_connection() as conn, conn.cursor() as cur:
         cur.execute("""
-            UPDATE api_keys SET is_active = false
+            UPDATE api_keys SET is_active = false, revoked_at = COALESCE(revoked_at, NOW())
             WHERE id = %s
             RETURNING id, key_prefix, name
         """, (key_id,))
@@ -967,5 +986,5 @@ def delete_api_key(
         
         return {
             "success": True,
-            "message": f"API key '{row['name']}' has been deactivated"
+            "message": f"API key '{row['name']}' has been revoked"
         }

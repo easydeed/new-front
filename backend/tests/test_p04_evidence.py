@@ -139,7 +139,7 @@ def test_contact_bearing_database_failure_is_not_returned_or_logged(monkeypatch,
     monkeypatch.setattr(api, "render_pdf_async", AsyncMock(return_value=b"synthetic"))
     app = FastAPI()
     app.include_router(api.router)
-    app.dependency_overrides[api.get_api_key] = lambda: {"id": "synthetic"}
+    app.dependency_overrides[api.get_api_key] = lambda: {"id": "synthetic", "scopes": ["deed:create"]}
     with TestClient(app) as client:
         response = client.post("/api/v1/deeds", json=model(marker).model_dump(mode="json"))
     assert response.status_code == 500

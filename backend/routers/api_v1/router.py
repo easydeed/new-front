@@ -33,6 +33,7 @@ from services.api_confirm import (
 )
 from services import api_confirm_lifecycle
 from services import api_evidence
+from services.api_permissions import permits, require_operation
 from services.dtt_rates import compute_dtt
 from services.jurisdictions import area_type_for
 from utils.api_keys import extract_key_prefix, validate_api_key, generate_deed_id, generate_document_id
@@ -240,7 +241,7 @@ async def get_api_key(
         # 'key_hash' and every valid key 401'd. This path had never run.
         cursor.execute("""
             SELECT id, key_hash, name, organization_id, scopes,
-                   rate_limit_hour, rate_limit_day, is_active, is_test
+                   rate_limit_hour, rate_limit_day, is_active, is_test, revoked_at
             FROM api_keys
             WHERE key_prefix = %s
         """, (key_prefix,))
@@ -269,7 +270,7 @@ async def get_api_key(
                 detail={"code": "UNAUTHORIZED", "message": "Invalid API key"}
             )
 
-        if not is_active:
+        if not is_active or row['revoked_at'] is not None:
             raise HTTPException(
                 status_code=403,
                 detail={"code": "FORBIDDEN", "message": "API key is deactivated"}
@@ -432,7 +433,7 @@ def _confirmation_url(token: Optional[str]) -> Optional[str]:
     return f"{_verification_base_url()}/confirm/{token}"
 
 
-def _deed_response_from_row(row) -> DeedResponse:
+def _deed_response_from_row(row, api_key=None) -> DeedResponse:
     """One response shape for create, replay, and GET.
 
     A stored PDF URL exists only after approval. Pending, rejected, and
@@ -452,7 +453,8 @@ def _deed_response_from_row(row) -> DeedResponse:
             created_at=row["created_at"],
             expires_at=row.get("confirmation_expires_at"),
             urls=DeedUrlsModel(
-                confirmation=_confirmation_url(row.get("confirmation_token")),
+                confirmation=(_confirmation_url(row.get("confirmation_token"))
+                              if permits(api_key, "deed.handoff") else None),
                 pdf=(f"{_api_base_url()}/api/v1/deeds/{deed_id}/pdf"
                      if completed else None),
                 verification=(f"{_verification_base_url()}/verify/{document_id}"
@@ -504,6 +506,7 @@ async def create_deed(
     """
     start_time = time.time()
 
+    require_operation(api_key, "deed.create")
     require_generation_available(deed_request.deed_type)
     conn = get_db_connection()
     if not conn:
@@ -528,7 +531,7 @@ async def create_deed(
             if existing:
                 _log_usage(cursor, api_key["id"], "/api/v1/deeds", "POST", 200, start_time, request)
                 conn.commit()
-                return _deed_response_from_row(existing)
+                return _deed_response_from_row(existing, api_key)
 
         deed_id = generate_deed_id()
         document_id = generate_document_id()
@@ -635,7 +638,7 @@ async def create_deed(
 
         cursor.execute(f"SELECT {_DEED_SELECT} FROM api_deeds WHERE deed_id = %s",
                        (deed_id,))
-        return _deed_response_from_row(cursor.fetchone())
+        return _deed_response_from_row(cursor.fetchone(), api_key)
 
     except HTTPException:
         raise
@@ -658,6 +661,7 @@ async def get_deed(
     api_key: dict = Depends(get_api_key)
 ):
     """Get deed metadata by deed_id."""
+    require_operation(api_key, "deed.read")
     start_time = time.time()
     conn = get_db_connection()
     if not conn:
@@ -681,7 +685,7 @@ async def get_deed(
 
         _log_usage(cursor, api_key["id"], "/api/v1/deeds/{deed_id}", "GET", 200, start_time, request)
         conn.commit()
-        return _deed_response_from_row(row)
+        return _deed_response_from_row(row, api_key)
 
     finally:
         cursor.close()
@@ -695,6 +699,7 @@ async def download_deed_pdf(
     api_key: dict = Depends(get_api_key)
 ):
     """Download the generated PDF document."""
+    require_operation(api_key, "deed.pdf")
     start_time = time.time()
     conn = get_db_connection()
     if not conn:
@@ -753,6 +758,7 @@ async def list_deeds(
     api_key: dict = Depends(get_api_key)
 ):
     """List all deeds created by your API key."""
+    require_operation(api_key, "deed.list")
     start_time = time.time()
     if limit > 100:
         limit = 100
@@ -851,6 +857,7 @@ async def calculate_transfer_tax(
     surface a caller happened to use decided what their deed declared.
     One source now: services/dtt_rates, mirrored to dttCalc.ts and pinned.
     """
+    require_operation(api_key, "tax.calculate")
     taxable_value = request.value - request.less_liens
     dtt = compute_dtt(taxable_value, request.city)
     city_rate = dtt["city_rate_per_1000"]

@@ -1,0 +1,172 @@
+{
+  "baseline": "fdc7b6c11a8be94c72aa137773de4af8582d9640",
+  "mode": "synthetic authorization investigation",
+  "real_auth_dependency": true,
+  "database": "marked disposable loopback only",
+  "rendering": "stubbed synthetic PDF; not a rendering test",
+  "checks": [
+    {
+      "name": "read_scopes_do_not_restrict",
+      "create": 200,
+      "calculator": 200,
+      "list": 200
+    },
+    {
+      "name": "create_scopes_do_not_restrict",
+      "create": 200,
+      "calculator": 200,
+      "list": 200
+    },
+    {
+      "name": "empty_scopes_do_not_restrict",
+      "create": 200,
+      "calculator": 200,
+      "list": 200
+    },
+    {
+      "name": "null_scopes_do_not_restrict",
+      "create": 200,
+      "calculator": 200,
+      "list": 200
+    },
+    {
+      "name": "unknown_scopes_do_not_restrict",
+      "create": 200,
+      "calculator": 200,
+      "list": 200
+    },
+    {
+      "name": "read_metadata_discloses_action_link",
+      "status": 200
+    },
+    {
+      "name": "token_previews_without_api_key",
+      "status": 200
+    },
+    {
+      "name": "other_customer_isolation",
+      "get": 404,
+      "pdf": 404
+    },
+    {
+      "name": "null_org_isolation",
+      "get": 404,
+      "pdf": 404
+    },
+    {
+      "name": "same_org_replacement_does_not_inherit",
+      "status": 404
+    },
+    {
+      "name": "admin_deactivate_refuses_key_but_does_not_stamp_revocation",
+      "status": 403
+    },
+    {
+      "name": "existing_token_survives_key_deactivation_and_can_approve",
+      "approval": 200,
+      "artifact": 200
+    },
+    {
+      "name": "revoked_timestamp_alone_is_not_enforced",
+      "status": 200
+    },
+    {
+      "name": "inactive_key_refused",
+      "status": 403
+    },
+    {
+      "name": "invalid_key_refused",
+      "status": 401
+    },
+    {
+      "name": "missing_key_refused",
+      "status": 401
+    },
+    {
+      "name": "test_key_cannot_read_other_live_key_record",
+      "status": 404
+    },
+    {
+      "name": "live_key_cannot_read_other_test_key_record",
+      "status": 404
+    },
+    {
+      "name": "create_only_key_can_read_metadata_and_pdf",
+      "metadata": 200,
+      "pdf": 200
+    },
+    {
+      "name": "non_demo_test_document_is_publicly_verified",
+      "status": 200,
+      "valid": true
+    },
+    {
+      "name": "public_verification_is_minimal",
+      "fields": [
+        "created_at",
+        "deed_type",
+        "document_id",
+        "status"
+      ]
+    },
+    {
+      "name": "admin_scope_and_org_arguments_ignored",
+      "scopes": [
+        "deed:create",
+        "deed:read"
+      ],
+      "organization_id": null
+    },
+    {
+      "name": "admin_cannot_patch_scopes",
+      "status": 400
+    },
+    {
+      "name": "api_key_is_not_an_admin_token",
+      "status": 401
+    },
+    {
+      "name": "tax_deed_hold_preserved",
+      "status": 422
+    },
+    {
+      "name": "interspousal_transfer_hold_preserved",
+      "status": 422
+    },
+    {
+      "name": "no_partner_evidence_or_usage_endpoint",
+      "paths": [
+        "/api/v1/deeds",
+        "/api/v1/deeds/{deed_id}",
+        "/api/v1/deeds/{deed_id}/pdf",
+        "/api/v1/transfer-tax/calculate",
+        "/api/v1/verify/{document_id}"
+      ]
+    }
+  ],
+  "count": 27,
+  "product_code_changed": false,
+  "review_date": "2026-11-10",
+  "review_timezone": "America/Los_Angeles",
+  "tree": "fbbe9192fccd0e4dfd50724c2e13ba193fa2d0c9",
+  "supplemental_admin_session": {
+    "normal_session": 401,
+    "admin_key_management": 200,
+    "passed": true
+  },
+  "total_observations": 28,
+  "failed_attempts": [
+    "connection refused: initial owned launcher on default port instead of required 55439; target guard prevented use",
+    "private network fence refused Windows asyncio loopback socketpair; corrected to permit loopback IPC only",
+    "private generation-hold probe expected handler 409 instead of maintained create-model 422; corrected expectation",
+    "local PostgreSQL process interruption 0xC000013A triggered recovery and stopped the next probe; no complete-pass claim from interrupted attempt"
+  ],
+  "probe_sha256": {
+    "authorization": "aad00868e4952ebbe552b99533ff6a5fb8393481ad49fb378a4cb026b9548360",
+    "administrator": "786a8b5bdba1d3790e119210ac2c3b4706e7898e5e909c8094950cc7fe69020d"
+  },
+  "full_implementation_gates": "not_run_review_only_no_product_changes",
+  "production_access": false,
+  "published_or_merged": false,
+  "decisions": "D1-D8 pending owner approval"
+}
