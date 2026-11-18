@@ -60,9 +60,9 @@ export default function ApiInquiryForm() {
 
   if (submitted) {
     return (
-      <div className="rounded-2xl border border-gray-200 bg-gray-50 p-8">
-        <h2 className="text-xl font-bold text-[#1F2B37]">Your request is recorded</h2>
-        <p className="mt-2 max-w-xl leading-relaxed text-gray-600">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 14 }}>
+        <div className="serif" style={{ fontSize: 32, lineHeight: 1.1, color: '#fff' }}>Request received.</div>
+        <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: 'var(--on-dark)' }}>
           We&rsquo;ll reach out at <strong>{email}</strong> to talk through what
           you&rsquo;re building. Keys are issued after that conversation — it&rsquo;s a
           short one, and it means the fit is clear on both sides.
@@ -72,85 +72,54 @@ export default function ApiInquiryForm() {
   }
 
   return (
-    <div id="request-access" className="scroll-mt-24 rounded-2xl border border-gray-200 bg-gray-50 p-8">
-      <h2 className="text-xl font-bold text-[#1F2B37]">Request API access</h2>
-      <p className="mt-2 max-w-xl leading-relaxed text-gray-600">
-        Three fields, no account needed. Tell us what you&rsquo;re integrating and
-        we&rsquo;ll get in touch — we issue keys after a short conversation.
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 14 }}>
+      <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.01em', color: '#fff' }}>Request a sandbox key</div>
+      <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--on-dark)' }}>
+        Company
+        <input
+          id="company"
+          required
+          maxLength={200}
+          value={company}
+          onChange={(e) => setCompany(e.target.value)}
+          placeholder="Pacific Coast Escrow"
+        />
+      </label>
+      <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--on-dark)' }}>
+        Work email
+        <input
+          id="email"
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@company.com"
+        />
+      </label>
+      <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--on-dark)' }}>
+        What are you building?
+        <textarea
+          id="use-case"
+          required
+          rows={3}
+          maxLength={2000}
+          value={useCase}
+          onChange={(e) => setUseCase(e.target.value)}
+          placeholder="A closing platform that needs grant deeds at funding"
+        />
+      </label>
+      <button type="submit" className="mkt-cta lg" disabled={submitting}>
+        {submitting ? 'Sending…' : 'Send my request →'}
+      </button>
+      {error && (
+        <div role="alert" style={{ fontSize: 14, color: '#fca5a5' }}>
+          {error}
+        </div>
+      )}
+      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--on-dark-muted)' }}>
+        No account needed. A person reads this and replies with your key. Already have a DeedPro account?{' '}
+        <a href="/api-key-request">Use the full form</a>.
       </p>
-
-      <form onSubmit={handleSubmit} className="mt-6 max-w-xl space-y-4">
-        <div>
-          <label htmlFor="company" className="block text-sm font-medium text-[#1F2B37]">
-            Company
-          </label>
-          <input
-            id="company"
-            required
-            maxLength={200}
-            value={company}
-            onChange={(e) => setCompany(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#7C4DFF] focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]/20"
-            placeholder="Pacific Coast Escrow"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-[#1F2B37]">
-            Work email
-          </label>
-          <input
-            id="email"
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#7C4DFF] focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]/20"
-            placeholder="you@company.com"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="use-case" className="block text-sm font-medium text-[#1F2B37]">
-            What are you building?
-          </label>
-          <textarea
-            id="use-case"
-            required
-            rows={4}
-            maxLength={2000}
-            value={useCase}
-            onChange={(e) => setUseCase(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#7C4DFF] focus:outline-none focus:ring-2 focus:ring-[#7C4DFF]/20"
-            placeholder="Generating grant deeds at closing from our escrow platform — roughly 200 a month, California only."
-          />
-        </div>
-
-        {error && (
-          <div
-            role="alert"
-            className="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800"
-          >
-            {error}
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded-lg bg-[#7C4DFF] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#6a3ff0] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {submitting ? 'Sending…' : 'Request access'}
-        </button>
-      </form>
-
-      <p className="mt-4 text-sm text-gray-500">
-        Already have a DeedPro account?{' '}
-        <a href="/api-key-request" className="text-[#7C4DFF] hover:underline">
-          Use the full form
-        </a>{' '}
-        — it asks a few more questions about volume and timeline.
-      </p>
-    </div>
+    </form>
   );
 }

@@ -1,6 +1,10 @@
 /**
  * ENGINE1 — the trust centre, built as an honest inventory.
  *
+ * The layout comes from docs/design/missing-pages. The gap and have
+ * lines are the live wording. A gap is shown as its first sentence,
+ * then the rest, and the source strings are unchanged.
+ *
  * ═══ WHY THIS PAGE IS NOT THE MOCKUP ═══
  *
  * `docs/design/trust.html` opens "Everything your security review will ask
@@ -66,6 +70,7 @@
  * webhooks" is not the outbound-webhook shape.
  */
 import Link from 'next/link';
+import { MarketingFrame } from '@/components/marketing/MarketingFrame';
 
 export const metadata = {
   title: 'Trust — DeedPro',
@@ -120,79 +125,93 @@ const HAVE: Array<[string, string]> = [
   ],
 ];
 
+const SUBPROCESSORS = ['SiteX (ICE)', 'Google Places', 'Stripe', 'SendGrid', 'OpenAI', 'Amazon S3', 'Render', 'Vercel'];
+
+function leadAndRest(text: string): { lead: string; rest: string } {
+  const cut = text.search(/[.!](?=\s)/);
+  if (cut === -1) return { lead: text, rest: '' };
+  return { lead: text.slice(0, cut + 1), rest: text.slice(cut + 1).trim() };
+}
+
+function pad(index: number) {
+  return String(index + 1).padStart(2, '0');
+}
+
 export default function TrustPage() {
   return (
-    <main className="max-w-3xl mx-auto px-6 py-16">
-      <h1 className="text-3xl font-bold text-gray-900 mb-3">
-        What we have, what we do not, and what we will not pretend about
-      </h1>
-      <p className="text-gray-700 leading-relaxed mb-2">
-        Most trust pages are written to end a security review quickly. This
-        one is written so you can end it yourself, early, if the answer is
-        no.
-      </p>
-      <p className="text-sm text-gray-500 mb-12">
-        The gaps are first because they are what you came to find.
-      </p>
-
-      {/* THE GAPS LEAD. Putting them second would make them a footnote,
-          which is the mockup's structure and the thing the ruling
-          reversed. */}
-      <section className="mb-14">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          What we do not have
-        </h2>
-        <ul className="space-y-3">
-          {GAPS.map((gap) => (
-            <li key={gap} className="flex gap-3 text-gray-700 leading-relaxed">
-              <span aria-hidden="true" className="text-gray-400 select-none">
-                —
-              </span>
-              <span>{gap}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="mb-14">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          What we do have
-        </h2>
-        {HAVE.map(([heading, body]) => (
-          <div key={heading} className="mb-6">
-            <h3 className="font-semibold text-gray-900 mb-1">{heading}</h3>
-            <p className="text-gray-700 leading-relaxed">{body}</p>
+    <MarketingFrame here="Trust" ctaHref="/#start" kind="trust">
+      <section className="mkt-band">
+        <div className="mkt-wrap" style={{ paddingTop: 'clamp(48px, 7vw, 88px)', paddingBottom: 'clamp(48px, 7vw, 88px)', display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <span className="mkt-eyebrow">Trust</span>
+          <h1>What we have, what we do not, and what we will not pretend about.</h1>
+          <p style={{ margin: 0, fontSize: 19, lineHeight: 1.6, color: 'var(--body)', maxWidth: 720 }}>
+            Most trust pages are written to end a security review quickly. This one is written so you can end it yourself, early, if the answer is no.
+          </p>
+          <div className="mkt-row" style={{ fontSize: 15, fontWeight: 700 }}>
+            <a href="#gaps" className="mkt-cta ink">{GAPS.length} things we do not have</a>
+            <a href="#have" className="mkt-cta ghost">{HAVE.length} things we do</a>
           </div>
-        ))}
+        </div>
       </section>
 
-      <section className="mb-12 border-t border-gray-200 pt-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">
-          Have a questionnaire?
-        </h2>
-        <p className="text-gray-700 leading-relaxed">
-          Send it to{' '}
-          <a href="mailto:info@deedpro.io" className="text-[#7C4DFF] hover:underline">
-            info@deedpro.io
-          </a>
-          . Questions this page does not answer will be answered with
-          &ldquo;we do not have that&rdquo; where that is the truth.
-        </p>
+      <section id="gaps" className="mkt-dark">
+        <div className="mkt-wrap mkt-section" style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 760 }}>
+            <span className="mono" style={{ fontWeight: 600, fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--violet-soft)' }}>What we do not have</span>
+            <h2>The gaps are first because they are what you came to find.</h2>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', columnGap: 48 }}>
+            {GAPS.map((gap, index) => {
+              const { lead, rest } = leadAndRest(gap);
+              return (
+                <div key={gap} className="mkt-gap">
+                  <span className="mono" style={{ fontWeight: 600, fontSize: 12, color: 'var(--violet)' }}>{pad(index)}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.35 }}>{lead}</div>
+                    {rest && <div style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--on-dark-muted)' }}>{rest}</div>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </section>
 
-      <p className="text-sm text-gray-500">
-        <Link href="/" className="text-[#7C4DFF] hover:underline">
-          ← Back to DeedPro
-        </Link>
-        <span className="mx-3 text-gray-300">·</span>
-        <a href="/privacy" className="text-[#7C4DFF] hover:underline">
-          Privacy
-        </a>
-        <span className="mx-3 text-gray-300">·</span>
-        <a href="/terms" className="text-[#7C4DFF] hover:underline">
-          Terms
-        </a>
-      </p>
-    </main>
+      <section id="have" className="mkt-rule">
+        <div className="mkt-wrap mkt-section" style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 760 }}>
+            <span className="mono" style={{ fontWeight: 600, fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--green-text)' }}>What we do have</span>
+            <h2>Each one is checkable: read a page, call an endpoint, or look us up.</h2>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '28px 40px' }}>
+            {HAVE.map(([heading, body], index) => (
+              <div key={heading} className="mkt-have">
+                <span className="mono" style={{ fontWeight: 600, fontSize: 12, color: 'var(--green-text)' }}>{pad(index)}</span>
+                <div style={{ fontSize: 19, fontWeight: 700, lineHeight: 1.3, color: 'var(--ink)' }}>{heading}</div>
+                <div style={{ fontSize: 15.5, lineHeight: 1.65, color: 'var(--muted)' }}>{body}</div>
+                {heading.startsWith('Every third party') && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                    {SUBPROCESSORS.map((name) => <span key={name} className="mkt-subchip">{name}</span>)}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mkt-band">
+        <div className="mkt-wrap" style={{ paddingTop: 'clamp(40px, 5vw, 64px)', paddingBottom: 'clamp(40px, 5vw, 64px)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '20px 40px' }}>
+          <div style={{ maxWidth: 720, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="serif" style={{ fontSize: 'clamp(26px, 3vw, 34px)', letterSpacing: '-0.02em', lineHeight: 1.15 }}>Have a questionnaire? Send it.</div>
+            <div style={{ fontSize: 16, lineHeight: 1.65, color: 'var(--muted)' }}>Questions this page does not answer will be answered with &ldquo;we do not have that&rdquo; where that is the truth.</div>
+          </div>
+          <div className="mkt-row" style={{ fontSize: 16, fontWeight: 700 }}>
+            <a href="mailto:info@deedpro.io" className="mkt-cta lg">info@deedpro.io</a>
+            <Link href="/developers" className="mkt-cta lg ghost">Read the API docs</Link>
+          </div>
+        </div>
+      </section>
+    </MarketingFrame>
   );
 }
