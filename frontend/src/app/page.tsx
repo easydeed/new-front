@@ -402,7 +402,7 @@ export default function LandingPage() {
                 <span className="v l" />
                 <span className="v r" />
                 <span className="tag" style={{ top: '22.7%', right: '8%', transform: 'translateY(-130%)' }}>recorder space</span>
-                <span className="tag" style={{ top: '12%', right: '8%' }}>side margin</span>
+                <span className="tag side">½ in side margins</span>
               </div>
             </div>
           </div>

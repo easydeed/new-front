@@ -22,7 +22,7 @@ export function SampleDeed({ embed = false }: { embed?: boolean }) {
           </button>
         </div>
       )}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div style={{ containerType: 'inline-size', width: '100%', display: 'flex', flexDirection: 'column', gap: 24 }}>
         <DeedPage1 />
         {!embed && <DeedPage2 />}
       </div>
