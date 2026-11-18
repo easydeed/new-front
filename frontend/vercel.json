@@ -1,4 +1,9 @@
 {
+  "git": {
+    "deploymentEnabled": {
+      "codex/ci-node22-compiler-guard": false
+    }
+  },
   "framework": "nextjs",
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
