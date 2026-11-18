@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap">
+<script src="./image-slot.js"></script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%237C4DFF'/%3E%3Cpath d='M19.5 7 12.5 25' stroke='%23fff' stroke-width='3.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+@font-face{font-family:'Inter';src:url('frontend/src/app/fonts/Inter-latin-variable.woff2') format('woff2');font-weight:100 900;font-display:swap}
+@font-face{font-family:'Plus Jakarta Sans';src:url('frontend/src/components/brand/fonts/PlusJakartaSans-ExtraBold-latin.woff2') format('woff2');font-weight:800;font-display:swap}
+html{scroll-behavior:smooth}
+body{margin:0;background:#fff;font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;color:#1F2B37;-webkit-font-smoothing:antialiased}
+a{color:#7C4DFF;text-decoration:none}
+a:hover{color:#6a3de8;text-decoration:underline}
+@keyframes dpStamp{0%{transform:scale(2.6) rotate(-18deg);opacity:0}60%{transform:scale(.92) rotate(-8deg);opacity:1}100%{transform:scale(1) rotate(-8deg);opacity:.9}}
+@keyframes dpShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+@keyframes dpInk{0%{background:#FDE68A;opacity:0;transform:translateY(6px)}40%{opacity:1;transform:none}100%{background:transparent}}
+@keyframes dpFan{0%{transform:translateX(0) rotate(0);opacity:0}}
+@keyframes dpPulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes dpSlideL{0%{transform:translateX(100%)}}
+@keyframes dpSlideR{0%{transform:translateX(-100%)}}
+[role=button]:focus-visible,a:focus-visible{outline:2px solid #7C4DFF;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:1100px){[data-nav-mid]{order:3;flex:1 1 100%!important}}
+@media (max-width:720px){[data-nav-menu],[data-nav-login]{display:none!important}[data-nav-right] a{padding:9px 12px!important;font-size:13px!important}}
+pre{margin:0}
+input,textarea{font-family:inherit}
+</style>
+</helmet>
+
+<nav data-screen-label="Nav" style="position:fixed;top:0;left:0;right:0;z-index:20;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-bottom:1px solid #E5E7EB">
+  <div style="max-width:1200px;margin:0 auto;padding:14px clamp(16px,4vw,48px) 6px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 16px">
+    <div style="flex:1 1 0;min-width:max-content;display:flex;align-items:center;padding-bottom:6px"><a href="Platforms.dc.html" aria-label="DeedPro home" style="text-decoration:none;display:inline-flex"><span style="display:inline-flex;flex-direction:column;align-items:center;transform:rotate(-3deg);border:.06em solid #7C4DFF;border-radius:.12em;outline:1px solid #7C4DFF;outline-offset:.07em;padding:.1em .3em .18em;margin:.12em .1em;color:#7C4DFF;font-family:'IBM Plex Mono',monospace;line-height:1;font-size:34px;white-space:nowrap"><span style="font-weight:600;font-size:.8em;letter-spacing:-.04em">deed/pro</span></span></a></div>
+    <div data-nav-mid="1" style="flex:0 1 auto;min-width:0;max-width:100%;display:flex;flex-direction:column;align-items:center;gap:10px">
+      <div style="position:relative;display:grid;grid-template-columns:1fr 1fr;width:330px;max-width:100%;padding:4px;box-sizing:border-box;background:#F3F4F6;border:1px solid #E5E7EB;border-radius:999px;font-size:14px;font-weight:700">{{ navThumb }}<a href="Platforms.dc.html" style="position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 8px;border-radius:999px;white-space:nowrap;text-decoration:none;color:#4B5563"><span style="font:600 12px/1 'IBM Plex Mono',monospace;opacity:.75">&lt;/&gt;</span>Platforms</a><a href="Escrow-Desks.dc.html" style="position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 8px;border-radius:999px;white-space:nowrap;text-decoration:none;color:#fff"><span style="font:600 12px/1 'IBM Plex Mono',monospace;opacity:.75">§</span>Escrow desks</a></div>
+      <div data-nav-menu="1" style="max-width:100%;display:flex;gap:2px;font-size:13.5px;font-weight:500;overflow-x:auto"><sc-for list="{{ menu }}" as="m" hint-placeholder-count="6"><sc-if value="{{ m.on }}" hint-placeholder-val="{{ false }}"><a href="{{ m.href }}" style="padding:9px 12px;color:#7C4DFF;font-weight:700;white-space:nowrap;box-shadow:inset 0 -2px 0 #7C4DFF">{{ m.label }}</a></sc-if><sc-if value="{{ m.off }}" hint-placeholder-val="{{ true }}"><a href="{{ m.href }}" style="padding:9px 12px;color:#374151;white-space:nowrap" style-hover="color:#7C4DFF">{{ m.label }}</a></sc-if></sc-for></div>
+    </div>
+    <div data-nav-right="1" style="flex:1 1 0;min-width:max-content;display:flex;align-items:center;justify-content:flex-end;gap:6px;font-size:14px;padding-bottom:6px"><a data-nav-login="1" href="https://deedpro.io/login" style="padding:8px 12px;font-weight:600;color:#374151">Login</a><a href="#start" style="background:#12141A;color:#fff;font-weight:700;padding:10px 16px;border-radius:6px;white-space:nowrap">Start free</a></div>
+  </div>
+</nav>{{ navSpacer }}
+
+
+<sc-if value="{{ isDesk }}" hint-placeholder-val="{{ false }}">
+<section data-screen-label="Hero — escrow desks" style="border-bottom:1px solid #E5E7EB;background:#F8F8FB">
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(44px,6vw,80px) clamp(20px,4vw,48px) 56px">
+    <h1 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:clamp(40px,6vw,76px);line-height:1.02;letter-spacing:-0.03em;font-weight:500;max-width:980px;text-wrap:balance">Type an address. Confirm the fields. Print the deed.</h1>
+    <p style="margin:22px 0 0;font-size:clamp(17px,1.6vw,20px);line-height:1.6;color:#374151;max-width:780px">A recorder-formatted California deed in 5–10 minutes instead of 45–90, with the PCOR and BOE forms filled from the same answers. County records do the typing. You make every decision.</p>
+    <div style="margin-top:28px;display:flex;flex-wrap:wrap;align-items:center;gap:14px">
+      <a href="#start" style="background:#12141A;color:#fff;font-weight:700;font-size:17px;padding:16px 26px;border-radius:8px">Start your first deed free →</a>
+      <a href="#output" style="background:#fff;border:1px solid #D1D5DB;color:#12141A;font-weight:700;font-size:17px;padding:15px 26px;border-radius:8px">See a finished deed</a>
+    </div>
+    <div style="margin-top:12px;font-size:14px;color:#4B5563">Free forever. No credit card. Nothing held back.</div>
+
+    <div style="margin-top:44px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px"><span style="font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#166534">Try it right here</span><span style="font-size:15px;color:#4B5563">Confirm each field and watch the whole deed fill in: the recording block, the tax declaration, the granting clause.</span></div>
+    <div style="margin-top:16px;background:#fff;border:1px solid #E5E7EB;border-radius:14px;box-shadow:0 10px 30px rgba(2,6,23,.08);overflow:hidden;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
+      <div style="padding:22px;display:flex;flex-direction:column;gap:10px;border-right:1px solid #E5E7EB;min-width:0">
+        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;border:1px solid #D1D5DB;border-radius:8px;padding:11px 12px;font-size:14px;color:#1F2B37"><span style="color:#6B7280">Property</span><span style="font-weight:600">1234 Sycamore Lane, Los Angeles, CA 90001</span></div>
+        <sc-for list="{{ fields }}" as="f" hint-placeholder-count="4">
+          <sc-if value="{{ f.amber }}" hint-placeholder-val="{{ true }}"><div style="border:1px solid #FDE68A;background:#FFFBEB;border-radius:8px;padding:12px"><div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:4px 10px;margin-bottom:4px"><span style="font-size:14px;font-weight:500;color:#374151">{{ f.label }}</span><span style="font-size:12px;font-weight:500;color:#B45309"><span style="text-decoration:underline;text-decoration-color:#FCD34D;text-underline-offset:2px">From county records</span></span></div><div style="font-size:14px;color:#1F2B37;overflow-wrap:anywhere">{{ f.val }}</div><div style="display:flex;align-items:center;gap:8px;margin-top:8px"><span role="button" tabIndex="0" onClick="{{ f.confirm }}" style="background:#059669;color:#fff;font-size:14px;font-weight:500;padding:9px 14px;border-radius:6px;cursor:pointer" style-hover="background:#047857">✓ Confirm</span><span style="font-size:14px;color:#4B5563;padding:9px 8px">Edit</span></div></div></sc-if>
+          <sc-if value="{{ f.violet }}" hint-placeholder-val="{{ false }}"><div style="border:1px solid #DDD6FE;background:#F5F3FF;border-radius:8px;padding:12px"><div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:4px 10px;margin-bottom:4px"><span style="font-size:14px;font-weight:500;color:#374151">{{ f.label }}</span><span style="font-size:12px;font-weight:500;color:#5B32D1">Proposed, your decision</span></div><div style="font-size:14px;color:#1F2B37;overflow-wrap:anywhere">{{ f.val }}</div><div style="display:flex;align-items:center;gap:8px;margin-top:8px"><span role="button" tabIndex="0" onClick="{{ f.confirm }}" style="background:#7C4DFF;color:#fff;font-size:14px;font-weight:500;padding:9px 14px;border-radius:6px;cursor:pointer" style-hover="background:#6a3de8">Accept</span><span style="font-size:14px;color:#4B5563;padding:9px 8px">Change</span></div></div></sc-if>
+          <sc-if value="{{ f.done }}" hint-placeholder-val="{{ false }}"><div style="border:1px solid #A7F3D0;background:#ECFDF5;border-radius:8px;padding:12px"><div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:4px 10px;margin-bottom:4px"><span style="font-size:14px;font-weight:500;color:#374151">{{ f.label }}</span><span style="font-size:12px;font-weight:500;color:#047857">✓ Confirmed</span></div><div style="font-size:14px;color:#1F2B37;overflow-wrap:anywhere">{{ f.val }}</div></div></sc-if>
+        </sc-for>
+        <div style="font-size:13px;line-height:1.5;color:#4B5563;margin-top:2px">Amber means a record suggested it. Violet means a legal choice only you can make.</div>
+      </div>
+      <div style="padding:26px;background:#FCFCFD;display:flex;flex-direction:column;gap:14px;min-width:0">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font:700 12px/1 'IBM Plex Sans',system-ui;color:#166534;background:#DCFCE7;border:1px solid #BBF7D0;border-radius:4px;padding:6px 9px">{{ doneCount }} of 5 confirmed</span><span style="font-size:12px;color:#6B7280">Live preview</span></div>
+        <div style="flex:1;border:1px solid #E5E7EB;background:#fff;border-radius:6px;padding:22px;font-family:'Source Serif 4',Georgia,serif;color:#1F2937;box-shadow:0 1px 3px rgba(0,0,0,.06)">
+          <div style="font:700 8.5px/1.3 'IBM Plex Sans',system-ui;letter-spacing:.06em;color:#374151">RECORDING REQUESTED BY:</div>
+          <div style="font-size:11.5px;margin-bottom:7px">Pacific Coast Escrow</div>
+          <div style="font:700 8.5px/1.3 'IBM Plex Sans',system-ui;letter-spacing:.06em;color:#374151">MAIL TAX STATEMENTS AND WHEN RECORDED MAIL TO:</div>
+          <div style="font-size:11.5px;line-height:1.4;margin-bottom:7px">Robert C. Roe<br>1234 Sycamore Lane, Los Angeles, CA 90001</div>
+          <div style="display:flex;flex-wrap:wrap;gap:2px 14px;font-size:11px;line-height:1.5"><span><strong>Order No.:</strong> TO-88231</span><span><strong>Escrow No.:</strong> ESC-44120</span><span><strong>APN:</strong> {{ pvApn }}</span></div>
+          <div style="text-align:center;font-size:21px;font-weight:600;letter-spacing:.03em;margin:14px 0 10px;border-top:1px solid #E5E7EB;padding-top:12px">GRANT DEED</div>
+          <div style="font:700 8.5px/1.3 'IBM Plex Sans',system-ui;letter-spacing:.06em;color:#374151">THE UNDERSIGNED GRANTOR(S) DECLARE(S):</div>
+          <div style="font-size:11px;line-height:1.65;margin-top:2px"><div>DOCUMENTARY TRANSFER TAX IS {{ pvTax }}</div><div><span style="display:inline-flex;align-items:center;justify-content:center;width:11px;height:11px;border:1px solid #6B7280;font:700 9px/1 'IBM Plex Sans',system-ui;color:#12141A;margin-right:5px;vertical-align:-1px">{{ pvChk }}</span>Computed on full value of property conveyed, or</div><div><span style="display:inline-flex;align-items:center;justify-content:center;width:11px;height:11px;border:1px solid #6B7280;font:700 9px/1 'IBM Plex Sans',system-ui;color:#12141A;margin-right:5px;vertical-align:-1px"></span>Computed on full value less liens and encumbrances remaining at time of sale.</div><div><span style="display:inline-flex;align-items:center;justify-content:center;width:11px;height:11px;border:1px solid #6B7280;font:700 9px/1 'IBM Plex Sans',system-ui;color:#12141A;margin-right:5px;vertical-align:-1px"></span>Unincorporated area &nbsp; <span style="display:inline-flex;align-items:center;justify-content:center;width:11px;height:11px;border:1px solid #6B7280;font:700 9px/1 'IBM Plex Sans',system-ui;color:#12141A;margin-right:5px;vertical-align:-1px">{{ pvChk }}</span>City of Los Angeles</div></div>
+          <div style="font-size:12px;line-height:1.7;margin-top:10px"><div>For valuable consideration, receipt of which is hereby acknowledged,</div><div style="font-weight:600">{{ pvGrantor }}</div><div>hereby GRANT(S) to</div><div style="font-weight:600">Robert C. Roe{{ pvVesting }}</div><div>the real property situated in the County of Los Angeles, State of California, more particularly described as follows:</div></div>
+          <div style="margin-top:8px;border:1px solid #E5E7EB;border-radius:4px;padding:9px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;line-height:1.5;color:#4B5563;min-height:16px">{{ pvLegal }}</div>
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:10px 24px;margin-top:14px;font-size:11px"><span>Dated: ______________</span><span style="display:inline-flex;flex-direction:column;gap:3px;min-width:150px"><span style="height:1px;background:#6B7280"></span><span>Signature of Grantor</span></span></div>
+          <div style="margin-top:12px;border-top:1px dashed #D1D5DB;padding-top:8px;font:500 10.5px/1.4 'IBM Plex Sans',system-ui;color:#4B5563">Page 2 · California notary acknowledgment, left blank for the notary</div>
+        </div>
+        <sc-if value="{{ canPrint }}" hint-placeholder-val="{{ false }}"><span role="button" tabIndex="0" onClick="{{ print }}" style="text-align:center;background:#7C4DFF;color:#fff;font-weight:700;font-size:16px;padding:14px;border-radius:8px;cursor:pointer" style-hover="background:#6a3de8">Generate the PDF</span></sc-if>
+        <sc-if value="{{ cantPrint }}" hint-placeholder-val="{{ true }}"><span style="text-align:center;background:#F3F4F6;color:#4B5563;font-weight:700;font-size:16px;padding:14px;border-radius:8px">Confirm every field to print</span></sc-if>
+        <sc-if value="{{ printed }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:10px">{{ packet }}<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:12px 14px;font-size:14px;line-height:1.5;color:#166534"><strong>The packet is printed.</strong> Deed, acknowledgment page, PCOR and BOE form, all from the five answers you confirmed.</div><a href="#start" style="text-align:center;background:#12141A;color:#fff;font-weight:700;font-size:16px;padding:14px;border-radius:8px">Do it on a real file, free →</a></div></sc-if>
+      </div>
+    </div>
+  </div>
+</section>
+</sc-if>
+
+<section id="output" data-screen-label="The output" style="border-bottom:1px solid #E5E7EB;scroll-margin-top:calc(var(--navh,120px) + 12px)">
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(56px,7vw,88px) clamp(20px,4vw,48px);display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:48px;align-items:center">
+    <div style="min-width:0;display:flex;justify-content:center"><div style="width:100%;max-width:420px;aspect-ratio:8.5/11;position:relative;overflow:hidden;border:1px solid #D1D5DB;box-shadow:0 20px 40px rgba(2,6,23,.14);background:#fff"><dc-import name="Sample-Grant-Deed" embed="{{ true }}" hint-size="100%,100%" style="display:block;width:100%"></dc-import>{{ rulers }}</div></div>
+    <div style="display:flex;flex-direction:column;gap:18px;min-width:0">
+      <div style="font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#6D3BF0">The thing you are actually buying</div>
+      <h2 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:clamp(32px,4vw,48px);line-height:1.06;letter-spacing:-0.025em;font-weight:500;text-wrap:balance">Don't take our word for it. Open the PDF.</h2>
+      <p style="margin:0;font-size:17px;line-height:1.65;color:#4B5563">A sample grant deed with fictitious parties. Hold it against your county's requirements before you talk to us.</p>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;gap:14px"><span style="font:600 12px/1.6 'IBM Plex Mono',monospace;color:#6D3BF0;flex:none;width:92px">§27361.6</span><span style="font-size:15px;line-height:1.55;color:#374151">Margins and type measured to California recorders' published requirements.</span></div>
+        <div style="display:flex;gap:14px"><span style="font:600 12px/1.6 'IBM Plex Mono',monospace;color:#6D3BF0;flex:none;width:92px">§27361.7</span><span style="font-size:15px;line-height:1.55;color:#374151">No logo, QR code or vendor ID on recorded pages. Our brand never touches your instrument.</span></div>
+        <div style="display:flex;gap:14px"><span style="font:600 12px/1.6 'IBM Plex Mono',monospace;color:#6D3BF0;flex:none;width:92px">Page 2</span><span style="font-size:15px;line-height:1.55;color:#374151">A blank California acknowledgment for the notary, included on every deed.</span></div>
+        <div style="display:flex;gap:14px"><span style="font:600 12px/1.6 'IBM Plex Mono',monospace;color:#6D3BF0;flex:none;width:92px">SHA-256</span><span style="font-size:15px;line-height:1.55;color:#374151">Fingerprinted at creation. Anyone holding the document ID can verify it publicly, without seeing the parties.</span></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:4px"><a href="Sample-Grant-Deed.dc.html" style="background:#12141A;color:#fff;font-weight:700;font-size:16px;padding:14px 22px;border-radius:8px">Open the sample deed</a></div>
+      <div style="font-size:13px;color:#4B5563">Acceptance is always the recorder's call. We give you every reason for a yes.</div>
+    </div>
+  </div>
+</section>
+
+
+<sc-if value="{{ isDesk }}" hint-placeholder-val="{{ false }}">
+<section id="file" data-screen-label="Desk — one file" style="scroll-margin-top:calc(var(--navh,120px) + 12px);border-bottom:1px solid #E5E7EB">
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(56px,7vw,88px) clamp(20px,4vw,48px)">
+    <div style="display:flex;flex-direction:column;gap:14px;max-width:820px;margin-bottom:28px">
+      <div style="font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#166534">One file, start to finish</div>
+      <h2 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:clamp(32px,4vw,48px);line-height:1.06;letter-spacing:-0.025em;font-weight:500;text-wrap:balance">From the address to the printed packet, without retyping a thing.</h2>
+      <p style="margin:0;font-size:17px;line-height:1.65;color:#4B5563">Here is a real file as it moves across your desk. Every step below is something you do today by hand.</p>
+    </div>
+      <sc-if value="{{ wide }}" hint-placeholder-val="{{ true }}">
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:48px;align-items:start;border-top:1px solid #E5E7EB">
+      <div style="padding-bottom:36vh">
+        <div data-step="0" style="min-height:64vh;display:flex;flex-direction:column;justify-content:center;gap:10px;padding:24px 0"><span style="font:600 12px/1 'IBM Plex Mono',monospace;color:#166534">01 · Open the file</span><div style="font-family:'Source Serif 4',Georgia,serif;font-size:30px;line-height:1.12;font-weight:500;letter-spacing:-0.015em">Start with what is already on your desk.</div><div style="font-size:16px;line-height:1.65;color:#4B5563">Type the property address, or upload the preliminary title report. County records and the prelim fill in the APN, legal description and owner of record. Each value shows where it came from, so you know what you are trusting.</div></div>
+        <div data-step="1" style="min-height:64vh;display:flex;flex-direction:column;justify-content:center;gap:10px;padding:24px 0"><span style="font:600 12px/1 'IBM Plex Mono',monospace;color:#166534">02 · Make the calls</span><div style="font-family:'Source Serif 4',Georgia,serif;font-size:30px;line-height:1.12;font-weight:500;letter-spacing:-0.015em">The decisions stay yours, with the context beside them.</div><div style="font-size:16px;line-height:1.65;color:#4B5563">Vesting is proposed, never assumed. Transfer tax is worked out for the county and the city, and each exemption explains what it covers before you choose it. The software does arithmetic. You make the legal choices.</div></div>
+        <div data-step="2" style="min-height:64vh;display:flex;flex-direction:column;justify-content:center;gap:10px;padding:24px 0"><span style="font:600 12px/1 'IBM Plex Mono',monospace;color:#166534">03 · Check it</span><div style="font-family:'Source Serif 4',Georgia,serif;font-size:30px;line-height:1.12;font-weight:500;letter-spacing:-0.015em">Two checks run before anything prints.</div><div style="font-size:16px;line-height:1.65;color:#4B5563">First, is the deed complete. Second, does the page match what the recorder publishes: margins, type and the return-address block. Anything off is shown in plain words while you can still fix it.</div></div>
+        <div data-step="3" style="min-height:64vh;display:flex;flex-direction:column;justify-content:center;gap:10px;padding:24px 0"><span style="font:600 12px/1 'IBM Plex Mono',monospace;color:#166534">04 · Print</span><div style="font-family:'Source Serif 4',Georgia,serif;font-size:30px;line-height:1.12;font-weight:500;letter-spacing:-0.015em">One click prints the whole packet.</div><div style="font-size:16px;line-height:1.65;color:#4B5563">The deed, the notary acknowledgment page, the PCOR and the BOE form, all filled from the answers you already confirmed. If something changes later, the correction stays linked to the document it replaced.</div></div>
+      </div>
+      <div style="position:sticky;top:calc(var(--navh,120px) + 8px);padding:20px 0;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px"><span style="font:600 12px/1 'IBM Plex Mono',monospace;color:#4B5563">Step {{ stepNum }} of 4</span>{{ stepChip }}</div>
+        <div data-pin="1" style="position:relative;background:#fff;border:1px solid #D1D5DB;box-shadow:0 20px 40px rgba(2,6,23,.12);padding:22px 26px 20px;font-family:'Source Serif 4',Georgia,serif;color:#1F2937">
+          {{ guides }}
+          <div style="position:relative;max-width:260px">{{ mailMark }}
+            <div style="font:700 8.5px/1.3 'IBM Plex Sans',system-ui;letter-spacing:.06em;color:#374151">RECORDING REQUESTED BY:</div>
+            <div style="font-size:11.5px;margin-bottom:6px">Pacific Coast Escrow</div>
+            <div style="font:700 8.5px/1.3 'IBM Plex Sans',system-ui;letter-spacing:.06em;color:#374151">MAIL TAX STATEMENTS AND WHEN RECORDED MAIL TO:</div>
+            <div style="font-size:11.5px;line-height:1.4">Robert C. Roe<br>1234 Sycamore Lane, Los Angeles, CA 90001</div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:2px 14px;font-size:11px;line-height:1.5;margin-top:7px"><span><strong>Order No.:</strong> TO-88231</span><span><strong>Escrow No.:</strong> ESC-44120</span><span><strong>APN:</strong> {{ sApn }}</span></div>
+          <div style="text-align:center;font-size:21px;font-weight:600;letter-spacing:.03em;margin:11px 0 9px;border-top:1px solid #E5E7EB;padding-top:10px">GRANT DEED</div>
+          <div style="font:700 8.5px/1.3 'IBM Plex Sans',system-ui;letter-spacing:.06em;color:#374151">THE UNDERSIGNED GRANTOR(S) DECLARE(S):</div>
+          <div style="font-size:11px;line-height:1.6;margin-top:2px"><div>DOCUMENTARY TRANSFER TAX IS {{ sTaxVal }}</div><div><span style="display:inline-flex;align-items:center;justify-content:center;width:11px;height:11px;border:1px solid #6B7280;font:700 9px/1 'IBM Plex Sans',system-ui;color:#12141A;margin-right:5px;vertical-align:-1px">{{ sChk }}</span>Computed on full value of property conveyed, or</div><div><span style="display:inline-flex;align-items:center;justify-content:center;width:11px;height:11px;border:1px solid #6B7280;font:700 9px/1 'IBM Plex Sans',system-ui;color:#12141A;margin-right:5px;vertical-align:-1px"></span>Computed on full value less liens and encumbrances remaining at time of sale.</div><div><span style="display:inline-flex;align-items:center;justify-content:center;width:11px;height:11px;border:1px solid #6B7280;font:700 9px/1 'IBM Plex Sans',system-ui;color:#12141A;margin-right:5px;vertical-align:-1px"></span>Unincorporated area &nbsp; <span style="display:inline-flex;align-items:center;justify-content:center;width:11px;height:11px;border:1px solid #6B7280;font:700 9px/1 'IBM Plex Sans',system-ui;color:#12141A;margin-right:5px;vertical-align:-1px">{{ sChk }}</span>City of Los Angeles</div></div>
+          <div style="font-size:12px;line-height:1.65;margin-top:8px"><div>For valuable consideration, receipt of which is hereby acknowledged,</div><div style="font-weight:600">{{ sGrantor }}</div><div>hereby GRANT(S) to</div><div style="font-weight:600">Robert C. Roe{{ sVest }}</div><div>the real property situated in the County of Los Angeles, State of California, more particularly described as follows:</div></div>
+          <div style="margin-top:7px;border:1px solid #E5E7EB;border-radius:4px;padding:8px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;line-height:1.5;color:#4B5563">{{ sLegal }}</div>
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:10px 24px;margin-top:12px;font-size:11px"><span>Dated: ______________</span><span style="display:inline-flex;flex-direction:column;gap:3px;min-width:150px"><span style="height:1px;background:#6B7280"></span><span>Signature of Grantor</span></span></div>
+          <div style="margin-top:10px;border-top:1px dashed #D1D5DB;padding-top:7px;font:500 10.5px/1.4 'IBM Plex Sans',system-ui;color:#4B5563">{{ sPage2 }}</div>
+          {{ sPacket }}
+        </div>
+      </div>
+    </div>
+    </sc-if>
+    <sc-if value="{{ narrow }}" hint-placeholder-val="{{ false }}">
+    <div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px 40px;align-items:center;padding:28px 0;border-top:1px solid #E5E7EB">
+        <div style="display:flex;flex-direction:column;gap:10px;min-width:0"><span style="font:600 12px/1 'IBM Plex Mono',monospace;color:#166534">01 · Open the file</span><div style="font-family:'Source Serif 4',Georgia,serif;font-size:28px;line-height:1.15;font-weight:500;letter-spacing:-0.015em">Start with what is already on your desk.</div><div style="font-size:16px;line-height:1.65;color:#4B5563">Type the property address, or upload the preliminary title report. County records and the prelim fill in the APN, legal description and owner of record. Each value shows where it came from, so you know what you are trusting.</div></div>
+        <div style="min-width:0;background:#F8F8FB;border:1px solid #E5E7EB;border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:10px"><div style="background:#fff;border:1px solid #D1D5DB;border-radius:8px;padding:11px 12px;font-size:14px"><span style="color:#6B7280">Address </span><strong>1234 Sycamore Lane, Los Angeles</strong></div><div style="border:1px dashed #9CA3AF;border-radius:8px;padding:11px 12px;font-size:14px;color:#4B5563;background:#fff">or drop in the preliminary title report (PDF)</div><div style="border:1px solid #FCD34D;background:#FFFBEB;border-radius:8px;padding:10px 12px"><div style="font-size:11.5px;color:#92400E">APN · from county record</div><div style="font-size:14px;font-weight:600;color:#1F2B37;margin-top:3px">5432-001-012</div></div><div style="border:1px solid #FCD34D;background:#FFFBEB;border-radius:8px;padding:10px 12px"><div style="font-size:11.5px;color:#92400E">Owner of record · from county record</div><div style="font-size:14px;font-weight:600;color:#1F2B37;margin-top:3px">John A. Doe and Jane B. Doe</div></div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px 40px;align-items:center;padding:28px 0;border-top:1px solid #E5E7EB">
+        <div style="display:flex;flex-direction:column;gap:10px;min-width:0"><span style="font:600 12px/1 'IBM Plex Mono',monospace;color:#166534">02 · Make the calls</span><div style="font-family:'Source Serif 4',Georgia,serif;font-size:28px;line-height:1.15;font-weight:500;letter-spacing:-0.015em">The decisions stay yours, with the context beside them.</div><div style="font-size:16px;line-height:1.65;color:#4B5563">Vesting is proposed, never assumed. Transfer tax is worked out for the county and the city, and each exemption explains what it covers before you choose it. The software does arithmetic. You make the legal choices.</div></div>
+        <div style="min-width:0;background:#F8F8FB;border:1px solid #E5E7EB;border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:10px"><div style="border:1px solid #DDD6FE;background:#F5F3FF;border-radius:8px;padding:10px 12px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px"><div><div style="font-size:11.5px;color:#5B32D1">Vesting · proposed, your call</div><div style="font-size:14px;font-weight:600;color:#1F2B37;margin-top:3px">a single man</div></div><span style="font-size:13px;font-weight:700;color:#5B32D1;border:1px solid #A78BFA;border-radius:6px;padding:8px 12px;background:#fff">Accept or change</span></div><div style="background:#fff;border:1px solid #E5E7EB;border-radius:8px;padding:12px"><div style="font-size:13px;font-weight:700;color:#1F2B37">Documentary transfer tax</div><div style="display:flex;justify-content:space-between;gap:12px;font-size:14px;color:#4B5563;margin-top:8px"><span>Value</span><span style="font-family:'IBM Plex Mono',monospace;color:#1F2B37">$750,000</span></div><div style="display:flex;justify-content:space-between;gap:12px;font-size:14px;color:#4B5563;margin-top:4px"><span>County, $0.55 per $500</span><span style="font-family:'IBM Plex Mono',monospace;color:#1F2B37;font-weight:600">$825.00</span></div><div style="font-size:12.5px;line-height:1.5;color:#4B5563;margin-top:8px;border-top:1px solid #E5E7EB;padding-top:8px">City tax shown separately where the city levies one.</div></div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px 40px;align-items:center;padding:28px 0;border-top:1px solid #E5E7EB">
+        <div style="display:flex;flex-direction:column;gap:10px;min-width:0"><span style="font:600 12px/1 'IBM Plex Mono',monospace;color:#166534">03 · Check it</span><div style="font-family:'Source Serif 4',Georgia,serif;font-size:28px;line-height:1.15;font-weight:500;letter-spacing:-0.015em">Two checks run before anything prints.</div><div style="font-size:16px;line-height:1.65;color:#4B5563">First, is the deed complete. Second, does the page match what the recorder publishes: margins, type and the return-address block. Anything off is shown to you in plain words while you can still fix it.</div></div>
+        <div style="min-width:0;background:#F8F8FB;border:1px solid #E5E7EB;border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:10px"><div style="background:#fff;border:1px solid #BBF7D0;border-radius:8px;padding:11px 12px;display:flex;gap:10px"><span style="color:#16A34A;font-weight:700">✓</span><div><div style="font-size:14px;font-weight:700;color:#1F2B37">Substance</div><div style="font-size:13px;line-height:1.5;color:#4B5563;margin-top:2px">Parties, legal description, APN and the tax declaration are all present and confirmed.</div></div></div><div style="background:#fff;border:1px solid #BBF7D0;border-radius:8px;padding:11px 12px;display:flex;gap:10px"><span style="color:#16A34A;font-weight:700">✓</span><div><div style="font-size:14px;font-weight:700;color:#1F2B37">Recorder formatting</div><div style="font-size:13px;line-height:1.5;color:#4B5563;margin-top:2px">Margins and type measured against the county’s published requirements.</div></div></div><div style="background:#FFFBEB;border:1px solid #FCD34D;border-radius:8px;padding:11px 12px;font-size:14px;line-height:1.5;color:#78350F"><strong>One thing to look at:</strong> the return address has no ZIP code.</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px 40px;align-items:center;padding:28px 0;border-top:1px solid #E5E7EB">
+        <div style="display:flex;flex-direction:column;gap:10px;min-width:0"><span style="font:600 12px/1 'IBM Plex Mono',monospace;color:#166534">04 · Print</span><div style="font-family:'Source Serif 4',Georgia,serif;font-size:28px;line-height:1.15;font-weight:500;letter-spacing:-0.015em">One click. The whole packet.</div><div style="font-size:16px;line-height:1.65;color:#4B5563">The deed, the notary acknowledgment page, the PCOR and the BOE form, all filled from the answers you already confirmed. If something changes later, the correction stays linked to the document it replaced.</div></div>
+        <div style="min-width:0;background:#F8F8FB;border:1px solid #E5E7EB;border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:10px"><div style="background:#fff;border:1px solid #E5E7EB;border-radius:8px;padding:12px 14px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 12px;box-shadow:0 1px 2px rgba(0,0,0,.05)"><span style="font-family:'Source Serif 4',Georgia,serif;font-size:16px;font-weight:600">Grant Deed</span><span style="font-size:13px;color:#4B5563">with acknowledgment page</span></div><div style="background:#fff;border:1px solid #E5E7EB;border-radius:8px;padding:12px 14px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 12px;box-shadow:0 1px 2px rgba(0,0,0,.05)"><span style="font-family:'Source Serif 4',Georgia,serif;font-size:16px;font-weight:600">PCOR</span><span style="font-size:13px;color:#4B5563">filled from the deed</span></div><div style="background:#fff;border:1px solid #E5E7EB;border-radius:8px;padding:12px 14px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 12px;box-shadow:0 1px 2px rgba(0,0,0,.05)"><span style="font-family:'Source Serif 4',Georgia,serif;font-size:16px;font-weight:600">BOE form</span><span style="font-size:13px;color:#4B5563">filled from the deed</span></div><div style="font:12px/1.5 'IBM Plex Mono',monospace;color:#4B5563">Each PDF is fingerprinted when it is created and cannot be overwritten.</div></div>
+      </div>
+    </div>
+    </sc-if>
+    <div style="border-top:1px solid #E5E7EB;padding-top:28px;display:flex;flex-wrap:wrap;align-items:center;gap:14px"><a href="#start" style="background:#12141A;color:#fff;font-weight:700;font-size:16px;padding:15px 24px;border-radius:8px">Run your next file this way, free →</a><span style="font-size:14px;color:#4B5563">Your work saves as you go. Pick it up tomorrow.</span></div>
+  </div>
+</section>
+
+<section id="documents" data-screen-label="Desk — instruments" style="scroll-margin-top:calc(var(--navh,120px) + 12px);background:#F8F8FB;border-bottom:1px solid #E5E7EB">
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(56px,7vw,88px) clamp(20px,4vw,48px);display:flex;flex-direction:column;gap:28px">
+    <div style="display:flex;flex-direction:column;gap:14px;max-width:820px"><h2 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:clamp(32px,4vw,48px);line-height:1.06;letter-spacing:-0.025em;font-weight:500;text-wrap:balance">All 19 documents, by name.</h2><p style="margin:0;font-size:17px;line-height:1.65;color:#4B5563">Not just grant deeds. The affidavits and declarations that eat an afternoon are here too, each on its own template.</p></div><div style="display:flex;flex-direction:column;gap:12px"><div style="font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#166534">Deeds · 7</div><div style="display:flex;flex-wrap:wrap;gap:8px"><span style="font-size:14px;font-weight:500;color:#1F2B37;background:#fff;border:1px solid #E5E7EB;border-radius:999px;padding:8px 14px">Grant Deed</span><span style="font-size:14px;font-weight:500;color:#1F2B37;background:#fff;border:1px solid #E5E7EB;border-radius:999px;padding:8px 14px">Quitclaim Deed</span><span style="font-size:14px;font-weight:500;color:#1F2B37;background:#fff;border:1px solid #E5E7EB;border-radius:999px;padding:8px 14px">Warranty Deed</span><span style="font-size:14px;font-weight:500;color:#1F2B37;background:#fff;border:1px solid #E5E7EB;border-radius:999px;padding:8px 14px">Grant Deed, Joint Tenancy</span><span style="font-size:14px;font-weight:500;color:#1F2B37;background:#fff;border:1px solid #E5E7EB;border-radius:999px;padding:8px 14px">Grant Deed, Community Property with Right of Survivorship</span><span style="font-size:14px;font-weight:500;color:#1F2B37;background:#fff;border:1px solid #E5E7EB;border-radius:999px;padding:8px 14px">Grant Deed, Corporate Grantor</span><span style="font-size:14px;font-weight:500;color:#1F2B37;background:#fff;border:1px solid #E5E7EB;border-radius:999px;padding:8px 14px">Grant Deed, Partnership Grantor</span></div></div><div style="display:flex;flex-direction:column;gap:12px"><div style="font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#166534">Affidavits · 5</div><div style="display:flex;flex-wrap:wrap;gap:8px"><span style="font-size:14px;font-weight:500;color:#1F2B37;background:#fff;border:1px solid #E5E7EB;border-radius:999px;padding:8px 14px">Death of Joint Tenant</span><span style="font-size:14px;font-weight:500;color:#1F2B37;background:#fff;border:1px solid #E5E7EB;border-radius:999px;padding:8px 14px">Death of Spouse, Community Property</span><span style="font-size:14px;font-weight:500;color:#1F2B37;background:#fff;border:1px solid #E5E7EB;border-radius:999px;padding:8px 14px">Death of Trustee</span><span style="font-size:14px;font-weight:500;color:#1F2B37;background:#fff;border:1px solid #E5E7EB;border-radius:999px;padding:8px 14px">Death of Joint Tenant, Domestic Partner</span><span style="font-size:14px;font-weight:500;color:#1F2B37;background:#fff;border:1px solid #E5E7EB;border-radius:999px;padding:8px 14px">Death of Domestic Partner, Community Property</span></div></div><div style="display:flex;flex-direction:column;gap:12px"><div style="font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#166534">Declarations and more · 7</div><div style="display:flex;flex-wrap:wrap;gap:8px"><span style="font-size:14px;font-weight:500;color:#1F2B37;background:#fff;border:1px solid #E5E7EB;border-radius:999px;padding:8px 14px">Homestead Declaration</span><span style="font-size:14px;font-weight:500;color:#1F2B37;background:#fff;border:1px solid #E5E7EB;border-radius:999px;padding:8px 14px">Homestead Declaration, Spouses</span><span style="font-size:14px;font-weight:500;color:#1F2B37;background:#fff;border:1px solid #E5E7EB;border-radius:999px;padding:8px 14px">Abandonment of Homestead</span><span style="font-size:14px;font-weight:500;color:#1F2B37;background:#fff;border:1px solid #E5E7EB;border-radius:999px;padding:8px 14px">Certification of Trust</span><span style="font-size:14px;font-weight:500;color:#1F2B37;background:#fff;border:1px solid #E5E7EB;border-radius:999px;padding:8px 14px">Revocation of Transfer on Death Deed</span><span style="font-size:14px;font-weight:500;color:#1F2B37;background:#fff;border:1px solid #E5E7EB;border-radius:999px;padding:8px 14px">Statutory Power of Attorney</span><span style="font-size:14px;font-weight:500;color:#1F2B37;background:#fff;border:1px solid #E5E7EB;border-radius:999px;padding:8px 14px">Substitution of Trustee</span></div></div>
+    <div style="font-size:14px;line-height:1.6;color:#4B5563">Tax deeds and interspousal transfer deeds are paused while their forms are reviewed. We would rather hold them than hand you one we are not sure of.</div>
+  </div>
+</section>
+</sc-if>
+
+<section id="app" data-screen-label="App" style="background:#F8F8FB;border-bottom:1px solid #E5E7EB;scroll-margin-top:calc(var(--navh,120px) + 12px)">
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(56px,7vw,88px) clamp(20px,4vw,48px);display:flex;flex-direction:column;gap:36px">
+    <div style="display:flex;flex-direction:column;gap:14px;max-width:820px">
+      <div style="font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#166534">For escrow &amp; title desks</div>
+      <h2 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:clamp(32px,4vw,48px);line-height:1.06;letter-spacing:-0.025em;font-weight:500;color:#12141A;text-wrap:balance">The deed, the PCOR and the BOE form in one sitting.</h2>
+      <p style="margin:0;font-size:17px;line-height:1.65;color:#4B5563">The same engine, with a desk in front of it. No integration, no IT ticket, no training day.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(440px,1fr));gap:24px;align-items:start">
+      <div style="background:#fff;border:1px solid #E5E7EB;border-radius:12px;overflow:hidden;min-width:0">
+        <div style="display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1.1fr) minmax(0,.9fr) minmax(0,.9fr);font-size:13px;line-height:1.35;overflow-wrap:anywhere">
+          <div style="padding:12px 10px;background:#F3F4F6;font-weight:700"></div><div style="padding:12px 8px;background:#F3F4F6;font-weight:700;color:#4B5563">By hand</div><div style="padding:12px 8px;background:#F3F4F6;font-weight:700;color:#4B5563">Outside doc prep</div><div style="padding:12px 8px;background:#F5F3FF;font-weight:700;color:#6D3BF0">DeedPro</div>
+          <div style="padding:12px 10px;border-top:1px solid #E5E7EB;font-weight:600">Time per deed</div><div style="padding:12px 8px;border-top:1px solid #E5E7EB;color:#4B5563">45–90 min</div><div style="padding:12px 8px;border-top:1px solid #E5E7EB;color:#4B5563">Their queue</div><div style="padding:12px 8px;border-top:1px solid #E5E7EB;background:#FAF9FF;font-weight:700">5–10 min</div>
+          <div style="padding:12px 10px;border-top:1px solid #E5E7EB;font-weight:600">Prefilled from county records</div><div style="padding:12px 8px;border-top:1px solid #E5E7EB;color:#6B7280">✕</div><div style="padding:12px 8px;border-top:1px solid #E5E7EB;color:#4B5563">Varies</div><div style="padding:12px 8px;border-top:1px solid #E5E7EB;background:#FAF9FF;color:#7C4DFF;font-weight:700">✓</div>
+          <div style="padding:12px 10px;border-top:1px solid #E5E7EB;font-weight:600">PCOR and BOE from the deed</div><div style="padding:12px 8px;border-top:1px solid #E5E7EB;color:#4B5563">Retyped</div><div style="padding:12px 8px;border-top:1px solid #E5E7EB;color:#4B5563">Varies</div><div style="padding:12px 8px;border-top:1px solid #E5E7EB;background:#FAF9FF;color:#7C4DFF;font-weight:700">✓</div>
+          <div style="padding:12px 10px;border-top:1px solid #E5E7EB;font-weight:600">Record of who confirmed what</div><div style="padding:12px 8px;border-top:1px solid #E5E7EB;color:#6B7280">✕</div><div style="padding:12px 8px;border-top:1px solid #E5E7EB;color:#6B7280">✕</div><div style="padding:12px 8px;border-top:1px solid #E5E7EB;background:#FAF9FF;color:#7C4DFF;font-weight:700">✓</div>
+          <div style="padding:12px 10px;border-top:1px solid #E5E7EB;font-weight:600">Cost</div><div style="padding:12px 8px;border-top:1px solid #E5E7EB;color:#4B5563">Your hours</div><div style="padding:12px 8px;border-top:1px solid #E5E7EB;color:#4B5563">A fee per document</div><div style="padding:12px 8px;border-top:1px solid #E5E7EB;background:#FAF9FF;font-weight:700">$0, or $99 a user</div>
+        </div>
+      </div>
+      <div style="background:#12141A;color:#fff;border-radius:12px;padding:28px;display:flex;flex-direction:column;gap:16px;min-width:0">
+        <div style="font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#86EFAC">Your desk, in hours</div>
+        <div style="font-size:16px;color:#D1D5DB">I prepare about <strong style="color:#fff;font-size:20px">{{ deeds }}</strong> deeds a month</div>
+        <input type="range" min="5" max="100" step="5" value="{{ deeds }}" onChange="{{ onDeeds }}" style="width:100%;accent-color:#7C4DFF;height:28px">
+        <div><div style="font-family:'Source Serif 4',Georgia,serif;font-size:clamp(40px,5vw,56px);font-weight:500;letter-spacing:-0.02em;line-height:1">{{ hoursLow }}–{{ hoursHigh }} hours</div><div style="font-size:15px;line-height:1.55;color:#D1D5DB;margin-top:8px">back every month. That is the gap between 45–90 minutes by hand and 5–10 in DeedPro.</div></div>
+        <a href="#start" style="margin-top:4px;text-align:center;background:#fff;color:#12141A;font-weight:700;font-size:16px;padding:14px;border-radius:8px">Get those hours back, free →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section data-screen-label="Confirmation" style="background:#0B0D11;color:#fff">
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(56px,7vw,88px) clamp(20px,4vw,48px)">
+    <h2 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:clamp(38px,5.4vw,68px);line-height:1.03;letter-spacing:-0.03em;font-weight:500;max-width:1000px;text-wrap:balance">Your name is on the file. So nothing prints until you say so.</h2>
+    <p style="margin:18px 0 0;font-size:17px;line-height:1.65;color:#D1D5DB;max-width:760px">Anyone can turn JSON into a PDF. When a recorder, a title insurer or a court asks who decided, you need an answer. App or API, there is no path to a recordable deed without one.</p>
+    <div style="margin-top:32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px">
+      <div style="border:1px solid #262A33;border-radius:12px;padding:24px"><div style="font:600 12px/1 'IBM Plex Mono',monospace;color:#FCD34D">suggests</div><div style="font-size:19px;font-weight:700;margin-top:10px">The software does the typing</div><div style="font-size:15px;line-height:1.6;color:#D1D5DB;margin-top:6px">County records prefill APN, legal description and owner, each marked with its source.</div></div>
+      <div style="border:1px solid #4ADE80;border-radius:12px;padding:24px;background:rgba(74,222,128,.06)"><div style="font:600 12px/1 'IBM Plex Mono',monospace;color:#86EFAC">decides</div><div style="font-size:19px;font-weight:700;margin-top:10px">Your officer makes the call</div><div style="font-size:15px;line-height:1.6;color:#D1D5DB;margin-top:6px">Every material field needs an explicit yes from a named person. A service account cannot give it.</div></div>
+      <div style="border:1px solid #262A33;border-radius:12px;padding:24px"><div style="font:600 12px/1 'IBM Plex Mono',monospace;color:#C4B5FD">records</div><div style="font-size:19px;font-weight:700;margin-top:10px">The system keeps the receipt</div><div style="font-size:15px;line-height:1.6;color:#D1D5DB;margin-top:6px">Who confirmed what and when, stored with a SHA-256 stamped PDF that cannot be overwritten.</div></div>
+    </div>
+  </div>
+</section>
+
+
+<sc-if value="{{ isDesk }}" hint-placeholder-val="{{ false }}">
+<section id="answers" data-screen-label="Desk — questions" style="background:#F8F8FB;border-bottom:1px solid #E5E7EB;scroll-margin-top:calc(var(--navh,120px) + 12px)">
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(56px,7vw,88px) clamp(20px,4vw,48px)">
+    <h2 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:clamp(32px,4vw,48px);line-height:1.06;letter-spacing:-0.025em;font-weight:500;text-wrap:balance;max-width:860px">What officers ask before they try it.</h2>
+    <p style="margin:14px 0 0;font-size:17px;line-height:1.6;color:#4B5563;max-width:720px">Straight answers, including the ones where the answer is not yet.</p>
+    <div style="margin-top:32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px"><div style="border:1px solid #E5E7EB;border-radius:12px;padding:22px;background:#fff"><div style="font-size:17px;font-weight:700">Do I need IT to set this up?</div><div style="font-size:15px;line-height:1.65;color:#4B5563;margin-top:6px">No. It runs in your browser. Create an account and you are on your first file.</div></div><div style="border:1px solid #E5E7EB;border-radius:12px;padding:22px;background:#fff"><div style="font-size:17px;font-weight:700">What if the recorder rejects it?</div><div style="font-size:15px;line-height:1.65;color:#4B5563;margin-top:6px">Formatting is measured against what the county publishes and shown to you before you print. Acceptance is always the recorder’s decision, and we will not claim otherwise.</div></div><div style="border:1px solid #E5E7EB;border-radius:12px;padding:22px;background:#fff"><div style="font-size:17px;font-weight:700">Who is responsible for the deed?</div><div style="font-size:15px;line-height:1.65;color:#4B5563;margin-top:6px">You are, exactly as today. That is why nothing prints until you have confirmed every field, and why the record shows that you did.</div></div><div style="border:1px solid #E5E7EB;border-radius:12px;padding:22px;background:#fff"><div style="font-size:17px;font-weight:700">Does it connect to SoftPro, Qualia or ResWare?</div><div style="font-size:15px;line-height:1.65;color:#4B5563;margin-top:6px">Not today. Property details come from a county lookup or a prelim you upload, and the rest is entered once.</div></div><div style="border:1px solid #E5E7EB;border-radius:12px;padding:22px;background:#fff"><div style="font-size:17px;font-weight:700">Can my assistant prep and I review?</div><div style="font-size:15px;line-height:1.65;color:#4B5563;margin-top:6px">Not yet. One login owns its own work today. Shared office files are what the Business plan is for, and it is not on sale until it works.</div></div><div style="border:1px solid #E5E7EB;border-radius:12px;padding:22px;background:#fff"><div style="font-size:17px;font-weight:700">Can I stop halfway and come back?</div><div style="font-size:15px;line-height:1.65;color:#4B5563;margin-top:6px">Yes. Your progress saves automatically and the file is waiting when you return.</div></div><div style="border:1px solid #E5E7EB;border-radius:12px;padding:22px;background:#fff"><div style="font-size:17px;font-weight:700">Is my client’s information safe?</div><div style="font-size:15px;line-height:1.65;color:#4B5563;margin-top:6px">Sessions are encrypted and expire. Every PDF is fingerprinted when it is created. All eight outside services we use are named on the trust page.</div></div><div style="border:1px solid #E5E7EB;border-radius:12px;padding:22px;background:#fff"><div style="font-size:17px;font-weight:700">What does Free leave out?</div><div style="font-size:15px;line-height:1.65;color:#4B5563;margin-top:6px">Nothing in the product. All 19 documents, PCOR and BOE included. Professional adds priority support.</div></div><div style="border:1px dashed #F59E0B;background:#FFFBEB;border-radius:12px;padding:22px"><div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px"><span style="font-size:17px;font-weight:700">Who do I call when I am stuck on a file?</span><span style="font:600 11px/1 'IBM Plex Mono',monospace;color:#92400E;border:1px dashed #F59E0B;border-radius:4px;padding:4px 7px;background:#fff">NEEDS YOUR ANSWER</span></div><div style="font-size:15px;line-height:1.65;color:#78350F;margin-top:6px">Today the answer is info@deedpro.io. Add hours, a response time and a phone number; for an officer on a deadline it is worth more than any feature.</div></div><div style="border:1px dashed #F59E0B;background:#FFFBEB;border-radius:12px;padding:22px"><div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px"><span style="font-size:17px;font-weight:700">What happens when my 14-day trial ends?</span><span style="font:600 11px/1 'IBM Plex Mono',monospace;color:#92400E;border:1px dashed #F59E0B;border-radius:4px;padding:4px 7px;background:#fff">NEEDS YOUR ANSWER</span></div><div style="font-size:15px;line-height:1.65;color:#78350F;margin-top:6px">State it plainly: does the account drop to Free, and is a card needed to start the trial?</div></div>
+    </div>
+    <div style="margin-top:20px;font-size:15px;color:#4B5563">More, gaps first: <a href="https://deedpro.io/trust" style="font-weight:600">read the trust page →</a></div>
+  </div>
+</section>
+</sc-if>
+
+<section data-screen-label="People" style="background:#F8F8FB;border-bottom:1px solid #E5E7EB">
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(56px,7vw,88px) clamp(20px,4vw,48px);display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:40px;align-items:center">
+    <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+      <div style="font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#6D3BF0">Who you're dealing with</div>
+      <h2 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:clamp(32px,4vw,48px);line-height:1.06;letter-spacing:-0.025em;font-weight:500;text-wrap:balance">We ask for a named human on every deed. Here are ours.</h2>
+      <p style="margin:0;font-size:17px;line-height:1.65;color:#4B5563">No logo wall and no borrowed credibility. You get the people who built the engine, and you can reach them directly.</p>
+      <div style="border:1px dashed #F59E0B;background:#FFFBEB;border-radius:10px;padding:16px;font-size:15px;line-height:1.6;color:#78350F"><span style="font:600 11px/1 'IBM Plex Mono',monospace;color:#92400E;border:1px dashed #F59E0B;border-radius:4px;padding:4px 7px;background:#fff;margin-right:8px">NEEDS YOUR MATERIAL</span>Names, roles and one line of background each. Photos drop into the frames.</div>
+      <div style="font-size:15px;line-height:1.6;color:#374151"><strong>DeedPro Corporation</strong>, a Wyoming corporation. 440 Rte 66, Glendora, CA 91750. <a href="mailto:info@deedpro.io" style="font-weight:600">info@deedpro.io</a></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;min-width:0">
+      <div style="display:flex;flex-direction:column;gap:10px"><div style="aspect-ratio:1/1;width:100%"><image-slot id="person-1" shape="rounded" radius="12" placeholder="Founder photo"></image-slot></div><div><div style="font-size:16px;font-weight:700">Name Surname</div><div style="font-size:14px;color:#4B5563">Role · what they did before</div></div></div>
+      <div style="display:flex;flex-direction:column;gap:10px"><div style="aspect-ratio:1/1;width:100%"><image-slot id="person-2" shape="rounded" radius="12" placeholder="Team photo"></image-slot></div><div><div style="font-size:16px;font-weight:700">Name Surname</div><div style="font-size:14px;color:#4B5563">Role · what they did before</div></div></div>
+    </div>
+  </div>
+</section>
+
+
+<section id="pricing" data-screen-label="Pricing" style="border-bottom:1px solid #E5E7EB;scroll-margin-top:calc(var(--navh,120px) + 12px)">
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(56px,7vw,88px) clamp(20px,4vw,48px)">
+    <h2 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:clamp(32px,4vw,48px);line-height:1.06;letter-spacing:-0.025em;font-weight:500;text-wrap:balance">Free until it has proven itself.</h2>
+    <p style="margin:14px 0 0;font-size:17px;line-height:1.6;color:#4B5563;max-width:680px">On either side, you see a finished deed on your own data before you spend anything.</p>
+    
+    <div style="margin-top:36px;font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#166534">Escrow &amp; title offices</div>
+    <div style="margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px">
+      <div style="border:1px solid #E5E7EB;border-radius:12px;padding:28px;display:flex;flex-direction:column;gap:10px"><div style="font-size:15px;font-weight:700">Free</div><div><span style="font-family:'Source Serif 4',Georgia,serif;font-size:40px;font-weight:500;letter-spacing:-0.02em">$0</span><span style="font-size:15px;color:#4B5563"> forever</span></div><div style="font-size:15px;line-height:1.6;color:#4B5563">The whole product, on real files. All 19 instruments, PCOR and BOE included.</div><a href="#start" style="margin-top:auto;text-align:center;background:#12141A;color:#fff;font-weight:700;font-size:16px;padding:14px;border-radius:8px">Start free</a></div>
+      <div style="border:2px solid #7C4DFF;border-radius:12px;padding:27px;display:flex;flex-direction:column;gap:10px;box-shadow:0 10px 25px -3px rgba(124,77,255,.18)"><div style="font-size:15px;font-weight:700;color:#6D3BF0">Professional</div><div><span style="font-family:'Source Serif 4',Georgia,serif;font-size:40px;font-weight:500;letter-spacing:-0.02em">$99</span><span style="font-size:15px;color:#4B5563"> /user/month</span></div><div style="font-size:15px;line-height:1.6;color:#4B5563">For the officer who drafts every day. Adds priority support. 14 days free.</div><a href="#start" style="margin-top:auto;text-align:center;background:#7C4DFF;color:#fff;font-weight:700;font-size:16px;padding:14px;border-radius:8px">Start 14-day trial</a></div>
+      <div style="border:1px solid #E5E7EB;border-radius:12px;padding:28px;display:flex;flex-direction:column;gap:10px;background:#F8F8FB"><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><span style="font-size:15px;font-weight:700">Business</span><span style="font-weight:600;font-size:12px;color:#4B5563;background:#E5E7EB;border-radius:4px;padding:3px 7px">Coming soon</span></div><div><span style="font-family:'Source Serif 4',Georgia,serif;font-size:40px;font-weight:500;letter-spacing:-0.02em">$249</span><span style="font-size:15px;color:#4B5563"> /month</span></div><div style="font-size:15px;line-height:1.6;color:#4B5563">Shared files across an office: an assistant preps, an officer reviews.</div><div style="margin-top:auto;text-align:center;font-size:14px;color:#4B5563;padding:14px">Not yet available</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="start" data-screen-label="Start" style="background:#0B0D11;color:#fff;scroll-margin-top:calc(var(--navh,120px) + 12px)">
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(64px,8vw,104px) clamp(20px,4vw,48px);display:flex;flex-direction:column;gap:36px">
+    <div style="display:flex;flex-direction:column;gap:16px;max-width:860px">
+      <h2 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:clamp(38px,5vw,64px);line-height:1.04;letter-spacing:-0.03em;font-weight:500;text-wrap:balance">See your first deed before you spend a dollar.</h2>
+      <p style="margin:0;font-size:18px;line-height:1.6;color:#B4B9C4">An account, an address and about ten minutes.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;align-items:stretch">
+      <div style="background:#fff;color:#12141A;border-radius:14px;padding:28px;display:flex;flex-direction:column;gap:14px;min-width:0">
+        <div style="font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#166534">I prepare deeds</div>
+        <div style="font-size:24px;font-weight:700;letter-spacing:-0.01em">Start your first deed free</div>
+        <div style="display:flex;flex-direction:column;gap:14px;margin-top:4px">
+          <div style="display:flex;gap:14px"><span style="font:600 12px/1.7 'IBM Plex Mono',monospace;color:#166534;flex:none">01</span><span style="font-size:16px;line-height:1.5;color:#374151">Create an account. Email and a password, no card.</span></div>
+          <div style="display:flex;gap:14px"><span style="font:600 12px/1.7 'IBM Plex Mono',monospace;color:#166534;flex:none">02</span><span style="font-size:16px;line-height:1.5;color:#374151">Type the property address. County records fill what they can.</span></div>
+          <div style="display:flex;gap:14px"><span style="font:600 12px/1.7 'IBM Plex Mono',monospace;color:#166534;flex:none">03</span><span style="font-size:16px;line-height:1.5;color:#374151">Confirm each field and print. Your work saves as you go.</span></div>
+        </div>
+        <a href="#" style="margin-top:auto;text-align:center;background:#12141A;color:#fff;font-weight:700;font-size:17px;padding:16px;border-radius:8px">Create my free account →</a>
+        <div style="font-size:13px;color:#4B5563">Free forever. Professional is $99 a user, with 14 days free.</div>
+      </div>
+      <div style="border:1px solid #262A33;border-radius:14px;padding:28px;display:flex;flex-direction:column;gap:14px;min-width:0">
+        <div style="font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#86EFAC">Before you start</div>
+        <div style="font-size:16px;line-height:1.6;color:#D1D5DB">Have one real file in front of you: the property address, or the preliminary title report. You'll have a finished deed to compare against your usual one.</div>
+        <div style="font-size:16px;line-height:1.6;color:#D1D5DB">Questions first? Write to <a href="mailto:info@deedpro.io" style="color:#C4B5FD;font-weight:600">info@deedpro.io</a>.</div>
+        <div style="margin-top:auto;border-top:1px solid #262A33;padding-top:16px;font-size:15px;color:#B4B9C4">Run a software platform instead? <a href="Platforms.dc.html" style="color:#C4B5FD;font-weight:600">The same engine has an API →</a></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer data-screen-label="Footer" style="background:#0B0D11;color:#D1D5DB">
+  <div style="max-width:1200px;margin:0 auto;padding:40px clamp(20px,4vw,48px) 104px;display:flex;flex-direction:column;gap:22px">
+    <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px">
+      <span style="display:inline-flex;flex-direction:column;align-items:center;transform:rotate(-3deg);border:.06em solid #A78BFA;border-radius:.12em;outline:1px solid #A78BFA;outline-offset:.07em;padding:.12em .3em .12em;margin:.12em .1em;color:#A78BFA;font-family:'IBM Plex Mono',monospace;line-height:1;font-size:48px;white-space:nowrap"><span style="font-weight:600;font-size:.8em;letter-spacing:-.04em">deed/pro</span><span style="align-self:stretch;height:1px;background:#A78BFA;margin:.12em 0 .09em"></span><span style="font-size:.17em;font-weight:600;letter-spacing:.2em">DEED ENGINE · CALIFORNIA</span></span>
+      <div style="display:flex;flex-wrap:wrap;gap:8px 24px;font-size:14px"><a href="https://deedpro.io/developers" style="color:#D1D5DB">Developers</a><a href="https://deedpro.io/try" style="color:#D1D5DB">Try it live</a><a href="https://deedpro.io/trust" style="color:#D1D5DB">Trust</a><a href="https://deedpro.io/terms" style="color:#D1D5DB">Terms</a><a href="https://deedpro.io/privacy" style="color:#D1D5DB">Privacy</a></div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:14px;border-top:1px solid #1F2937;padding-top:20px"><span style="font-weight:700;color:#fff">Contact</span><span>DeedPro Corporation · 440 Rte 66, Glendora, CA 91750 · <a href="mailto:info@deedpro.io" style="color:#C4B5FD">info@deedpro.io</a></span></div>
+    <div style="font-size:13px;line-height:1.6;color:#9CA3AF;max-width:760px">DeedPro is software, not a law firm. It prepares documents at the direction of the professional using it and does not provide legal advice or legal determinations.</div>
+  </div>
+</footer>
+
+<sc-if value="{{ showSticky }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="Sticky CTA" style="position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(18,20,26,.96);backdrop-filter:blur(10px);border-top:1px solid #262A33">
+    <div style="max-width:1200px;margin:0 auto;padding:10px clamp(20px,4vw,48px);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px">
+      <sc-if value="{{ stickyDev }}" hint-placeholder-val="{{ true }}"><span style="font-size:14px;color:#D1D5DB">The sandbox is free and renders real PDFs.</span><a href="#start" style="background:#7C4DFF;color:#fff;font-weight:700;font-size:14px;padding:11px 18px;border-radius:6px">Request a sandbox key →</a></sc-if>
+      <sc-if value="{{ stickyDesk }}" hint-placeholder-val="{{ false }}"><span style="font-size:14px;color:#D1D5DB">Free forever. Your first deed takes about ten minutes.</span><a href="#start" style="background:#fff;color:#12141A;font-weight:700;font-size:14px;padding:11px 18px;border-radius:6px">Start your first deed free →</a></sc-if>
+    </div>
+  </div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;stickyCta&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Sections&quot;}}">
+class Component extends DCLogic {
+  FIELDS = [
+    { key: 'apn', label: 'APN', val: '5432-001-012', kind: 'amber' },
+    { key: 'legal', label: 'Legal description', val: 'LOT 15, BLOCK 3, TRACT 12345', kind: 'amber' },
+    { key: 'grantor', label: 'Owner of record', val: 'John A. Doe and Jane B. Doe', kind: 'amber' },
+    { key: 'tax', label: 'Transfer tax', val: '$825.00 · full value · City of Los Angeles', kind: 'violet' },
+    { key: 'vesting', label: 'Vesting', val: 'a single man', kind: 'violet' },
+  ];
+  CHIPS = [
+    ['3 values from county records, unconfirmed', '#92400E', '#FFFBEB', '#FCD34D'],
+    ['Vesting and transfer tax: your decision', '#5B32D1', '#F5F3FF', '#DDD6FE'],
+    ['✓ Substance   ✓ Recorder formatting', '#166534', '#F0FDF4', '#BBF7D0'],
+    ['Packet printed and fingerprinted', '#fff', '#12141A', '#12141A'],
+  ];
+  MENU = [['#output', 'Sample deed'], ['#file', 'How a file runs'], ['#documents', 'Documents'], ['#app', 'Time saved'], ['#answers', 'Questions'], ['#pricing', 'Pricing']];
+  state = { navH: 96, active: '', conf: {}, printed: false, deeds: 20, step: 0, narrow: false, outSeen: false };
+  componentDidMount() {
+    this.watch();
+    this.onResize = () => { const n = window.innerWidth < 820; if (n !== this.state.narrow) this.setState({ narrow: n }); setTimeout(() => this.fitPin(), 60); };
+    setTimeout(() => this.fitPin(), 500); setTimeout(() => this.fitPin(), 1600);
+    this.onResize(); window.addEventListener('resize', this.onResize);
+    this.onScroll = () => {
+      if (this.raf) return;
+      this.raf = requestAnimationFrame(() => {
+        this.raf = 0;
+        const els = document.querySelectorAll('[data-step]'); if (!els.length) return;
+        const mid = window.innerHeight / 2; let best = 0, bd = Infinity;
+        els.forEach((el) => { const r = el.getBoundingClientRect(); const d = Math.abs((r.top + r.bottom) / 2 - mid); if (d < bd) { bd = d; best = Number(el.getAttribute('data-step')); } });
+        if (best !== this.state.step) this.setState({ step: best });
+      });
+    };
+    window.addEventListener('scroll', this.onScroll, { passive: true, capture: true });
+  }
+  componentWillUnmount() { this.unwatch(); window.removeEventListener('resize', this.onResize); window.removeEventListener('scroll', this.onScroll, { capture: true }); }
+  rulers() {
+    const on = this.state.outSeen;
+    const line = (st) => React.createElement('div', { style: { position: 'absolute', background: '#7C4DFF', transition: 'transform 1s cubic-bezier(.2,.8,.2,1)', ...st } });
+    const tag = (t, st) => React.createElement('div', { style: { position: 'absolute', font: "600 10px/1 'IBM Plex Mono',monospace", color: '#6D3BF0', background: '#F5F3FF', border: '1px solid #DDD6FE', borderRadius: 3, padding: '3px 5px', opacity: on ? 1 : 0, transition: 'opacity .5s .9s', ...st } }, t);
+    return React.createElement('div', { style: { position: 'absolute', inset: 0, pointerEvents: 'none' } },
+      line({ left: 0, right: 0, top: '22.7%', height: 1, transformOrigin: 'left', transform: on ? 'scaleX(1)' : 'scaleX(0)' }),
+      line({ top: 0, bottom: 0, left: '5.4%', width: 1, transformOrigin: 'top', transform: on ? 'scaleY(1)' : 'scaleY(0)' }),
+      line({ top: 0, bottom: 0, right: '5.4%', width: 1, transformOrigin: 'top', transform: on ? 'scaleY(1)' : 'scaleY(0)' }),
+      tag('2½ in · recorder space', { top: '22.7%', right: '8%', transform: 'translateY(-130%)' }),
+      tag('½ in side margins', { top: '12%', right: '8%' }));
+  }
+  menuVals() { return this.MENU.map((m) => ({ href: m[0], label: m[1], on: m[0] === this.state.active, off: m[0] !== this.state.active })); }
+  watch() {
+    this.navEl = document.querySelector('nav[data-screen-label="Nav"]');
+    const measure = () => { if (this.navEl) { const h = this.navEl.offsetHeight; if (h) document.documentElement.style.setProperty('--navh', h + 'px'); if (h && h !== this.state.navH) this.setState({ navH: h }); } };
+    measure(); if ('ResizeObserver' in window && this.navEl) { this.ro = new ResizeObserver(measure); this.ro.observe(this.navEl); }
+    this.onSpy = () => {
+      if (this.spyRaf) return;
+      this.spyRaf = requestAnimationFrame(() => {
+        this.spyRaf = 0; let cur = '';
+        this.MENU.forEach((m) => { if (m[0].length < 2) return; const el = document.getElementById(m[0].slice(1)); if (el && el.getBoundingClientRect().top <= this.state.navH + 60) cur = m[0]; });
+        if (cur !== this.state.active) this.setState({ active: cur });
+      });
+    };
+    window.addEventListener('scroll', this.onSpy, { passive: true, capture: true }); this.onSpy();
+    this.onKey = (e) => { const t = e.target; if ((e.key === 'Enter' || e.key === ' ') && t && t.getAttribute && t.getAttribute('role') === 'button') { e.preventDefault(); t.click(); } };
+    document.addEventListener('keydown', this.onKey);
+    const out = document.getElementById('output');
+    if (out && 'IntersectionObserver' in window) { this.io = new IntersectionObserver((es) => { if (es[0].isIntersecting) this.setState({ outSeen: true }); }, { threshold: 0.3 }); this.io.observe(out); }
+    else this.setState({ outSeen: true });
+  }
+  unwatch() { document.removeEventListener('keydown', this.onKey); window.removeEventListener('scroll', this.onSpy, { capture: true }); if (this.ro) this.ro.disconnect(); if (this.io) this.io.disconnect(); }
+  fitPin() {
+    const el = document.querySelector('[data-pin]'); if (!el) return;
+    const z0 = parseFloat(el.style.zoom) || 1, nat = el.getBoundingClientRect().height / z0; if (!nat) return;
+    const bar = (this.props.stickyCta ?? true) ? 64 : 0;
+    const avail = window.innerHeight - this.state.navH - 8 - 20 - 38 - bar - 14;
+    el.style.zoom = Math.min(1, Math.max(0.5, avail / nat)).toFixed(3);
+  }
+  ink(k, text) { return this.state.conf[k] ? React.createElement('span', { key: k + 'on', style: { display: 'inline-block', borderRadius: 3, animation: 'dpInk 1s ease both' } }, text) : '________________'; }
+  hl(text, tone) { const bg = { amber: '#FDE68A', violet: '#DDD6FE', green: '#BBF7D0', none: 'transparent' }[tone]; return React.createElement('span', { style: { background: bg, transition: 'background .7s ease', borderRadius: 3, padding: '1px 4px', margin: '0 -4px' } }, text); }
+  fan(small) {
+    const docs = [['Grant Deed', -1.5, -9], ['Acknowledgment', -0.5, -3], ['PCOR', 0.5, 3], ['BOE form', 1.5, 9]];
+    const w = small ? 72 : 92, gap = small ? 50 : 62;
+    return docs.map((d, i) => React.createElement('div', { key: d[0], style: { position: 'absolute', left: '50%', top: 10, width: w, height: w * 1.18, marginLeft: -w / 2, background: '#fff', border: '1px solid #D1D5DB', borderRadius: 4, boxShadow: '0 4px 10px rgba(2,6,23,.12)', padding: '10px 6px', boxSizing: 'border-box', font: "600 11px/1.2 'Source Serif 4',Georgia,serif", color: '#1F2937', textAlign: 'center', transform: 'translateX(' + d[1] * gap + 'px) rotate(' + d[2] + 'deg)', animation: 'dpFan .6s cubic-bezier(.2,.9,.3,1) ' + i * 90 + 'ms both' } },
+      d[0], React.createElement('div', { style: { margin: '9px 4px 0', height: 2, background: '#E5E7EB' } }), React.createElement('div', { style: { margin: '6px 4px 0', height: 2, background: '#E5E7EB' } }), React.createElement('div', { style: { margin: '6px 14px 0 4px', height: 2, background: '#E5E7EB' } })));
+  }
+  renderVals() {
+    const s = this.state, c = s.conf, st = s.step, chip = this.CHIPS[st];
+    const done = this.FIELDS.filter((f) => c[f.key]).length, all = done === this.FIELDS.length, n = s.deeds;
+    return {
+      fields: this.FIELDS.map((f) => ({ label: f.label, val: f.val, amber: !c[f.key] && f.kind === 'amber', violet: !c[f.key] && f.kind === 'violet', done: !!c[f.key], confirm: () => this.setState((p) => ({ conf: { ...p.conf, [f.key]: true } })) })),
+      doneCount: done, canPrint: all && !s.printed, cantPrint: !all, printed: all && s.printed, print: () => this.setState({ printed: true }),
+      pvTax: c.tax ? this.ink('tax', '$825.00') : '$_____', pvChk: c.tax ? '✓' : '',
+      pvApn: this.ink('apn', '5432-001-012'), pvGrantor: this.ink('grantor', 'John A. Doe and Jane B. Doe'),
+      pvVesting: c.vesting ? this.ink('vesting', ', a single man') : '', pvLegal: this.ink('legal', 'LOT 15, BLOCK 3, TRACT 12345, IN THE CITY OF LOS ANGELES'),
+      packet: React.createElement('div', { style: { position: 'relative', height: 132 } }, this.fan(false)),
+      menu: this.menuVals(), navSpacer: React.createElement('div', { style: { height: this.state.navH } }), navThumb: React.createElement('span', { style: { position: 'absolute', top: 4, bottom: 4, left: '50%', width: 'calc(50% - 4px)', borderRadius: 999, background: '#12141A', boxShadow: '0 2px 8px rgba(18,20,26,.35)', animation: 'dpSlideR .55s cubic-bezier(.3,1.25,.5,1) both' } }),
+      wide: !s.narrow, narrow: s.narrow, stepNum: st + 1,
+      stepChip: React.createElement('span', { key: st, style: { font: "600 12px/1 'IBM Plex Sans',system-ui", color: chip[1], background: chip[2], border: '1px solid ' + chip[3], borderRadius: 4, padding: '6px 9px' } }, chip[0]),
+      sApn: this.hl('5432-001-012', st === 0 ? 'amber' : 'none'), sGrantor: this.hl('John A. Doe and Jane B. Doe', st === 0 ? 'amber' : 'none'),
+      sLegal: this.hl('LOT 15, BLOCK 3, TRACT 12345, IN THE CITY OF LOS ANGELES', st === 0 ? 'amber' : 'none'),
+      sVest: st >= 1 ? this.hl(', a single man', st === 1 ? 'violet' : 'none') : '',
+      sTaxVal: st >= 1 ? this.hl('$825.00', st === 1 ? 'violet' : 'none') : '$_____', sChk: st >= 1 ? '✓' : '',
+      sPage2: this.hl('Page 2 · California notary acknowledgment, left blank for the notary', st === 3 ? 'green' : 'none'),
+      mailMark: React.createElement('div', { style: { position: 'absolute', inset: '-5px -8px', border: '1px solid #7C4DFF', background: 'rgba(124,77,255,.06)', borderRadius: 3, pointerEvents: 'none', opacity: st === 2 ? 1 : 0, transition: 'opacity .5s ease' } }, React.createElement('span', { style: { position: 'absolute', top: -8, right: 8, font: "600 10px/1 'IBM Plex Mono',monospace", color: '#6D3BF0', background: '#fff', padding: '2px 5px' } }, 'return block checked')),
+      guides: React.createElement('div', { style: { position: 'absolute', inset: 14, border: '1px dashed #7C4DFF', pointerEvents: 'none', opacity: st === 2 ? 1 : 0, transition: 'opacity .5s ease' } }, React.createElement('span', { style: { position: 'absolute', top: -9, left: 12, font: "600 10px/1 'IBM Plex Mono',monospace", color: '#6D3BF0', background: '#fff', padding: '2px 5px' } }, 'margins measured')),
+      sPacket: st === 3 ? React.createElement('div', { key: 'pk', style: { position: 'absolute', left: 0, right: 0, bottom: 34, height: 132, background: 'linear-gradient(rgba(255,255,255,0), rgba(255,255,255,.95) 32%)', pointerEvents: 'none' } }, React.createElement('div', { style: { position: 'relative', height: 110, marginTop: 20 } }, this.fan(true))) : null,
+      deeds: n, onDeeds: (e) => this.setState({ deeds: Number(e.target.value) }), hoursLow: Math.round(n * 35 / 60), hoursHigh: Math.round(n * 85 / 60),
+      rulers: this.rulers(),
+      isDev: false, isDesk: true, showOffer: false,
+      showSticky: this.props.stickyCta ?? true, stickyDev: false, stickyDesk: true,
+    };
+  }
+}
+</script>
+</body>
+</html>
