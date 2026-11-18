@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap">
+<script src="./image-slot.js"></script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%237C4DFF'/%3E%3Cpath d='M19.5 7 12.5 25' stroke='%23fff' stroke-width='3.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+@font-face{font-family:'Inter';src:url('frontend/src/app/fonts/Inter-latin-variable.woff2') format('woff2');font-weight:100 900;font-display:swap}
+@font-face{font-family:'Plus Jakarta Sans';src:url('frontend/src/components/brand/fonts/PlusJakartaSans-ExtraBold-latin.woff2') format('woff2');font-weight:800;font-display:swap}
+html{scroll-behavior:smooth}
+body{margin:0;background:#fff;font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;color:#1F2B37;-webkit-font-smoothing:antialiased}
+a{color:#7C4DFF;text-decoration:none}
+a:hover{color:#6a3de8;text-decoration:underline}
+@keyframes dpStamp{0%{transform:scale(2.6) rotate(-18deg);opacity:0}60%{transform:scale(.92) rotate(-8deg);opacity:1}100%{transform:scale(1) rotate(-8deg);opacity:.9}}
+@keyframes dpShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+@keyframes dpInk{0%{background:#FDE68A;opacity:0;transform:translateY(6px)}40%{opacity:1;transform:none}100%{background:transparent}}
+@keyframes dpFan{0%{transform:translateX(0) rotate(0);opacity:0}}
+@keyframes dpPulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes dpSlideL{0%{transform:translateX(100%)}}
+@keyframes dpSlideR{0%{transform:translateX(-100%)}}
+[role=button]:focus-visible,a:focus-visible{outline:2px solid #7C4DFF;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:1100px){[data-nav-mid]{order:3;flex:1 1 100%!important}}
+@media (max-width:720px){[data-nav-menu],[data-nav-login]{display:none!important}[data-nav-right] a{padding:9px 12px!important;font-size:13px!important}}
+pre{margin:0}
+input,textarea{font-family:inherit}
+</style>
+</helmet>
+
+<nav data-screen-label="Nav" style="position:fixed;top:0;left:0;right:0;z-index:20;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-bottom:1px solid #E5E7EB">
+  <div style="max-width:1200px;margin:0 auto;padding:14px clamp(16px,4vw,48px) 6px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 16px">
+    <div style="flex:1 1 0;min-width:max-content;display:flex;align-items:center;padding-bottom:6px"><a href="Platforms.dc.html" aria-label="DeedPro home" style="text-decoration:none;display:inline-flex"><span style="display:inline-flex;flex-direction:column;align-items:center;transform:rotate(-3deg);border:.06em solid #7C4DFF;border-radius:.12em;outline:1px solid #7C4DFF;outline-offset:.07em;padding:.1em .3em .18em;margin:.12em .1em;color:#7C4DFF;font-family:'IBM Plex Mono',monospace;line-height:1;font-size:34px;white-space:nowrap"><span style="font-weight:600;font-size:.8em;letter-spacing:-.04em">deed/pro</span></span></a></div>
+    <div data-nav-mid="1" style="flex:0 1 auto;min-width:0;max-width:100%;display:flex;flex-direction:column;align-items:center;gap:10px">
+      <div style="position:relative;display:grid;grid-template-columns:1fr 1fr;width:330px;max-width:100%;padding:4px;box-sizing:border-box;background:#F3F4F6;border:1px solid #E5E7EB;border-radius:999px;font-size:14px;font-weight:700">{{ navThumb }}<a href="Platforms.dc.html" style="position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 8px;border-radius:999px;white-space:nowrap;text-decoration:none;color:#fff"><span style="font:600 12px/1 'IBM Plex Mono',monospace;opacity:.75">&lt;/&gt;</span>Platforms</a><a href="Escrow-Desks.dc.html" style="position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 8px;border-radius:999px;white-space:nowrap;text-decoration:none;color:#4B5563"><span style="font:600 12px/1 'IBM Plex Mono',monospace;opacity:.75">§</span>Escrow desks</a></div>
+      <div data-nav-menu="1" style="max-width:100%;display:flex;gap:2px;font-size:13.5px;font-weight:500;overflow-x:auto"><sc-for list="{{ menu }}" as="m" hint-placeholder-count="6"><sc-if value="{{ m.on }}" hint-placeholder-val="{{ false }}"><a href="{{ m.href }}" style="padding:9px 12px;color:#7C4DFF;font-weight:700;white-space:nowrap;box-shadow:inset 0 -2px 0 #7C4DFF">{{ m.label }}</a></sc-if><sc-if value="{{ m.off }}" hint-placeholder-val="{{ true }}"><a href="{{ m.href }}" style="padding:9px 12px;color:#374151;white-space:nowrap" style-hover="color:#7C4DFF">{{ m.label }}</a></sc-if></sc-for></div>
+    </div>
+    <div data-nav-right="1" style="flex:1 1 0;min-width:max-content;display:flex;align-items:center;justify-content:flex-end;gap:6px;font-size:14px;padding-bottom:6px"><a data-nav-login="1" href="https://deedpro.io/login" style="padding:8px 12px;font-weight:600;color:#374151">Login</a><a href="#start" style="background:#7C4DFF;color:#fff;font-weight:700;padding:10px 16px;border-radius:6px;white-space:nowrap">Request a sandbox key</a></div>
+  </div>
+</nav>{{ navSpacer }}
+
+<sc-if value="{{ isDev }}" hint-placeholder-val="{{ true }}">
+<section data-screen-label="Hero — platforms" style="border-bottom:1px solid #E5E7EB;background-image:radial-gradient(circle at 1px 1px,rgba(0,0,0,.035) 1px,transparent 0);background-size:24px 24px">
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(44px,6vw,80px) clamp(20px,4vw,48px) 56px">
+    <h1 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:clamp(40px,6vw,76px);line-height:1.02;letter-spacing:-0.03em;font-weight:500;max-width:980px;text-wrap:balance">Add California deeds to your product with one API call.</h1>
+    <p style="margin:22px 0 0;font-size:clamp(17px,1.6vw,20px);line-height:1.6;color:#374151;max-width:780px">You post the facts. The officer whose name goes on the file approves the deed exactly as it will print. You get back a hash-stamped, recorder-formatted PDF and a record of who said yes. No templates, no vesting rules, no county margins on your roadmap.</p>
+    <div style="margin-top:28px;display:flex;flex-wrap:wrap;align-items:center;gap:14px">
+      <a href="#start" style="background:#7C4DFF;color:#fff;font-weight:700;font-size:17px;padding:16px 26px;border-radius:8px">Request a sandbox key →</a>
+      <a href="https://deedpro.io/try" style="background:#fff;border:1px solid #D1D5DB;color:#12141A;font-weight:700;font-size:17px;padding:15px 26px;border-radius:8px">Run it against the real API</a>
+    </div>
+    <div style="margin-top:12px;font-size:14px;color:#4B5563">Three fields, no account. A person replies with your key. The sandbox is free and renders real PDFs.</div>
+
+    <div style="margin-top:44px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px"><span style="font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#6D3BF0">Try to break it</span><sc-if value="{{ autoOn }}" hint-placeholder-val="{{ true }}"><span style="font-size:15px;color:#4B5563">{{ pulseDot }} A demo is playing. Click anything to take over.</span></sc-if><sc-if value="{{ autoOff }}" hint-placeholder-val="{{ false }}"><span style="font-size:15px;color:#4B5563">Your turn. Pick an instrument, change what you send, then play the officer. This runs in your browser from the published rules.</span></sc-if></div>
+    <div style="margin-top:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(248px,1fr));gap:16px;align-items:stretch">
+
+      <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+        <div style="display:flex;align-items:center;gap:10px"><span style="font:600 11px/1 'IBM Plex Mono',monospace;background:#12141A;color:#fff;padding:5px 8px;border-radius:4px">01</span><span style="font-size:15px;font-weight:700">Your system posts the facts</span></div>
+        <div style="flex:1;background:#0B0D11;border:1px solid #262A33;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:14px;min-height:340px;box-sizing:border-box">
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            <sc-for list="{{ types }}" as="t" hint-placeholder-count="7">
+              <sc-if value="{{ t.on }}" hint-placeholder-val="{{ false }}"><span style="font:600 11px/1 'IBM Plex Mono',monospace;padding:7px 9px;border-radius:5px;background:#7C4DFF;color:#fff">{{ t.slug }}</span></sc-if>
+              <sc-if value="{{ t.off }}" hint-placeholder-val="{{ true }}"><span role="button" tabIndex="0" onClick="{{ t.pick }}" style="font:500 11px/1 'IBM Plex Mono',monospace;padding:7px 9px;border-radius:5px;background:#1B1E26;color:#B4B9C4;cursor:pointer;border:1px solid #262A33" style-hover="color:#fff;border-color:#7C4DFF">{{ t.slug }}</span></sc-if>
+            </sc-for>
+          </div>
+          <div style="font:11.5px/1.7 'IBM Plex Mono',ui-monospace,monospace;color:#D1D5DB;overflow-x:auto">
+            <div style="white-space:pre;color:#8B93A1">POST $DEEDPRO_API/deeds</div>
+            <div style="white-space:pre">{</div>
+            <div style="white-space:pre">  "deed_type": <span style="color:#A78BFA">"{{ slug }}"</span>,</div>
+            <sc-if value="{{ showEntityLine }}" hint-placeholder-val="{{ false }}"><div style="white-space:pre;background:rgba(134,239,172,.08)">  "grantor": { "entity":</div><div style="white-space:pre;background:rgba(134,239,172,.08)">    { "entity_state": <span style="color:#A78BFA">"DE"</span> } },</div></sc-if>
+            <div style="white-space:pre">  "grantee": {</div>
+            <div style="white-space:pre">    "name": <span style="color:#A78BFA">"{{ granteeName }}"</span>,</div>
+            <sc-if value="{{ vest }}" hint-placeholder-val="{{ true }}"><div style="white-space:pre;background:rgba(167,139,250,.1)">    "vesting": <span style="color:#A78BFA">"a single man"</span></div></sc-if>
+            <div style="white-space:pre">  },</div>
+            <div style="white-space:pre">  "approver": {</div>
+            <div style="white-space:pre">    "name": <span style="color:#A78BFA">"Jane Roe"</span>,</div>
+            <div style="white-space:pre">    "role": <span style="color:#A78BFA">"escrow officer"</span></div>
+            <div style="white-space:pre">  }</div>
+            <div style="white-space:pre">}</div>
+          </div>
+          <div style="margin-top:auto;display:flex;flex-wrap:wrap;gap:8px;font:600 12px/1 'IBM Plex Mono',monospace">
+            <sc-if value="{{ vest }}" hint-placeholder-val="{{ true }}"><span role="button" tabIndex="0" onClick="{{ toggleVest }}" style="padding:9px 11px;border-radius:6px;border:1px solid #7C4DFF;color:#C4B5FD;cursor:pointer">− remove grantee.vesting</span></sc-if>
+            <sc-if value="{{ noVest }}" hint-placeholder-val="{{ false }}"><span role="button" tabIndex="0" onClick="{{ toggleVest }}" style="padding:9px 11px;border-radius:6px;border:1px solid #3A3F4B;color:#D1D5DB;cursor:pointer">+ send grantee.vesting</span></sc-if>
+            <sc-if value="{{ entityOn }}" hint-placeholder-val="{{ false }}"><span role="button" tabIndex="0" onClick="{{ toggleEntity }}" style="padding:9px 11px;border-radius:6px;border:1px solid #7C4DFF;color:#C4B5FD;cursor:pointer">− remove entity_state</span></sc-if>
+            <sc-if value="{{ entityOff }}" hint-placeholder-val="{{ false }}"><span role="button" tabIndex="0" onClick="{{ toggleEntity }}" style="padding:9px 11px;border-radius:6px;border:1px solid #3A3F4B;color:#D1D5DB;cursor:pointer">+ send entity_state</span></sc-if>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+        <div style="display:flex;align-items:center;gap:10px"><span style="font:600 11px/1 'IBM Plex Mono',monospace;background:#16A34A;color:#fff;padding:5px 8px;border-radius:4px">02</span><span style="font-size:15px;font-weight:700">The officer decides</span></div>
+        <sc-if value="{{ isErr }}" hint-placeholder-val="{{ true }}">
+          <div style="flex:1;background:#12141A;border:1px solid #7F1D1D;border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:12px;min-height:340px;box-sizing:border-box">
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">{{ errBadge }}<span style="font:500 12px/1 'IBM Plex Mono',monospace;color:#B4B9C4">VALIDATION_ERROR</span></div>
+            <div style="font:13px/1.7 'IBM Plex Mono',monospace;color:#F3F4F6">{{ errMsg }}</div>
+            <div style="font:12px/1.6 'IBM Plex Mono',monospace;color:#B4B9C4">field: {{ errField }}</div>
+            <div style="font-size:13.5px;line-height:1.6;color:#B4B9C4">{{ errGloss }}</div>
+            <div style="margin-top:auto;border-top:1px solid #262A33;padding-top:14px;font-size:14px;line-height:1.6;color:#D1D5DB">It never reached an officer. The wrong deed died in your test suite, not at the recorder's counter with your customer's name on it. Fix the request on the left.</div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ isPending }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:1;background:#fff;border:2px solid #16A34A;border-radius:10px;box-shadow:0 10px 24px rgba(22,163,74,.12);padding:16px;display:flex;flex-direction:column;gap:12px;min-height:340px;box-sizing:border-box">
+            <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 12px"><div><div style="font-size:15px;font-weight:700;color:#1F2B37">Confirm this deed</div><div style="font-size:13px;color:#4B5563">Jane Roe, escrow officer</div></div><span style="font-size:12px;color:#92400E;background:#FFFBEB;border:1px solid #FDE68A;border-radius:999px;padding:5px 10px">Expires in 7 days</span></div>
+            <div style="flex:1;border:1px solid #E5E7EB;background:#FCFCFD;border-radius:6px;padding:16px;font-family:'Source Serif 4',Georgia,serif;color:#1F2937">
+              <div style="font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:#6B7280">Recording requested by</div>
+              <div style="font-size:11px;font-weight:600;margin-bottom:10px">Pacific Coast Escrow</div>
+              <div style="text-align:center;font-size:17px;font-weight:600;letter-spacing:.03em">{{ deedTitle }}</div>
+              <div style="height:1px;background:#E5E7EB;margin:10px 0"></div>
+              <div style="font-size:11px;line-height:1.8"><div><strong>GRANTOR:</strong> {{ grantorLine }}</div><div><strong>GRANTEE:</strong> {{ granteeLine }}</div><div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#4B5563;margin-top:6px">LOT 15, BLOCK 3, TRACT 12345</div></div>
+            </div>
+            <div style="font-size:13px;line-height:1.5;color:#4B5563">Review the document as it will print. DeedPro does not confirm the facts. You do.</div>
+            <div style="display:flex;gap:8px"><span role="button" tabIndex="0" onClick="{{ approve }}" style="flex:1;text-align:center;background:#16A34A;color:#fff;font-weight:700;font-size:14px;padding:12px;border-radius:6px;cursor:pointer" style-hover="background:#15803D">Approve</span><span role="button" tabIndex="0" onClick="{{ reject }}" style="flex:1;text-align:center;border:1px solid #D1D5DB;color:#374151;font-weight:600;font-size:14px;padding:11px;border-radius:6px;cursor:pointer" style-hover="background:#F3F4F6">This is not the deed</span></div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ isApproved }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:1;background:#F0FDF4;border:2px solid #16A34A;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:10px;min-height:340px;box-sizing:border-box;position:relative;overflow:hidden">
+            {{ sealEl }}
+            <div style="font-family:'Source Serif 4',Georgia,serif;font-size:28px;font-weight:500;color:#14532D">Deed approved.</div>
+            <div style="font-size:15px;line-height:1.6;color:#166534">The integrator can now download the stored PDF. The record shows who approved and when.</div>
+            <div style="font:12px/1.7 'IBM Plex Mono',monospace;color:#166534;border-top:1px solid #BBF7D0;padding-top:12px">approver.name: "Jane Roe"<br>approver.role: "escrow officer"</div>
+            <span role="button" tabIndex="0" onClick="{{ reset }}" style="margin-top:auto;align-self:flex-start;font-size:13px;font-weight:600;color:#166534;cursor:pointer;text-decoration:underline">Start over</span>
+          </div>
+        </sc-if>
+        <sc-if value="{{ isRejected }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:1;background:#FFFBEB;border:2px solid #F59E0B;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:10px;min-height:340px;box-sizing:border-box">
+            <div style="font-family:'Source Serif 4',Georgia,serif;font-size:28px;font-weight:500;color:#78350F">Returned for correction.</div>
+            <div style="font:13px/1.6 'IBM Plex Mono',monospace;color:#78350F;background:#fff;border:1px solid #FCD34D;border-radius:6px;padding:10px">"Grantee's middle initial is wrong."</div>
+            <div style="font-size:15px;line-height:1.6;color:#92400E">The integrator has the reason. They correct the facts in their system and submit again, with a new Idempotency-Key.</div>
+            <span role="button" tabIndex="0" onClick="{{ reset }}" style="margin-top:auto;align-self:flex-start;font-size:13px;font-weight:600;color:#92400E;cursor:pointer;text-decoration:underline">Post it again</span>
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+        <div style="display:flex;align-items:center;gap:10px"><span style="font:600 11px/1 'IBM Plex Mono',monospace;background:#12141A;color:#fff;padding:5px 8px;border-radius:4px">03</span><span style="font-size:15px;font-weight:700">You ask for the PDF</span></div>
+        <div style="flex:1;background:#0B0D11;border:1px solid #262A33;border-radius:10px;padding:18px;min-height:340px;display:flex;flex-direction:column;gap:12px;box-sizing:border-box;overflow-x:auto">
+          <div style="font:12px/1.6 'IBM Plex Mono',monospace;color:#8B93A1">GET $DEEDPRO_API/deeds/deed_8Kd2mQxR4vLp/pdf</div>
+          <sc-if value="{{ isErr }}" hint-placeholder-val="{{ true }}">
+            <div style="font:600 12px/1.5 'IBM Plex Mono',monospace;color:#B4B9C4">no draft · nothing to fetch</div>
+            <div style="font-size:14px;line-height:1.6;color:#B4B9C4">No draft was created, so there is nothing to fetch. Invalid input is refused before a preview is rendered or stored.</div>
+          </sc-if>
+          <sc-if value="{{ isPending }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;gap:8px"><span style="font:600 12px/1 'IBM Plex Mono',monospace;color:#FCD34D;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.35);padding:5px 8px;border-radius:4px">409</span><span style="font:500 12px/1 'IBM Plex Mono',monospace;color:#B4B9C4">CONFIRMATION_REQUIRED</span></div>
+            <div style="font-size:14px;line-height:1.6;color:#B4B9C4">The draft exists with <span style="font-family:'IBM Plex Mono',monospace;color:#FCD34D">status: "pending_confirmation"</span>. There is no PDF until a person approves it. Step 02 is waiting on you.</div>
+          </sc-if>
+          <sc-if value="{{ isApproved }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;gap:8px"><span style="font:600 12px/1 'IBM Plex Mono',monospace;color:#86EFAC;background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.35);padding:5px 8px;border-radius:4px">200</span><span style="font:500 12px/1 'IBM Plex Mono',monospace;color:#B4B9C4">application/pdf</span></div>
+            <div style="font:12px/1.75 'IBM Plex Mono',monospace;color:#D1D5DB">status: <span style="color:#86EFAC">"completed"</span><br>document_id: <span style="color:#A78BFA">"DOC-2026-H7K3M"</span><br>sha256: <span style="color:#A78BFA">{{ hashText }}</span></div>
+            <div style="font-size:14px;line-height:1.6;color:#B4B9C4">Recorder-formatted, with a blank California acknowledgment page for the notary. Stored insert-or-refuse: it cannot be overwritten.</div>
+            <a href="#start" style="margin-top:auto;text-align:center;background:#7C4DFF;color:#fff;font-weight:700;font-size:15px;padding:13px;border-radius:8px">Now do it with your own data →</a>
+          </sc-if>
+          <sc-if value="{{ isRejected }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;gap:8px"><span style="font:600 12px/1 'IBM Plex Mono',monospace;color:#FCD34D;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.35);padding:5px 8px;border-radius:4px">409</span><span style="font:500 12px/1 'IBM Plex Mono',monospace;color:#B4B9C4">CONFIRMATION_REQUIRED</span></div>
+            <div style="font-size:14px;line-height:1.6;color:#B4B9C4">A rejected draft never becomes a PDF, and replaying its Idempotency-Key returns the rejection, not a fresh draft.</div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</sc-if>
+
+
+<section data-screen-label="For the buyer" style="border-bottom:1px solid #E5E7EB">
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(40px,5vw,64px) clamp(20px,4vw,48px);display:flex;flex-direction:column;gap:24px">
+    <div style="font-family:'Source Serif 4',Georgia,serif;font-size:clamp(24px,2.6vw,32px);font-weight:500;letter-spacing:-0.015em;line-height:1.15">Signing the contract rather than writing the code? The short version.</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:28px">
+      <div style="border-top:2px solid #12141A;padding-top:16px;display:flex;flex-direction:column;gap:6px"><div style="font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#6D3BF0">What you get</div><div style="font-size:19px;font-weight:700;line-height:1.3">Your customers finish the deed inside your product.</div><div style="font-size:15px;line-height:1.6;color:#4B5563">They stop leaving for a separate tool at the last step of the file.</div></div>
+      <div style="border-top:2px solid #12141A;padding-top:16px;display:flex;flex-direction:column;gap:6px"><div style="font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#6D3BF0">What it takes</div><div style="font-size:19px;font-weight:700;line-height:1.3">Your engineers connect seven routes.</div><div style="font-size:15px;line-height:1.6;color:#4B5563">We maintain the templates, the county formatting and the instrument rules.</div></div>
+      <div style="border-top:2px solid #12141A;padding-top:16px;display:flex;flex-direction:column;gap:6px"><div style="font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#6D3BF0">What it risks</div><div style="font-size:19px;font-weight:700;line-height:1.3">Nothing until it works.</div><div style="font-size:15px;line-height:1.6;color:#4B5563">A free sandbox key lets you demo a real deed flow to your own customers before any contract.</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="output" data-screen-label="The output" style="border-bottom:1px solid #E5E7EB;scroll-margin-top:calc(var(--navh,120px) + 12px)">
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(56px,7vw,88px) clamp(20px,4vw,48px);display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:48px;align-items:center">
+    <div style="min-width:0;display:flex;justify-content:center"><div style="width:100%;max-width:420px;aspect-ratio:8.5/11;position:relative;overflow:hidden;border:1px solid #D1D5DB;box-shadow:0 20px 40px rgba(2,6,23,.14);background:#fff"><dc-import name="Sample-Grant-Deed" embed="{{ true }}" hint-size="100%,100%" style="display:block;width:100%"></dc-import>{{ rulers }}</div></div>
+    <div style="display:flex;flex-direction:column;gap:18px;min-width:0">
+      <div style="font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#6D3BF0">The thing you are actually buying</div>
+      <h2 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:clamp(32px,4vw,48px);line-height:1.06;letter-spacing:-0.025em;font-weight:500;text-wrap:balance">Don't take our word for it. Open the PDF.</h2>
+      <p style="margin:0;font-size:17px;line-height:1.65;color:#4B5563">A sample grant deed with fictitious parties. Hold it against your county's requirements before you talk to us.</p>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;gap:14px"><span style="font:600 12px/1.6 'IBM Plex Mono',monospace;color:#6D3BF0;flex:none;width:92px">§27361.6</span><span style="font-size:15px;line-height:1.55;color:#374151">Margins and type measured to California recorders' published requirements.</span></div>
+        <div style="display:flex;gap:14px"><span style="font:600 12px/1.6 'IBM Plex Mono',monospace;color:#6D3BF0;flex:none;width:92px">§27361.7</span><span style="font-size:15px;line-height:1.55;color:#374151">No logo, QR code or vendor ID on recorded pages. Our brand never touches your instrument.</span></div>
+        <div style="display:flex;gap:14px"><span style="font:600 12px/1.6 'IBM Plex Mono',monospace;color:#6D3BF0;flex:none;width:92px">Page 2</span><span style="font-size:15px;line-height:1.55;color:#374151">A blank California acknowledgment for the notary, included on every deed.</span></div>
+        <div style="display:flex;gap:14px"><span style="font:600 12px/1.6 'IBM Plex Mono',monospace;color:#6D3BF0;flex:none;width:92px">SHA-256</span><span style="font-size:15px;line-height:1.55;color:#374151">Fingerprinted at creation. Anyone holding the document ID can verify it publicly, without seeing the parties.</span></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:4px"><a href="Sample-Grant-Deed.dc.html" style="background:#12141A;color:#fff;font-weight:700;font-size:16px;padding:14px 22px;border-radius:8px">Open the sample deed</a></div>
+      <div style="font-size:13px;color:#4B5563">Acceptance is always the recorder's call. We give you every reason for a yes.</div>
+    </div>
+  </div>
+</section>
+
+<sc-if value="{{ isDev }}" hint-placeholder-val="{{ true }}">
+<section data-screen-label="Who it's for" style="background:#F8F8FB;border-bottom:1px solid #E5E7EB">
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(56px,7vw,88px) clamp(20px,4vw,48px)">
+    <h2 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:clamp(32px,4vw,48px);line-height:1.06;letter-spacing:-0.025em;font-weight:500;max-width:800px;text-wrap:balance">If a deed is the last step in your workflow, this is for you.</h2>
+    <div style="margin-top:32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px">
+      <div style="background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:22px;display:flex;flex-direction:column;gap:8px"><div style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:#6D3BF0">API</div><div style="font-size:18px;font-weight:700">Title &amp; escrow software</div><div style="font-size:15px;line-height:1.6;color:#4B5563">Your users leave your product to draft the deed. Keep them in the file, and keep the order number as the idempotency key.</div></div>
+      <div style="background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:22px;display:flex;flex-direction:column;gap:8px"><div style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:#6D3BF0">API</div><div style="font-size:18px;font-weight:700">Proptech &amp; transaction platforms</div><div style="font-size:15px;line-height:1.6;color:#4B5563">You already hold the parties and the property. Turn that record into the instrument without a paralegal in the loop.</div></div>
+      <div style="background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:22px;display:flex;flex-direction:column;gap:8px"><div style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:#6D3BF0">API</div><div style="font-size:18px;font-weight:700">Estate &amp; legal tools</div><div style="font-size:15px;line-height:1.6;color:#4B5563">Quitclaims and grant deeds on demand, with the attorney named as the approver on every one.</div></div>
+      <div style="background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:22px;display:flex;flex-direction:column;gap:8px"><div style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:#166534">App</div><div style="font-size:18px;font-weight:700">Escrow &amp; title desks</div><div style="font-size:15px;line-height:1.6;color:#4B5563">No software team, a stack of files. Open the app and have the deed, PCOR and BOE done in one sitting.</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="api" data-screen-label="API" style="background:#0B0D11;color:#fff;scroll-margin-top:calc(var(--navh,120px) + 12px)">
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(56px,7vw,88px) clamp(20px,4vw,48px);display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:48px;align-items:start">
+    <div style="display:flex;flex-direction:column;gap:20px;min-width:0">
+      <div style="font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#C4B5FD">For engineers</div>
+      <h2 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:clamp(32px,4vw,48px);line-height:1.06;letter-spacing:-0.025em;font-weight:500;text-wrap:balance">The whole API is seven routes.</h2>
+      <p style="margin:0;font-size:17px;line-height:1.65;color:#B4B9C4">Plain JSON over REST with a published OpenAPI contract and no SDK to install. Read the whole surface in one sitting and pin it in CI.</p>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div><div style="font-size:16px;font-weight:700">Demo it before you pay for it</div><div style="font-size:15px;line-height:1.6;color:#B4B9C4;margin-top:2px">Test keys render real PDFs on the production templates. Close your own customer with a working flow.</div></div>
+        <div><div style="font-size:16px;font-weight:700">Retries never mint a second deed</div><div style="font-size:15px;line-height:1.6;color:#B4B9C4;margin-top:2px">Send your order number as the <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#E5E7EB">Idempotency-Key</span>. A repeat returns the original draft.</div></div>
+        <div><div style="font-size:16px;font-weight:700">Errors your users can read</div><div style="font-size:15px;line-height:1.6;color:#B4B9C4;margin-top:2px">A stable code, the field at fault, and a sentence you can show as is.</div></div>
+        <div><div style="font-size:16px;font-weight:700">Knowing when it's approved</div><div style="font-size:15px;line-height:1.6;color:#B4B9C4;margin-top:2px">Poll <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#E5E7EB">GET /deeds/{id}</span> until status is completed. There are no webhooks. You poll, or your user opens the confirmation link.</div></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:6px"><a href="#start" style="background:#7C4DFF;color:#fff;font-weight:700;font-size:16px;padding:15px 24px;border-radius:8px">Request a sandbox key →</a><a href="https://deedpro.io/developers" style="border:1px solid #3A3F4B;color:#fff;font-weight:700;font-size:16px;padding:14px 24px;border-radius:8px">Read the docs</a></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+      <div style="background:#12141A;border:1px solid #262A33;border-radius:12px;overflow:hidden">
+        <sc-if value="{{ isCurl }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;gap:2px;padding:8px 10px 0;border-bottom:1px solid #262A33;font:600 12px/1 'IBM Plex Mono',monospace"><span style="padding:10px 14px;color:#fff;border-bottom:2px solid #7C4DFF">cURL</span><span role="button" tabIndex="0" onClick="{{ setPy }}" style="padding:10px 14px;color:#9CA3AF;cursor:pointer">Python</span><span role="button" tabIndex="0" onClick="{{ setNode }}" style="padding:10px 14px;color:#9CA3AF;cursor:pointer">Node</span></div>
+<pre style="padding:18px 20px;font:12.5px/1.7 'IBM Plex Mono',ui-monospace,monospace;color:#D1D5DB;overflow-x:auto;min-height:192px">curl -X POST $DEEDPRO_API/deeds \
+  -H <span style="color:#A78BFA">"Authorization: Bearer dp_test_YOUR_KEY"</span> \
+  -H <span style="color:#A78BFA">"Idempotency-Key: order-48219"</span> \
+  -d '{
+    "deed_type": <span style="color:#A78BFA">"grant_deed"</span>,
+    "property": { … }, "grantor": { … }, "grantee": { … },
+    "transfer_tax": { … }, "recording": { … },
+    "approver": { "name": <span style="color:#A78BFA">"Jane Roe"</span>, "role": <span style="color:#A78BFA">"escrow officer"</span> }
+  }'</pre>
+        </sc-if>
+        <sc-if value="{{ isPy }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;gap:2px;padding:8px 10px 0;border-bottom:1px solid #262A33;font:600 12px/1 'IBM Plex Mono',monospace"><span role="button" tabIndex="0" onClick="{{ setCurl }}" style="padding:10px 14px;color:#9CA3AF;cursor:pointer">cURL</span><span style="padding:10px 14px;color:#fff;border-bottom:2px solid #7C4DFF">Python</span><span role="button" tabIndex="0" onClick="{{ setNode }}" style="padding:10px 14px;color:#9CA3AF;cursor:pointer">Node</span></div>
+<pre style="padding:18px 20px;font:12.5px/1.7 'IBM Plex Mono',ui-monospace,monospace;color:#D1D5DB;overflow-x:auto;min-height:192px">resp = requests.post(
+    f<span style="color:#A78BFA">"{DEEDPRO_API}/deeds"</span>,
+    headers={
+        <span style="color:#A78BFA">"Authorization"</span>: f<span style="color:#A78BFA">"Bearer {API_KEY}"</span>,
+        <span style="color:#A78BFA">"Idempotency-Key"</span>: order_id,   <span style="color:#8B93A1"># safe to retry</span>
+    },
+    json=deed_payload,
+    timeout=60,
+)
+deed = resp.json()[<span style="color:#A78BFA">"data"</span>]</pre>
+        </sc-if>
+        <sc-if value="{{ isNode }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;gap:2px;padding:8px 10px 0;border-bottom:1px solid #262A33;font:600 12px/1 'IBM Plex Mono',monospace"><span role="button" tabIndex="0" onClick="{{ setCurl }}" style="padding:10px 14px;color:#9CA3AF;cursor:pointer">cURL</span><span role="button" tabIndex="0" onClick="{{ setPy }}" style="padding:10px 14px;color:#9CA3AF;cursor:pointer">Python</span><span style="padding:10px 14px;color:#fff;border-bottom:2px solid #7C4DFF">Node</span></div>
+<pre style="padding:18px 20px;font:12.5px/1.7 'IBM Plex Mono',ui-monospace,monospace;color:#D1D5DB;overflow-x:auto;min-height:192px">const res = await fetch(<span style="color:#A78BFA">`${DEEDPRO_API}/deeds`</span>, {
+  method: <span style="color:#A78BFA">"POST"</span>,
+  headers: {
+    Authorization: <span style="color:#A78BFA">`Bearer ${apiKey}`</span>,
+    <span style="color:#A78BFA">"Idempotency-Key"</span>: orderId,   <span style="color:#8B93A1">// safe to retry</span>
+  },
+  body: JSON.stringify(deedPayload),
+});
+const { data } = await res.json();</pre>
+        </sc-if>
+      </div>
+      <div style="background:#12141A;border:1px solid #262A33;border-radius:12px;padding:6px 20px;display:grid;grid-template-columns:48px minmax(0,1fr);column-gap:14px;font:12.5px/1 'IBM Plex Mono',monospace;color:#D1D5DB">
+        <span style="padding:10px 0;color:#C4B5FD;border-bottom:1px solid #1B1E26">POST</span><span style="padding:10px 0;border-bottom:1px solid #1B1E26;overflow-wrap:anywhere">/deeds</span>
+        <span style="padding:10px 0;color:#86EFAC;border-bottom:1px solid #1B1E26">GET</span><span style="padding:10px 0;border-bottom:1px solid #1B1E26;overflow-wrap:anywhere">/deeds</span>
+        <span style="padding:10px 0;color:#86EFAC;border-bottom:1px solid #1B1E26">GET</span><span style="padding:10px 0;border-bottom:1px solid #1B1E26;overflow-wrap:anywhere">/deeds/{id}</span>
+        <span style="padding:10px 0;color:#86EFAC;border-bottom:1px solid #1B1E26">GET</span><span style="padding:10px 0;border-bottom:1px solid #1B1E26;overflow-wrap:anywhere">/deeds/{id}/pdf</span>
+        <span style="padding:10px 0;color:#C4B5FD;border-bottom:1px solid #1B1E26">POST</span><span style="padding:10px 0;border-bottom:1px solid #1B1E26;overflow-wrap:anywhere">/transfer-tax/calculate</span>
+        <span style="padding:10px 0;color:#86EFAC;border-bottom:1px solid #1B1E26">GET</span><span style="padding:10px 0;border-bottom:1px solid #1B1E26;overflow-wrap:anywhere">/verify/{document_id}</span>
+        <span style="padding:10px 0;color:#86EFAC">GET</span><span style="padding:10px 0;overflow-wrap:anywhere">/openapi.json</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section data-screen-label="Build vs integrate" style="border-bottom:1px solid #E5E7EB">
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(56px,7vw,88px) clamp(20px,4vw,48px)">
+    <h2 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:clamp(32px,4vw,48px);line-height:1.06;letter-spacing:-0.025em;font-weight:500;max-width:820px;text-wrap:balance">You could build this. Here is what you'd be signing up for.</h2>
+    <div style="margin-top:32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px">
+      <div style="border:1px solid #E5E7EB;border-radius:12px;padding:28px;background:#F8F8FB;display:flex;flex-direction:column;gap:14px">
+        <div style="font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#4B5563">Build it in-house</div>
+        <div style="display:flex;flex-direction:column;gap:12px;font-size:16px;line-height:1.5;color:#374151">
+          <div style="display:flex;gap:12px"><span style="color:#6B7280">✕</span><span>A template per instrument, measured to county recorder margins</span></div>
+          <div style="display:flex;gap:12px"><span style="color:#6B7280">✕</span><span>Which deeds carry their vesting on their face, and which must not</span></div>
+          <div style="display:flex;gap:12px"><span style="color:#6B7280">✕</span><span>County and city transfer tax, with the rounding rules</span></div>
+          <div style="display:flex;gap:12px"><span style="color:#6B7280">✕</span><span>An audit trail for who approved what, the day someone asks</span></div>
+          <div style="display:flex;gap:12px"><span style="color:#6B7280">✕</span><span>All of it again whenever a requirement changes</span></div>
+        </div>
+      </div>
+      <div style="border:2px solid #7C4DFF;border-radius:12px;padding:27px;background:#fff;box-shadow:0 10px 25px -3px rgba(124,77,255,.18);display:flex;flex-direction:column;gap:14px">
+        <div style="font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#6D3BF0">Integrate DeedPro</div>
+        <div style="display:flex;flex-direction:column;gap:12px;font-size:16px;line-height:1.5;color:#1F2B37">
+          <div style="display:flex;gap:12px"><span style="color:#7C4DFF;font-weight:700">✓</span><span>One POST. 7 deed-family instruments, each on its own template</span></div>
+          <div style="display:flex;gap:12px"><span style="color:#7C4DFF;font-weight:700">✓</span><span>Instrument rules enforced at the request boundary</span></div>
+          <div style="display:flex;gap:12px"><span style="color:#7C4DFF;font-weight:700">✓</span><span>A transfer-tax calculator endpoint, included</span></div>
+          <div style="display:flex;gap:12px"><span style="color:#7C4DFF;font-weight:700">✓</span><span>A confirmation record per deed, retrievable any time</span></div>
+          <div style="display:flex;gap:12px"><span style="color:#7C4DFF;font-weight:700">✓</span><span>We keep it current. You keep shipping your product</span></div>
+        </div>
+        <a href="#start" style="margin-top:8px;align-self:flex-start;background:#7C4DFF;color:#fff;font-weight:700;font-size:16px;padding:14px 22px;border-radius:8px">Start in the sandbox →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+</sc-if>
+
+
+<section data-screen-label="Cross-link" style="background:#F8F8FB;border-bottom:1px solid #E5E7EB">
+  <div style="max-width:1200px;margin:0 auto;padding:36px clamp(20px,4vw,48px);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 32px">
+    <div style="max-width:720px"><div style="font-family:'Source Serif 4',Georgia,serif;font-size:26px;font-weight:500;letter-spacing:-0.015em;line-height:1.2">Some of your customers have no engineers. Send them to the app.</div><div style="font-size:16px;line-height:1.6;color:#4B5563;margin-top:6px">The same engine with a desk in front of it: 19 documents, PCOR and BOE filled from the deed, free to start.</div></div>
+    <a href="Escrow-Desks.dc.html" style="border:1px solid #D1D5DB;background:#fff;color:#12141A;font-weight:700;font-size:16px;padding:14px 22px;border-radius:8px">See the escrow desk page →</a>
+  </div>
+</section>
+
+<sc-if value="{{ isDev }}" hint-placeholder-val="{{ true }}">
+<section id="answers" data-screen-label="Hard questions" style="border-bottom:1px solid #E5E7EB;scroll-margin-top:calc(var(--navh,120px) + 12px)">
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(56px,7vw,88px) clamp(20px,4vw,48px)">
+    <h2 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:clamp(32px,4vw,48px);line-height:1.06;letter-spacing:-0.025em;font-weight:500;max-width:860px;text-wrap:balance">The questions your CTO and your counsel will ask. Answered now.</h2>
+    <p style="margin:14px 0 0;font-size:17px;line-height:1.6;color:#4B5563;max-width:720px">Including the ones where the answer is no. You'd find out anyway; better here than in week three.</p>
+    <div style="margin-top:32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px">
+      <div style="border:1px solid #E5E7EB;border-radius:12px;padding:22px"><div style="font-size:17px;font-weight:700">Who is responsible if a deed is wrong?</div><div style="font-size:15px;line-height:1.65;color:#4B5563;margin-top:6px">The professional who approved it, which is exactly why approval is mandatory and recorded. DeedPro formats and records. It is software, not a law firm, and gives no legal advice.</div></div>
+      <div style="border:1px solid #E5E7EB;border-radius:12px;padding:22px"><div style="font-size:17px;font-weight:700">Is there an uptime guarantee?</div><div style="font-size:15px;line-height:1.65;color:#4B5563;margin-top:6px">No SLA and no status page. Nothing measures uptime yet. If your contract needs either, say so on the call and you get a straight answer.</div></div>
+      <div style="border:1px solid #E5E7EB;border-radius:12px;padding:22px"><div style="font-size:17px;font-weight:700">Will you break my integration?</div><div style="font-size:15px;line-height:1.65;color:#4B5563;margin-top:6px">Additive changes ship inside v1. Breaking changes go to a new path, /api/v2, with a public changelog. We changed v1 once, before anyone integrated, to remove the path that skipped the human.</div></div>
+      <div style="border:1px solid #E5E7EB;border-radius:12px;padding:22px"><div style="font-size:17px;font-weight:700">What do you keep, and for how long?</div><div style="font-size:15px;line-height:1.65;color:#4B5563;margin-top:6px">An unconfirmed draft is deleted after seven days. Not archived, deleted. Approver contact details are purged on a retention schedule. Public verification never exposes parties, address or APN. All eight outside services that touch your data are named on the trust page.</div></div>
+      <div style="border:1px solid #E5E7EB;border-radius:12px;padding:22px"><div style="font-size:17px;font-weight:700">Rate limits and volume?</div><div style="font-size:15px;line-height:1.65;color:#4B5563;margin-top:6px">Hourly and daily ceilings per key, reported in response headers. Tell us your expected volume and we set the ceiling to match.</div></div>
+      <div style="border:1px solid #E5E7EB;border-radius:12px;padding:22px"><div style="font-size:17px;font-weight:700">Only California?</div><div style="font-size:15px;line-height:1.65;color:#4B5563;margin-top:6px">Yes, and that focus is why the formatting is right. Need a second state today? We'll say so on the first call and save you the month.</div></div>
+      <div style="border:1px solid #E5E7EB;border-radius:12px;padding:22px"><div style="font-size:17px;font-weight:700">Why 7 instruments over the API and 19 in the app?</div><div style="font-size:15px;line-height:1.65;color:#4B5563;margin-top:6px">Affidavits and declarations need a hand at the moment of signing, so they stay in the app by design. Two deed types are paused for review and listed in the changelog.</div></div>
+      <div style="border:1px solid #E5E7EB;border-radius:12px;padding:22px"><div style="font-size:17px;font-weight:700">SOC 2? Penetration test? DPA?</div><div style="font-size:15px;line-height:1.65;color:#4B5563;margin-top:6px">No SOC 2 report and no penetration test scheduled. A data processing agreement is drafted and pending counsel; ask and you get the draft with that caveat. Questionnaires go to info@deedpro.io.</div></div>
+      <div style="border:1px dashed #F59E0B;background:#FFFBEB;border-radius:12px;padding:22px"><div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px"><span style="font-size:17px;font-weight:700">Who do I call when something breaks?</span><span style="font:600 11px/1 'IBM Plex Mono',monospace;color:#92400E;border:1px dashed #F59E0B;border-radius:4px;padding:4px 7px;background:#fff">NEEDS YOUR ANSWER</span></div><div style="font-size:15px;line-height:1.65;color:#78350F;margin-top:6px">Today the answer is info@deedpro.io. Add hours, a response time and a named person; it will close more deals than any feature.</div></div>
+      <div style="border:1px dashed #F59E0B;background:#FFFBEB;border-radius:12px;padding:22px"><div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px"><span style="font-size:17px;font-weight:700">What happens to my deeds if I leave?</span><span style="font:600 11px/1 'IBM Plex Mono',monospace;color:#92400E;border:1px dashed #F59E0B;border-radius:4px;padding:4px 7px;background:#fff">NEEDS YOUR ANSWER</span></div><div style="font-size:15px;line-height:1.65;color:#78350F;margin-top:6px">Export and retention after cancellation. State it plainly; it removes the fear of lock-in.</div></div>
+    </div>
+    <div style="margin-top:20px;font-size:15px;color:#4B5563">More, gaps first: <a href="https://deedpro.io/trust" style="font-weight:600">read the trust page →</a></div>
+  </div>
+</section>
+
+</sc-if>
+
+
+<section data-screen-label="People" style="background:#F8F8FB;border-bottom:1px solid #E5E7EB">
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(56px,7vw,88px) clamp(20px,4vw,48px);display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:40px;align-items:center">
+    <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+      <div style="font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#6D3BF0">Who you're dealing with</div>
+      <h2 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:clamp(32px,4vw,48px);line-height:1.06;letter-spacing:-0.025em;font-weight:500;text-wrap:balance">We ask for a named human on every deed. Here are ours.</h2>
+      <p style="margin:0;font-size:17px;line-height:1.65;color:#4B5563">No logo wall and no borrowed credibility. You get the people who built the engine, and you can reach them directly.</p>
+      <div style="border:1px dashed #F59E0B;background:#FFFBEB;border-radius:10px;padding:16px;font-size:15px;line-height:1.6;color:#78350F"><span style="font:600 11px/1 'IBM Plex Mono',monospace;color:#92400E;border:1px dashed #F59E0B;border-radius:4px;padding:4px 7px;background:#fff;margin-right:8px">NEEDS YOUR MATERIAL</span>Names, roles and one line of background each. Photos drop into the frames.</div>
+      <div style="font-size:15px;line-height:1.6;color:#374151"><strong>DeedPro Corporation</strong>, a Wyoming corporation. 440 Rte 66, Glendora, CA 91750. <a href="mailto:info@deedpro.io" style="font-weight:600">info@deedpro.io</a></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;min-width:0">
+      <div style="display:flex;flex-direction:column;gap:10px"><div style="aspect-ratio:1/1;width:100%"><image-slot id="person-1" shape="rounded" radius="12" placeholder="Founder photo"></image-slot></div><div><div style="font-size:16px;font-weight:700">Name Surname</div><div style="font-size:14px;color:#4B5563">Role · what they did before</div></div></div>
+      <div style="display:flex;flex-direction:column;gap:10px"><div style="aspect-ratio:1/1;width:100%"><image-slot id="person-2" shape="rounded" radius="12" placeholder="Team photo"></image-slot></div><div><div style="font-size:16px;font-weight:700">Name Surname</div><div style="font-size:14px;color:#4B5563">Role · what they did before</div></div></div>
+    </div>
+  </div>
+</section>
+
+<sc-if value="{{ showOffer }}" hint-placeholder-val="{{ true }}">
+<section data-screen-label="Founding partners" style="background:#7C4DFF;color:#fff">
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(48px,6vw,72px) clamp(20px,4vw,48px);display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:32px;align-items:center">
+    <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><span style="font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#fff">Founding partners</span><span style="font:600 11px/1 'IBM Plex Mono',monospace;color:#92400E;background:#FFFBEB;border:1px dashed #F59E0B;border-radius:4px;padding:4px 7px">PROPOSED OFFER · YOUR DECISION</span></div>
+      <h2 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:clamp(32px,4vw,48px);line-height:1.06;letter-spacing:-0.025em;font-weight:500;text-wrap:balance">Be one of our first five platforms. We'll build it with you.</h2>
+      <p style="margin:0;font-size:17px;line-height:1.65;color:#fff">We're early, and we'd rather say so. The upside is yours: the first integrations get the engineers who wrote the engine on their launch.</p>
+    </div>
+    <div style="background:#fff;color:#1F2B37;border-radius:12px;padding:26px;display:flex;flex-direction:column;gap:12px;min-width:0">
+      <div style="display:flex;gap:12px;font-size:16px;line-height:1.5"><span style="color:#7C4DFF;font-weight:700">✓</span><span>A shared channel with our engineers through your launch</span></div>
+      <div style="display:flex;gap:12px;font-size:16px;line-height:1.5"><span style="color:#7C4DFF;font-weight:700">✓</span><span>Your instrument and field requests go to the front of the queue</span></div>
+      <div style="display:flex;gap:12px;font-size:16px;line-height:1.5"><span style="color:#7C4DFF;font-weight:700">✓</span><span>Founding pricing, locked in writing</span></div>
+      <a href="#start" style="margin-top:6px;text-align:center;background:#12141A;color:#fff;font-weight:700;font-size:16px;padding:14px;border-radius:8px">Claim a founding spot →</a>
+    </div>
+  </div>
+</section>
+</sc-if>
+
+<section id="pricing" data-screen-label="Pricing" style="border-bottom:1px solid #E5E7EB;scroll-margin-top:calc(var(--navh,120px) + 12px)">
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(56px,7vw,88px) clamp(20px,4vw,48px)">
+    <h2 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:clamp(32px,4vw,48px);line-height:1.06;letter-spacing:-0.025em;font-weight:500;text-wrap:balance">Free until it has proven itself.</h2>
+    <p style="margin:14px 0 0;font-size:17px;line-height:1.6;color:#4B5563;max-width:680px">On either side, you see a finished deed on your own data before you spend anything.</p>
+    <sc-if value="{{ isDev }}" hint-placeholder-val="{{ true }}">
+<div style="margin-top:32px;font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#6D3BF0">Platforms</div>
+    <div style="margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px">
+      <div style="border:1px solid #E5E7EB;border-radius:12px;padding:28px;display:flex;flex-direction:column;gap:10px"><div style="font-size:15px;font-weight:700">Sandbox</div><div style="font-family:'Source Serif 4',Georgia,serif;font-size:40px;font-weight:500;letter-spacing:-0.02em">Free</div><div style="font-size:15px;line-height:1.6;color:#4B5563">Test keys, real PDFs, the full approval flow. Build the whole integration and demo it to your own customers.</div><a href="#start" style="margin-top:auto;text-align:center;background:#7C4DFF;color:#fff;font-weight:700;font-size:16px;padding:14px;border-radius:8px">Request a sandbox key →</a></div>
+      <div style="border:1px solid #E5E7EB;border-radius:12px;padding:28px;display:flex;flex-direction:column;gap:10px"><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><span style="font-size:15px;font-weight:700;color:#6D3BF0">Production</span><span style="font:600 11px/1 'IBM Plex Mono',monospace;color:#92400E;background:#FFFBEB;border:1px dashed #F59E0B;border-radius:4px;padding:4px 7px">PRICING MODEL · YOUR DECISION</span></div><div style="font-family:'Source Serif 4',Georgia,serif;font-size:40px;font-weight:500;letter-spacing:-0.02em">Set on one call</div><div style="font-size:15px;line-height:1.6;color:#4B5563">There is no published rate yet, and we'd rather say that than print a number we'd renegotiate. One conversation about your volume, then a live key issued by a person.</div><a href="#start" style="margin-top:auto;text-align:center;border:1px solid #D1D5DB;color:#12141A;font-weight:700;font-size:16px;padding:13px;border-radius:8px">Start the conversation</a></div>
+    </div>
+    </sc-if>
+    <div style="margin-top:28px;font-size:15px;color:#4B5563">Preparing deeds at a desk rather than building software? <a href="Escrow-Desks.dc.html" style="font-weight:600">See office pricing →</a></div>
+  </div>
+</section>
+
+<section id="start" data-screen-label="Start" style="background:#0B0D11;color:#fff;scroll-margin-top:calc(var(--navh,120px) + 12px)">
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(64px,8vw,104px) clamp(20px,4vw,48px);display:flex;flex-direction:column;gap:36px">
+    <div style="display:flex;flex-direction:column;gap:16px;max-width:860px">
+      <h2 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:clamp(38px,5vw,64px);line-height:1.04;letter-spacing:-0.03em;font-weight:500;text-wrap:balance">See your first deed before you spend a dollar.</h2>
+      <p style="margin:0;font-size:18px;line-height:1.6;color:#B4B9C4">Three fields. No account, no card, no sales deck.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;align-items:stretch">
+      <div style="background:#12141A;border:1px solid #7C4DFF;border-radius:14px;padding:28px;display:flex;flex-direction:column;gap:14px;min-width:0">
+        <div style="font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#C4B5FD">I build software</div>
+        <sc-if value="{{ notSent }}" hint-placeholder-val="{{ true }}">
+          <div style="font-size:24px;font-weight:700;letter-spacing:-0.01em">Request a sandbox key</div>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:#D1D5DB">Your name<input value="{{ fName }}" onChange="{{ onName }}" placeholder="Jane Roe" style="background:#0B0D11;border:1px solid #3A3F4B;border-radius:8px;padding:13px 14px;font-size:16px;color:#fff;outline:none" style-focus="border-color:#7C4DFF"></label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:#D1D5DB">Work email<input type="email" value="{{ fEmail }}" onChange="{{ onEmail }}" placeholder="jane@yourplatform.com" style="background:#0B0D11;border:1px solid #3A3F4B;border-radius:8px;padding:13px 14px;font-size:16px;color:#fff;outline:none" style-focus="border-color:#7C4DFF"></label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:#D1D5DB">What are you building?<textarea value="{{ fWhat }}" onChange="{{ onWhat }}" rows="3" placeholder="A closing platform that needs grant deeds at funding" style="background:#0B0D11;border:1px solid #3A3F4B;border-radius:8px;padding:13px 14px;font-size:16px;color:#fff;outline:none;resize:vertical" style-focus="border-color:#7C4DFF"></textarea></label>
+          <span role="button" tabIndex="0" onClick="{{ submit }}" style="text-align:center;background:#7C4DFF;color:#fff;font-weight:700;font-size:17px;padding:16px;border-radius:8px;cursor:pointer" style-hover="background:#6a3de8">Send my request →</span>
+          <sc-if value="{{ formErr }}" hint-placeholder-val="{{ false }}"><div role="alert" style="font-size:14px;color:#FCA5A5">Add your name and a valid work email so we can reply.</div></sc-if>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;line-height:1.5;color:#B4B9C4"><span>No account needed. A person reads this and replies with your key.</span><span style="font:600 11px/1 'IBM Plex Mono',monospace;color:#92400E;background:#FFFBEB;border:1px dashed #F59E0B;border-radius:4px;padding:4px 7px">ADD YOUR REPLY TIME</span></div>
+        </sc-if>
+        <sc-if value="{{ sent }}" hint-placeholder-val="{{ false }}">
+          <div style="font-family:'Source Serif 4',Georgia,serif;font-size:32px;font-weight:500;line-height:1.1">Request received, {{ firstName }}.</div>
+          <div style="font-size:16px;line-height:1.6;color:#D1D5DB">A person will reply to {{ fEmail }} with your sandbox key. While you wait, the docs and the live demo need no key at all.</div>
+          <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:auto"><a href="https://deedpro.io/developers" style="background:#7C4DFF;color:#fff;font-weight:700;font-size:15px;padding:13px 20px;border-radius:8px">Read the docs</a><a href="https://deedpro.io/try" style="border:1px solid #3A3F4B;color:#fff;font-weight:700;font-size:15px;padding:12px 20px;border-radius:8px">Run it against the real API</a></div>
+        </sc-if>
+      </div>
+      <div style="border:1px solid #262A33;border-radius:14px;padding:28px;display:flex;flex-direction:column;gap:16px;min-width:0">
+        <div style="font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#C4B5FD">What happens next</div>
+        <div style="display:flex;gap:14px"><span style="font:600 12px/1.7 'IBM Plex Mono',monospace;color:#C4B5FD;flex:none">01</span><span style="font-size:16px;line-height:1.5;color:#D1D5DB">A person reads your request and replies from info@deedpro.io.</span></div>
+        <div style="display:flex;gap:14px"><span style="font:600 12px/1.7 'IBM Plex Mono',monospace;color:#C4B5FD;flex:none">02</span><span style="font-size:16px;line-height:1.5;color:#D1D5DB">You get a dp_test_ key: real PDFs and the full approval flow.</span></div>
+        <div style="display:flex;gap:14px"><span style="font:600 12px/1.7 'IBM Plex Mono',monospace;color:#C4B5FD;flex:none">03</span><span style="font-size:16px;line-height:1.5;color:#D1D5DB">You build and demo. One call then sets production pricing and a live key.</span></div>
+        <div style="margin-top:auto;border-top:1px solid #262A33;padding-top:16px;font-size:15px;color:#B4B9C4">Not building software? <a href="Escrow-Desks.dc.html" style="color:#C4B5FD;font-weight:600">DeedPro for escrow desks →</a></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer data-screen-label="Footer" style="background:#0B0D11;color:#D1D5DB">
+  <div style="max-width:1200px;margin:0 auto;padding:40px clamp(20px,4vw,48px) 104px;display:flex;flex-direction:column;gap:22px">
+    <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px">
+      <span style="display:inline-flex;flex-direction:column;align-items:center;transform:rotate(-3deg);border:.06em solid #A78BFA;border-radius:.12em;outline:1px solid #A78BFA;outline-offset:.07em;padding:.12em .3em .12em;margin:.12em .1em;color:#A78BFA;font-family:'IBM Plex Mono',monospace;line-height:1;font-size:48px;white-space:nowrap"><span style="font-weight:600;font-size:.8em;letter-spacing:-.04em">deed/pro</span><span style="align-self:stretch;height:1px;background:#A78BFA;margin:.12em 0 .09em"></span><span style="font-size:.17em;font-weight:600;letter-spacing:.2em">DEED ENGINE · CALIFORNIA</span></span>
+      <div style="display:flex;flex-wrap:wrap;gap:8px 24px;font-size:14px"><a href="https://deedpro.io/developers" style="color:#D1D5DB">Developers</a><a href="https://deedpro.io/try" style="color:#D1D5DB">Try it live</a><a href="https://deedpro.io/trust" style="color:#D1D5DB">Trust</a><a href="https://deedpro.io/terms" style="color:#D1D5DB">Terms</a><a href="https://deedpro.io/privacy" style="color:#D1D5DB">Privacy</a></div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:14px;border-top:1px solid #1F2937;padding-top:20px"><span style="font-weight:700;color:#fff">Contact</span><span>DeedPro Corporation · 440 Rte 66, Glendora, CA 91750 · <a href="mailto:info@deedpro.io" style="color:#C4B5FD">info@deedpro.io</a></span></div>
+    <div style="font-size:13px;line-height:1.6;color:#9CA3AF;max-width:760px">DeedPro is software, not a law firm. It prepares documents at the direction of the professional using it and does not provide legal advice or legal determinations.</div>
+  </div>
+</footer>
+
+<sc-if value="{{ showSticky }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="Sticky CTA" style="position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(18,20,26,.96);backdrop-filter:blur(10px);border-top:1px solid #262A33">
+    <div style="max-width:1200px;margin:0 auto;padding:10px clamp(20px,4vw,48px);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px">
+      <sc-if value="{{ stickyDev }}" hint-placeholder-val="{{ true }}"><span style="font-size:14px;color:#D1D5DB">The sandbox is free and renders real PDFs.</span><a href="#start" style="background:#7C4DFF;color:#fff;font-weight:700;font-size:14px;padding:11px 18px;border-radius:6px">Request a sandbox key →</a></sc-if>
+      <sc-if value="{{ stickyDesk }}" hint-placeholder-val="{{ false }}"><span style="font-size:14px;color:#D1D5DB">Free forever. Your first deed takes about ten minutes.</span><a href="#start" style="background:#fff;color:#12141A;font-weight:700;font-size:14px;padding:11px 18px;border-radius:6px">Start your first deed free →</a></sc-if>
+    </div>
+  </div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;autoplay&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Hero&quot;},&quot;foundingOffer&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Sections&quot;},&quot;stickyCta&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Sections&quot;}}">
+class Component extends DCLogic {
+  TYPES = [
+    { slug: 'grant_deed', vesting: 'required' },
+    { slug: 'quitclaim_deed', vesting: 'optional' },
+    { slug: 'warranty_deed', vesting: 'required' },
+    { slug: 'grant_deed_jt', vesting: 'fixed', fixedTo: 'joint tenancy', pair: true, tail: ', as joint tenants' },
+    { slug: 'grant_deed_cp_ros', vesting: 'fixed', fixedTo: 'community property with right of survivorship', pair: true, tail: ', as community property with right of survivorship' },
+    { slug: 'grant_deed_corp', vesting: 'required', entity: true },
+    { slug: 'grant_deed_partnership', vesting: 'required', entity: true },
+  ];
+  FINAL = '9f2c41e8…b07d';
+  MENU = [['#output', 'Sample deed'], ['#api', 'API'], ['#answers', 'Hard questions'], ['#pricing', 'Pricing'], ['https://deedpro.io/developers', 'Docs'], ['https://deedpro.io/trust', 'Trust']];
+  state = { navH: 96, active: '', type: 'grant_deed_jt', vest: true, entity: false, decision: null, stamp: 0, hash: '', auto: true, lang: 'curl', outSeen: false, fName: '', fEmail: '', fWhat: '', sent: false, tried: false };
+  componentDidMount() {
+    this.timers = [];
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if ((this.props.autoplay ?? true) && !reduce) {
+      this.timers.push(setTimeout(() => { if (this.state.auto) this.setState({ vest: false }); }, 3200));
+      this.timers.push(setTimeout(() => { if (this.state.auto) this.doApprove(); }, 6400));
+      this.timers.push(setTimeout(() => { if (this.state.auto) this.setState({ auto: false }); }, 9500));
+    } else this.setState({ auto: false });
+    this.watch();
+  }
+  componentWillUnmount() { (this.timers || []).forEach(clearTimeout); clearInterval(this.tick); this.unwatch(); }
+  doApprove() {
+    this.setState((p) => ({ decision: 'approved', stamp: p.stamp + 1, hash: '········' }));
+    clearInterval(this.tick);
+    let n = 0; const hex = '0123456789abcdef';
+    this.tick = setInterval(() => {
+      n++;
+      if (n > 16) { clearInterval(this.tick); this.setState({ hash: this.FINAL }); return; }
+      let s = ''; for (let i = 0; i < 8; i++) s += hex[Math.floor(Math.random() * 16)];
+      this.setState({ hash: s + '…' });
+    }, 55);
+  }
+  rulers() {
+    const on = this.state.outSeen;
+    const line = (st) => React.createElement('div', { style: { position: 'absolute', background: '#7C4DFF', transition: 'transform 1s cubic-bezier(.2,.8,.2,1)', ...st } });
+    const tag = (t, st) => React.createElement('div', { style: { position: 'absolute', font: "600 10px/1 'IBM Plex Mono',monospace", color: '#6D3BF0', background: '#F5F3FF', border: '1px solid #DDD6FE', borderRadius: 3, padding: '3px 5px', opacity: on ? 1 : 0, transition: 'opacity .5s .9s', ...st } }, t);
+    return React.createElement('div', { style: { position: 'absolute', inset: 0, pointerEvents: 'none' } },
+      line({ left: 0, right: 0, top: '22.7%', height: 1, transformOrigin: 'left', transform: on ? 'scaleX(1)' : 'scaleX(0)' }),
+      line({ top: 0, bottom: 0, left: '5.4%', width: 1, transformOrigin: 'top', transform: on ? 'scaleY(1)' : 'scaleY(0)' }),
+      line({ top: 0, bottom: 0, right: '5.4%', width: 1, transformOrigin: 'top', transform: on ? 'scaleY(1)' : 'scaleY(0)' }),
+      tag('2½ in · recorder space', { top: '22.7%', right: '8%', transform: 'translateY(-130%)' }),
+      tag('½ in side margins', { top: '12%', right: '8%' }));
+  }
+  menuVals() { return this.MENU.map((m) => ({ href: m[0], label: m[1], on: m[0] === this.state.active, off: m[0] !== this.state.active })); }
+  watch() {
+    this.navEl = document.querySelector('nav[data-screen-label="Nav"]');
+    const measure = () => { if (this.navEl) { const h = this.navEl.offsetHeight; if (h) document.documentElement.style.setProperty('--navh', h + 'px'); if (h && h !== this.state.navH) this.setState({ navH: h }); } };
+    measure(); if ('ResizeObserver' in window && this.navEl) { this.ro = new ResizeObserver(measure); this.ro.observe(this.navEl); }
+    this.onSpy = () => {
+      if (this.spyRaf) return;
+      this.spyRaf = requestAnimationFrame(() => {
+        this.spyRaf = 0; let cur = '';
+        this.MENU.forEach((m) => { if (m[0].length < 2) return; const el = document.getElementById(m[0].slice(1)); if (el && el.getBoundingClientRect().top <= this.state.navH + 60) cur = m[0]; });
+        if (cur !== this.state.active) this.setState({ active: cur });
+      });
+    };
+    window.addEventListener('scroll', this.onSpy, { passive: true, capture: true }); this.onSpy();
+    this.onKey = (e) => { const t = e.target; if ((e.key === 'Enter' || e.key === ' ') && t && t.getAttribute && t.getAttribute('role') === 'button') { e.preventDefault(); t.click(); } };
+    document.addEventListener('keydown', this.onKey);
+    const out = document.getElementById('output');
+    if (out && 'IntersectionObserver' in window) { this.io = new IntersectionObserver((es) => { if (es[0].isIntersecting) this.setState({ outSeen: true }); }, { threshold: 0.3 }); this.io.observe(out); }
+    else this.setState({ outSeen: true });
+  }
+  unwatch() { document.removeEventListener('keydown', this.onKey); window.removeEventListener('scroll', this.onSpy, { capture: true }); if (this.ro) this.ro.disconnect(); if (this.io) this.io.disconnect(); }
+  renderVals() {
+    const s = this.state;
+    const t = this.TYPES.find((x) => x.slug === s.type);
+    let err = null;
+    if (t.vesting === 'fixed' && s.vest) err = { field: 'body.grantee.vesting', msg: 'Vesting is fixed by the instrument: ' + t.fixedTo + '. Choosing this form IS the vesting decision, so no vesting value is accepted. Remove grantee.vesting.', gloss: 'Accepting a second answer and dropping it would silently discard a legal input.' };
+    else if (t.vesting === 'required' && !s.vest) err = { field: 'body.grantee.vesting', msg: 'A plain grant deed has no vesting unless someone states one.', gloss: 'The opposite refusal from the same rule. Neither is a preference we hold. Both are what the instrument decides.' };
+    else if (t.entity && !s.entity) err = { field: 'body.grantor.entity.entity_state', msg: 'The deed recites the state under whose laws the entity is organized.', gloss: 'Absent, it prints a blank line inside a granting clause: a defective instrument, not a partial one.' };
+    const d = err ? null : s.decision;
+    const u = (patch) => () => this.setState({ auto: false, ...patch });
+    const em = s.fEmail.trim(), at = em.indexOf('@');
+    const invalid = !s.fName.trim() || at < 1 || em.indexOf('.', at) < at + 2 || em.indexOf(' ') >= 0;
+    return {
+      menu: this.menuVals(), navSpacer: React.createElement('div', { style: { height: this.state.navH } }), navThumb: React.createElement('span', { style: { position: 'absolute', top: 4, bottom: 4, left: 4, width: 'calc(50% - 4px)', borderRadius: 999, background: '#12141A', boxShadow: '0 2px 8px rgba(18,20,26,.35)', animation: 'dpSlideL .55s cubic-bezier(.3,1.25,.5,1) both' } }),
+      autoOn: s.auto, autoOff: !s.auto,
+      pulseDot: React.createElement('span', { style: { display: 'inline-block', width: 8, height: 8, borderRadius: 8, background: '#7C4DFF', marginRight: 6, animation: 'dpPulse 1.2s ease-in-out infinite' } }),
+      types: this.TYPES.map((x) => ({ slug: x.slug, on: x.slug === s.type, off: x.slug !== s.type, pick: u({ type: x.slug, decision: null }) })),
+      slug: t.slug, granteeName: t.pair ? 'ROBERT C. ROE AND MARY D. ROE' : 'ROBERT C. ROE',
+      deedTitle: t.slug === 'quitclaim_deed' ? 'QUITCLAIM DEED' : t.slug === 'warranty_deed' ? 'WARRANTY DEED' : 'GRANT DEED',
+      vest: s.vest, noVest: !s.vest, toggleVest: u({ vest: !s.vest, decision: null }),
+      showEntityLine: !!t.entity && s.entity, entityOn: !!t.entity && s.entity, entityOff: !!t.entity && !s.entity, toggleEntity: u({ entity: !s.entity, decision: null }),
+      isErr: !!err, errMsg: err ? err.msg : '', errField: err ? err.field : '', errGloss: err ? err.gloss : '',
+      errBadge: React.createElement('span', { key: s.type + s.vest + s.entity, style: { display: 'inline-block', font: "600 12px/1 'IBM Plex Mono',monospace", color: '#FCA5A5', background: 'rgba(239,68,68,.15)', border: '1px solid rgba(239,68,68,.3)', padding: '5px 8px', borderRadius: 4, animation: 'dpShake .45s ease' } }, '422'),
+      isPending: !err && !d, isApproved: d === 'approved', isRejected: d === 'rejected',
+      approve: () => { this.setState({ auto: false }); this.doApprove(); }, reject: u({ decision: 'rejected' }), reset: u({ decision: null }),
+      sealEl: React.createElement('svg', { key: 'seal' + s.stamp, viewBox: '18 46 28 28', width: 88, height: 88, style: { position: 'absolute', right: 16, bottom: 44, animation: 'dpStamp .7s cubic-bezier(.2,1.3,.4,1) both' } },
+        React.createElement('circle', { cx: 32, cy: 60, r: 11.25, fill: 'none', stroke: '#166534', strokeWidth: 1.6 }),
+        React.createElement('circle', { cx: 32, cy: 60, r: 7, fill: 'none', stroke: '#166534', strokeWidth: 1.6 }),
+        React.createElement('circle', { cx: 32, cy: 60, r: 1.75, fill: '#166534' })),
+      hashText: s.hash || this.FINAL,
+      grantorLine: t.entity ? 'Acme Holdings, a Delaware ' + (t.slug === 'grant_deed_partnership' ? 'limited partnership' : 'corporation') : 'John A. Doe and Jane B. Doe',
+      granteeLine: t.pair ? 'Robert C. Roe and Mary D. Roe' + t.tail : 'Robert C. Roe' + (s.vest ? ', a single man' : ''),
+      isCurl: s.lang === 'curl', isPy: s.lang === 'py', isNode: s.lang === 'node',
+      setCurl: () => this.setState({ lang: 'curl' }), setPy: () => this.setState({ lang: 'py' }), setNode: () => this.setState({ lang: 'node' }),
+      rulers: this.rulers(),
+      fName: s.fName, fEmail: s.fEmail, fWhat: s.fWhat,
+      onName: (e) => this.setState({ fName: e.target.value }), onEmail: (e) => this.setState({ fEmail: e.target.value }), onWhat: (e) => this.setState({ fWhat: e.target.value }),
+      submit: () => this.setState(invalid ? { tried: true } : { sent: true }),
+      formErr: s.tried && invalid, sent: s.sent, notSent: !s.sent, firstName: s.fName.trim().split(' ')[0],
+      isDev: true, isDesk: false,
+      showOffer: this.props.foundingOffer ?? true,
+      showSticky: this.props.stickyCta ?? true, stickyDev: true, stickyDesk: false,
+    };
+  }
+}
+</script>
+</body>
+</html>

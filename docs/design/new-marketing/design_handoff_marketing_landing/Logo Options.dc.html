@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,500;0,8..60,600;1,8..60,500&display=swap">
+<style>
+body{margin:0;background:#ECECF1;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#12141A;-webkit-font-smoothing:antialiased}
+a{color:#7C4DFF;text-decoration:none}
+a:hover{color:#6a3de8;text-decoration:underline}
+</style>
+</helmet>
+
+<section data-screen-label="Turn 2 — endpoint × stamp" style="padding:64px 64px 0;display:flex;flex-direction:column;gap:28px">
+  <div style="max-width:860px;display:flex;flex-direction:column;gap:8px">
+    <div style="font:600 13px/1 'IBM Plex Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:#7C4DFF">Turn 2 · the endpoint meets the stamp</div>
+    <div style="font-size:30px;font-weight:700;letter-spacing:-0.02em">Six ways to combine <a href="#1b">1b</a> and <a href="#1e">1e</a>.</div>
+    <div style="font-size:16px;line-height:1.6;color:#4B5563">They differ in how much of the name gets stamped: all of it, half of it, or only the slash.</div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start">
+
+    <div id="2a" data-screen-label="2a Stamped path" style="width:440px;flex:none;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="font:600 13px/1 'IBM Plex Mono',monospace;background:#12141A;color:#fff;padding:6px 9px;border-radius:6px">2a</span><span style="font-size:15px;font-weight:600">The whole path, stamped</span></div>
+      <div style="background:#fff;border:1px solid #E5E7EB;border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(2,6,23,.08)">
+        <div style="height:200px;display:flex;align-items:center;justify-content:center;font-size:68px"><span style="display:inline-block;transform:rotate(-3deg);border:.06em solid #7C4DFF;border-radius:.12em;padding:.12em .3em .2em;outline:.025em solid #7C4DFF;outline-offset:.07em;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.8em;letter-spacing:-.04em;color:#7C4DFF;line-height:1">deed<span style="opacity:.55">/</span>pro</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #E5E7EB">
+          <div style="padding:22px 24px;font-size:27px"><span style="display:inline-block;transform:rotate(-3deg);border:.06em solid #7C4DFF;border-radius:.12em;padding:.12em .3em .2em;outline:1px solid #7C4DFF;outline-offset:.07em;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.8em;letter-spacing:-.04em;color:#7C4DFF;line-height:1">deed<span style="opacity:.55">/</span>pro</span></div>
+          <div style="padding:22px 24px;font-size:27px;background:#0B0D11"><span style="display:inline-block;transform:rotate(-3deg);border:.06em solid #A78BFA;border-radius:.12em;padding:.12em .3em .2em;outline:1px solid #A78BFA;outline-offset:.07em;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.8em;letter-spacing:-.04em;color:#A78BFA;line-height:1">deed<span style="opacity:.55">/</span>pro</span></div>
+        </div>
+        <div style="padding:16px 20px;border-top:1px solid #E5E7EB;font-size:14px;line-height:1.55;color:#4B5563">The straight merge: 1e's stamp with 1b's lowercase path inside. One colour, tilted. The most personality.</div>
+      </div>
+    </div>
+
+    <div id="2b" data-screen-label="2b Squared stamp" style="width:440px;flex:none;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="font:600 13px/1 'IBM Plex Mono',monospace;background:#12141A;color:#fff;padding:6px 9px;border-radius:6px">2b</span><span style="font-size:15px;font-weight:600">Squared up for the header</span></div>
+      <div style="background:#fff;border:1px solid #E5E7EB;border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(2,6,23,.08)">
+        <div style="height:200px;display:flex;align-items:center;justify-content:center;font-size:68px;color:#12141A"><span style="display:inline-block;border:.06em solid #7C4DFF;border-radius:.12em;padding:.12em .3em .2em;outline:.025em solid #7C4DFF;outline-offset:.07em;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.8em;letter-spacing:-.04em;line-height:1">deed<span style="color:#7C4DFF">/</span>pro</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #E5E7EB">
+          <div style="padding:22px 24px;font-size:27px;color:#12141A"><span style="display:inline-block;border:.06em solid #7C4DFF;border-radius:.12em;padding:.12em .3em .2em;outline:1px solid #7C4DFF;outline-offset:.07em;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.8em;letter-spacing:-.04em;line-height:1">deed<span style="color:#7C4DFF">/</span>pro</span></div>
+          <div style="padding:22px 24px;font-size:27px;color:#fff;background:#0B0D11"><span style="display:inline-block;border:.06em solid #A78BFA;border-radius:.12em;padding:.12em .3em .2em;outline:1px solid #A78BFA;outline-offset:.07em;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.8em;letter-spacing:-.04em;line-height:1">deed<span style="color:#A78BFA">/</span>pro</span></div>
+        </div>
+        <div style="padding:16px 20px;border-top:1px solid #E5E7EB;font-size:14px;line-height:1.55;color:#4B5563">Same stamp with no tilt and the name in ink, so only the frame and the slash are purple. Calmer, and it lines up with a menu row.</div>
+      </div>
+    </div>
+
+    <div id="2c" data-screen-label="2c Pro stamped on" style="width:440px;flex:none;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="font:600 13px/1 'IBM Plex Mono',monospace;background:#12141A;color:#fff;padding:6px 9px;border-radius:6px">2c</span><span style="font-size:15px;font-weight:600">"/pro" stamped onto the deed</span></div>
+      <div style="background:#fff;border:1px solid #E5E7EB;border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(2,6,23,.08)">
+        <div style="height:200px;display:flex;align-items:center;justify-content:center;font-size:62px;color:#12141A"><span style="display:inline-flex;align-items:center;font-family:'IBM Plex Mono',monospace;font-weight:600;letter-spacing:-.05em;line-height:1">deed<span style="display:inline-block;transform:rotate(-5deg);border:.055em solid #7C4DFF;border-radius:.1em;padding:.05em .16em .12em .1em;margin-left:.1em;color:#7C4DFF">/pro</span></span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #E5E7EB">
+          <div style="padding:22px 24px;font-size:24px;color:#12141A"><span style="display:inline-flex;align-items:center;font-family:'IBM Plex Mono',monospace;font-weight:600;letter-spacing:-.05em;line-height:1">deed<span style="display:inline-block;transform:rotate(-5deg);border:.055em solid #7C4DFF;border-radius:.1em;padding:.05em .16em .12em .1em;margin-left:.1em;color:#7C4DFF">/pro</span></span></div>
+          <div style="padding:22px 24px;font-size:24px;color:#fff;background:#0B0D11"><span style="display:inline-flex;align-items:center;font-family:'IBM Plex Mono',monospace;font-weight:600;letter-spacing:-.05em;line-height:1">deed<span style="display:inline-block;transform:rotate(-5deg);border:.055em solid #A78BFA;border-radius:.1em;padding:.05em .16em .12em .1em;margin-left:.1em;color:#A78BFA">/pro</span></span></div>
+        </div>
+        <div style="padding:16px 20px;border-top:1px solid #E5E7EB;font-size:14px;line-height:1.55;color:#4B5563">The deed is the document; the approval is stamped on it. Tells the product story in one mark: facts first, then the sign-off.</div>
+      </div>
+    </div>
+
+    <div id="2d" data-screen-label="2d Slash block" style="width:440px;flex:none;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="font:600 13px/1 'IBM Plex Mono',monospace;background:#12141A;color:#fff;padding:6px 9px;border-radius:6px">2d</span><span style="font-size:15px;font-weight:600">The slash is the stamp</span></div>
+      <div style="background:#fff;border:1px solid #E5E7EB;border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(2,6,23,.08)">
+        <div style="height:200px;display:flex;align-items:center;justify-content:center;font-size:64px;color:#12141A"><span style="display:inline-flex;align-items:center;font-family:'IBM Plex Mono',monospace;font-weight:600;letter-spacing:-.05em;line-height:1">deed<span style="display:inline-flex;align-items:center;justify-content:center;width:.62em;height:1em;background:#7C4DFF;color:#fff;border-radius:.12em;margin:0 .1em;transform:rotate(-5deg);letter-spacing:0">/</span>pro</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #E5E7EB">
+          <div style="padding:22px 24px;font-size:25px;color:#12141A"><span style="display:inline-flex;align-items:center;font-family:'IBM Plex Mono',monospace;font-weight:600;letter-spacing:-.05em;line-height:1">deed<span style="display:inline-flex;align-items:center;justify-content:center;width:.62em;height:1em;background:#7C4DFF;color:#fff;border-radius:.12em;margin:0 .1em;transform:rotate(-5deg);letter-spacing:0">/</span>pro</span></div>
+          <div style="padding:22px 24px;font-size:25px;color:#fff;background:#0B0D11"><span style="display:inline-flex;align-items:center;font-family:'IBM Plex Mono',monospace;font-weight:600;letter-spacing:-.05em;line-height:1">deed<span style="display:inline-flex;align-items:center;justify-content:center;width:.62em;height:1em;background:#7C4DFF;color:#fff;border-radius:.12em;margin:0 .1em;transform:rotate(-5deg);letter-spacing:0">/</span>pro</span></div>
+        </div>
+        <div style="padding:16px 20px;border-top:1px solid #E5E7EB;font-size:14px;line-height:1.55;color:#4B5563">A solid purple block, tilted, holding the slash. The block alone works as your small square icon for browser tabs and app tiles, which the others lack.</div>
+      </div>
+    </div>
+
+    <div id="2e" data-screen-label="2e Method chip" style="width:440px;flex:none;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="font:600 13px/1 'IBM Plex Mono',monospace;background:#12141A;color:#fff;padding:6px 9px;border-radius:6px">2e</span><span style="font-size:15px;font-weight:600">The request line</span></div>
+      <div style="background:#fff;border:1px solid #E5E7EB;border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(2,6,23,.08)">
+        <div style="height:200px;display:flex;align-items:center;justify-content:center;font-size:64px;color:#12141A"><span style="display:inline-flex;align-items:center;font-family:'IBM Plex Mono',monospace;font-weight:600;line-height:1"><span style="background:#7C4DFF;color:#fff;font-size:.6em;letter-spacing:.08em;padding:.3em .42em .28em;border-radius:.18em">DEED</span><span style="letter-spacing:-.05em;margin-left:.14em"><span style="color:#7C4DFF">/</span>pro</span></span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #E5E7EB">
+          <div style="padding:22px 24px;font-size:25px;color:#12141A"><span style="display:inline-flex;align-items:center;font-family:'IBM Plex Mono',monospace;font-weight:600;line-height:1"><span style="background:#7C4DFF;color:#fff;font-size:.6em;letter-spacing:.08em;padding:.3em .42em .28em;border-radius:.18em">DEED</span><span style="letter-spacing:-.05em;margin-left:.14em"><span style="color:#7C4DFF">/</span>pro</span></span></div>
+          <div style="padding:22px 24px;font-size:25px;color:#fff;background:#0B0D11"><span style="display:inline-flex;align-items:center;font-family:'IBM Plex Mono',monospace;font-weight:600;line-height:1"><span style="background:#7C4DFF;color:#fff;font-size:.6em;letter-spacing:.08em;padding:.3em .42em .28em;border-radius:.18em">DEED</span><span style="letter-spacing:-.05em;margin-left:.14em"><span style="color:#A78BFA">/</span>pro</span></span></div>
+        </div>
+        <div style="padding:16px 20px;border-top:1px solid #E5E7EB;font-size:14px;line-height:1.55;color:#4B5563">Built like the POST chip already in your hero: a filled label, then a path. The stamp becomes a method badge. Cleanest of the six; least like a county stamp.</div>
+      </div>
+    </div>
+
+    <div id="2f" data-screen-label="2f Full stamp" style="width:440px;flex:none;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="font:600 13px/1 'IBM Plex Mono',monospace;background:#12141A;color:#fff;padding:6px 9px;border-radius:6px">2f</span><span style="font-size:15px;font-weight:600">The full stamp, for big moments</span></div>
+      <div style="background:#fff;border:1px solid #E5E7EB;border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(2,6,23,.08)">
+        <div style="height:200px;display:flex;align-items:center;justify-content:center;font-size:72px"><span style="display:inline-flex;flex-direction:column;align-items:center;transform:rotate(-3deg);border:.06em solid #7C4DFF;border-radius:.12em;outline:.025em solid #7C4DFF;outline-offset:.07em;padding:.12em .3em .12em;color:#7C4DFF;font-family:'IBM Plex Mono',monospace;line-height:1"><span style="font-weight:600;font-size:.8em;letter-spacing:-.04em">deed/pro</span><span style="align-self:stretch;height:.022em;background:#7C4DFF;margin:.12em 0 .09em"></span><span style="font-size:.17em;font-weight:600;letter-spacing:.2em">DEED ENGINE · CALIFORNIA</span></span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #E5E7EB">
+          <div style="padding:20px 24px;font-size:36px"><span style="display:inline-flex;flex-direction:column;align-items:center;transform:rotate(-3deg);border:.06em solid #7C4DFF;border-radius:.12em;outline:1px solid #7C4DFF;outline-offset:.07em;padding:.12em .3em .12em;color:#7C4DFF;font-family:'IBM Plex Mono',monospace;line-height:1"><span style="font-weight:600;font-size:.8em;letter-spacing:-.04em">deed/pro</span><span style="align-self:stretch;height:1px;background:#7C4DFF;margin:.12em 0 .09em"></span><span style="font-size:.17em;font-weight:600;letter-spacing:.2em">DEED ENGINE · CALIFORNIA</span></span></div>
+          <div style="padding:20px 24px;font-size:36px;background:#0B0D11"><span style="display:inline-flex;flex-direction:column;align-items:center;transform:rotate(-3deg);border:.06em solid #A78BFA;border-radius:.12em;outline:1px solid #A78BFA;outline-offset:.07em;padding:.12em .3em .12em;color:#A78BFA;font-family:'IBM Plex Mono',monospace;line-height:1"><span style="font-weight:600;font-size:.8em;letter-spacing:-.04em">deed/pro</span><span style="align-self:stretch;height:1px;background:#A78BFA;margin:.12em 0 .09em"></span><span style="font-size:.17em;font-weight:600;letter-spacing:.2em">DEED ENGINE · CALIFORNIA</span></span></div>
+        </div>
+        <div style="padding:16px 20px;border-top:1px solid #E5E7EB;font-size:14px;line-height:1.55;color:#4B5563">A two-line stamp with a descriptor. The small line is unreadable at header size, so this is a companion for the footer, decks and swag, paired with a simpler one up top.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section data-screen-label="Turn 1 — wordmarks" style="padding:64px;display:flex;flex-direction:column;gap:28px">
+  <div style="max-width:860px;display:flex;flex-direction:column;gap:8px">
+    <div style="font:600 13px/1 'IBM Plex Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:#7C4DFF">Turn 1 · six wordmarks, no icon</div>
+    <div style="font-size:30px;font-weight:700;letter-spacing:-0.02em">Each one says something different about the company.</div>
+    <div style="font-size:16px;line-height:1.6;color:#4B5563">Shown large, then at header size on light and dark. <a href="#1a">1a</a> is what is live on the pages now. Everything is type and simple shapes, so it stays sharp at any size and needs no image file.</div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start">
+
+    <div id="1a" data-screen-label="1a Paper and machine" style="width:440px;flex:none;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="font:600 13px/1 'IBM Plex Mono',monospace;background:#12141A;color:#fff;padding:6px 9px;border-radius:6px">1a</span><span style="font-size:15px;font-weight:600">Paper and machine</span></div>
+      <div style="background:#fff;border:1px solid #E5E7EB;border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(2,6,23,.08)">
+        <div style="height:200px;display:flex;align-items:center;justify-content:center;font-size:76px;color:#12141A"><span style="display:inline-flex;align-items:baseline;line-height:1"><span style="font-family:'Source Serif 4',Georgia,serif;font-weight:600;letter-spacing:-0.02em">Deed</span><span style="font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.66em;color:#7C4DFF;margin-left:.08em">Pro</span></span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #E5E7EB">
+          <div style="padding:20px;font-size:27px;color:#12141A"><span style="display:inline-flex;align-items:baseline;line-height:1"><span style="font-family:'Source Serif 4',Georgia,serif;font-weight:600;letter-spacing:-0.02em">Deed</span><span style="font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.66em;color:#7C4DFF;margin-left:.08em">Pro</span></span></div>
+          <div style="padding:20px;font-size:27px;color:#fff;background:#0B0D11"><span style="display:inline-flex;align-items:baseline;line-height:1"><span style="font-family:'Source Serif 4',Georgia,serif;font-weight:600;letter-spacing:-0.02em">Deed</span><span style="font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.66em;color:#A78BFA;margin-left:.08em">Pro</span></span></div>
+        </div>
+        <div style="padding:16px 20px;border-top:1px solid #E5E7EB;font-size:14px;line-height:1.55;color:#4B5563">The deed is set like a document, the product like code. Quiet, and it matches the page type exactly.</div>
+      </div>
+    </div>
+
+    <div id="1b" data-screen-label="1b Endpoint" style="width:440px;flex:none;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="font:600 13px/1 'IBM Plex Mono',monospace;background:#12141A;color:#fff;padding:6px 9px;border-radius:6px">1b</span><span style="font-size:15px;font-weight:600">The endpoint</span></div>
+      <div style="background:#fff;border:1px solid #E5E7EB;border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(2,6,23,.08)">
+        <div style="height:200px;display:flex;align-items:center;justify-content:center;font-size:66px;color:#12141A"><span style="font-family:'IBM Plex Mono',monospace;font-weight:600;letter-spacing:-0.05em;line-height:1">deed<span style="color:#7C4DFF;margin:0 -.04em">/</span>pro</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #E5E7EB">
+          <div style="padding:20px;font-size:24px;color:#12141A"><span style="font-family:'IBM Plex Mono',monospace;font-weight:600;letter-spacing:-0.05em;line-height:1">deed<span style="color:#7C4DFF;margin:0 -.04em">/</span>pro</span></div>
+          <div style="padding:20px;font-size:24px;color:#fff;background:#0B0D11"><span style="font-family:'IBM Plex Mono',monospace;font-weight:600;letter-spacing:-0.05em;line-height:1">deed<span style="color:#A78BFA;margin:0 -.04em">/</span>pro</span></div>
+        </div>
+        <div style="padding:16px 20px;border-top:1px solid #E5E7EB;font-size:14px;line-height:1.55;color:#4B5563">Reads as an API path. The most technical of the six; it tells a developer what you are before the headline does. Coldest for escrow officers.</div>
+      </div>
+    </div>
+
+    <div id="1c" data-screen-label="1c Seal" style="width:440px;flex:none;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="font:600 13px/1 'IBM Plex Mono',monospace;background:#12141A;color:#fff;padding:6px 9px;border-radius:6px">1c</span><span style="font-size:15px;font-weight:600">The seal is the O</span></div>
+      <div style="background:#fff;border:1px solid #E5E7EB;border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(2,6,23,.08)">
+        <div style="height:200px;display:flex;align-items:center;justify-content:center;font-size:76px;color:#12141A"><span style="font-family:'Source Serif 4',Georgia,serif;font-weight:600;letter-spacing:-0.02em;display:inline-flex;align-items:baseline;line-height:1">DeedPr<span style="display:inline-block;width:.52em;height:.52em;border-radius:50%;border:.065em solid #7C4DFF;box-sizing:border-box;position:relative;margin-left:.04em"><span style="position:absolute;inset:.07em;border-radius:50%;border:.04em solid #7C4DFF"></span><span style="position:absolute;left:50%;top:50%;width:.08em;height:.08em;margin:-.04em 0 0 -.04em;border-radius:50%;background:#7C4DFF"></span></span></span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #E5E7EB">
+          <div style="padding:20px;font-size:27px;color:#12141A"><span style="font-family:'Source Serif 4',Georgia,serif;font-weight:600;letter-spacing:-0.02em;display:inline-flex;align-items:baseline;line-height:1">DeedPr<span style="display:inline-block;width:.52em;height:.52em;border-radius:50%;border:.065em solid #7C4DFF;box-sizing:border-box;position:relative;margin-left:.04em"><span style="position:absolute;inset:.07em;border-radius:50%;border:.04em solid #7C4DFF"></span><span style="position:absolute;left:50%;top:50%;width:.08em;height:.08em;margin:-.04em 0 0 -.04em;border-radius:50%;background:#7C4DFF"></span></span></span></div>
+          <div style="padding:20px;font-size:27px;color:#fff;background:#0B0D11"><span style="font-family:'Source Serif 4',Georgia,serif;font-weight:600;letter-spacing:-0.02em;display:inline-flex;align-items:baseline;line-height:1">DeedPr<span style="display:inline-block;width:.52em;height:.52em;border-radius:50%;border:.065em solid #A78BFA;box-sizing:border-box;position:relative;margin-left:.04em"><span style="position:absolute;inset:.07em;border-radius:50%;border:.04em solid #A78BFA"></span><span style="position:absolute;left:50%;top:50%;width:.08em;height:.08em;margin:-.04em 0 0 -.04em;border-radius:50%;background:#A78BFA"></span></span></span></div>
+        </div>
+        <div style="padding:16px 20px;border-top:1px solid #E5E7EB;font-size:14px;line-height:1.55;color:#4B5563">Keeps the one good idea from the old mark, the recorder's seal, and makes it a letter. It is also the stamp that lands when a deed is approved on the page, so the logo and the product moment are the same shape.</div>
+      </div>
+    </div>
+
+    <div id="1d" data-screen-label="1d Signature line" style="width:440px;flex:none;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="font:600 13px/1 'IBM Plex Mono',monospace;background:#12141A;color:#fff;padding:6px 9px;border-radius:6px">1d</span><span style="font-size:15px;font-weight:600">The signature line</span></div>
+      <div style="background:#fff;border:1px solid #E5E7EB;border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(2,6,23,.08)">
+        <div style="height:200px;display:flex;align-items:center;justify-content:center;font-size:72px;color:#12141A"><span style="display:inline-flex;flex-direction:column;line-height:1"><span style="font-family:'Source Serif 4',Georgia,serif;font-style:italic;font-weight:500;letter-spacing:-0.025em;padding:0 .12em 0 .42em">DeedPro</span><span style="display:flex;align-items:flex-end;gap:.1em;margin-top:.02em"><span style="font-family:'IBM Plex Mono',monospace;font-size:.3em;line-height:.8;color:#7C4DFF;font-weight:600">x</span><span style="flex:1;height:.035em;background:currentColor"></span></span></span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #E5E7EB">
+          <div style="padding:16px 20px;font-size:27px;color:#12141A"><span style="display:inline-flex;flex-direction:column;line-height:1"><span style="font-family:'Source Serif 4',Georgia,serif;font-style:italic;font-weight:500;letter-spacing:-0.025em;padding:0 .12em 0 .42em">DeedPro</span><span style="display:flex;align-items:flex-end;gap:.1em;margin-top:.02em"><span style="font-family:'IBM Plex Mono',monospace;font-size:.3em;line-height:.8;color:#7C4DFF;font-weight:600">x</span><span style="flex:1;height:1px;background:currentColor"></span></span></span></div>
+          <div style="padding:16px 20px;font-size:27px;color:#fff;background:#0B0D11"><span style="display:inline-flex;flex-direction:column;line-height:1"><span style="font-family:'Source Serif 4',Georgia,serif;font-style:italic;font-weight:500;letter-spacing:-0.025em;padding:0 .12em 0 .42em">DeedPro</span><span style="display:flex;align-items:flex-end;gap:.1em;margin-top:.02em"><span style="font-family:'IBM Plex Mono',monospace;font-size:.3em;line-height:.8;color:#A78BFA;font-weight:600">x</span><span style="flex:1;height:1px;background:currentColor"></span></span></span></div>
+        </div>
+        <div style="padding:16px 20px;border-top:1px solid #E5E7EB;font-size:14px;line-height:1.55;color:#4B5563">The name sits where a signature goes. It carries the whole pitch, a named person signs off, and it is the warmest for escrow. The small x thins out at header size.</div>
+      </div>
+    </div>
+
+    <div id="1e" data-screen-label="1e Recorder stamp" style="width:440px;flex:none;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="font:600 13px/1 'IBM Plex Mono',monospace;background:#12141A;color:#fff;padding:6px 9px;border-radius:6px">1e</span><span style="font-size:15px;font-weight:600">The recorder's stamp</span></div>
+      <div style="background:#fff;border:1px solid #E5E7EB;border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(2,6,23,.08)">
+        <div style="height:200px;display:flex;align-items:center;justify-content:center;font-size:64px"><span style="display:inline-block;transform:rotate(-3deg);border:.06em solid #7C4DFF;border-radius:.12em;padding:.16em .26em .14em .34em;outline:.025em solid #7C4DFF;outline-offset:.07em;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.72em;letter-spacing:.14em;color:#7C4DFF;line-height:1">DEED<span style="opacity:.55">·</span>PRO</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #E5E7EB">
+          <div style="padding:22px 24px;font-size:26px"><span style="display:inline-block;transform:rotate(-3deg);border:.06em solid #7C4DFF;border-radius:.12em;padding:.16em .26em .14em .34em;outline:1px solid #7C4DFF;outline-offset:.07em;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.72em;letter-spacing:.14em;color:#7C4DFF;line-height:1">DEED<span style="opacity:.55">·</span>PRO</span></div>
+          <div style="padding:22px 24px;font-size:26px;background:#0B0D11"><span style="display:inline-block;transform:rotate(-3deg);border:.06em solid #A78BFA;border-radius:.12em;padding:.16em .26em .14em .34em;outline:1px solid #A78BFA;outline-offset:.07em;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.72em;letter-spacing:.14em;color:#A78BFA;line-height:1">DEED<span style="opacity:.55">·</span>PRO</span></div>
+        </div>
+        <div style="padding:16px 20px;border-top:1px solid #E5E7EB;font-size:14px;line-height:1.55;color:#4B5563">A rubber stamp, tilted like a real one. The most character and instantly "county recorder". It is all one colour, and the tilt is a risk beside a tidy header.</div>
+      </div>
+    </div>
+
+    <div id="1f" data-screen-label="1f Field" style="width:440px;flex:none;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="font:600 13px/1 'IBM Plex Mono',monospace;background:#12141A;color:#fff;padding:6px 9px;border-radius:6px">1f</span><span style="font-size:15px;font-weight:600">The filled-in field</span></div>
+      <div style="background:#fff;border:1px solid #E5E7EB;border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(2,6,23,.08)">
+        <div style="height:200px;display:flex;align-items:center;justify-content:center;font-size:68px;color:#12141A"><span style="display:inline-flex;align-items:baseline;line-height:1"><span style="font-family:'IBM Plex Mono',monospace;font-weight:500;color:#7C4DFF">{</span><span style="font-family:'Source Serif 4',Georgia,serif;font-weight:600;letter-spacing:-0.02em;font-size:1.06em;margin:0 .02em">Deed</span><span style="font-family:'IBM Plex Mono',monospace;font-weight:500;color:#7C4DFF">}</span><span style="font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.62em;margin-left:.06em">Pro</span></span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #E5E7EB">
+          <div style="padding:20px;font-size:25px;color:#12141A"><span style="display:inline-flex;align-items:baseline;line-height:1"><span style="font-family:'IBM Plex Mono',monospace;font-weight:500;color:#7C4DFF">{</span><span style="font-family:'Source Serif 4',Georgia,serif;font-weight:600;letter-spacing:-0.02em;font-size:1.06em;margin:0 .02em">Deed</span><span style="font-family:'IBM Plex Mono',monospace;font-weight:500;color:#7C4DFF">}</span><span style="font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.62em;margin-left:.06em">Pro</span></span></div>
+          <div style="padding:20px;font-size:25px;color:#fff;background:#0B0D11"><span style="display:inline-flex;align-items:baseline;line-height:1"><span style="font-family:'IBM Plex Mono',monospace;font-weight:500;color:#A78BFA">{</span><span style="font-family:'Source Serif 4',Georgia,serif;font-weight:600;letter-spacing:-0.02em;font-size:1.06em;margin:0 .02em">Deed</span><span style="font-family:'IBM Plex Mono',monospace;font-weight:500;color:#A78BFA">}</span><span style="font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.62em;margin-left:.06em">Pro</span></span></div>
+        </div>
+        <div style="padding:16px 20px;border-top:1px solid #E5E7EB;font-size:14px;line-height:1.55;color:#4B5563">The deed is the value inside the braces: data in, document out. Clever for developers; an escrow officer may just see punctuation.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+</body>
+</html>
