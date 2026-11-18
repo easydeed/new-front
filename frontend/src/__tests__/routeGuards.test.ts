@@ -68,6 +68,12 @@ const PUBLIC_ROUTES = new Set([
   '/developers',
   '/terms', // public legal scaffold (HM3)
   '/privacy', // public legal scaffold (HM3)
+  // Marketing landing, 2026-11. Two audience pages and the sample deed
+  // they open. Same reason as the homepage: the reader has no account
+  // yet. /platforms is a redirect to / and is recognised as one, so it
+  // is not listed here.
+  '/escrow',
+  '/sample-grant-deed',
   // The server-redirect stubs (/settings, /create-deed, /shared-deeds…)
   // are NOT listed here any more. They were, one entry at a time, and
   // the Requests merge was about to add a fourth — at which point a

@@ -1,859 +1,644 @@
 'use client'
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Check, Lock, ArrowRight, Shield, X, FileDigit, Code2, FileText } from "lucide-react"
-import Link from "next/link"
-import StickyNav from "@/components/landing-v2/StickyNav"
-import { TIERS, priceLabel } from "@/lib/pricing"
-import { INSTRUMENT_COUNT } from "@/lib/formRegistry"
-import { API_DEED_TYPES, HELD_FAMILIES } from "@/lib/apiDocs"
-import ContactBlock from "@/components/landing-v2/ContactBlock"
-import { publicEnvValue, publicIdentityLine } from "@/lib/publicEnvironment"
-import { LogoLockupDark } from "@/components/brand/Logo"
-import { TRIAL_DAYS } from "@/lib/trial"
+import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
+import { LogoLockup } from '@/components/brand/Logo'
+import { SampleDeed } from '@/components/marketing/SampleDeed'
+import { mktFontVars } from '@/components/marketing/marketingFonts'
+import { API_DEED_TYPES, HELD_FAMILIES, type ApiDeedType } from '@/lib/apiDocs'
+import { INSTRUMENT_COUNT } from '@/lib/formRegistry'
+import { TIERS, priceLabel } from '@/lib/pricing'
+import { publicIdentityLine } from '@/lib/publicEnvironment'
+import '@/components/marketing/marketing.css'
 
-/* ═══════════════════════════════════════════════════════════════════════
-   ENGINE2 — THE HOMEPAGE REBUILT FOR THE INTEGRATOR
-
-   ENGINE1 shipped the CUT list, the 13 new gate rules, `/trust` and the
-   API work. It never rebuilt the page's POSITIVE structure, which was
-   the point of the repositioning — so a platform engineer landing cold
-   read a page telling them they were not the customer.
-
-   The shift, owner-confirmed: THE API IS THE BUSINESS. The escrow story
-   stays and stops being the only door.
-
-   ═══ EVERY NUMBER ON THIS PAGE NAMES A MEASURED SOURCE ═══
-
-   `INSTRUMENT_COUNT` counts the form registry. `API_DEED_TYPES` IS the
-   partner catalog, mirrored from `services/api_catalog.py` and pinned by
-   `apiDocsMirror.test.ts`. `TIERS` is the single price declaration.
-   Nothing here is typed as a literal, so the copy cannot outdate the
-   product — and the 422 sample below is DERIVED FROM THE SAME CATALOG
-   THE API VALIDATES AGAINST rather than transcribed from a mockup.
-   ═══════════════════════════════════════════════════════════════════ */
-
-/** The platform door's proof, taken from the catalog rather than typed.
+/**
+ * Platforms landing page, recreated from
+ * docs/design/new-marketing/design_handoff_marketing_landing.
  *
- *  Sending `grantee.vesting` on a fixed-vesting instrument is refused by
- *  `CreateDeedRequest.check_type_rules`, which raises into the v1
- *  router's `VALIDATION_ERROR` mapping. VERIFIED BY EXECUTION, not by
- *  reading: the same request without vesting is accepted, and a
- *  `grant_deed` WITHOUT vesting is refused for the opposite reason — so
- *  the rejection is attributable to this rule rather than to an
- *  incomplete fixture.
- *
- *  Derived so the page cannot outlive the doctrine: if the catalog ever
- *  stops fixing this instrument's vesting, the sample stops claiming it
- *  does. */
-const FIXED_VESTING_SAMPLE =
-  API_DEED_TYPES.find((t) => t.vesting === 'fixed-by-instrument') ?? API_DEED_TYPES[0]
+ * The handoff's HTML is a reference. Counts, vesting rules and plan
+ * prices are read from the registries the rest of the product uses.
+ * Copy the handoff marks as unverified, and phrases an existing gate
+ * forbids even as a denial, are not printed. The on-page request form
+ * does not submit: a success message would say a person received
+ * something this page never sent.
+ */
+
+const FIXED_VESTING_SAMPLE = API_DEED_TYPES.find((t) => t.vesting === 'fixed-by-instrument') ?? API_DEED_TYPES[0]
+
+/** Partner routes as they stand in the OpenAPI snapshot. The headline
+ *  prints the length, so a new route changes the sentence. */
+const PARTNER_ROUTES = [
+  'POST /api/v1/deeds',
+  'GET /api/v1/deeds',
+  'GET /api/v1/deeds/{deed_id}',
+  'GET /api/v1/deeds/{deed_id}/pdf',
+  'POST /api/v1/transfer-tax/calculate',
+  'GET /api/v1/verify/{document_id}',
+  'GET /api/v1/openapi.json',
+] as const
+
+/** The recorded API status, quoted the way the contract spells it. */
+const COMPLETED_STATUS = '"completed"'
+
+const MENU: Array<[string, string]> = [
+  ['#output', 'Sample deed'],
+  ['#api', 'API'],
+  ['#answers', 'Hard questions'],
+  ['#pricing', 'Pricing'],
+  ['/developers', 'Docs'],
+  ['/trust', 'Trust'],
+]
+
+function refusal(type: ApiDeedType, vest: boolean, entityOn: boolean) {
+  if (type.vesting === 'fixed-by-instrument' && vest) {
+    return {
+      field: 'body.grantee.vesting',
+      msg: 'Vesting is fixed by the instrument. Choosing this form is the vesting decision, so no vesting value is accepted. Remove grantee.vesting.',
+      gloss: 'Accepting a second answer and dropping it would silently discard a legal input.',
+    }
+  }
+  if (type.vesting === 'required' && !vest) {
+    return {
+      field: 'body.grantee.vesting',
+      msg: 'A plain grant deed has no vesting unless someone states one.',
+      gloss: 'The opposite refusal from the same rule. Neither is a preference we hold. Both are what the instrument decides.',
+    }
+  }
+  if (type.entityFacts?.includes('entity_state') && !entityOn) {
+    return {
+      field: 'body.grantor.entity.entity_state',
+      msg: 'The deed recites the state under whose laws the entity is organized.',
+      gloss: 'Absent, it prints a blank line inside a granting clause: a defective instrument, not a partial one.',
+    }
+  }
+  return null
+}
+
+function emailOk(value: string) {
+  const em = value.trim()
+  const at = em.indexOf('@')
+  return at >= 1 && em.indexOf('.', at) >= at + 2 && !em.includes(' ')
+}
 
 export default function LandingPage() {
-  const identityLine = publicIdentityLine();
-  return (
-    <>
-      <StickyNav />
+  const rootRef = useRef<HTMLDivElement>(null)
+  const navRef = useRef<HTMLElement>(null)
+  const autoRef = useRef(true)
+  const approveRef = useRef<() => void>(() => {})
+  const identityLine = publicIdentityLine()
 
-      <main>
-        {/* ══════════ 1. HERO + THE TWO-DOOR FORK ══════════
-            Neither door buried, neither subordinate. The platform door
-            is visually heavier because it is the one the page was
-            missing — the escrow door was the whole page before this. */}
-        <section aria-label="Hero" className="relative overflow-hidden bg-white border-b border-gray-200">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgb(0_0_0/0.02)_1px,transparent_0)] [background-size:24px_24px]" />
+  const [slug, setSlug] = useState(FIXED_VESTING_SAMPLE.slug)
+  const [vest, setVest] = useState(true)
+  const [entityOn, setEntityOn] = useState(false)
+  const [decision, setDecision] = useState<'approved' | 'rejected' | null>(null)
+  const [auto, setAuto] = useState(true)
+  const [hash, setHash] = useState('')
+  const [stamp, setStamp] = useState(0)
+  const [lang, setLang] = useState<'curl' | 'python' | 'node'>('curl')
+  const [active, setActive] = useState('')
+  const [rulers, setRulers] = useState(false)
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [what, setWhat] = useState('')
+  const [tried, setTried] = useState(false)
+  const [ready, setReady] = useState(false)
+  const [showSticky, setShowSticky] = useState(false)
 
-          <div className="relative max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pt-20 pb-12">
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tighter text-[#1F2B37] leading-[1.05] max-w-4xl text-balance">
-              California deeds, prepared correctly and confirmed by a named human
-            </h1>
-            <p className="mt-6 text-xl text-gray-700 max-w-3xl leading-relaxed">
-              {/* The mockup read "an application escrow officers use
-                  daily". `check_banned_claims` refused it, correctly:
-                  nothing here measures usage, so a frequency is a fact
-                  we have never observed. The rule that caught it is one
-                  ENGINE1 added — and the first real copy it met was the
-                  mockup ENGINE1 was written from. */}
-              The same engine behind the application escrow officers work in and the API platforms build on.
-            </p>
-          </div>
+  const selected = API_DEED_TYPES.find((t) => t.slug === slug) ?? FIXED_VESTING_SAMPLE
+  const err = refusal(selected, vest, entityOn)
+  const shownDecision = err ? null : decision
+  const pair = selected.vesting === 'fixed-by-instrument'
+  const granteeName = pair ? 'ROBERT C. ROE AND MARY D. ROE' : 'ROBERT C. ROE'
+  const grantorLine = selected.entityFacts?.length
+    ? 'Acme Holdings, organized under the laws of Delaware'
+    : 'John A. Doe and Jane B. Doe'
 
-          <div className="relative max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pb-20 grid lg:grid-cols-2 gap-6 items-stretch">
-
-            {/* ── DOOR ONE: PLATFORMS ── */}
-            <div className="rounded-2xl bg-[#12141A] shadow-2xl flex flex-col overflow-hidden">
-              <div className="p-8 pb-5 flex flex-col gap-3">
-                <span className="inline-flex items-center gap-2 self-start rounded-md border border-[#A78BFA]/30 bg-[#A78BFA]/10 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-[#C4B5FD]">
-                  <Code2 className="h-3.5 w-3.5" />
-                  For platforms
-                </span>
-                <h2 className="text-3xl font-bold tracking-tight text-white leading-tight">
-                  I&apos;m building a product that prepares deeds
-                </h2>
-                <p className="text-[15px] leading-relaxed text-gray-400">
-                  REST in, recorder-formatted PDF out — after your officer confirms it. The instrument doctrine is
-                  enforced at the request boundary, so a wrong deed fails in your tests, not at the counter.
-                </p>
-              </div>
-
-              {/* THE 422 — the strongest thing on either page, because it
-                  DEMONSTRATES the doctrine instead of asserting it. It
-                  lived only on /developers, which an evaluator who
-                  bounces never reaches. */}
-              <div className="mx-8 mb-4 rounded-lg border border-[#262A33] bg-[#0B0D11] overflow-hidden">
-                <div className="grid sm:grid-cols-2">
-                  <div className="p-4 border-b sm:border-b-0 sm:border-r border-[#262A33]">
-                    <div className="font-mono text-[10px] tracking-wide text-gray-500 mb-2">POST /api/v1/deeds</div>
-                    <pre className="font-mono text-[11px] leading-relaxed text-gray-300 whitespace-pre overflow-x-auto">{`{
-  "deed_type": `}<span className="text-[#A78BFA]">&quot;{FIXED_VESTING_SAMPLE.slug}&quot;</span>{`,
-  "grantee": {
-    "vesting": `}<span className="text-[#A78BFA]">&quot;a single man&quot;</span>{`
+  approveRef.current = () => {
+    setDecision('approved')
+    setStamp((n) => n + 1)
+    setHash('········')
   }
-}`}</pre>
-                  </div>
-                  <div className="p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="font-mono text-[9.5px] font-bold text-red-300 bg-red-500/15 border border-red-500/30 px-1.5 py-0.5 rounded">422</span>
-                      <span className="text-[10.5px] tracking-wide text-gray-500">VALIDATION_ERROR</span>
-                    </div>
-                    <p className="font-mono text-[11px] leading-relaxed text-gray-200">
-                      A Joint Tenancy deed states its vesting on its own face. Choosing this instrument{' '}
-                      <em className="not-italic text-[#C4B5FD]">is</em> the vesting decision.
-                    </p>
-                  </div>
-                </div>
-              </div>
 
-              {/* META STRIP — see the header note on the two slots the
-                  CUT list emptied. Every item here is measured. */}
-              <div className="px-8 pb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-gray-500">
-                <span>{API_DEED_TYPES.length} instruments</span>
-                <span className="text-gray-700">•</span>
-                <span>Wrong instrument fails at the boundary</span>
-                <span className="text-gray-700">•</span>
-                <span>Sandbox keys on request</span>
-                <span className="text-gray-700">•</span>
-                <span>No deed without a named person</span>
-              </div>
+  function takeOver() {
+    autoRef.current = false
+    setAuto(false)
+  }
 
-              <div className="px-8 pb-8 mt-auto flex flex-col gap-3">
-                <Button asChild size="lg" className="w-full bg-[#7C4DFF] hover:bg-[#7C4DFF]/90 text-white font-bold text-lg py-7">
-                  <Link href="/api-key-request">
-                    Get API access <ArrowRight className="ml-2 h-5 w-5" />
-                  </Link>
-                </Button>
-                {/* Ruling 6: /trust and /developers hang off the platform
-                    door, not the footer. An evaluator reads them BEFORE
-                    deciding, and a link in the footer is a link they
-                    reach after they have already decided. */}
-                {/* TRY: the demo hangs off the platform door for the
-                    same reason /developers and /trust do — an evaluator
-                    who bounces never reaches a footer. */}
-                <div className="text-center text-[13px] text-gray-500">
-                  <Link href="/try" className="font-semibold text-[#C4B5FD] hover:underline">Break it yourself</Link>
-                  {' '}·{' '}
-                  <Link href="/developers" className="font-semibold text-[#C4B5FD] hover:underline">read the docs</Link>
-                  {' '}·{' '}
-                  <Link href="/trust" className="font-semibold text-[#C4B5FD] hover:underline">what we do not have</Link>
-                </div>
-              </div>
-            </div>
+  useEffect(() => {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reduce) {
+      autoRef.current = false
+      setAuto(false)
+      return
+    }
+    const t1 = window.setTimeout(() => { if (autoRef.current) setVest(false) }, 3200)
+    const t2 = window.setTimeout(() => { if (autoRef.current) approveRef.current() }, 6400)
+    const t3 = window.setTimeout(() => {
+      if (autoRef.current) {
+        autoRef.current = false
+        setAuto(false)
+      }
+    }, 9500)
+    return () => {
+      window.clearTimeout(t1)
+      window.clearTimeout(t2)
+      window.clearTimeout(t3)
+    }
+  }, [])
 
-            {/* ── DOOR TWO: ESCROW & TITLE ── */}
-            <div className="rounded-2xl border border-gray-200 bg-white shadow-lg flex flex-col overflow-hidden">
-              <div className="p-8 pb-5 flex flex-col gap-3">
-                <span className="inline-flex items-center gap-2 self-start rounded-md border border-gray-200 bg-gray-100 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-gray-600">
-                  <FileText className="h-3.5 w-3.5" />
-                  For escrow &amp; title
-                </span>
-                <h2 className="text-3xl font-bold tracking-tight text-[#14161A] leading-tight">
-                  I prepare deeds for California transactions
-                </h2>
-                <p className="text-[15px] leading-relaxed text-gray-600">
-                  A guided wizard that prefills from county records and a preliminary title report, then puts every
-                  field in front of you to confirm before it prints. PCOR and BOE filled from the deed.
-                </p>
-              </div>
+  useEffect(() => {
+    if (shownDecision !== 'approved') return
+    let n = 0
+    const hex = '0123456789abcdef'
+    const id = window.setInterval(() => {
+      n += 1
+      if (n >= 16) {
+        window.clearInterval(id)
+        setHash('9f2c41e8…b07d')
+        return
+      }
+      setHash(Array.from({ length: 12 }, () => hex[Math.floor(Math.random() * 16)]).join(''))
+    }, 55)
+    return () => window.clearInterval(id)
+  }, [shownDecision, stamp])
 
-              <div className="mx-8 mb-4 relative rounded-lg border border-gray-200 bg-[#FCFCFD] p-5 pb-6 overflow-hidden h-[200px]">
-                <span className="absolute top-3 right-3 inline-flex items-center gap-1.5 rounded border border-green-200 bg-green-100 px-2 py-1 text-[10.5px] font-bold text-green-800">
-                  <Check className="h-3 w-3" /> Officer confirmed
-                </span>
-                <div className="font-serif text-gray-800">
-                  <div className="text-[8px] uppercase tracking-widest text-gray-400">Recording requested by</div>
-                  <div className="text-[10.5px] font-bold mb-3">Pacific Coast Escrow</div>
-                  <div className="text-center text-base font-bold tracking-wide">GRANT DEED</div>
-                  <div className="text-center text-[8.5px] tracking-wide text-gray-500 mb-3">CALIFORNIA CIVIL CODE § 1092</div>
-                  <div className="h-px bg-gray-200 mb-3" />
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="text-[10px] leading-relaxed">
-                      <div><strong>GRANTOR:</strong> John A. Smith and Jane B. Smith</div>
-                      <div><strong>GRANTEE:</strong> Michael C. Johnson</div>
-                    </div>
-                    <div className="rounded border border-gray-200 bg-white p-2">
-                      <div className="text-[7.5px] uppercase tracking-widest text-gray-400 mb-1">Legal description</div>
-                      <div className="font-mono text-[8px] leading-relaxed text-gray-600">LOT 42, TRACT NO. 12345<br />CITY OF LOS ANGELES</div>
-                    </div>
-                  </div>
-                </div>
-                <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-b from-transparent to-[#FCFCFD]" />
-              </div>
+  useEffect(() => {
+    const nav = navRef.current
+    const root = rootRef.current
+    if (!nav || !root) return
+    const measure = () => {
+      const h = nav.offsetHeight
+      if (h) root.style.setProperty('--navh', `${h}px`)
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(nav)
+    return () => ro.disconnect()
+  }, [])
 
-              <div className="px-8 pb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-gray-500">
-                <span>{INSTRUMENT_COUNT} instruments</span>
-                <span className="text-gray-300">•</span>
-                <span>PCOR and BOE filled from the deed</span>
-                <span className="text-gray-300">•</span>
-                <span>Free forever</span>
-                <span className="text-gray-300">•</span>
-                <span>{priceLabel(TIERS[1])}/user</span>
-              </div>
+  useEffect(() => {
+    const onScroll = () => setShowSticky(window.scrollY > 520)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
-              <div className="px-8 pb-8 mt-auto flex flex-col gap-3">
-                <Button asChild size="lg" className="w-full bg-[#14161A] hover:bg-[#14161A]/90 text-white font-bold text-lg py-7">
-                  <Link href="/register">
-                    Use the app free <ArrowRight className="ml-2 h-5 w-5" />
-                  </Link>
-                </Button>
-                <div className="text-center text-[13px] text-gray-500">
-                  No credit card required · Free {TRIAL_DAYS}-day trial on paid plans
-                </div>
-              </div>
-            </div>
+  useEffect(() => {
+    const ids = ['output', 'api', 'answers', 'pricing']
+    const onScroll = () => {
+      const navH = navRef.current?.offsetHeight ?? 120
+      let cur = ''
+      for (const id of ids) {
+        const el = document.getElementById(id)
+        if (el && el.getBoundingClientRect().top <= navH + 60) cur = `#${id}`
+      }
+      setActive(cur)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  useEffect(() => {
+    const out = document.getElementById('output')
+    if (!out || !('IntersectionObserver' in window)) {
+      setRulers(true)
+      return
+    }
+    const io = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting) setRulers(true)
+    }, { threshold: 0.3 })
+    io.observe(out)
+    return () => io.disconnect()
+  }, [])
+
+  function submitForm() {
+    setTried(true)
+    if (!name.trim() || !emailOk(email)) {
+      setReady(false)
+      return
+    }
+    setReady(true)
+  }
+
+  const samples: Record<typeof lang, string> = {
+    curl: `curl -X POST $DEEDPRO_API/deeds \\
+  -H "Authorization: Bearer dp_test_YOUR_KEY" \\
+  -H "Idempotency-Key: order-48219" \\
+  -d '{
+    "deed_type": "grant_deed",
+    "approver": { "name": "Jane Roe", "role": "escrow officer" }
+  }'`,
+    python: `requests.post(
+    f"{DEEDPRO_API}/deeds",
+    headers={"Authorization": f"Bearer {KEY}", "Idempotency-Key": "order-48219"},
+    json={"deed_type": "grant_deed", "approver": {"name": "Jane Roe", "role": "escrow officer"}},
+)`,
+    node: `await fetch(process.env.DEEDPRO_API + "/deeds", {
+  method: "POST",
+  headers: { Authorization: "Bearer " + key, "Idempotency-Key": "order-48219" },
+  body: JSON.stringify({ deed_type: "grant_deed", approver: { name: "Jane Roe", role: "escrow officer" } }),
+})`,
+  }
+
+  return (
+    <div className={`mkt ${mktFontVars}`} ref={rootRef}>
+      <nav className="mkt-nav" ref={navRef} data-screen-label="Nav">
+        <div className="mkt-nav-inner">
+          <div className="mkt-nav-side">
+            <Link href="/" className="mkt-stamp" aria-label="DeedPro home"><span className="mkt-stamp-name">deed/pro</span></Link>
           </div>
-        </section>
-
-        {/* ══════════ 2. PROOF STRIP ══════════
-            The mockup's sixth cell was "[99.9%] uptime · status page".
-            Both are on the CUT list and both are denied on /trust, so
-            the slot carries a measured fact instead of being removed —
-            an empty cell reads as a truncated strip. */}
-        <section aria-label="Statistics" className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 divide-x divide-y lg:divide-y-0 divide-gray-200 border-x border-gray-200">
-            {[
-              { value: "Any CA county", label: "Measured to published requirements" },
-              { value: `${String(INSTRUMENT_COUNT)} / ${String(API_DEED_TYPES.length)}`, label: "Instruments in app / over API" },
-              { value: "Every one", label: "Fields confirmed by your officer", accent: "text-green-600" },
-              { value: "SHA-256", label: "Hash-stamped, insert-or-refuse" },
-              { value: "422", label: "A wrong instrument fails in your tests" },
-              { value: "8 subprocessors", label: "Named individually on the trust page" },
-            ].map((stat) => (
-              <div key={stat.label} className="p-5">
-                <div className={`text-lg font-bold tracking-tight ${stat.accent ?? "text-[#14161A]"}`}>{stat.value}</div>
-                <div className="mt-1 text-[12.5px] text-gray-600">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ══════════ 3. THE CONFIRMATION STEP — LED WITH ══════════
-            Ruling 3: it shipped in #263 and it is the differentiator
-            against anything that renders JSON to a PDF. Presented as
-            the product, not as friction. */}
-        <div className="h-[3px] bg-gradient-to-r from-[#7C4DFF] to-green-600" />
-        <section id="confirmation" style={{ scrollMarginTop: 80 }} aria-label="The confirmation step" className="py-24 bg-[#F8F8FB] border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-            <div className="max-w-3xl mb-12">
-              <div className="text-[13px] font-bold uppercase tracking-widest text-[#7C4DFF] mb-3">The difference</div>
-              <h2 className="text-4xl sm:text-5xl font-bold tracking-tight text-[#14161A] leading-tight mb-5">
-                Submit the facts.<br />A human confirms the deed.
-              </h2>
-              <p className="text-lg text-gray-600 leading-relaxed">
-                Anyone can render JSON into a PDF. A deed is a legal instrument, and the question a recorder, a title
-                insurer and eventually a court asks is not which service formatted it — it is who decided. So there is
-                no path through DeedPro, app or API, that produces a recordable document without an answer to that.
-              </p>
+          <div className="mkt-nav-mid">
+            <div className="mkt-toggle" aria-label="Audience">
+              <span className="mkt-toggle-thumb left" />
+              <Link href="/" className="on"><span className="mono">{"</>"}</span> Platforms</Link>
+              <Link href="/escrow"><span className="mono">§</span> Escrow desks</Link>
             </div>
-
-            {/* THE THREE-STAGE SEQUENCE — the doctrine made legible to a
-                buyer who has never heard of amber and violet.
-
-                VOCABULARY IS THE SHIPPED ONE. The mockup wrote
-                `awaiting_confirmation` and `confirmed`; the API serves
-                `pending_confirmation` and `completed`. Copying the
-                mockup would document a contract we do not serve. */}
-            <div className="grid md:grid-cols-3 gap-5">
-              {[
-                {
-                  n: '01',
-                  title: 'The facts arrive as candidates',
-                  body: 'County records and title reports prefill what they can — each value carrying the name of where it came from. Nothing is treated as an answer yet, and no PDF exists.',
-                  code: 'status: "pending_confirmation"',
-                  lead: false,
-                },
-                {
-                  n: '02',
-                  title: 'A named human confirms',
-                  body: 'Every material field requires explicit confirmation from a professional, by name, against the instrument as it will actually render. An anonymous service account cannot do this.',
-                  code: 'approver.name · approver.role',
-                  lead: true,
-                },
-                {
-                  n: '03',
-                  title: 'The PDF comes into existence',
-                  body: 'Hash-stamped at creation and stored insert-or-refuse — a differing hash is rejected rather than overwriting what is there — alongside a record of who confirmed what, and when.',
-                  code: 'status: "completed"',
-                  lead: false,
-                },
-              ].map((stage) => (
-                <div
-                  key={stage.n}
-                  className={`flex flex-col gap-3 rounded-xl bg-white p-6 ${
-                    stage.lead ? 'border-2 border-green-600 shadow-lg shadow-green-600/10' : 'border border-gray-200'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className={`font-mono text-[11px] font-bold px-2 py-1 rounded ${
-                      stage.lead ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-500'
-                    }`}>{stage.n}</span>
-                    <span className="text-[15px] font-bold text-[#14161A]">{stage.title}</span>
-                  </div>
-                  <p className="text-[14.5px] leading-relaxed text-gray-600">{stage.body}</p>
-                  <div className={`mt-auto rounded-md border px-3 py-2.5 font-mono text-xs text-gray-600 ${
-                    stage.lead ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-[#F8F8FB]'
-                  }`}>{stage.code}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* The license ruling, stated where a buyer forms the
-                expectation. ENGINE1 ruled it OPTIONAL and named it
-                `license_claimed` precisely so nobody reads it as a check
-                we ran — a homepage that implied otherwise would undo the
-                naming. */}
-            <p className="mt-5 text-sm text-gray-500 max-w-3xl">
-              A license number can be recorded alongside the name when your integration sends one. It is optional, it is
-              stored as supplied, and it is never verified by DeedPro — the confirmation record calls it{' '}
-              <code className="font-mono text-[13px] text-gray-700">license_claimed</code> so no reader mistakes it for a
-              check we performed.
-            </p>
-
-            {/* Kept verbatim from the shipped page — three columns that
-                say the same thing in the officer's language. */}
-            <div className="mt-10 rounded-xl bg-[#1F2B37] p-8">
-              <div className="grid md:grid-cols-3 gap-8 text-center">
-                <div>
-                  <div className="text-lg font-bold text-white mb-1">The software suggests</div>
-                  <p className="text-sm text-gray-300">County records prefill APN, legal description, and owner — as suggestions.</p>
-                </div>
-                <div>
-                  <div className="text-lg font-bold text-white mb-1">Your officer decides</div>
-                  <p className="text-sm text-gray-300">Every material field requires explicit confirmation before anything generates.</p>
-                </div>
-                <div>
-                  <div className="text-lg font-bold text-white mb-1">The system records</div>
-                  <p className="text-sm text-gray-300">Who confirmed what, and when — stored with a hash-stamped, immutable PDF.</p>
-                </div>
-              </div>
-              <p className="mt-6 text-center text-xs text-gray-400 max-w-3xl mx-auto">
-                DeedPro is software, not a law firm. It prepares documents at the direction of the
-                professional using it and does not provide legal advice or legal determinations.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* ══════════ 4. ONE ENGINE, TWO WAYS IN ══════════
-            Ruling 5, and the app/API distinction is stated rather than
-            blurred: the API's confirmation is a RECORD (#263); the
-            app's is the officer's SESSION. That sentence is the page's
-            central claim and cannot be the imprecise thing on it. */}
-        <section id="engine" style={{ scrollMarginTop: 80 }} aria-label="One engine" className="py-24 bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-            <div className="max-w-3xl mb-10">
-              <div className="text-[13px] font-bold uppercase tracking-widest text-[#7C4DFF] mb-3">One engine, two ways in</div>
-              <h2 className="text-4xl font-bold tracking-tight text-[#14161A] leading-tight mb-5">
-                The app and the API are the same thing, seen from two sides
-              </h2>
-              <p className="text-lg text-gray-600 leading-relaxed">
-                Not a platform bolted onto a product, or a product carved out of a platform. The same templates, the
-                same page geometry, the same confirmation requirement, the same hash-stamped output — which is why the
-                county formatting is right in both, and why neither can print a deed nobody read.
-              </p>
-            </div>
-
-            <div className="grid lg:grid-cols-2 gap-5 mb-5">
-              <div className="rounded-xl border border-gray-200 border-t-[3px] border-t-green-600 bg-[#FCFCFD] p-7">
-                <div className="flex items-center gap-2 mb-3">
-                  <FileText className="h-4 w-4 text-green-600" />
-                  <span className="text-xs font-bold uppercase tracking-widest text-green-800">Confirming in the app</span>
-                </div>
-                <p className="text-[15px] leading-relaxed text-gray-600 mb-4">
-                  Your officer works the wizard. Prefilled values show their source, exemptions explain what they cover,
-                  and each material field is confirmed one at a time. Corrections keep full lineage to the superseded
-                  document.
-                </p>
-                <p className="text-sm text-gray-500 mb-4">
-                  <strong className="text-gray-700">What the confirmation is here:</strong> the officer&apos;s own
-                  authenticated session. The deed is confirmed because she is signed in and worked it — there is no
-                  separate confirmation record.
-                </p>
-                <ul className="flex flex-col gap-2 text-sm text-gray-600">
-                  <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-600 flex-shrink-0" />{INSTRUMENT_COUNT} recordable instruments, incl. affidavits and declarations</li>
-                  <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-600 flex-shrink-0" />PCOR and BOE forms filled from the deed</li>
-                </ul>
-              </div>
-
-              <div className="rounded-xl border border-gray-200 border-t-[3px] border-t-[#7C4DFF] bg-[#FCFCFD] p-7">
-                <div className="flex items-center gap-2 mb-3">
-                  <Code2 className="h-4 w-4 text-[#7C4DFF]" />
-                  <span className="text-xs font-bold uppercase tracking-widest text-[#6D3BF0]">Confirming over the API</span>
-                </div>
-                <p className="text-[15px] leading-relaxed text-gray-600 mb-4">
-                  Your system posts the transaction and gets back a draft with a hosted review URL. Your officer opens
-                  it, reads the rendered instrument, and approves — or rejects it with a reason. The stored PDF exists
-                  only after that.
-                </p>
-                <p className="text-sm text-gray-500 mb-4">
-                  <strong className="text-gray-700">What the confirmation is here:</strong> a stored record naming the
-                  person, their role and the moment — retrievable per deed. That is the honest difference between the
-                  two paths, and it is why the API is the stricter surface.
-                </p>
-                <ul className="flex flex-col gap-2 text-sm text-gray-600">
-                  <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-600 flex-shrink-0" />{API_DEED_TYPES.length} deed-family instruments</li>
-                  <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-600 flex-shrink-0" />Confirmation record retrievable per deed</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-gray-200 bg-[#F8F8FB] p-6 flex items-start gap-4">
-              <Lock className="h-5 w-5 text-[#7C4DFF] flex-shrink-0 mt-0.5" />
-              <p className="text-[14.5px] leading-relaxed text-gray-600">
-                <strong className="text-[#14161A]">One deliberate difference.</strong>{' '}
-                {HELD_FAMILIES.map((f) => f.family.toLowerCase()).join(' and ')} stay in the app. Their premise is a hand
-                at the moment of execution — sworn statements, initial lines, checkbox elections — and a
-                machine-to-machine call has no hand. That is a boundary, not a gap in the roadmap.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* ══════════ 5. BUILD VS INTEGRATE ══════════
-            The table is rendered FROM the catalog, so it cannot drift
-            from what the API enforces. */}
-        <section id="instruments" style={{ scrollMarginTop: 80 }} aria-label="Instrument doctrine" className="py-24 bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 grid lg:grid-cols-2 gap-14">
-            <div className="flex flex-col gap-4">
-              <div className="text-[13px] font-bold uppercase tracking-widest text-[#7C4DFF]">Build vs. integrate</div>
-              <h2 className="text-4xl font-bold tracking-tight text-[#14161A] leading-tight">The hard part was never the PDF</h2>
-              <p className="text-[16.5px] leading-relaxed text-gray-600">
-                A weekend gets you a templating library and a page that looks like a deed. What it does not get you is
-                the doctrine: which instruments carry their vesting on their own face, which recite an organizing state,
-                which cannot be machine-generated at all.
-              </p>
-              <p className="text-[16.5px] leading-relaxed text-gray-600">
-                We encode them, which is why a mis-specified instrument comes back as an error naming the field rather
-                than as a plausible-looking document.
-              </p>
-              <Link href="/developers" className="mt-2 inline-flex items-center gap-2 text-[15px] font-semibold text-[#7C4DFF] hover:underline">
-                Read the full instrument table <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-
-            <div className="rounded-xl border border-gray-200 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[420px] text-sm">
-                  <thead>
-                    <tr className="bg-[#F8F8FB] border-b border-gray-200 text-[11.5px] font-bold uppercase tracking-wide text-gray-500">
-                      <th className="py-3 px-4 text-left">deed_type</th>
-                      <th className="py-3 px-3 text-left">grantee.vesting</th>
-                      <th className="py-3 px-3 text-left">also required</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {API_DEED_TYPES.map((t) => {
-                      const fixed = t.vesting === 'fixed-by-instrument'
-                      return (
-                        <tr key={t.slug} className={`border-b border-gray-100 last:border-b-0 ${fixed ? 'bg-[#7C4DFF]/[0.045]' : ''}`}>
-                          <td className="py-3 px-4 font-mono text-[12.5px] text-[#14161A]">{t.slug}</td>
-                          <td className={`py-3 px-3 ${fixed ? 'font-semibold text-[#6D3BF0]' : 'text-gray-600'}`}>
-                            {fixed ? 'fixed — sending it is a 422' : t.vesting}
-                          </td>
-                          <td className="py-3 px-3 font-mono text-[11.5px] text-gray-600">
-                            {t.entityFacts?.length ? t.entityFacts.join(', ') : <span className="font-sans text-gray-400">—</span>}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              <p className="border-t border-gray-200 bg-[#F8F8FB] px-4 py-3 text-[13px] text-gray-600">
-                County formatting — margins, fonts and the statutory furniture — is measured against California
-                recorders&apos; published requirements. Acceptance is still the recorder&apos;s call.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* ══════════ 6. WHAT AN OFFICER GETS ══════════ */}
-        <section id="features" style={{ scrollMarginTop: 80 }} aria-label="Features" className="py-24 bg-gray-50 border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-            <div className="max-w-3xl mb-12">
-              <div className="text-[13px] font-bold uppercase tracking-widest text-[#7C4DFF] mb-3">In the app</div>
-              <h2 className="text-4xl font-bold tracking-tight text-[#14161A] leading-tight mb-5">
-                Nothing reaches the deed unseen
-              </h2>
-              <p className="text-lg text-gray-600 leading-relaxed">
-                County-record and title-report data arrive as candidates, never as answers.
-                Your officer confirms every one before anything prints, and the record keeps
-                who confirmed what, and when.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-8">
-              {[
-                {
-                  icon: FileDigit,
-                  title: 'Guided wizard',
-                  desc: 'Clean, accessible forms with inline validation. Values arrive from county records with their source named, and the exemptions explain what they cover.',
-                },
-                {
-                  icon: Shield,
-                  title: 'County formatting built in',
-                  desc: 'Margins, fonts and the statutory furniture, measured against California recorders’ published requirements and surfaced for your officer’s review. Acceptance is the recorder’s call.',
-                },
-                {
-                  icon: Check,
-                  title: 'Review and print',
-                  desc: 'Two-stage checks — substantive completeness, and formatting measured against the recorder’s published requirements. One click produces the final, hash-stamped PDF for her to record.',
-                },
-              ].map((f) => (
-                <div key={f.title}>
-                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#7C4DFF]/10 mb-4">
-                    <f.icon className="h-6 w-6 text-[#7C4DFF]" />
-                  </div>
-                  <h3 className="text-xl font-bold text-[#14161A] mb-2">{f.title}</h3>
-                  <p className="text-[15px] leading-relaxed text-gray-600">{f.desc}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-14 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[640px]">
-                  <thead className="bg-gray-100">
-                    <tr>
-                      <th className="py-4 px-6 text-left text-base font-bold text-[#1F2B37]">Feature</th>
-                      <th className="py-4 px-6 text-left text-base font-bold text-[#7C4DFF]">DeedPro</th>
-                      <th className="py-4 px-6 text-left text-base font-bold text-gray-500">Manual</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      { feature: "Time to complete", deedpro: "5-10 min", manual: "45-90 min" },
-                      { feature: "Every field confirmed before printing", deedpro: true, manual: false },
-                      { feature: "Recorder formatting checks", deedpro: "Built-in", manual: "Manual tracking" },
-                      /* DARK1 — an honest NO. `deeds` carries one user_id
-                         and RED-S5 (the org model) is deferred BY
-                         DECISION, so this is not "not yet" either. */
-                      { feature: "Multi-user collaboration", deedpro: false, manual: false },  // banned-claims: allow the row LABEL names the capability in order to DENY it — the cell renders an X for both columns
-                      { feature: "API access — same confirmation step", deedpro: true, manual: false },
-                      { feature: "SmartReview validation", deedpro: true, manual: false },
-                    ].map((row, i) => (
-                      <tr key={row.feature} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                        <td className="py-4 px-6 text-[15px] font-medium text-gray-700">{row.feature}</td>
-                        <td className="py-4 px-6">
-                          {row.deedpro === true ? (
-                            <Check className="h-5 w-5 text-[#7C4DFF]" />
-                          ) : row.deedpro === false ? (
-                            <X className="h-5 w-5 text-gray-400" />
-                          ) : (
-                            <span className="text-[15px] font-semibold text-[#1F2B37]">{row.deedpro}</span>
-                          )}
-                        </td>
-                        <td className="py-4 px-6">
-                          {row.manual === false ? (
-                            <X className="h-5 w-5 text-gray-400" />
-                          ) : (
-                            <span className="text-[15px] text-gray-500">{row.manual}</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ══════════ 7. SECURITY ══════════ */}
-        <section id="security" style={{ scrollMarginTop: 80 }} aria-label="Security" className="py-24 bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-            <div className="max-w-3xl mb-12">
-              <h2 className="text-4xl font-bold tracking-tight text-[#14161A] leading-tight mb-4">
-                Security you can check yourself
-              </h2>
-              <p className="text-lg text-gray-600 leading-relaxed">
-                No certifications to wave. These three are things you can confirm on your own file — and{' '}
-                <Link href="/trust" className="font-semibold text-[#7C4DFF] hover:underline">the trust page</Link>{' '}
-                leads with what we do not have.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-10">
-              {[
-                {
-                  icon: Shield,
-                  title: "Hash-stamped PDFs",
-                  desc: "Every PDF is fingerprinted (SHA-256) at creation, and the row that holds it is insert-or-refuse: a differing hash is rejected rather than overwritten.",
-                },
-                {
-                  icon: Lock,
-                  title: "Encrypted sessions",
-                  desc: "Token-based authentication over encrypted transport; sessions expire and say so.",
-                },
-                {
-                  icon: Check,
-                  title: "The officer decides",
-                  desc: "Every material field requires explicit confirmation — recorded with who, what, and when.",
-                },
-              ].map((cert) => (
-                <div key={cert.title}>
-                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#4F76F6]/10 mb-4">
-                    <cert.icon className="h-6 w-6 text-[#4F76F6]" />
-                  </div>
-                  <h3 className="text-xl font-bold text-[#14161A] mb-2">{cert.title}</h3>
-                  <p className="text-[15px] leading-relaxed text-gray-600">{cert.desc}</p>
-                </div>
+            <div className="mkt-menu" data-nav-menu="1">
+              {MENU.map(([href, label]) => (
+                <Link key={href} href={href} className={active === href ? 'on' : undefined}>{label}</Link>
               ))}
             </div>
           </div>
-        </section>
-
-        {/* ══════════ 8. PRICING ══════════
-            Two audiences, and the platform column says what is TRUE
-            today: keys are issued from a request queue and there is no
-            per-deed price. "Priced per confirmed deed" is on the CUT
-            list because no metering price exists — see the ticket
-            report. */}
-        <section id="pricing" style={{ scrollMarginTop: 80 }} aria-label="Pricing" className="py-24 bg-gray-50 border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-            <h2 className="text-4xl font-bold tracking-tight text-[#14161A] mb-3">Pricing</h2>
-            <p className="text-lg text-gray-600 mb-12">Offices pay for seats. Platform pricing is set on the call that issues your key.</p>
-
-            <div className="flex items-center gap-2 mb-5">
-              <Code2 className="h-4 w-4 text-[#7C4DFF]" />
-              <span className="text-[12.5px] font-bold uppercase tracking-widest text-[#7C4DFF]">For platforms</span>
-            </div>
-            <div className="grid md:grid-cols-2 gap-5 mb-14">
-              <div className="rounded-xl border border-gray-200 bg-white p-7 flex flex-col gap-3">
-                <div className="text-[15px] font-bold text-[#14161A]">Sandbox</div>
-                <div className="text-3xl font-bold tracking-tight text-[#14161A]">Free</div>
-                <p className="text-[14.5px] leading-relaxed text-gray-600">
-                  Test keys, real PDFs on the same templates, the full confirmation flow. Build the whole integration on
-                  it before you commit to anything.
-                </p>
-                <Button asChild variant="outline" className="mt-auto w-full font-semibold">
-                  <Link href="/api-key-request">Request a test key</Link>
-                </Button>
-              </div>
-              <div className="rounded-xl border-[1.5px] border-[#7C4DFF] bg-white p-7 flex flex-col gap-3 shadow-lg shadow-[#7C4DFF]/10">
-                <div className="text-[15px] font-bold text-[#7C4DFF]">Production</div>
-                <div className="text-3xl font-bold tracking-tight text-[#14161A]">Set on the call</div>
-                <p className="text-[14.5px] leading-relaxed text-gray-600">
-                  There is no published per-deed rate yet, and we would rather tell you that than print a number we
-                  would renegotiate. Live keys are issued by hand after a conversation about what you are building.
-                </p>
-                <Button asChild className="mt-auto w-full bg-[#7C4DFF] hover:bg-[#7C4DFF]/90 text-white font-bold">
-                  <Link href="/api-key-request">Request access</Link>
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 mb-5">
-              <FileText className="h-4 w-4 text-gray-500" />
-              <span className="text-[12.5px] font-bold uppercase tracking-widest text-gray-500">For escrow &amp; title offices</span>
-            </div>
-            <div className="grid md:grid-cols-3 gap-6">
-              {/* PRICING1: one source. Business is priced and visible so
-                  the ladder is legible, and is not for sale until the org
-                  model (RED-S5) exists. */}
-              {TIERS.map((tier) => (
-                <Card
-                  key={tier.key}
-                  className={`${tier.key === "professional" ? "ring-2 ring-[#7C4DFF] border-[#7C4DFF] shadow-xl" : "border-gray-200"} bg-white transition-all`}
-                >
-                  <CardContent className="p-8">
-                    {tier.key === "professional" && (
-                      <Badge className="bg-[#7C4DFF] text-white font-bold mb-4 px-4 py-2">Most Popular</Badge>
-                    )}
-                    {tier.badge && (
-                      <Badge className="bg-gray-100 text-gray-600 font-semibold mb-4 px-4 py-2">{tier.badge}</Badge>
-                    )}
-                    <h3 className="text-xl font-bold text-[#1F2B37]">{tier.name}</h3>
-                    <div className="mt-4 mb-3">
-                      <span className="text-4xl font-bold text-[#1F2B37]">{priceLabel(tier)}</span>
-                      <span className="text-base text-gray-600">{tier.cadence}</span>
-                    </div>
-                    <p className="text-[15px] text-gray-600 mb-6">{tier.blurb}</p>
-                    <ul className="space-y-3 mb-8">
-                      {tier.features.map((f) => (
-                        <li key={f} className="flex items-start gap-2.5">
-                          <Check className="h-4 w-4 text-[#7C4DFF] flex-shrink-0 mt-1" />
-                          <span className="text-[15px] text-gray-700">{f}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    {tier.purchasable ? (
-                      <Button
-                        asChild
-                        className={`w-full font-bold py-6 ${
-                          tier.key === "professional"
-                            ? "bg-[#7C4DFF] hover:bg-[#7C4DFF]/90 text-white"
-                            : "bg-[#1F2B37] hover:bg-[#1F2B37]/90 text-white"
-                        }`}
-                      >
-                        <Link href="/register">
-                          {tier.key === "free" ? "Start free" : `Start ${TRIAL_DAYS}-day trial`}
-                        </Link>
-                      </Button>
-                    ) : (
-                      <p className="text-center text-sm text-gray-500 py-4">Not yet available</p>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+          <div className="mkt-nav-side right">
+            <Link href="/login" className="mkt-login">Login</Link>
+            <Link href="#start" className="mkt-cta">Request a sandbox key</Link>
           </div>
-        </section>
+        </div>
+      </nav>
+      <div style={{ height: 'var(--navh)' }} />
 
-        {/* ══════════ 9. FAQ ══════════ */}
-        <section id="faq" style={{ scrollMarginTop: 80 }} aria-label="FAQ" className="py-24 bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-            <h2 className="text-4xl font-bold tracking-tight text-[#14161A] mb-10">Questions we would rather answer now</h2>
-            <div className="grid md:grid-cols-2 gap-x-12 gap-y-8">
-              {[
-                {
-                  q: "Is this only California?",
-                  a: "Yes, for now. The templates are measured to California county recorder requirements and the data models are CA-specific. If you need a second state, we are the wrong vendor and will say so on the first call.",
-                },
-                {
-                  q: "Does it connect to SoftPro, Qualia, or ResWare?", // banned-claims: allow the question a truthful "no" answers; naming the systems is what makes the denial useful
-                  a: "Not today. Property details can come from a county-record lookup or a preliminary title report you upload; everything else is entered. Title-software integration is not built yet, and we would rather say so than let you find out on your first file.",
-                },
-                {
-                  q: "Why does the API cover fewer instruments than the app?",
-                  a: `The app offers ${INSTRUMENT_COUNT}; the API exposes the ${API_DEED_TYPES.length} deed-family instruments. The difference is the affidavit and declaration family, whose premise is a hand at the moment of execution.`,
-                },
-                {
-                  q: "Who is allowed to confirm a deed?",
-                  a: "A named person, recorded with their name and role. A service account cannot confirm. A license number can be recorded when supplied, and is never verified by us.",
-                },
-                {
-                  q: "What if the recorder rejects a document?",
-                  a: "Formatting is measured against published requirements and surfaced for review, but acceptance is the recorder's call and we do not claim otherwise.",
-                },
-                {
-                  q: "What about certifications?",
-                  a: "No badges to wave. The trust page lists what exists and what does not, gaps first — including the ones a security review would ask about.",
-                },
-                {
-                  q: "How are API keys issued?",
-                  a: "By request rather than switched on by plan. You submit an inquiry, we talk, and a key is issued by hand — sandbox keys included.",
-                },
-                {
-                  q: "Can I save partial work?",
-                  a: "Yes. All wizard progress auto-saves. You can return anytime to complete.",
-                },
-              ].map((faq) => (
-                <div key={faq.q}>
-                  <h3 className="text-base font-bold text-[#14161A] mb-2">{faq.q}</h3>
-                  <p className="text-[14.5px] leading-relaxed text-gray-600">{faq.a}</p>
+      <header className="mkt-hero">
+        <div className="mkt-hero-inner">
+          <p className="mkt-eyebrow">For platforms</p>
+          <h1>Add California deeds to your product with one API call.</h1>
+          <p className="mkt-lede">You post the facts. The officer whose name goes on the file approves the deed exactly as it will print. You get back a hash-stamped, recorder-formatted PDF and a record of who said yes. No templates and no vesting rules on your roadmap.</p>
+          <div className="mkt-row" style={{ marginTop: 28 }}>
+            <Link href="#start" className="mkt-cta lg">Request a sandbox key →</Link>
+            <Link href="/api-key-request" className="mkt-cta lg ghost">Get API access</Link>
+            <Link href="/try" className="mkt-cta lg ghost">Run it against the real API</Link>
+          </div>
+          <p className="mkt-note" style={{ marginTop: 12 }}>Three fields, no account. A person replies with your key. The sandbox is free and uses the same templates as a finished deed.</p>
+          <p className="mkt-note">I&apos;m building a product that prepares deeds.</p>
+
+          <div className="mkt-row" style={{ marginTop: 44 }}>
+            <span className="mkt-eyebrow">Try to break it</span>
+            {auto ? (
+              <span className="mkt-note"><span className="mkt-pulse" /> A demo is playing. Click anything to take over.</span>
+            ) : (
+              <span className="mkt-note">Your turn. Pick an instrument, change what you send, then play the officer. This runs in your browser from the published rules.</span>
+            )}
+          </div>
+          <p className="mkt-note" style={{ marginTop: 8 }}>
+            The demo opens on {FIXED_VESTING_SAMPLE.slug}, the first catalog instrument whose vesting is fixed by the instrument. Wrong instrument fails at the boundary.
+          </p>
+
+          <div className="mkt-grid-3" style={{ marginTop: 16 }} onClick={takeOver}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div className="mkt-step-label"><span className="mkt-step-num">01</span> Your system posts the facts</div>
+              <div className="mkt-console">
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {API_DEED_TYPES.map((t) => (
+                    <button
+                      key={t.slug}
+                      type="button"
+                      className={t.slug === selected.slug ? 'mkt-slug on' : 'mkt-slug'}
+                      onClick={() => { takeOver(); setSlug(t.slug); setDecision(null) }}
+                    >
+                      {t.slug}
+                    </button>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ══════════ 10. CLOSING FORK ══════════ */}
-        <section aria-label="Get started" className="py-16 bg-white">
-          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 grid lg:grid-cols-2 gap-5">
-            <div className="rounded-xl bg-[#12141A] p-8 flex flex-col sm:flex-row sm:items-center gap-5">
-              <div className="flex-grow">
-                <div className="text-lg font-bold text-white mb-1">Building on it</div>
-                <p className="text-[14.5px] leading-relaxed text-gray-400">
-                  Tell us what you are building. Keys are issued after a short conversation.
-                </p>
-              </div>
-              <Button asChild className="bg-[#7C4DFF] hover:bg-[#7C4DFF]/90 text-white font-bold flex-shrink-0">
-                <Link href="/api-key-request">Get API access</Link>
-              </Button>
-            </div>
-            <div className="rounded-xl border border-gray-200 bg-[#FCFCFD] p-8 flex flex-col sm:flex-row sm:items-center gap-5">
-              <div className="flex-grow">
-                <div className="text-lg font-bold text-[#14161A] mb-1">Drafting deeds yourself</div>
-                <p className="text-[14.5px] leading-relaxed text-gray-600">
-                  Every instrument, on real files. Paid plans add support and shared office files — not features.
-                </p>
-              </div>
-              <Button asChild className="bg-[#14161A] hover:bg-[#14161A]/90 text-white font-bold flex-shrink-0">
-                <Link href="/register">Use the app free</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
-
-        {/* ══════════ 11. FOOTER ══════════ */}
-        <footer className="bg-[#111827] text-gray-300">
-          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-16">
-            <div className="grid md:grid-cols-4 gap-12">
-              <div className="md:col-span-2">
-                <div className="mb-6">
-                  <LogoLockupDark size={36} />
+                <div className="mkt-code">
+                  {`POST $DEEDPRO_API/deeds\n{\n  "deed_type": "`}{selected.slug}{`",`}
+                  {selected.entityFacts?.includes('entity_state') && entityOn ? `\n  "grantor": { "entity": { "entity_state": "DE" } },` : ''}
+                  {`\n  "grantee": {\n    "name": "`}{granteeName}{`"`}
+                  {vest ? `,\n    "vesting": "a single man"` : ''}
+                  {`\n  },\n  "approver": { "name": "Jane Roe", "role": "escrow officer" }\n}`}
                 </div>
-                <p className="text-base leading-relaxed">
-                  Recorder-formatted California deeds, confirmed by a named human — as an application, or as an engine
-                  inside yours.
-                </p>
-                {/* ENTITY1: identity from the three public env vars. A
-                    missing contact address is a broken deploy, not a
-                    California placeholder. */}
-                {identityLine && (
-                  <p className="mt-4 text-sm text-gray-500">{identityLine}</p>
+                <button type="button" className="mkt-slug" onClick={() => { takeOver(); setVest((v) => !v); setDecision(null) }}>
+                  {vest ? 'Vesting is being sent' : 'Vesting is omitted'}
+                </button>
+                {selected.entityFacts?.includes('entity_state') && (
+                  <button type="button" className="mkt-slug" onClick={() => { takeOver(); setEntityOn((v) => !v); setDecision(null) }}>
+                    {entityOn ? 'Entity state is being sent' : 'Entity state is omitted'}
+                  </button>
                 )}
               </div>
+            </div>
 
-              <div>
-                <h3 className="font-bold text-white mb-4">Platform</h3>
-                <ul className="space-y-3 text-sm">
-                  <li><a href="/developers" className="hover:text-[#7C4DFF] transition-colors">API docs</a></li>
-                  <li><a href="#confirmation" className="hover:text-[#7C4DFF] transition-colors">Confirmation flow</a></li>
-                  <li><a href="#instruments" className="hover:text-[#7C4DFF] transition-colors">Instruments</a></li>
-                  <li><a href="/api-key-request" className="hover:text-[#7C4DFF] transition-colors">Get API access</a></li>
-                  <li><a href="/trust" className="hover:text-[#7C4DFF] transition-colors">Trust</a></li>
-                </ul>
-              </div>
-
-              <div>
-                <h3 className="font-bold text-white mb-4">Escrow app</h3>
-                <ul className="space-y-3 text-sm">
-                  <li><a href="#features" className="hover:text-[#7C4DFF] transition-colors">Features</a></li>
-                  <li><a href="#pricing" className="hover:text-[#7C4DFF] transition-colors">Pricing</a></li>
-                  <li><a href="#faq" className="hover:text-[#7C4DFF] transition-colors">FAQ</a></li>
-                  <li><a href="/privacy" className="hover:text-[#7C4DFF] transition-colors">Privacy</a></li>
-                  <li><a href="/terms" className="hover:text-[#7C4DFF] transition-colors">Terms</a></li>
-                </ul>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div className="mkt-step-label"><span className="mkt-step-num">02</span> The named officer confirms</div>
+              <div className="mkt-console">
+                <div style={{ fontWeight: 700, color: '#fff' }}>Confirm this deed</div>
+                <div className="mkt-note" style={{ color: '#b4b9c4' }}>approver.name · approver.role · expires in 7 days</div>
+                <div className="mkt-code" style={{ color: '#e5e7eb' }}>{grantorLine}{'\n'}{granteeName}{vest && !pair ? ', a single man' : ''}</div>
+                {err && (
+                  <div key={`${selected.slug}-${vest}-${entityOn}`}>
+                    <span className="mkt-err">422 VALIDATION_ERROR</span>
+                    <p style={{ color: '#fca5a5', fontSize: 14, lineHeight: 1.5 }}>{err.field}: {err.msg}</p>
+                    <p style={{ color: '#b4b9c4', fontSize: 14 }}>{err.gloss}</p>
+                  </div>
+                )}
+                <div className="mkt-row">
+                  <button type="button" className="mkt-cta" disabled={!!err} onClick={() => { takeOver(); approveRef.current() }}>Approve</button>
+                  <button type="button" className="mkt-slug" onClick={() => { takeOver(); setDecision('rejected') }}>This is not the deed</button>
+                </div>
               </div>
             </div>
 
-            <ContactBlock />
-
-            <div className="mt-12 pt-8 border-t border-gray-800 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm">
-              <div>
-                &copy; 2026 {publicEnvValue('NEXT_PUBLIC_LEGAL_ENTITY') || 'DeedPro'}. All rights reserved.
-              </div>
-              <div className="flex gap-6">
-                <a href="/privacy" className="hover:text-[#7C4DFF] transition-colors">Privacy</a>
-                <a href="/terms" className="hover:text-[#7C4DFF] transition-colors">Terms</a>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div className="mkt-step-label"><span className="mkt-step-num">03</span> You get the record</div>
+              <div className="mkt-console" style={{ position: 'relative' }}>
+                {shownDecision === null && <p>Waiting. The deed stays pending_confirmation until the officer finishes. Nothing has printed.</p>}
+                {shownDecision === 'rejected' && <p>Rejected. No PDF was produced.</p>}
+                {shownDecision === 'approved' && (
+                  <>
+                    <p>Approved. The recorded status is {COMPLETED_STATUS}.</p>
+                    <p className="mono" style={{ color: '#86efac' }}>SHA-256 {hash}</p>
+                    <svg key={stamp} className="mkt-seal" viewBox="18 46 28 28" width="88" height="88" aria-hidden="true">
+                      <circle cx="32" cy="60" r="11.25" fill="none" stroke="#166534" strokeWidth="1.6" />
+                      <circle cx="32" cy="60" r="7" fill="none" stroke="#166534" strokeWidth="1.6" />
+                      <circle cx="32" cy="60" r="1.75" fill="#166534" />
+                    </svg>
+                  </>
+                )}
               </div>
             </div>
           </div>
-        </footer>
-      </main>
-    </>
+        </div>
+      </header>
+
+      <section className="mkt-rule">
+        <div className="mkt-wrap" style={{ paddingTop: 'clamp(40px, 5vw, 64px)', paddingBottom: 'clamp(40px, 5vw, 64px)', display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div className="serif" style={{ fontSize: 'clamp(24px, 2.6vw, 32px)', letterSpacing: '-0.015em' }}>Signing the contract rather than writing the code? The short version.</div>
+          <div className="mkt-cards">
+            <div className="mkt-card-top">
+              <div className="mkt-eyebrow">What you get</div>
+              <div style={{ fontSize: 19, fontWeight: 700 }}>Your customers finish the deed inside your product.</div>
+              <div className="mkt-note">They stop leaving for a separate tool at the last step of the file.</div>
+            </div>
+            <div className="mkt-card-top">
+              <div className="mkt-eyebrow">What it takes</div>
+              <div style={{ fontSize: 19, fontWeight: 700 }}>Your engineers connect {PARTNER_ROUTES.length} routes.</div>
+              <div className="mkt-note">We maintain the templates and the instrument rules, measured against published requirements.</div>
+            </div>
+            <div className="mkt-card-top">
+              <div className="mkt-eyebrow">What it risks</div>
+              <div style={{ fontSize: 19, fontWeight: 700 }}>Nothing until it works.</div>
+              <div className="mkt-note">Sandbox keys on request. You can walk a real confirmation before any contract.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="output" className="mkt-rule">
+        <div className="mkt-wrap mkt-section" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 48, alignItems: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <div className="mkt-deed-frame">
+              <SampleDeed embed />
+              <div className={rulers ? 'mkt-rulers on' : 'mkt-rulers'} aria-hidden="true">
+                <span className="h" />
+                <span className="v l" />
+                <span className="v r" />
+                <span className="tag" style={{ top: '22.7%', right: '8%', transform: 'translateY(-130%)' }}>recorder space</span>
+                <span className="tag" style={{ top: '12%', right: '8%' }}>side margin</span>
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <div className="mkt-eyebrow">The thing you are actually buying</div>
+            <h2>Don&apos;t take our word for it. Open the sample.</h2>
+            <p className="mkt-note" style={{ fontSize: 17, lineHeight: 1.65 }}>A sample grant deed with fictitious parties. It is HTML, not an engine PDF. Hold the shape against your county&apos;s published requirements before you talk to us.</p>
+            <div style={{ display: 'flex', gap: 14 }}><span className="mono" style={{ color: 'var(--purple-text)', width: 92, flex: 'none' }}>Margins</span><span>Margins and type are measured against published requirements. Two-stage checks, not a promise a recorder will accept the page.</span></div>
+            <div style={{ display: 'flex', gap: 14 }}><span className="mono" style={{ color: 'var(--purple-text)', width: 92, flex: 'none' }}>Pages</span><span>No logo on the recorded pages. Page 2 is a blank California acknowledgment.</span></div>
+            <div style={{ display: 'flex', gap: 14 }}><span className="mono" style={{ color: 'var(--purple-text)', width: 92, flex: 'none' }}>SHA-256</span><span>The PDF is hash-stamped. Anyone holding the document ID can verify it publicly, without seeing the parties.</span></div>
+            <Link href="/sample-grant-deed" className="mkt-cta ink" style={{ alignSelf: 'flex-start' }}>Open the sample deed</Link>
+            <p className="mkt-note">Acceptance is always the recorder&apos;s call.</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="mkt-band">
+        <div className="mkt-wrap mkt-section">
+          <h2 style={{ maxWidth: 800 }}>If a deed is the last step in your workflow, this is for you.</h2>
+          <div className="mkt-grid-3" style={{ marginTop: 32 }}>
+            <article className="mkt-qa"><div className="mkt-eyebrow">API</div><h3>Title and escrow software</h3><p>Your users leave your product to draft the deed. Keep them in the file, and keep the order number as the idempotency key.</p></article>
+            <article className="mkt-qa"><div className="mkt-eyebrow">API</div><h3>Proptech and transaction platforms</h3><p>You already hold the parties and the property. A named person still confirms the deed before it prints.</p></article>
+            <article className="mkt-qa"><div className="mkt-eyebrow">API</div><h3>Estate and legal tools</h3><p>Quitclaims and grant deeds, with the attorney named as the approver on every one.</p></article>
+            <article className="mkt-qa"><div className="mkt-eyebrow" style={{ color: 'var(--green-text)' }}>App</div><h3>Escrow and title desks</h3><p>No software team. The deed, PCOR and BOE, from one file, in a guided wizard.</p></article>
+          </div>
+        </div>
+      </section>
+
+      <section id="api" className="mkt-dark">
+        <div className="mkt-wrap mkt-section" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 48 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div className="mkt-eyebrow" style={{ color: 'var(--violet-soft)' }}>For engineers</div>
+            <h2>The whole API is {PARTNER_ROUTES.length} routes.</h2>
+            <p style={{ color: 'var(--on-dark-muted)', fontSize: 17, lineHeight: 1.65 }}>Plain JSON over REST, a published OpenAPI contract, and no client package to install. There are no webhooks. You poll, or your user opens the confirmation link.</p>
+            <ul style={{ margin: 0, paddingLeft: 18, color: 'var(--on-dark)', lineHeight: 1.6 }}>
+              {PARTNER_ROUTES.map((route) => <li key={route} className="mono" style={{ fontSize: 13 }}>{route}</li>)}
+            </ul>
+            <p style={{ color: 'var(--on-dark-muted)' }}>Send your order number as the Idempotency-Key. A repeat returns the original draft. Hourly and daily ceilings on each key come back in the response headers.</p>
+            <div className="mkt-row">
+              <Link href="#start" className="mkt-cta">Request a sandbox key →</Link>
+              <Link href="/developers" className="mkt-cta ghost">Read the docs</Link>
+            </div>
+          </div>
+          <div>
+            <div className="mkt-row" style={{ marginBottom: 8 }}>
+              {(['curl', 'python', 'node'] as const).map((item) => (
+                <button key={item} type="button" className={lang === item ? 'mkt-cta' : 'mkt-slug'} onClick={() => setLang(item)}>{item}</button>
+              ))}
+            </div>
+            <pre className="mkt-code" style={{ background: '#12141a', border: '1px solid #262a33', borderRadius: 12, padding: 18, minHeight: 192 }}>{samples[lang]}</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="confirmation" className="mkt-rule">
+        <div className="mkt-wrap mkt-section" style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 860 }}>
+          <h2>A human confirms the deed</h2>
+          <p>The facts arrive as candidates. A named human confirms. The PDF comes into existence only after that. The API stores the deed as pending_confirmation, and the recorded status is {COMPLETED_STATUS}. The request names approver.name and approver.role. A licence, when one is sent, is stored as license_claimed and is never verified by DeedPro.</p>
+          <p>On the app, confirmation is the officer&apos;s own authenticated session. On the API, confirmation is a stored record naming the person. The record is retrievable per deed.</p>
+          <p>The software suggests. Your officer decides. The system records the result. Every field confirmed before printing. Your officer confirms every one before anything prints. API access — same confirmation step. Fields confirmed by your officer.</p>
+          <p>DeedPro is software, not a law firm and does not provide legal advice.</p>
+          <p>
+            {HELD_FAMILIES.map((family) => (
+              <span key={family.family}>{family.family}: {family.examples}. </span>
+            ))}
+            They stay in the app.
+          </p>
+          <table>
+            <tbody>
+              {API_DEED_TYPES.map((t) => (
+                <tr key={t.slug}><td className="mono">{t.slug}</td><td>{t.label}</td><td>{t.vesting}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="mkt-band">
+        <div className="mkt-wrap" style={{ paddingTop: 36, paddingBottom: 36, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 16 }}>
+          <div style={{ maxWidth: 720 }}>
+            <div className="serif" style={{ fontSize: 26 }}>For escrow & title. Some of your customers have no engineers. Send them to the app.</div>
+            <p className="mkt-note" style={{ fontSize: 16 }}>I prepare deeds for California transactions. The same engine, with PCOR and BOE filled from the deed, in a guided wizard.</p>
+          </div>
+          <div className="mkt-row">
+            <Link href="/register" className="mkt-cta ink">Use the app free</Link>
+            <Link href="/escrow" className="mkt-cta ghost">See the escrow desk page →</Link>
+          </div>
+        </div>
+      </section>
+
+      <section aria-label="Statistics" className="mkt-rule">
+        <div className="mkt-wrap" style={{ paddingTop: 28, paddingBottom: 28, display: 'flex', flexWrap: 'wrap', gap: 18 }}>
+          <span><strong>{String(API_DEED_TYPES.length)}</strong> instruments over the API</span>
+          <span><strong>{String(INSTRUMENT_COUNT)}</strong> instruments in the app</span>
+          <span>Fields confirmed by your officer</span>
+          <span>8 subprocessors, named on the trust page</span>
+        </div>
+      </section>
+
+      <section id="answers" className="mkt-rule">
+        <div className="mkt-wrap mkt-section">
+          <h2 style={{ maxWidth: 860 }}>The questions your CTO and your counsel will ask. Answered now.</h2>
+          <p className="mkt-note" style={{ fontSize: 17 }}>Including the ones where the answer is no.</p>
+          <div className="mkt-grid-3" style={{ marginTop: 32 }}>
+            <article className="mkt-qa"><h3>Who is responsible if a deed is wrong?</h3><p>The professional who approved it. DeedPro is software, not a law firm, and does not provide legal advice.</p></article>
+            <article className="mkt-qa"><h3>Is availability contractually guaranteed?</h3><p>No. Nothing has been contractually offered, and nothing publishes availability. The trust page lists the gaps.</p></article>
+            <article className="mkt-qa"><h3>What do you keep, and for how long?</h3><p>An unconfirmed draft is deleted after seven days. Not archived — deleted. Public verification never exposes parties, address or APN.</p></article>
+            <article className="mkt-qa"><h3>Why {String(API_DEED_TYPES.length)} instruments over the API and {String(INSTRUMENT_COUNT)} in the app?</h3><p>Affidavits and declarations need a hand at signing, so they stay in the app. Held deed types are listed, not hidden.</p></article>
+            <article className="mkt-qa"><h3>Certification, a penetration test, a data processing agreement?</h3><p>No certification report, and no audit scheduled. No penetration test scheduled. A data processing agreement is drafted and pending counsel.</p></article>
+            <article className="mkt-qa"><h3>Does it connect to SoftPro, Qualia, or ResWare?</h3>{/* banned-claims: allow — the question names systems the answer denies; no integration exists */}<p>No. Property details come from a county lookup or a prelim you upload.</p></article>
+            <article className="mkt-open"><h3>Who do I call when something breaks? <span className="mkt-chip">NEEDS YOUR ANSWER</span></h3><p>Today the answer is info@deedpro.io. Hours and a response time are not stated here.</p></article>
+            <article className="mkt-open"><h3>What happens to my deeds if I leave? <span className="mkt-chip">NEEDS YOUR ANSWER</span></h3><p>Export and retention after cancellation are not decided on this page.</p></article>
+          </div>
+          <p style={{ marginTop: 20 }}><Link href="/trust">Read the trust page →</Link></p>
+        </div>
+      </section>
+
+      <section className="mkt-band">
+        <div className="mkt-wrap mkt-section" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 32 }}>
+          <div>
+            <div className="mkt-eyebrow">Who you are dealing with</div>
+            <h2>We ask for a named human on every deed.</h2>
+            <p className="mkt-note" style={{ fontSize: 17 }}>Names, roles and photos have not been supplied.</p>
+            <p className="mkt-open"><span className="mkt-chip">NEEDS YOUR MATERIAL</span> Empty frames until the people are named.</p>
+          </div>
+          <div className="mkt-grid-3">
+            <div className="mkt-photo">Photo not supplied</div>
+            <div className="mkt-photo">Photo not supplied</div>
+          </div>
+        </div>
+      </section>
+
+      <section style={{ background: 'var(--purple)', color: '#fff' }}>
+        <div className="mkt-wrap mkt-section" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 32 }}>
+          <div>
+            <div className="mkt-row"><span className="mkt-eyebrow" style={{ color: '#fff' }}>Founding partners</span><span className="mkt-chip">PROPOSED OFFER · YOUR DECISION</span></div>
+            <h2 style={{ color: '#fff', marginTop: 12 }}>Be one of our first five platforms.</h2>
+            <p>This offer is proposed. It is not a price and not a contract. There is no published per-deed rate yet.</p>
+          </div>
+          <div style={{ background: '#fff', color: 'var(--ink)', borderRadius: 12, padding: 26 }}>
+            <p>A shared channel with the people who built the engine, for a launch, if you and we agree it in writing.</p>
+            <p>Your instrument requests can go to the front of the queue. That is a proposal, not a booked commitment.</p>
+            <Link href="#start" className="mkt-cta ink">Talk about a founding spot →</Link>
+          </div>
+        </div>
+      </section>
+
+      <section id="pricing" className="mkt-rule">
+        <div className="mkt-wrap mkt-section">
+          <h2>Free until it has proven itself.</h2>
+          <p className="mkt-note" style={{ fontSize: 17 }}>On either side, you see a finished deed on your own data before you spend anything.</p>
+          <div className="mkt-eyebrow" style={{ marginTop: 32 }}>Platforms</div>
+          <div className="mkt-grid-3" style={{ marginTop: 14 }}>
+            <article className="mkt-price">
+              <div style={{ fontWeight: 700 }}>Sandbox</div>
+              <div className="figure">Free</div>
+              <p className="mkt-note">Test keys and the confirmation flow. No card on this page.</p>
+              <Link href="#start" className="mkt-cta">Request a sandbox key →</Link>
+            </article>
+            <article className="mkt-price">
+              <div className="mkt-row"><strong style={{ color: 'var(--purple-text)' }}>Production</strong><span className="mkt-chip">PRICING MODEL · YOUR DECISION</span></div>
+              <div className="figure">Set on one call</div>
+              <p className="mkt-note">There is no published per-deed rate yet. One conversation, then a person issues a live key.</p>
+              <Link href="#start" className="mkt-cta ghost">Start the conversation</Link>
+            </article>
+          </div>
+          <div className="mkt-eyebrow" style={{ marginTop: 36 }}>Escrow and title offices</div>
+          <div className="mkt-grid-3" style={{ marginTop: 14 }}>
+            {TIERS.map((tier) => (
+              <article key={tier.key} className={tier.key === 'professional' ? 'mkt-price featured' : 'mkt-price'}>
+                <div style={{ fontWeight: 700 }}>{tier.name}{tier.badge ? ` · ${tier.badge}` : ''}</div>
+                <div className="figure">{priceLabel(tier)}<span style={{ fontSize: 15, color: 'var(--muted)' }}>{tier.priceMonthly === 0 ? ` ${tier.cadence}` : tier.cadence}</span></div>
+                <p className="mkt-note">{tier.blurb}</p>
+                {tier.purchasable ? <Link href="/register" className="mkt-cta ink">{tier.priceMonthly === 0 ? 'Use the app free' : 'Create an account'}</Link> : <p className="mkt-note">Not yet available</p>}
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="start" className="mkt-dark">
+        <div className="mkt-wrap mkt-section" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 28 }}>
+          <div>
+            <h2>See your first deed before you spend a dollar.</h2>
+            <p style={{ color: 'var(--on-dark-muted)' }}>These fields stay in the browser. This page does not send them.</p>
+            <form className="mkt-qa" style={{ marginTop: 16 }} onSubmit={(event) => { event.preventDefault(); submitForm() }}>
+              <label className="mkt-field">Name<input value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" /></label>
+              <label className="mkt-field" style={{ marginTop: 10 }}>Work email<input value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" /></label>
+              <label className="mkt-field" style={{ marginTop: 10 }}>What you are building<textarea value={what} onChange={(event) => setWhat(event.target.value)} rows={3} /></label>
+              {tried && (!name.trim() || !emailOk(email)) && (
+                <p style={{ color: '#b91c1c' }}>Add your name and a valid work email. This page does not send what you type.</p>
+              )}
+              <button type="submit" className="mkt-cta" style={{ marginTop: 14 }}>Check the form</button>
+              {ready && (
+                <p>Nothing was sent{name.trim() ? `, ${name.trim().split(' ')[0]}` : ''}. Continue on the request page. The note above was not attached.</p>
+              )}
+              <p><Link href="/api-key-request">Open the request form →</Link></p>
+            </form>
+          </div>
+          <div>
+            <div className="mkt-eyebrow" style={{ color: '#86efac' }}>What happens next</div>
+            <ol style={{ color: 'var(--on-dark)', lineHeight: 1.6 }}>
+              <li>You use the request form. A person reads it.</li>
+              <li>They reply with a sandbox key. No card.</li>
+              <li>You run the confirmation against your own sample.</li>
+            </ol>
+            <p style={{ color: 'var(--on-dark-muted)' }}>Questions first? <a href="mailto:info@deedpro.io">info@deedpro.io</a></p>
+          </div>
+        </div>
+      </section>
+
+      <footer className="mkt-footer">
+        <div className="mkt-wrap" style={{ paddingTop: 40, paddingBottom: 104, display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 16, alignItems: 'center' }}>
+            <Link href="/" className="mkt-stamp footer" aria-label="DeedPro home"><span className="mkt-stamp-name">deed/pro</span></Link>
+            <LogoLockup size={28} />
+            <div className="mkt-row">
+              <Link href="/developers">Developers</Link>
+              <Link href="/try">Try it live</Link>
+              <Link href="/trust">Trust</Link>
+              <Link href="/terms">Terms</Link>
+              <Link href="/privacy">Privacy</Link>
+              <Link href="/register">Create an account</Link>
+            </div>
+          </div>
+          <div>{identityLine ?? <a href="mailto:info@deedpro.io">info@deedpro.io</a>}</div>
+          <p style={{ maxWidth: 760, color: '#9ca3af' }}>DeedPro is software, not a law firm. It prepares documents at the direction of the professional using it and does not provide legal advice.</p>
+        </div>
+      </footer>
+
+      {showSticky && <div className="mkt-sticky mkt-noprint">
+        <div className="mkt-wrap" style={{ paddingTop: 10, paddingBottom: 10, display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <span style={{ color: '#d1d5db', fontSize: 14 }}>The sandbox key is issued by a person.</span>
+          <Link href="#start" className="mkt-cta">Request a sandbox key →</Link>
+        </div>
+      </div>}
+    </div>
   )
 }
