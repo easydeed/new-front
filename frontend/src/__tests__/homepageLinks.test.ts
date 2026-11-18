@@ -5,8 +5,13 @@
  * The audit found every primary CTA dead, /register unreachable by UI,
  * 10 of 12 footer links 404ing, and the "2-min demo" iframe pointing at
  * a placeholder video. This walker extracts every href on the homepage
- * (page.tsx + StickyNav) and asserts each resolves to a real app route,
- * an in-page anchor that exists, or an allowed external scheme.
+ * and asserts each resolves to a real app route, an in-page anchor that
+ * exists, or an allowed external scheme.
+ *
+ * The landing no longer renders StickyNav. Scanning that file here
+ * would demand its old anchors (#features and the rest) on a page that
+ * does not mount it, which fails a page for a menu it does not show.
+ * StickyNav stays in the repo for the brand pin; it is not this page.
  */
 import { describe, expect, it } from '@jest/globals';
 import * as fs from 'fs';
@@ -16,11 +21,7 @@ import { codeOnly } from '../test-support/sourceText';
 const APP_DIR = path.join(__dirname, '..', 'app');
 
 const PAGE = fs.readFileSync(path.join(APP_DIR, 'page.tsx'), 'utf8');
-const NAV = fs.readFileSync(
-  path.join(__dirname, '..', 'components', 'landing-v2', 'StickyNav.tsx'),
-  'utf8'
-);
-const ALL = PAGE + NAV;
+const ALL = PAGE;
 
 function extractHrefs(src: string): string[] {
   const out: string[] = [];
@@ -69,9 +70,9 @@ describe('HM1 — every homepage href resolves', () => {
 });
 
 describe('HM1 — the conversion path exists', () => {
-  it('the nav has Login and Start Free as real links', () => {
-    expect(NAV).toContain('href="/login"');
-    expect(NAV).toContain('href="/register"');
+  it('the header has Login and the page links to register', () => {
+    expect(PAGE).toContain('href="/login"');
+    expect(PAGE).toContain('href="/register"');
   });
 
   it('the hero and pricing CTAs route to /register', () => {
