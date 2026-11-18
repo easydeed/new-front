@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap">
+<script src="./image-slot.js"></script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%237C4DFF'/%3E%3Cpath d='M19.5 7 12.5 25' stroke='%23fff' stroke-width='3.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+@font-face{font-family:'Inter';src:url('frontend/src/app/fonts/Inter-latin-variable.woff2') format('woff2');font-weight:100 900;font-display:swap}
+@font-face{font-family:'Plus Jakarta Sans';src:url('frontend/src/components/brand/fonts/PlusJakartaSans-ExtraBold-latin.woff2') format('woff2');font-weight:800;font-display:swap}
+html{scroll-behavior:smooth}
+body{margin:0;background:#fff;font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;color:#1F2B37;-webkit-font-smoothing:antialiased}
+a{color:#7C4DFF;text-decoration:none}
+a:hover{color:#6a3de8;text-decoration:underline}
+@keyframes dpStamp{0%{transform:scale(2.6) rotate(-18deg);opacity:0}60%{transform:scale(.92) rotate(-8deg);opacity:1}100%{transform:scale(1) rotate(-8deg);opacity:.9}}
+@keyframes dpShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+@keyframes dpInk{0%{background:#FDE68A;opacity:0;transform:translateY(6px)}40%{opacity:1;transform:none}100%{background:transparent}}
+@keyframes dpFan{0%{transform:translateX(0) rotate(0);opacity:0}}
+@keyframes dpPulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes dpSlideL{0%{transform:translateX(100%)}}
+@keyframes dpSlideR{0%{transform:translateX(-100%)}}
+[role=button]:focus-visible,a:focus-visible{outline:2px solid #7C4DFF;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:1100px){[data-nav-mid]{order:3;flex:1 1 100%!important}}
+@media (max-width:720px){[data-nav-menu],[data-nav-login]{display:none!important}[data-nav-right] a{padding:9px 12px!important;font-size:13px!important}}
+pre{margin:0}
+input,textarea{font-family:inherit}
+@media (max-width:900px){[data-doc-grid]{grid-template-columns:minmax(0,1fr)!important}[data-doc-side]{display:none!important}}
+</style>
+</helmet>
+
+<nav data-screen-label="Nav" style="position:fixed;top:0;left:0;right:0;z-index:20;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-bottom:1px solid #E5E7EB">
+  <div style="max-width:1200px;margin:0 auto;padding:14px clamp(16px,4vw,48px) 6px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 16px">
+    <div style="flex:1 1 0;min-width:max-content;display:flex;align-items:center;padding-bottom:6px"><a href="Platforms.dc.html" aria-label="DeedPro home" style="text-decoration:none;display:inline-flex"><span style="display:inline-flex;flex-direction:column;align-items:center;transform:rotate(-3deg);border:.06em solid #7C4DFF;border-radius:.12em;outline:1px solid #7C4DFF;outline-offset:.07em;padding:.1em .3em .18em;margin:.12em .1em;color:#7C4DFF;font-family:'IBM Plex Mono',monospace;line-height:1;font-size:34px;white-space:nowrap"><span style="font-weight:600;font-size:.8em;letter-spacing:-.04em">deed/pro</span></span></a></div>
+    <div data-nav-mid="1" style="flex:0 1 auto;min-width:0;max-width:100%;display:flex;flex-direction:column;align-items:center;gap:10px">
+      <div style="position:relative;display:grid;grid-template-columns:1fr 1fr;width:330px;max-width:100%;padding:4px;box-sizing:border-box;background:#F3F4F6;border:1px solid #E5E7EB;border-radius:999px;font-size:14px;font-weight:700">{{ navThumb }}<a href="Platforms.dc.html" style="position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 8px;border-radius:999px;white-space:nowrap;text-decoration:none;color:#fff"><span style="font:600 12px/1 'IBM Plex Mono',monospace;opacity:.75">&lt;/&gt;</span>Platforms</a><a href="Escrow-Desks.dc.html" style="position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 8px;border-radius:999px;white-space:nowrap;text-decoration:none;color:#4B5563"><span style="font:600 12px/1 'IBM Plex Mono',monospace;opacity:.75">§</span>Escrow desks</a></div>
+      <div data-nav-menu="1" style="max-width:100%;display:flex;gap:2px;font-size:13.5px;font-weight:500;overflow-x:auto"><sc-for list="{{ menu }}" as="m" hint-placeholder-count="6"><sc-if value="{{ m.on }}" hint-placeholder-val="{{ false }}"><a href="{{ m.href }}" style="padding:9px 12px;color:#7C4DFF;font-weight:700;white-space:nowrap;box-shadow:inset 0 -2px 0 #7C4DFF">{{ m.label }}</a></sc-if><sc-if value="{{ m.off }}" hint-placeholder-val="{{ true }}"><a href="{{ m.href }}" style="padding:9px 12px;color:#374151;white-space:nowrap" style-hover="color:#7C4DFF">{{ m.label }}</a></sc-if></sc-for></div>
+    </div>
+    <div data-nav-right="1" style="flex:1 1 0;min-width:max-content;display:flex;align-items:center;justify-content:flex-end;gap:6px;font-size:14px;padding-bottom:6px"><a data-nav-login="1" href="https://deedpro.io/login" style="padding:8px 12px;font-weight:600;color:#374151">Login</a><a href="Platforms.dc.html#start" style="background:#7C4DFF;color:#fff;font-weight:700;padding:10px 16px;border-radius:6px;white-space:nowrap">Request a sandbox key</a></div>
+  </div>
+</nav>{{ navSpacer }}
+
+<section data-screen-label="Trust hero" style="border-bottom:1px solid #E5E7EB;background:#F8F8FB">
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(48px,7vw,88px) clamp(20px,4vw,48px);display:flex;flex-direction:column;gap:20px">
+    <span style="font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#6D3BF0">Trust</span>
+    <h1 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:clamp(38px,5.4vw,68px);font-weight:500;letter-spacing:-0.03em;line-height:1.03;color:#12141A;max-width:1000px;text-wrap:balance">What we have, what we do not, and what we will not pretend about.</h1>
+    <p style="margin:0;font-size:19px;line-height:1.6;color:#374151;max-width:720px;text-wrap:pretty">Most trust pages are written to end a security review quickly. This one is written so you can end it yourself, early, if the answer is no.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:15px;font-weight:700"><a href="#gaps" style="background:#12141A;color:#fff;padding:13px 20px;border-radius:8px;text-decoration:none">10 things we do not have</a><a href="#have" style="border:1px solid #D1D5DB;background:#fff;color:#12141A;padding:13px 20px;border-radius:8px;text-decoration:none">7 things we do</a></div>
+  </div>
+</section>
+
+<section id="gaps" data-screen-label="What we do not have" style="background:#0B0D11;color:#fff;scroll-margin-top:var(--navh,120px)">
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(56px,7vw,88px) clamp(20px,4vw,48px);display:flex;flex-direction:column;gap:32px">
+    <div style="display:flex;flex-direction:column;gap:12px;max-width:760px">
+      <span style="font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#C4B5FD">What we do not have</span>
+      <h2 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:clamp(30px,3.8vw,44px);font-weight:500;letter-spacing:-0.025em;line-height:1.08">The gaps are first because they are what you came to find.</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:0 48px">
+      <div style="display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;padding:18px 0;border-top:1px solid #262A33"><span style="font:600 12px/1.9 'IBM Plex Mono',monospace;color:#A78BFA">01</span><div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:18px;font-weight:700;line-height:1.35">No SOC 2 report.</div><div style="font-size:15px;line-height:1.6;color:#B4B9C4">No audit scheduled.</div></div></div><div style="display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;padding:18px 0;border-top:1px solid #262A33"><span style="font:600 12px/1.9 'IBM Plex Mono',monospace;color:#A78BFA">02</span><div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:18px;font-weight:700;line-height:1.35">No penetration test.</div><div style="font-size:15px;line-height:1.6;color:#B4B9C4">None scheduled.</div></div></div><div style="display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;padding:18px 0;border-top:1px solid #262A33"><span style="font:600 12px/1.9 'IBM Plex Mono',monospace;color:#A78BFA">03</span><div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:18px;font-weight:700;line-height:1.35">No status page.</div><div style="font-size:15px;line-height:1.6;color:#B4B9C4">Nothing here measures uptime.</div></div></div><div style="display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;padding:18px 0;border-top:1px solid #262A33"><span style="font:600 12px/1.9 'IBM Plex Mono',monospace;color:#A78BFA">04</span><div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:18px;font-weight:700;line-height:1.35">No SLA.</div><div style="font-size:15px;line-height:1.6;color:#B4B9C4">Nothing has been contractually offered to anybody.</div></div></div><div style="display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;padding:18px 0;border-top:1px solid #262A33"><span style="font:600 12px/1.9 'IBM Plex Mono',monospace;color:#A78BFA">05</span><div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:18px;font-weight:700;line-height:1.35">No insurance on record.</div></div></div><div style="display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;padding:18px 0;border-top:1px solid #262A33"><span style="font:600 12px/1.9 'IBM Plex Mono',monospace;color:#A78BFA">06</span><div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:18px;font-weight:700;line-height:1.35">No monitored security mailbox.</div><div style="font-size:15px;line-height:1.6;color:#B4B9C4">No published key.</div></div></div><div style="display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;padding:18px 0;border-top:1px solid #262A33"><span style="font:600 12px/1.9 'IBM Plex Mono',monospace;color:#A78BFA">07</span><div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:18px;font-weight:700;line-height:1.35">No SSO. No team accounts.</div><div style="font-size:15px;line-height:1.6;color:#B4B9C4">One login owns its own work.</div></div></div><div style="display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;padding:18px 0;border-top:1px solid #262A33"><span style="font:600 12px/1.9 'IBM Plex Mono',monospace;color:#A78BFA">08</span><div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:18px;font-weight:700;line-height:1.35">No SDK, no client library.</div><div style="font-size:15px;line-height:1.6;color:#B4B9C4">cURL against the documented JSON.</div></div></div><div style="display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;padding:18px 0;border-top:1px solid #262A33"><span style="font:600 12px/1.9 'IBM Plex Mono',monospace;color:#A78BFA">09</span><div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:18px;font-weight:700;line-height:1.35">No webhooks.</div><div style="font-size:15px;line-height:1.6;color:#B4B9C4">You poll, or your user opens the confirmation link.</div></div></div><div style="display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;padding:18px 0;border-top:1px solid #262A33"><span style="font:600 12px/1.9 'IBM Plex Mono',monospace;color:#A78BFA">10</span><div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:18px;font-weight:700;line-height:1.35">Outside California: not planned.</div><div style="font-size:15px;line-height:1.6;color:#B4B9C4">The templates are measured against California county recorder requirements and the data model is California-specific. If you need a second state we are the wrong vendor, and we will say so on the first call.</div></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="have" data-screen-label="What we do have" style="border-bottom:1px solid #E5E7EB;scroll-margin-top:var(--navh,120px)">
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(56px,7vw,88px) clamp(20px,4vw,48px);display:flex;flex-direction:column;gap:32px">
+    <div style="display:flex;flex-direction:column;gap:12px;max-width:760px">
+      <span style="font:600 12px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#166534">What we do have</span>
+      <h2 style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:clamp(30px,3.8vw,44px);font-weight:500;letter-spacing:-0.025em;line-height:1.08;color:#12141A">Each one is checkable: read a page, call an endpoint, or look us up.</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:28px 40px">
+      <div style="border-top:2px solid #12141A;padding-top:16px;display:flex;flex-direction:column;gap:8px"><span style="font:600 12px/1 'IBM Plex Mono',monospace;color:#166534">01</span><div style="font-size:19px;font-weight:700;line-height:1.3;color:#12141A">Who you would be contracting with</div><div style="font-size:15.5px;line-height:1.65;color:#4B5563">DeedPro Corporation, a Wyoming corporation, 440 Rte 66, Glendora, CA 91750. info@deedpro.io. The same entity is named in the Terms and the Privacy Policy.</div></div><div style="border-top:2px solid #12141A;padding-top:16px;display:flex;flex-direction:column;gap:8px"><span style="font:600 12px/1 'IBM Plex Mono',monospace;color:#166534">02</span><div style="font-size:19px;font-weight:700;line-height:1.3;color:#12141A">Every third party that touches your data, named</div><div style="font-size:15.5px;line-height:1.65;color:#4B5563">Eight, listed individually with what each one receives in section 4 of the Privacy Policy. Note the second one: address autocomplete runs in the browser, so the address text a user types reaches Google before it reaches us.</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"><span style="font:500 12.5px/1 'IBM Plex Mono',monospace;color:#12141A;background:#F3F4F6;border:1px solid #E5E7EB;border-radius:4px;padding:6px 8px">SiteX (ICE)</span><span style="font:500 12.5px/1 'IBM Plex Mono',monospace;color:#12141A;background:#F3F4F6;border:1px solid #E5E7EB;border-radius:4px;padding:6px 8px">Google Places</span><span style="font:500 12.5px/1 'IBM Plex Mono',monospace;color:#12141A;background:#F3F4F6;border:1px solid #E5E7EB;border-radius:4px;padding:6px 8px">Stripe</span><span style="font:500 12.5px/1 'IBM Plex Mono',monospace;color:#12141A;background:#F3F4F6;border:1px solid #E5E7EB;border-radius:4px;padding:6px 8px">SendGrid</span><span style="font:500 12.5px/1 'IBM Plex Mono',monospace;color:#12141A;background:#F3F4F6;border:1px solid #E5E7EB;border-radius:4px;padding:6px 8px">OpenAI</span><span style="font:500 12.5px/1 'IBM Plex Mono',monospace;color:#12141A;background:#F3F4F6;border:1px solid #E5E7EB;border-radius:4px;padding:6px 8px">Amazon S3</span><span style="font:500 12.5px/1 'IBM Plex Mono',monospace;color:#12141A;background:#F3F4F6;border:1px solid #E5E7EB;border-radius:4px;padding:6px 8px">Render</span><span style="font:500 12.5px/1 'IBM Plex Mono',monospace;color:#12141A;background:#F3F4F6;border:1px solid #E5E7EB;border-radius:4px;padding:6px 8px">Vercel</span></div></div><div style="border-top:2px solid #12141A;padding-top:16px;display:flex;flex-direction:column;gap:8px"><span style="font:600 12px/1 'IBM Plex Mono',monospace;color:#166534">03</span><div style="font-size:19px;font-weight:700;line-height:1.3;color:#12141A">No document without a named person</div><div style="font-size:15.5px;line-height:1.65;color:#4B5563">A deed does not render from an API call alone. The draft is created, a person opens a confirmation link, and the PDF exists only after they put their name to it. That is the product, not a setting.</div></div><div style="border-top:2px solid #12141A;padding-top:16px;display:flex;flex-direction:column;gap:8px"><span style="font:600 12px/1 'IBM Plex Mono',monospace;color:#166534">04</span><div style="font-size:19px;font-weight:700;line-height:1.3;color:#12141A">Public verification reveals nothing</div><div style="font-size:15.5px;line-height:1.65;color:#4B5563">A verification lookup returns the document id, the deed type, the status and the creation time. Never the property address, the parcel number, or a party name.</div></div><div style="border-top:2px solid #12141A;padding-top:16px;display:flex;flex-direction:column;gap:8px"><span style="font:600 12px/1 'IBM Plex Mono',monospace;color:#166534">05</span><div style="font-size:19px;font-weight:700;line-height:1.3;color:#12141A">Drafts expire in 7 days</div><div style="font-size:15.5px;line-height:1.65;color:#4B5563">An unconfirmed draft is deleted after seven days. Not archived. Deleted.</div></div><div style="border-top:2px solid #12141A;padding-top:16px;display:flex;flex-direction:column;gap:8px"><span style="font:600 12px/1 'IBM Plex Mono',monospace;color:#166534">06</span><div style="font-size:19px;font-weight:700;line-height:1.3;color:#12141A">Test keys, on request</div><div style="font-size:15.5px;line-height:1.65;color:#4B5563">Keys are issued after a short conversation, not self-serve. A test key is prefixed dp_test_ and is distinguishable from a live key in every response that carries it.</div></div><div style="border-top:2px solid #12141A;padding-top:16px;display:flex;flex-direction:column;gap:8px"><span style="font:600 12px/1 'IBM Plex Mono',monospace;color:#166534">07</span><div style="font-size:19px;font-weight:700;line-height:1.3;color:#12141A">A DPA, drafted and pending counsel</div><div style="font-size:15.5px;line-height:1.65;color:#4B5563">Written and not yet reviewed. Ask and you will get the draft with that caveat attached, not a signature page.</div></div>
+    </div>
+  </div>
+</section>
+
+<section data-screen-label="Questionnaire" style="background:#F8F8FB;border-bottom:1px solid #E5E7EB">
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(40px,5vw,64px) clamp(20px,4vw,48px);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px 40px">
+    <div style="max-width:720px;display:flex;flex-direction:column;gap:8px"><div style="font-family:'Source Serif 4',Georgia,serif;font-size:clamp(26px,3vw,34px);font-weight:500;letter-spacing:-0.02em;line-height:1.15;color:#12141A">Have a questionnaire? Send it.</div><div style="font-size:16px;line-height:1.65;color:#4B5563">Questions this page does not answer will be answered with "we do not have that" where that is the truth.</div></div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:16px;font-weight:700"><a href="mailto:info@deedpro.io" style="background:#7C4DFF;color:#fff;padding:14px 22px;border-radius:8px;text-decoration:none">info@deedpro.io</a><a href="Developers.dc.html" style="border:1px solid #D1D5DB;background:#fff;color:#12141A;padding:14px 22px;border-radius:8px;text-decoration:none">Read the API docs</a></div>
+  </div>
+</section>
+
+<footer data-screen-label="Footer" style="background:#0B0D11;color:#D1D5DB">
+  <div style="max-width:1200px;margin:0 auto;padding:40px clamp(20px,4vw,48px) 48px;display:flex;flex-direction:column;gap:22px">
+    <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px">
+      <span style="display:inline-flex;flex-direction:column;align-items:center;transform:rotate(-3deg);border:.06em solid #A78BFA;border-radius:.12em;outline:1px solid #A78BFA;outline-offset:.07em;padding:.12em .3em .12em;margin:.12em .1em;color:#A78BFA;font-family:'IBM Plex Mono',monospace;line-height:1;font-size:48px;white-space:nowrap"><span style="font-weight:600;font-size:.8em;letter-spacing:-.04em">deed/pro</span><span style="align-self:stretch;height:1px;background:#A78BFA;margin:.12em 0 .09em"></span><span style="font-size:.17em;font-weight:600;letter-spacing:.2em">DEED ENGINE · CALIFORNIA</span></span>
+      <div style="display:flex;flex-wrap:wrap;gap:8px 24px;font-size:14px"><a href="https://deedpro.io/developers" style="color:#D1D5DB">Developers</a><a href="https://deedpro.io/try" style="color:#D1D5DB">Try it live</a><a href="https://deedpro.io/trust" style="color:#D1D5DB">Trust</a><a href="https://deedpro.io/terms" style="color:#D1D5DB">Terms</a><a href="https://deedpro.io/privacy" style="color:#D1D5DB">Privacy</a></div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:14px;border-top:1px solid #1F2937;padding-top:20px"><span style="font-weight:700;color:#fff">Contact</span><span>DeedPro Corporation · 440 Rte 66, Glendora, CA 91750 · <a href="mailto:info@deedpro.io" style="color:#C4B5FD">info@deedpro.io</a></span></div>
+    <div style="font-size:13px;line-height:1.6;color:#9CA3AF;max-width:760px">DeedPro is software, not a law firm. It prepares documents at the direction of the professional using it and does not provide legal advice or legal determinations.</div>
+  </div>
+</footer>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { navH: 96, active: '', lang: 'curl', fName: '', fEmail: '', fWhat: '', sent: false, tried: false };
+  componentDidMount() {
+    this.navEl = document.querySelector('nav[data-screen-label="Nav"]');
+    const measure = () => { if (this.navEl) { const h = this.navEl.offsetHeight; if (h) document.documentElement.style.setProperty('--navh', h + 'px'); if (h && h !== this.state.navH) this.setState({ navH: h }); } };
+    measure(); if ('ResizeObserver' in window && this.navEl) { this.ro = new ResizeObserver(measure); this.ro.observe(this.navEl); }
+    this.onKey = (e) => { const t = e.target; if ((e.key === 'Enter' || e.key === ' ') && t && t.getAttribute && t.getAttribute('role') === 'button') { e.preventDefault(); t.click(); } };
+    document.addEventListener('keydown', this.onKey);
+    this.onSpy = () => {
+      if (this.raf) return;
+      this.raf = requestAnimationFrame(() => {
+        this.raf = 0;
+        const els = document.querySelectorAll('[data-doc]'); if (!els.length) return;
+        let cur = els[0].id; els.forEach((el) => { if (el.getBoundingClientRect().top <= this.state.navH + 80) cur = el.id; });
+        if (cur !== this.state.active) this.setState({ active: cur }, () => {
+          const side = document.querySelector('[data-doc-side]'), link = side && side.querySelector('a[href="#' + cur + '"]'); if (!link) return;
+          const sr = side.getBoundingClientRect(), lr = link.getBoundingClientRect(), top = lr.top - sr.top + side.scrollTop, bot = top + lr.height;
+          if (top < side.scrollTop) side.scrollTop = Math.max(0, top - 40); else if (bot > side.scrollTop + side.clientHeight) side.scrollTop = bot - side.clientHeight + 12;
+        });
+      });
+    };
+    window.addEventListener('scroll', this.onSpy, { passive: true, capture: true }); this.onSpy();
+  }
+  componentWillUnmount() { document.removeEventListener('keydown', this.onKey); window.removeEventListener('scroll', this.onSpy, { capture: true }); if (this.ro) this.ro.disconnect(); }
+  shell(here) {
+    const M = [['Platforms.dc.html#output', 'Sample deed'], ['Platforms.dc.html#api', 'API'], ['Platforms.dc.html#answers', 'Hard questions'], ['Platforms.dc.html#pricing', 'Pricing'], ['Developers.dc.html', 'Docs'], ['Trust.dc.html', 'Trust']];
+    return {
+      menu: M.map((m) => ({ href: m[0], label: m[1], on: m[1] === here, off: m[1] !== here })),
+      navSpacer: React.createElement('div', { style: { height: this.state.navH } }),
+      navThumb: React.createElement('span', { style: { position: 'absolute', top: 4, bottom: 4, left: 4, width: 'calc(50% - 4px)', borderRadius: 999, background: '#12141A', boxShadow: '0 2px 8px rgba(18,20,26,.35)' } }),
+    };
+  }
+  renderVals() { return { ...this.shell('Trust') }; }
+}
+</script>
+</body>
+</html>
