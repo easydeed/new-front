@@ -55,6 +55,7 @@ export const metadata: Metadata = {
   // form — not a client, not a stub. "Trusted by 1,200+ escrow officers"
   // went with them: nothing in the product measures it.
   description: "California deed preparation for escrow and title professionals. Recorder-formatted PDFs, with every field confirmed before it prints.",
+  manifest: "/site.webmanifest",
   keywords: "real estate, deed preparation, California deeds, grant deed, quitclaim deed, escrow, title",
   authors: [{ name: "DeedPro Team" }],
   openGraph: {
